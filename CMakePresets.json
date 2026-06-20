@@ -20,7 +20,7 @@
       "binaryDir": "${sourceDir}/build/debug-static",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "MODULIZER_BUILD_SHARED": "OFF"
+        "PRISM_BUILD_SHARED": "OFF"
       }
     },
     {
@@ -31,7 +31,7 @@
       "binaryDir": "${sourceDir}/build/release-static",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "MODULIZER_BUILD_SHARED": "OFF"
+        "PRISM_BUILD_SHARED": "OFF"
       }
     },
     {
@@ -42,7 +42,7 @@
       "binaryDir": "${sourceDir}/build/debug-shared",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "MODULIZER_BUILD_SHARED": "ON"
+        "PRISM_BUILD_SHARED": "ON"
       }
     },
     {
@@ -53,7 +53,7 @@
       "binaryDir": "${sourceDir}/build/release-shared",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "MODULIZER_BUILD_SHARED": "ON"
+        "PRISM_BUILD_SHARED": "ON"
       }
     }
   ]

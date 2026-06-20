@@ -1,5 +1,8 @@
 {
-  "name": "prism",
-  "version": "0.1.0",
-  "dependencies": []
+  "name" : "prism",
+  "version" : "0.1.0",
+  "dependencies" : [ {
+    "name" : "catch2",
+    "version>=" : "3.14.0"
+  } ]
 }

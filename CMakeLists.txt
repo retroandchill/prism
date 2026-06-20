@@ -19,7 +19,7 @@ set(VCPKG_DEPS_DIR ${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET})
 set(VCPKG_BIN_DIR ${VCPKG_DEPS_DIR}/bin)
 
 if (PRISM_BUILD_SHARED)
-    add_compile_definitions(PRISM_SHARED PRISM_EXPORT)
+    add_compile_definitions(PRISM_SHARED)
 endif()
 
 project(prism LANGUAGES CXX)
@@ -31,5 +31,9 @@ if (MSVC)
     add_compile_definitions(_UTF8)
 endif()
 
-add_subdirectory(libs)
+if (PRISM_BUILD_TESTS)
+    include(CTest)
+    enable_testing()
+endif()
 
+add_subdirectory(libs)
