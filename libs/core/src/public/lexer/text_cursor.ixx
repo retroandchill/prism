@@ -44,6 +44,17 @@ namespace prism
             position_ += characters;
         }
 
+        constexpr void skip_whitespace()
+        {
+            while (!at_end())
+            {
+                if (std::isspace(current()))
+                    advance();
+                else
+                    break;
+            }
+        }
+
         [[nodiscard]] constexpr std::string_view remaining() const
         {
             return text_.substr(position_);

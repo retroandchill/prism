@@ -19,6 +19,7 @@ namespace prism
     {
         eof,
         unrecognized,
+        unterminated_block_comment,
 
         kw_var,
         kw_func,

@@ -8,21 +8,6 @@ module prism.core.lexer;
 
 namespace prism
 {
-    namespace
-    {
-        constexpr void skip_whitespace(TextCursor &cursor)
-        {
-            while (!cursor.at_end())
-            {
-                if (std::isspace(cursor.current()))
-                    cursor.advance();
-                else
-                    break;
-            }
-        }
-
-    } // namespace
-
     void Lexer::add_matcher(std::unique_ptr<TokenMatcher> matcher)
     {
         const auto it = std::ranges::lower_bound(matchers_, matcher, priority_less);
@@ -36,7 +21,7 @@ namespace prism
         while (true)
         {
 
-            skip_whitespace(cursor);
+            cursor.skip_whitespace();
 
             if (cursor.at_end())
                 break;

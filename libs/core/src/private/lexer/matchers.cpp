@@ -81,7 +81,52 @@ namespace prism
         }
 
         constexpr auto sorted_operators = sort_operators_by_length(raw_operators);
+
+        void skip_line_comment(TextCursor &cursor)
+        {
+            while (!cursor.at_end() && cursor.current() != '\n')
+            {
+                cursor.advance();
+            }
+        }
+
+        std::optional<Token> skip_block_comment(TextCursor &cursor)
+        {
+            auto start = cursor.position();
+            while (!cursor.at_end())
+            {
+                if (cursor.current() == '*' && cursor.peek() == '/')
+                {
+                    cursor.advance(2);
+                    return std::nullopt;
+                }
+                cursor.advance();
+            }
+
+            return make_token(TokenKind::unterminated_block_comment, start, cursor.position());
+        }
     } // namespace
+
+    std::optional<Token> CommentMatcher::try_match(TextCursor &cursor) const
+    {
+        if (cursor.current() == '/')
+        {
+            if (cursor.peek() == '/')
+            {
+                skip_line_comment(cursor);
+            }
+            else if (cursor.peek() == '*')
+            {
+                // We only return a token if we find a block comment and the lexer reaches the end of the input before
+                // encountering a closing comment delimiter.
+                return skip_block_comment(cursor);
+            }
+
+            cursor.skip_whitespace();
+        }
+
+        return std::nullopt;
+    }
 
     std::optional<Token> IdentifierMatcher::try_match(TextCursor &cursor) const
     {

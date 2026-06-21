@@ -17,6 +17,17 @@ import prism.core.lexer.text_cursor;
 
 namespace prism
 {
+    export class PRISM_CORE_API CommentMatcher final : public TokenMatcher
+    {
+      public:
+        // This forces CommentMatcher to alway be run first
+        constexpr CommentMatcher() : TokenMatcher(std::numeric_limits<std::size_t>::min())
+        {
+        }
+
+        [[nodiscard]] std::optional<Token> try_match(TextCursor &cursor) const override;
+    };
+
     export class PRISM_CORE_API IdentifierMatcher final : public TokenMatcher
     {
       public:
