@@ -110,8 +110,11 @@ namespace prism
 
                     // Doc comments are not tokenized by the lexer, but instead will be parsed on demand in contexts
                     // where they are needed.
-                    return is_doc_comment ? std::optional{make_token(TokenKind::doc_comment, start, cursor.position())}
-                                          : std::nullopt;
+                    const auto comment =
+                        is_doc_comment ? std::optional{make_token(TokenKind::doc_comment, start, cursor.position())}
+                                       : std::nullopt;
+                    cursor.skip_whitespace();
+                    return comment;
                 }
                 cursor.advance();
             }

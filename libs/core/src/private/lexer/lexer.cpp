@@ -35,7 +35,13 @@ namespace prism
                     token_found = true;
                     break;
                 }
+
+                if (cursor.at_end())
+                    break;
             }
+
+            if (cursor.at_end())
+                break;
 
             if (token_found)
                 continue;

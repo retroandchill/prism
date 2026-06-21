@@ -16,10 +16,10 @@ using namespace prism;
 
 TEST_CASE("Simple grammar", "[lexer]")
 {
-    SourceFile source_file{"func do_thing(x: int) {"
-                           "    return x + 1;"
-                           "}"};
-    auto lexer = default_lexer();
+    const SourceFile source_file{"func do_thing(x: int) {"
+                                 "    return x + 1;"
+                                 "}"};
+    const auto lexer = default_lexer();
     auto tokens = lexer.lex(source_file);
 
     REQUIRE(tokens.size() == 15);
@@ -38,4 +38,68 @@ TEST_CASE("Simple grammar", "[lexer]")
     CHECK(tokens[12].kind == TokenKind::semicolon);
     CHECK(tokens[13].kind == TokenKind::rbrace);
     CHECK(tokens[14].kind == TokenKind::eof);
+}
+
+TEST_CASE("Skips line comments until the end of the line", "[lexer]")
+{
+    const SourceFile source_file{"// This is a line comment\n"
+                                 "var x = 5; // This is another line comment\n"};
+    const auto lexer = default_lexer();
+    auto tokens = lexer.lex(source_file);
+    REQUIRE(tokens.size() == 6);
+    CHECK(tokens[0].kind == TokenKind::kw_var);
+    CHECK(tokens[1].kind == TokenKind::identifier);
+    CHECK(tokens[2].kind == TokenKind::equal);
+    CHECK(tokens[3].kind == TokenKind::number);
+    CHECK(tokens[4].kind == TokenKind::semicolon);
+    CHECK(tokens[5].kind == TokenKind::eof);
+}
+
+TEST_CASE("Block comments can split a single line", "[lexer]")
+{
+    const SourceFile source_file{"var x = /* Block comment */ 5;"};
+    const auto lexer = default_lexer();
+    auto tokens = lexer.lex(source_file);
+    REQUIRE(tokens.size() == 6);
+    CHECK(tokens[0].kind == TokenKind::kw_var);
+    CHECK(tokens[1].kind == TokenKind::identifier);
+    CHECK(tokens[2].kind == TokenKind::equal);
+    CHECK(tokens[3].kind == TokenKind::number);
+    CHECK(tokens[4].kind == TokenKind::semicolon);
+    CHECK(tokens[5].kind == TokenKind::eof);
+}
+
+TEST_CASE("Block comments can span multiple lines", "[lexer]")
+{
+    const SourceFile source_file{"/*\n"
+                                 "This is a multiline block comment\n"
+                                 "*/\n"
+                                 "var x = 5;"};
+    const auto lexer = default_lexer();
+    auto tokens = lexer.lex(source_file);
+    REQUIRE(tokens.size() == 6);
+    CHECK(tokens[0].kind == TokenKind::kw_var);
+    CHECK(tokens[1].kind == TokenKind::identifier);
+    CHECK(tokens[2].kind == TokenKind::equal);
+    CHECK(tokens[3].kind == TokenKind::number);
+    CHECK(tokens[4].kind == TokenKind::semicolon);
+    CHECK(tokens[5].kind == TokenKind::eof);
+}
+
+TEST_CASE("Doc comments are preserved as opaque tokens", "[lexer]")
+{
+    const SourceFile source_file{"/**\n"
+                                 "This is a documentation comment\n"
+                                 "*/\n"
+                                 "var x = 5;"};
+    const auto lexer = default_lexer();
+    auto tokens = lexer.lex(source_file);
+    REQUIRE(tokens.size() == 7);
+    CHECK(tokens[0].kind == TokenKind::doc_comment);
+    CHECK(tokens[1].kind == TokenKind::kw_var);
+    CHECK(tokens[2].kind == TokenKind::identifier);
+    CHECK(tokens[3].kind == TokenKind::equal);
+    CHECK(tokens[4].kind == TokenKind::number);
+    CHECK(tokens[5].kind == TokenKind::semicolon);
+    CHECK(tokens[6].kind == TokenKind::eof);
 }

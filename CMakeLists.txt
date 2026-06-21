@@ -33,6 +33,11 @@ endif()
 
 if (PRISM_BUILD_TESTS)
     include(CTest)
+
+    find_package(Catch2 CONFIG REQUIRED)
+    list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extra)
+    include(Catch)
+
     enable_testing()
 endif()
 
