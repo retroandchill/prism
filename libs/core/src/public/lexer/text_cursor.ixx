@@ -39,9 +39,14 @@ namespace prism
             return pos >= text_.size() ? '\0' : text_[pos];
         }
 
-        constexpr void advance()
+        constexpr void advance(const std::size_t characters = 1)
         {
-            ++position_;
+            position_ += characters;
+        }
+
+        [[nodiscard]] constexpr std::string_view remaining() const
+        {
+            return text_.substr(position_);
         }
 
       private:

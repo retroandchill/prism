@@ -10,150 +10,57 @@ namespace prism
 {
     namespace
     {
-        TokenKind get_identifier_kind(const std::string_view identifier)
+        constexpr void skip_whitespace(TextCursor &cursor)
         {
-            if (identifier == "var")
-                return TokenKind::kw_var;
-            if (identifier == "func")
-                return TokenKind::kw_func;
-            if (identifier == "extern")
-                return TokenKind::kw_extern;
-            if (identifier == "return")
-                return TokenKind::kw_return;
-
-            return TokenKind::identifier;
+            while (!cursor.at_end())
+            {
+                if (std::isspace(cursor.current()))
+                    cursor.advance();
+                else
+                    break;
+            }
         }
+
     } // namespace
 
-    Token Lexer::next_token()
+    void Lexer::add_matcher(std::unique_ptr<TokenMatcher> matcher)
     {
-        skip_whitespace();
-
-        if (cursor_.at_end())
-            return make_token(TokenKind::eof);
-
-        auto current = cursor_.current();
-        if (std::isalpha(current) || current == '_')
-            return make_identifier();
-
-        if (std::isdigit(current))
-            return make_number();
-
-        TokenKind kind{};
-        switch (current)
-        {
-            case '{':
-                kind = TokenKind::lbrace;
-                break;
-            case '}':
-                kind = TokenKind::rbrace;
-                break;
-            case '[':
-                kind = TokenKind::lbracket;
-                break;
-            case ']':
-                kind = TokenKind::rbracket;
-                break;
-            case '(':
-                kind = TokenKind::lparen;
-                break;
-            case ')':
-                kind = TokenKind::rparen;
-                break;
-            case ',':
-                kind = TokenKind::comma;
-                break;
-            case ';':
-                kind = TokenKind::semicolon;
-                break;
-            case ':':
-                kind = TokenKind::colon;
-                break;
-            case '.':
-                kind = TokenKind::dot;
-                break;
-            case '=':
-                kind = TokenKind::equal;
-                break;
-            case '+':
-                kind = TokenKind::plus;
-                break;
-            case '-':
-                kind = TokenKind::minus;
-                break;
-            case '*':
-                kind = TokenKind::star;
-                break;
-            case '/':
-                kind = TokenKind::slash;
-                break;
-            case '%':
-                kind = TokenKind::percent;
-                break;
-            case '&':
-                kind = TokenKind::ampersand;
-                break;
-            case '|':
-                kind = TokenKind::pipe;
-                break;
-            case '^':
-                kind = TokenKind::caret;
-                break;
-            case '?':
-                kind = TokenKind::question;
-                break;
-            case '!':
-                kind = TokenKind::exclamation;
-                break;
-            default:
-                kind = TokenKind::unrecognized;
-                break;
-        }
-
-        const auto token = make_token(kind, cursor_.position(), cursor_.position() + 1);
-        cursor_.advance();
-        return token;
+        const auto it = std::ranges::lower_bound(matchers_, matcher, priority_less);
+        matchers_.insert(it, std::move(matcher));
     }
 
-    void Lexer::skip_whitespace()
+    std::vector<Token> Lexer::lex(const SourceFile &source_file) const
     {
-        while (!cursor_.at_end())
+        std::vector<Token> tokens;
+        TextCursor cursor{source_file.text()};
+        while (true)
         {
-            if (std::isspace(cursor_.current()))
-                cursor_.advance();
-            else
-                break;
-        }
-    }
 
-    Token Lexer::make_identifier()
-    {
-        const auto start = cursor_.position();
-        cursor_.advance();
-        while (!cursor_.at_end())
-        {
-            if (std::isalnum(cursor_.current()) || cursor_.current() == '_')
-                cursor_.advance();
-            else
-                break;
-        }
+            skip_whitespace(cursor);
 
-        const auto identifier = std::string_view(source_file_.text()).substr(start, cursor_.position() - start);
-        return make_token(get_identifier_kind(identifier), start, cursor_.position());
-    }
-
-    Token Lexer::make_number()
-    {
-        const auto start = cursor_.position();
-        cursor_.advance();
-        while (!cursor_.at_end())
-        {
-            if (std::isdigit(cursor_.current()))
-                cursor_.advance();
-            else
+            if (cursor.at_end())
                 break;
+
+            auto token_found = false;
+            for (const auto &matcher : matchers_)
+            {
+                if (const auto token = matcher->try_match(cursor); token.has_value())
+                {
+                    tokens.push_back(*token);
+                    token_found = true;
+                    break;
+                }
+            }
+
+            if (token_found)
+                continue;
+
+            // If none of the matchers matched, add an unrecognized token, so we just skip it
+            tokens.emplace_back(TokenKind::unrecognized, SourceRange{cursor.position(), cursor.position() + 1});
+            cursor.advance();
         }
 
-        return make_token(TokenKind::number, start, cursor_.position());
+        tokens.emplace_back(TokenKind::eof);
+        return tokens;
     }
 } // namespace prism

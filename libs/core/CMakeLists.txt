@@ -1,13 +1,18 @@
 set(PRISM_HEADERS include/prism/core/exports.h)
 
 set(PRISM_SOURCES
-        src/private/lexer/lexer.cpp)
+        src/private/lexer/lexer.cpp
+        src/private/lexer/matchers.cpp
+        src/private/lexer/defaults.cpp)
 
 set(PRISM_PUBLIC_MODULES
         src/public/lexer/token.ixx
         src/public/source/source_file.ixx
         src/public/lexer/text_cursor.ixx
         src/public/lexer/lexer.ixx
+        src/public/lexer/token_matcher.ixx
+        src/public/lexer/matchers.ixx
+        src/public/lexer/defaults.ixx
 )
 
 

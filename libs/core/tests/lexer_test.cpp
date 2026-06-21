@@ -10,6 +10,7 @@ import std;
 import prism.core.lexer;
 import prism.core.lexer.token;
 import prism.core.source.source_file;
+import prism.core.lexer.defaults;
 
 using namespace prism;
 
@@ -18,14 +19,8 @@ TEST_CASE("Simple grammar", "[lexer]")
     SourceFile source_file{"func do_thing(x: int) {"
                            "    return x + 1;"
                            "}"};
-    Lexer lexer{source_file};
-    std::vector<Token> tokens;
-    Token token;
-    do
-    {
-        token = lexer.next_token();
-        tokens.push_back(token);
-    } while (token.kind != TokenKind::eof);
+    auto lexer = default_lexer();
+    auto tokens = lexer.lex(source_file);
 
     REQUIRE(tokens.size() == 15);
     CHECK(tokens[0].kind == TokenKind::kw_func);

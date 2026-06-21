@@ -17,7 +17,7 @@ namespace prism
 {
     export enum class TokenKind
     {
-        eof = 0,
+        eof,
         unrecognized,
 
         kw_var,
@@ -25,29 +25,252 @@ namespace prism
         kw_extern,
         kw_return,
 
-        lbrace = 100,
-        rbrace,
+        /**
+         * [
+         */
         lbracket,
-        rbracket,
-        lparen,
-        rparen,
-        comma,
-        semicolon,
-        colon,
-        dot,
-        equal,
-        plus,
-        minus,
-        star,
-        slash,
-        percent,
-        ampersand,
-        pipe,
-        caret,
-        question,
-        exclamation,
 
-        identifier = 200,
+        /**
+         * ]
+         */
+        rbracket,
+
+        /**
+         * (
+         */
+        lparen,
+
+        /**
+         * )
+         */
+        rparen,
+
+        /**
+         * {
+         */
+        lbrace,
+
+        /**
+         * }
+         */
+        rbrace,
+
+        /**
+         * .
+         */
+        period,
+
+        /**
+         * ...
+         */
+        ellipsis,
+
+        /**
+         * &
+         */
+        amp,
+
+        /**
+         * &&
+         */
+        amp_amp,
+
+        /**
+         * &=
+         */
+        amp_equal,
+
+        /**
+         * *
+         */
+        star,
+
+        /**
+         * *=
+         */
+        star_equal,
+
+        /**
+         * +
+         */
+        plus,
+
+        /**
+         * ++
+         */
+        plus_plus,
+
+        /**
+         * +=
+         */
+        plus_equal,
+
+        /**
+         * -
+         */
+        minus,
+
+        /**
+         * ->
+         */
+        arrow,
+
+        /**
+         * --
+         */
+        minus_minus,
+
+        /**
+         * -=
+         */
+        minus_equal,
+
+        /**
+         * ~
+         */
+        tilde,
+
+        /**
+         * !
+         */
+        exclaim,
+
+        /**
+         * !=
+         */
+        exclaim_equal,
+
+        /**
+         * /
+         */
+        slash,
+
+        /**
+         * /=
+         */
+        slash_equal,
+
+        /**
+         * %
+         */
+        percent,
+
+        /**
+         * %=
+         */
+        percent_equal,
+
+        /**
+         * <
+         */
+        less,
+
+        /**
+         * <<
+         */
+        less_less,
+
+        /**
+         * <=
+         */
+        less_equal,
+
+        /**
+         * <<=
+         */
+        less_less_equal,
+
+        /**
+         * <=>
+         */
+        spaceship,
+
+        /**
+         * >
+         */
+        greater,
+
+        /**
+         * >>
+         */
+        greater_greater,
+
+        /**
+         * >=
+         */
+        greater_equal,
+
+        /**
+         * >>=
+         */
+        greater_greater_equal,
+
+        /**
+         * ^
+         */
+        caret,
+
+        /**
+         * ^=
+         */
+        caret_equal,
+
+        /**
+         * |
+         */
+        pipe,
+
+        /**
+         * ||
+         */
+        pipe_pipe,
+
+        /**
+         * |=
+         */
+        pipe_equal,
+
+        /**
+         * ?
+         */
+        question,
+
+        /**
+         * ??
+         */
+        question_question,
+
+        /**
+         * :
+         */
+        colon,
+
+        /**
+         * ::
+         */
+        colon_colon,
+
+        /**
+         * ;
+         */
+        semicolon,
+
+        /**
+         * =
+         */
+        equal,
+
+        /**
+         * ==
+         */
+        equal_equal,
+
+        /**
+         * ,
+         */
+        comma,
+
+        identifier,
         number,
         string,
     };
