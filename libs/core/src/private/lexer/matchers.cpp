@@ -93,12 +93,25 @@ namespace prism
         std::optional<Token> skip_block_comment(TextCursor &cursor)
         {
             auto start = cursor.position();
+            cursor.advance(2);
+
+            auto is_doc_comment = false;
+            if (!cursor.at_end() && cursor.current() == '*')
+            {
+                is_doc_comment = true;
+                cursor.advance();
+            }
+
             while (!cursor.at_end())
             {
                 if (cursor.current() == '*' && cursor.peek() == '/')
                 {
                     cursor.advance(2);
-                    return std::nullopt;
+
+                    // Doc comments are not tokenized by the lexer, but instead will be parsed on demand in contexts
+                    // where they are needed.
+                    return is_doc_comment ? std::optional{make_token(TokenKind::doc_comment, start, cursor.position())}
+                                          : std::nullopt;
                 }
                 cursor.advance();
             }

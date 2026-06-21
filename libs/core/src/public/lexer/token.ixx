@@ -20,6 +20,7 @@ namespace prism
         eof,
         unrecognized,
         unterminated_block_comment,
+        doc_comment,
 
         kw_var,
         kw_func,

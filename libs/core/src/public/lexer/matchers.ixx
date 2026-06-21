@@ -20,8 +20,12 @@ namespace prism
     export class PRISM_CORE_API CommentMatcher final : public TokenMatcher
     {
       public:
-        // This forces CommentMatcher to alway be run first
-        constexpr CommentMatcher() : TokenMatcher(std::numeric_limits<std::size_t>::min())
+        /**
+         * Create the default state of the comment matcher.
+         *
+         * @remarks Sets the priority to the lowest possible value to ensure it always gets run first in any context
+         */
+        constexpr CommentMatcher() : TokenMatcher{std::numeric_limits<std::int32_t>::min()}
         {
         }
 
