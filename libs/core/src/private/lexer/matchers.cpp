@@ -12,10 +12,16 @@ namespace prism
 
     namespace
     {
-        const std::flat_map<std::string_view, TokenKind> keywords = {{"var", TokenKind::kw_var},
-                                                                     {"func", TokenKind::kw_func},
-                                                                     {"extern", TokenKind::kw_extern},
-                                                                     {"return", TokenKind::kw_return}};
+        const std::flat_map<std::string_view, TokenKind> keywords = {
+            {"var", TokenKind::kw_var},       {"func", TokenKind::kw_func},   {"extern", TokenKind::kw_extern},
+            {"return", TokenKind::kw_return}, {"bool", TokenKind::kw_bool},   {"i8", TokenKind::kw_i8},
+            {"i16", TokenKind::kw_i16},       {"i32", TokenKind::kw_i32},     {"i64", TokenKind::kw_i64},
+            {"i128", TokenKind::kw_i128},     {"u8", TokenKind::kw_u8},       {"u16", TokenKind::kw_u16},
+            {"u32", TokenKind::kw_u32},       {"u64", TokenKind::kw_u64},     {"u128", TokenKind::kw_u128},
+            {"isize", TokenKind::kw_isize},   {"usize", TokenKind::kw_usize}, {"f16", TokenKind::kw_f16},
+            {"f32", TokenKind::kw_f32},       {"f64", TokenKind::kw_f64},     {"char", TokenKind::kw_char},
+            {"char16", TokenKind::kw_char16}, {"rune", TokenKind::kw_rune},
+        };
 
         constexpr std::array raw_operators = {
             std::make_pair("["sv, TokenKind::lbracket),
@@ -61,6 +67,7 @@ namespace prism
             std::make_pair("|="sv, TokenKind::pipe_equal),
             std::make_pair("?"sv, TokenKind::question),
             std::make_pair("??"sv, TokenKind::question_question),
+            std::make_pair("?."sv, TokenKind::question_period),
             std::make_pair(":"sv, TokenKind::colon),
             std::make_pair("::"sv, TokenKind::colon_colon),
             std::make_pair(";"sv, TokenKind::semicolon),

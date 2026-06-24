@@ -26,6 +26,26 @@ namespace prism
         kw_func,
         kw_extern,
         kw_return,
+        kw_bool,
+        kw_i8,
+        kw_i16,
+        kw_i32,
+        kw_i64,
+        kw_i128,
+        kw_u8,
+        kw_u16,
+        kw_u32,
+        kw_u64,
+        kw_u128,
+        kw_isize,
+        kw_usize,
+        kw_f16,
+        kw_f32,
+        kw_f64,
+        kw_char,
+        kw_char16,
+        kw_rune,
+        kw_str,
 
         /**
          * [
@@ -241,6 +261,11 @@ namespace prism
          * ??
          */
         question_question,
+
+        /**
+         * ?.
+         */
+        question_period,
 
         /**
          * :

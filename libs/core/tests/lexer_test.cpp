@@ -16,7 +16,7 @@ using namespace prism;
 
 TEST_CASE("Simple grammar", "[lexer]")
 {
-    const SourceFile source_file{"func do_thing(x: int) {"
+    const SourceFile source_file{"func do_thing(x: i32) {"
                                  "    return x + 1;"
                                  "}"};
     const auto lexer = default_lexer();
@@ -28,7 +28,7 @@ TEST_CASE("Simple grammar", "[lexer]")
     CHECK(tokens[2].kind == TokenKind::lparen);
     CHECK(tokens[3].kind == TokenKind::identifier);
     CHECK(tokens[4].kind == TokenKind::colon);
-    CHECK(tokens[5].kind == TokenKind::identifier);
+    CHECK(tokens[5].kind == TokenKind::kw_i32);
     CHECK(tokens[6].kind == TokenKind::rparen);
     CHECK(tokens[7].kind == TokenKind::lbrace);
     CHECK(tokens[8].kind == TokenKind::kw_return);
