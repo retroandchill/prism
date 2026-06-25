@@ -22,11 +22,24 @@ set(PRISM_PUBLIC_MODULES
         src/public/ast/compilation_unit.ixx
 )
 
+find_package(antlr4-generator REQUIRED)
 
+set(ANTLR4_JAR_LOCATION ${TOOLS_DIR}/antlr.jar)
+file(DOWNLOAD
+        https://www.antlr.org/download/antlr-${antlr4-runtime_VERSION}-complete.jar
+        ${ANTLR4_JAR_LOCATION}
+        SHOW_PROGRESS
+)
 
-add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PUBLIC_MODULES})
+antlr4_generate(prism_parser ${CMAKE_SOURCE_DIR}/grammar/Prism.g4 BOTH)
 
-target_include_directories(prism_core PUBLIC include)
+add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PUBLIC_MODULES} ${ANTLR4_SRC_FILES_prism_parser})
+
+target_include_directories(prism_core PUBLIC include
+                                      PRIVATE
+                                            ${ANTLR4_INCLUDE_DIR_prism_parser})
+
+target_link_libraries(prism_core PRIVATE antlr4::cppm)
 
 target_sources(prism_core PUBLIC
         FILE_SET prism_core_public
