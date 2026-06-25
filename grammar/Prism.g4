@@ -4,32 +4,32 @@ compilationUnit: declaration* EOF;
 
 declaration: variableDeclaration | functionDeclaration;
 
-variableDeclaration: EXTERN? VAR MUT? IDENTIFIER typeSpecifier? ('=' expression)? ';';
+variableDeclaration: EXTERN? VAR MUT? IDENTIFIER typeSpecifier? (EQUAL expression)? SEMICOLON;
 
-functionDeclaration: EXTERN? FUNC IDENTIFIER '(' parameterList? ')' returnType? (functionBody | ';');
+functionDeclaration: EXTERN? FUNC IDENTIFIER LPAREN parameterList? RPAREN returnType? (functionBody | SEMICOLON);
 
 parameter: MUT? IDENTIFIER typeSpecifier?;
 
-parameterList: parameter (',' parameter)*;
+parameterList: parameter (COMMA parameter)*;
 
-returnType: '->' type_reference;
+returnType: ARROW typeReference;
 
-block: '{' statement* '}';
+block: LBRACE statement* RBRACE;
 
-expression_body: '=>' expression;
+expressionBody: EQUAL_ARROW expression;
 
 functionBody: block
-| (expression_body ';');
+| (expressionBody SEMICOLON);
 
-typeSpecifier: ':' type_reference;
+typeSpecifier: COLON typeReference;
 
-type_reference: IDENTIFIER;
+typeReference: IDENTIFIER;
 
 statement: variableDeclaration | returnStatement | expressionStatement | block;
 
-expressionStatement: expression ';';
+expressionStatement: expression SEMICOLON;
 
-returnStatement: RETURN expression ';';
+returnStatement: RETURN expression SEMICOLON;
 
 literal: TRUE | FALSE | FLOAT | INT | STRING | CHARACTER;
 
@@ -37,7 +37,7 @@ argumentList: argument (',' argument)*;
 
 argument: argumentName? argumentValue;
 
-argumentName: IDENTIFIER ':';
+argumentName: IDENTIFIER COLON;
 
 argumentValue: expression;
 
@@ -47,57 +47,106 @@ namedEntity: simpleName;
 
 expression: literal #literalExpression
     | simpleName #identifierExpression
-    | '(' expression ')' #parenthesizedExpression
-    | expression '(' argumentList ')' #invocationExpression
+    | LPAREN expression RPAREN #parenthesizedExpression
+    | expression LPAREN argumentList RPAREN #invocationExpression
     | expression postfixOperator #postfixExpression
-    | 'nameof' '(' namedEntity ')' #nameofExpression
+    | NAMEOF LPAREN namedEntity RPAREN #nameofExpression
     | unaryOperator expression #unaryExpression
     | expression multiplicitiveOperator expression #multiplicitiveExpression
     | expression additiveOperator expression # additiveExpression
     | expression shiftOperator expression #shiftExpression
-    | expression '<=>' expression #threeWayComparisonExpression
+    | expression SPACESHIP expression #threeWayComparisonExpression
     | expression comparisonOperator expression #comparisonExpression
     | expression equalityOperator expression #equalityExpression
-    | expression '&' expression #bitwiseAndExpression
-    | expression '^' expression #bitwiseXorExpression
-    | expression '|' expression #bitwiseOrExpression
-    | expression '&&' expression #logicalAndExpression
-    | expression '||' expression #logicalOrExpression
-    | expression '??' expression #nullCoallesingExpression
-    | expression '?' expression ':' expression #ternaryExpression
-    | expression '=' expression #assignment
+    | expression AMP expression #bitwiseAndExpression
+    | expression CARET expression #bitwiseXorExpression
+    | expression PIPE expression #bitwiseOrExpression
+    | expression AMP_AMP expression #logicalAndExpression
+    | expression PIPE_PIPE expression #logicalOrExpression
+    | expression QUESTION_QUESTION expression #nullCoallesingExpression
+    | expression QUESTION expression COLON expression #ternaryExpression
+    | expression EQUAL expression #assignment
     | expression compoundAssignmentOperator expression #compoundAssignment;
 
-postfixOperator: '++' | '--';
+postfixOperator: PLUS_PLUS | MINUS_MINUS;
 
-unaryOperator: '++' | '--' | '+' |'-' |'~' |'!';
+unaryOperator: PLUS_PLUS | MINUS_MINUS | PLUS | MINUS | TILDE | EXCLAIM | AMP | STAR;
 
-multiplicitiveOperator: '*' | '/' | '%';
+multiplicitiveOperator: STAR | SLASH | PERCENT;
 
-additiveOperator: '+' | '-';
+additiveOperator: PLUS | MINUS;
 
-shiftOperator: '<<' | rightShift | unsignedRightShift;
+shiftOperator: LESS_LESS | GREATER_GREATER | GREATER_GREATER_GREATER;
 
-rightShift: '>' '>';
-unsignedRightShift: '>' '>' '>';
+comparisonOperator: LESS | LESS_EQUAL | GREATER | GREATER_EQUAL;
 
-comparisonOperator: '<' | '<=' | '>' | '>=';
+equalityOperator: EQUAL_EQUAL | EXCLAIM_EQUAL;
 
-equalityOperator: '==' | '!=';
-
-compoundAssignmentOperator: '+=' | '-=' | '*=' | '/=' | '%=' | '<<=' | rightShiftAssignment | unsignedRightShiftAssignment | '&=' | '^=' | '|=';
-
-rightShiftAssignment: '>' '>=';
-unsignedRightShiftAssignment: '>' '>' '>=';
+compoundAssignmentOperator: PLUS_EQUAL | MINUS_EQUAL | STAR_EQUAL | SLASH_EQUAL | PERCENT_EQUAL | LESS_LESS_EQUAL
+    | GREATER_GREATER_EQUAL | GREATER_GREATER_GREATER_EQUAL | AMP_EQUAL | CARET_EQUAL | PIPE_EQUAL;
 
 VAR: 'var';
 FUNC: 'func';
 EXTERN: 'extern';
 RETURN: 'return';
 MUT: 'mut';
+NAMEOF: 'nameof';
 
 TRUE: 'true';
 FALSE: 'false';
+
+LBRACKET: '[';
+RBRACKET: ']';
+LPAREN: '(';
+RPAREN: ')';
+LBRACE: '{';
+RBRACE: '}';
+PERIOD: '.';
+ELLIPSIS: '...';
+AMP: '&';
+AMP_AMP: '&&';
+AMP_EQUAL: '&=';
+STAR: '*';
+STAR_EQUAL: '*=';
+PLUS: '+';
+PLUS_PLUS: '++';
+PLUS_EQUAL: '+=';
+MINUS: '-';
+ARROW: '->';
+MINUS_MINUS: '--';
+MINUS_EQUAL: '-=';
+TILDE: '~';
+EXCLAIM: '!';
+EXCLAIM_EQUAL: '!=';
+SLASH: '/';
+SLASH_EQUAL: '/=';
+PERCENT: '%';
+PERCENT_EQUAL: '%=';
+LESS: '<';
+LESS_LESS: '<<';
+LESS_EQUAL: '<=';
+LESS_LESS_EQUAL: '<<=';
+SPACESHIP: '<=>';
+GREATER: '>';
+GREATER_GREATER: '>>';
+GREATER_GREATER_GREATER: '>>>';
+GREATER_EQUAL: '>=';
+GREATER_GREATER_EQUAL: '>>=';
+GREATER_GREATER_GREATER_EQUAL: '>>>=';
+CARET: '^';
+CARET_EQUAL: '^=';
+PIPE: '|';
+PIPE_PIPE: '||';
+PIPE_EQUAL: '|=';
+QUESTION: '?';
+QUESTION_QUESTION: '??';
+COLON: ':';
+COLON_COLON: '::';
+SEMICOLON: ';';
+EQUAL: '=';
+EQUAL_ARROW: '=>';
+EQUAL_EQUAL: '==';
+COMMA: ',';
 
 IDENTIFIER: '@'? [A-Za-z_][A-Za-z0-9_]*;
 FLOAT: DIGIT+ '.' DIGIT* EXPONENT?

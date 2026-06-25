@@ -20,8 +20,10 @@ set(PRISM_PUBLIC_MODULES
         src/public/ast/statement_syntax.ixx
         src/public/parser/parser.ixx
         src/public/ast/compilation_unit.ixx
+        src/public/generated.ixx
 )
 
+find_package(antlr4-runtime REQUIRED)
 find_package(antlr4-generator REQUIRED)
 
 set(ANTLR4_JAR_LOCATION ${TOOLS_DIR}/antlr.jar)
@@ -31,7 +33,7 @@ file(DOWNLOAD
         SHOW_PROGRESS
 )
 
-antlr4_generate(prism_parser ${CMAKE_SOURCE_DIR}/grammar/Prism.g4 BOTH)
+antlr4_generate(prism_parser ${CMAKE_SOURCE_DIR}/grammar/Prism.g4 BOTH false true prism::gen)
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PUBLIC_MODULES} ${ANTLR4_SRC_FILES_prism_parser})
 
