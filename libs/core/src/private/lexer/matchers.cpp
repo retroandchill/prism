@@ -14,7 +14,8 @@ namespace prism
     {
         const std::flat_map<std::string_view, TokenKind> keywords = {
             {"var", TokenKind::kw_var},       {"func", TokenKind::kw_func},   {"extern", TokenKind::kw_extern},
-            {"return", TokenKind::kw_return}, {"bool", TokenKind::kw_bool},   {"i8", TokenKind::kw_i8},
+            {"return", TokenKind::kw_return}, {"mut", TokenKind::kw_mut},     {"true", TokenKind::kw_true},
+            {"false", TokenKind::kw_false},   {"bool", TokenKind::kw_bool},   {"i8", TokenKind::kw_i8},
             {"i16", TokenKind::kw_i16},       {"i32", TokenKind::kw_i32},     {"i64", TokenKind::kw_i64},
             {"i128", TokenKind::kw_i128},     {"u8", TokenKind::kw_u8},       {"u16", TokenKind::kw_u16},
             {"u32", TokenKind::kw_u32},       {"u64", TokenKind::kw_u64},     {"u128", TokenKind::kw_u128},
@@ -213,5 +214,32 @@ namespace prism
         }
 
         return std::nullopt;
+    }
+
+    std::optional<Token> StringLiteralMatcher::try_match(TextCursor &cursor) const
+    {
+        if (cursor.current() != '"')
+        {
+            return std::nullopt;
+        }
+
+        const auto start = cursor.position();
+        while (!cursor.at_end())
+        {
+            cursor.advance();
+
+            if (cursor.current() == '"')
+            {
+                cursor.advance();
+                return make_token(TokenKind::string_literal, start, cursor.position());
+            }
+
+            if (cursor.current() == '\\')
+            {
+                cursor.advance();
+            }
+        }
+
+        return make_token(TokenKind::unterminated_string_literal, start, cursor.position());
     }
 } // namespace prism

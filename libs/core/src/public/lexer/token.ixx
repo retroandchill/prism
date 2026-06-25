@@ -20,12 +20,18 @@ namespace prism
         eof,
         unrecognized,
         unterminated_block_comment,
+        unterminated_string_literal,
         doc_comment,
 
         kw_var,
         kw_func,
         kw_extern,
         kw_return,
+        kw_mut,
+
+        kw_true,
+        kw_false,
+
         kw_bool,
         kw_i8,
         kw_i16,
@@ -299,7 +305,7 @@ namespace prism
 
         identifier,
         number,
-        string,
+        string_literal,
     };
 
     export struct Token

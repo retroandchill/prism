@@ -49,4 +49,10 @@ namespace prism
       public:
         [[nodiscard]] std::optional<Token> try_match(TextCursor &cursor) const override;
     };
+
+    export class PRISM_CORE_API StringLiteralMatcher final : public TokenMatcher
+    {
+      public:
+        [[nodiscard]] std::optional<Token> try_match(TextCursor &cursor) const override;
+    };
 } // namespace prism

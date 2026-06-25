@@ -3,7 +3,8 @@ set(PRISM_HEADERS include/prism/core/exports.h)
 set(PRISM_SOURCES
         src/private/lexer/lexer.cpp
         src/private/lexer/matchers.cpp
-        src/private/lexer/defaults.cpp)
+        src/private/lexer/defaults.cpp
+        src/private/parser/parser.cpp)
 
 set(PRISM_PUBLIC_MODULES
         src/public/lexer/token.ixx
@@ -13,6 +14,12 @@ set(PRISM_PUBLIC_MODULES
         src/public/lexer/token_matcher.ixx
         src/public/lexer/matchers.ixx
         src/public/lexer/defaults.ixx
+        src/public/parser/token_cursor.ixx
+        src/public/ast/expression_syntax.ixx
+        src/public/ast/type_syntax.ixx
+        src/public/ast/statement_syntax.ixx
+        src/public/parser/parser.ixx
+        src/public/ast/compilation_unit.ixx
 )
 
 

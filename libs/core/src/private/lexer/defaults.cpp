@@ -10,17 +10,28 @@ import prism.core.lexer.matchers;
 
 namespace prism
 {
+    namespace
+    {
+        template <std::derived_from<TokenMatcher>... T>
+            requires(std::is_default_constructible_v<T> && ...)
+        std::vector<std::unique_ptr<TokenMatcher>> create_matchers()
+        {
+            std::vector<std::unique_ptr<TokenMatcher>> matchers;
+            matchers.reserve(sizeof...(T));
+
+            (matchers.emplace_back(std::make_unique<T>()), ...);
+
+            return matchers;
+        }
+    } // namespace
+
     std::vector<std::unique_ptr<TokenMatcher>> default_matchers()
     {
-        std::vector<std::unique_ptr<TokenMatcher>> matchers;
-        matchers.reserve(4);
-
-        matchers.emplace_back(std::make_unique<CommentMatcher>());
-        matchers.emplace_back(std::make_unique<IdentifierMatcher>());
-        matchers.emplace_back(std::make_unique<NumberMatcher>());
-        matchers.emplace_back(std::make_unique<OperatorMatcher>());
-
-        return matchers;
+        return create_matchers<CommentMatcher,
+                               IdentifierMatcher,
+                               NumberMatcher,
+                               OperatorMatcher,
+                               StringLiteralMatcher>();
     }
 
     Lexer default_lexer()

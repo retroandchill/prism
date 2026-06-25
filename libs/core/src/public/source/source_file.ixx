@@ -24,6 +24,11 @@ namespace prism
     {
         std::size_t start = 0;
         std::size_t end = 0;
+
+        [[nodiscard]] constexpr std::size_t length() const noexcept
+        {
+            return end - start;
+        }
     };
 
     export class LineTable
