@@ -7,6 +7,8 @@
 export module prism.core.ast.type_syntax;
 
 import std;
+import prism.core.util;
+import prism.core.ast.common_syntax;
 
 namespace prism
 {
@@ -34,15 +36,17 @@ namespace prism
         str,
     };
 
-    export struct BuiltInTypeSyntax
-    {
-        BuiltInType type{};
-    };
-
     export struct NamedTypeSyntax
     {
-        std::string name;
+        SharedString name;
     };
 
-    export using TypeSyntax = std::variant<BuiltInTypeSyntax, NamedTypeSyntax>;
+    export using TypeNameSyntax = std::variant<BuiltInType, NamedTypeSyntax>;
+
+    export struct ValidTypeSyntax
+    {
+        TypeNameSyntax name;
+    };
+
+    export using TypeSyntax = std::variant<ValidTypeSyntax, ErrorSyntax>;
 } // namespace prism

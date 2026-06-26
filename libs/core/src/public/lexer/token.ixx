@@ -11,10 +11,20 @@ module;
 export module prism.core.lexer.token;
 
 import std;
+import prism.core.util;
 import prism.core.source.source_file;
 
 namespace prism
 {
+    export enum class TokenFlags : std::uint8_t
+    {
+        none = 0,
+        synthetic = 1 << 0
+    };
+
+    template <>
+    constexpr bool is_flag_enum<TokenFlags> = true;
+
     export enum class TokenKind
     {
         eof,
@@ -311,12 +321,13 @@ namespace prism
     export struct Token
     {
         TokenKind kind{};
+        TokenFlags flags{};
         SourceRange range{};
     };
 
     export constexpr Token make_token(const TokenKind kind, const std::size_t start = 0, const std::size_t end = 0)
     {
         assert(end >= start);
-        return Token{kind, {start, end}};
+        return Token{.kind = kind, .range = {start, end}};
     }
 } // namespace prism

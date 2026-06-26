@@ -33,6 +33,12 @@ namespace prism
             return text_[position_];
         }
 
+        [[nodiscard]] constexpr bool any(std::span<const char> options) const
+        {
+            auto ch = current();
+            return std::ranges::any_of(options, [&](const auto &option) { return ch == option; });
+        }
+
         [[nodiscard]] constexpr char peek(const std::size_t offset = 1) const
         {
             const auto pos = position_ + offset;
@@ -42,17 +48,6 @@ namespace prism
         constexpr void advance(const std::size_t characters = 1)
         {
             position_ += characters;
-        }
-
-        constexpr void skip_whitespace()
-        {
-            while (!at_end())
-            {
-                if (std::isspace(current()))
-                    advance();
-                else
-                    break;
-            }
         }
 
         [[nodiscard]] constexpr std::string_view remaining() const

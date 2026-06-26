@@ -7,57 +7,59 @@
 #include <catch2/catch_test_macros.hpp>
 
 import std;
-import antlr.runtime;
-import prism.core.generated;
 import prism.core.lexer;
 import prism.core.lexer.token;
 import prism.core.source.source_file;
-import prism.core.lexer.defaults;
 
 using namespace prism;
-using namespace prism::gen;
+
+namespace
+{
+    std::vector<Token> lex_all(const SourceFile &source_file)
+    {
+        Lexer lexer{source_file};
+        std::vector<Token> tokens;
+        while (true)
+        {
+            auto token = lexer.next();
+            tokens.push_back(token);
+            if (token.kind == TokenKind::eof)
+                break;
+        }
+        return tokens;
+    }
+} // namespace
 
 TEST_CASE("Simple grammar", "[lexer]")
 {
-    antlr4::ANTLRInputStream input_stream{"func do_thing(x: i32) {"
-                                          "    return x + 1;"
-                                          "}"};
-    PrismLexer lexer(&input_stream);
-    auto all_tokens = lexer.getAllTokens();
+    const SourceFile source_file{"func do_thing(x: i32) {"
+                                 "    return x + 1;"
+                                 "}"};
+    auto tokens = lex_all(source_file);
 
-    std::vector<std::unique_ptr<antlr4::Token>> tokens;
-    tokens.reserve(all_tokens.size());
-    for (auto &token : all_tokens)
-    {
-        if (token->getChannel() == antlr4::Token::DEFAULT_CHANNEL)
-        {
-            tokens.push_back(std::move(token));
-        }
-    }
-
-    REQUIRE(tokens.size() == 14);
-    CHECK(tokens[0]->getType() == PrismLexer::FUNC);
-    CHECK(tokens[1]->getType() == PrismLexer::IDENTIFIER);
-    CHECK(tokens[2]->getType() == PrismLexer::LPAREN);
-    CHECK(tokens[3]->getType() == PrismLexer::IDENTIFIER);
-    CHECK(tokens[4]->getType() == PrismLexer::COLON);
-    CHECK(tokens[5]->getType() == PrismLexer::IDENTIFIER);
-    CHECK(tokens[6]->getType() == PrismLexer::RPAREN);
-    CHECK(tokens[7]->getType() == PrismLexer::LBRACE);
-    CHECK(tokens[8]->getType() == PrismLexer::RETURN);
-    CHECK(tokens[9]->getType() == PrismLexer::IDENTIFIER);
-    CHECK(tokens[10]->getType() == PrismLexer::PLUS);
-    CHECK(tokens[11]->getType() == PrismLexer::INT);
-    CHECK(tokens[12]->getType() == PrismLexer::SEMICOLON);
-    CHECK(tokens[13]->getType() == PrismLexer::RBRACE);
+    REQUIRE(tokens.size() == 15);
+    CHECK(tokens[0].kind == TokenKind::kw_func);
+    CHECK(tokens[1].kind == TokenKind::identifier);
+    CHECK(tokens[2].kind == TokenKind::lparen);
+    CHECK(tokens[3].kind == TokenKind::identifier);
+    CHECK(tokens[4].kind == TokenKind::colon);
+    CHECK(tokens[5].kind == TokenKind::kw_i32);
+    CHECK(tokens[6].kind == TokenKind::rparen);
+    CHECK(tokens[7].kind == TokenKind::lbrace);
+    CHECK(tokens[8].kind == TokenKind::kw_return);
+    CHECK(tokens[9].kind == TokenKind::identifier);
+    CHECK(tokens[10].kind == TokenKind::plus);
+    CHECK(tokens[11].kind == TokenKind::number);
+    CHECK(tokens[12].kind == TokenKind::semicolon);
+    CHECK(tokens[13].kind == TokenKind::rbrace);
+    CHECK(tokens[14].kind == TokenKind::eof);
 }
 
 TEST_CASE("Skips line comments until the end of the line", "[lexer]")
 {
     const SourceFile source_file{"// This is a line comment\n"
                                  "var x = 5; // This is another line comment\n"};
-    const auto lexer = default_lexer();
-    auto tokens = lexer.lex(source_file);
+    auto tokens = lex_all(source_file);
     REQUIRE(tokens.size() == 6);
     CHECK(tokens[0].kind == TokenKind::kw_var);
     CHECK(tokens[1].kind == TokenKind::identifier);
@@ -70,8 +72,7 @@ TEST_CASE("Skips line comments until the end of the line", "[lexer]")
 TEST_CASE("Block comments can split a single line", "[lexer]")
 {
     const SourceFile source_file{"var x = /* Block comment */ 5;"};
-    const auto lexer = default_lexer();
-    auto tokens = lexer.lex(source_file);
+    auto tokens = lex_all(source_file);
     REQUIRE(tokens.size() == 6);
     CHECK(tokens[0].kind == TokenKind::kw_var);
     CHECK(tokens[1].kind == TokenKind::identifier);
@@ -87,8 +88,7 @@ TEST_CASE("Block comments can span multiple lines", "[lexer]")
                                  "This is a multiline block comment\n"
                                  "*/\n"
                                  "var x = 5;"};
-    const auto lexer = default_lexer();
-    auto tokens = lexer.lex(source_file);
+    auto tokens = lex_all(source_file);
     REQUIRE(tokens.size() == 6);
     CHECK(tokens[0].kind == TokenKind::kw_var);
     CHECK(tokens[1].kind == TokenKind::identifier);
@@ -104,8 +104,7 @@ TEST_CASE("Doc comments are preserved as opaque tokens", "[lexer]")
                                  "This is a documentation comment\n"
                                  "*/\n"
                                  "var x = 5;"};
-    const auto lexer = default_lexer();
-    auto tokens = lexer.lex(source_file);
+    auto tokens = lex_all(source_file);
     REQUIRE(tokens.size() == 7);
     CHECK(tokens[0].kind == TokenKind::doc_comment);
     CHECK(tokens[1].kind == TokenKind::kw_var);

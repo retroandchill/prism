@@ -7,6 +7,8 @@
 export module prism.core.ast.expression_syntax;
 
 import std;
+import prism.core.ast.common_syntax;
+import prism.core.source.source_file;
 
 namespace prism
 {
@@ -62,7 +64,6 @@ namespace prism
         post_decrement,
     };
 
-    export struct IdentifierSyntax;
     export struct LiteralSyntax;
     export struct BinaryExpressionSyntax;
     export struct UnaryExpressionSyntax;
@@ -71,15 +72,11 @@ namespace prism
     export using ExpressionSyntax = std::
         variant<IdentifierSyntax, LiteralSyntax, BinaryExpressionSyntax, UnaryExpressionSyntax, FunctionCallSyntax>;
 
-    struct IdentifierSyntax
-    {
-        std::string name;
-    };
-
     struct LiteralSyntax
     {
         // TODO: This should be refined to not erase the actual contents of the literal
         std::variant<bool, std::uint64_t, double, std::string> value;
+        SourceRange range;
     };
 
     struct BinaryExpressionSyntax

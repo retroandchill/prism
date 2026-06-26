@@ -1,5 +1,6 @@
 add_executable(prism_core_tests
-        lexer_test.cpp)
+        lexer_test.cpp
+        parser_test.cpp)
 
 target_link_libraries(prism_core_tests PRIVATE Catch2::Catch2WithMain prism_core)
 

@@ -73,6 +73,11 @@ namespace prism
             return text_;
         }
 
+        [[nodiscard]] constexpr std::string_view slice(const SourceRange range) const
+        {
+            return std::string_view{text_}.substr(range.start, range.length());
+        }
+
         [[nodiscard]] constexpr const LineTable &line_table() const
         {
             return line_table_;

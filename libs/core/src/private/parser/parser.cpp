@@ -7,6 +7,8 @@
 module prism.core.parser;
 import prism.core.parser.token_cursor;
 import prism.core.ast.statement_syntax;
+import prism.core.ast.common_syntax;
+import prism.core.util;
 
 namespace prism
 {
@@ -108,169 +110,202 @@ namespace prism
         }
     } // namespace
 
-    CompilationUnitSyntax Parser::parse_compilation_unit()
+    ParseResult Parser::parse()
     {
-        CompilationUnitSyntax compilation_unit;
+        ParseResult result;
 
-        while (!cursor_.at_end())
+        while (!stream_.at_end())
         {
-            compilation_unit.statements.push_back(parse_statement());
+            result.compilation_unit.declarations.push_back(parse_declaration());
         }
 
-        return compilation_unit;
+        result.diagnostics = std::move(diagnostics_);
+        return result;
     }
 
-    StatementSyntax Parser::parse_statement()
+    bool Parser::match(const TokenKind kind)
     {
-        if (cursor_.match(TokenKind::kw_var))
-            return parse_variable_declaration();
+        if (const auto [k, f, r] = stream_.peek(); k != kind)
+        {
+            return false;
+        }
 
-        return parse_expression_statement();
+        stream_.advance();
+        return true;
+    }
+
+    Token Parser::expect(const TokenKind kind)
+    {
+        if (match(kind))
+        {
+            return stream_.previous();
+        }
+
+        const auto start = stream_.previous().range.end;
+        const auto next = stream_.peek();
+        const auto end = next.range.start;
+        diagnostics_.emplace_back(Severity::error,
+                                  SourceRange{start, end},
+                                  UnexpectedToken{.actual = next.kind, .expected = {kind}});
+
+        return Token{.kind = kind, .flags = TokenFlags::synthetic, .range = {start, end}};
+    }
+
+    void Parser::synchronize(const bool include_semicolon)
+    {
+        static constexpr std::array sync_tokens = {
+            TokenKind::kw_var,
+            TokenKind::kw_func,
+            TokenKind::rbrace,
+        };
+        while (!stream_.at_end())
+        {
+            if (include_semicolon)
+            {
+                if (stream_.previous().kind == TokenKind::semicolon)
+                    return;
+            }
+            else
+            {
+                if (stream_.peek().kind == TokenKind::semicolon)
+                    return;
+            }
+
+            if (is_next(sync_tokens))
+            {
+                return;
+            }
+
+            stream_.advance();
+        }
+    }
+
+    bool Parser::is_next(std::span<const TokenKind> kinds)
+    {
+        auto next = stream_.peek();
+        return std::ranges::any_of(kinds, [next](const auto &kind) { return next.kind == kind; });
+    }
+
+    DeclarationSyntax Parser::parse_declaration()
+    {
+        switch (const auto next_token = stream_.consume(); next_token.kind)
+        {
+            case TokenKind::kw_var: // NOLINT(*-branch-clone)
+                return parse_variable_declaration();
+            case TokenKind::kw_func:
+                return parse_function_declaration();
+            case TokenKind::semicolon:
+                {
+                    diagnostics_.emplace_back(Severity::warning, next_token.range, empty_statement);
+                    return empty_syntax;
+                }
+            default:
+                {
+                    diagnostics_.emplace_back(Severity::error,
+                                              next_token.range,
+                                              UnexpectedToken{
+                                                  .actual = next_token.kind,
+                                                  .expected = {TokenKind::kw_var, TokenKind::kw_func},
+                                              });
+                    synchronize();
+                    const auto error_statement_end = stream_.peek().range.start;
+
+                    return ErrorSyntax{.range = {
+                                           .start = next_token.range.start,
+                                           .end = error_statement_end,
+                                       }};
+                }
+        }
     }
 
     VariableDeclarationSyntax Parser::parse_variable_declaration()
     {
-        cursor_.advance();
+        VariableDeclarationSyntax syntax;
 
-        VariableDeclarationSyntax variable_declaration;
+        syntax.is_mutable = match(TokenKind::kw_mut);
 
-        if (cursor_.match(TokenKind::kw_mut))
+        if (const auto identifier = expect(TokenKind::identifier);
+            has_any_flags(identifier.flags, TokenFlags::synthetic))
         {
-            cursor_.advance();
-            variable_declaration.is_mutable = true;
+            syntax.name = ErrorSyntax{identifier.range};
+        }
+        else
+        {
+            syntax.name = ValidIdentifierSyntax{
+                .name = SharedString{source_file_.slice(identifier.range)},
+                .range = identifier.range,
+            };
         }
 
-        variable_declaration.name = consume_identifier();
-
-        if (cursor_.match(TokenKind::colon))
+        if (match(TokenKind::colon))
         {
-            cursor_.advance();
-            variable_declaration.type = parse_type();
+            syntax.type = parse_type();
         }
 
-        if (cursor_.match(TokenKind::equal))
-        {
-            cursor_.advance();
-            variable_declaration.initializer = parse_expression();
-        }
+        expect(TokenKind::equal);
 
-        consume(TokenKind::semicolon);
-        return variable_declaration;
+        syntax.initializer = std::make_unique<ExpressionSyntax>(parse_expression());
+
+        expect(TokenKind::semicolon);
+
+        return syntax;
     }
 
-    ExpressionStatementSyntax Parser::parse_expression_statement()
+    FunctionDeclarationSyntax Parser::parse_function_declaration()
     {
-        ExpressionStatementSyntax result{parse_expression()};
-        consume(TokenKind::semicolon);
-        return result;
+        FunctionDeclarationSyntax syntax;
+
+        return syntax;
     }
 
     TypeSyntax Parser::parse_type()
     {
-        const auto &[kind, range] = cursor_.current();
-        if (kind == TokenKind::identifier)
+        const auto next = stream_.peek();
+        for (auto [token, type] : built_in_types)
         {
-            return NamedTypeSyntax{consume_identifier()};
-        }
-
-        for (const auto &[keyword, type] : built_in_types)
-        {
-            if (kind == keyword)
+            if (token == next.kind)
             {
-                cursor_.advance();
-                return BuiltInTypeSyntax{type};
+                stream_.advance();
+                return ValidTypeSyntax{type};
             }
         }
 
-        throw std::runtime_error("Unexpected token");
-    }
-
-    std::unique_ptr<ExpressionSyntax> Parser::parse_expression()
-    {
-        return parse_binary_expression(0);
-    }
-
-    std::unique_ptr<ExpressionSyntax> Parser::parse_binary_expression(std::int32_t parent_precedence)
-    {
-        auto left = parse_primary();
-
-        while (true)
+        const auto identifier = expect(TokenKind::identifier);
+        if (has_any_flags(identifier.flags, TokenFlags::synthetic))
         {
-            const auto kind = cursor_.current().kind;
-
-            const auto precedence = get_precedence(kind);
-
-            if (precedence < parent_precedence)
-            {
-                break;
-            }
-
-            const auto op = get_binary_operator(cursor_.current().kind);
-            cursor_.advance();
-
-            auto right = parse_binary_expression(precedence + 1);
-
-            left = std::make_unique<ExpressionSyntax>(BinaryExpressionSyntax{op, std::move(left), std::move(right)});
+            return ErrorSyntax{identifier.range};
         }
 
-        return left;
+        return ValidTypeSyntax{NamedTypeSyntax{
+            .name = SharedString{source_file_.slice(identifier.range)},
+        }};
     }
 
-    std::unique_ptr<ExpressionSyntax> Parser::parse_primary()
+    ExpressionSyntax Parser::parse_expression()
     {
-        switch (const auto &[kind, range] = cursor_.current(); kind)
+        switch (const auto [kind, flags, range] = stream_.peek(); kind)
         {
-            case TokenKind::kw_true:
-                cursor_.advance();
-                return std::make_unique<ExpressionSyntax>(LiteralSyntax{true});
-            case TokenKind::kw_false:
-                cursor_.advance();
-                return std::make_unique<ExpressionSyntax>(LiteralSyntax{false});
-
+            case TokenKind::semicolon:
+                diagnostics_.emplace_back(Severity::error, stream_.previous().range, empty_expression);
+                return ErrorSyntax{
+                    .range = stream_.previous().range,
+                };
             case TokenKind::number:
-                cursor_.advance();
-                // TODO: This always parses a double, we will change how numeric literals are parsed later
-                return std::make_unique<ExpressionSyntax>(
-                    LiteralSyntax{std::stod(source_file_.text().substr(range.start, range.length()))});
-
-            case TokenKind::string_literal:
-                cursor_.advance();
-                return std::make_unique<ExpressionSyntax>(
-                    LiteralSyntax{parse_string_literal(source_file_.text().substr(range.start, range.length()))});
-
-            case TokenKind::identifier:
-                return std::make_unique<ExpressionSyntax>(IdentifierSyntax{consume_identifier()});
-
-            case TokenKind::lparen:
-                {
-                    cursor_.advance();
-
-                    auto expr = parse_expression();
-
-                    consume(TokenKind::rparen);
-                    return expr;
-                }
+                stream_.advance();
+                return LiteralSyntax{
+                    .value = std::stoull(std::string{source_file_.slice(range)}),
+                    .range = range,
+                };
             default:
-                throw std::runtime_error("Unexpected token");
+                diagnostics_.emplace_back(Severity::error,
+                                          range,
+                                          UnexpectedToken{
+                                              .actual = kind,
+                                          });
+                synchronize(false);
+                return ErrorSyntax{
+                    .range = range,
+                };
         }
-    }
-
-    const Token &Parser::consume(const TokenKind kind)
-    {
-        auto &token = cursor_.current();
-        if (token.kind != kind)
-        {
-            // TODO: We don't want to throw an exception since we can try to recover, but for now let's do that
-            throw std::runtime_error("Unexpected token");
-        }
-
-        cursor_.advance();
-        return token;
-    }
-
-    std::string Parser::consume_identifier()
-    {
-        const auto &[kind, range] = consume(TokenKind::identifier);
-        return source_file_.text().substr(range.start, range.length());
     }
 } // namespace prism
