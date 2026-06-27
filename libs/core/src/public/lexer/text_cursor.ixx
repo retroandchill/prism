@@ -17,7 +17,7 @@ namespace prism
         {
         }
 
-        [[nodiscard]] constexpr std::size_t position() const
+        [[nodiscard]] constexpr std::uint32_t position() const
         {
             return position_;
         }
@@ -39,13 +39,13 @@ namespace prism
             return std::ranges::any_of(options, [&](const auto &option) { return ch == option; });
         }
 
-        [[nodiscard]] constexpr char peek(const std::size_t offset = 1) const
+        [[nodiscard]] constexpr char peek(const std::uint32_t offset = 1) const
         {
             const auto pos = position_ + offset;
             return pos >= text_.size() ? '\0' : text_[pos];
         }
 
-        constexpr void advance(const std::size_t characters = 1)
+        constexpr void advance(const std::uint32_t characters = 1)
         {
             position_ += characters;
         }
@@ -57,6 +57,6 @@ namespace prism
 
       private:
         std::string_view text_;
-        std::size_t position_ = 0;
+        std::uint32_t position_ = 0;
     };
 } // namespace prism

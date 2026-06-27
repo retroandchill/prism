@@ -5,7 +5,6 @@
  * @brief
  */
 module prism.core.parser;
-import prism.core.parser.token_cursor;
 import prism.core.ast.statement_syntax;
 import prism.core.ast.common_syntax;
 import prism.core.util;
@@ -389,10 +388,10 @@ namespace prism
         const auto identifier = expect(TokenKind::identifier);
         if (has_any_flags(identifier.flags, TokenFlags::synthetic))
         {
-            return ErrorSyntax{identifier.range};
+            return IdentifierSyntax{.range = identifier.range, .flags = IdentifierFlags::missing};
         }
 
-        return ValidIdentifierSyntax{
+        return IdentifierSyntax{
             .name = SharedString{source_file_.slice(identifier.range)},
             .range = identifier.range,
         };
@@ -419,7 +418,7 @@ namespace prism
             return ErrorSyntax{identifier.range};
         }
 
-        return NamedTypeSyntax{.name = ValidIdentifierSyntax{
+        return NamedTypeSyntax{.name = IdentifierSyntax{
                                    .name = SharedString{source_file_.slice(identifier.range)},
                                    .range = identifier.range,
                                }};

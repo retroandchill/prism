@@ -16,16 +16,16 @@ namespace prism
 {
     export struct SourcePosition
     {
-        std::size_t line = 1;
-        std::size_t column = 1;
+        std::uint32_t line = 1;
+        std::uint32_t column = 1;
     };
 
     export struct SourceRange
     {
-        std::size_t start = 0;
-        std::size_t end = 0;
+        std::uint32_t start = 0;
+        std::uint32_t end = 0;
 
-        [[nodiscard]] constexpr std::size_t length() const noexcept
+        [[nodiscard]] constexpr std::uint32_t length() const noexcept
         {
             return end - start;
         }

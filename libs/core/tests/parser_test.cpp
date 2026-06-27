@@ -30,10 +30,7 @@ TEST_CASE("Can parse a simple variable declaration", "[parser]")
     auto &[variable_name, type, is_mutable, modifiers, initializer] = std::get<VariableDeclarationSyntax>(declaration);
     CHECK_FALSE(is_mutable);
 
-    REQUIRE(std::holds_alternative<ValidIdentifierSyntax>(variable_name));
-
-    auto &[name, range] = std::get<ValidIdentifierSyntax>(variable_name);
-    CHECK(*name == "value");
+    CHECK(*variable_name.name == "value");
 
     REQUIRE(type.has_value());
     REQUIRE(std::holds_alternative<BuiltInTypeSyntax>(*type));
@@ -61,9 +58,7 @@ TEST_CASE("Can parse a function declaration", "[parser]")
     REQUIRE(std::holds_alternative<FunctionDeclarationSyntax>(declaration));
     auto &[function_name, return_type, parameters, body, modifiers] = std::get<FunctionDeclarationSyntax>(declaration);
 
-    REQUIRE(std::holds_alternative<ValidIdentifierSyntax>(function_name));
-    auto &[name, range] = std::get<ValidIdentifierSyntax>(function_name);
-    CHECK(*name == "add");
+    CHECK(*function_name.name == "add");
 
     REQUIRE(return_type.has_value());
     REQUIRE(std::holds_alternative<BuiltInTypeSyntax>(*return_type));
@@ -74,12 +69,8 @@ TEST_CASE("Can parse a function declaration", "[parser]")
     CHECK_FALSE(parameters[0].is_mutable);
     CHECK_FALSE(parameters[1].is_mutable);
 
-    REQUIRE(std::holds_alternative<ValidIdentifierSyntax>(parameters[0].name));
-    REQUIRE(std::holds_alternative<ValidIdentifierSyntax>(parameters[1].name));
-    auto &[param1_name, param1_range] = std::get<ValidIdentifierSyntax>(parameters[0].name);
-    auto &[param2_name, param2_range] = std::get<ValidIdentifierSyntax>(parameters[1].name);
-    CHECK(*param1_name == "x");
-    CHECK(*param2_name == "y");
+    CHECK(*parameters[0].name.name == "x");
+    CHECK(*parameters[0].name.name == "y");
 
     REQUIRE(std::holds_alternative<BuiltInTypeSyntax>(parameters[0].type));
     REQUIRE(std::holds_alternative<BuiltInTypeSyntax>(parameters[1].type));
