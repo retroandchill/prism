@@ -22,6 +22,7 @@ set(PRISM_PUBLIC_MODULES
         src/public/util.ixx
         src/public/ast/common_syntax.ixx
         src/public/semantic/symbol.ixx
+        src/public/ast/syntax_node.ixx
 )
 
 find_package(antlr4-runtime REQUIRED)

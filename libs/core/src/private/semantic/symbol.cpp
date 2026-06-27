@@ -12,7 +12,7 @@ module prism.core.semantic.symbol;
 
 namespace prism
 {
-    Symbol &Scope::add_symbol(const DeclarationSyntax &declaration, std::unique_ptr<Symbol> symbol)
+    Symbol &SymbolTable::add_symbol(const DeclarationSyntax &declaration, std::unique_ptr<Symbol> symbol)
     {
         assert(symbol != nullptr);
         auto &new_symbol = *all_symbols_.emplace_back(std::move(symbol));
@@ -32,14 +32,14 @@ namespace prism
         return new_symbol;
     }
 
-    Symbol *Scope::resolve(const SharedString &symbol) const
+    Symbol *SymbolTable::resolve(const SharedString &symbol) const
     {
         if (const auto it = symbols_.find(symbol); it != symbols_.end())
         {
             return it->second;
         }
 
-        return nullptr;
+        return parent_ != nullptr ? parent_->resolve(symbol) : nullptr;
     }
 
     const TypeSymbol &TypeSymbol::built_in(const BuiltInType type)

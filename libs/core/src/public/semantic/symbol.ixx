@@ -32,12 +32,13 @@ namespace prism
         internal,
     };
 
-    export class Scope;
+    export class SymbolTable;
 
     export class Symbol
     {
       protected:
-        constexpr Symbol(SharedString name, const SymbolKind kind) : name_{std::move(name)}, kind_{kind}
+        constexpr Symbol(SharedString name, const DeclarationSyntax &declaration, const SymbolKind kind)
+            : name_{std::move(name)}, declaration_{&declaration}, kind_{kind}
         {
         }
 
@@ -59,23 +60,23 @@ namespace prism
             return kind_;
         }
 
-        [[nodiscard]] constexpr Scope *scope() const
+        [[nodiscard]] constexpr SymbolTable *scope() const
         {
             return scope_;
         }
 
-        [[nodiscard]] constexpr auto &declarations() const
+        [[nodiscard]] constexpr const DeclarationSyntax &declaration() const
         {
-            return declarations_;
+            return *declaration_;
         }
 
       private:
-        friend class Scope;
+        friend class SymbolTable;
 
         SharedString name_;
         SymbolKind kind_;
-        Scope *scope_ = nullptr;
-        std::vector<std::reference_wrapper<const DeclarationSyntax>> declarations_;
+        SymbolTable *scope_ = nullptr;
+        const DeclarationSyntax *declaration_;
     };
 
     export class VariableSymbol;
@@ -105,14 +106,14 @@ namespace prism
         return nullptr;
     }
 
-    class PRISM_CORE_API Scope
+    class PRISM_CORE_API SymbolTable
     {
       public:
-        constexpr explicit Scope(DiagnosticSink &diagnostic_sink) : diagnostic_sink_{diagnostic_sink}
+        constexpr explicit SymbolTable(DiagnosticSink &diagnostic_sink) : diagnostic_sink_{diagnostic_sink}
         {
         }
 
-        constexpr explicit Scope(DiagnosticSink &diagnostic_sink, Scope &parent)
+        constexpr explicit SymbolTable(DiagnosticSink &diagnostic_sink, SymbolTable &parent)
             : diagnostic_sink_{diagnostic_sink}, parent_{&parent}
         {
         }
@@ -133,24 +134,24 @@ namespace prism
         DiagnosticSink &diagnostic_sink_;
         std::vector<std::unique_ptr<Symbol>> all_symbols_;
         std::unordered_map<SharedString, Symbol *> symbols_;
-        Scope *parent_ = nullptr;
+        SymbolTable *parent_ = nullptr;
     };
 
     class PRISM_CORE_API VariableSymbol final : public Symbol
     {
       public:
         constexpr explicit VariableSymbol(SharedString name, const TypeSymbol &type)
-            : Symbol{std::move(name), SymbolKind::variable}, type_{type}
+            : Symbol{std::move(name), SymbolKind::variable}, type_{&type}
         {
         }
 
         [[nodiscard]] constexpr const TypeSymbol &type() const
         {
-            return type_;
+            return *type_;
         }
 
       private:
-        const TypeSymbol &type_;
+        const TypeSymbol *type_;
     };
 
     class PRISM_CORE_API TypeSymbol final : public Symbol
