@@ -234,6 +234,11 @@ namespace prism
         greater_greater,
 
         /**
+         * >>>
+         */
+        greater_greater_greater,
+
+        /**
          * >=
          */
         greater_equal,
@@ -242,6 +247,11 @@ namespace prism
          * >>=
          */
         greater_greater_equal,
+
+        /**
+         * >>>=
+         */
+        greater_greater_greater_equal,
 
         /**
          * ^
@@ -319,7 +329,7 @@ namespace prism
         comma,
 
         identifier,
-        number,
+        integer,
         string_literal,
     };
 

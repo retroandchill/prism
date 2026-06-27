@@ -37,6 +37,7 @@ namespace prism
 
         shift_left,
         shift_right,
+        unsigned_shift_right,
 
         assign,
         add_assign,
@@ -49,10 +50,12 @@ namespace prism
         bit_xor_assign,
         shift_left_assign,
         shift_right_assign,
+        unsigned_shift_right_assign,
     };
 
     export enum class UnaryOperator
     {
+        positive,
         negate,
         logical_not,
         bit_not,
@@ -67,10 +70,15 @@ namespace prism
     export struct LiteralSyntax;
     export struct BinaryExpressionSyntax;
     export struct UnaryExpressionSyntax;
-    export struct FunctionCallSyntax;
+    export struct TernaryExpressionSyntax;
+    export struct InvocationSyntax;
 
-    export using ExpressionSyntax = std::
-        variant<IdentifierSyntax, LiteralSyntax, BinaryExpressionSyntax, UnaryExpressionSyntax, FunctionCallSyntax>;
+    export using ExpressionSyntax = std::variant<IdentifierSyntax,
+                                                 LiteralSyntax,
+                                                 BinaryExpressionSyntax,
+                                                 UnaryExpressionSyntax,
+                                                 TernaryExpressionSyntax,
+                                                 InvocationSyntax>;
 
     struct LiteralSyntax
     {
@@ -92,9 +100,16 @@ namespace prism
         UnaryOperator op{};
     };
 
-    struct FunctionCallSyntax
+    struct TernaryExpressionSyntax
     {
-        std::string callee;
-        std::vector<std::unique_ptr<ExpressionSyntax>> arguments;
+        std::unique_ptr<ExpressionSyntax> condition;
+        std::unique_ptr<ExpressionSyntax> if_true;
+        std::unique_ptr<ExpressionSyntax> if_false;
+    };
+
+    struct InvocationSyntax
+    {
+        std::unique_ptr<ExpressionSyntax> callee;
+        std::vector<ExpressionSyntax> arguments;
     };
 } // namespace prism

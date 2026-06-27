@@ -52,4 +52,21 @@ namespace prism
         SourceRange range;
         DiagnosticInfo info;
     };
+
+    export class DiagnosticSink
+    {
+      public:
+        [[nodiscard]] constexpr const std::vector<Diagnostic> &diagnostics() const noexcept
+        {
+            return diagnostics_;
+        }
+
+        constexpr void report(Severity severity, SourceRange range, DiagnosticInfo info)
+        {
+            diagnostics_.emplace_back(severity, range, std::move(info));
+        }
+
+      private:
+        std::vector<Diagnostic> diagnostics_;
+    };
 } // namespace prism

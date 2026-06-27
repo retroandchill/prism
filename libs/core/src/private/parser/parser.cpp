@@ -61,6 +61,7 @@ namespace prism
 
             std::make_pair(TokenKind::less_less, BinaryOperator::shift_left),
             std::make_pair(TokenKind::greater_greater, BinaryOperator::shift_right),
+            std::make_pair(TokenKind::greater_greater_greater, BinaryOperator::unsigned_shift_right),
 
             std::make_pair(TokenKind::equal, BinaryOperator::assign),
             std::make_pair(TokenKind::plus_equal, BinaryOperator::add_assign),
@@ -73,6 +74,7 @@ namespace prism
             std::make_pair(TokenKind::caret_equal, BinaryOperator::bit_xor_assign),
             std::make_pair(TokenKind::less_less_equal, BinaryOperator::shift_left_assign),
             std::make_pair(TokenKind::greater_greater_equal, BinaryOperator::shift_right_assign),
+            std::make_pair(TokenKind::greater_greater_greater_equal, BinaryOperator::unsigned_shift_right_assign),
         };
 
         constexpr std::int32_t get_precedence(const TokenKind kind)
@@ -81,9 +83,47 @@ namespace prism
             {
                 case TokenKind::star:
                 case TokenKind::slash:
-                    return 20;
+                case TokenKind::percent:
+                    return 120;
                 case TokenKind::plus:
                 case TokenKind::minus:
+                    return 110;
+                case TokenKind::less_less:
+                case TokenKind::greater_greater:
+                case TokenKind::greater_greater_greater:
+                    return 100;
+                case TokenKind::less:
+                case TokenKind::less_equal:
+                case TokenKind::greater:
+                case TokenKind::greater_equal:
+                    return 90;
+                case TokenKind::spaceship:
+                    return 80;
+                case TokenKind::equal_equal:
+                case TokenKind::exclaim_equal:
+                    return 70;
+                case TokenKind::amp:
+                    return 60;
+                case TokenKind::caret:
+                    return 50;
+                case TokenKind::pipe:
+                    return 40;
+                case TokenKind::question_question:
+                    return 30;
+                case TokenKind::question:
+                    return 20;
+                case TokenKind::equal:
+                case TokenKind::plus_equal:
+                case TokenKind::minus_equal:
+                case TokenKind::star_equal:
+                case TokenKind::slash_equal:
+                case TokenKind::percent_equal:
+                case TokenKind::amp_equal:
+                case TokenKind::pipe_equal:
+                case TokenKind::caret_equal:
+                case TokenKind::less_less_equal:
+                case TokenKind::greater_greater_equal:
+                case TokenKind::greater_greater_greater_equal:
                     return 10;
                 default:
                     return -1;
@@ -102,25 +142,18 @@ namespace prism
 
             throw std::runtime_error("Unexpected token");
         }
-
-        std::string parse_string_literal(const std::string_view text)
-        {
-            // TODO: Escape sequences
-            return std::string(text.substr(1, text.length() - 2));
-        }
     } // namespace
 
-    ParseResult Parser::parse()
+    CompilationUnitSyntax Parser::parse_compilation_unit()
     {
-        ParseResult result;
+        CompilationUnitSyntax compilation_unit;
 
         while (!stream_.at_end())
         {
-            result.compilation_unit.declarations.push_back(parse_declaration());
+            compilation_unit.declarations.push_back(parse_declaration());
         }
 
-        result.diagnostics = std::move(diagnostics_);
-        return result;
+        return compilation_unit;
     }
 
     bool Parser::match(const TokenKind kind)
@@ -144,9 +177,9 @@ namespace prism
         const auto start = stream_.previous().range.end;
         const auto next = stream_.peek();
         const auto end = next.range.start;
-        diagnostics_.emplace_back(Severity::error,
-                                  SourceRange{start, end},
-                                  UnexpectedToken{.actual = next.kind, .expected = {kind}});
+        diagnostics_.report(Severity::error,
+                            SourceRange{start, end},
+                            UnexpectedToken{.actual = next.kind, .expected = {kind}});
 
         return Token{.kind = kind, .flags = TokenFlags::synthetic, .range = {start, end}};
     }
@@ -197,17 +230,17 @@ namespace prism
             case TokenKind::semicolon:
                 {
                     stream_.advance();
-                    diagnostics_.emplace_back(Severity::warning, next_token.range, empty_statement);
+                    diagnostics_.report(Severity::warning, next_token.range, empty_statement);
                     return empty_syntax;
                 }
             default:
                 {
-                    diagnostics_.emplace_back(Severity::error,
-                                              next_token.range,
-                                              UnexpectedToken{
-                                                  .actual = next_token.kind,
-                                                  .expected = {TokenKind::kw_var, TokenKind::kw_func},
-                                              });
+                    diagnostics_.report(Severity::error,
+                                        next_token.range,
+                                        UnexpectedToken{
+                                            .actual = next_token.kind,
+                                            .expected = {TokenKind::kw_var, TokenKind::kw_func},
+                                        });
                     synchronize();
                     const auto error_statement_end = stream_.peek().range.start;
 
@@ -256,12 +289,12 @@ namespace prism
         else
         {
             auto next = stream_.peek();
-            diagnostics_.emplace_back(Severity::error,
-                                      next.range,
-                                      UnexpectedToken{
-                                          .actual = next.kind,
-                                          .expected = {TokenKind::lparen},
-                                      });
+            diagnostics_.report(Severity::error,
+                                next.range,
+                                UnexpectedToken{
+                                    .actual = next.kind,
+                                    .expected = {TokenKind::lparen},
+                                });
         }
 
         if (match(TokenKind::arrow))
@@ -282,13 +315,12 @@ namespace prism
                 syntax.body = empty_syntax;
                 break;
             default:
-                diagnostics_.emplace_back(
-                    Severity::error,
-                    next.range,
-                    UnexpectedToken{
-                        .actual = next.kind,
-                        .expected = {TokenKind::lbrace, TokenKind::big_arrow, TokenKind::semicolon},
-                    });
+                diagnostics_.report(Severity::error,
+                                    next.range,
+                                    UnexpectedToken{
+                                        .actual = next.kind,
+                                        .expected = {TokenKind::lbrace, TokenKind::big_arrow, TokenKind::semicolon},
+                                    });
                 synchronize(false);
                 break;
         }
@@ -391,7 +423,7 @@ namespace prism
                 return parse_block();
             case TokenKind::semicolon:
                 stream_.advance();
-                diagnostics_.emplace_back(Severity::warning, next.range, empty_statement);
+                diagnostics_.report(Severity::warning, next.range, empty_statement);
                 return empty_syntax;
             default:
                 return parse_expression_statement();
@@ -417,29 +449,207 @@ namespace prism
 
     ExpressionSyntax Parser::parse_expression()
     {
+        return parse_expression(parse_prefix_expression(), 0);
+    }
+
+    ExpressionSyntax Parser::parse_expression(ExpressionSyntax lhs, const std::int32_t min_precedence)
+    {
+        auto next = stream_.peek();
+        auto precedence = get_precedence(next.kind);
+        while (precedence >= min_precedence)
+        {
+            if (next.kind == TokenKind::question)
+            {
+                lhs = parse_ternary_expression(std::move(lhs));
+            }
+            else
+            {
+                auto op = get_binary_operator(next.kind);
+                stream_.advance();
+                auto rhs = parse_prefix_expression();
+                next = stream_.peek();
+                auto inner_precedence = get_precedence(next.kind);
+                while (inner_precedence >= precedence)
+                {
+                    rhs = parse_expression(std::move(rhs), inner_precedence > precedence ? precedence + 1 : precedence);
+
+                    next = stream_.peek();
+                    inner_precedence = get_precedence(next.kind);
+                }
+
+                lhs = BinaryExpressionSyntax{
+                    .op = op,
+                    .left = std::make_unique<ExpressionSyntax>(std::move(lhs)),
+                    .right = std::make_unique<ExpressionSyntax>(std::move(rhs)),
+                };
+            }
+
+            next = stream_.peek();
+            precedence = get_precedence(next.kind);
+        }
+
+        return lhs;
+    }
+
+    ExpressionSyntax Parser::parse_ternary_expression(ExpressionSyntax lhs)
+    {
+        expect(TokenKind::question);
+        auto true_expression = std::make_unique<ExpressionSyntax>(parse_expression());
+
+        expect(TokenKind::colon);
+
+        auto false_expression = std::make_unique<ExpressionSyntax>(parse_expression());
+
+        return TernaryExpressionSyntax{
+            .condition = std::make_unique<ExpressionSyntax>(std::move(lhs)),
+            .if_true = std::move(true_expression),
+            .if_false = std::move(false_expression),
+        };
+    }
+
+    ExpressionSyntax Parser::parse_primary_expression()
+    {
         switch (const auto [kind, flags, range] = stream_.peek(); kind)
         {
-            case TokenKind::semicolon:
-                diagnostics_.emplace_back(Severity::error, stream_.previous().range, empty_expression);
-                return ErrorSyntax{
-                    .range = stream_.previous().range,
+            case TokenKind::kw_false:
+                stream_.advance();
+                return LiteralSyntax{
+                    .value = false,
+                    .range = range,
                 };
-            case TokenKind::number:
+            case TokenKind::kw_true:
+                stream_.advance();
+                return LiteralSyntax{
+                    .value = true,
+                    .range = range,
+                };
+            case TokenKind::integer:
                 stream_.advance();
                 return LiteralSyntax{
                     .value = std::stoull(std::string{source_file_.slice(range)}),
                     .range = range,
                 };
+            case TokenKind::string_literal:
+                return parse_string_literal();
+            case TokenKind::identifier:
+                {
+                    return parse_identifier();
+                }
+            case TokenKind::lparen:
+                {
+                    stream_.advance();
+                    auto expression = parse_expression();
+                    expect(TokenKind::rparen);
+                    return expression;
+                }
             default:
-                diagnostics_.emplace_back(Severity::error,
-                                          range,
-                                          UnexpectedToken{
-                                              .actual = kind,
-                                          });
+                diagnostics_.report(Severity::error,
+                                    range,
+                                    UnexpectedToken{
+                                        .actual = kind,
+                                    });
                 synchronize(false);
                 return ErrorSyntax{
                     .range = range,
                 };
         }
+    }
+
+    ExpressionSyntax Parser::parse_prefix_expression()
+    {
+        static constexpr std::array unary_operators = {
+            std::make_pair(TokenKind::plus, UnaryOperator::positive),
+            std::make_pair(TokenKind::minus, UnaryOperator::negate),
+            std::make_pair(TokenKind::exclaim, UnaryOperator::logical_not),
+            std::make_pair(TokenKind::tilde, UnaryOperator::bit_not),
+            std::make_pair(TokenKind::plus_plus, UnaryOperator::pre_increment),
+            std::make_pair(TokenKind::minus_minus, UnaryOperator::pre_decrement),
+            std::make_pair(TokenKind::amp, UnaryOperator::address_of),
+            std::make_pair(TokenKind::star, UnaryOperator::dereference),
+        };
+
+        for (const auto &[kind, op] : unary_operators)
+        {
+            if (match(kind))
+            {
+                return UnaryExpressionSyntax{
+                    .operand = std::make_unique<ExpressionSyntax>(parse_prefix_expression()),
+                    .op = op,
+                };
+            }
+        }
+
+        return parse_postfix_expression();
+    }
+
+    ExpressionSyntax Parser::parse_postfix_expression()
+    {
+        auto expression = parse_primary_expression();
+
+        switch (const auto [kind, flags, range] = stream_.peek(); kind)
+        {
+            case TokenKind::lparen:
+                {
+                    stream_.advance();
+                    expression = InvocationSyntax{.callee = std::make_unique<ExpressionSyntax>(std::move(expression)),
+                                                  .arguments = parse_argument_list()};
+                    expect(TokenKind::rparen);
+                    break;
+                }
+            case TokenKind::plus_plus:
+                stream_.advance();
+                expression = UnaryExpressionSyntax{
+                    .operand = std::make_unique<ExpressionSyntax>(std::move(expression)),
+                    .op = UnaryOperator::post_increment,
+                };
+                break;
+            case TokenKind::minus_minus:
+                stream_.advance();
+                expression = UnaryExpressionSyntax{
+                    .operand = std::make_unique<ExpressionSyntax>(std::move(expression)),
+                    .op = UnaryOperator::post_decrement,
+                };
+                break;
+            default:
+                // Do nothing
+                break;
+        }
+
+        return expression;
+    }
+
+    std::vector<ExpressionSyntax> Parser::parse_argument_list()
+    {
+        std::vector<ExpressionSyntax> arguments;
+        while (stream_.peek().kind != TokenKind::rparen)
+        {
+            if (!arguments.empty())
+            {
+                expect(TokenKind::comma);
+            }
+
+            arguments.push_back(parse_expression());
+        }
+
+        return arguments;
+    }
+
+    LiteralSyntax Parser::parse_string_literal()
+    {
+        const auto token = expect(TokenKind::string_literal);
+        if (has_any_flags(token.flags, TokenFlags::synthetic))
+        {
+            return LiteralSyntax{
+                .value = std::string{},
+                .range = token.range,
+            };
+        }
+
+        const auto text = source_file_.slice(token.range);
+        // TODO: Escape sequences
+        return LiteralSyntax{
+            .value = std::string(text.substr(1, text.length() - 2)),
+            .range = token.range,
+        };
     }
 } // namespace prism

@@ -49,7 +49,7 @@ TEST_CASE("Simple grammar", "[lexer]")
     CHECK(tokens[8].kind == TokenKind::kw_return);
     CHECK(tokens[9].kind == TokenKind::identifier);
     CHECK(tokens[10].kind == TokenKind::plus);
-    CHECK(tokens[11].kind == TokenKind::number);
+    CHECK(tokens[11].kind == TokenKind::integer);
     CHECK(tokens[12].kind == TokenKind::semicolon);
     CHECK(tokens[13].kind == TokenKind::rbrace);
     CHECK(tokens[14].kind == TokenKind::eof);
@@ -64,7 +64,7 @@ TEST_CASE("Skips line comments until the end of the line", "[lexer]")
     CHECK(tokens[0].kind == TokenKind::kw_var);
     CHECK(tokens[1].kind == TokenKind::identifier);
     CHECK(tokens[2].kind == TokenKind::equal);
-    CHECK(tokens[3].kind == TokenKind::number);
+    CHECK(tokens[3].kind == TokenKind::integer);
     CHECK(tokens[4].kind == TokenKind::semicolon);
     CHECK(tokens[5].kind == TokenKind::eof);
 }
@@ -77,7 +77,7 @@ TEST_CASE("Block comments can split a single line", "[lexer]")
     CHECK(tokens[0].kind == TokenKind::kw_var);
     CHECK(tokens[1].kind == TokenKind::identifier);
     CHECK(tokens[2].kind == TokenKind::equal);
-    CHECK(tokens[3].kind == TokenKind::number);
+    CHECK(tokens[3].kind == TokenKind::integer);
     CHECK(tokens[4].kind == TokenKind::semicolon);
     CHECK(tokens[5].kind == TokenKind::eof);
 }
@@ -93,7 +93,7 @@ TEST_CASE("Block comments can span multiple lines", "[lexer]")
     CHECK(tokens[0].kind == TokenKind::kw_var);
     CHECK(tokens[1].kind == TokenKind::identifier);
     CHECK(tokens[2].kind == TokenKind::equal);
-    CHECK(tokens[3].kind == TokenKind::number);
+    CHECK(tokens[3].kind == TokenKind::integer);
     CHECK(tokens[4].kind == TokenKind::semicolon);
     CHECK(tokens[5].kind == TokenKind::eof);
 }
@@ -110,7 +110,7 @@ TEST_CASE("Doc comments are preserved as opaque tokens", "[lexer]")
     CHECK(tokens[1].kind == TokenKind::kw_var);
     CHECK(tokens[2].kind == TokenKind::identifier);
     CHECK(tokens[3].kind == TokenKind::equal);
-    CHECK(tokens[4].kind == TokenKind::number);
+    CHECK(tokens[4].kind == TokenKind::integer);
     CHECK(tokens[5].kind == TokenKind::semicolon);
     CHECK(tokens[6].kind == TokenKind::eof);
 }

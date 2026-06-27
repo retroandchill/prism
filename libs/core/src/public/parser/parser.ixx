@@ -38,11 +38,15 @@ namespace prism
     export class PRISM_CORE_API Parser
     {
       public:
-        constexpr explicit Parser(const SourceFile &source_file) : source_file_{source_file}, stream_{source_file}
+        constexpr explicit Parser(const SourceFile &source_file, DiagnosticSink &diagnostic_sink)
+            : source_file_{source_file}, stream_{source_file}, diagnostics_{diagnostic_sink}
         {
         }
 
-        ParseResult parse();
+        CompilationUnitSyntax parse_compilation_unit();
+        DeclarationSyntax parse_declaration();
+        StatementSyntax parse_statement();
+        ExpressionSyntax parse_expression();
 
       private:
         bool match(TokenKind kind);
@@ -50,8 +54,6 @@ namespace prism
 
         void synchronize(bool include_semicolon = true);
         bool is_next(std::span<const TokenKind> kinds);
-
-        DeclarationSyntax parse_declaration();
         VariableDeclarationSyntax parse_variable_declaration();
         FunctionDeclarationSyntax parse_function_declaration();
         std::vector<ParameterDeclarationSyntax> parse_parameter_list();
@@ -61,14 +63,22 @@ namespace prism
 
         BlockSyntax parse_block();
 
-        StatementSyntax parse_statement();
         ExpressionStatementSyntax parse_expression_statement();
         ReturnStatementSyntax parse_return_statement();
 
-        ExpressionSyntax parse_expression();
+        ExpressionSyntax parse_expression(ExpressionSyntax lhs, std::int32_t min_precedence);
+
+        ExpressionSyntax parse_ternary_expression(ExpressionSyntax lhs);
+
+        ExpressionSyntax parse_primary_expression();
+        ExpressionSyntax parse_prefix_expression();
+        ExpressionSyntax parse_postfix_expression();
+        std::vector<ExpressionSyntax> parse_argument_list();
+
+        LiteralSyntax parse_string_literal();
 
         const SourceFile &source_file_;
         TokenStream stream_;
-        std::vector<Diagnostic> diagnostics_;
+        DiagnosticSink &diagnostics_;
     };
 } // namespace prism

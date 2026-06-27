@@ -19,7 +19,7 @@ namespace prism
         {
             std::sort(operators.begin(),
                       operators.end(),
-                      [](const auto &lhs, const auto &rhs) { return lhs.first.size() < rhs.first.size(); });
+                      [](const auto &lhs, const auto &rhs) { return lhs.first.size() > rhs.first.size(); });
             return operators;
         }
     } // namespace
@@ -186,7 +186,7 @@ namespace prism
             }
         }
 
-        return make_token(TokenKind::number, start, cursor_.position());
+        return make_token(TokenKind::integer, start, cursor_.position());
     }
 
     std::optional<Token> Lexer::match_operator()
@@ -227,8 +227,10 @@ namespace prism
             std::make_pair("<=>"sv, TokenKind::spaceship),
             std::make_pair(">"sv, TokenKind::greater),
             std::make_pair(">>"sv, TokenKind::greater_greater),
+            std::make_pair(">>>"sv, TokenKind::greater_greater_greater),
             std::make_pair(">="sv, TokenKind::greater_equal),
             std::make_pair(">>="sv, TokenKind::greater_greater_equal),
+            std::make_pair(">>>="sv, TokenKind::greater_greater_greater_equal),
             std::make_pair("^"sv, TokenKind::caret),
             std::make_pair("^="sv, TokenKind::caret_equal),
             std::make_pair("|"sv, TokenKind::pipe),
