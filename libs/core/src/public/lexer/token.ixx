@@ -42,6 +42,7 @@ namespace prism
         kw_true,
         kw_false,
 
+        kw_void,
         kw_bool,
         kw_i8,
         kw_i16,

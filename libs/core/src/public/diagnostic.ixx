@@ -39,12 +39,18 @@ namespace prism
         std::vector<TokenKind> expected;
     };
 
+    export struct DuplicateSymbolDefinition
+    {
+        SharedString name;
+    };
+
     export struct OtherDiagnostic
     {
         SharedString message;
     };
 
-    export using DiagnosticInfo = std::variant<EmptyStatement, EmptyExpression, UnexpectedToken, OtherDiagnostic>;
+    export using DiagnosticInfo =
+        std::variant<EmptyStatement, EmptyExpression, UnexpectedToken, DuplicateSymbolDefinition, OtherDiagnostic>;
 
     export struct Diagnostic
     {

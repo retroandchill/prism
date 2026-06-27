@@ -3,7 +3,8 @@ set(PRISM_HEADERS include/prism/core/exports.h)
 set(PRISM_SOURCES
         src/private/lexer/lexer.cpp
         src/private/parser/parser.cpp
-        src/private/lexer/token_stream.cpp)
+        src/private/lexer/token_stream.cpp
+        src/private/semantic/symbol.cpp)
 
 set(PRISM_PUBLIC_MODULES
         src/public/lexer/token.ixx
@@ -20,6 +21,7 @@ set(PRISM_PUBLIC_MODULES
         src/public/diagnostic.ixx
         src/public/util.ixx
         src/public/ast/common_syntax.ixx
+        src/public/semantic/symbol.ixx
 )
 
 find_package(antlr4-runtime REQUIRED)

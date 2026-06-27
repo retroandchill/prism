@@ -20,9 +20,8 @@ namespace prism
 
     export struct EmptySyntax
     {
+        SourceRange range;
     };
-
-    export constexpr EmptySyntax empty_syntax{};
 
     export struct ErrorSyntax
     {
@@ -36,4 +35,14 @@ namespace prism
     };
 
     export using IdentifierSyntax = std::variant<ValidIdentifierSyntax, ErrorSyntax>;
+
+    export constexpr SourceRange get_range(const IdentifierSyntax &identifier_syntax)
+    {
+        return std::visit(Overload{[](const ValidIdentifierSyntax &identifier) { return identifier.range; },
+                                   [](const ErrorSyntax &error)
+                                   {
+                                       return error.range;
+                                   }},
+                          identifier_syntax);
+    }
 } // namespace prism

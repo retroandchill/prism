@@ -27,7 +27,7 @@ TEST_CASE("Can parse a simple variable declaration", "[parser]")
     CHECK(sink.diagnostics().size() == 0); // NOLINT(*-container-size-empty)
     REQUIRE(std::holds_alternative<VariableDeclarationSyntax>(declaration));
 
-    auto &[variable_name, type, is_mutable, initializer] = std::get<VariableDeclarationSyntax>(declaration);
+    auto &[variable_name, type, is_mutable, modifiers, initializer] = std::get<VariableDeclarationSyntax>(declaration);
     CHECK_FALSE(is_mutable);
 
     REQUIRE(std::holds_alternative<ValidIdentifierSyntax>(variable_name));
@@ -59,7 +59,7 @@ TEST_CASE("Can parse a function declaration", "[parser]")
     auto declaration = parser.parse_declaration();
 
     REQUIRE(std::holds_alternative<FunctionDeclarationSyntax>(declaration));
-    auto &[function_name, return_type, parameters, body] = std::get<FunctionDeclarationSyntax>(declaration);
+    auto &[function_name, return_type, parameters, body, modifiers] = std::get<FunctionDeclarationSyntax>(declaration);
 
     REQUIRE(std::holds_alternative<ValidIdentifierSyntax>(function_name));
     auto &[name, range] = std::get<ValidIdentifierSyntax>(function_name);

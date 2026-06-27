@@ -136,4 +136,13 @@ namespace prism
     {
         return (enum_value & flags) != static_cast<T>(0);
     }
+
+    export template <typename... Functors>
+    struct Overload : Functors...
+    {
+        using Functors::operator()...;
+    };
+
+    export template <typename... Functors>
+    Overload(Functors...) -> Overload<Functors...>;
 } // namespace prism

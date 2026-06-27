@@ -15,6 +15,7 @@ namespace prism
 {
     export enum class BuiltInType
     {
+        void_type,
         boolean,
         i8,
         i16,
@@ -36,6 +37,57 @@ namespace prism
         rune,
         str,
     };
+
+    export constexpr std::string_view to_string(const BuiltInType type) noexcept
+    {
+        switch (type)
+        {
+            case BuiltInType::void_type:
+                return "void";
+            case BuiltInType::boolean:
+                return "bool";
+            case BuiltInType::i8:
+                return "i8";
+            case BuiltInType::i16:
+                return "i16";
+            case BuiltInType::i32:
+                return "i32";
+            case BuiltInType::i64:
+                return "i64";
+            case BuiltInType::i128:
+                return "i128";
+            case BuiltInType::u8:
+                return "u8";
+            case BuiltInType::u16:
+                return "u16";
+            case BuiltInType::u32:
+                return "u32";
+            case BuiltInType::u64:
+                return "u64";
+            case BuiltInType::u128:
+                return "u128";
+            case BuiltInType::isize:
+                return "isize";
+            case BuiltInType::usize:
+                return "usize";
+            case BuiltInType::f16:
+                return "f16";
+            case BuiltInType::f32:
+                return "f32";
+            case BuiltInType::f64:
+                return "f64";
+            case BuiltInType::char8:
+                return "char";
+            case BuiltInType::char16:
+                return "char16";
+            case BuiltInType::rune:
+                return "rune";
+            case BuiltInType::str:
+                return "str";
+            default:
+                throw std::invalid_argument{"Not a valid built-in type"};
+        }
+    }
 
     export struct BuiltInTypeSyntax
     {

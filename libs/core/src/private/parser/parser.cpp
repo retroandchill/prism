@@ -140,7 +140,7 @@ namespace prism
                 }
             }
 
-            throw std::runtime_error("Unexpected token");
+            throw std::invalid_argument("Unexpected token");
         }
     } // namespace
 
@@ -251,7 +251,9 @@ namespace prism
                 {
                     stream_.advance();
                     diagnostics_.report(Severity::warning, next_token.range, empty_statement);
-                    return empty_syntax;
+                    return EmptySyntax{
+                        .range = {next_token.range.start, next_token.range.start},
+                    };
                 }
             default:
                 {
@@ -326,7 +328,7 @@ namespace prism
             syntax.return_type = parse_type();
         }
 
-        switch (auto next = stream_.peek(); next.kind)
+        switch (const auto next = stream_.peek(); next.kind)
         {
             case TokenKind::lbrace:
                 syntax.body = parse_block();
@@ -336,7 +338,9 @@ namespace prism
                 syntax.body = parse_expression();
                 break;
             case TokenKind::semicolon:
-                syntax.body = empty_syntax;
+                syntax.body = EmptySyntax{
+                    .range = {next.range.start, next.range.start},
+                };
                 break;
             default:
                 diagnostics_.report(Severity::error,
@@ -448,7 +452,9 @@ namespace prism
             case TokenKind::semicolon:
                 stream_.advance();
                 diagnostics_.report(Severity::warning, next.range, empty_statement);
-                return empty_syntax;
+                return EmptySyntax{
+                    .range = {next.range.start, next.range.start},
+                };
             default:
                 return parse_expression_statement();
         }
@@ -488,7 +494,7 @@ namespace prism
             }
             else
             {
-                auto op = get_binary_operator(next.kind);
+                const auto op = get_binary_operator(next.kind);
                 stream_.advance();
                 auto rhs = parse_prefix_expression();
                 next = stream_.peek();

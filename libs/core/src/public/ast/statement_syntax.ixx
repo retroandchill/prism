@@ -12,6 +12,7 @@ import prism.core.ast.type_syntax;
 import prism.core.util;
 import prism.core.lexer.token;
 import prism.core.ast.common_syntax;
+import prism.core.source.source_file;
 
 namespace prism
 {
@@ -73,4 +74,16 @@ namespace prism
     {
         std::vector<DeclarationSyntax> declarations;
     };
+
+    export constexpr SourceRange get_range(const DeclarationSyntax &syntax)
+    {
+        return std::visit(
+            Overload{
+                [](const VariableDeclarationSyntax &variable) { return get_range(variable.name); },
+                [](const FunctionDeclarationSyntax &function) { return get_range(function.name); },
+                [](const EmptySyntax &empty) { return empty.range; },
+                [](const ErrorSyntax &error) { return error.range; },
+            },
+            syntax);
+    }
 } // namespace prism
