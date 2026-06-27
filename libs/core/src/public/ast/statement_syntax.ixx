@@ -15,7 +15,24 @@ import prism.core.ast.common_syntax;
 
 namespace prism
 {
-    export struct VariableDeclarationSyntax
+    export struct VariableDeclarationSyntax;
+    export struct FunctionDeclarationSyntax;
+    export struct ReturnStatementSyntax;
+    export struct ExpressionStatementSyntax;
+    export struct BlockSyntax;
+
+    export using DeclarationSyntax =
+        std::variant<VariableDeclarationSyntax, FunctionDeclarationSyntax, EmptySyntax, ErrorSyntax>;
+
+    export using StatementSyntax = std::
+        variant<VariableDeclarationSyntax, ExpressionStatementSyntax, ReturnStatementSyntax, BlockSyntax, EmptySyntax>;
+
+    struct BlockSyntax
+    {
+        std::vector<StatementSyntax> statements;
+    };
+
+    struct VariableDeclarationSyntax
     {
         IdentifierSyntax name;
         std::optional<TypeSyntax> type;
@@ -25,39 +42,30 @@ namespace prism
 
     export struct ParameterDeclarationSyntax
     {
-        std::string name;
+        IdentifierSyntax name;
         TypeSyntax type;
         bool is_mutable = false;
     };
 
-    export struct FunctionDeclarationSyntax
+    using FunctionBodySyntax = std::variant<EmptySyntax, BlockSyntax, ExpressionSyntax>;
+
+    struct FunctionDeclarationSyntax
     {
-        std::string name;
+        IdentifierSyntax name;
         std::optional<TypeSyntax> return_type;
         std::vector<ParameterDeclarationSyntax> parameters;
+        FunctionBodySyntax body;
     };
 
-    export struct ReturnStatementSyntax
+    struct ReturnStatementSyntax
     {
-        std::unique_ptr<ExpressionSyntax> expression;
+        ExpressionSyntax expression;
     };
 
-    export struct ExpressionStatementSyntax
+    struct ExpressionStatementSyntax
     {
-        std::unique_ptr<ExpressionSyntax> expression;
+        ExpressionSyntax expression;
     };
-
-    export struct EmptySyntax
-    {
-    };
-
-    export constexpr EmptySyntax empty_syntax{};
-
-    export using DeclarationSyntax =
-        std::variant<VariableDeclarationSyntax, FunctionDeclarationSyntax, EmptySyntax, ErrorSyntax>;
-
-    export using StatementSyntax =
-        std::variant<VariableDeclarationSyntax, ExpressionStatementSyntax, ReturnStatementSyntax, EmptySyntax>;
 
     export struct CompilationUnitSyntax
     {

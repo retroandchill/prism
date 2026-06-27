@@ -304,6 +304,11 @@ namespace prism
         equal,
 
         /**
+         * =>
+         */
+        big_arrow,
+
+        /**
          * ==
          */
         equal_equal,

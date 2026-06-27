@@ -241,6 +241,7 @@ namespace prism
             std::make_pair("::"sv, TokenKind::colon_colon),
             std::make_pair(";"sv, TokenKind::semicolon),
             std::make_pair("="sv, TokenKind::equal),
+            std::make_pair("=>"sv, TokenKind::big_arrow),
             std::make_pair("=="sv, TokenKind::equal_equal),
             std::make_pair(","sv, TokenKind::comma),
         });

@@ -15,6 +15,7 @@ import prism.core.lexer.token;
 import prism.core.parser.token_cursor;
 import prism.core.ast.statement_syntax;
 import prism.core.ast.expression_syntax;
+import prism.core.ast.common_syntax;
 import prism.core.ast.type_syntax;
 import prism.core.source.source_file;
 import prism.core.ast.statement_syntax;
@@ -53,8 +54,16 @@ namespace prism
         DeclarationSyntax parse_declaration();
         VariableDeclarationSyntax parse_variable_declaration();
         FunctionDeclarationSyntax parse_function_declaration();
+        std::vector<ParameterDeclarationSyntax> parse_parameter_list();
 
+        IdentifierSyntax parse_identifier();
         TypeSyntax parse_type();
+
+        BlockSyntax parse_block();
+
+        StatementSyntax parse_statement();
+        ExpressionStatementSyntax parse_expression_statement();
+        ReturnStatementSyntax parse_return_statement();
 
         ExpressionSyntax parse_expression();
 

@@ -188,7 +188,7 @@ namespace prism
 
     DeclarationSyntax Parser::parse_declaration()
     {
-        switch (const auto next_token = stream_.consume(); next_token.kind)
+        switch (const auto next_token = stream_.peek(); next_token.kind)
         {
             case TokenKind::kw_var: // NOLINT(*-branch-clone)
                 return parse_variable_declaration();
@@ -196,6 +196,7 @@ namespace prism
                 return parse_function_declaration();
             case TokenKind::semicolon:
                 {
+                    stream_.advance();
                     diagnostics_.emplace_back(Severity::warning, next_token.range, empty_statement);
                     return empty_syntax;
                 }
@@ -221,21 +222,10 @@ namespace prism
     VariableDeclarationSyntax Parser::parse_variable_declaration()
     {
         VariableDeclarationSyntax syntax;
+        expect(TokenKind::kw_var);
 
         syntax.is_mutable = match(TokenKind::kw_mut);
-
-        if (const auto identifier = expect(TokenKind::identifier);
-            has_any_flags(identifier.flags, TokenFlags::synthetic))
-        {
-            syntax.name = ErrorSyntax{identifier.range};
-        }
-        else
-        {
-            syntax.name = ValidIdentifierSyntax{
-                .name = SharedString{source_file_.slice(identifier.range)},
-                .range = identifier.range,
-            };
-        }
+        syntax.name = parse_identifier();
 
         if (match(TokenKind::colon))
         {
@@ -254,8 +244,98 @@ namespace prism
     FunctionDeclarationSyntax Parser::parse_function_declaration()
     {
         FunctionDeclarationSyntax syntax;
+        expect(TokenKind::kw_func);
+
+        syntax.name = parse_identifier();
+
+        if (match(TokenKind::lparen))
+        {
+            syntax.parameters = parse_parameter_list();
+            expect(TokenKind::rparen);
+        }
+        else
+        {
+            auto next = stream_.peek();
+            diagnostics_.emplace_back(Severity::error,
+                                      next.range,
+                                      UnexpectedToken{
+                                          .actual = next.kind,
+                                          .expected = {TokenKind::lparen},
+                                      });
+        }
+
+        if (match(TokenKind::arrow))
+        {
+            syntax.return_type = parse_type();
+        }
+
+        switch (auto next = stream_.peek(); next.kind)
+        {
+            case TokenKind::lbrace:
+                syntax.body = parse_block();
+                break;
+            case TokenKind::big_arrow:
+                stream_.advance();
+                syntax.body = parse_expression();
+                break;
+            case TokenKind::semicolon:
+                syntax.body = empty_syntax;
+                break;
+            default:
+                diagnostics_.emplace_back(
+                    Severity::error,
+                    next.range,
+                    UnexpectedToken{
+                        .actual = next.kind,
+                        .expected = {TokenKind::lbrace, TokenKind::big_arrow, TokenKind::semicolon},
+                    });
+                synchronize(false);
+                break;
+        }
 
         return syntax;
+    }
+
+    std::vector<ParameterDeclarationSyntax> Parser::parse_parameter_list()
+    {
+        std::vector<ParameterDeclarationSyntax> parameters;
+
+        auto next = stream_.peek();
+        while (next.kind != TokenKind::rparen)
+        {
+            if (!parameters.empty())
+            {
+                expect(TokenKind::comma);
+            }
+
+            auto &[name, type, is_mutable] = parameters.emplace_back();
+
+            is_mutable = match(TokenKind::kw_mut);
+            name = parse_identifier();
+
+            if (match(TokenKind::colon))
+            {
+                type = parse_type();
+            }
+
+            next = stream_.peek();
+        }
+
+        return parameters;
+    }
+
+    IdentifierSyntax Parser::parse_identifier()
+    {
+        const auto identifier = expect(TokenKind::identifier);
+        if (has_any_flags(identifier.flags, TokenFlags::synthetic))
+        {
+            return ErrorSyntax{identifier.range};
+        }
+
+        return ValidIdentifierSyntax{
+            .name = SharedString{source_file_.slice(identifier.range)},
+            .range = identifier.range,
+        };
     }
 
     TypeSyntax Parser::parse_type()
@@ -266,7 +346,10 @@ namespace prism
             if (token == next.kind)
             {
                 stream_.advance();
-                return ValidTypeSyntax{type};
+                return BuiltInTypeSyntax{
+                    .type = type,
+                    .range = next.range,
+                };
             }
         }
 
@@ -276,9 +359,60 @@ namespace prism
             return ErrorSyntax{identifier.range};
         }
 
-        return ValidTypeSyntax{NamedTypeSyntax{
-            .name = SharedString{source_file_.slice(identifier.range)},
-        }};
+        return NamedTypeSyntax{.name = ValidIdentifierSyntax{
+                                   .name = SharedString{source_file_.slice(identifier.range)},
+                                   .range = identifier.range,
+                               }};
+    }
+
+    BlockSyntax Parser::parse_block()
+    {
+        BlockSyntax block;
+        expect(TokenKind::lbrace);
+
+        while (stream_.peek().kind != TokenKind::rbrace)
+        {
+            block.statements.push_back(parse_statement());
+        }
+
+        expect(TokenKind::rbrace);
+        return block;
+    }
+
+    StatementSyntax Parser::parse_statement()
+    {
+        switch (auto next = stream_.peek(); next.kind)
+        {
+            case TokenKind::kw_var:
+                return parse_variable_declaration();
+            case TokenKind::kw_return:
+                return parse_return_statement();
+            case TokenKind::lbrace:
+                return parse_block();
+            case TokenKind::semicolon:
+                stream_.advance();
+                diagnostics_.emplace_back(Severity::warning, next.range, empty_statement);
+                return empty_syntax;
+            default:
+                return parse_expression_statement();
+        }
+    }
+
+    ExpressionStatementSyntax Parser::parse_expression_statement()
+    {
+        ExpressionStatementSyntax statement;
+        statement.expression = parse_expression();
+        expect(TokenKind::semicolon);
+        return statement;
+    }
+
+    ReturnStatementSyntax Parser::parse_return_statement()
+    {
+        ReturnStatementSyntax statement;
+        expect(TokenKind::kw_return);
+        statement.expression = parse_expression();
+        expect(TokenKind::semicolon);
+        return statement;
     }
 
     ExpressionSyntax Parser::parse_expression()

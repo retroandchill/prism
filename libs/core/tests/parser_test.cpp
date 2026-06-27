@@ -36,10 +36,9 @@ TEST_CASE("Can parse a simple variable declaration", "[parser]")
     CHECK(*name == "value");
 
     REQUIRE(type.has_value());
-    REQUIRE(std::holds_alternative<ValidTypeSyntax>(*type));
-    auto &[type_name] = std::get<ValidTypeSyntax>(*type);
-    REQUIRE(std::holds_alternative<BuiltInType>(type_name));
-    CHECK(std::get<BuiltInType>(type_name) == BuiltInType::i32);
+    REQUIRE(std::holds_alternative<BuiltInTypeSyntax>(*type));
+    auto &[type_code, type_range] = std::get<BuiltInTypeSyntax>(*type);
+    CHECK(type_code == BuiltInType::i32);
 
     REQUIRE(initializer != nullptr);
     REQUIRE(std::holds_alternative<LiteralSyntax>(*initializer));

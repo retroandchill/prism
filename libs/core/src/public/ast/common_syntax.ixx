@@ -6,13 +6,19 @@
  */
 export module prism.core.ast.common_syntax;
 
+import std;
 import prism.core.lexer.token;
 import prism.core.util;
 import prism.core.source.source_file;
-#include <variant>
 
 namespace prism
 {
+    export struct EmptySyntax
+    {
+    };
+
+    export constexpr EmptySyntax empty_syntax{};
+
     export struct ErrorSyntax
     {
         SourceRange range;
