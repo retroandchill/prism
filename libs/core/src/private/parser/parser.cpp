@@ -219,14 +219,34 @@ namespace prism
         return std::ranges::any_of(kinds, [next](const auto &kind) { return next.kind == kind; });
     }
 
+    std::pair<Modifiers, bool> Parser::parse_modifiers()
+    {
+        Modifiers modifiers;
+        auto modifiers_seen = false;
+        while (true)
+        {
+            switch (const auto next = stream_.peek(); next.kind)
+            {
+                case TokenKind::kw_extern:
+                    modifiers.is_extern = true;
+                    modifiers_seen = true;
+                    stream_.advance();
+                    break;
+                default:
+                    return std::make_pair(modifiers, modifiers_seen);
+            }
+        }
+    }
+
     DeclarationSyntax Parser::parse_declaration()
     {
+        const auto [modifiers, has_modifiers] = parse_modifiers();
         switch (const auto next_token = stream_.peek(); next_token.kind)
         {
             case TokenKind::kw_var: // NOLINT(*-branch-clone)
-                return parse_variable_declaration();
+                return parse_variable_declaration(modifiers);
             case TokenKind::kw_func:
-                return parse_function_declaration();
+                return parse_function_declaration(modifiers);
             case TokenKind::semicolon:
                 {
                     stream_.advance();
@@ -252,9 +272,11 @@ namespace prism
         }
     }
 
-    VariableDeclarationSyntax Parser::parse_variable_declaration()
+    VariableDeclarationSyntax Parser::parse_variable_declaration(const Modifiers modifiers)
     {
-        VariableDeclarationSyntax syntax;
+        VariableDeclarationSyntax syntax{
+            .modifiers = modifiers,
+        };
         expect(TokenKind::kw_var);
 
         syntax.is_mutable = match(TokenKind::kw_mut);
@@ -274,9 +296,11 @@ namespace prism
         return syntax;
     }
 
-    FunctionDeclarationSyntax Parser::parse_function_declaration()
+    FunctionDeclarationSyntax Parser::parse_function_declaration(const Modifiers modifiers)
     {
-        FunctionDeclarationSyntax syntax;
+        FunctionDeclarationSyntax syntax{
+            .modifiers = modifiers,
+        };
         expect(TokenKind::kw_func);
 
         syntax.name = parse_identifier();

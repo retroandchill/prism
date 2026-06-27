@@ -54,8 +54,11 @@ namespace prism
 
         void synchronize(bool include_semicolon = true);
         bool is_next(std::span<const TokenKind> kinds);
-        VariableDeclarationSyntax parse_variable_declaration();
-        FunctionDeclarationSyntax parse_function_declaration();
+
+        std::pair<Modifiers, bool> parse_modifiers();
+
+        VariableDeclarationSyntax parse_variable_declaration(Modifiers modifiers = {});
+        FunctionDeclarationSyntax parse_function_declaration(Modifiers modifiers);
         std::vector<ParameterDeclarationSyntax> parse_parameter_list();
 
         IdentifierSyntax parse_identifier();

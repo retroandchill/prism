@@ -13,6 +13,11 @@ import prism.core.source.source_file;
 
 namespace prism
 {
+    export struct Modifiers
+    {
+        bool is_extern = false;
+    };
+
     export struct EmptySyntax
     {
     };

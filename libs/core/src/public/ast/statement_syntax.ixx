@@ -37,6 +37,7 @@ namespace prism
         IdentifierSyntax name;
         std::optional<TypeSyntax> type;
         bool is_mutable = false;
+        Modifiers modifiers;
         std::unique_ptr<ExpressionSyntax> initializer;
     };
 
@@ -55,6 +56,7 @@ namespace prism
         std::optional<TypeSyntax> return_type;
         std::vector<ParameterDeclarationSyntax> parameters;
         FunctionBodySyntax body;
+        Modifiers modifiers;
     };
 
     struct ReturnStatementSyntax
