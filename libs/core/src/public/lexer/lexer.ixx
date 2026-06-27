@@ -27,7 +27,7 @@ namespace prism
         Token next();
 
       private:
-        Token make_eof() const;
+        [[nodiscard]] Token make_eof() const;
         void skip_whitespace();
 
         std::optional<Token> match_comment();
