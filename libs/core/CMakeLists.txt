@@ -11,6 +11,7 @@ set(PRISM_PUBLIC_MODULES
         src/public/source/source_file.ixx
         src/public/lexer/text_cursor.ixx
         src/public/lexer/lexer.ixx
+        src/public/parser/token_cursor.ixx
         src/public/ast/expression_syntax.ixx
         src/public/ast/type_syntax.ixx
         src/public/ast/statement_syntax.ixx
@@ -20,6 +21,8 @@ set(PRISM_PUBLIC_MODULES
         src/public/diagnostic.ixx
         src/public/util.ixx
         src/public/ast/common_syntax.ixx
+        src/public/semantic/symbol.ixx
+        src/public/ast/syntax_node.ixx
 )
 
 find_package(antlr4-runtime REQUIRED)

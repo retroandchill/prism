@@ -28,19 +28,21 @@ namespace prism
         SourceRange range;
     };
 
-    export enum class IdentifierFlags : std::uint8_t
-    {
-        none = 0,
-        missing = 1 << 0,
-    };
-
-    template <>
-    constexpr bool is_flag_enum<IdentifierFlags> = true;
-
-    export struct IdentifierSyntax
+    export struct ValidIdentifierSyntax
     {
         SharedString name;
         SourceRange range;
-        IdentifierFlags flags = IdentifierFlags::none;
     };
+
+    export using IdentifierSyntax = std::variant<ValidIdentifierSyntax, ErrorSyntax>;
+
+    export constexpr SourceRange get_range(const IdentifierSyntax &identifier_syntax)
+    {
+        return std::visit(Overload{[](const ValidIdentifierSyntax &identifier) { return identifier.range; },
+                                   [](const ErrorSyntax &error)
+                                   {
+                                       return error.range;
+                                   }},
+                          identifier_syntax);
+    }
 } // namespace prism

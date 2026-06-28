@@ -78,8 +78,7 @@ namespace prism
                                                  BinaryExpressionSyntax,
                                                  UnaryExpressionSyntax,
                                                  TernaryExpressionSyntax,
-                                                 InvocationSyntax,
-                                                 ErrorSyntax>;
+                                                 InvocationSyntax>;
 
     struct LiteralSyntax
     {
