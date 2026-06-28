@@ -60,13 +60,14 @@ public sealed class Lexer(string text)
         {
             return SkipBlockComment();
         }
+        SkipWhitespace();
 
         return null;
     }
 
     private void SkipLineComment()
     {
-        while (!_cursor.AtEnd && _cursor.Current != '\n')
+        while (_cursor is { AtEnd: false, Current: not '\n' and not '\r' })
         {
             _cursor.Advance();
         }
@@ -105,7 +106,6 @@ public sealed class Lexer(string text)
 
     private Token? MatchIdentifierOrKeyword()
     {
-        var remaining = _cursor.Remaining;
         var start = _cursor.Position;
         var current = _cursor.Current;
         if (!char.IsLetter(current) && current != '_')
@@ -172,7 +172,7 @@ public sealed class Lexer(string text)
                     break;
             }
 
-            if (_cursor.Current == '\n')
+            if (_cursor.Current is '\n' or '\r')
             {
                 return new Token(TokenKind.StringLiteral, _cursor.FromPosition(start));
             }
@@ -217,7 +217,7 @@ public sealed class Lexer(string text)
         ["str"] = TokenKind.Str,
     };
 
-    private static ImmutableArray<(string Text, TokenKind Kind)> Operators = SortByLength(
+    private static readonly ImmutableArray<(string Text, TokenKind Kind)> Operators = SortByLength(
         ("[", TokenKind.LBracket),
         ("]", TokenKind.RBracket),
         ("(", TokenKind.LParen),
