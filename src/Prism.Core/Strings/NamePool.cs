@@ -16,7 +16,7 @@ internal struct NamePoolShardList
 internal sealed class NamePool
 {
     private readonly NameEntryList _entries = new();
-    private NamePoolShardList _shards;
+    private readonly NamePoolShardList _shards = new();
 
     public uint NumEntries
     {
@@ -77,8 +77,7 @@ internal sealed class NamePool
     public NameEntryId Store(ReadOnlySpan<char> text)
     {
         var value = new NameValue(text);
-        var (id, _) = _shards[(int)value.Hash.ShardIndex].Insert(value);
-        return id;
+        return _shards[(int)value.Hash.ShardIndex].Insert(value);
     }
 
     public NameEntryId Find(ReadOnlySpan<char> text)

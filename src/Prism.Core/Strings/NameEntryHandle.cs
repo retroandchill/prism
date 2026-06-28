@@ -10,12 +10,10 @@ namespace Prism.Core.Strings;
 internal readonly record struct NameEntryHandle(uint Block, uint Offset)
     : IEqualityOperators<NameEntryHandle, NameEntryHandle, bool>
 {
-    public bool IsValid => (Block | Offset) != 0;
-
     public NameEntryHandle(NameEntryId id)
         : this(
             id.ToUnstableInt() >> (int)Names.BlockOffsetBits,
-            id.ToUnstableInt() & (Names.BlockOffsetBits - 1)
+            id.ToUnstableInt() & (Names.BlockOffsets - 1)
         ) { }
 
     public static implicit operator NameEntryHandle(NameEntryId id) => new(id);

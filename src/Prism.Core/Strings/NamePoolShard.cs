@@ -3,7 +3,6 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.ComponentModel;
 using System.Numerics;
 using Prism.Core.Utils;
 
@@ -12,25 +11,19 @@ namespace Prism.Core.Strings;
 internal delegate bool NameSlotPredicate<TContext>(scoped in TContext context, NameSlot slot)
     where TContext : allows ref struct;
 
-internal sealed class NamePoolShard
+internal sealed class NamePoolShard(NameEntryList entries)
 {
     private const uint LoadFactoryQuotient = 9;
     private const uint LoadFactorDivisor = 10;
 
     private readonly ReaderWriterLockSlim _lock = new();
-    private uint _usedSlots = 0;
+    private uint _usedSlots;
     private uint _capacityMask = Names.PoolInitialSLotsPerShard - 1;
-    private readonly NameEntryList _entries;
     private NameSlot[] _slots = new NameSlot[Names.PoolInitialSLotsPerShard];
-    private uint _numCreatedEntries = 0;
+    private uint _numCreatedEntries;
 
     public uint Capacity => _capacityMask + 1;
     public uint NumCreatedEntries => _numCreatedEntries;
-
-    public NamePoolShard(NameEntryList entries)
-    {
-        _entries = entries;
-    }
 
     public NameEntryId Find(in NameValue value)
     {
@@ -39,33 +32,12 @@ internal sealed class NamePoolShard
         return slot.Id;
     }
 
-    public (NameEntryId Id, bool Created) Insert(in NameValue value)
+    public NameEntryId Insert(in NameValue value)
     {
         using var scope = _lock.EnterWriteScope();
         ref var slot = ref Probe(value);
 
-        if (slot.Used)
-        {
-            return (slot.Id, false);
-        }
-
-        return (CreateAndInsertEntry(ref slot, value), true);
-    }
-
-    public void InsertExistingEntry(NameHash hash, NameEntryId id)
-    {
-        var newLookup = new NameSlot(id, hash.SlotProbeHash);
-
-        using var scope = _lock.EnterWriteScope();
-        ref var slot = ref Probe(
-            hash.UnmaskedSlotIndex,
-            newLookup,
-            (in lookup, old) => lookup.ProbeHash == old.ProbeHash
-        );
-        if (!slot.Used)
-        {
-            ClaimSlot(ref slot, newLookup);
-        }
+        return slot.Used ? slot.Id : CreateAndInsertEntry(ref slot, value);
     }
 
     public void Reserve(uint numSlots)
@@ -93,7 +65,7 @@ internal sealed class NamePoolShard
 
     private NameEntryId CreateAndInsertEntry(ref NameSlot slot, in NameValue value)
     {
-        var newEntryId = _entries.Create(value.Name.ToString());
+        var newEntryId = entries.Create(value.Name.ToString());
 
         ClaimSlot(ref slot, new NameSlot(newEntryId, value.Hash.SlotProbeHash));
         Interlocked.Increment(ref _numCreatedEntries);
@@ -108,7 +80,6 @@ internal sealed class NamePoolShard
     private void Grow(uint newCapacity)
     {
         var oldSlots = _slots.AsSpan((int)Capacity);
-        var oldUsedSlots = _usedSlots;
 
         _slots = new NameSlot[newCapacity];
         _usedSlots = 0;
@@ -148,7 +119,7 @@ internal sealed class NamePoolShard
             in value,
             (in val, slot) =>
                 slot.ProbeHash == val.Hash.SlotProbeHash
-                && EntryEqualsValue(_entries.Resolve(slot.Id), in val)
+                && EntryEqualsValue(entries.Resolve(slot.Id), in val)
         );
     }
 
@@ -172,7 +143,7 @@ internal sealed class NamePoolShard
 
     private void RehashAndInsert(NameSlot oldSlot)
     {
-        var entry = _entries.Resolve(oldSlot.Id);
+        var entry = entries.Resolve(oldSlot.Id);
         var hash = new NameHash(entry);
         ref var newSlot = ref Probe(hash.UnmaskedSlotIndex, 0, (in _, _) => false);
         newSlot = oldSlot;

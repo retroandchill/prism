@@ -12,8 +12,8 @@ internal readonly struct NameSlot(NameEntryId id, uint probeHash)
     : IEquatable<NameSlot>,
         IEqualityOperators<NameSlot, NameSlot, bool>
 {
-    public const uint EntryIdBits = Names.MaxBlockBits + Names.BlockOffsetBits;
-    public const uint EntryIdMask = (1 << (int)EntryIdBits) - 1;
+    private const uint EntryIdBits = Names.MaxBlockBits + Names.BlockOffsetBits;
+    private const uint EntryIdMask = (1 << (int)EntryIdBits) - 1;
     public const uint ProbeHashShift = EntryIdBits;
     public const uint ProbeHashMask = ~EntryIdMask;
 

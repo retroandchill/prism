@@ -16,10 +16,10 @@ internal struct NameEntryListBlocks
 
 internal sealed class NameEntryList
 {
-    public const int BlockSize = 1024;
+    private const int BlockSize = 1024;
     private readonly ReaderWriterLockSlim _lock = new();
-    private uint _currentBlock = 0;
-    private uint _currentBlockCursor = 0;
+    private uint _currentBlock;
+    private uint _currentBlockCursor;
     private NameEntryListBlocks _blocks;
 
     public uint NumBlocks => _currentBlock + 1;

@@ -16,18 +16,13 @@ internal readonly struct NameHash
     public uint ShardIndex { get; }
     public uint UnmaskedSlotIndex { get; }
     public uint SlotProbeHash { get; }
-    public ushort Length { get; }
 
-    public const ulong AlgorithmId = 0xC1640000;
-    public const uint ShardMask = Names.PoolShards - 1;
+    private const uint ShardMask = Names.PoolShards - 1;
 
     public NameHash(ReadOnlySpan<char> str)
-        : this(GenerateHash(str), str.Length, str.IsEmpty) { }
+        : this(GenerateHash(str), str.IsEmpty) { }
 
-    public NameHash(ReadOnlySpan<char> str, ulong hash)
-        : this(hash, str.Length, str.IsEmpty) { }
-
-    public NameHash(ulong hash, int length, bool isNone)
+    private NameHash(ulong hash, bool isNone)
     {
         var hi = (uint)(hash >> 32);
         var lo = (uint)hash;
@@ -37,22 +32,11 @@ internal readonly struct NameHash
         ShardIndex = hi & ShardMask;
         UnmaskedSlotIndex = lo;
         SlotProbeHash = (hi & NameSlot.ProbeHashMask) | isNoneBit;
-        Length = (ushort)length;
     }
 
-    public static uint GetShardIndex(ulong hash)
-    {
-        return (uint)(hash >> 32) & ShardMask;
-    }
-
-    public static ulong GenerateHash(ReadOnlySpan<char> str)
+    private static ulong GenerateHash(ReadOnlySpan<char> str)
     {
         return XxHash3.HashToUInt64(MemoryMarshal.AsBytes(str));
-    }
-
-    public uint GetProbeStart(uint slotMask)
-    {
-        return UnmaskedSlotIndex & slotMask;
     }
 
     public static uint GetProbeStart(uint unmaskedSlotIndex, uint slotMask)
@@ -69,13 +53,12 @@ internal readonly struct NameHash
     {
         return ShardIndex == other.ShardIndex
             && UnmaskedSlotIndex == other.UnmaskedSlotIndex
-            && SlotProbeHash == other.SlotProbeHash
-            && Length == other.Length;
+            && SlotProbeHash == other.SlotProbeHash;
     }
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(ShardIndex, UnmaskedSlotIndex, SlotProbeHash, Length);
+        return HashCode.Combine(ShardIndex, UnmaskedSlotIndex, SlotProbeHash);
     }
 
     public static bool operator ==(NameHash left, NameHash right)
