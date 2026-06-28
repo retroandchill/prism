@@ -11,10 +11,13 @@ import prism.core.source.source_file;
 
 namespace prism
 {
-    export class SyntaxNode
+    export struct SyntaxNode
     {
-      public:
-      private:
-        SourceRange range_;
+        SourceRange range;
+
+      protected:
+        constexpr explicit SyntaxNode(const SourceRange range) : range{range}
+        {
+        }
     };
 } // namespace prism
