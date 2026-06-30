@@ -131,19 +131,13 @@ namespace prism
     std::optional<Token> Lexer::match_identifier_or_keyword()
     {
         static const std::flat_map<std::string_view, TokenKind> keywords = {
-            {"var", TokenKind::kw_var},       {"func", TokenKind::kw_func},     {"extern", TokenKind::kw_extern},
-            {"return", TokenKind::kw_return}, {"mut", TokenKind::kw_mut},       {"true", TokenKind::kw_true},
-            {"false", TokenKind::kw_false},   {"void", TokenKind::kw_void},     {"bool", TokenKind::kw_bool},
-            {"i8", TokenKind::kw_i8},         {"i16", TokenKind::kw_i16},       {"i32", TokenKind::kw_i32},
-            {"i64", TokenKind::kw_i64},       {"i128", TokenKind::kw_i128},     {"u8", TokenKind::kw_u8},
-            {"u16", TokenKind::kw_u16},       {"u32", TokenKind::kw_u32},       {"u64", TokenKind::kw_u64},
-            {"u128", TokenKind::kw_u128},     {"isize", TokenKind::kw_isize},   {"usize", TokenKind::kw_usize},
-            {"f16", TokenKind::kw_f16},       {"f32", TokenKind::kw_f32},       {"f64", TokenKind::kw_f64},
-            {"char", TokenKind::kw_char},     {"char16", TokenKind::kw_char16}, {"rune", TokenKind::kw_rune},
+#define PRISM_KEYWORD(name) {#name, TokenKind::kw_##name},
+#include "tokens.inl"
+#undef PRISM_KEYWORD
         };
 
-        auto remaining = cursor_.remaining();
-        auto start = cursor_.position();
+        const auto remaining = cursor_.remaining();
+        const auto start = cursor_.position();
         if (const auto current = cursor_.current(); !std::isalpha(current) && current != '_')
         {
             return std::nullopt;
@@ -193,59 +187,9 @@ namespace prism
     {
         using namespace std::string_view_literals;
         static constexpr auto operators = sort_operators_by_length(std::array{
-            std::make_pair("["sv, TokenKind::lbracket),
-            std::make_pair("]"sv, TokenKind::rbracket),
-            std::make_pair("("sv, TokenKind::lparen),
-            std::make_pair(")"sv, TokenKind::rparen),
-            std::make_pair("{"sv, TokenKind::lbrace),
-            std::make_pair("}"sv, TokenKind::rbrace),
-            std::make_pair("."sv, TokenKind::period),
-            std::make_pair("..."sv, TokenKind::ellipsis),
-            std::make_pair("&"sv, TokenKind::amp),
-            std::make_pair("&&"sv, TokenKind::amp_amp),
-            std::make_pair("&="sv, TokenKind::amp_equal),
-            std::make_pair("*"sv, TokenKind::star),
-            std::make_pair("*="sv, TokenKind::star_equal),
-            std::make_pair("+"sv, TokenKind::plus),
-            std::make_pair("++"sv, TokenKind::plus_plus),
-            std::make_pair("+="sv, TokenKind::plus_equal),
-            std::make_pair("-"sv, TokenKind::minus),
-            std::make_pair("->"sv, TokenKind::arrow),
-            std::make_pair("--"sv, TokenKind::minus_minus),
-            std::make_pair("-="sv, TokenKind::minus_equal),
-            std::make_pair("~"sv, TokenKind::tilde),
-            std::make_pair("!"sv, TokenKind::exclaim),
-            std::make_pair("!="sv, TokenKind::exclaim_equal),
-            std::make_pair("/"sv, TokenKind::slash),
-            std::make_pair("/="sv, TokenKind::slash_equal),
-            std::make_pair("%"sv, TokenKind::percent),
-            std::make_pair("%="sv, TokenKind::percent_equal),
-            std::make_pair("<"sv, TokenKind::less),
-            std::make_pair("<<"sv, TokenKind::less_less),
-            std::make_pair("<="sv, TokenKind::less_equal),
-            std::make_pair("<<="sv, TokenKind::less_less_equal),
-            std::make_pair("<=>"sv, TokenKind::spaceship),
-            std::make_pair(">"sv, TokenKind::greater),
-            std::make_pair(">>"sv, TokenKind::greater_greater),
-            std::make_pair(">>>"sv, TokenKind::greater_greater_greater),
-            std::make_pair(">="sv, TokenKind::greater_equal),
-            std::make_pair(">>="sv, TokenKind::greater_greater_equal),
-            std::make_pair(">>>="sv, TokenKind::greater_greater_greater_equal),
-            std::make_pair("^"sv, TokenKind::caret),
-            std::make_pair("^="sv, TokenKind::caret_equal),
-            std::make_pair("|"sv, TokenKind::pipe),
-            std::make_pair("||"sv, TokenKind::pipe_pipe),
-            std::make_pair("|="sv, TokenKind::pipe_equal),
-            std::make_pair("?"sv, TokenKind::question),
-            std::make_pair("??"sv, TokenKind::question_question),
-            std::make_pair("?."sv, TokenKind::question_period),
-            std::make_pair(":"sv, TokenKind::colon),
-            std::make_pair("::"sv, TokenKind::colon_colon),
-            std::make_pair(";"sv, TokenKind::semicolon),
-            std::make_pair("="sv, TokenKind::equal),
-            std::make_pair("=>"sv, TokenKind::big_arrow),
-            std::make_pair("=="sv, TokenKind::equal_equal),
-            std::make_pair(","sv, TokenKind::comma),
+#define PRISM_PUNCT(name, str) std::make_pair(##str##sv, TokenKind::##name),
+#include "tokens.inl"
+#undef PRISM_PUNCT
         });
 
         const std::string_view remaining = cursor_.remaining();

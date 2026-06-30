@@ -4,9 +4,14 @@
  * @date 6/20/2026
  * @brief Defines the class used to pass over a source string.
  */
+module;
+
+#include <cassert>
+
 export module prism.core.lexer.text_cursor;
 
 import std;
+import prism.core.source.source_file;
 
 namespace prism
 {

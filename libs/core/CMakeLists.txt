@@ -4,7 +4,9 @@ set(PRISM_SOURCES
         src/private/lexer/lexer.cpp
         src/private/parser/parser.cpp
         src/private/lexer/token_stream.cpp
-        src/private/strings/identifier.cpp)
+        src/private/strings/name.cpp)
+
+set(PRISM_PRIVATE_MODULES )
 
 set(PRISM_PUBLIC_MODULES
         src/public/lexer/token.ixx
@@ -16,35 +18,28 @@ set(PRISM_PUBLIC_MODULES
         src/public/ast/type_syntax.ixx
         src/public/ast/statement_syntax.ixx
         src/public/parser/parser.ixx
-        src/public/generated.ixx
         src/public/lexer/token_stream.ixx
         src/public/diagnostic.ixx
         src/public/util.ixx
         src/public/ast/common_syntax.ixx
-        src/public/strings/identifier.ixx
+        src/public/strings/name.ixx
+        src/public/memory/alignment.ixx
 )
 
-find_package(antlr4-runtime REQUIRED)
-find_package(antlr4-generator REQUIRED)
-
-set(ANTLR4_JAR_LOCATION ${TOOLS_DIR}/antlr.jar)
-file(DOWNLOAD
-        https://www.antlr.org/download/antlr-${antlr4-runtime_VERSION}-complete.jar
-        ${ANTLR4_JAR_LOCATION}
-        SHOW_PROGRESS
-)
-
-antlr4_generate(prism_parser ${CMAKE_SOURCE_DIR}/grammar/Prism.g4 BOTH false true prism::gen)
-
-add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PUBLIC_MODULES} ${ANTLR4_SRC_FILES_prism_parser})
+add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})
 
 target_include_directories(prism_core PUBLIC include
-                                      PRIVATE
-                                            ${ANTLR4_INCLUDE_DIR_prism_parser})
+                                      PRIVATE src/private/inline)
 
 target_link_libraries(prism_core
         PUBLIC Boost::cppm
-        PRIVATE antlr4::cppm)
+        PRIVATE xxHash::cpp)
+
+target_sources(prism_core PUBLIC
+        FILE_SET prism_core_private
+        TYPE CXX_MODULES
+        FILES
+        ${PRISM_PRIVATE_MODULES})
 
 target_sources(prism_core PUBLIC
         FILE_SET prism_core_public

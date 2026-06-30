@@ -27,312 +27,38 @@ namespace prism
 
     export enum class TokenKind
     {
-        eof,
-        unrecognized,
-        unterminated_block_comment,
-        unterminated_string_literal,
-        doc_comment,
+#define PRISM_TOKEN(name, str) name,
+#define PRISM_KEYWORD(name) kw_##name,
+#define PRISM_PUNCT(name, str) name,
+#include "tokens.inl"
 
-        kw_var,
-        kw_func,
-        kw_extern,
-        kw_return,
-        kw_mut,
-
-        kw_true,
-        kw_false,
-
-        kw_void,
-        kw_bool,
-        kw_i8,
-        kw_i16,
-        kw_i32,
-        kw_i64,
-        kw_i128,
-        kw_u8,
-        kw_u16,
-        kw_u32,
-        kw_u64,
-        kw_u128,
-        kw_isize,
-        kw_usize,
-        kw_f16,
-        kw_f32,
-        kw_f64,
-        kw_char,
-        kw_char16,
-        kw_rune,
-        kw_str,
-
-        /**
-         * [
-         */
-        lbracket,
-
-        /**
-         * ]
-         */
-        rbracket,
-
-        /**
-         * (
-         */
-        lparen,
-
-        /**
-         * )
-         */
-        rparen,
-
-        /**
-         * {
-         */
-        lbrace,
-
-        /**
-         * }
-         */
-        rbrace,
-
-        /**
-         * .
-         */
-        period,
-
-        /**
-         * ...
-         */
-        ellipsis,
-
-        /**
-         * &
-         */
-        amp,
-
-        /**
-         * &&
-         */
-        amp_amp,
-
-        /**
-         * &=
-         */
-        amp_equal,
-
-        /**
-         * *
-         */
-        star,
-
-        /**
-         * *=
-         */
-        star_equal,
-
-        /**
-         * +
-         */
-        plus,
-
-        /**
-         * ++
-         */
-        plus_plus,
-
-        /**
-         * +=
-         */
-        plus_equal,
-
-        /**
-         * -
-         */
-        minus,
-
-        /**
-         * ->
-         */
-        arrow,
-
-        /**
-         * --
-         */
-        minus_minus,
-
-        /**
-         * -=
-         */
-        minus_equal,
-
-        /**
-         * ~
-         */
-        tilde,
-
-        /**
-         * !
-         */
-        exclaim,
-
-        /**
-         * !=
-         */
-        exclaim_equal,
-
-        /**
-         * /
-         */
-        slash,
-
-        /**
-         * /=
-         */
-        slash_equal,
-
-        /**
-         * %
-         */
-        percent,
-
-        /**
-         * %=
-         */
-        percent_equal,
-
-        /**
-         * <
-         */
-        less,
-
-        /**
-         * <<
-         */
-        less_less,
-
-        /**
-         * <=
-         */
-        less_equal,
-
-        /**
-         * <<=
-         */
-        less_less_equal,
-
-        /**
-         * <=>
-         */
-        spaceship,
-
-        /**
-         * >
-         */
-        greater,
-
-        /**
-         * >>
-         */
-        greater_greater,
-
-        /**
-         * >>>
-         */
-        greater_greater_greater,
-
-        /**
-         * >=
-         */
-        greater_equal,
-
-        /**
-         * >>=
-         */
-        greater_greater_equal,
-
-        /**
-         * >>>=
-         */
-        greater_greater_greater_equal,
-
-        /**
-         * ^
-         */
-        caret,
-
-        /**
-         * ^=
-         */
-        caret_equal,
-
-        /**
-         * |
-         */
-        pipe,
-
-        /**
-         * ||
-         */
-        pipe_pipe,
-
-        /**
-         * |=
-         */
-        pipe_equal,
-
-        /**
-         * ?
-         */
-        question,
-
-        /**
-         * ??
-         */
-        question_question,
-
-        /**
-         * ?.
-         */
-        question_period,
-
-        /**
-         * :
-         */
-        colon,
-
-        /**
-         * ::
-         */
-        colon_colon,
-
-        /**
-         * ;
-         */
-        semicolon,
-
-        /**
-         * =
-         */
-        equal,
-
-        /**
-         * =>
-         */
-        big_arrow,
-
-        /**
-         * ==
-         */
-        equal_equal,
-
-        /**
-         * ,
-         */
-        comma,
-
-        identifier,
-        integer,
-        string_literal,
+#undef PRISM_TOKEN
+#undef PRISM_KEYWORD
+#undef PRISM_PUNCT
     };
+
+    export constexpr std::string_view to_string(const TokenKind kind) noexcept
+    {
+        switch (kind)
+        {
+#define PRISM_TOKEN(name, str)                                                                                         \
+    case TokenKind::name:                                                                                              \
+        return str;
+#define PRISM_KEYWORD(name)                                                                                            \
+    case TokenKind::kw_##name:                                                                                         \
+        return "'" #name "'";
+#define PRISM_PUNCT(name, str)                                                                                         \
+    case TokenKind::name:                                                                                              \
+        return "'" #str "'";
+#include "tokens.inl"
+
+#undef PRISM_TOKEN
+#undef PRISM_KEYWORD
+#undef PRISM_PUNCT
+        }
+
+        return "<invalid>";
+    }
 
     export struct Token
     {
@@ -347,3 +73,20 @@ namespace prism
         return Token{.kind = kind, .range = {start, end}};
     }
 } // namespace prism
+
+template <typename CharType>
+struct std::formatter<prism::TokenKind, CharType>
+{
+    static constexpr auto parse(std::format_parse_context &ctx)
+    {
+        auto it = ctx.begin();
+        while (it != ctx.end() && *it != '}')
+            ++it;
+        return it;
+    }
+
+    auto format(const prism::TokenKind kind, auto &ctx) const
+    {
+        return std::format_to(ctx.out(), "{}", static_cast<std::underlying_type_t<prism::TokenKind>>(kind));
+    }
+};

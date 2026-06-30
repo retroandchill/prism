@@ -13,7 +13,7 @@ import prism.core.lexer.token;
 
 namespace prism
 {
-    export enum class Severity : std::uint8_t
+    export enum class DiagnosticSeverity : std::uint8_t
     {
         error,
         warning,
@@ -21,42 +21,21 @@ namespace prism
         hint,
     };
 
-    export struct EmptyStatement
+    export struct DiagnosticDescriptor
     {
+        std::string_view id;
+        std::string_view title;
+        std::string_view description;
+        DiagnosticSeverity severity = DiagnosticSeverity::error;
+        bool enabled_by_default = true;
+        std::string_view message_format;
     };
-
-    export constexpr EmptyStatement empty_statement{};
-
-    export struct EmptyExpression
-    {
-    };
-
-    export constexpr EmptyExpression empty_expression{};
-
-    export struct UnexpectedToken
-    {
-        TokenKind actual = TokenKind::unrecognized;
-        std::vector<TokenKind> expected;
-    };
-
-    export struct DuplicateSymbolDefinition
-    {
-        SharedString name;
-    };
-
-    export struct OtherDiagnostic
-    {
-        SharedString message;
-    };
-
-    export using DiagnosticInfo =
-        std::variant<EmptyStatement, EmptyExpression, UnexpectedToken, DuplicateSymbolDefinition, OtherDiagnostic>;
 
     export struct Diagnostic
     {
-        Severity severity = Severity::error;
+        std::reference_wrapper<const DiagnosticDescriptor> descriptor;
         SourceRange range;
-        DiagnosticInfo info;
+        std::string message;
     };
 
     export class DiagnosticSink
@@ -67,12 +46,25 @@ namespace prism
             return diagnostics_;
         }
 
-        constexpr void report(Severity severity, SourceRange range, DiagnosticInfo info)
+        template <typename... GivenArgs>
+        constexpr void report(const DiagnosticDescriptor descriptor, SourceRange range, GivenArgs &&...args)
         {
-            diagnostics_.emplace_back(severity, range, std::move(info));
+            diagnostics_.emplace_back(descriptor,
+                                      range,
+                                      std::vformat(descriptor.message_format, std::make_format_args(args...)));
         }
 
       private:
         std::vector<Diagnostic> diagnostics_;
     };
+
+    export constexpr DiagnosticDescriptor empty_statement{.id = "STX001",
+                                                          .title = "Empty Statement",
+                                                          .severity = DiagnosticSeverity::warning,
+                                                          .message_format = "Empty statement"};
+
+    export constexpr DiagnosticDescriptor unexpected_token{.id = "STX002",
+                                                           .title = "Unexpected Token",
+                                                           .severity = DiagnosticSeverity::error,
+                                                           .message_format = "Unexpected token {}: expected {:n}"};
 } // namespace prism

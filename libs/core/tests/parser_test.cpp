@@ -33,7 +33,7 @@ TEST_CASE("Can parse a simple variable declaration", "[parser]")
     REQUIRE(variable_name.is<ValidIdentifierSyntax>());
 
     auto &[name] = variable_name.get<ValidIdentifierSyntax>();
-    CHECK(*name == "value");
+    CHECK(name.as_string_view() == "value");
 
     REQUIRE(type.has_value());
     REQUIRE(type->is<BuiltInType>());
@@ -63,7 +63,7 @@ TEST_CASE("Can parse a function declaration", "[parser]")
 
     REQUIRE(function_name.is<ValidIdentifierSyntax>());
     auto &[name] = function_name.get<ValidIdentifierSyntax>();
-    CHECK(*name == "add");
+    CHECK(name.as_string_view() == "add");
 
     REQUIRE(return_type.has_value());
     REQUIRE(return_type->is<BuiltInType>());
@@ -78,8 +78,8 @@ TEST_CASE("Can parse a function declaration", "[parser]")
     REQUIRE(parameters[1].name.is<ValidIdentifierSyntax>());
     auto &[param1_name] = parameters[0].name.get<ValidIdentifierSyntax>();
     auto &[param2_name] = parameters[1].name.get<ValidIdentifierSyntax>();
-    CHECK(*param1_name == "x");
-    CHECK(*param2_name == "y");
+    CHECK(param1_name.as_string_view() == "x");
+    CHECK(param2_name.as_string_view() == "y");
 
     REQUIRE(parameters[0].type.is<BuiltInType>());
     REQUIRE(parameters[1].type.is<BuiltInType>());

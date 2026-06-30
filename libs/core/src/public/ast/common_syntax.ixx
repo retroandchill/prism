@@ -10,6 +10,7 @@ import std;
 import prism.core.lexer.token;
 import prism.core.util;
 import prism.core.source.source_file;
+import prism.core.strings.name;
 
 namespace prism
 {
@@ -91,7 +92,7 @@ namespace prism
 
     export struct ValidIdentifierSyntax
     {
-        SharedString name;
+        Name name;
     };
 
     export using IdentifierKind = std::variant<ValidIdentifierSyntax, ErrorSyntax>;

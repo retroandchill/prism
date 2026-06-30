@@ -1,2 +1,2 @@
-add_subdirectory(antlr)
 add_subdirectory(boost)
+add_subdirectory(xxhash)

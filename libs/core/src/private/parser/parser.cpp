@@ -5,6 +5,7 @@
  * @brief
  */
 module prism.core.parser;
+
 import prism.core.parser.token_cursor;
 import prism.core.ast.statement_syntax;
 import prism.core.ast.common_syntax;
@@ -177,9 +178,7 @@ namespace prism
         const auto start = stream_.previous().range.end;
         const auto next = stream_.peek();
         const auto end = next.range.start;
-        diagnostics_.report(Severity::error,
-                            SourceRange{start, end},
-                            UnexpectedToken{.actual = next.kind, .expected = {kind}});
+        diagnostics_.report(unexpected_token, SourceRange{start, end}, kind, std::span{&kind, 1});
 
         return Token{.kind = kind, .flags = TokenFlags::synthetic, .range = {start, end}};
     }
@@ -240,6 +239,7 @@ namespace prism
 
     DeclarationSyntax Parser::parse_declaration()
     {
+        static constexpr std::array permitted_tokens = {TokenKind::kw_var, TokenKind::kw_func};
         return parse_syntax(
             [this](const Token &) -> DeclarationSyntaxKind
             {
@@ -252,15 +252,10 @@ namespace prism
                         return parse_function_declaration(modifiers);
                     case TokenKind::semicolon:
                         stream_.advance();
-                        diagnostics_.report(Severity::warning, next_token.range, empty_statement);
+                        diagnostics_.report(empty_statement, next_token.range);
                         return empty_syntax;
                     default:
-                        diagnostics_.report(Severity::error,
-                                            next_token.range,
-                                            UnexpectedToken{
-                                                .actual = next_token.kind,
-                                                .expected = {TokenKind::kw_var, TokenKind::kw_func},
-                                            });
+                        diagnostics_.report(unexpected_token, next_token.range, next_token.kind, permitted_tokens);
                         synchronize();
                         return error_syntax;
                 }
@@ -307,13 +302,9 @@ namespace prism
         }
         else
         {
+            static constexpr std::array permitted_tokens = {TokenKind::lparen};
             auto next = stream_.peek();
-            diagnostics_.report(Severity::error,
-                                next.range,
-                                UnexpectedToken{
-                                    .actual = next.kind,
-                                    .expected = {TokenKind::lparen},
-                                });
+            diagnostics_.report(unexpected_token, next.range, next.kind, permitted_tokens);
         }
 
         if (match(TokenKind::arrow))
@@ -324,6 +315,9 @@ namespace prism
         syntax.body = parse_syntax(
             [this](const Token &next) -> FunctionBodySyntaxKind
             {
+                static constexpr std::array permitted_tokens = {TokenKind::lbrace,
+                                                                TokenKind::big_arrow,
+                                                                TokenKind::semicolon};
                 switch (next.kind)
                 {
                     case TokenKind::lbrace:
@@ -334,13 +328,7 @@ namespace prism
                     case TokenKind::semicolon:
                         return empty_syntax;
                     default:
-                        diagnostics_.report(
-                            Severity::error,
-                            next.range,
-                            UnexpectedToken{
-                                .actual = next.kind,
-                                .expected = {TokenKind::lbrace, TokenKind::big_arrow, TokenKind::semicolon},
-                            });
+                        diagnostics_.report(unexpected_token, next.range, next.kind, permitted_tokens);
                         synchronize(false);
                         return empty_syntax;
                 }
@@ -386,8 +374,7 @@ namespace prism
         }
 
         return IdentifierSyntax{.range = identifier.range,
-                                .data =
-                                    ValidIdentifierSyntax{.name = SharedString{source_file_.slice(identifier.range)}}};
+                                .data = ValidIdentifierSyntax{.name = source_file_.slice(identifier.range)}};
     }
 
     TypeSyntax Parser::parse_type()
@@ -417,9 +404,8 @@ namespace prism
         return TypeSyntax{
             .range = next.range,
             .data = NamedTypeSyntax{
-                .name = IdentifierSyntax{
-                    .range = identifier.range,
-                    .data = ValidIdentifierSyntax{.name = SharedString{source_file_.slice(identifier.range)}}}}};
+                .name = IdentifierSyntax{.range = identifier.range,
+                                         .data = ValidIdentifierSyntax{.name = source_file_.slice(identifier.range)}}}};
     }
 
     BlockSyntax Parser::parse_block()
@@ -451,7 +437,7 @@ namespace prism
                         return parse_block();
                     case TokenKind::semicolon:
                         stream_.advance();
-                        diagnostics_.report(Severity::warning, next.range, empty_statement);
+                        diagnostics_.report(empty_statement, next.range);
                         return empty_syntax;
                     default:
                         return parse_expression_statement();
@@ -548,6 +534,14 @@ namespace prism
 
     ExpressionSyntax Parser::parse_primary_expression()
     {
+        constexpr static std::array permitted_tokens = {
+            TokenKind::kw_false,
+            TokenKind::kw_true,
+            TokenKind::integer,
+            TokenKind::string_literal,
+            TokenKind::identifier,
+            TokenKind::lparen,
+        };
         switch (const auto [kind, flags, range] = stream_.peek(); kind)
         {
             case TokenKind::kw_false:
@@ -577,18 +571,12 @@ namespace prism
             case TokenKind::string_literal:
                 return ExpressionSyntax{
                     .range = range,
-                    .data =
-                        LiteralSyntax{
-                            .value = std::string{source_file_.slice(range)},
-                        },
+                    .data = parse_string_literal(),
                 };
             case TokenKind::identifier:
                 return ExpressionSyntax{
                     .range = range,
-                    .data =
-                        IdentifierSyntax{.range = range,
-                                         .data =
-                                             ValidIdentifierSyntax{.name = SharedString{source_file_.slice(range)}}},
+                    .data = parse_identifier(),
                 };
             case TokenKind::lparen:
                 {
@@ -598,11 +586,7 @@ namespace prism
                     return expression;
                 }
             default:
-                diagnostics_.report(Severity::error,
-                                    range,
-                                    UnexpectedToken{
-                                        .actual = kind,
-                                    });
+                diagnostics_.report(unexpected_token, range, kind, permitted_tokens);
                 synchronize(false);
                 return ExpressionSyntax{
                     .range = range,

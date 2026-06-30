@@ -5,10 +5,10 @@
     "name" : "catch2",
     "version>=" : "3.14.0"
   }, {
-    "name" : "antlr4",
-    "version>=" : "4.13.2#1"
-  }, {
     "name" : "boost-flyweight",
     "version>=" : "1.90.0#1"
+  }, {
+    "name" : "xxhash",
+    "version>=" : "0.8.3"
   } ]
 }
