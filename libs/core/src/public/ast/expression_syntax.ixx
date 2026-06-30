@@ -73,18 +73,20 @@ namespace prism
     export struct TernaryExpressionSyntax;
     export struct InvocationSyntax;
 
-    export using ExpressionSyntax = std::variant<IdentifierSyntax,
-                                                 LiteralSyntax,
-                                                 BinaryExpressionSyntax,
-                                                 UnaryExpressionSyntax,
-                                                 TernaryExpressionSyntax,
-                                                 InvocationSyntax>;
+    export using ExpressionSyntaxKind = std::variant<IdentifierSyntax,
+                                                     LiteralSyntax,
+                                                     BinaryExpressionSyntax,
+                                                     UnaryExpressionSyntax,
+                                                     TernaryExpressionSyntax,
+                                                     InvocationSyntax,
+                                                     ErrorSyntax>;
+
+    export using ExpressionSyntax = SyntaxNode<ExpressionSyntaxKind>;
 
     struct LiteralSyntax
     {
         // TODO: This should be refined to not erase the actual contents of the literal
         std::variant<bool, std::uint64_t, double, std::string> value;
-        SourceRange range;
     };
 
     struct BinaryExpressionSyntax

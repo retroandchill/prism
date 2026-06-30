@@ -22,11 +22,15 @@ namespace prism
     export struct ExpressionStatementSyntax;
     export struct BlockSyntax;
 
-    export using DeclarationSyntax =
+    export using DeclarationSyntaxKind =
         std::variant<VariableDeclarationSyntax, FunctionDeclarationSyntax, EmptySyntax, ErrorSyntax>;
 
-    export using StatementSyntax = std::
+    export using DeclarationSyntax = SyntaxNode<DeclarationSyntaxKind>;
+
+    export using StatementSyntaxKind = std::
         variant<VariableDeclarationSyntax, ExpressionStatementSyntax, ReturnStatementSyntax, BlockSyntax, EmptySyntax>;
+
+    export using StatementSyntax = SyntaxNode<StatementSyntaxKind>;
 
     struct BlockSyntax
     {
@@ -49,7 +53,9 @@ namespace prism
         bool is_mutable = false;
     };
 
-    using FunctionBodySyntax = std::variant<EmptySyntax, BlockSyntax, ExpressionSyntax>;
+    export using FunctionBodySyntaxKind = std::variant<EmptySyntax, BlockSyntax, ExpressionSyntax>;
+
+    export using FunctionBodySyntax = SyntaxNode<FunctionBodySyntaxKind>;
 
     struct FunctionDeclarationSyntax
     {
@@ -74,16 +80,4 @@ namespace prism
     {
         std::vector<DeclarationSyntax> declarations;
     };
-
-    export constexpr SourceRange get_range(const DeclarationSyntax &syntax)
-    {
-        return std::visit(
-            Overload{
-                [](const VariableDeclarationSyntax &variable) { return get_range(variable.name); },
-                [](const FunctionDeclarationSyntax &function) { return get_range(function.name); },
-                [](const EmptySyntax &empty) { return empty.range; },
-                [](const ErrorSyntax &error) { return error.range; },
-            },
-            syntax);
-    }
 } // namespace prism

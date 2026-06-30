@@ -4,7 +4,6 @@ set(PRISM_SOURCES
         src/private/lexer/lexer.cpp
         src/private/parser/parser.cpp
         src/private/lexer/token_stream.cpp
-        src/private/semantic/symbol.cpp
         src/private/strings/identifier.cpp)
 
 set(PRISM_PUBLIC_MODULES
@@ -22,8 +21,6 @@ set(PRISM_PUBLIC_MODULES
         src/public/diagnostic.ixx
         src/public/util.ixx
         src/public/ast/common_syntax.ixx
-        src/public/semantic/symbol.ixx
-        src/public/ast/syntax_node.ixx
         src/public/strings/identifier.ixx
 )
 

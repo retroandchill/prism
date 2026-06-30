@@ -145,4 +145,111 @@ namespace prism
 
     export template <typename... Functors>
     Overload(Functors...) -> Overload<Functors...>;
+
+    export template <typename>
+    struct IsVariant : std::false_type
+    {
+    };
+
+    template <typename... Ts>
+    struct IsVariant<std::variant<Ts...>> : std::true_type
+    {
+    };
+
+    export template <typename T>
+    concept VariantLike = IsVariant<std::remove_cvref_t<T>>::value;
+
+    export template <typename Variant, typename Alternative>
+    struct IsVariantAlternative : std::false_type
+    {
+    };
+
+    template <typename Alternative, typename... Alternatives>
+    struct IsVariantAlternative<std::variant<Alternatives...>, Alternative>
+        : std::bool_constant<(std::same_as<Alternative, Alternatives> || ...)>
+    {
+    };
+
+    export template <typename Alternative, typename Variant>
+    concept VariantAlternative =
+        VariantLike<Variant> && IsVariantAlternative<std::remove_cvref_t<Variant>, Alternative>::value;
+
+    export template <VariantLike VariantType, std::size_t Index>
+    using VariantAlternativeBase = std::variant_alternative_t<Index, std::remove_cvref_t<VariantType>>;
+
+    export template <VariantLike VariantType, std::size_t Index>
+    using VariantAlternativeReference =
+        std::conditional_t<std::is_lvalue_reference_v<VariantType>,
+                           std::conditional_t<std::is_const_v<std::remove_reference_t<VariantType>>,
+                                              const VariantAlternativeBase<VariantType, Index> &,
+                                              VariantAlternativeBase<VariantType, Index> &>,
+                           std::conditional_t<std::is_const_v<std::remove_reference_t<VariantType>>,
+                                              const VariantAlternativeBase<VariantType, Index> &&,
+                                              VariantAlternativeBase<VariantType, Index> &&>>;
+
+    template <typename Visitor, typename VariantType, typename Indicies>
+    struct IsVariantVisitorForImpl;
+
+    template <typename Visitor, VariantLike VariantType, std::size_t... Indicies>
+    struct IsVariantVisitorForImpl<Visitor, VariantType, std::index_sequence<Indicies...>>
+        : std::bool_constant<(std::invocable<Visitor, VariantAlternativeReference<VariantType, Indicies>> && ...)>
+    {
+    };
+
+    template <typename Visitor, typename VariantType, typename Indicies>
+    struct IsVariantVisitorReturnSameImpl;
+
+    template <typename Visitor, VariantLike VariantType, std::size_t First, std::size_t... Indicies>
+    struct IsVariantVisitorReturnSameImpl<Visitor, VariantType, std::index_sequence<First, Indicies...>>
+        : std::bool_constant<(
+              std::same_as<std::invoke_result_t<Visitor, VariantAlternativeReference<VariantType, First>>,
+                           VariantAlternativeReference<VariantType, Indicies>> &&
+              ...)>
+    {
+    };
+
+    template <typename R, typename Visitor, typename VariantType, typename Indicies>
+    struct IsVariantVisitorReturnConvertableToImpl;
+
+    template <typename R, typename Visitor, VariantLike VariantType, std::size_t... Indicies>
+    struct IsVariantVisitorReturnConvertableToImpl<R, Visitor, VariantType, std::index_sequence<Indicies...>>
+        : std::bool_constant<(std::convertible_to<VariantAlternativeReference<VariantType, Indicies>, R> && ...)>
+    {
+    };
+
+    export template <typename Visitor, typename VariantType>
+    concept VariantVisitorFor =
+        VariantLike<VariantType> &&
+        IsVariantVisitorForImpl<
+            Visitor,
+            VariantType,
+            std::make_index_sequence<std::variant_size_v<std::remove_cvref_t<VariantType>>>>::value &&
+        IsVariantVisitorReturnSameImpl<
+            Visitor,
+            VariantType,
+            std::make_index_sequence<std::variant_size_v<std::remove_cvref_t<VariantType>>>>::value;
+
+    export template <typename Visitor, typename R, typename VariantType>
+    concept VariantVisitorReturnSame =
+        VariantLike<VariantType> &&
+        IsVariantVisitorForImpl<
+            Visitor,
+            VariantType,
+            std::make_index_sequence<std::variant_size_v<std::remove_cvref_t<VariantType>>>>::value &&
+        IsVariantVisitorReturnConvertableToImpl<
+            R,
+            Visitor,
+            VariantType,
+            std::make_index_sequence<std::variant_size_v<std::remove_cvref_t<VariantType>>>>::value;
+
+    template <bool IsConst, class T>
+    using MaybeConst = std::conditional_t<IsConst, const T, T>;
+
+    template <class T,
+              class U,
+              class Tmp = MaybeConst<std::is_const_v<std::remove_reference_t<T>>, std::remove_reference_t<U>>>
+    using ForwardLikeTypeHelper = std::conditional_t<std::is_rvalue_reference_v<T &&>, Tmp &&, Tmp &>;
+
+    export template <typename T, typename U>
+    using ForwardLikeType = ForwardLikeTypeHelper<T, U>;
 } // namespace prism

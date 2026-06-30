@@ -38,7 +38,7 @@ namespace prism
         str,
     };
 
-    export constexpr std::string_view to_string(const BuiltInType type) noexcept
+    export constexpr std::string_view to_string(const BuiltInType type)
     {
         switch (type)
         {
@@ -89,16 +89,11 @@ namespace prism
         }
     }
 
-    export struct BuiltInTypeSyntax
-    {
-        BuiltInType type = BuiltInType::boolean;
-        SourceRange range;
-    };
-
     export struct NamedTypeSyntax
     {
         IdentifierSyntax name;
     };
 
-    export using TypeSyntax = std::variant<BuiltInTypeSyntax, NamedTypeSyntax, ErrorSyntax>;
+    export using TypeSyntaxKind = std::variant<BuiltInType, NamedTypeSyntax, ErrorSyntax>;
+    export using TypeSyntax = SyntaxNode<TypeSyntaxKind>;
 } // namespace prism

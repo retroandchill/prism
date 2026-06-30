@@ -13,6 +13,65 @@ import prism.core.source.source_file;
 
 namespace prism
 {
+    export enum class SyntaxFlags : std::uint8_t
+    {
+        none = 0,
+        missing = 1 << 0,
+    };
+
+    template <>
+    constexpr bool is_flag_enum<SyntaxFlags> = true;
+
+    export template <typename T>
+    struct SyntaxNode
+    {
+        SourceRange range;
+        SyntaxFlags flags = SyntaxFlags::none;
+        T data;
+
+        template <VariantAlternative<T> Alternative>
+        [[nodiscard]] constexpr bool is() const
+            requires VariantLike<T>
+        {
+            return std::holds_alternative<Alternative>(data);
+        }
+
+        template <VariantAlternative<T> Alternative, typename Self>
+        constexpr decltype(auto) get(this Self &&self)
+            requires VariantLike<T>
+        {
+            return std::get<Alternative>(std::forward<Self>(self).data);
+        }
+
+        template <VariantAlternative<T> Alternative>
+        constexpr auto try_get() &
+            requires VariantLike<T>
+        {
+            return std::get_if<Alternative>(data);
+        }
+
+        template <VariantAlternative<T> Alternative>
+        constexpr auto try_get() const &
+            requires VariantLike<T>
+        {
+            return std::get_if<Alternative>(data);
+        }
+
+        template <typename Self, VariantVisitorFor<ForwardLikeType<T, Self>> Visitor>
+        constexpr decltype(auto) visit(this Self &&self, Visitor &&visitor)
+            requires VariantLike<T>
+        {
+            return std::visit(std::forward<Visitor>(visitor), std::forward<Self>(self).data);
+        }
+
+        template <typename Self, typename R, VariantVisitorReturnSame<R, ForwardLikeType<T, Self>> Visitor>
+        constexpr decltype(auto) visit(this Self &&self, Visitor &&visitor)
+            requires VariantLike<T>
+        {
+            return std::visit(std::forward<Visitor>(visitor), std::forward<Self>(self).data);
+        }
+    };
+
     export struct Modifiers
     {
         bool is_extern = false;
@@ -20,29 +79,21 @@ namespace prism
 
     export struct EmptySyntax
     {
-        SourceRange range;
     };
+
+    export constexpr EmptySyntax empty_syntax{};
 
     export struct ErrorSyntax
     {
-        SourceRange range;
     };
+
+    export constexpr ErrorSyntax error_syntax{};
 
     export struct ValidIdentifierSyntax
     {
         SharedString name;
-        SourceRange range;
     };
 
-    export using IdentifierSyntax = std::variant<ValidIdentifierSyntax, ErrorSyntax>;
-
-    export constexpr SourceRange get_range(const IdentifierSyntax &identifier_syntax)
-    {
-        return std::visit(Overload{[](const ValidIdentifierSyntax &identifier) { return identifier.range; },
-                                   [](const ErrorSyntax &error)
-                                   {
-                                       return error.range;
-                                   }},
-                          identifier_syntax);
-    }
+    export using IdentifierKind = std::variant<ValidIdentifierSyntax, ErrorSyntax>;
+    export using IdentifierSyntax = SyntaxNode<IdentifierKind>;
 } // namespace prism

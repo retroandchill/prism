@@ -57,6 +57,19 @@ namespace prism
 
         std::pair<Modifiers, bool> parse_modifiers();
 
+        template <std::invocable<const Token &> Functor>
+        SyntaxNode<std::invoke_result_t<Functor, const Token &>> parse_syntax(Functor &&functor)
+        {
+            const auto token = stream_.peek();
+            SyntaxNode<std::invoke_result_t<Functor, const Token &>> syntax{
+                .range = token.range,
+                .data = std::invoke(std::forward<Functor>(functor), token),
+            };
+
+            syntax.range.end = stream_.previous().range.end;
+            return syntax;
+        }
+
         VariableDeclarationSyntax parse_variable_declaration(Modifiers modifiers = {});
         FunctionDeclarationSyntax parse_function_declaration(Modifiers modifiers);
         std::vector<ParameterDeclarationSyntax> parse_parameter_list();
