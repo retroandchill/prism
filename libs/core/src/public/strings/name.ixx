@@ -220,6 +220,8 @@ namespace prism
         NameEntryId id_;
     };
 
+    export PRISM_CORE_API const std::byte *const *debug_get_name_memory();
+
 } // namespace prism
 
 template <>

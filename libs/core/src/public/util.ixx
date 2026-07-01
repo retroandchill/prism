@@ -10,6 +10,32 @@ import std;
 
 namespace prism
 {
+    export class NonCopyable
+    {
+      protected:
+        NonCopyable() = default;
+        ~NonCopyable() = default;
+
+      public:
+        NonCopyable(const NonCopyable &) = delete;
+        NonCopyable(NonCopyable &&) noexcept = delete;
+        NonCopyable &operator=(const NonCopyable &) = delete;
+        NonCopyable &operator=(NonCopyable &&) noexcept = delete;
+    };
+
+    export template <typename T>
+    class Ref : public std::reference_wrapper<T>
+    {
+      public:
+        using std::reference_wrapper<T>::reference_wrapper;
+        using std::reference_wrapper<T>::operator=;
+
+        constexpr T *operator->() const noexcept
+        {
+            return std::addressof(std::reference_wrapper<T>::get());
+        }
+    };
+
     export template <typename T>
     concept LValueReference = std::is_lvalue_reference_v<T>;
 

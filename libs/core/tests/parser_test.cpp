@@ -14,26 +14,23 @@ import prism.core.ast.statement_syntax;
 import prism.core.ast.type_syntax;
 import prism.core.ast.expression_syntax;
 import prism.core.diagnostic;
+import prism.core.context;
 
 using namespace prism;
 
 TEST_CASE("Can parse a simple variable declaration", "[parser]")
 {
-    const auto source = SourceFile{"var value: i32 = 5;"};
-    auto sink = DiagnosticSink{};
-    Parser parser{source, sink};
+    auto ctx = CompilationContext{"var value: i32 = 5;"};
+    Parser parser{ctx};
     auto declaration = parser.parse_declaration();
 
-    CHECK(sink.diagnostics().size() == 0); // NOLINT(*-container-size-empty)
+    CHECK(ctx.diagnostics().size() == 0); // NOLINT(*-container-size-empty)
     REQUIRE(declaration.is<VariableDeclarationSyntax>());
 
     auto &[variable_name, type, is_mutable, modifiers, initializer] = declaration.get<VariableDeclarationSyntax>();
     CHECK_FALSE(is_mutable);
 
-    REQUIRE(variable_name.is<ValidIdentifierSyntax>());
-
-    auto &[name] = variable_name.get<ValidIdentifierSyntax>();
-    CHECK(name.as_string_view() == "value");
+    CHECK(variable_name.name.as_string_view() == "value");
 
     REQUIRE(type.has_value());
     REQUIRE(type->is<BuiltInType>());
@@ -43,27 +40,23 @@ TEST_CASE("Can parse a simple variable declaration", "[parser]")
     REQUIRE(initializer != nullptr);
     REQUIRE(initializer->is<LiteralSyntax>());
 
-    auto &[literal_value] = initializer->get<LiteralSyntax>();
+    auto &[literal_kind] = initializer->get<LiteralSyntax>();
 
-    REQUIRE(std::holds_alternative<std::uint64_t>(literal_value));
-    CHECK(std::get<std::uint64_t>(literal_value) == 5);
+    CHECK(literal_kind == LiteralSyntaxKind::integer);
 }
 
 TEST_CASE("Can parse a function declaration", "[parser]")
 {
-    const auto source = SourceFile{"func add(x: i32, y: i32) -> i32 {"
-                                   "    return x + y;"
-                                   "}"};
-    auto sink = DiagnosticSink{};
-    Parser parser{source, sink};
+    auto ctx = CompilationContext{"func add(x: i32, y: i32) -> i32 {"
+                                  "    return x + y;"
+                                  "}"};
+    Parser parser{ctx};
     auto declaration = parser.parse_declaration();
 
     REQUIRE(declaration.is<FunctionDeclarationSyntax>());
     auto &[function_name, return_type, parameters, body, modifiers] = declaration.get<FunctionDeclarationSyntax>();
 
-    REQUIRE(function_name.is<ValidIdentifierSyntax>());
-    auto &[name] = function_name.get<ValidIdentifierSyntax>();
-    CHECK(name.as_string_view() == "add");
+    CHECK(function_name.name.as_string_view() == "add");
 
     REQUIRE(return_type.has_value());
     REQUIRE(return_type->is<BuiltInType>());
@@ -74,12 +67,8 @@ TEST_CASE("Can parse a function declaration", "[parser]")
     CHECK_FALSE(parameters[0].is_mutable);
     CHECK_FALSE(parameters[1].is_mutable);
 
-    REQUIRE(parameters[0].name.is<ValidIdentifierSyntax>());
-    REQUIRE(parameters[1].name.is<ValidIdentifierSyntax>());
-    auto &[param1_name] = parameters[0].name.get<ValidIdentifierSyntax>();
-    auto &[param2_name] = parameters[1].name.get<ValidIdentifierSyntax>();
-    CHECK(param1_name.as_string_view() == "x");
-    CHECK(param2_name.as_string_view() == "y");
+    CHECK(parameters[0].name.name.as_string_view() == "x");
+    CHECK(parameters[1].name.name.as_string_view() == "y");
 
     REQUIRE(parameters[0].type.is<BuiltInType>());
     REQUIRE(parameters[1].type.is<BuiltInType>());
@@ -102,9 +91,8 @@ TEST_CASE("Can parse various expressions", "[parser]")
 {
     SECTION("Simple precedence evaluation")
     {
-        const auto source = SourceFile{"1 + 2 * 3"};
-        auto sink = DiagnosticSink{};
-        Parser parser{source, sink};
+        auto ctx = CompilationContext{"1 + 2 * 3"};
+        Parser parser{ctx};
         auto expression = parser.parse_expression();
 
         REQUIRE(expression.is<BinaryExpressionSyntax>());
@@ -119,9 +107,8 @@ TEST_CASE("Can parse various expressions", "[parser]")
 
     SECTION("Parenthetical grouping")
     {
-        const auto source = SourceFile{"(1 + 2) * 3"};
-        auto sink = DiagnosticSink{};
-        Parser parser{source, sink};
+        auto ctx = CompilationContext{"(1 + 2) * 3"};
+        Parser parser{ctx};
         auto expression = parser.parse_expression();
 
         REQUIRE(expression.is<BinaryExpressionSyntax>());
@@ -136,9 +123,8 @@ TEST_CASE("Can parse various expressions", "[parser]")
 
     SECTION("Can parse with unary operators")
     {
-        const auto source = SourceFile{"-a * b + !c"};
-        auto sink = DiagnosticSink{};
-        Parser parser{source, sink};
+        auto ctx = CompilationContext{"-a * b + !c"};
+        Parser parser{ctx};
         auto expression = parser.parse_expression();
 
         REQUIRE(expression.is<BinaryExpressionSyntax>());
@@ -159,9 +145,8 @@ TEST_CASE("Can parse various expressions", "[parser]")
 
     SECTION("Prefix and postfix")
     {
-        const auto source = SourceFile{"++x++"};
-        auto sink = DiagnosticSink{};
-        Parser parser{source, sink};
+        auto ctx = CompilationContext{"++x++"};
+        Parser parser{ctx};
         auto expression = parser.parse_expression();
 
         REQUIRE(expression.is<UnaryExpressionSyntax>());
@@ -174,9 +159,8 @@ TEST_CASE("Can parse various expressions", "[parser]")
 
     SECTION("Assignment")
     {
-        const auto source = SourceFile{"x = -a * b + !c"};
-        auto sink = DiagnosticSink{};
-        Parser parser{source, sink};
+        auto ctx = CompilationContext{"x = -a * b + !c"};
+        Parser parser{ctx};
         auto expression = parser.parse_expression();
 
         REQUIRE(expression.is<BinaryExpressionSyntax>());

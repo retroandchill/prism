@@ -90,11 +90,10 @@ namespace prism
 
     export constexpr ErrorSyntax error_syntax{};
 
-    export struct ValidIdentifierSyntax
+    export struct IdentifierSyntax
     {
         Name name;
+        SyntaxFlags flags{};
+        SourceRange range{};
     };
-
-    export using IdentifierKind = std::variant<ValidIdentifierSyntax, ErrorSyntax>;
-    export using IdentifierSyntax = SyntaxNode<IdentifierKind>;
 } // namespace prism

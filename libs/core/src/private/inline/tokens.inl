@@ -1,11 +1,16 @@
 #ifndef PRISM_TOKEN
 #define PRISM_TOKEN(name, str)
+#define PRISM_SKIP_TOKENS
 #endif
+
 #ifndef PRISM_KEYWORD
 #define PRISM_KEYWORD(name)
+#define PRISM_SKIP_KEYWORDS
 #endif
+
 #ifndef PRISM_PUNCT
 #define PRISM_PUNCT(name, str)
+#define PRISM_SKIP_PUNCTS
 #endif
 
 PRISM_TOKEN(eof, "EOF")
@@ -101,3 +106,18 @@ PRISM_PUNCT(comma, ",")
 PRISM_TOKEN(identifier, "identifier")
 PRISM_TOKEN(integer, "integer")
 PRISM_TOKEN(string_literal, "string literal")
+
+#ifdef PRISM_SKIP_TOKENS
+#undef PRISM_TOKEN
+#endif
+#undef PRISM_SKIP_TOKENS
+
+#ifdef PRISM_SKIP_KEYWORDS
+#undef PRISM_KEYWORD
+#endif
+#undef PRISM_SKIP_KEYWORDS
+
+#ifdef PRISM_SKIP_PUNCTS
+#undef PRISM_PUNCT
+#endif
+#undef PRISM_SKIP_PUNCTS

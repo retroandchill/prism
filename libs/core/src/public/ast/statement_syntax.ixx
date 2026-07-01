@@ -43,7 +43,7 @@ namespace prism
         std::optional<TypeSyntax> type;
         bool is_mutable = false;
         Modifiers modifiers;
-        std::unique_ptr<ExpressionSyntax> initializer;
+        const ExpressionSyntax *initializer = nullptr;
     };
 
     export struct ParameterDeclarationSyntax

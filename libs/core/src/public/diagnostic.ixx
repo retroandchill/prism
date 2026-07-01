@@ -38,26 +38,6 @@ namespace prism
         std::string message;
     };
 
-    export class DiagnosticSink
-    {
-      public:
-        [[nodiscard]] constexpr const std::vector<Diagnostic> &diagnostics() const noexcept
-        {
-            return diagnostics_;
-        }
-
-        template <typename... GivenArgs>
-        constexpr void report(const DiagnosticDescriptor descriptor, SourceRange range, GivenArgs &&...args)
-        {
-            diagnostics_.emplace_back(descriptor,
-                                      range,
-                                      std::vformat(descriptor.message_format, std::make_format_args(args...)));
-        }
-
-      private:
-        std::vector<Diagnostic> diagnostics_;
-    };
-
     export constexpr DiagnosticDescriptor empty_statement{.id = "STX001",
                                                           .title = "Empty Statement",
                                                           .severity = DiagnosticSeverity::warning,

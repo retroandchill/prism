@@ -94,6 +94,6 @@ namespace prism
         IdentifierSyntax name;
     };
 
-    export using TypeSyntaxKind = std::variant<BuiltInType, NamedTypeSyntax, ErrorSyntax>;
+    export using TypeSyntaxKind = std::variant<BuiltInType, NamedTypeSyntax>;
     export using TypeSyntax = SyntaxNode<TypeSyntaxKind>;
 } // namespace prism

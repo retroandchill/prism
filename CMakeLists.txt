@@ -33,6 +33,8 @@ endif()
 
 set(TOOLS_DIR ${CMAKE_BINARY_DIR}/tools)
 
+include(cmake/Boilerplate.cmake)
+
 if (PRISM_BUILD_TESTS)
     include(CTest)
 

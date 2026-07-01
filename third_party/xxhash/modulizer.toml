@@ -1,0 +1,29 @@
+[module]
+name = "xxhash"
+
+[headers]
+include_dirs = [
+    "D://dev//prism//build//debug-static//vcpkg_installed//x64-windows//include"
+]
+library_headers = [
+    "xxhash.h",
+]
+header_guard_format = "FMT_(\\w+)_H_"
+
+[macros]
+expand_from_definition = [
+]
+explicit_macros = [
+    "XXH_PUBLIC_API",
+    "XXH_CONSTF",
+    "XXH_PUREF",
+    "XXH_MALLOCF",
+    "XXH_FALLTHROUGH=[[fallthrough]]",
+    "XXH_NOESCAPE"
+]
+
+[symbols]
+exclude = [
+    "antlr4::internal",
+    "std"
+]

@@ -80,6 +80,13 @@ namespace prism
         }
     };
 
+    struct NameEntryMemoryDeleter
+    {
+        void operator()(std::byte *ptr) const noexcept;
+    };
+
+    using NameEntryBlockPtr = std::unique_ptr<std::byte[], NameEntryMemoryDeleter>;
+
     struct NameSlot
     {
         static constexpr std::uint32_t entry_id_bits = name_max_block_bits + name_block_offset_bits;
@@ -116,13 +123,6 @@ namespace prism
         std::uint32_t id_and_hash_ = 0;
     };
 
-    struct NameEntryMemoryDeleter
-    {
-        void operator()(std::byte *ptr) const noexcept;
-    };
-
-    using NameEntryBlockPtr = std::unique_ptr<std::byte[], NameEntryMemoryDeleter>;
-
     class NameEntryAllocator
     {
       public:
@@ -142,6 +142,11 @@ namespace prism
             {
                 blocks_[i] = alloc_block();
             }
+        }
+
+        [[nodiscard]] constexpr std::span<const NameEntryBlockPtr> debug_memory() const noexcept
+        {
+            return blocks_;
         }
 
         NameEntryHandle allocate(const std::uint32_t bytes)
@@ -546,6 +551,11 @@ namespace prism
             return entries_.num_blocks();
         }
 
+        [[nodiscard]] constexpr std::span<const NameEntryBlockPtr> debug_memory() const noexcept
+        {
+            return entries_.debug_memory();
+        }
+
         [[nodiscard]] constexpr std::uint32_t num_slots() const noexcept
         {
             return std::ranges::fold_left(shards_,
@@ -716,6 +726,12 @@ namespace prism
 
         assert(find_type == FindName::find);
         return pool.find(str);
+    }
+
+    const std::byte *const *debug_get_name_memory()
+    {
+        static_assert(sizeof(std::byte *) == sizeof(NameEntryBlockPtr));
+        return reinterpret_cast<const std::byte *const *>(NamePool::get().debug_memory().data());
     }
 } // namespace prism
 

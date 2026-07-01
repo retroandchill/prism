@@ -21,6 +21,7 @@ import prism.core.source.source_file;
 import prism.core.ast.statement_syntax;
 import prism.core.diagnostic;
 import prism.core.token_stream;
+import prism.core.context;
 
 namespace prism
 {
@@ -38,8 +39,7 @@ namespace prism
     export class PRISM_CORE_API Parser
     {
       public:
-        constexpr explicit Parser(const SourceFile &source_file, DiagnosticSink &diagnostic_sink)
-            : source_file_{source_file}, stream_{source_file}, diagnostics_{diagnostic_sink}
+        constexpr explicit Parser(CompilationContext &context) : context_{context}, stream_{context.source_file()}
         {
         }
 
@@ -91,10 +91,7 @@ namespace prism
         ExpressionSyntax parse_postfix_expression();
         std::vector<ExpressionSyntax> parse_argument_list();
 
-        LiteralSyntax parse_string_literal();
-
-        const SourceFile &source_file_;
+        CompilationContext &context_;
         TokenStream stream_;
-        DiagnosticSink &diagnostics_;
     };
 } // namespace prism

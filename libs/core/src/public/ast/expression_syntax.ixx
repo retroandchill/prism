@@ -9,6 +9,7 @@ export module prism.core.ast.expression_syntax;
 import std;
 import prism.core.ast.common_syntax;
 import prism.core.source.source_file;
+import prism.core.util;
 
 namespace prism
 {
@@ -83,35 +84,42 @@ namespace prism
 
     export using ExpressionSyntax = SyntaxNode<ExpressionSyntaxKind>;
 
+    export enum class LiteralSyntaxKind
+    {
+        bool_true,
+        bool_false,
+        integer,
+        string
+    };
+
     struct LiteralSyntax
     {
-        // TODO: This should be refined to not erase the actual contents of the literal
-        std::variant<bool, std::uint64_t, double, std::string> value;
+        LiteralSyntaxKind kind{};
     };
 
     struct BinaryExpressionSyntax
     {
         BinaryOperator op{};
-        std::unique_ptr<ExpressionSyntax> left;
-        std::unique_ptr<ExpressionSyntax> right;
+        Ref<const ExpressionSyntax> left;
+        Ref<const ExpressionSyntax> right;
     };
 
     struct UnaryExpressionSyntax
     {
-        std::unique_ptr<ExpressionSyntax> operand;
+        Ref<const ExpressionSyntax> operand;
         UnaryOperator op{};
     };
 
     struct TernaryExpressionSyntax
     {
-        std::unique_ptr<ExpressionSyntax> condition;
-        std::unique_ptr<ExpressionSyntax> if_true;
-        std::unique_ptr<ExpressionSyntax> if_false;
+        Ref<const ExpressionSyntax> condition;
+        Ref<const ExpressionSyntax> if_true;
+        Ref<const ExpressionSyntax> if_false;
     };
 
     struct InvocationSyntax
     {
-        std::unique_ptr<ExpressionSyntax> callee;
+        Ref<const ExpressionSyntax> callee;
         std::vector<ExpressionSyntax> arguments;
     };
 } // namespace prism
