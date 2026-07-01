@@ -32,7 +32,6 @@ target_include_directories(prism_core PUBLIC include
                                       PRIVATE src/private/inline)
 
 target_link_libraries(prism_core
-        PUBLIC Boost::cppm
         PRIVATE xxHash::cpp)
 
 target_sources(prism_core PUBLIC

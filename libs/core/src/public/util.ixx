@@ -7,7 +7,6 @@
 export module prism.core.util;
 
 import std;
-import boost.flyweight;
 
 namespace prism
 {
