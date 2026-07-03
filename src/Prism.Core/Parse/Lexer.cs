@@ -131,6 +131,10 @@ public sealed class Lexer(SourceFile sourceFile)
 
         var start = _cursor.Position;
         var foundDigits = ConsumeDigitSequence();
+        if (foundDigits && _cursor.AtEnd)
+        {
+            return new Token(TokenKind.IntegerLiteral, _cursor.Since(start));
+        }
         var isFloat = _cursor.Current == '.';
         if (isFloat)
         {

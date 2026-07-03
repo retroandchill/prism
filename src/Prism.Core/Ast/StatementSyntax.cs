@@ -15,7 +15,7 @@ public sealed record VariableDeclarationStatementSyntax : StatementSyntax
     public required VariableDeclarationSyntax Declaration { get; init; }
 }
 
-public sealed record BlockSyntax : SyntaxNode
+public sealed record BlockSyntax : StatementSyntax
 {
     public required ImmutableArray<StatementSyntax> Statements { get; init; }
 }

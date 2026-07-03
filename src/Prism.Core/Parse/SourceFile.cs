@@ -13,6 +13,15 @@ public readonly record struct SourceRange(int Start, int Length = 0)
     public int End => Start + Length;
 
     public bool IsEmpty => Length == 0;
+
+    public static SourceRange Empty => new(0);
+
+    public SourceRange Concat(SourceRange other)
+    {
+        var start = Math.Min(Start, other.Start);
+        var end = Math.Max(End, other.End);
+        return new SourceRange(start, end - start);
+    }
 }
 
 public readonly struct SourceFile

@@ -10,6 +10,7 @@ namespace Prism.Core.Parse;
 
 public sealed class TokenStream(SourceFile sourceFile)
 {
+    private readonly string _text = sourceFile.Text;
     private readonly Lexer _lexer = new(sourceFile);
     private readonly List<Token> _consumedTokens = [];
     private readonly Deque<Token> _pendingTokens = [];
@@ -76,7 +77,7 @@ public sealed class TokenStream(SourceFile sourceFile)
         for (var i = 0; i < maxTokens; i++)
         {
             var token = _lexer.Next();
-            _pendingTokens.AddToFront(token);
+            _pendingTokens.AddToBack(token);
 
             if (token.Kind == TokenKind.EOF)
                 break;

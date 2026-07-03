@@ -3,24 +3,27 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Runtime.InteropServices;
 using Prism.Core.Parse;
 using Prism.Core.Strings;
 
 namespace Prism.Core.Ast;
 
+[StructLayout(LayoutKind.Auto)]
 public readonly record struct IdentifierSyntax(
     Name Name,
     SourceRange Range,
     SyntaxFlags Flags = SyntaxFlags.None
 );
 
-public enum Modifier
+public enum Modifier : ushort
 {
     Extern,
 }
 
+[StructLayout(LayoutKind.Auto)]
 public readonly record struct ModifierSyntax(
     Modifier Modifier,
-    SyntaxFlags Flags,
-    SourceRange Range
+    SourceRange Range,
+    SyntaxFlags Flags = SyntaxFlags.None
 );

@@ -20,4 +20,7 @@ public readonly record struct Token(
     TokenKind Kind,
     SourceRange Range,
     TokenFlags Flags = TokenFlags.None
-);
+)
+{
+    public bool IsSynthetic => Flags.HasFlag(TokenFlags.Synthetic);
+}
