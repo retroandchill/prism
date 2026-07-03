@@ -9,12 +9,10 @@
 import std;
 import prism.core.parser;
 import prism.core.source.source_file;
-import prism.core.ast.common_syntax;
-import prism.core.ast.statement_syntax;
-import prism.core.ast.type_syntax;
-import prism.core.ast.expression_syntax;
+import prism.core.ast;
 import prism.core.diagnostic;
 import prism.core.context;
+import prism.core.util;
 
 using namespace prism;
 
@@ -22,25 +20,25 @@ TEST_CASE("Can parse a simple variable declaration", "[parser]")
 {
     auto ctx = CompilationContext{"var value: i32 = 5;"};
     Parser parser{ctx};
-    auto declaration = parser.parse_declaration();
+    auto &declaration = parser.parse_declaration();
 
     CHECK(ctx.diagnostics().size() == 0); // NOLINT(*-container-size-empty)
     REQUIRE(declaration.is<VariableDeclarationSyntax>());
 
-    auto &[variable_name, type, is_mutable, modifiers, initializer] = declaration.get<VariableDeclarationSyntax>();
-    CHECK_FALSE(is_mutable);
+    auto &variable = declaration.cast<VariableDeclarationSyntax>();
+    CHECK_FALSE(variable.is_mutable());
 
-    CHECK(variable_name.name.as_string_view() == "value");
+    CHECK(variable.name().name.as_string_view() == "value");
 
-    REQUIRE(type.has_value());
-    REQUIRE(type->is<BuiltInType>());
-    auto type_code = type->get<BuiltInType>();
+    REQUIRE(variable.type() != nullptr);
+    REQUIRE(variable.type()->is<BuiltInTypeSyntax>());
+    auto type_code = variable.type()->cast<BuiltInTypeSyntax>().type();
     CHECK(type_code == BuiltInType::i32);
 
-    REQUIRE(initializer != nullptr);
-    REQUIRE(initializer->is<LiteralSyntax>());
+    REQUIRE(variable.initializer() != nullptr);
+    REQUIRE(variable.initializer()->is<LiteralExpressionSyntax>());
 
-    auto &[literal_kind] = initializer->get<LiteralSyntax>();
+    auto literal_kind = variable.initializer()->cast<LiteralExpressionSyntax>().kind();
 
     CHECK(literal_kind == LiteralSyntaxKind::integer);
 }
@@ -51,40 +49,41 @@ TEST_CASE("Can parse a function declaration", "[parser]")
                                   "    return x + y;"
                                   "}"};
     Parser parser{ctx};
-    auto declaration = parser.parse_declaration();
+    auto &declaration = parser.parse_declaration();
 
     REQUIRE(declaration.is<FunctionDeclarationSyntax>());
-    auto &[function_name, return_type, parameters, body, modifiers] = declaration.get<FunctionDeclarationSyntax>();
+    auto &function = declaration.cast<FunctionDeclarationSyntax>();
 
-    CHECK(function_name.name.as_string_view() == "add");
+    CHECK(function.name().name.as_string_view() == "add");
 
-    REQUIRE(return_type.has_value());
-    REQUIRE(return_type->is<BuiltInType>());
-    const auto type_code = return_type->get<BuiltInType>();
+    REQUIRE(function.return_type() != nullptr);
+    REQUIRE(function.return_type()->is<BuiltInTypeSyntax>());
+    const auto type_code = function.return_type()->cast<BuiltInTypeSyntax>().type();
     CHECK(type_code == BuiltInType::i32);
 
+    auto parameters = function.parameters();
     REQUIRE(parameters.size() == 2);
-    CHECK_FALSE(parameters[0].is_mutable);
-    CHECK_FALSE(parameters[1].is_mutable);
+    CHECK_FALSE(parameters[0]->is_mutable());
+    CHECK_FALSE(parameters[1]->is_mutable());
 
-    CHECK(parameters[0].name.name.as_string_view() == "x");
-    CHECK(parameters[1].name.name.as_string_view() == "y");
+    CHECK(parameters[0]->name().name.as_string_view() == "x");
+    CHECK(parameters[1]->name().name.as_string_view() == "y");
 
-    REQUIRE(parameters[0].type.is<BuiltInType>());
-    REQUIRE(parameters[1].type.is<BuiltInType>());
-    const auto param1_type = parameters[0].type.get<BuiltInType>();
-    const auto param2_type = parameters[1].type.get<BuiltInType>();
+    REQUIRE(parameters[0]->type().is<BuiltInTypeSyntax>());
+    REQUIRE(parameters[1]->type().is<BuiltInTypeSyntax>());
+    const auto param1_type = parameters[0]->type().cast<BuiltInTypeSyntax>().type();
+    const auto param2_type = parameters[1]->type().cast<BuiltInTypeSyntax>().type();
     CHECK(param1_type == BuiltInType::i32);
     CHECK(param2_type == BuiltInType::i32);
 
-    REQUIRE(body.is<BlockSyntax>());
-    auto &[statements] = body.get<BlockSyntax>();
+    REQUIRE(std::holds_alternative<Ref<const BlockStatementSyntax>>(function.body()));
+    auto statements = std::get<Ref<const BlockStatementSyntax>>(function.body())->statements();
     CHECK(statements.size() == 1);
-    REQUIRE(statements[0].is<ReturnStatementSyntax>());
-    auto &[expression] = statements[0].get<ReturnStatementSyntax>();
+    REQUIRE(statements[0]->is<ReturnStatementSyntax>());
+    auto &expression = statements[0]->cast<ReturnStatementSyntax>().expression();
     REQUIRE(expression.is<BinaryExpressionSyntax>());
-    auto &binary_expression = expression.get<BinaryExpressionSyntax>();
-    CHECK(binary_expression.op == BinaryOperator::add);
+    auto &binary_expression = expression.cast<BinaryExpressionSyntax>();
+    CHECK(binary_expression.op() == BinaryOperator::add);
 }
 
 TEST_CASE("Can parse various expressions", "[parser]")
@@ -93,93 +92,99 @@ TEST_CASE("Can parse various expressions", "[parser]")
     {
         auto ctx = CompilationContext{"1 + 2 * 3"};
         Parser parser{ctx};
-        auto expression = parser.parse_expression();
+        auto &expression = parser.parse_expression();
 
         REQUIRE(expression.is<BinaryExpressionSyntax>());
-        auto &[op, left, right] = expression.get<BinaryExpressionSyntax>();
-        CHECK(op == BinaryOperator::add);
+        auto &bin_expr = expression.cast<BinaryExpressionSyntax>();
+        CHECK(bin_expr.op() == BinaryOperator::add);
 
-        CHECK(left->is<LiteralSyntax>());
-        REQUIRE(right->is<BinaryExpressionSyntax>());
-        auto &inner = right->get<BinaryExpressionSyntax>();
-        CHECK(inner.op == BinaryOperator::mul);
+        CHECK(bin_expr.left().is<LiteralExpressionSyntax>());
+        REQUIRE(bin_expr.right().is<BinaryExpressionSyntax>());
+        auto &inner = bin_expr.right().cast<BinaryExpressionSyntax>();
+        CHECK(inner.op() == BinaryOperator::mul);
     }
 
     SECTION("Parenthetical grouping")
     {
         auto ctx = CompilationContext{"(1 + 2) * 3"};
         Parser parser{ctx};
-        auto expression = parser.parse_expression();
+        auto &expression = parser.parse_expression();
 
         REQUIRE(expression.is<BinaryExpressionSyntax>());
-        auto &[op, left, right] = expression.get<BinaryExpressionSyntax>();
-        CHECK(op == BinaryOperator::mul);
+        auto &bin_expr = expression.cast<BinaryExpressionSyntax>();
+        CHECK(bin_expr.op() == BinaryOperator::mul);
 
-        REQUIRE(left->is<BinaryExpressionSyntax>());
-        CHECK(right->is<LiteralSyntax>());
-        auto &inner = left->get<BinaryExpressionSyntax>();
-        CHECK(inner.op == BinaryOperator::add);
+        REQUIRE(bin_expr.left().is<BinaryExpressionSyntax>());
+        CHECK(bin_expr.right().is<LiteralExpressionSyntax>());
+        auto &inner = bin_expr.left().cast<BinaryExpressionSyntax>();
+        CHECK(inner.op() == BinaryOperator::add);
     }
 
     SECTION("Can parse with unary operators")
     {
         auto ctx = CompilationContext{"-a * b + !c"};
         Parser parser{ctx};
-        auto expression = parser.parse_expression();
+        auto &expression = parser.parse_expression();
 
         REQUIRE(expression.is<BinaryExpressionSyntax>());
-        auto &[op, left, right] = expression.get<BinaryExpressionSyntax>();
-        CHECK(op == BinaryOperator::add);
+        auto &bin_expr = expression.cast<BinaryExpressionSyntax>();
+        CHECK(bin_expr.op() == BinaryOperator::add);
 
-        REQUIRE(left->is<BinaryExpressionSyntax>());
-        auto &inner = left->get<BinaryExpressionSyntax>();
-        CHECK(inner.op == BinaryOperator::mul);
-        REQUIRE(inner.left->is<UnaryExpressionSyntax>());
-        auto &unary1 = inner.left->get<UnaryExpressionSyntax>();
-        CHECK(unary1.op == UnaryOperator::negate);
+        auto &left = bin_expr.left();
+        auto &right = bin_expr.right();
+        REQUIRE(left.is<BinaryExpressionSyntax>());
+        auto &inner = left.cast<BinaryExpressionSyntax>();
+        CHECK(inner.op() == BinaryOperator::mul);
+        REQUIRE(inner.left().is<UnaryExpressionSyntax>());
+        auto &unary1 = inner.left().cast<UnaryExpressionSyntax>();
+        CHECK(unary1.op() == UnaryOperator::negate);
 
-        REQUIRE(right->is<UnaryExpressionSyntax>());
-        auto &unary2 = right->get<UnaryExpressionSyntax>();
-        CHECK(unary2.op == UnaryOperator::logical_not);
+        REQUIRE(right.is<UnaryExpressionSyntax>());
+        auto &unary2 = right.cast<UnaryExpressionSyntax>();
+        CHECK(unary2.op() == UnaryOperator::logical_not);
     }
 
     SECTION("Prefix and postfix")
     {
         auto ctx = CompilationContext{"++x++"};
         Parser parser{ctx};
-        auto expression = parser.parse_expression();
+        auto &expression = parser.parse_expression();
 
         REQUIRE(expression.is<UnaryExpressionSyntax>());
-        auto &outer = expression.get<UnaryExpressionSyntax>();
-        CHECK(outer.op == UnaryOperator::pre_increment);
-        REQUIRE(outer.operand->is<UnaryExpressionSyntax>());
-        auto &inner = outer.operand->get<UnaryExpressionSyntax>();
-        CHECK(inner.op == UnaryOperator::post_increment);
+        auto &outer = expression.cast<UnaryExpressionSyntax>();
+        CHECK(outer.op() == UnaryOperator::pre_increment);
+        REQUIRE(outer.operand().is<UnaryExpressionSyntax>());
+        auto &inner = outer.operand().cast<UnaryExpressionSyntax>();
+        CHECK(inner.op() == UnaryOperator::post_increment);
     }
 
     SECTION("Assignment")
     {
         auto ctx = CompilationContext{"x = -a * b + !c"};
         Parser parser{ctx};
-        auto expression = parser.parse_expression();
+        auto &expression = parser.parse_expression();
 
         REQUIRE(expression.is<BinaryExpressionSyntax>());
-        auto &[op, left, right] = expression.get<BinaryExpressionSyntax>();
+        auto &bin_expr = expression.cast<BinaryExpressionSyntax>();
+        auto op = bin_expr.op();
+        auto &left = bin_expr.left();
+        auto &right = bin_expr.right();
+
         CHECK(op == BinaryOperator::assign);
 
-        CHECK(left->is<IdentifierSyntax>());
-        REQUIRE(right->is<BinaryExpressionSyntax>());
-        auto &assignment_expression = right->get<BinaryExpressionSyntax>();
+        CHECK(left.is<IdentifierExpressionSyntax>());
+        REQUIRE(right.is<BinaryExpressionSyntax>());
+        auto &assignment_expression = right.cast<BinaryExpressionSyntax>();
 
-        REQUIRE(assignment_expression.left->is<BinaryExpressionSyntax>());
-        auto &inner = assignment_expression.left->get<BinaryExpressionSyntax>();
-        CHECK(inner.op == BinaryOperator::mul);
-        REQUIRE(inner.left->is<UnaryExpressionSyntax>());
-        auto &unary1 = inner.left->get<UnaryExpressionSyntax>();
-        CHECK(unary1.op == UnaryOperator::negate);
+        REQUIRE(assignment_expression.left().is<BinaryExpressionSyntax>());
+        auto &inner = assignment_expression.left().cast<BinaryExpressionSyntax>();
+        CHECK(inner.op() == BinaryOperator::mul);
+        REQUIRE(inner.left().is<UnaryExpressionSyntax>());
+        auto &unary1 = inner.left().cast<UnaryExpressionSyntax>();
+        CHECK(unary1.op() == UnaryOperator::negate);
 
-        REQUIRE(assignment_expression.right->is<UnaryExpressionSyntax>());
-        auto &unary2 = assignment_expression.right->get<UnaryExpressionSyntax>();
-        CHECK(unary2.op == UnaryOperator::logical_not);
+        REQUIRE(assignment_expression.right().is<UnaryExpressionSyntax>());
+        auto &unary2 = assignment_expression.right().cast<UnaryExpressionSyntax>();
+        CHECK(unary2.op() == UnaryOperator::logical_not);
     }
 }

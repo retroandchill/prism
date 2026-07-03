@@ -4,10 +4,15 @@
  * @date 6/24/2026
  * @brief
  */
-export module prism.core.ast.expression_syntax;
+module;
+
+#include "ast/macros.hpp"
+
+export module prism.core.ast:expression_syntax;
 
 import std;
-import prism.core.ast.common_syntax;
+import :syntax_node;
+import :identifier_syntax;
 import prism.core.source.source_file;
 import prism.core.util;
 
@@ -68,22 +73,6 @@ namespace prism
         post_decrement,
     };
 
-    export struct LiteralSyntax;
-    export struct BinaryExpressionSyntax;
-    export struct UnaryExpressionSyntax;
-    export struct TernaryExpressionSyntax;
-    export struct InvocationSyntax;
-
-    export using ExpressionSyntaxKind = std::variant<IdentifierSyntax,
-                                                     LiteralSyntax,
-                                                     BinaryExpressionSyntax,
-                                                     UnaryExpressionSyntax,
-                                                     TernaryExpressionSyntax,
-                                                     InvocationSyntax,
-                                                     ErrorSyntax>;
-
-    export using ExpressionSyntax = SyntaxNode<ExpressionSyntaxKind>;
-
     export enum class LiteralSyntaxKind
     {
         bool_true,
@@ -92,34 +81,107 @@ namespace prism
         string
     };
 
-    struct LiteralSyntax
+    export class ExpressionSyntax : public SyntaxNode
     {
-        LiteralSyntaxKind kind{};
+      protected:
+        constexpr ExpressionSyntax(SyntaxKind kind,
+                                   const SourceRange range,
+                                   const SyntaxFlags flags = SyntaxFlags::none)
+            : SyntaxNode{SyntaxCategory::expression, kind, range, flags}
+        {
+        }
+
+        AST_NODE_BOILERPLATE(ExpressionSyntax)
     };
 
-    struct BinaryExpressionSyntax
+    export class LiteralExpressionSyntax final : public ExpressionSyntax
     {
-        BinaryOperator op{};
-        Ref<const ExpressionSyntax> left;
-        Ref<const ExpressionSyntax> right;
+      public:
+        constexpr LiteralExpressionSyntax(const LiteralSyntaxKind kind,
+                                          const SourceRange range,
+                                          const SyntaxFlags flags = SyntaxFlags::none)
+            : ExpressionSyntax{SyntaxKind::literal_expression, range, flags}, kind_{kind}
+        {
+        }
+
+        VALUE_PROPERTY(LiteralSyntaxKind, kind)
     };
 
-    struct UnaryExpressionSyntax
+    export class IdentifierExpressionSyntax final : public ExpressionSyntax
     {
-        Ref<const ExpressionSyntax> operand;
-        UnaryOperator op{};
+      public:
+        constexpr IdentifierExpressionSyntax(const Name name,
+                                             const SourceRange range,
+                                             const SyntaxFlags flags = SyntaxFlags::none)
+            : ExpressionSyntax{SyntaxKind::identifier_expression, range, flags}, name_{name}
+        {
+        }
+
+        VALUE_PROPERTY(Name, name)
     };
 
-    struct TernaryExpressionSyntax
+    export class BinaryExpressionSyntax : public ExpressionSyntax
     {
-        Ref<const ExpressionSyntax> condition;
-        Ref<const ExpressionSyntax> if_true;
-        Ref<const ExpressionSyntax> if_false;
+      public:
+        constexpr BinaryExpressionSyntax(const BinaryOperator op,
+                                         const ExpressionSyntax &left,
+                                         const ExpressionSyntax &right,
+                                         const SourceRange range,
+                                         const SyntaxFlags flags = SyntaxFlags::none)
+            : ExpressionSyntax{SyntaxKind::binary_expression, range, flags}, op_{op}, left_{left}, right_{right}
+        {
+        }
+
+        VALUE_PROPERTY(BinaryOperator, op)
+        UNOWNED_REF_PROPERTY(ExpressionSyntax, left)
+        UNOWNED_REF_PROPERTY(ExpressionSyntax, right)
     };
 
-    struct InvocationSyntax
+    export class UnaryExpressionSyntax : public ExpressionSyntax
     {
-        Ref<const ExpressionSyntax> callee;
-        std::vector<ExpressionSyntax> arguments;
+      public:
+        constexpr UnaryExpressionSyntax(const UnaryOperator op,
+                                        const ExpressionSyntax &operand,
+                                        const SourceRange range,
+                                        const SyntaxFlags flags = SyntaxFlags::none)
+            : ExpressionSyntax{SyntaxKind::unary_expression, range, flags}, op_{op}, operand_{operand}
+        {
+        }
+
+        VALUE_PROPERTY(UnaryOperator, op)
+        UNOWNED_REF_PROPERTY(ExpressionSyntax, operand)
+    };
+
+    export class TernaryExpressionSyntax : public ExpressionSyntax
+    {
+      public:
+        constexpr TernaryExpressionSyntax(const ExpressionSyntax &condition,
+                                          const ExpressionSyntax &if_true,
+                                          const ExpressionSyntax &if_false,
+                                          const SourceRange range,
+                                          const SyntaxFlags flags = SyntaxFlags::none)
+            : ExpressionSyntax{SyntaxKind::ternary_expression, range, flags}, condition_{condition}, if_true_{if_true},
+              if_false_{if_false}
+        {
+        }
+
+        UNOWNED_REF_PROPERTY(ExpressionSyntax, condition)
+        UNOWNED_REF_PROPERTY(ExpressionSyntax, if_true)
+        UNOWNED_REF_PROPERTY(ExpressionSyntax, if_false)
+    };
+
+    export class InvocationExpressionSyntax : public ExpressionSyntax
+    {
+      public:
+        InvocationExpressionSyntax(const ExpressionSyntax &callee,
+                                   const std::span<const Ref<const ExpressionSyntax>> arguments,
+                                   const SourceRange range,
+                                   const SyntaxFlags flags = SyntaxFlags::none)
+            : ExpressionSyntax{SyntaxKind::invocation_expression, range, flags}, callee_{callee}, arguments_{arguments}
+        {
+        }
+
+        UNOWNED_REF_PROPERTY(ExpressionSyntax, callee)
+        VALUE_PROPERTY(std::span<const Ref<const ExpressionSyntax>>, arguments)
     };
 } // namespace prism

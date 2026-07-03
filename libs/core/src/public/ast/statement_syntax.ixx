@@ -4,80 +4,92 @@
  * @date 6/24/2026
  * @brief
  */
-export module prism.core.ast.statement_syntax;
+module;
+
+#include "ast/macros.hpp"
+
+export module prism.core.ast:statement_syntax;
 
 import std;
-import prism.core.ast.expression_syntax;
-import prism.core.ast.type_syntax;
 import prism.core.util;
 import prism.core.lexer.token;
-import prism.core.ast.common_syntax;
 import prism.core.source.source_file;
+import :syntax_node;
+import :identifier_syntax;
+import :expression_syntax;
 
 namespace prism
 {
-    export struct VariableDeclarationSyntax;
-    export struct FunctionDeclarationSyntax;
-    export struct ReturnStatementSyntax;
-    export struct ExpressionStatementSyntax;
-    export struct BlockSyntax;
-
-    export using DeclarationSyntaxKind =
-        std::variant<VariableDeclarationSyntax, FunctionDeclarationSyntax, EmptySyntax, ErrorSyntax>;
-
-    export using DeclarationSyntax = SyntaxNode<DeclarationSyntaxKind>;
-
-    export using StatementSyntaxKind = std::
-        variant<VariableDeclarationSyntax, ExpressionStatementSyntax, ReturnStatementSyntax, BlockSyntax, EmptySyntax>;
-
-    export using StatementSyntax = SyntaxNode<StatementSyntaxKind>;
-
-    struct BlockSyntax
+    export class StatementSyntax : public SyntaxNode
     {
-        std::vector<StatementSyntax> statements;
+      protected:
+        StatementSyntax(SyntaxKind kind, const SourceRange &range, SyntaxFlags flags)
+            : SyntaxNode(SyntaxCategory::statement, kind, range, flags)
+        {
+        }
+
+        AST_NODE_BOILERPLATE(StatementSyntax)
     };
 
-    struct VariableDeclarationSyntax
+    export class VariableDeclarationStatementSyntax : public StatementSyntax
     {
-        IdentifierSyntax name;
-        std::optional<TypeSyntax> type;
-        bool is_mutable = false;
-        Modifiers modifiers;
-        const ExpressionSyntax *initializer = nullptr;
+      public:
+        constexpr VariableDeclarationStatementSyntax(const class VariableDeclarationSyntax &declaration,
+                                                     SourceRange range,
+                                                     SyntaxFlags flags = SyntaxFlags::none)
+            : StatementSyntax{SyntaxKind::variable_declaration, range, flags}, declaration_{declaration}
+        {
+        }
+
+        UNOWNED_REF_PROPERTY(VariableDeclarationSyntax, declaration)
     };
 
-    export struct ParameterDeclarationSyntax
+    export class BlockStatementSyntax : public StatementSyntax
     {
-        IdentifierSyntax name;
-        TypeSyntax type;
-        bool is_mutable = false;
+
+      public:
+        constexpr BlockStatementSyntax(std::span<const Ref<const StatementSyntax>> statements,
+                                       const SourceRange range,
+                                       const SyntaxFlags flags = SyntaxFlags::none)
+            : StatementSyntax{SyntaxKind::block_statement, range, flags}, statements_{statements}
+        {
+        }
+
+        VALUE_PROPERTY(std::span<const Ref<const StatementSyntax>>, statements)
     };
 
-    export using FunctionBodySyntaxKind = std::variant<EmptySyntax, BlockSyntax, ExpressionSyntax>;
-
-    export using FunctionBodySyntax = SyntaxNode<FunctionBodySyntaxKind>;
-
-    struct FunctionDeclarationSyntax
+    export class ReturnStatementSyntax : public StatementSyntax
     {
-        IdentifierSyntax name;
-        std::optional<TypeSyntax> return_type;
-        std::vector<ParameterDeclarationSyntax> parameters;
-        FunctionBodySyntax body;
-        Modifiers modifiers;
+      public:
+        constexpr ReturnStatementSyntax(const ExpressionSyntax &expression,
+                                        const SourceRange range,
+                                        const SyntaxFlags flags = SyntaxFlags::none)
+            : StatementSyntax{SyntaxKind::return_statement, range, flags}, expression_{expression}
+        {
+        }
+
+        UNOWNED_REF_PROPERTY(ExpressionSyntax, expression)
     };
 
-    struct ReturnStatementSyntax
+    export class ExpressionStatementSyntax : public StatementSyntax
     {
-        ExpressionSyntax expression;
+      public:
+        constexpr ExpressionStatementSyntax(const ExpressionSyntax &expression,
+                                            const SourceRange range,
+                                            const SyntaxFlags flags = SyntaxFlags::none)
+            : StatementSyntax{SyntaxKind::expression_statement, range, flags}, expression_{expression}
+        {
+        }
+
+        UNOWNED_REF_PROPERTY(ExpressionSyntax, expression)
     };
 
-    struct ExpressionStatementSyntax
+    export class EmptyStatementSyntax : public StatementSyntax
     {
-        ExpressionSyntax expression;
-    };
-
-    export struct CompilationUnitSyntax
-    {
-        std::vector<DeclarationSyntax> declarations;
+      public:
+        constexpr explicit EmptyStatementSyntax(const SourceRange range, const SyntaxFlags flags = SyntaxFlags::none)
+            : StatementSyntax{SyntaxKind::empty_statement, range, flags}
+        {
+        }
     };
 } // namespace prism

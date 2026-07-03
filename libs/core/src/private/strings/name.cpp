@@ -474,7 +474,6 @@ namespace prism
         {
 #define REGISTER_NAME(name, str) known_names_[std::to_underlying(KnownName::name)] = store(str);
 #include "names.inl"
-#undef REGISTER_NAME
 
             for (std::uint32_t i = 0; i < std::to_underlying(KnownName::count); ++i)
             {

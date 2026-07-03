@@ -4,11 +4,16 @@
  * @date 6/24/2026
  * @brief
  */
-export module prism.core.ast.type_syntax;
+module;
+
+#include "ast/macros.hpp"
+
+export module prism.core.ast:type_syntax;
 
 import std;
 import prism.core.util;
-import prism.core.ast.common_syntax;
+import :syntax_node;
+import :identifier_syntax;
 import prism.core.source.source_file;
 
 namespace prism
@@ -89,11 +94,40 @@ namespace prism
         }
     }
 
-    export struct NamedTypeSyntax
+    export class TypeSyntax : public SyntaxNode
     {
-        IdentifierSyntax name;
+      protected:
+        constexpr TypeSyntax(SyntaxKind kind, const SourceRange range, const SyntaxFlags flags = SyntaxFlags::none)
+            : SyntaxNode{SyntaxCategory::type, kind, range, flags}
+        {
+        }
+
+        AST_NODE_BOILERPLATE(TypeSyntax)
     };
 
-    export using TypeSyntaxKind = std::variant<BuiltInType, NamedTypeSyntax>;
-    export using TypeSyntax = SyntaxNode<TypeSyntaxKind>;
+    export class BuiltInTypeSyntax final : public TypeSyntax
+    {
+      public:
+        constexpr BuiltInTypeSyntax(const BuiltInType type,
+                                    const SourceRange range,
+                                    const SyntaxFlags flags = SyntaxFlags::none)
+            : TypeSyntax{SyntaxKind::built_in_type, range, flags}, type_{type}
+        {
+        }
+
+        VALUE_PROPERTY(BuiltInType, type)
+    };
+
+    export class NamedTypeSyntax final : public TypeSyntax
+    {
+      public:
+        constexpr NamedTypeSyntax(const IdentifierSyntax &name,
+                                  const SourceRange range,
+                                  const SyntaxFlags flags = SyntaxFlags::none)
+            : TypeSyntax{SyntaxKind::named_type, range, flags}, name_{name}
+        {
+        }
+
+        OWNED_REF_PROPERTY(IdentifierSyntax, name)
+    };
 } // namespace prism

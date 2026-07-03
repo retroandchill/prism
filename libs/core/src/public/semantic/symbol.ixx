@@ -11,10 +11,10 @@ module;
 export module prism.core.semantic.symbol;
 
 import std;
-import prism.core.ast.statement_syntax;
 import prism.core.util;
 import prism.core.strings.name;
 import prism.core.source.source_file;
+import prism.core.ast;
 
 namespace prism
 {

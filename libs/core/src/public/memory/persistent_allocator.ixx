@@ -55,6 +55,46 @@ namespace prism
             return *ptr;
         }
 
+        template <std::ranges::input_range Range>
+            requires std::ranges::sized_range<Range> &&
+                     std::convertible_to<std::ranges::range_reference_t<Range>, std::ranges::range_value_t<Range>>
+        std::span<std::ranges::range_value_t<Range>> copy(Range &&range)
+        {
+            using T = std::ranges::range_value_t<Range>;
+            auto *ptr = arena_.allocate(std::ranges::size(range) * sizeof(T), alignof(T));
+            std::span target{static_cast<T *>(ptr), std::ranges::size(range)};
+            if constexpr (!std::is_trivially_copyable_v<T>)
+            {
+                for (auto [i, items] : target | std::views::zip(std::forward<Range>(range)) | std::views::enumerate)
+                {
+                    auto [item, src] = items;
+                    auto *item_ptr = std::addressof(item);
+                    std::construct_at(item_ptr, src);
+                    if constexpr (!std::is_trivially_destructible_v<T>)
+                    {
+                        deleters_.emplace_back(
+                            item_ptr,
+                            +[](void *p) noexcept { std::destroy_at(static_cast<T *>(p)); });
+                    }
+                }
+            }
+            else
+            {
+                std::ranges::copy(std::forward<Range>(range), target.begin());
+                if constexpr (!std::is_trivially_destructible_v<T>)
+                {
+                    for (auto [i, item_ptr] : target | std::views::enumerate)
+                    {
+                        deleters_.emplace_back(
+                            item_ptr,
+                            +[](void *p) noexcept { std::destroy_at(static_cast<T *>(p)); });
+                    }
+                }
+            }
+
+            return target;
+        }
+
       private:
         MultiArena arena_{block_size};
         std::vector<DeleterInvocation> deleters_;

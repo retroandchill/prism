@@ -42,6 +42,14 @@ namespace prism
             return allocator_.create<T>(std::forward<Args>(args)...);
         }
 
+        template <std::ranges::input_range Range>
+            requires std::ranges::sized_range<Range> &&
+                     std::convertible_to<std::ranges::range_reference_t<Range>, std::ranges::range_value_t<Range>>
+        std::span<std::ranges::range_value_t<Range>> copy(Range &&span)
+        {
+            return allocator_.copy(std::forward<Range>(span));
+        }
+
         template <typename... GivenArgs>
         constexpr void report(const DiagnosticDescriptor descriptor, SourceRange range, GivenArgs &&...args)
         {

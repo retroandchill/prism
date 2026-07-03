@@ -1,5 +1,6 @@
 set(PRISM_HEADERS include/prism/core/exports.h
         include/prism/core/per_project_boilerplate.hpp
+        src/private/ast/macros.hpp
 )
 
 set(PRISM_SOURCES
@@ -8,6 +9,7 @@ set(PRISM_SOURCES
         src/private/lexer/token_stream.cpp
         src/private/strings/name.cpp
         src/private/semantic/symbol.cpp
+        src/private/memory/buffer_pool.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -25,20 +27,26 @@ set(PRISM_PUBLIC_MODULES
         src/public/lexer/token_stream.ixx
         src/public/diagnostic.ixx
         src/public/util.ixx
-        src/public/ast/common_syntax.ixx
+        src/public/ast/identifier_syntax.ixx
         src/public/strings/name.ixx
         src/public/memory/alignment.ixx
         src/public/memory/arena_allocator.ixx
         src/public/memory/persistent_allocator.ixx
         src/public/context.ixx
         src/public/semantic/symbol.ixx
+        src/public/memory/buffer_pool.ixx
+        src/public/ast/ast.ixx
+        src/public/ast/syntax_node.ixx
+        src/public/ast/declaration_syntax.ixx
+        src/public/ast/compilation_unit_syntax.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})
 prism_add_boilerplate(prism_core)
 
 target_include_directories(prism_core PUBLIC include
-                                      PRIVATE src/private/inline)
+                                      PRIVATE src/private/inline
+                                              src/private)
 
 target_link_libraries(prism_core
         PRIVATE xxHash::cpp

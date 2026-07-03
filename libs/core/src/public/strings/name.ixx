@@ -20,7 +20,6 @@ namespace prism
     {
 #define REGISTER_NAME(name, str) name,
 #include "names.inl"
-#undef REGISTER_NAME
         count
     };
 
@@ -32,7 +31,6 @@ namespace prism
     case KnownName::name:                                                                                              \
         return str;
 #include "names.inl"
-#undef
             case KnownName::count:
                 // We shouldn't pass this, but it is a valid enumerator
                 break;

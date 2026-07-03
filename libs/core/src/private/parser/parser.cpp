@@ -7,9 +7,9 @@
 module prism.core.parser;
 
 import prism.core.parser.token_cursor;
-import prism.core.ast.statement_syntax;
-import prism.core.ast.common_syntax;
+import prism.core.ast;
 import prism.core.util;
+import prism.core.memory.buffer_pool;
 
 namespace prism
 {
@@ -147,14 +147,21 @@ namespace prism
 
     CompilationUnitSyntax Parser::parse_compilation_unit()
     {
-        CompilationUnitSyntax compilation_unit;
+        PooledVector<Ref<const DeclarationSyntax>> declarations;
 
         while (!stream_.at_end())
         {
-            compilation_unit.declarations.push_back(parse_declaration());
+            declarations.emplace_back(parse_declaration());
         }
 
-        return compilation_unit;
+        if (declarations.empty())
+        {
+            return CompilationUnitSyntax{{}, SourceRange{}};
+        }
+
+        auto span = SourceRange{.start = declarations.front()->range().start, .end = declarations.back()->range().end};
+
+        return CompilationUnitSyntax{context_.copy(declarations), span};
     }
 
     bool Parser::match(const TokenKind kind)
@@ -237,67 +244,74 @@ namespace prism
         }
     }
 
-    DeclarationSyntax Parser::parse_declaration()
+    const DeclarationSyntax &Parser::parse_declaration()
     {
         static constexpr std::array permitted_tokens = {TokenKind::kw_var, TokenKind::kw_func};
-        return parse_syntax(
-            [this](const Token &) -> DeclarationSyntaxKind
-            {
-                const auto [modifiers, has_modifiers] = parse_modifiers();
-                switch (const auto next_token = stream_.peek(); next_token.kind)
-                {
-                    case TokenKind::kw_var: // NOLINT(*-branch-clone)
-                        return parse_variable_declaration(modifiers);
-                    case TokenKind::kw_func:
-                        return parse_function_declaration(modifiers);
-                    case TokenKind::semicolon:
-                        stream_.advance();
-                        context_.report(empty_statement, next_token.range);
-                        return empty_syntax;
-                    default:
-                        context_.report(unexpected_token, next_token.range, next_token.kind, permitted_tokens);
-                        synchronize();
-                        return error_syntax;
-                }
-            });
+        const auto [modifiers, has_modifiers] = parse_modifiers();
+        switch (const auto next_token = stream_.peek(); next_token.kind)
+        {
+            case TokenKind::kw_var: // NOLINT(*-branch-clone)
+                return parse_variable_declaration(modifiers);
+            case TokenKind::kw_func:
+                return parse_function_declaration(modifiers);
+            case TokenKind::semicolon:
+                stream_.advance();
+                context_.report(empty_statement, next_token.range);
+                return context_.create<EmptyDeclarationSyntax>(next_token.range);
+            default:
+                context_.report(unexpected_token, next_token.range, next_token.kind, permitted_tokens);
+                synchronize();
+                return context_.create<EmptyDeclarationSyntax>(next_token.range, SyntaxFlags::unknown);
+        }
     }
 
-    VariableDeclarationSyntax Parser::parse_variable_declaration(const Modifiers modifiers)
+    const VariableDeclarationSyntax &Parser::parse_variable_declaration(const Modifiers modifiers)
     {
-        VariableDeclarationSyntax syntax{
-            .modifiers = modifiers,
-        };
-        expect(TokenKind::kw_var);
+        const auto start = expect(TokenKind::kw_var).range.start;
 
-        syntax.is_mutable = match(TokenKind::kw_mut);
-        syntax.name = parse_identifier();
+        auto is_mutable = match(TokenKind::kw_mut);
+        auto name = parse_identifier();
 
+        const TypeSyntax *type = nullptr;
         if (match(TokenKind::colon))
         {
-            syntax.type = parse_type();
+            type = &parse_type();
+        }
+
+        if (match(TokenKind::semicolon))
+        {
+            return context_.create<VariableDeclarationSyntax>(name,
+                                                              type,
+                                                              is_mutable,
+                                                              modifiers,
+                                                              nullptr,
+                                                              SourceRange{start, stream_.previous().range.end});
         }
 
         expect(TokenKind::equal);
 
-        syntax.initializer = &context_.create<ExpressionSyntax>(parse_expression());
+        auto &initializer = parse_expression();
 
         expect(TokenKind::semicolon);
 
-        return syntax;
+        return context_.create<VariableDeclarationSyntax>(name,
+                                                          type,
+                                                          is_mutable,
+                                                          modifiers,
+                                                          &initializer,
+                                                          SourceRange{start, stream_.previous().range.end});
     }
 
-    FunctionDeclarationSyntax Parser::parse_function_declaration(const Modifiers modifiers)
+    const FunctionDeclarationSyntax &Parser::parse_function_declaration(const Modifiers modifiers)
     {
-        FunctionDeclarationSyntax syntax{
-            .modifiers = modifiers,
-        };
-        expect(TokenKind::kw_func);
+        const auto start = expect(TokenKind::kw_func).range.start;
 
-        syntax.name = parse_identifier();
+        auto name = parse_identifier();
 
+        std::span<const Ref<const ParameterDeclarationSyntax>> parameters;
         if (match(TokenKind::lparen))
         {
-            syntax.parameters = parse_parameter_list();
+            parameters = parse_parameter_list();
             expect(TokenKind::rparen);
         }
         else
@@ -307,39 +321,44 @@ namespace prism
             context_.report(unexpected_token, next.range, next.kind, permitted_tokens);
         }
 
+        const TypeSyntax *return_type = nullptr;
         if (match(TokenKind::arrow))
         {
-            syntax.return_type = parse_type();
+            return_type = &parse_type();
         }
 
-        syntax.body = parse_syntax(
-            [this](const Token &next) -> FunctionBodySyntaxKind
-            {
-                static constexpr std::array permitted_tokens = {TokenKind::lbrace,
-                                                                TokenKind::big_arrow,
-                                                                TokenKind::semicolon};
-                switch (next.kind)
-                {
-                    case TokenKind::lbrace:
-                        return parse_block();
-                    case TokenKind::big_arrow:
-                        stream_.advance();
-                        return parse_expression();
-                    case TokenKind::semicolon:
-                        return empty_syntax;
-                    default:
-                        context_.report(unexpected_token, next.range, next.kind, permitted_tokens);
-                        synchronize(false);
-                        return empty_syntax;
-                }
-            });
+        static constexpr std::array permitted_tokens = {TokenKind::lbrace, TokenKind::big_arrow, TokenKind::semicolon};
+        FunctionBodySyntax body;
+        auto next = stream_.peek();
+        switch (next.kind)
+        {
+            case TokenKind::lbrace:
+                body = parse_block();
+                break;
+            case TokenKind::big_arrow:
+                stream_.advance();
+                body = parse_expression();
+                break;
+            case TokenKind::semicolon:
+                // We're already initialized in the empty state
+                break;
+            default:
+                context_.report(unexpected_token, next.range, next.kind, permitted_tokens);
+                synchronize(false);
+                break;
+        }
 
-        return syntax;
+        return context_.create<FunctionDeclarationSyntax>(name,
+                                                          return_type,
+                                                          parameters,
+                                                          modifiers,
+                                                          body,
+                                                          SourceRange{start, stream_.previous().range.end});
     }
 
-    std::vector<ParameterDeclarationSyntax> Parser::parse_parameter_list()
+    std::span<const Ref<const ParameterDeclarationSyntax>> Parser::parse_parameter_list()
     {
-        std::vector<ParameterDeclarationSyntax> parameters;
+        std::vector<Ref<const ParameterDeclarationSyntax>> parameters;
 
         auto next = stream_.peek();
         while (next.kind != TokenKind::rparen)
@@ -349,20 +368,21 @@ namespace prism
                 expect(TokenKind::comma);
             }
 
-            auto &[name, type, is_mutable] = parameters.emplace_back();
+            auto is_mutable = match(TokenKind::kw_mut);
+            auto name = parse_identifier();
 
-            is_mutable = match(TokenKind::kw_mut);
-            name = parse_identifier();
-
-            if (match(TokenKind::colon))
-            {
-                type = parse_type();
-            }
+            expect(TokenKind::colon);
+            auto &type = parse_type();
+            parameters.emplace_back(context_.create<ParameterDeclarationSyntax>(
+                name,
+                type,
+                is_mutable,
+                SourceRange{next.range.start, stream_.previous().range.end}));
 
             next = stream_.peek();
         }
 
-        return parameters;
+        return context_.copy(parameters);
     }
 
     IdentifierSyntax Parser::parse_identifier()
@@ -381,7 +401,7 @@ namespace prism
         };
     }
 
-    TypeSyntax Parser::parse_type()
+    const TypeSyntax &Parser::parse_type()
     {
         const auto next = stream_.peek();
         for (auto [token, type] : built_in_types)
@@ -389,155 +409,138 @@ namespace prism
             if (token == next.kind)
             {
                 stream_.advance();
-                return TypeSyntax{
-                    .range = next.range,
-                    .data = type,
-                };
+                return context_.create<BuiltInTypeSyntax>(type, next.range);
             }
         }
 
         const auto identifier = expect(TokenKind::identifier);
         if (has_any_flags(identifier.flags, TokenFlags::synthetic))
         {
-            return TypeSyntax{
-                .range = next.range,
-                .flags = SyntaxFlags::missing,
-                .data = BuiltInType::void_type,
-            };
+            return context_.create<BuiltInTypeSyntax>(BuiltInType::void_type, next.range, SyntaxFlags::missing);
         }
 
-        return TypeSyntax{.range = next.range,
-                          .data = NamedTypeSyntax{.name = IdentifierSyntax{
-                                                      .name = context_.slice(identifier.range),
-                                                      .range = identifier.range,
-                                                  }}};
+        return context_.create<NamedTypeSyntax>(
+            IdentifierSyntax{
+                .name = context_.slice(identifier.range),
+                .range = identifier.range,
+            },
+            identifier.range);
     }
 
-    BlockSyntax Parser::parse_block()
+    const BlockStatementSyntax &Parser::parse_block()
     {
-        BlockSyntax block;
-        expect(TokenKind::lbrace);
+        PooledVector<Ref<const StatementSyntax>> statements;
+        auto start = expect(TokenKind::lbrace).range.start;
 
         while (stream_.peek().kind != TokenKind::rbrace)
         {
-            block.statements.push_back(parse_statement());
+            statements.emplace_back(parse_statement());
         }
 
-        expect(TokenKind::rbrace);
-        return block;
+        auto end = expect(TokenKind::rbrace).range.end;
+        return context_.create<BlockStatementSyntax>(context_.copy(statements), SourceRange{start, end});
     }
 
-    StatementSyntax Parser::parse_statement()
+    const StatementSyntax &Parser::parse_statement()
     {
-        return parse_syntax(
-            [this](const Token &next) -> StatementSyntaxKind
-            {
-                switch (next.kind)
+        auto next = stream_.peek();
+        switch (next.kind)
+        {
+            case TokenKind::kw_var:
                 {
-                    case TokenKind::kw_var:
-                        return parse_variable_declaration();
-                    case TokenKind::kw_return:
-                        return parse_return_statement();
-                    case TokenKind::lbrace:
-                        return parse_block();
-                    case TokenKind::semicolon:
-                        stream_.advance();
-                        context_.report(empty_statement, next.range);
-                        return empty_syntax;
-                    default:
-                        return parse_expression_statement();
+                    auto &declaration = parse_variable_declaration();
+                    return context_.create<VariableDeclarationStatementSyntax>(declaration, declaration.range());
                 }
-            });
+            case TokenKind::kw_return:
+                return parse_return_statement();
+            case TokenKind::lbrace:
+                return parse_block();
+            case TokenKind::semicolon:
+                stream_.advance();
+                context_.report(empty_statement, next.range);
+                return context_.create<EmptyStatementSyntax>(next.range);
+            default:
+                return parse_expression_statement();
+        }
     }
 
-    ExpressionStatementSyntax Parser::parse_expression_statement()
+    const ExpressionStatementSyntax &Parser::parse_expression_statement()
     {
-        ExpressionStatementSyntax statement;
-        statement.expression = parse_expression();
+        auto &expression = parse_expression();
         expect(TokenKind::semicolon);
-        return statement;
+        return context_.create<ExpressionStatementSyntax>(
+            expression,
+            SourceRange{expression.range().start, stream_.previous().range.end});
     }
 
-    ReturnStatementSyntax Parser::parse_return_statement()
+    const ReturnStatementSyntax &Parser::parse_return_statement()
     {
-        ReturnStatementSyntax statement;
-        expect(TokenKind::kw_return);
-        statement.expression = parse_expression();
+        auto start = expect(TokenKind::kw_return).range.start;
+        auto &expression = parse_expression();
         expect(TokenKind::semicolon);
-        return statement;
+        return context_.create<ReturnStatementSyntax>(expression, SourceRange{start, stream_.previous().range.end});
     }
 
-    ExpressionSyntax Parser::parse_expression()
+    const ExpressionSyntax &Parser::parse_expression()
     {
         return parse_expression(parse_prefix_expression(), 0);
     }
 
-    ExpressionSyntax Parser::parse_expression(ExpressionSyntax lhs, const std::int32_t min_precedence)
+    const ExpressionSyntax &Parser::parse_expression(const ExpressionSyntax &left, const std::int32_t min_precedence)
     {
         auto next = stream_.peek();
         auto precedence = get_precedence(next.kind);
+        auto lhs = &left;
         while (precedence >= min_precedence)
         {
             if (next.kind == TokenKind::question)
             {
-                lhs = parse_ternary_expression(std::move(lhs));
+                lhs = &parse_ternary_expression(*lhs);
             }
             else
             {
                 const auto op = get_binary_operator(next.kind);
                 stream_.advance();
-                auto rhs = parse_prefix_expression();
+                auto rhs = &parse_prefix_expression();
                 next = stream_.peek();
                 auto inner_precedence = get_precedence(next.kind);
                 while (inner_precedence >= precedence)
                 {
-                    rhs = parse_expression(std::move(rhs), inner_precedence > precedence ? precedence + 1 : precedence);
+                    rhs = &parse_expression(*rhs, inner_precedence > precedence ? precedence + 1 : precedence);
 
                     next = stream_.peek();
                     inner_precedence = get_precedence(next.kind);
                 }
 
-                lhs = ExpressionSyntax{.range =
-                                           {
-                                               .start = lhs.range.start,
-                                               .end = rhs.range.end,
-                                           },
-                                       .data = BinaryExpressionSyntax{
-                                           .op = op,
-                                           .left = context_.create<ExpressionSyntax>(std::move(lhs)),
-                                           .right = context_.create<ExpressionSyntax>(std::move(rhs)),
-                                       }};
+                lhs = &context_.create<BinaryExpressionSyntax>(op,
+                                                               *lhs,
+                                                               *rhs,
+                                                               SourceRange{lhs->range().start, rhs->range().end});
             }
 
             next = stream_.peek();
             precedence = get_precedence(next.kind);
         }
 
-        return lhs;
+        return *lhs;
     }
 
-    ExpressionSyntax Parser::parse_ternary_expression(ExpressionSyntax lhs)
+    const ExpressionSyntax &Parser::parse_ternary_expression(const ExpressionSyntax &lhs)
     {
         expect(TokenKind::question);
-        auto &true_expression = context_.create<ExpressionSyntax>(parse_expression());
+        auto &true_expression = parse_expression();
 
         expect(TokenKind::colon);
 
-        auto &false_expression = context_.create<ExpressionSyntax>(parse_expression());
+        auto &false_expression = parse_expression();
 
-        return ExpressionSyntax{.range =
-                                    {
-                                        .start = lhs.range.start,
-                                        .end = false_expression.range.end,
-                                    },
-                                .data = TernaryExpressionSyntax{
-                                    .condition = context_.create<ExpressionSyntax>(std::move(lhs)),
-                                    .if_true = true_expression,
-                                    .if_false = false_expression,
-                                }};
+        return context_.create<TernaryExpressionSyntax>(lhs,
+                                                        true_expression,
+                                                        false_expression,
+                                                        SourceRange{lhs.range().start, false_expression.range().end});
     }
 
-    ExpressionSyntax Parser::parse_primary_expression()
+    const ExpressionSyntax &Parser::parse_primary_expression()
     {
         constexpr static std::array permitted_tokens = {
             TokenKind::kw_false,
@@ -551,51 +554,38 @@ namespace prism
         {
             case TokenKind::kw_false:
                 stream_.advance();
-                return ExpressionSyntax{
-                    .range = range,
-                    .data = LiteralSyntax{.kind = LiteralSyntaxKind::bool_false},
-                };
+                return context_.create<LiteralExpressionSyntax>(LiteralSyntaxKind::bool_false, range);
             case TokenKind::kw_true:
                 stream_.advance();
-                return ExpressionSyntax{
-                    .range = range,
-                    .data = LiteralSyntax{.kind = LiteralSyntaxKind::bool_true},
-                };
+                return context_.create<LiteralExpressionSyntax>(LiteralSyntaxKind::bool_true, range);
             case TokenKind::integer:
                 stream_.advance();
-                return ExpressionSyntax{
-                    .range = range,
-                    .data = LiteralSyntax{.kind = LiteralSyntaxKind::integer},
-                };
+                return context_.create<LiteralExpressionSyntax>(LiteralSyntaxKind::integer, range);
             case TokenKind::string_literal:
                 stream_.advance();
-                return ExpressionSyntax{.range = range,
-                                        .data = LiteralSyntax{
-                                            .kind = LiteralSyntaxKind::string,
-                                        }};
+                return context_.create<LiteralExpressionSyntax>(LiteralSyntaxKind::string, range);
             case TokenKind::identifier:
-                return ExpressionSyntax{
-                    .range = range,
-                    .data = parse_identifier(),
-                };
+                {
+                    auto [name, flags, r] = parse_identifier();
+                    return context_.create<IdentifierExpressionSyntax>(name, r, flags);
+                }
             case TokenKind::lparen:
                 {
                     stream_.advance();
-                    auto expression = parse_expression();
+                    auto &expression = parse_expression();
                     expect(TokenKind::rparen);
                     return expression;
                 }
             default:
                 context_.report(unexpected_token, range, kind, permitted_tokens);
                 synchronize(false);
-                return ExpressionSyntax{
-                    .range = range,
-                    .data = error_syntax,
-                };
+                return context_.create<LiteralExpressionSyntax>(LiteralSyntaxKind::bool_false,
+                                                                range,
+                                                                SyntaxFlags::unknown);
         }
     }
 
-    ExpressionSyntax Parser::parse_prefix_expression()
+    const ExpressionSyntax &Parser::parse_prefix_expression()
     {
         static constexpr std::array unary_operators = {
             std::make_pair(TokenKind::plus, UnaryOperator::positive),
@@ -612,54 +602,43 @@ namespace prism
         {
             if (match(kind))
             {
-                auto &operand = context_.create<ExpressionSyntax>(parse_prefix_expression());
-                return ExpressionSyntax{.range =
-                                            {
-                                                .start = stream_.previous().range.start,
-                                                .end = operand.range.end,
-                                            },
-                                        .data = UnaryExpressionSyntax{
-                                            .operand = operand,
-                                            .op = op,
-                                        }};
+                const auto start = expect(kind).range.start;
+                auto &operand = parse_prefix_expression();
+                return context_.create<UnaryExpressionSyntax>(op, operand, SourceRange{start, operand.range().end});
             }
         }
 
         return parse_postfix_expression();
     }
 
-    ExpressionSyntax Parser::parse_postfix_expression()
+    const ExpressionSyntax &Parser::parse_postfix_expression()
     {
-        auto expression = parse_primary_expression();
+        auto &expression = parse_primary_expression();
 
         switch (const auto [kind, flags, range] = stream_.peek(); kind)
         {
             case TokenKind::lparen:
                 {
                     stream_.advance();
-                    expression.data =
-                        InvocationSyntax{.callee = context_.create<ExpressionSyntax>(std::move(expression)),
-                                         .arguments = parse_argument_list()};
-                    expression.range.end = stream_.previous().range.end;
+                    auto arguments = parse_argument_list();
                     expect(TokenKind::rparen);
-                    break;
+                    return context_.create<InvocationExpressionSyntax>(
+                        expression,
+                        arguments,
+                        SourceRange{expression.range().start, stream_.previous().range.end});
                 }
             case TokenKind::plus_plus:
                 stream_.advance();
-                expression.data = UnaryExpressionSyntax{
-                    .operand = context_.create<ExpressionSyntax>(std::move(expression)),
-                    .op = UnaryOperator::post_increment,
-                };
-                expression.range.end = stream_.previous().range.end;
-                break;
+                return context_.create<UnaryExpressionSyntax>(
+                    UnaryOperator::post_increment,
+                    expression,
+                    SourceRange{expression.range().start, stream_.previous().range.end});
             case TokenKind::minus_minus:
                 stream_.advance();
-                expression.data = UnaryExpressionSyntax{
-                    .operand = context_.create<ExpressionSyntax>(std::move(expression)),
-                    .op = UnaryOperator::post_decrement,
-                };
-                expression.range.end = stream_.previous().range.end;
-                break;
+                return context_.create<UnaryExpressionSyntax>(
+                    UnaryOperator::post_decrement,
+                    expression,
+                    SourceRange{expression.range().start, stream_.previous().range.end});
             default:
                 // Do nothing
                 break;
@@ -668,9 +647,9 @@ namespace prism
         return expression;
     }
 
-    std::vector<ExpressionSyntax> Parser::parse_argument_list()
+    std::span<const Ref<const ExpressionSyntax>> Parser::parse_argument_list()
     {
-        std::vector<ExpressionSyntax> arguments;
+        PooledVector<Ref<const ExpressionSyntax>> arguments;
         while (stream_.peek().kind != TokenKind::rparen)
         {
             if (!arguments.empty())
@@ -678,9 +657,9 @@ namespace prism
                 expect(TokenKind::comma);
             }
 
-            arguments.push_back(parse_expression());
+            arguments.emplace_back(parse_expression());
         }
 
-        return arguments;
+        return context_.copy(arguments);
     }
 } // namespace prism
