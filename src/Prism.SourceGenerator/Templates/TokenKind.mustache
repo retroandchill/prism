@@ -1,0 +1,20 @@
+
+using System;
+using System.Collections.Immutable;
+
+namespace {{Namespace}};
+
+static partial class {{EnumName}}Extensions
+{
+    private readonly static ImmutableArray<({{EnumName}} Token, string StringValue)> Keywords = [
+        {{#Keywords}}
+        ({{../EnumName}}.{{Name}}, "{{Value}}"),
+        {{/Keywords}}
+    ];
+
+    private readonly static ImmutableArray<({{EnumName}} Token, string StringValue)> Punctuations = [
+        {{#Punctuations}}
+        ({{../EnumName}}.{{Name}}, "{{Value}}")
+        {{/Punctuations}}
+    ];
+}
