@@ -79,10 +79,11 @@ public enum TokenKind : ushort
     U128,
 
     [KeywordToken]
-    Isize,
+    // ReSharper disable once InconsistentNaming
+    ISize,
 
     [KeywordToken]
-    Usize,
+    USize,
 
     [KeywordToken]
     F16,

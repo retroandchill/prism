@@ -1,0 +1,8 @@
+﻿# CSharpier <= 1.2.x cannot parse the C# 15 `closed` modifier / `union` keyword
+# introduced as a preview in .NET 11 Preview 2. Re-enable these once CSharpier
+# ships a Roslyn build that supports them.
+src/Prism.Core/Ast/SyntaxNode.cs
+src/Prism.Core/Ast/StatementSyntax.cs
+src/Prism.Core/Ast/DeclarationSyntax.cs
+src/Prism.Core/Ast/ExpressionSyntax.cs
+src/Prism.Core/Ast/TypeSyntax.cs
