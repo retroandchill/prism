@@ -1,14 +1,16 @@
-﻿// @file TokenKind.cs
+// @file TokenKind.cs
 //
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Runtime.Serialization;
+using NetEscapades.EnumGenerators;
 
 namespace Prism.Core.Parse;
 
 [TokenKind]
-public enum TokenKind
+[EnumExtensions(ExtensionClassName = "Tokens")]
+public enum TokenKind : ushort
 {
     [EnumMember(Value = "EOF")]
     EOF,
@@ -16,14 +18,8 @@ public enum TokenKind
     [EnumMember(Value = "<unrecognized>")]
     Unrecognized,
 
-    [EnumMember(Value = "unterminated block comment")]
-    UnterminatedBlockComment,
-
-    [EnumMember(Value = "unterminated string literal")]
-    UnterminatedStringLiteral,
-
-    [EnumMember(Value = "documentation comment")]
-    DocComment,
+    [EnumMember(Value = "comment")]
+    Comment,
 
     [KeywordToken]
     Var,
@@ -111,27 +107,27 @@ public enum TokenKind
 
     [EnumMember(Value = "[")]
     [PunctuationToken]
-    Lbracket,
+    LBracket,
 
     [EnumMember(Value = "]")]
     [PunctuationToken]
-    Rbracket,
+    RBracket,
 
     [EnumMember(Value = "(")]
     [PunctuationToken]
-    Lparen,
+    LParen,
 
     [EnumMember(Value = ")")]
     [PunctuationToken]
-    Rparen,
+    RParen,
 
     [EnumMember(Value = "{")]
     [PunctuationToken]
-    Lbrace,
+    LBrace,
 
     [EnumMember(Value = "}")]
     [PunctuationToken]
-    Rbrace,
+    RBrace,
 
     [EnumMember(Value = ".")]
     [PunctuationToken]
@@ -324,8 +320,11 @@ public enum TokenKind
     [EnumMember(Value = "identifier")]
     Identifier,
 
-    [EnumMember(Value = "integer")]
-    Integer,
+    [EnumMember(Value = "integer literal")]
+    IntegerLiteral,
+
+    [EnumMember(Value = "floating point literal")]
+    FloatingPointLiteral,
 
     [EnumMember(Value = "string literal")]
     StringLiteral,
