@@ -6,3 +6,4 @@ src/Prism.Core/Ast/StatementSyntax.cs
 src/Prism.Core/Ast/DeclarationSyntax.cs
 src/Prism.Core/Ast/ExpressionSyntax.cs
 src/Prism.Core/Ast/TypeSyntax.cs
+src/Prism.Core/Semantic/Symbol.cs

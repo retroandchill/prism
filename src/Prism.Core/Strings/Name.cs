@@ -83,6 +83,8 @@ public readonly struct Name
 
     public static implicit operator Name(string name) => new(name);
 
+    public static implicit operator Name(KnownName name) => new(name);
+
     public override bool Equals(object? obj)
     {
         return obj is Name other && Equals(other);
