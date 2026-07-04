@@ -14,7 +14,7 @@ namespace Prism.Core.Semantic;
 public closed record Symbol
 {
     public required Name Name { get; init; }
-    public SymbolDeclaration? Declaration { get; init; }
+    public DeclarationSyntax? Declaration { get; init; }
 }
 
 public sealed record VariableSymbol : Symbol

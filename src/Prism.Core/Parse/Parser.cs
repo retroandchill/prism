@@ -40,7 +40,11 @@ public sealed class Parser(CompilationContext context)
             flags |= SyntaxFlags.Missing;
         }
 
-        return new IdentifierSyntax(context.GetSpan(identifier.Range), identifier.Range, flags);
+        var span = context.GetSpan(identifier.Range);
+        // If it starts with '@', that isn't part of the symbol;
+        // it's just escaping what might be a keyword in a given context
+        span = span.StartsWith('@') ? span[1..] : span;
+        return new IdentifierSyntax(span, identifier.Range, flags);
     }
 
     public DeclarationSyntax ParseDeclaration()
