@@ -176,7 +176,7 @@ public sealed class Parser(CompilationContext context)
             returnType = ParseType();
         }
 
-        FunctionBodySyntax? body;
+        FunctionBodySyntax body;
         var next = _stream.Peek();
         switch (next.Kind)
         {
@@ -184,14 +184,16 @@ public sealed class Parser(CompilationContext context)
                 body = ParseBlock();
                 break;
             case TokenKind.BigArrow:
+                _stream.Advance();
                 body = ParseExpression();
                 Expect(TokenKind.Semicolon);
                 break;
             case TokenKind.Semicolon:
-                body = null;
+                _stream.Advance();
+                body = EmptyBody.Instance;
                 break;
             default:
-                body = null;
+                body = EmptyBody.Instance;
                 context.ReportDiagnostic(
                     new Diagnostic
                     {
@@ -519,9 +521,8 @@ public sealed class Parser(CompilationContext context)
                         Arguments = [next.Kind],
                     }
                 );
-                return new LiteralExpressionSyntax
+                return new InvalidExpressionSyntax()
                 {
-                    Kind = LiteralKind.BoolFalse,
                     Range = next.Range,
                     Flags = SyntaxFlags.Unknown,
                 };
@@ -620,7 +621,48 @@ public sealed class Parser(CompilationContext context)
                 Expect(TokenKind.Comma);
             }
 
-            builder.Add(ParseExpression());
+            // If we start with <identifier>: then we have a named argument
+            if (next.Kind == TokenKind.Identifier && _stream.Peek(2).Kind == TokenKind.Colon)
+            {
+                var name = ParseIdentifier();
+                Expect(TokenKind.Colon);
+                next = _stream.Peek();
+                ExpressionSyntax expression;
+                if (next.Kind != TokenKind.Comma)
+                {
+                    expression = ParseExpression();
+                }
+                else
+                {
+                    expression = new InvalidExpressionSyntax
+                    {
+                        Range = name.Range.AsEmpty(),
+                        Flags = SyntaxFlags.Missing,
+                    };
+                    context.ReportDiagnostic(
+                        new Diagnostic
+                        {
+                            Descriptor = ParseDiagnostics.UnexpectedToken,
+                            Range = next.Range,
+                            Arguments = [next.Kind],
+                        }
+                    );
+                }
+
+                builder.Add(
+                    new NamedArgumentSyntax
+                    {
+                        Identifier = name,
+                        Value = expression,
+                        Range = name.Range.Concat(expression.Range),
+                    }
+                );
+            }
+            else
+            {
+                builder.Add(ParseExpression());
+            }
+
             next = _stream.Peek();
         }
         return builder.DrainToImmutable();

@@ -55,3 +55,11 @@ public sealed record InvocationExpressionSyntax : ExpressionSyntax
     public required ExpressionSyntax Callee { get; init; }
     public ImmutableArray<ExpressionSyntax> Arguments { get; init; } = [];
 }
+
+public sealed record NamedArgumentSyntax : ExpressionSyntax
+{
+    public required IdentifierSyntax Identifier { get; init; }
+    public required ExpressionSyntax Value { get; init; }
+}
+
+public sealed record InvalidExpressionSyntax : ExpressionSyntax;

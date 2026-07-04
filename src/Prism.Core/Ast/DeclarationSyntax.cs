@@ -23,14 +23,19 @@ public sealed record VariableDeclarationSyntax : DeclarationSyntax
 
 }
 
-public union FunctionBodySyntax(ExpressionSyntax, BlockSyntax);
+public sealed record EmptyBody
+{
+    public static EmptyBody Instance { get; } = new();
+}
+
+public union FunctionBodySyntax(EmptyBody, ExpressionSyntax, BlockSyntax);
 
 public sealed record FunctionDeclarationSyntax : DeclarationSyntax
 {
     public required IdentifierSyntax Identifier { get; init; }
     public TypeSyntax? ReturnType { get; init; }
     public ImmutableArray<ParameterDeclarationSyntax> Parameters { get; init; } = [];
-    public FunctionBodySyntax? Body { get; init; }
+    public FunctionBodySyntax Body { get; init; } = EmptyBody.Instance;
 }
 
 public sealed record ParameterDeclarationSyntax : DeclarationSyntax

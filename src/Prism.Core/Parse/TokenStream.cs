@@ -21,22 +21,24 @@ public sealed class TokenStream(SourceFile sourceFile)
 
     public Token Previous => _consumedTokens[^1];
 
-    public Token Peek()
+    public Token Peek(int count = 1)
     {
         if (_pendingTokens.Count == 0)
         {
             BufferTokens();
         }
 
-        var token = _pendingTokens[0];
-        if (token.Kind != TokenKind.Comment)
-            return token;
+        RemoveComments();
+        return _pendingTokens.Count >= count ? _pendingTokens[count - 1] : Previous;
+    }
 
-        // If we see a comment, for now just skip it
-        _consumedTokens.Add(token);
-        _pendingTokens.RemoveFromFront();
-        token = _pendingTokens[0];
-        return token;
+    private void RemoveComments()
+    {
+        while (_pendingTokens.Count > 0 && _pendingTokens[0].Kind == TokenKind.Comment)
+        {
+            _consumedTokens.Add(_pendingTokens[0]);
+            _pendingTokens.RemoveFromFront();
+        }
     }
 
     public void Advance()

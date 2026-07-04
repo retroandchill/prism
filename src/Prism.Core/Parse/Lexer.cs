@@ -28,7 +28,7 @@ public sealed class Lexer(SourceFile sourceFile)
 
     private Token MakeEOF()
     {
-        return new Token(TokenKind.EOF, new SourceRange(_cursor.Position));
+        return new Token(TokenKind.EOF, new SourceRange(_cursor.Position, 0));
     }
 
     private Token MakeUnrecognized()

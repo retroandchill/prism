@@ -8,13 +8,15 @@ using ZLinq;
 
 namespace Prism.Core.Parse;
 
-public readonly record struct SourceRange(int Start, int Length = 0)
+public readonly record struct SourceRange(int Start, int Length)
 {
     public int End => Start + Length;
 
     public bool IsEmpty => Length == 0;
 
-    public static SourceRange Empty => new(0);
+    public static SourceRange Empty => new(0, 0);
+
+    public SourceRange AsEmpty() => new(Start, 0);
 
     public SourceRange Concat(SourceRange other)
     {

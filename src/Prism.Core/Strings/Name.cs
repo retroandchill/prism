@@ -90,17 +90,17 @@ public readonly struct Name
 
     public bool Equals(Name other)
     {
-        throw new NotImplementedException();
+        return Id == other.Id;
     }
 
     public bool Equals(ReadOnlySpan<char> other)
     {
-        throw new NotImplementedException();
+        return ToString().Equals(other, StringComparison.Ordinal);
     }
 
     public bool Equals(string? other)
     {
-        throw new NotImplementedException();
+        return ToString().Equals(other);
     }
 
     public int CompareLexical(Name other, StringComparison comparison)
