@@ -168,5 +168,47 @@ public static class BuiltInTypes
                 _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
             };
         }
+
+        public bool IsSignedInteger()
+        {
+            return type
+                is BuiltInType.I8
+                    or BuiltInType.I16
+                    or BuiltInType.I32
+                    or BuiltInType.I64
+                    or BuiltInType.I128
+                    or BuiltInType.ISize;
+        }
+
+        public bool IsUnsigned()
+        {
+            return type
+                is BuiltInType.U8
+                    or BuiltInType.U16
+                    or BuiltInType.U32
+                    or BuiltInType.U64
+                    or BuiltInType.U128
+                    or BuiltInType.USize;
+        }
+
+        public bool IsInteger()
+        {
+            return type.IsSignedInteger() || type.IsUnsigned();
+        }
+
+        public bool IsFloatingPoint()
+        {
+            return type is BuiltInType.F16 or BuiltInType.F32 or BuiltInType.F64;
+        }
+
+        public bool IsSigned()
+        {
+            return type.IsSignedInteger() || type.IsFloatingPoint();
+        }
+
+        public bool IsNumeric()
+        {
+            return type.IsInteger() || type.IsFloatingPoint();
+        }
     }
 }

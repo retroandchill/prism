@@ -47,10 +47,19 @@ public static class SemanticDiagnostics
     public static DiagnosticDescriptor LiteralExceedsMaximumMagnitude { get; } =
         new()
         {
-            Id = "PRISM1004",
-            Title = "Numeric literal too larget",
+            Id = "PRISM1005",
+            Title = "Numeric literal too large",
             MessageFormat =
-                "The numeric literal cannot be represented because it exceeds the maximum integer literal magnitude ",
+                "The numeric literal cannot be represented because it exceeds the maximum integer literal magnitude",
+            Severity = DiagnosticSeverity.Error,
+        };
+
+    public static DiagnosticDescriptor UnaryOperatorUndefined { get; } =
+        new()
+        {
+            Id = "PRISM1006",
+            Title = "No usable unary operator",
+            MessageFormat = "Type '{0}' cannot be used with the unary operator",
             Severity = DiagnosticSeverity.Error,
         };
 }

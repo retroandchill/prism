@@ -103,4 +103,43 @@ public class SemanticBinderTest
         Assert.That(type.Name.ToString(), Is.EqualTo("i32"));
         Assert.That(type.BuiltInType, Is.EqualTo(BuiltInType.I32));
     }
+
+    [Test]
+    public void BindVariableFromUnaryOperator()
+    {
+        var (syntax, context) = CreateCompilationUnit(
+            """
+            var x = !y;
+            var y = true;
+            """
+        );
+
+        Assert.That(context.Diagnostics, Is.Empty);
+
+        var scope = syntax.ScanDeclarations();
+        var x = scope.FindDeclarations("x");
+        Assert.That(x, Has.Length.EqualTo(1));
+
+        var binder = new SemanticBinder();
+        var symbol = binder.GetSymbol(x[0], context);
+        Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
+        var variableSymbol = (VariableSymbol)symbol;
+        Assert.That(variableSymbol.Type, Is.InstanceOf<NamedTypeSymbol>());
+
+        var type = (NamedTypeSymbol)variableSymbol.Type;
+        Assert.That(type.Name.ToString(), Is.EqualTo("bool"));
+        Assert.That(type.BuiltInType, Is.EqualTo(BuiltInType.Bool));
+
+        var y = scope.FindDeclarations("y");
+        Assert.That(x, Has.Length.EqualTo(1));
+
+        symbol = binder.GetSymbol(y[0], context);
+        Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
+        variableSymbol = (VariableSymbol)symbol;
+        Assert.That(variableSymbol.Type, Is.InstanceOf<NamedTypeSymbol>());
+
+        type = (NamedTypeSymbol)variableSymbol.Type;
+        Assert.That(type.Name.ToString(), Is.EqualTo("bool"));
+        Assert.That(type.BuiltInType, Is.EqualTo(BuiltInType.Bool));
+    }
 }

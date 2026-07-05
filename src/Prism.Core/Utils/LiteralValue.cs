@@ -9,6 +9,15 @@ using System.Runtime.InteropServices;
 
 namespace Prism.Core.Utils;
 
+public readonly record struct IntegerLiteralValue(UInt128 Magnitude, bool IsNegative)
+{
+    public static IntegerLiteralValue Positive(UInt128 value) => new(value, false);
+
+    public static IntegerLiteralValue Negative(UInt128 value) => new(value, true);
+
+    public IntegerLiteralValue Negate() => new(Magnitude, !IsNegative);
+}
+
 [Union]
 public readonly struct LiteralValue : IUnion
 {
@@ -27,7 +36,7 @@ public readonly struct LiteralValue : IUnion
         public bool BoolValue { get; init; }
 
         [field: FieldOffset(0)]
-        public UInt128 IntegerValue { get; init; }
+        public IntegerLiteralValue IntegerValue { get; init; }
 
         [field: FieldOffset(0)]
         public double FloatValue { get; init; }
@@ -48,7 +57,7 @@ public readonly struct LiteralValue : IUnion
         _unmanagedValues = new UnmanagedUnion { BoolValue = value };
     }
 
-    public LiteralValue(UInt128 value)
+    public LiteralValue(IntegerLiteralValue value)
     {
         _type = Type.Integer;
         _unmanagedValues = new UnmanagedUnion { IntegerValue = value };
@@ -56,7 +65,7 @@ public readonly struct LiteralValue : IUnion
 
     public LiteralValue(double value)
     {
-        _type = Type.Integer;
+        _type = Type.Float;
         _unmanagedValues = new UnmanagedUnion { FloatValue = value };
     }
 
@@ -93,7 +102,7 @@ public readonly struct LiteralValue : IUnion
         return false;
     }
 
-    public bool TryGetValue(out UInt128 value)
+    public bool TryGetValue(out IntegerLiteralValue value)
     {
         if (_type == Type.Integer)
         {
@@ -101,7 +110,7 @@ public readonly struct LiteralValue : IUnion
             return true;
         }
 
-        value = 0;
+        value = default;
         return false;
     }
 

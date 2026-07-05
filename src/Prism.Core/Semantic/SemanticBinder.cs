@@ -137,6 +137,7 @@ public sealed class SemanticBinder
                 scope,
                 context
             ),
+            UnaryExpressionSyntax unary => BindUnaryExpression(unary, scope, context),
             _ => throw new NotImplementedException(),
         };
     }
@@ -163,7 +164,8 @@ public sealed class SemanticBinder
             case LiteralKind.Integer:
             {
                 (boundType, var suffixLength) = Numerics.GetIntegerTypeFromSuffix(span);
-                (value, overflow) = Numerics.ParseInteger(span[..^suffixLength]);
+                (var intValue, overflow) = Numerics.ParseInteger(span[..^suffixLength]);
+                value = IntegerLiteralValue.Positive(intValue);
                 break;
             }
             case LiteralKind.Float:
@@ -191,7 +193,12 @@ public sealed class SemanticBinder
             );
         }
 
-        return new BoundLiteralExpression { Type = boundType, Value = value };
+        return new BoundLiteralExpression
+        {
+            Type = boundType,
+            Value = value,
+            Syntax = literal,
+        };
     }
 
     private BoundVariableExpression BindIdentifierExpression(
@@ -208,6 +215,68 @@ public sealed class SemanticBinder
             Syntax = identifier,
             Type = variable.Type,
         };
+    }
+
+    private BoundExpression BindUnaryExpression(
+        UnaryExpressionSyntax expression,
+        DeclarationScope scope,
+        BindingContext context
+    )
+    {
+        var operand = (BoundExpression)BindNode(expression.Operand, scope, context);
+
+        // Special case for the negation of integer and floating-point literals, since we want to collapse them into
+        // a single literal.
+        if (expression.Operator == UnaryOperator.Negate && operand is BoundLiteralExpression bound)
+        {
+            switch (bound.Value)
+            {
+                case IntegerLiteralValue intValue:
+                    return new BoundLiteralExpression
+                    {
+                        Value = intValue.Negate(),
+                        Type = bound.Type,
+                        Syntax = expression,
+                    };
+                case double floatValue:
+                    return new BoundLiteralExpression
+                    {
+                        Value = -floatValue,
+                        Type = bound.Type,
+                        Syntax = expression,
+                    };
+            }
+        }
+
+        if (!Operators.TryResolveUnary(expression.Operator, operand.Type, out var resultType))
+        {
+            context.ReportDiagnostic(
+                new Diagnostic
+                {
+                    Descriptor = SemanticDiagnostics.UnaryOperatorUndefined,
+                    Range = expression.Range,
+                    Arguments = [operand.Type.Name],
+                }
+            );
+        }
+
+        return new BoundUnaryExpression
+        {
+            Operator = expression.Operator,
+            Operand = operand,
+            Type = resultType,
+            Syntax = expression,
+        };
+    }
+
+    private BoundBinaryExpression BindBinaryExpression(
+        BinaryExpressionSyntax expression,
+        DeclarationScope scope,
+        BindingContext context
+    )
+    {
+        var left = BindExpression(expression.Left, scope, context);
+        var right = BindExpression(expression.Right, scope, context);
     }
 
     private Symbol ComputeSymbol(SymbolDeclaration declaration, BindingContext context)
