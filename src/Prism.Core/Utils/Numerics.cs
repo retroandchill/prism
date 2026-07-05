@@ -3,8 +3,11 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Globalization;
+using System.Numerics;
+using Prism.Core.Ast;
 using Prism.Core.Semantic;
 using Prism.Core.Semantic.Symbols;
 
@@ -12,100 +15,111 @@ namespace Prism.Core.Utils;
 
 public static class Numerics
 {
-    public static (UInt128 Value, bool Overflow) ParseInteger(ReadOnlySpan<char> literalValue)
+    private static readonly ImmutableArray<(string Suffix, IntegerSuffix Type)> IntegerSuffixes =
+    [
+        ("i8", IntegerSuffix.I8),
+        ("i16", IntegerSuffix.I16),
+        ("i32", IntegerSuffix.I32),
+        ("i64", IntegerSuffix.I64),
+        ("i128", IntegerSuffix.I128),
+        ("iz", IntegerSuffix.ISize),
+        ("u8", IntegerSuffix.U8),
+        ("u16", IntegerSuffix.U16),
+        ("u32", IntegerSuffix.U32),
+        ("u64", IntegerSuffix.U64),
+        ("u128", IntegerSuffix.U128),
+        ("uz", IntegerSuffix.USize),
+    ];
+
+    private static readonly ImmutableArray<(string Suffix, FloatSuffix Type)> FloatSuffixes =
+    [
+        ("f16", FloatSuffix.F16),
+        ("f32", FloatSuffix.F32),
+        ("f64", FloatSuffix.F64),
+    ];
+
+    public static (IntegerBase Base, BigInteger Value, IntegerSuffix Suffix) ParseInteger(
+        ReadOnlySpan<char> literalValue
+    )
     {
-        bool overflow;
-        UInt128 value;
+        IntegerSuffix suffix = IntegerSuffix.None;
+        foreach (var (str, type) in IntegerSuffixes)
+        {
+            if (!literalValue.EndsWith(str, StringComparison.Ordinal))
+                continue;
+            suffix = type;
+            literalValue = literalValue[..^str.Length];
+            break;
+        }
+
+        IntegerBase @base;
+        NumberStyles styles;
         if (literalValue.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
         {
-            overflow = UInt128.TryParse(
-                literalValue[2..],
-                NumberStyles.HexNumber,
-                CultureInfo.InvariantCulture,
-                out value
-            );
-            return (value, overflow);
+            @base = IntegerBase.Hex;
+            literalValue = literalValue[2..];
+            styles = NumberStyles.HexNumber;
+        }
+        else if (literalValue.StartsWith("0b", StringComparison.OrdinalIgnoreCase))
+        {
+            @base = IntegerBase.Binary;
+            literalValue = literalValue[2..];
+            styles = NumberStyles.BinaryNumber;
+        }
+        else
+        {
+            @base = IntegerBase.Decimal;
+            styles = NumberStyles.Integer;
         }
 
-        if (literalValue.StartsWith("0b", StringComparison.OrdinalIgnoreCase))
+        char[]? scratchBuffer = null;
+        try
         {
-            overflow = UInt128.TryParse(
-                literalValue[2..],
-                NumberStyles.BinaryNumber,
-                CultureInfo.InvariantCulture,
-                out value
-            );
-            return (value, overflow);
-        }
-
-        overflow = UInt128.TryParse(
-            literalValue,
-            NumberStyles.Integer,
-            CultureInfo.InvariantCulture,
-            out value
-        );
-        return (value, overflow);
-    }
-
-    public static (double Value, bool Overflow) ParseFloat(ReadOnlySpan<char> literalValue)
-    {
-        var overflow = double.TryParse(
-            literalValue,
-            NumberStyles.Float,
-            CultureInfo.InvariantCulture,
-            out var value
-        );
-        return (value, overflow);
-    }
-
-    private static readonly ImmutableArray<(string Suffix, TypeSymbol Type)> IntegerSuffixes =
-    [
-        ("i8", BuiltInTypes.I8),
-        ("i16", BuiltInTypes.I16),
-        ("i32", BuiltInTypes.I32),
-        ("i64", BuiltInTypes.I64),
-        ("is", BuiltInTypes.ISize),
-        ("u8", BuiltInTypes.U8),
-        ("u16", BuiltInTypes.U16),
-        ("u32", BuiltInTypes.U32),
-        ("u64", BuiltInTypes.U64),
-        ("us", BuiltInTypes.USize),
-    ];
-
-    public static (TypeSymbol Type, int SuffixLength) GetIntegerTypeFromSuffix(
-        ReadOnlySpan<char> literal
-    )
-    {
-        foreach (var (suffix, type) in IntegerSuffixes)
-        {
-            if (literal.EndsWith(suffix, StringComparison.Ordinal))
+            if (literalValue.Contains('_'))
             {
-                return (type, suffix.Length);
-            }
-        }
+                scratchBuffer = ArrayPool<char>.Shared.Rent(literalValue.Length);
 
-        return (BuiltInTypes.I32, 0);
+                var i = 0;
+                foreach (var c in literalValue)
+                {
+                    if (c == '_')
+                        continue;
+
+                    scratchBuffer[i] = c;
+                    i++;
+                }
+
+                literalValue = scratchBuffer.AsSpan(i + 1);
+            }
+
+            return (
+                @base,
+                BigInteger.Parse(literalValue, styles, CultureInfo.InvariantCulture),
+                suffix
+            );
+        }
+        finally
+        {
+            if (scratchBuffer is not null)
+                ArrayPool<char>.Shared.Return(scratchBuffer);
+        }
     }
 
-    private static readonly ImmutableArray<(string Suffix, TypeSymbol Type)> FloatSuffixes =
-    [
-        ("f16", BuiltInTypes.F16),
-        ("f32", BuiltInTypes.F32),
-        ("f64", BuiltInTypes.F64),
-    ];
-
-    public static (TypeSymbol Type, int SuffixLength) GetFloatTypeFromSuffix(
-        ReadOnlySpan<char> literal
-    )
+    public static (decimal Value, FloatSuffix Suffix) ParseFloat(ReadOnlySpan<char> literalValue)
     {
-        foreach (var (suffix, type) in FloatSuffixes)
+        var suffix = FloatSuffix.None;
+        foreach (var (str, type) in FloatSuffixes)
         {
-            if (literal.EndsWith(suffix, StringComparison.Ordinal))
-            {
-                return (type, suffix.Length);
-            }
+            if (!literalValue.EndsWith(str, StringComparison.Ordinal))
+                continue;
+            suffix = type;
+            literalValue = literalValue[..^str.Length];
+            break;
         }
 
-        return (BuiltInTypes.F64, 0);
+        return (
+            decimal.Parse(literalValue, NumberStyles.Float, CultureInfo.InvariantCulture),
+            suffix
+        );
     }
 }

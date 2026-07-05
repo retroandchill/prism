@@ -211,4 +211,37 @@ public static class BuiltInTypes
             return type.IsInteger() || type.IsFloatingPoint();
         }
     }
+
+    public static NamedTypeSymbol GetTypeSymbol(this IntegerSuffix suffix)
+    {
+        return suffix switch
+        {
+            IntegerSuffix.None => I32,
+            IntegerSuffix.I8 => I8,
+            IntegerSuffix.I16 => I16,
+            IntegerSuffix.I32 => I32,
+            IntegerSuffix.I64 => I64,
+            IntegerSuffix.I128 => I128,
+            IntegerSuffix.ISize => ISize,
+            IntegerSuffix.U8 => U8,
+            IntegerSuffix.U16 => U16,
+            IntegerSuffix.U32 => U32,
+            IntegerSuffix.U64 => U64,
+            IntegerSuffix.U128 => U128,
+            IntegerSuffix.USize => USize,
+            _ => throw new ArgumentOutOfRangeException(nameof(suffix), suffix, null),
+        };
+    }
+
+    public static NamedTypeSymbol GetTypeSymbol(this FloatSuffix suffix)
+    {
+        return suffix switch
+        {
+            FloatSuffix.None => F64,
+            FloatSuffix.F16 => F16,
+            FloatSuffix.F32 => F32,
+            FloatSuffix.F64 => F64,
+            _ => throw new ArgumentOutOfRangeException(nameof(suffix), suffix, null),
+        };
+    }
 }

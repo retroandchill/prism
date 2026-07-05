@@ -22,7 +22,6 @@ public static class ParseDiagnostics
         Severity = DiagnosticSeverity.Warning,
         Title = "Empty statement",
         MessageFormat = "Empty statement",
-        Description = "The parser encountered an empty statement.",
     };
 
     public static readonly DiagnosticDescriptor UnexpectedEndOfFile = new()
@@ -31,6 +30,13 @@ public static class ParseDiagnostics
         Severity = DiagnosticSeverity.Warning,
         Title = "Unexpected end of file",
         MessageFormat = "Unexpected end of file",
-        Description = "The parser encountered an unexpected end of a file",
+    };
+
+    public static readonly DiagnosticDescriptor UnexpectedEscape = new()
+    {
+        Id = "PRISM0004",
+        Severity = DiagnosticSeverity.Warning,
+        Title = "Unexpected escape sequence",
+        MessageFormat = "Unexpected escape sequence: '{0}'",
     };
 }

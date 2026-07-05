@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Numerics;
 using Prism.Core.Ast;
 using Prism.Core.Parse;
 using Prism.Core.Tests.Constraints;
@@ -29,9 +30,9 @@ public class ParserTests
         var type = (BuiltInTypeSyntax)variable.Type;
         Assert.That(type.Type, Is.EqualTo(BuiltInType.I32));
 
-        Assert.That(variable.Initializer, Is.InstanceOf<LiteralExpressionSyntax>());
-        var initializer = (LiteralExpressionSyntax)variable.Initializer;
-        Assert.That(initializer.Kind, Is.EqualTo(LiteralKind.Integer));
+        Assert.That(variable.Initializer, Is.InstanceOf<IntegerLiteralExpressionSyntax>());
+        var initializer = (IntegerLiteralExpressionSyntax)variable.Initializer;
+        Assert.That(initializer.Value, Is.EqualTo(new BigInteger(5)));
     }
 
     [Test]
@@ -83,12 +84,12 @@ public class ParserTests
         Assert.That(expression, Is.InstanceOf<BinaryExpressionSyntax>());
         var binaryExpression = (BinaryExpressionSyntax)expression;
         Assert.That(binaryExpression.Operator, Is.EqualTo(BinaryOperator.Add));
-        Assert.That(binaryExpression.Left, Is.InstanceOf<LiteralExpressionSyntax>());
+        Assert.That(binaryExpression.Left, Is.InstanceOf<IntegerLiteralExpressionSyntax>());
         Assert.That(binaryExpression.Right, Is.InstanceOf<BinaryExpressionSyntax>());
         var rightBinaryExpression = (BinaryExpressionSyntax)binaryExpression.Right;
         Assert.That(rightBinaryExpression.Operator, Is.EqualTo(BinaryOperator.Mul));
-        Assert.That(rightBinaryExpression.Left, Is.InstanceOf<LiteralExpressionSyntax>());
-        Assert.That(rightBinaryExpression.Right, Is.InstanceOf<LiteralExpressionSyntax>());
+        Assert.That(rightBinaryExpression.Left, Is.InstanceOf<IntegerLiteralExpressionSyntax>());
+        Assert.That(rightBinaryExpression.Right, Is.InstanceOf<IntegerLiteralExpressionSyntax>());
     }
 
     [Test]
@@ -102,11 +103,11 @@ public class ParserTests
         var binaryExpression = (BinaryExpressionSyntax)expression;
         Assert.That(binaryExpression.Operator, Is.EqualTo(BinaryOperator.Mul));
         Assert.That(binaryExpression.Left, Is.InstanceOf<BinaryExpressionSyntax>());
-        Assert.That(binaryExpression.Right, Is.InstanceOf<LiteralExpressionSyntax>());
+        Assert.That(binaryExpression.Right, Is.InstanceOf<IntegerLiteralExpressionSyntax>());
         var rightBinaryExpression = (BinaryExpressionSyntax)binaryExpression.Left;
         Assert.That(rightBinaryExpression.Operator, Is.EqualTo(BinaryOperator.Add));
-        Assert.That(rightBinaryExpression.Left, Is.InstanceOf<LiteralExpressionSyntax>());
-        Assert.That(rightBinaryExpression.Right, Is.InstanceOf<LiteralExpressionSyntax>());
+        Assert.That(rightBinaryExpression.Left, Is.InstanceOf<IntegerLiteralExpressionSyntax>());
+        Assert.That(rightBinaryExpression.Right, Is.InstanceOf<IntegerLiteralExpressionSyntax>());
     }
 
     [Test]

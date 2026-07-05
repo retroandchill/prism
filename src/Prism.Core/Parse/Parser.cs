@@ -4,7 +4,10 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Numerics;
+using Cysharp.Text;
 using Prism.Core.Ast;
+using Prism.Core.Utils;
 
 namespace Prism.Core.Parse;
 
@@ -467,37 +470,43 @@ public sealed class Parser(CompilationContext context)
     private ExpressionSyntax ParsePrimaryExpression()
     {
         var next = _stream.Peek();
+        var span = context.GetSpan(next.Range);
         switch (next.Kind)
         {
             case TokenKind.False:
                 _stream.Advance();
-                return new LiteralExpressionSyntax
-                {
-                    Kind = LiteralKind.BoolFalse,
-                    Range = next.Range,
-                };
+                return new BooleanLiteralExpressionSyntax { Value = false, Range = next.Range };
             case TokenKind.True:
                 _stream.Advance();
-                return new LiteralExpressionSyntax
-                {
-                    Kind = LiteralKind.BoolTrue,
-                    Range = next.Range,
-                };
+                return new BooleanLiteralExpressionSyntax { Value = true, Range = next.Range };
             case TokenKind.IntegerLiteral:
+            {
+                var (@base, value, suffix) = Numerics.ParseInteger(span);
                 _stream.Advance();
-                return new LiteralExpressionSyntax
+                return new IntegerLiteralExpressionSyntax
                 {
-                    Kind = LiteralKind.Integer,
+                    Base = @base,
+                    Value = value,
+                    Suffix = suffix,
                     Range = next.Range,
                 };
+            }
             case TokenKind.FloatingPointLiteral:
+            {
+                var (value, suffix) = Numerics.ParseFloat(span);
                 _stream.Advance();
-                return new LiteralExpressionSyntax { Kind = LiteralKind.Float, Range = next.Range };
+                return new FloatLiteralExpressionSyntax
+                {
+                    Value = value,
+                    Suffix = suffix,
+                    Range = next.Range,
+                };
+            }
             case TokenKind.StringLiteral:
                 _stream.Advance();
-                return new LiteralExpressionSyntax
+                return new StringLiteralExpressionSyntax
                 {
-                    Kind = LiteralKind.String,
+                    Value = ParseEscapedString(next),
                     Range = next.Range,
                 };
             case TokenKind.Identifier:
@@ -531,6 +540,80 @@ public sealed class Parser(CompilationContext context)
                     Flags = SyntaxFlags.Unknown,
                 };
         }
+    }
+
+    private string ParseEscapedString(Token token)
+    {
+        using var builder = ZString.CreateUtf8StringBuilder();
+        var source = context.GetSpan(token.Range);
+        var str = token.IsUnterminated ? source[1..] : source[1..^1];
+        for (var i = 0; i < str.Length; i++)
+        {
+            var c = str[i];
+            if (c != '/')
+            {
+                builder.Append(c);
+                continue;
+            }
+
+            if (i + 1 >= str.Length)
+            {
+                context.ReportDiagnostic(
+                    new Diagnostic
+                    {
+                        Descriptor = ParseDiagnostics.UnexpectedEscape,
+                        Range = new SourceRange(token.Range.Start + i, 1),
+                        Arguments = [c],
+                    }
+                );
+                break;
+            }
+
+            var next = str[i + 1];
+            switch (next)
+            {
+                case 'n':
+                    builder.Append('\n');
+                    i++;
+                    break;
+                case 'r':
+                    builder.Append('\r');
+                    i++;
+                    break;
+                case 't':
+                    builder.Append('\t');
+                    i++;
+                    break;
+                case '\\':
+                    builder.Append(@"\\");
+                    i++;
+                    break;
+                case 'b':
+                    builder.Append(@"\b");
+                    i++;
+                    break;
+                case '\'':
+                    builder.Append(@"\'");
+                    i++;
+                    break;
+                case '"':
+                    builder.Append('"');
+                    i++;
+                    break;
+                default:
+                    context.ReportDiagnostic(
+                        new Diagnostic
+                        {
+                            Descriptor = ParseDiagnostics.UnexpectedEscape,
+                            Range = new SourceRange(token.Range.Start + i, 2),
+                            Arguments = [str.Slice(i, 2).ToString()],
+                        }
+                    );
+                    break;
+            }
+        }
+
+        return builder.ToString();
     }
 
     private ExpressionSyntax ParsePrefixExpression()

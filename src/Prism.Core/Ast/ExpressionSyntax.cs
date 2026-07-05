@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Numerics;
 using Prism.Core.Strings;
 #pragma warning disable CA1067
 
@@ -11,18 +12,63 @@ namespace Prism.Core.Ast;
 
 public closed record ExpressionSyntax : SyntaxNode;
 
-public enum LiteralKind
+public sealed record BooleanLiteralExpressionSyntax : ExpressionSyntax
 {
-    BoolTrue,
-    BoolFalse,
-    Integer,
-    Float,
-    String
+    public required bool Value { get; init; }
 }
 
-public sealed record LiteralExpressionSyntax : ExpressionSyntax
+public enum IntegerBase : byte
 {
-    public required LiteralKind Kind { get; init; }
+    Decimal,
+    Hex,
+    Binary
+}
+
+public enum IntegerSuffix : byte
+{
+    None,
+    I8,
+    I16,
+    I32,
+    I64,
+    I128,
+    ISize,
+    U8,
+    U16,
+    U32,
+    U64,
+    U128,
+    USize
+}
+
+public sealed record IntegerLiteralExpressionSyntax : ExpressionSyntax
+{
+    public required IntegerBase Base { get; init; }
+
+    public required BigInteger Value { get; init; }
+
+    public required IntegerSuffix Suffix { get; init; }
+}
+
+public enum FloatSuffix : byte
+{
+    None,
+    F16,
+    F32,
+    F64
+}
+
+public sealed record FloatLiteralExpressionSyntax : ExpressionSyntax
+{
+    public required decimal Value { get; init; }
+
+    public required FloatSuffix Suffix { get; init; }
+
+}
+
+public sealed record StringLiteralExpressionSyntax : ExpressionSyntax
+{
+    public required string Value { get; init; }
 }
 
 public sealed record IdentifierExpressionSyntax : ExpressionSyntax

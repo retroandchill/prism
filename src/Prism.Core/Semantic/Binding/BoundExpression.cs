@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Numerics;
 using Prism.Core.Ast;
 using Prism.Core.Semantic.Symbols;
 using Prism.Core.Utils;
@@ -15,12 +16,33 @@ public closed class BoundExpression : BoundNode
     public required TypeSymbol Type { get; init; }
 }
 
-public union BoundLiteralSyntax(LiteralExpressionSyntax, UnaryExpressionSyntax);
+public union BoundIntegerLiteralSyntax(IntegerLiteralExpressionSyntax, UnaryExpressionSyntax);
+public union BoundFloatLiteralSyntax(FloatLiteralExpressionSyntax, UnaryExpressionSyntax);
 
-public sealed class BoundLiteralExpression : BoundExpression
+public sealed class BoundBoolLiteralExpression : BoundExpression
 {
-    public required LiteralValue Value { get; init; }
-    public required BoundLiteralSyntax Syntax { get; init; }
+    public required bool Value { get; init; }
+    public required BooleanLiteralExpressionSyntax Syntax { get; init; }
+}
+
+public sealed class BoundIntegerLiteralExpression : BoundExpression
+{
+    public required BigInteger Value { get; init; }
+    public required IntegerSuffix Suffix { get; init; }
+    public required BoundIntegerLiteralSyntax Syntax { get; init; }
+}
+
+public sealed class BoundFloatLiteralExpression : BoundExpression
+{
+    public required decimal Value { get; init; }
+    public required FloatSuffix Suffix { get; init; }
+    public required BoundFloatLiteralSyntax Syntax { get; init; }
+}
+
+public sealed class BoundStringLiteralExpression : BoundExpression
+{
+    public required string Value { get; init; }
+    public required StringLiteralExpressionSyntax Syntax { get; init; }
 }
 
 public sealed class BoundVariableExpression : BoundExpression

@@ -131,7 +131,32 @@ public sealed class SemanticBinder
     {
         return expression switch
         {
-            LiteralExpressionSyntax literal => BindLiteralExpression(literal, context),
+            BooleanLiteralExpressionSyntax literal => new BoundBoolLiteralExpression
+            {
+                Value = literal.Value,
+                Type = BuiltInTypes.Bool,
+                Syntax = literal,
+            },
+            IntegerLiteralExpressionSyntax literal => new BoundIntegerLiteralExpression
+            {
+                Value = literal.Value,
+                Suffix = literal.Suffix,
+                Type = literal.Suffix.GetTypeSymbol(),
+                Syntax = literal,
+            },
+            FloatLiteralExpressionSyntax literal => new BoundFloatLiteralExpression
+            {
+                Value = literal.Value,
+                Suffix = literal.Suffix,
+                Type = literal.Suffix.GetTypeSymbol(),
+                Syntax = literal,
+            },
+            StringLiteralExpressionSyntax literal => new BoundStringLiteralExpression
+            {
+                Value = literal.Value,
+                Type = BuiltInTypes.Str,
+                Syntax = literal,
+            },
             IdentifierExpressionSyntax identifier => BindIdentifierExpression(
                 identifier,
                 scope,
@@ -139,65 +164,6 @@ public sealed class SemanticBinder
             ),
             UnaryExpressionSyntax unary => BindUnaryExpression(unary, scope, context),
             _ => throw new NotImplementedException(),
-        };
-    }
-
-    private BoundLiteralExpression BindLiteralExpression(
-        LiteralExpressionSyntax literal,
-        BindingContext context
-    )
-    {
-        var span = context.GetSpan(literal.Range);
-        TypeSymbol boundType;
-        LiteralValue value;
-        var overflow = false;
-        switch (literal.Kind)
-        {
-            case LiteralKind.BoolTrue:
-                boundType = BuiltInTypes.Bool;
-                value = true;
-                break;
-            case LiteralKind.BoolFalse:
-                boundType = BuiltInTypes.Bool;
-                value = false;
-                break;
-            case LiteralKind.Integer:
-            {
-                (boundType, var suffixLength) = Numerics.GetIntegerTypeFromSuffix(span);
-                (var intValue, overflow) = Numerics.ParseInteger(span[..^suffixLength]);
-                value = IntegerLiteralValue.Positive(intValue);
-                break;
-            }
-            case LiteralKind.Float:
-            {
-                (boundType, var suffixLength) = Numerics.GetFloatTypeFromSuffix(span);
-                (value, overflow) = Numerics.ParseFloat(span[..^suffixLength]);
-                break;
-            }
-            case LiteralKind.String:
-                boundType = BuiltInTypes.Str;
-                value = span[1..^1].ToString();
-                break;
-            default:
-                throw new InvalidOperationException();
-        }
-
-        if (overflow)
-        {
-            context.ReportDiagnostic(
-                new Diagnostic
-                {
-                    Descriptor = SemanticDiagnostics.LiteralExceedsMaximumMagnitude,
-                    Range = literal.Range,
-                }
-            );
-        }
-
-        return new BoundLiteralExpression
-        {
-            Type = boundType,
-            Value = value,
-            Syntax = literal,
         };
     }
 
@@ -227,21 +193,24 @@ public sealed class SemanticBinder
 
         // Special case for the negation of integer and floating-point literals, since we want to collapse them into
         // a single literal.
-        if (expression.Operator == UnaryOperator.Negate && operand is BoundLiteralExpression bound)
+        if (expression.Operator == UnaryOperator.Negate)
         {
-            switch (bound.Value)
+            switch (operand)
             {
-                case IntegerLiteralValue intValue:
-                    return new BoundLiteralExpression
+                case BoundIntegerLiteralExpression bound:
+                    // TODO: Check to make sure we aren't negating an unsigned integer literal
+                    return new BoundIntegerLiteralExpression
                     {
-                        Value = intValue.Negate(),
+                        Value = -bound.Value,
+                        Suffix = bound.Suffix,
                         Type = bound.Type,
                         Syntax = expression,
                     };
-                case double floatValue:
-                    return new BoundLiteralExpression
+                case BoundFloatLiteralExpression bound:
+                    return new BoundFloatLiteralExpression
                     {
-                        Value = -floatValue,
+                        Value = -bound.Value,
+                        Suffix = bound.Suffix,
                         Type = bound.Type,
                         Syntax = expression,
                     };
@@ -277,6 +246,8 @@ public sealed class SemanticBinder
     {
         var left = BindExpression(expression.Left, scope, context);
         var right = BindExpression(expression.Right, scope, context);
+
+        throw new NotImplementedException();
     }
 
     private Symbol ComputeSymbol(SymbolDeclaration declaration, BindingContext context)

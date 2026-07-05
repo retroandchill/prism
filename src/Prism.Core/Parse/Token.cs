@@ -23,4 +23,6 @@ public readonly record struct Token(
 )
 {
     public bool IsSynthetic => Flags.HasFlag(TokenFlags.Synthetic);
+
+    public bool IsUnterminated => Flags.HasFlag(TokenFlags.Unterminated);
 }

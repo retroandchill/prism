@@ -12,6 +12,7 @@
       <PackageReference Include="Nito.Collections.Deque" />
       <PackageReference Include="System.IO.Hashing" />
       <PackageReference Include="ZLinq" />
+      <PackageReference Include="ZString" />
     </ItemGroup>
 
     <ItemGroup>
