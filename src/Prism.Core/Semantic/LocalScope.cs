@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using Prism.Core.Parse;
+using Prism.Core.Semantic.Symbols;
 using Prism.Core.Strings;
 
 namespace Prism.Core.Semantic;

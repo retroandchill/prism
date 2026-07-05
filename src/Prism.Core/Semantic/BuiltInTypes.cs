@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using Prism.Core.Ast;
+using Prism.Core.Semantic.Symbols;
 using Prism.Core.Strings;
 
 namespace Prism.Core.Semantic;
@@ -16,98 +17,98 @@ public static class BuiltInTypes
         BuiltInType = BuiltInType.Void,
     };
 
-    private static readonly NamedTypeSymbol Bool = new()
+    public static readonly NamedTypeSymbol Bool = new()
     {
         Name = KnownName.Bool,
         BuiltInType = BuiltInType.Bool,
     };
 
-    private static readonly NamedTypeSymbol I8 = new()
+    public static readonly NamedTypeSymbol I8 = new()
     {
         Name = KnownName.I8,
         BuiltInType = BuiltInType.I8,
     };
 
-    private static readonly NamedTypeSymbol I16 = new()
+    public static readonly NamedTypeSymbol I16 = new()
     {
         Name = KnownName.I16,
         BuiltInType = BuiltInType.I16,
     };
 
-    private static readonly NamedTypeSymbol I32 = new()
+    public static readonly NamedTypeSymbol I32 = new()
     {
         Name = KnownName.I32,
         BuiltInType = BuiltInType.I32,
     };
 
-    private static readonly NamedTypeSymbol I64 = new()
+    public static readonly NamedTypeSymbol I64 = new()
     {
         Name = KnownName.I64,
         BuiltInType = BuiltInType.I64,
     };
 
-    private static readonly NamedTypeSymbol I128 = new()
+    public static readonly NamedTypeSymbol I128 = new()
     {
         Name = KnownName.I128,
         BuiltInType = BuiltInType.I128,
     };
 
     // ReSharper disable once InconsistentNaming
-    private static readonly NamedTypeSymbol ISize = new()
+    public static readonly NamedTypeSymbol ISize = new()
     {
         Name = KnownName.ISize,
         BuiltInType = BuiltInType.ISize,
     };
 
-    private static readonly NamedTypeSymbol U8 = new()
+    public static readonly NamedTypeSymbol U8 = new()
     {
         Name = KnownName.U8,
         BuiltInType = BuiltInType.U8,
     };
 
-    private static readonly NamedTypeSymbol U16 = new()
+    public static readonly NamedTypeSymbol U16 = new()
     {
         Name = KnownName.U16,
         BuiltInType = BuiltInType.U16,
     };
 
-    private static readonly NamedTypeSymbol U32 = new()
+    public static readonly NamedTypeSymbol U32 = new()
     {
         Name = KnownName.U32,
         BuiltInType = BuiltInType.U32,
     };
 
-    private static readonly NamedTypeSymbol U64 = new()
+    public static readonly NamedTypeSymbol U64 = new()
     {
         Name = KnownName.U64,
         BuiltInType = BuiltInType.U64,
     };
 
-    private static readonly NamedTypeSymbol U128 = new()
+    public static readonly NamedTypeSymbol U128 = new()
     {
         Name = KnownName.U128,
         BuiltInType = BuiltInType.U128,
     };
 
-    private static readonly NamedTypeSymbol USize = new()
+    public static readonly NamedTypeSymbol USize = new()
     {
         Name = KnownName.USize,
         BuiltInType = BuiltInType.USize,
     };
 
-    private static readonly NamedTypeSymbol F16 = new()
+    public static readonly NamedTypeSymbol F16 = new()
     {
         Name = KnownName.F16,
         BuiltInType = BuiltInType.F16,
     };
 
-    private static readonly NamedTypeSymbol F32 = new()
+    public static readonly NamedTypeSymbol F32 = new()
     {
         Name = KnownName.F32,
         BuiltInType = BuiltInType.F32,
     };
 
-    private static readonly NamedTypeSymbol F64 = new()
+    public static readonly NamedTypeSymbol F64 = new()
     {
         Name = KnownName.F64,
         BuiltInType = BuiltInType.F64,
@@ -131,7 +132,7 @@ public static class BuiltInTypes
         BuiltInType = BuiltInType.Rune,
     };
 
-    private static readonly NamedTypeSymbol Str = new()
+    public static readonly NamedTypeSymbol Str = new()
     {
         Name = KnownName.Str,
         BuiltInType = BuiltInType.Str,

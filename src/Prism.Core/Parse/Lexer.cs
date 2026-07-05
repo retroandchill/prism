@@ -183,7 +183,7 @@ public sealed class Lexer(SourceFile sourceFile)
             return;
 
         var remaining = _cursor.Remaining;
-        if (!remaining.StartsWithAny(out _, "u", "i"))
+        if (!remaining.StartsWithAny(out _, 'u', 'i'))
             return;
 
         remaining = remaining[1..];

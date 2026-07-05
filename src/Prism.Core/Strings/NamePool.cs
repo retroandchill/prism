@@ -51,7 +51,7 @@ internal sealed class NamePool
             var knownName = (KnownName)i;
             knownNames[i] = Store(knownName.ToStringFast(true));
 
-            if (i != KnownName.None.AsUnderlyingType() && _knownNames[i].IsNone)
+            if (i != KnownName.None.AsUnderlyingType() && knownNames[i].IsNone)
                 continue;
 
             _entryToKnownName.Add(knownNames[i], knownName);

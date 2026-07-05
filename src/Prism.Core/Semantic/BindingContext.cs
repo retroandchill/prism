@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Runtime.InteropServices;
+using Prism.Core.Parse;
 
 namespace Prism.Core.Semantic;
 
@@ -30,6 +31,8 @@ public sealed class BindingContext(CompilationContext compilationContext)
 
         return default;
     }
+
+    public ReadOnlySpan<char> GetSpan(SourceRange range) => compilationContext.GetSpan(range);
 
     public bool EnterInference(SymbolDeclaration decl)
     {

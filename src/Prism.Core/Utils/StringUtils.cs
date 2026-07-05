@@ -41,5 +41,36 @@ public static class StringUtils
             matchedPrefix = '\0';
             return false;
         }
+
+        public bool EndsWithAny(
+            [NotNullWhen(true)] out string? matchedPrefix,
+            params ReadOnlySpan<string> prefixes
+        )
+        {
+            foreach (var prefix in prefixes)
+            {
+                if (!str.EndsWith(prefix, StringComparison.Ordinal))
+                    continue;
+                matchedPrefix = prefix;
+                return true;
+            }
+
+            matchedPrefix = null;
+            return false;
+        }
+
+        public bool EndsWithAny(out char matchedPrefix, params ReadOnlySpan<char> prefixes)
+        {
+            foreach (var prefix in prefixes)
+            {
+                if (!str.EndsWith(prefix))
+                    continue;
+                matchedPrefix = prefix;
+                return true;
+            }
+
+            matchedPrefix = '\0';
+            return false;
+        }
     }
 }

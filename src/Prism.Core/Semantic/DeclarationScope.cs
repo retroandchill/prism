@@ -5,13 +5,14 @@
 
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using Prism.Core.Ast;
 using Prism.Core.Strings;
 
 namespace Prism.Core.Semantic;
 
 public sealed class DeclarationScope
 {
-    private readonly DeclarationScope? _parent;
+    public DeclarationScope? Parent { get; }
     private readonly FrozenDictionary<Name, ImmutableArray<SymbolDeclaration>> _declarations;
 
     internal DeclarationScope(
@@ -19,7 +20,7 @@ public sealed class DeclarationScope
         DeclarationScope? parent = null
     )
     {
-        _parent = parent;
+        Parent = parent;
         _declarations = declarations.ToFrozenDictionary(
             x => x.Key,
             x => x.Value.Select(b => b.Build(this)).ToImmutableArray()
@@ -33,13 +34,13 @@ public sealed class DeclarationScope
             return declarations;
         }
 
-        return _parent?.FindDeclarations(name) ?? [];
+        return Parent?.FindDeclarations(name) ?? [];
     }
 
     public IEnumerable<SymbolDeclaration> FindAllDeclarations(Name name)
     {
         return _declarations
             .GetValueOrDefault(name, [])
-            .Concat(_parent?.FindAllDeclarations(name) ?? []);
+            .Concat(Parent?.FindAllDeclarations(name) ?? []);
     }
 }

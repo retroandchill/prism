@@ -24,4 +24,33 @@ public static class SemanticDiagnostics
             MessageFormat = "Symbol '{0}' cannot be resolved due to a cyclic reference:\n{1}",
             Severity = DiagnosticSeverity.Error,
         };
+
+    public static DiagnosticDescriptor VariableWithoutTypeOrInitializer { get; } =
+        new()
+        {
+            Id = "PRISM1003",
+            Title = "Cyclic symbol definition",
+            MessageFormat =
+                "The type of variable '{0}' cannot be resolved because it lacks both a type annotation and an initializer",
+            Severity = DiagnosticSeverity.Error,
+        };
+
+    public static DiagnosticDescriptor NumberTooLarge { get; } =
+        new()
+        {
+            Id = "PRISM1004",
+            Title = "Numeric literal too larget",
+            MessageFormat = "The numeric literal is too large to be represented by the target type",
+            Severity = DiagnosticSeverity.Error,
+        };
+
+    public static DiagnosticDescriptor LiteralExceedsMaximumMagnitude { get; } =
+        new()
+        {
+            Id = "PRISM1004",
+            Title = "Numeric literal too larget",
+            MessageFormat =
+                "The numeric literal cannot be represented because it exceeds the maximum integer literal magnitude ",
+            Severity = DiagnosticSeverity.Error,
+        };
 }

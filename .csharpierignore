@@ -6,5 +6,10 @@ src/Prism.Core/Ast/StatementSyntax.cs
 src/Prism.Core/Ast/DeclarationSyntax.cs
 src/Prism.Core/Ast/ExpressionSyntax.cs
 src/Prism.Core/Ast/TypeSyntax.cs
-src/Prism.Core/Semantic/Symbol.cs
+src/Prism.Core/Semantic/Symbols/Symbol.cs
+src/Prism.Core/Semantic/Symbols/TypeSymbol.cs
 src/Prism.Core/Semantic/LocalScope.cs
+src/Prism.Core/Semantic/Binding/BoundStatement.cs
+src/Prism.Core/Semantic/Binding/BoundDeclaration.cs
+src/Prism.Core/Semantic/Binding/BoundExpression.cs
+src/Prism.Core/Semantic/Binding/BoundNode.cs
