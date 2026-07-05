@@ -217,7 +217,18 @@ public sealed class SemanticBinder
             }
         }
 
-        if (!Operators.TryResolveUnary(expression.Operator, operand.Type, out var resultType))
+        var isValidType = false;
+        TypeSymbol targetType = ErrorTypeSymbol.Default;
+        if (operand.Type is NamedTypeSymbol { BuiltInType: { } builtInType })
+        {
+            if (Operators.TryResolveUnary(expression.Operator, builtInType, out var resultType))
+            {
+                isValidType = true;
+                targetType = resultType.GetSymbol();
+            }
+        }
+
+        if (!isValidType)
         {
             context.ReportDiagnostic(
                 new Diagnostic
@@ -233,7 +244,7 @@ public sealed class SemanticBinder
         {
             Operator = expression.Operator,
             Operand = operand,
-            Type = resultType,
+            Type = targetType,
             Syntax = expression,
         };
     }
@@ -246,6 +257,25 @@ public sealed class SemanticBinder
     {
         var left = BindExpression(expression.Left, scope, context);
         var right = BindExpression(expression.Right, scope, context);
+
+        if (
+            left.Type is not NamedTypeSymbol { BuiltInType: { } leftType }
+            || right.Type is not NamedTypeSymbol { BuiltInType: { } rightType }
+        )
+            throw new NotImplementedException();
+        if (Operators.TryResolveBinary(expression.Operator, leftType, rightType, out var result))
+        {
+            return new BoundBinaryExpression
+            {
+                Operator = expression.Operator,
+                Left = left,
+                LeftType = result.LeftType.GetSymbol(),
+                Right = right,
+                RightType = result.RightType.GetSymbol(),
+                Type = result.ResultType.GetSymbol(),
+                Syntax = expression,
+            };
+        }
 
         throw new NotImplementedException();
     }

@@ -65,9 +65,15 @@ public sealed class BoundBinaryExpression : BoundExpression
 {
     public required BinaryExpressionSyntax Syntax { get; init; }
 
-    public required BoundExpression Operand { get; init; }
+    public required BoundExpression Left { get; init; }
 
-    public required UnaryOperator Operator { get; init; }
+    public required BoundExpression Right { get; init; }
+
+    public required BinaryOperator Operator { get; init; }
+
+    public required TypeSymbol LeftType { get; init; }
+
+    public required TypeSymbol RightType { get; init; }
 }
 
 public sealed class BoundTernaryExpression : BoundExpression

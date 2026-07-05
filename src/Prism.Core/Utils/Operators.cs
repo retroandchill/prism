@@ -5,59 +5,233 @@
 
 using Prism.Core.Ast;
 using Prism.Core.Semantic;
-using Prism.Core.Semantic.Symbols;
 
 namespace Prism.Core.Utils;
 
 internal readonly record struct BinaryOperatorInfo(
-    TypeSymbol LeftType,
-    TypeSymbol RightType,
-    TypeSymbol ResultType
+    BuiltInType LeftType,
+    BuiltInType RightType,
+    BuiltInType ResultType
 );
 
 internal static class Operators
 {
     public static bool TryResolveUnary(
         UnaryOperator @operator,
-        TypeSymbol type,
-        out TypeSymbol resultType
+        BuiltInType type,
+        out BuiltInType resultType
     )
     {
         switch (@operator)
         {
-            case UnaryOperator.LogicalNot
-                when type is NamedTypeSymbol { BuiltInType: BuiltInType.Bool }:
+            case UnaryOperator.LogicalNot when type is BuiltInType.Bool:
                 resultType = type;
                 return true;
-            case UnaryOperator.Negate
-                when type is NamedTypeSymbol { BuiltInType: { } builtIn } && builtIn.IsSigned():
-                resultType = type;
+            case UnaryOperator.Negate when type.IsNumeric && type is not BuiltInType.U128:
+            case UnaryOperator.BitNot when type.IsInteger:
+            case UnaryOperator.Positive when type.IsNumeric:
+                resultType = ApplyArithmeticPromotion(type);
                 return true;
-            case UnaryOperator.BitNot
-                when type is NamedTypeSymbol { BuiltInType: { } builtIn } && builtIn.IsInteger():
-                resultType = type;
-                return true;
-            case UnaryOperator.Positive
-            or UnaryOperator.PreIncrement
+            case UnaryOperator.PreIncrement
             or UnaryOperator.PostIncrement
             or UnaryOperator.PreDecrement
-            or UnaryOperator.PostDecrement
-                when type is NamedTypeSymbol { BuiltInType: { } builtIn } && builtIn.IsNumeric():
+            or UnaryOperator.PostDecrement when type.IsNumeric:
                 resultType = type;
                 return true;
         }
 
-        resultType = ErrorTypeSymbol.Default;
+        resultType = default;
         return false;
+    }
+
+    private static BuiltInType ApplyArithmeticPromotion(BuiltInType type)
+    {
+        return type switch
+        {
+            BuiltInType.I8 or BuiltInType.I16 or BuiltInType.U8 or BuiltInType.U16 =>
+                BuiltInType.I32,
+            BuiltInType.F16 => BuiltInType.F32,
+            _ => type,
+        };
     }
 
     public static bool TryResolveBinary(
         BinaryOperator @operator,
-        TypeSymbol leftType,
-        TypeSymbol rightType,
+        BuiltInType leftType,
+        BuiltInType rightType,
         out BinaryOperatorInfo result
     )
     {
-        throw new NotImplementedException();
+        switch (@operator)
+        {
+            case BinaryOperator.Add
+            or BinaryOperator.Sub
+            or BinaryOperator.Mul
+            or BinaryOperator.Div
+            or BinaryOperator.Mod when leftType.IsNumeric && rightType.IsNumeric:
+            case BinaryOperator.BitAnd
+            or BinaryOperator.BitOr
+            or BinaryOperator.BitXor when leftType.IsInteger && rightType.IsInteger:
+            {
+                if (TryGetCommonNumericType(leftType, rightType, out var common))
+                {
+                    result = new BinaryOperatorInfo(common, common, common);
+                    return true;
+                }
+
+                break;
+            }
+            case BinaryOperator.Equal or BinaryOperator.NotEqual:
+            {
+                if (
+                    leftType.IsNumeric
+                    && rightType.IsNumeric
+                    && TryGetCommonNumericType(leftType, rightType, out var common)
+                )
+                {
+                    result = new BinaryOperatorInfo(common, common, BuiltInType.Bool);
+                    return true;
+                }
+
+                if (leftType == rightType)
+                {
+                    result = new BinaryOperatorInfo(leftType, rightType, BuiltInType.Bool);
+                    return true;
+                }
+
+                if (leftType.IsCharacter && rightType.IsCharacter)
+                {
+                    common = GetCommonChar(leftType, rightType);
+                    result = new BinaryOperatorInfo(common, common, BuiltInType.Bool);
+                    return true;
+                }
+
+                break;
+            }
+            case BinaryOperator.Greater
+            or BinaryOperator.GreaterEqual
+            or BinaryOperator.Less
+            or BinaryOperator.LessEqual when leftType.IsNumeric && rightType.IsNumeric:
+            {
+                if (TryGetCommonNumericType(leftType, rightType, out var common))
+                {
+                    result = new BinaryOperatorInfo(common, common, BuiltInType.Bool);
+                    return true;
+                }
+
+                break;
+            }
+            case BinaryOperator.LogicalAnd
+            or BinaryOperator.LogicalOr
+                when leftType is BuiltInType.Bool && rightType is BuiltInType.Bool:
+                result = new BinaryOperatorInfo(
+                    BuiltInType.Bool,
+                    BuiltInType.Bool,
+                    BuiltInType.Bool
+                );
+                return true;
+            case BinaryOperator.ShiftLeft
+            or BinaryOperator.ShiftRight
+            or BinaryOperator.UnsignedShiftRightAssign
+                when leftType.IsInteger && rightType.IsInteger:
+            {
+                var promoted = ApplyArithmeticPromotion(leftType);
+                result = new BinaryOperatorInfo(promoted, rightType, promoted);
+                return true;
+            }
+        }
+
+        result = default;
+        return false;
+    }
+
+    private static bool TryGetCommonNumericType(
+        BuiltInType leftType,
+        BuiltInType rightType,
+        out BuiltInType common
+    )
+    {
+        var promotedLeft = ApplyArithmeticPromotion(leftType);
+        var promotedRight = ApplyArithmeticPromotion(rightType);
+
+        if (promotedLeft == promotedRight)
+        {
+            common = promotedLeft;
+            return true;
+        }
+
+        if (leftType.IsFloatingPoint || rightType.IsFloatingPoint)
+        {
+            if (leftType.IsFloatingPoint && rightType.IsFloatingPoint)
+            {
+                common =
+                    GetNumericWidth(leftType) > GetNumericWidth(rightType) ? leftType : rightType;
+                return true;
+            }
+
+            var integer = leftType.IsInteger ? leftType : rightType;
+
+            if (GetNumericWidth(integer) > 4)
+            {
+                common = default;
+                return false;
+            }
+
+            common = integer is BuiltInType.I32 or BuiltInType.U32
+                ? BuiltInType.F64
+                : BuiltInType.F32;
+            return true;
+        }
+
+        if (leftType.IsUnsigned == rightType.IsUnsigned)
+        {
+            common = GetNumericWidth(leftType) >= GetNumericWidth(rightType) ? leftType : rightType;
+            return true;
+        }
+
+        var unsignedType = leftType.IsUnsigned ? leftType : rightType;
+        var signedType = leftType.IsSigned ? leftType : rightType;
+
+        if (signedType is BuiltInType.I128 && unsignedType is BuiltInType.U128)
+        {
+            common = default;
+            return false;
+        }
+
+        var unsignedWidth = GetNumericWidth(unsignedType);
+        var signedWidth = GetNumericWidth(signedType);
+
+        if (signedWidth > unsignedWidth)
+        {
+            common = signedType;
+        }
+
+        common = unsignedType switch
+        {
+            BuiltInType.U8 or BuiltInType.U16 => BuiltInType.I32,
+            BuiltInType.U32 => BuiltInType.I64,
+            BuiltInType.U64 => BuiltInType.I128,
+            _ => throw new InvalidOperationException(),
+        };
+        return true;
+    }
+
+    private static int GetNumericWidth(BuiltInType type)
+    {
+        return type switch
+        {
+            BuiltInType.I8 or BuiltInType.U8 => 1,
+            BuiltInType.I16 or BuiltInType.U16 or BuiltInType.F16 => 2,
+            BuiltInType.I32 or BuiltInType.U32 or BuiltInType.F32 => 4,
+            BuiltInType.I64 or BuiltInType.U64 or BuiltInType.F64 => 8,
+            BuiltInType.I128 or BuiltInType.U128 => 16,
+            BuiltInType.ISize or BuiltInType.USize => throw new NotImplementedException(),
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+        };
+    }
+
+    private static BuiltInType GetCommonChar(BuiltInType left, BuiltInType right)
+    {
+        return left.AsUnderlyingType() > right.AsUnderlyingType() ? left : right;
     }
 }

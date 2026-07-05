@@ -19,4 +19,8 @@
       <ProjectReference Include="..\Prism.SourceGenerator\Prism.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="Prism.Core.Tests" />
+    </ItemGroup>
+
 </Project>

@@ -9,7 +9,7 @@ using Prism.Core.Strings;
 
 namespace Prism.Core.Semantic;
 
-public static class BuiltInTypes
+public static partial class BuiltInTypes
 {
     private static readonly NamedTypeSymbol Void = new()
     {
@@ -169,47 +169,35 @@ public static class BuiltInTypes
             };
         }
 
-        public bool IsSignedInteger()
-        {
-            return type
+        public bool IsSignedInteger =>
+            type
                 is BuiltInType.I8
                     or BuiltInType.I16
                     or BuiltInType.I32
                     or BuiltInType.I64
                     or BuiltInType.I128
                     or BuiltInType.ISize;
-        }
 
-        public bool IsUnsigned()
-        {
-            return type
+        public bool IsUnsigned =>
+            type
                 is BuiltInType.U8
                     or BuiltInType.U16
                     or BuiltInType.U32
                     or BuiltInType.U64
                     or BuiltInType.U128
                     or BuiltInType.USize;
-        }
 
-        public bool IsInteger()
-        {
-            return type.IsSignedInteger() || type.IsUnsigned();
-        }
+        public bool IsInteger => type.IsSignedInteger || type.IsUnsigned;
 
-        public bool IsFloatingPoint()
-        {
-            return type is BuiltInType.F16 or BuiltInType.F32 or BuiltInType.F64;
-        }
+        public bool IsFloatingPoint =>
+            type is BuiltInType.F16 or BuiltInType.F32 or BuiltInType.F64;
 
-        public bool IsSigned()
-        {
-            return type.IsSignedInteger() || type.IsFloatingPoint();
-        }
+        public bool IsSigned => type.IsSignedInteger || type.IsFloatingPoint;
 
-        public bool IsNumeric()
-        {
-            return type.IsInteger() || type.IsFloatingPoint();
-        }
+        public bool IsNumeric => type.IsInteger || type.IsFloatingPoint;
+
+        public bool IsCharacter =>
+            type is BuiltInType.Char or BuiltInType.Char16 or BuiltInType.Rune;
     }
 
     public static NamedTypeSymbol GetTypeSymbol(this IntegerSuffix suffix)
