@@ -15,7 +15,7 @@ public class ParserTests
     [Test]
     public void VariableDeclaration()
     {
-        var context = new CompilationContext(new SourceFile("var value: i32 = 5;"));
+        var context = new SourceDocument("var value: i32 = 5;");
         var parser = new Parser(context);
         var declaration = parser.ParseDeclaration();
 
@@ -38,14 +38,12 @@ public class ParserTests
     [Test]
     public void FunctionDeclaration()
     {
-        var context = new CompilationContext(
-            new SourceFile(
-                """
-                func add(x: i32, y: i32) -> i32 {
-                    return x + y;
-                }
-                """
-            )
+        var context = new SourceDocument(
+            """
+            func add(x: i32, y: i32) -> i32 {
+                return x + y;
+            }
+            """
         );
         var parser = new Parser(context);
         var declaration = parser.ParseDeclaration();
@@ -77,7 +75,7 @@ public class ParserTests
     [Test]
     public void ExpressionPrecedence()
     {
-        var context = new CompilationContext(new SourceFile("1 + 2 * 3"));
+        var context = new SourceDocument("1 + 2 * 3");
         var parser = new Parser(context);
         var expression = parser.ParseExpression();
 
@@ -95,7 +93,7 @@ public class ParserTests
     [Test]
     public void ParenthesesChangesOrderOfOperations()
     {
-        var context = new CompilationContext(new SourceFile("(1 + 2) * 3"));
+        var context = new SourceDocument("(1 + 2) * 3");
         var parser = new Parser(context);
         var expression = parser.ParseExpression();
 
@@ -113,7 +111,7 @@ public class ParserTests
     [Test]
     public void UnaryOperators()
     {
-        var context = new CompilationContext(new SourceFile("-a * b + !c"));
+        var context = new SourceDocument("-a * b + !c");
         var parser = new Parser(context);
         var expression = parser.ParseExpression();
 
@@ -137,7 +135,7 @@ public class ParserTests
     [Test]
     public void PrefixAndPostfixOperators()
     {
-        var context = new CompilationContext(new SourceFile("++x++"));
+        var context = new SourceDocument("++x++");
         var parser = new Parser(context);
         var expression = parser.ParseExpression();
 
@@ -153,7 +151,7 @@ public class ParserTests
     [Test]
     public void Assignment()
     {
-        var context = new CompilationContext(new SourceFile("x = -a * b + !c"));
+        var context = new SourceDocument("x = -a * b + !c");
         var parser = new Parser(context);
         var expression = parser.ParseExpression();
 

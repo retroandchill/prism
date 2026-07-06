@@ -1,0 +1,5 @@
+﻿extern func println(msg: str);
+
+func main() {
+    println("Hello world");
+}

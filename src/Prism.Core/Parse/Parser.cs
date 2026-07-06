@@ -11,11 +11,11 @@ using Prism.Core.Utils;
 
 namespace Prism.Core.Parse;
 
-public sealed class Parser(CompilationContext context)
+public sealed class Parser(SourceDocument sourceDocument)
 {
-    private readonly TokenStream _stream = new(context.SourceFile);
+    private readonly TokenStream _stream = new(sourceDocument.SourceFile);
 
-    public CompilationUnitSyntax ParseCompilationUnit()
+    public SourceUnit ParseCompilationUnit()
     {
         var builder = ImmutableArray.CreateBuilder<DeclarationSyntax>();
         while (!_stream.AtEnd)
@@ -25,13 +25,15 @@ public sealed class Parser(CompilationContext context)
 
         var declarations = builder.DrainToImmutable();
 
-        return new CompilationUnitSyntax
+        var syntax = new CompilationUnitSyntax
         {
             Range = declarations.IsEmpty
                 ? SourceRange.Empty
                 : declarations[0].Range.Concat(declarations[^1].Range),
             Declarations = declarations,
         };
+
+        return new SourceUnit(sourceDocument.SourceFile, syntax, sourceDocument.Diagnostics);
     }
 
     private IdentifierSyntax ParseIdentifier()
@@ -43,7 +45,7 @@ public sealed class Parser(CompilationContext context)
             flags |= SyntaxFlags.Missing;
         }
 
-        var span = context.GetSpan(identifier.Range);
+        var span = sourceDocument.SourceFile.GetSpan(identifier.Range);
         // If it starts with '@', that isn't part of the symbol;
         // it's just escaping what might be a keyword in a given context
         span = span.StartsWith('@') ? span[1..] : span;
@@ -62,7 +64,7 @@ public sealed class Parser(CompilationContext context)
                 return ParseFunctionDeclaration(modifiers);
             case TokenKind.Semicolon when modifiers.IsEmpty:
                 _stream.Advance();
-                context.ReportDiagnostic(
+                sourceDocument.Diagnostics.Report(
                     new Diagnostic
                     {
                         Descriptor = ParseDiagnostics.EmptyStatement,
@@ -71,7 +73,7 @@ public sealed class Parser(CompilationContext context)
                 );
                 return new EmptyDeclarationSyntax { Range = next.Range };
             default:
-                context.ReportDiagnostic(
+                sourceDocument.Diagnostics.Report(
                     new Diagnostic
                     {
                         Descriptor = ParseDiagnostics.UnexpectedToken,
@@ -201,7 +203,7 @@ public sealed class Parser(CompilationContext context)
                 break;
             default:
                 body = EmptyBody.Instance;
-                context.ReportDiagnostic(
+                sourceDocument.Diagnostics.Report(
                     new Diagnostic
                     {
                         Descriptor = ParseDiagnostics.UnexpectedToken,
@@ -281,7 +283,10 @@ public sealed class Parser(CompilationContext context)
 
         return new NamedTypeSyntax
         {
-            Name = new IdentifierSyntax(context.GetSpan(identifier.Range), identifier.Range),
+            Name = new IdentifierSyntax(
+                sourceDocument.SourceFile.GetSpan(identifier.Range),
+                identifier.Range
+            ),
             Range = identifier.Range,
         };
     }
@@ -306,7 +311,7 @@ public sealed class Parser(CompilationContext context)
                 return ParseBlock();
             case TokenKind.Semicolon:
                 _stream.Advance();
-                context.ReportDiagnostic(
+                sourceDocument.Diagnostics.Report(
                     new Diagnostic
                     {
                         Descriptor = ParseDiagnostics.EmptyStatement,
@@ -328,7 +333,7 @@ public sealed class Parser(CompilationContext context)
         {
             if (_stream.AtEnd)
             {
-                context.ReportDiagnostic(
+                sourceDocument.Diagnostics.Report(
                     new Diagnostic
                     {
                         Descriptor = ParseDiagnostics.UnexpectedEndOfFile,
@@ -475,7 +480,7 @@ public sealed class Parser(CompilationContext context)
     private ExpressionSyntax ParsePrimaryExpression()
     {
         var next = _stream.Peek();
-        var span = context.GetSpan(next.Range);
+        var span = sourceDocument.SourceFile.GetSpan(next.Range);
         switch (next.Kind)
         {
             case TokenKind.False:
@@ -531,7 +536,7 @@ public sealed class Parser(CompilationContext context)
                 return expression;
             }
             default:
-                context.ReportDiagnostic(
+                sourceDocument.Diagnostics.Report(
                     new Diagnostic
                     {
                         Descriptor = ParseDiagnostics.UnexpectedToken,
@@ -550,7 +555,7 @@ public sealed class Parser(CompilationContext context)
     private string ParseEscapedString(Token token)
     {
         using var builder = ZString.CreateUtf8StringBuilder();
-        var source = context.GetSpan(token.Range);
+        var source = sourceDocument.SourceFile.GetSpan(token.Range);
         var str = token.IsUnterminated ? source[1..] : source[1..^1];
         for (var i = 0; i < str.Length; i++)
         {
@@ -563,7 +568,7 @@ public sealed class Parser(CompilationContext context)
 
             if (i + 1 >= str.Length)
             {
-                context.ReportDiagnostic(
+                sourceDocument.Diagnostics.Report(
                     new Diagnostic
                     {
                         Descriptor = ParseDiagnostics.UnexpectedEscape,
@@ -606,7 +611,7 @@ public sealed class Parser(CompilationContext context)
                     i++;
                     break;
                 default:
-                    context.ReportDiagnostic(
+                    sourceDocument.Diagnostics.Report(
                         new Diagnostic
                         {
                             Descriptor = ParseDiagnostics.UnexpectedEscape,
@@ -698,7 +703,7 @@ public sealed class Parser(CompilationContext context)
         {
             if (_stream.AtEnd)
             {
-                context.ReportDiagnostic(
+                sourceDocument.Diagnostics.Report(
                     new Diagnostic
                     {
                         Descriptor = ParseDiagnostics.UnexpectedEndOfFile,
@@ -731,7 +736,7 @@ public sealed class Parser(CompilationContext context)
                         Range = name.Range.AsEmpty(),
                         Flags = SyntaxFlags.Missing,
                     };
-                    context.ReportDiagnostic(
+                    sourceDocument.Diagnostics.Report(
                         new Diagnostic
                         {
                             Descriptor = ParseDiagnostics.UnexpectedToken,
@@ -780,7 +785,7 @@ public sealed class Parser(CompilationContext context)
     {
         if (!Match(kind, out var token))
         {
-            context.ReportDiagnostic(
+            sourceDocument.Diagnostics.Report(
                 new Diagnostic
                 {
                     Descriptor = ParseDiagnostics.UnexpectedToken,

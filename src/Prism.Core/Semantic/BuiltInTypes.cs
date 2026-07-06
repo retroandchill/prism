@@ -11,132 +11,48 @@ namespace Prism.Core.Semantic;
 
 public static partial class BuiltInTypes
 {
-    private static readonly NamedTypeSymbol Void = new()
-    {
-        Name = KnownName.Void,
-        BuiltInType = BuiltInType.Void,
-    };
+    private static readonly NamedTypeSymbol Void = new(BuiltInType.Void);
 
-    public static readonly NamedTypeSymbol Bool = new()
-    {
-        Name = KnownName.Bool,
-        BuiltInType = BuiltInType.Bool,
-    };
+    public static readonly NamedTypeSymbol Bool = new(BuiltInType.Bool);
 
-    public static readonly NamedTypeSymbol I8 = new()
-    {
-        Name = KnownName.I8,
-        BuiltInType = BuiltInType.I8,
-    };
+    public static readonly NamedTypeSymbol I8 = new(BuiltInType.I8);
 
-    public static readonly NamedTypeSymbol I16 = new()
-    {
-        Name = KnownName.I16,
-        BuiltInType = BuiltInType.I16,
-    };
+    public static readonly NamedTypeSymbol I16 = new(BuiltInType.I16);
 
-    public static readonly NamedTypeSymbol I32 = new()
-    {
-        Name = KnownName.I32,
-        BuiltInType = BuiltInType.I32,
-    };
+    public static readonly NamedTypeSymbol I32 = new(BuiltInType.I32);
 
-    public static readonly NamedTypeSymbol I64 = new()
-    {
-        Name = KnownName.I64,
-        BuiltInType = BuiltInType.I64,
-    };
+    public static readonly NamedTypeSymbol I64 = new(BuiltInType.I64);
 
-    public static readonly NamedTypeSymbol I128 = new()
-    {
-        Name = KnownName.I128,
-        BuiltInType = BuiltInType.I128,
-    };
+    public static readonly NamedTypeSymbol I128 = new(BuiltInType.I128);
 
     // ReSharper disable once InconsistentNaming
-    public static readonly NamedTypeSymbol ISize = new()
-    {
-        Name = KnownName.ISize,
-        BuiltInType = BuiltInType.ISize,
-    };
+    public static readonly NamedTypeSymbol ISize = new(BuiltInType.ISize);
 
-    public static readonly NamedTypeSymbol U8 = new()
-    {
-        Name = KnownName.U8,
-        BuiltInType = BuiltInType.U8,
-    };
+    public static readonly NamedTypeSymbol U8 = new(BuiltInType.U8);
 
-    public static readonly NamedTypeSymbol U16 = new()
-    {
-        Name = KnownName.U16,
-        BuiltInType = BuiltInType.U16,
-    };
+    public static readonly NamedTypeSymbol U16 = new(BuiltInType.U16);
 
-    public static readonly NamedTypeSymbol U32 = new()
-    {
-        Name = KnownName.U32,
-        BuiltInType = BuiltInType.U32,
-    };
+    public static readonly NamedTypeSymbol U32 = new(BuiltInType.U32);
 
-    public static readonly NamedTypeSymbol U64 = new()
-    {
-        Name = KnownName.U64,
-        BuiltInType = BuiltInType.U64,
-    };
+    public static readonly NamedTypeSymbol U64 = new(BuiltInType.U64);
 
-    public static readonly NamedTypeSymbol U128 = new()
-    {
-        Name = KnownName.U128,
-        BuiltInType = BuiltInType.U128,
-    };
+    public static readonly NamedTypeSymbol U128 = new(BuiltInType.U128);
 
-    public static readonly NamedTypeSymbol USize = new()
-    {
-        Name = KnownName.USize,
-        BuiltInType = BuiltInType.USize,
-    };
+    public static readonly NamedTypeSymbol USize = new(BuiltInType.USize);
 
-    public static readonly NamedTypeSymbol F16 = new()
-    {
-        Name = KnownName.F16,
-        BuiltInType = BuiltInType.F16,
-    };
+    public static readonly NamedTypeSymbol F16 = new(BuiltInType.F16);
 
-    public static readonly NamedTypeSymbol F32 = new()
-    {
-        Name = KnownName.F32,
-        BuiltInType = BuiltInType.F32,
-    };
+    public static readonly NamedTypeSymbol F32 = new(BuiltInType.F32);
 
-    public static readonly NamedTypeSymbol F64 = new()
-    {
-        Name = KnownName.F64,
-        BuiltInType = BuiltInType.F64,
-    };
+    public static readonly NamedTypeSymbol F64 = new(BuiltInType.F64);
 
-    private static readonly NamedTypeSymbol Char = new()
-    {
-        Name = KnownName.Char,
-        BuiltInType = BuiltInType.Char,
-    };
+    private static readonly NamedTypeSymbol Char = new(BuiltInType.Char);
 
-    private static readonly NamedTypeSymbol Char16 = new()
-    {
-        Name = KnownName.Char16,
-        BuiltInType = BuiltInType.Char16,
-    };
+    private static readonly NamedTypeSymbol Char16 = new(BuiltInType.Char16);
 
-    private static readonly NamedTypeSymbol Rune = new()
-    {
-        Name = KnownName.Rune,
-        BuiltInType = BuiltInType.Rune,
-    };
+    private static readonly NamedTypeSymbol Rune = new(BuiltInType.Rune);
 
-    public static readonly NamedTypeSymbol Str = new()
-    {
-        Name = KnownName.Str,
-        BuiltInType = BuiltInType.Str,
-    };
+    public static readonly NamedTypeSymbol Str = new(BuiltInType.Str);
 
     extension(BuiltInType type)
     {

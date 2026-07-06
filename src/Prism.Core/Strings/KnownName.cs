@@ -5,6 +5,7 @@
 
 using System.Runtime.Serialization;
 using NetEscapades.EnumGenerators;
+using Prism.Core.Ast;
 
 namespace Prism.Core.Strings;
 
@@ -20,7 +21,7 @@ public enum KnownName
     [EnumMember(Value = "<inferring>")]
     Inferring,
 
-    #region Build-In Types
+    #region Built-In Types
     [EnumMember(Value = "void")]
     Void,
 
@@ -85,4 +86,39 @@ public enum KnownName
     [EnumMember(Value = "str")]
     Str,
     #endregion
+}
+
+public static partial class KnownNames
+{
+    extension(KnownName)
+    {
+        public static KnownName From(BuiltInType type)
+        {
+            return type switch
+            {
+                BuiltInType.Void => KnownName.Void,
+                BuiltInType.Bool => KnownName.Bool,
+                BuiltInType.I8 => KnownName.I8,
+                BuiltInType.I16 => KnownName.I16,
+                BuiltInType.I32 => KnownName.I32,
+                BuiltInType.I64 => KnownName.I64,
+                BuiltInType.I128 => KnownName.I128,
+                BuiltInType.ISize => KnownName.ISize,
+                BuiltInType.U8 => KnownName.U8,
+                BuiltInType.U16 => KnownName.U16,
+                BuiltInType.U32 => KnownName.U32,
+                BuiltInType.U64 => KnownName.U64,
+                BuiltInType.U128 => KnownName.U128,
+                BuiltInType.USize => KnownName.USize,
+                BuiltInType.F16 => KnownName.F16,
+                BuiltInType.F32 => KnownName.F32,
+                BuiltInType.F64 => KnownName.F64,
+                BuiltInType.Char => KnownName.Char,
+                BuiltInType.Char16 => KnownName.Char16,
+                BuiltInType.Rune => KnownName.Rune,
+                BuiltInType.Str => KnownName.Str,
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+            };
+        }
+    }
 }

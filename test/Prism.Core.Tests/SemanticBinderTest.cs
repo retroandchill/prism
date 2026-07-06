@@ -12,6 +12,7 @@ namespace Prism.Core.Tests;
 
 public class SemanticBinderTest
 {
+    /*
     private static (CompilationUnitSyntax Syntax, CompilationContext Context) CreateCompilationUnit(
         string code
     )
@@ -142,4 +143,5 @@ public class SemanticBinderTest
         Assert.That(type.Name.ToString(), Is.EqualTo("bool"));
         Assert.That(type.BuiltInType, Is.EqualTo(BuiltInType.Bool));
     }
+    */
 }

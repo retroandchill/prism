@@ -15,18 +15,18 @@ public sealed class LocalScope
     private readonly ParentScope _enclosingScope;
 
     private readonly Dictionary<Name, Symbol> _locals = new();
-    private readonly BindingContext _bindingContext;
+    private readonly CompilationContext _context;
 
-    public LocalScope(DeclarationScope enclosingScope, BindingContext bindingContext)
+    public LocalScope(DeclarationScope enclosingScope, CompilationContext context)
     {
         _enclosingScope = enclosingScope;
-        _bindingContext = bindingContext;
+        _context = context;
     }
 
     public LocalScope(LocalScope parent)
     {
         _enclosingScope = parent;
-        _bindingContext = parent._bindingContext;
+        _context = parent._context;
     }
 
     public LocalScope CreateChildScope() => new(this);
@@ -36,7 +36,7 @@ public sealed class LocalScope
         if (_locals.ContainsKey(symbol.Name))
         {
             // Report the duplicate symbol but continue processing with the new symbol definition
-            _bindingContext.ReportDiagnostic(new Diagnostic
+            _context.ReportDiagnostic(new Diagnostic
             {
                 Descriptor = SemanticDiagnostics.DuplicateSymbolDefinition,
                 Range = symbol.Declaration?.Range ?? SourceRange.Empty,

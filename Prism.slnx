@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Prism.Compiler/Prism.Compiler.csproj" />
     <Project Path="src/Prism.Core/Prism.Core.csproj" />
     <Project Path="src/Prism.SourceGenerator/Prism.SourceGenerator.csproj" />
   </Folder>

@@ -3,7 +3,6 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Collections.Immutable;
 using Prism.Core.Ast;
 using Prism.Core.Strings;
 
@@ -12,28 +11,17 @@ using Prism.Core.Strings;
 
 namespace Prism.Core.Semantic.Symbols;
 
-public closed class Symbol
+public closed class Symbol(Name name, DeclarationSyntax? declaration = null, Symbol? containingSymbol = null)
 {
-    public required Name Name { get; init; }
-    public DeclarationSyntax? Declaration { get; init; }
-}
-
-public sealed class VariableSymbol : Symbol
-{
-    public bool IsMutable { get; init; }
-
-    public required TypeSymbol Type { get; init; }
-}
-
-public sealed class FunctionSymbol : Symbol
-{
-    public required TypeSymbol ReturnType { get; init; }
-
-    public required ImmutableArray<ParameterSymbol> Parameters { get; init; }
-}
-
-public sealed class ParameterSymbol : Symbol
-{
-    public bool IsMutable { get; init; }
-    public required TypeSymbol Type { get; init; }
+    public Name Name { get; } = name;
+    
+    public DeclarationSyntax? Declaration { get; } = declaration;
+    
+    public Symbol? ContainingSymbol { get; } = containingSymbol;
+    
+    public abstract SymbolCompletionState CompletionState { get; }
+    
+    public bool IsBound => CompletionState == SymbolCompletionState.Bound;
+    
+    public bool HasErrors => CompletionState == SymbolCompletionState.Error;
 }

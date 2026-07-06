@@ -1,4 +1,4 @@
-﻿// @file TypeSymbol.cs
+﻿// @file ValueSymbol.cs
 //
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
@@ -8,4 +8,7 @@ using Prism.Core.Strings;
 
 namespace Prism.Core.Semantic.Symbols;
 
-public closed class TypeSymbol(Name name, DeclarationSyntax? origin = null, Symbol? containingSymbol = null) : Symbol(name, origin, containingSymbol);
+public closed class ValueSymbol(Name name, DeclarationSyntax declaration, Symbol? containingSymbol = null) : Symbol(name, declaration, containingSymbol)
+{
+    public abstract TypeSymbol? Type { get; }
+}
