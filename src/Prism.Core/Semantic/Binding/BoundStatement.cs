@@ -12,24 +12,20 @@ public closed class BoundStatement : BoundNode;
 
 public sealed class BoundBlock : BoundStatement
 {
-    public required BlockSyntax Syntax { get; init; }
     public required ImmutableArray<BoundStatement> Statements { get; init; }
 }
 
 public sealed class BoundLocalVariable : BoundStatement
 {
-    public required VariableDeclarationStatementSyntax Syntax { get; init; }
     public required BoundVariable Variable { get; init; }
 }
 
 public sealed class BoundExpressionStatement : BoundStatement
 {
-    public required ExpressionStatementSyntax Syntax { get; init; }
     public required BoundExpression Expression { get; init; }
 }
 
 public sealed class BoundReturnStatement : BoundStatement
 {
-    public required ReturnStatementSyntax Syntax { get; init; }
     public required BoundExpression? Expression { get; init; }
 }

@@ -62,4 +62,13 @@ public static class SemanticDiagnostics
             MessageFormat = "Type '{0}' cannot be used with the unary operator",
             Severity = DiagnosticSeverity.Error,
         };
+
+    public static DiagnosticDescriptor BinaryOperatorUndefined { get; } =
+        new()
+        {
+            Id = "PRISM1007",
+            Title = "No usable binary operator",
+            MessageFormat = "Types '{0}' and '{1}' cannot be used with the binary operator",
+            Severity = DiagnosticSeverity.Error,
+        };
 }

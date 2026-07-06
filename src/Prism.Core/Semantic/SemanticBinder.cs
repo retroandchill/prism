@@ -163,6 +163,7 @@ public sealed class SemanticBinder
                 context
             ),
             UnaryExpressionSyntax unary => BindUnaryExpression(unary, scope, context),
+            BinaryExpressionSyntax binary => BindBinaryExpression(binary, scope, context),
             _ => throw new NotImplementedException(),
         };
     }
@@ -225,6 +226,17 @@ public sealed class SemanticBinder
             {
                 isValidType = true;
                 targetType = resultType.GetSymbol();
+
+                if (resultType != builtInType)
+                {
+                    operand = new BoundConversionExpression
+                    {
+                        Input = operand,
+                        Type = resultType.GetSymbol(),
+                        IsImplicit = true,
+                        Syntax = operand.Syntax,
+                    };
+                }
             }
         }
 
@@ -259,25 +271,63 @@ public sealed class SemanticBinder
         var right = BindExpression(expression.Right, scope, context);
 
         if (
-            left.Type is not NamedTypeSymbol { BuiltInType: { } leftType }
-            || right.Type is not NamedTypeSymbol { BuiltInType: { } rightType }
+            left.Type is NamedTypeSymbol { BuiltInType: { } leftType }
+            && right.Type is NamedTypeSymbol { BuiltInType: { } rightType }
         )
-            throw new NotImplementedException();
-        if (Operators.TryResolveBinary(expression.Operator, leftType, rightType, out var result))
         {
-            return new BoundBinaryExpression
+            if (
+                Operators.TryResolveBinary(expression.Operator, leftType, rightType, out var result)
+            )
             {
-                Operator = expression.Operator,
-                Left = left,
-                LeftType = result.LeftType.GetSymbol(),
-                Right = right,
-                RightType = result.RightType.GetSymbol(),
-                Type = result.ResultType.GetSymbol(),
-                Syntax = expression,
-            };
+                if (leftType != result.LeftType)
+                {
+                    left = new BoundConversionExpression
+                    {
+                        Input = left,
+                        Type = result.LeftType.GetSymbol(),
+                        IsImplicit = true,
+                        Syntax = left.Syntax,
+                    };
+                }
+
+                if (rightType != result.RightType)
+                {
+                    right = new BoundConversionExpression
+                    {
+                        Input = right,
+                        Type = result.RightType.GetSymbol(),
+                        IsImplicit = true,
+                        Syntax = right.Syntax,
+                    };
+                }
+                return new BoundBinaryExpression
+                {
+                    Operator = expression.Operator,
+                    Left = left,
+                    Right = right,
+                    Type = result.ResultType.GetSymbol(),
+                    Syntax = expression,
+                };
+            }
         }
 
-        throw new NotImplementedException();
+        context.ReportDiagnostic(
+            new Diagnostic
+            {
+                Descriptor = SemanticDiagnostics.BinaryOperatorUndefined,
+                Range = expression.Range,
+                Arguments = [left.Type.Name, right.Type.Name],
+            }
+        );
+
+        return new BoundBinaryExpression
+        {
+            Operator = expression.Operator,
+            Left = left,
+            Right = right,
+            Type = ErrorTypeSymbol.Default,
+            Syntax = expression,
+        };
     }
 
     private Symbol ComputeSymbol(SymbolDeclaration declaration, BindingContext context)

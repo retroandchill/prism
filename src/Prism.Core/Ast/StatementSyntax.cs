@@ -22,7 +22,7 @@ public sealed record BlockSyntax : StatementSyntax
 
 public sealed record ReturnStatementSyntax : StatementSyntax
 {
-    public required ExpressionSyntax Expression { get; init; }
+    public ExpressionSyntax? Expression { get; init; }
 }
 
 public sealed record ExpressionStatementSyntax : StatementSyntax

@@ -361,6 +361,11 @@ public sealed class Parser(CompilationContext context)
     private ReturnStatementSyntax ParseReturnStatement()
     {
         var start = Expect(TokenKind.Return).Range;
+        if (Match(TokenKind.Semicolon))
+        {
+            return new ReturnStatementSyntax { Range = start.Concat(_stream.Previous.Range) };
+        }
+
         var expression = ParseExpression();
         Expect(TokenKind.Semicolon);
         return new ReturnStatementSyntax
