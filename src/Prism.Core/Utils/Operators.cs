@@ -59,6 +59,7 @@ internal static class Operators
         BinaryOperator @operator,
         BuiltInType leftType,
         BuiltInType rightType,
+        TargetPlatform platform,
         out BinaryOperatorInfo result
     )
     {
@@ -73,7 +74,7 @@ internal static class Operators
             or BinaryOperator.BitOr
             or BinaryOperator.BitXor when leftType.IsInteger && rightType.IsInteger:
             {
-                if (TryGetCommonNumericType(leftType, rightType, out var common))
+                if (TryGetCommonNumericType(leftType, rightType, platform, out var common))
                 {
                     result = new BinaryOperatorInfo(common, common, common);
                     return true;
@@ -86,7 +87,7 @@ internal static class Operators
                 if (
                     leftType.IsNumeric
                     && rightType.IsNumeric
-                    && TryGetCommonNumericType(leftType, rightType, out var common)
+                    && TryGetCommonNumericType(leftType, rightType, platform, out var common)
                 )
                 {
                     result = new BinaryOperatorInfo(common, common, BuiltInType.Bool);
@@ -113,7 +114,7 @@ internal static class Operators
             or BinaryOperator.Less
             or BinaryOperator.LessEqual when leftType.IsNumeric && rightType.IsNumeric:
             {
-                if (TryGetCommonNumericType(leftType, rightType, out var common))
+                if (TryGetCommonNumericType(leftType, rightType, platform, out var common))
                 {
                     result = new BinaryOperatorInfo(common, common, BuiltInType.Bool);
                     return true;
@@ -148,6 +149,7 @@ internal static class Operators
     private static bool TryGetCommonNumericType(
         BuiltInType leftType,
         BuiltInType rightType,
+        TargetPlatform platform,
         out BuiltInType common
     )
     {
@@ -165,13 +167,15 @@ internal static class Operators
             if (leftType.IsFloatingPoint && rightType.IsFloatingPoint)
             {
                 common =
-                    GetNumericWidth(leftType) > GetNumericWidth(rightType) ? leftType : rightType;
+                    leftType.GetByteWidth(platform) > rightType.GetByteWidth(platform)
+                        ? leftType
+                        : rightType;
                 return true;
             }
 
             var integer = leftType.IsInteger ? leftType : rightType;
 
-            if (GetNumericWidth(integer) > 4)
+            if (integer.GetByteWidth(platform) > 4)
             {
                 common = default;
                 return false;
@@ -185,7 +189,10 @@ internal static class Operators
 
         if (leftType.IsUnsigned == rightType.IsUnsigned)
         {
-            common = GetNumericWidth(leftType) >= GetNumericWidth(rightType) ? leftType : rightType;
+            common =
+                leftType.GetByteWidth(platform) >= rightType.GetByteWidth(platform)
+                    ? leftType
+                    : rightType;
             return true;
         }
 
@@ -198,8 +205,8 @@ internal static class Operators
             return false;
         }
 
-        var unsignedWidth = GetNumericWidth(unsignedType);
-        var signedWidth = GetNumericWidth(signedType);
+        var unsignedWidth = unsignedType.GetByteWidth(platform);
+        var signedWidth = signedType.GetByteWidth(platform);
 
         if (signedWidth > unsignedWidth)
         {
@@ -214,20 +221,6 @@ internal static class Operators
             _ => throw new InvalidOperationException(),
         };
         return true;
-    }
-
-    private static int GetNumericWidth(BuiltInType type)
-    {
-        return type switch
-        {
-            BuiltInType.I8 or BuiltInType.U8 => 1,
-            BuiltInType.I16 or BuiltInType.U16 or BuiltInType.F16 => 2,
-            BuiltInType.I32 or BuiltInType.U32 or BuiltInType.F32 => 4,
-            BuiltInType.I64 or BuiltInType.U64 or BuiltInType.F64 => 8,
-            BuiltInType.I128 or BuiltInType.U128 => 16,
-            BuiltInType.ISize or BuiltInType.USize => throw new NotImplementedException(),
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
-        };
     }
 
     private static BuiltInType GetCommonChar(BuiltInType left, BuiltInType right)

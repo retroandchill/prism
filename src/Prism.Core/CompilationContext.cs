@@ -19,6 +19,8 @@ public class CompilationContext(
     public IReadOnlyList<Diagnostic> Diagnostics => _diagnostics;
     public bool HasErrors { get; private set; }
 
+    public TargetPlatform Platform { get; init; } = TargetPlatform.Default;
+
     public ReadOnlySpan<char> GetSpan(SourceRange range) => SourceFile.GetSpan(range);
 
     public void ReportDiagnostic(Diagnostic diagnostic)

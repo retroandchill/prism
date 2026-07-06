@@ -5,6 +5,8 @@ namespace Prism.Core.Tests;
 
 public class OperatorResolutionTests
 {
+    private static readonly TargetPlatform Platform = new() { PointerSize = 8 };
+
     [TestCase(BuiltInType.I8, BuiltInType.I8, BuiltInType.I32)]
     [TestCase(BuiltInType.I16, BuiltInType.I16, BuiltInType.I32)]
     [TestCase(BuiltInType.U8, BuiltInType.U8, BuiltInType.I32)]
@@ -24,7 +26,13 @@ public class OperatorResolutionTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(
-                Operators.TryResolveBinary(BinaryOperator.Add, left, right, out var result)
+                Operators.TryResolveBinary(
+                    BinaryOperator.Add,
+                    left,
+                    right,
+                    Platform,
+                    out var result
+                )
             );
             Assert.That(result.LeftType, Is.EqualTo(common));
             Assert.That(result.RightType, Is.EqualTo(common));
@@ -38,7 +46,10 @@ public class OperatorResolutionTests
     [TestCase(BuiltInType.Bool, BuiltInType.Bool)]
     public void InvalidBinaryArithmetic(BuiltInType left, BuiltInType right)
     {
-        Assert.That(Operators.TryResolveBinary(BinaryOperator.Add, left, right, out _), Is.False);
+        Assert.That(
+            Operators.TryResolveBinary(BinaryOperator.Add, left, right, Platform, out _),
+            Is.False
+        );
     }
 
     [TestCase(BuiltInType.I8, BuiltInType.I8, BuiltInType.I32)]
@@ -66,7 +77,13 @@ public class OperatorResolutionTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(
-                Operators.TryResolveBinary(BinaryOperator.Equal, left, right, out var result)
+                Operators.TryResolveBinary(
+                    BinaryOperator.Equal,
+                    left,
+                    right,
+                    Platform,
+                    out var result
+                )
             );
             Assert.That(result.LeftType, Is.EqualTo(common));
             Assert.That(result.RightType, Is.EqualTo(common));
@@ -79,6 +96,9 @@ public class OperatorResolutionTests
     [TestCase(BuiltInType.U64, BuiltInType.F64)]
     public void InvalidBinaryComparison(BuiltInType left, BuiltInType right)
     {
-        Assert.That(Operators.TryResolveBinary(BinaryOperator.Add, left, right, out _), Is.False);
+        Assert.That(
+            Operators.TryResolveBinary(BinaryOperator.Add, left, right, Platform, out _),
+            Is.False
+        );
     }
 }

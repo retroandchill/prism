@@ -17,6 +17,8 @@ public sealed class BindingContext(CompilationContext compilationContext)
 
     private readonly List<SymbolDeclaration> _stack = [];
 
+    public TargetPlatform Platform => compilationContext.Platform;
+
     public ReadOnlySpan<SymbolDeclaration> CollectCycle()
     {
         var fullSpan = CollectionsMarshal.AsSpan(_stack);

@@ -276,7 +276,13 @@ public sealed class SemanticBinder
         )
         {
             if (
-                Operators.TryResolveBinary(expression.Operator, leftType, rightType, out var result)
+                Operators.TryResolveBinary(
+                    expression.Operator,
+                    leftType,
+                    rightType,
+                    context.Platform,
+                    out var result
+                )
             )
             {
                 if (leftType != result.LeftType)
