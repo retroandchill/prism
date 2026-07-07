@@ -229,7 +229,24 @@ public class SemanticBinderTest
         var namedType = (NamedTypeSymbol)variableSymbol.Type;
         Assert.That(namedType.Name.ToString(), Is.EqualTo("bool"));
         Assert.That(namedType.BuiltInType, Is.EqualTo(BuiltInType.Bool));
-        
-        
+    }
+    
+    [Test]
+    public async Task NoImplicitConversion()
+    {
+        var unit = CreateCompilationUnit(
+            """
+            var x: bool = !y;
+            var y: i32 = true;
+            """
+        );
+
+        Assert.That(unit.Diagnostics, Is.Empty);
+
+        var compilation = new Compilation(TargetPlatform);
+        compilation.SemanticModel.AddCompilationUnit(unit.Syntax);
+
+        var bindingDiagnostics = await compilation.SemanticModel.BindSymbolsAsync();
+        Assert.That(bindingDiagnostics, Is.Not.Empty);
     }
 }

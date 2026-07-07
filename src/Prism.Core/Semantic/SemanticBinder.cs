@@ -54,14 +54,13 @@ internal sealed class SemanticBinder(SemanticModel semanticModel)
         }
     }
     
-    public async ValueTask<BoundExpression> BindAsync(
-        ExpressionSyntax expression,
+    public async ValueTask<BoundExpression> BindAsync(ExpressionSyntax expression,
         LocalScope scope,
         BindingContext context,
-        CancellationToken cancellationToken = default
-    )
+        TypeSymbol? expectedType = null,
+        CancellationToken cancellationToken = default)
     {
-        return expression switch
+        var bound = expression switch
         {
             BooleanLiteralExpressionSyntax literal => new BoundBoolLiteralExpression
             {
@@ -97,6 +96,29 @@ internal sealed class SemanticBinder(SemanticModel semanticModel)
             BinaryExpressionSyntax binary => await BindAsync(binary, scope, context, cancellationToken),
             _ => throw new NotImplementedException(),
         };
+
+        if (expectedType is null) return bound;
+        
+        var conversionKind = ClassifyConversion(expectedType, bound.Type);
+        switch (conversionKind)
+        {
+            case ConversionKind.Identity:
+                // No conversion needed
+                break;
+            case ConversionKind.Implicit:
+                return new BoundConversionExpression
+                {
+                    Syntax = expression,
+                    Input = bound,
+                    IsImplicit = true,
+                    Type = expectedType,
+                };
+            case ConversionKind.Explicit or  ConversionKind.None:
+                context.Diagnostics.NoImplicitConversion(expression.Range, bound.Type.Name, expectedType.Name);
+                break;
+        }
+
+        return bound;
     }
 
     private async ValueTask<BoundVariableExpression> BindAsync(
@@ -125,7 +147,7 @@ internal sealed class SemanticBinder(SemanticModel semanticModel)
         CancellationToken cancellationToken = default
     )
     {
-        var operand = await BindAsync(expression.Operand, scope, context, cancellationToken);
+        var operand = await BindAsync(expression.Operand, scope, context, cancellationToken: cancellationToken);
 
         // Special case for the negation of integer and floating-point literals, since we want to collapse them into
         // a single literal.
@@ -196,8 +218,8 @@ internal sealed class SemanticBinder(SemanticModel semanticModel)
         CancellationToken cancellationToken = default
     )
     {
-        var left = await BindAsync(expression.Left, scope, context, cancellationToken);
-        var right = await BindAsync(expression.Right, scope, context, cancellationToken);
+        var left = await BindAsync(expression.Left, scope, context, cancellationToken: cancellationToken);
+        var right = await BindAsync(expression.Right, scope, context, cancellationToken: cancellationToken);
 
         if (
             left.Type is NamedTypeSymbol { BuiltInType: { } leftType }
@@ -256,5 +278,15 @@ internal sealed class SemanticBinder(SemanticModel semanticModel)
             Type = semanticModel.ErrorTypeSymbol,
             Syntax = expression,
         };
+    }
+
+    private ConversionKind ClassifyConversion(TypeSymbol to, TypeSymbol from)
+    {
+        if (to is NamedTypeSymbol { BuiltInType: { } toBuiltIn } && from is NamedTypeSymbol { BuiltInType: { } fromBuiltIn })
+        {
+            return toBuiltIn.ClassifyConversion(fromBuiltIn, semanticModel.TargetPlatform);
+        }
+        
+        return ConversionKind.None;
     }
 }

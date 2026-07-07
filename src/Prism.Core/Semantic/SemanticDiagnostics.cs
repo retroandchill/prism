@@ -62,4 +62,13 @@ public static partial class SemanticDiagnostics
     )]
     public static partial void BinaryOperatorUndefined(this IDiagnosticSink sink, SourceRange range, Name left,
         Name right);
+    
+    [Diagnostic(
+        Id = "PRISM1008",
+        Title = "No implicit conversion",
+        MessageFormat = "No implicit conversion from '{0}' to '{1}'",
+        Severity = DiagnosticSeverity.Error
+    )]
+    public static partial void NoImplicitConversion(this IDiagnosticSink sink, SourceRange range,
+        Name from, Name to);
 }

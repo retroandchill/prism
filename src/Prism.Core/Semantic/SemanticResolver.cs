@@ -128,7 +128,8 @@ internal sealed class SemanticResolver(SemanticModel model, SemanticBinder binde
         {
             var declarationScope = model.GetDeclarationScope(symbol.Declaration);
             var localScope = new LocalScope(declarationScope, context.Diagnostics);
-            return await binder.BindAsync(syntax.Initializer, localScope, context, cancellationToken);
+            var targetType = syntax.Type is not null ? _valueTypeSlots[symbol].Result : null;
+            return await binder.BindAsync(syntax.Initializer, localScope, context, targetType, cancellationToken);
         })!);
     }
 }
