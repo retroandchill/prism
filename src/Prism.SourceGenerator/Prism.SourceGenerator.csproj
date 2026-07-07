@@ -57,6 +57,12 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Compile Include="..\Prism.Core\Diagnostics\DiagnosticAttribute.cs">
+        <Link>Diagnostics\DiagnosticAttribute.cs</Link>
+      </Compile>
+      <Compile Include="..\Prism.Core\Diagnostics\DiagnosticSeverity.cs">
+        <Link>Diagnostics\DiagnosticSeverity.cs</Link>
+      </Compile>
       <Compile Include="..\Prism.Core\Parse\TokenAttributes.cs">
         <Link>Tokens\TokenAttributes.cs</Link>
       </Compile>

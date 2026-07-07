@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using Prism.Core.Diagnostics;
 using Prism.Core.Parse;
 using Prism.Core.Semantic.Symbols;
 using Prism.Core.Strings;
@@ -31,12 +32,7 @@ internal sealed class LocalScope(DeclarationScope enclosingScope, IDiagnosticSin
         if (_locals.ContainsKey(symbol.Name))
         {
             // Report the duplicate symbol but continue processing with the new symbol definition
-            _diagnostics.Report(new Diagnostic
-            {
-                Descriptor = SemanticDiagnostics.DuplicateSymbolDefinition,
-                Range = symbol.Declaration?.Range ?? SourceRange.Empty,
-                Arguments = [symbol.Name],
-            });
+            _diagnostics.DuplicateSymbolDefinition(symbol.Declaration?.Range ?? SourceRange.Empty, symbol.Name);
         }
 
         _locals[symbol.Name] = symbol;

@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using Prism.Core.Ast;
+using Prism.Core.Diagnostics;
 using Prism.Core.Semantic.Binding;
 using Prism.Core.Semantic.Symbols;
 
@@ -83,13 +84,8 @@ internal sealed class SemanticResolver(SemanticModel model, SemanticBinder binde
         // If this returns null, then that means the function had no initializer and thus we can't determine the type,
         // because there was neither an explicit type nor an initializer.
         if (boundInitializer is not null) return boundInitializer.Type;
-        
-        context.Diagnostics.Report(new Diagnostic
-        {
-            Descriptor = SemanticDiagnostics.VariableWithoutTypeOrInitializer,
-            Range = syntax.Identifier.Range,
-            Arguments = [symbol.Name]
-        });
+
+        context.Diagnostics.VariableWithoutTypeOrInitializer(syntax.Range, symbol.Name);
         return model.ErrorTypeSymbol;
 
     }

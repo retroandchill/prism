@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Numerics;
 using Cysharp.Text;
 using Prism.Core.Ast;
+using Prism.Core.Diagnostics;
 using Prism.Core.Utils;
 
 namespace Prism.Core.Parse;
@@ -64,23 +65,10 @@ public sealed class Parser(SourceDocument sourceDocument)
                 return ParseFunctionDeclaration(modifiers);
             case TokenKind.Semicolon when modifiers.IsEmpty:
                 _stream.Advance();
-                sourceDocument.Diagnostics.Report(
-                    new Diagnostic
-                    {
-                        Descriptor = ParseDiagnostics.EmptyStatement,
-                        Range = next.Range,
-                    }
-                );
+                sourceDocument.Diagnostics.EmptyStatement(next.Range);
                 return new EmptyDeclarationSyntax { Range = next.Range };
             default:
-                sourceDocument.Diagnostics.Report(
-                    new Diagnostic
-                    {
-                        Descriptor = ParseDiagnostics.UnexpectedToken,
-                        Range = next.Range,
-                        Arguments = [next.Kind],
-                    }
-                );
+                sourceDocument.Diagnostics.UnexpectedToken(next.Range, next.Kind);
                 return new EmptyDeclarationSyntax { Range = next.Range };
         }
     }
@@ -203,14 +191,7 @@ public sealed class Parser(SourceDocument sourceDocument)
                 break;
             default:
                 body = EmptyBody.Instance;
-                sourceDocument.Diagnostics.Report(
-                    new Diagnostic
-                    {
-                        Descriptor = ParseDiagnostics.UnexpectedToken,
-                        Range = next.Range,
-                        Arguments = [next.Kind],
-                    }
-                );
+                sourceDocument.Diagnostics.UnexpectedToken(next.Range, next.Kind);
                 Synchronize(false);
                 break;
         }
@@ -311,13 +292,7 @@ public sealed class Parser(SourceDocument sourceDocument)
                 return ParseBlock();
             case TokenKind.Semicolon:
                 _stream.Advance();
-                sourceDocument.Diagnostics.Report(
-                    new Diagnostic
-                    {
-                        Descriptor = ParseDiagnostics.EmptyStatement,
-                        Range = next.Range,
-                    }
-                );
+                sourceDocument.Diagnostics.EmptyStatement(next.Range);
                 return new EmptyStatementSyntax { Range = next.Range };
             default:
                 return ParseExpressionStatement();
@@ -333,13 +308,7 @@ public sealed class Parser(SourceDocument sourceDocument)
         {
             if (_stream.AtEnd)
             {
-                sourceDocument.Diagnostics.Report(
-                    new Diagnostic
-                    {
-                        Descriptor = ParseDiagnostics.UnexpectedEndOfFile,
-                        Range = _stream.Peek().Range,
-                    }
-                );
+                sourceDocument.Diagnostics.UnexpectedEndOfFile(_stream.Peek().Range);
                 break;
             }
 
@@ -536,14 +505,7 @@ public sealed class Parser(SourceDocument sourceDocument)
                 return expression;
             }
             default:
-                sourceDocument.Diagnostics.Report(
-                    new Diagnostic
-                    {
-                        Descriptor = ParseDiagnostics.UnexpectedToken,
-                        Range = _stream.Peek().Range,
-                        Arguments = [next.Kind],
-                    }
-                );
+                sourceDocument.Diagnostics.UnexpectedToken(next.Range, next.Kind);
                 return new InvalidExpressionSyntax()
                 {
                     Range = next.Range,
@@ -554,12 +516,12 @@ public sealed class Parser(SourceDocument sourceDocument)
 
     private string ParseEscapedString(Token token)
     {
-        using var builder = ZString.CreateUtf8StringBuilder();
-        var source = sourceDocument.SourceFile.GetSpan(token.Range);
+        using var builder = ZString.CreateStringBuilder();
+        var source = sourceDocument.SourceFile.GetMemory(token.Range);
         var str = token.IsUnterminated ? source[1..] : source[1..^1];
         for (var i = 0; i < str.Length; i++)
         {
-            var c = str[i];
+            var c = str.Span[i];
             if (c != '/')
             {
                 builder.Append(c);
@@ -568,18 +530,11 @@ public sealed class Parser(SourceDocument sourceDocument)
 
             if (i + 1 >= str.Length)
             {
-                sourceDocument.Diagnostics.Report(
-                    new Diagnostic
-                    {
-                        Descriptor = ParseDiagnostics.UnexpectedEscape,
-                        Range = new SourceRange(token.Range.Start + i, 1),
-                        Arguments = [c],
-                    }
-                );
+                sourceDocument.Diagnostics.UnexpectedEscape(new SourceRange(token.Range.Start + i, 1), str.Slice(i, 1));
                 break;
             }
 
-            var next = str[i + 1];
+            var next = str.Span[i + 1];
             switch (next)
             {
                 case 'n':
@@ -611,14 +566,7 @@ public sealed class Parser(SourceDocument sourceDocument)
                     i++;
                     break;
                 default:
-                    sourceDocument.Diagnostics.Report(
-                        new Diagnostic
-                        {
-                            Descriptor = ParseDiagnostics.UnexpectedEscape,
-                            Range = new SourceRange(token.Range.Start + i, 2),
-                            Arguments = [str.Slice(i, 2).ToString()],
-                        }
-                    );
+                    sourceDocument.Diagnostics.UnexpectedEscape(new SourceRange(token.Range.Start + i, 2), str.Slice(i, 2));
                     break;
             }
         }
@@ -703,13 +651,7 @@ public sealed class Parser(SourceDocument sourceDocument)
         {
             if (_stream.AtEnd)
             {
-                sourceDocument.Diagnostics.Report(
-                    new Diagnostic
-                    {
-                        Descriptor = ParseDiagnostics.UnexpectedEndOfFile,
-                        Range = next.Range,
-                    }
-                );
+                sourceDocument.Diagnostics.UnexpectedEndOfFile(next.Range);
                 break;
             }
 
@@ -736,14 +678,7 @@ public sealed class Parser(SourceDocument sourceDocument)
                         Range = name.Range.AsEmpty(),
                         Flags = SyntaxFlags.Missing,
                     };
-                    sourceDocument.Diagnostics.Report(
-                        new Diagnostic
-                        {
-                            Descriptor = ParseDiagnostics.UnexpectedToken,
-                            Range = next.Range,
-                            Arguments = [next.Kind],
-                        }
-                    );
+                    sourceDocument.Diagnostics.UnexpectedToken(next.Range, next.Kind);
                 }
 
                 builder.Add(
@@ -785,14 +720,7 @@ public sealed class Parser(SourceDocument sourceDocument)
     {
         if (!Match(kind, out var token))
         {
-            sourceDocument.Diagnostics.Report(
-                new Diagnostic
-                {
-                    Descriptor = ParseDiagnostics.UnexpectedToken,
-                    Range = _stream.Peek().Range,
-                    Arguments = [token.Kind],
-                }
-            );
+            sourceDocument.Diagnostics.UnexpectedToken(_stream.Peek().Range, token.Kind);
         }
 
         return token;

@@ -5,6 +5,7 @@
 
 using System.Collections.Concurrent;
 using Prism.Core.Ast;
+using Prism.Core.Diagnostics;
 using Prism.Core.Semantic.Binding;
 using Prism.Core.Semantic.Symbols;
 using Prism.Core.Strings;
@@ -176,14 +177,7 @@ internal sealed class SemanticBinder(SemanticModel semanticModel)
 
         if (!isValidType)
         {
-            context.Diagnostics.Report(
-                new Diagnostic
-                {
-                    Descriptor = SemanticDiagnostics.UnaryOperatorUndefined,
-                    Range = expression.Range,
-                    Arguments = [operand.Type.Name],
-                }
-            );
+            context.Diagnostics.UnaryOperatorUndefined(expression.Range, operand.Type.Name);
         }
 
         return new BoundUnaryExpression
@@ -252,14 +246,7 @@ internal sealed class SemanticBinder(SemanticModel semanticModel)
             }
         }
 
-        context.Diagnostics.Report(
-            new Diagnostic
-            {
-                Descriptor = SemanticDiagnostics.BinaryOperatorUndefined,
-                Range = expression.Range,
-                Arguments = [left.Type.Name, right.Type.Name],
-            }
-        );
+        context.Diagnostics.BinaryOperatorUndefined(expression.Range, left.Type.Name, right.Type.Name);
 
         return new BoundBinaryExpression
         {

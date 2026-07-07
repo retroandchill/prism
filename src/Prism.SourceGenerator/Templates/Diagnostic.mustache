@@ -1,0 +1,45 @@
+﻿#nullable enable
+using Prism.Core.Diagnostics;
+using Cysharp.Text;
+using Prism.Core.Parse;
+
+namespace {{Namespace}};
+
+partial {{ClassType}} {{ClassName}}
+{
+    {{Access}}{{Static}} partial void {{MethodName}}({{#IsExtension}}this {{/IsExtension}}{{SinkType}} {{SinkParam}}, SourceRange {{RangeParam}}{{#FormatParams}}, {{Type}} {{Name}}{{/FormatParams}})
+    {
+        {{SinkParam}}.Report(new {{DiagnosticClass}}Diagnostic({{RangeParam}}{{#FormatParams}}, {{Name}}{{/FormatParams}}));
+    }
+
+    private sealed class {{DiagnosticClass}}Diagnostic(SourceRange range{{#FormatParams}}, {{Type}} param_{{Name}}{{/FormatParams}}) : Diagnostic
+    {
+        private static readonly DiagnosticDescriptor StaticDescriptor = new()
+        {
+            Id = {{Id}},
+            Title = {{Title}},
+            {{#NotNull Description}}
+            Description = {{Description}},
+            {{/NotNull}}
+            Severity = DiagnosticSeverity.{{Severity}},
+            MessageFormat = {{MessageFormat}}
+        };
+
+        {{^Equals FormatParams.Length 0}}
+        private static readonly Utf16PreparedFormat<{{#Joined ", " FormatParams}}{{Type}}{{/Joined}}> Format = ZString.PrepareUtf16<{{#Joined ", " FormatParams}}{{Type}}{{/Joined}}>({{MessageFormat}});
+        {{/Equals}}   
+
+        public override DiagnosticDescriptor Descriptor => StaticDescriptor;
+        public override SourceRange Range { get; } = range;
+        
+        public override string GetMessage(IFormatProvider? provider = null)
+        {
+            {{#Equals FormatParams.Length 0}}
+            return StaticDescriptor.MessageFormat;    
+            {{/Equals}}
+            {{^Equals FormatParams.Length 0}}
+            return Format.Format({{#Joined ", " FormatParams}}param_{{Name}}{{/Joined}});   
+            {{/Equals}}    
+        }
+    }
+}

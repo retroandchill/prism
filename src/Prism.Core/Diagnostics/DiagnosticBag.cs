@@ -5,7 +5,7 @@
 
 using System.Collections;
 
-namespace Prism.Core;
+namespace Prism.Core.Diagnostics;
 
 public sealed class DiagnosticBag :  IDiagnosticSink, IReadOnlyList<Diagnostic>
 {
