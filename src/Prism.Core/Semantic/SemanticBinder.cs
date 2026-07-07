@@ -108,7 +108,7 @@ internal sealed class SemanticBinder(SemanticModel semanticModel)
     {
         var variable = ResolveVariable(identifier.Name, scope);
 
-        var type = await semanticModel.GetValueTypeAsync(variable, context, cancellationToken);
+        var type = await semanticModel.ResolveValueTypeAsync(variable, context, cancellationToken);
 
         return new BoundVariableExpression
         {

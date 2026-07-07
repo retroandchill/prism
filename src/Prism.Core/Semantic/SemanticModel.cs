@@ -5,9 +5,9 @@
 
 using System.Collections.Concurrent;
 using Prism.Core.Ast;
+using Prism.Core.Diagnostics;
 using Prism.Core.Semantic.Binding;
 using Prism.Core.Semantic.Symbols;
-using Prism.Core.Strings;
 
 namespace Prism.Core.Semantic;
 
@@ -111,12 +111,51 @@ public sealed class SemanticModel
             containingSymbol);
     }
 
+    internal async ValueTask<DiagnosticBag> BindSymbolsAsync(CancellationToken cancellationToken = default)
+    {
+        var topLevelBag = new DiagnosticBag();
+        await foreach (var task in Task
+                           .WhenEach(_symbolCache.Keys.Select(x =>
+                               BindSymbolAsync(_symbolCache[x], cancellationToken)))
+                           .WithCancellation(cancellationToken))
+        {
+            var result = task.Result;
+            foreach (var diagnostic in result)
+            {
+                topLevelBag.Report(diagnostic);
+            }
+        }
+
+        _resolvedSemanticState = _semanticResolver.Complete();
+        return topLevelBag;
+    }
+
+    private async Task<DiagnosticBag> BindSymbolAsync(Symbol symbol, CancellationToken cancellationToken = default)
+    {
+        var bag = new DiagnosticBag();
+        var context = new BindingContext(bag, ResolutionContext.Empty);
+        switch (symbol)
+        {
+            case VariableSymbol variableSymbol:
+                await ResolveValueTypeAsync(variableSymbol, context, cancellationToken);
+                await ResolveVariableInitializerAsync(variableSymbol, context, cancellationToken);
+                break;
+            case ParameterSymbol parameterSymbol:
+                await ResolveValueTypeAsync(parameterSymbol, context, cancellationToken);
+                break;
+            default:
+                throw new NotImplementedException();
+        }
+        
+        return bag;
+    }
+
     internal TypeSymbol GetValueType(ValueSymbol valueSymbol)
     {
         return _resolvedSemanticState is not null ? _resolvedSemanticState.ValueTypes[valueSymbol] : throw new InvalidOperationException("Type resolution not complete");
     }
 
-    internal ValueTask<TypeSymbol> GetValueTypeAsync(ValueSymbol valueSymbol,
+    internal ValueTask<TypeSymbol> ResolveValueTypeAsync(ValueSymbol valueSymbol,
         BindingContext context,
         CancellationToken cancellationToken = default)
     {
@@ -126,5 +165,11 @@ public sealed class SemanticModel
     internal BoundExpression? GetVariableInitializer(VariableSymbol symbol)
     {
         return _resolvedSemanticState is not null ? _resolvedSemanticState.Initializers.GetValueOrDefault(symbol) : throw new InvalidOperationException("Type resolution not complete");
+    }
+
+    internal ValueTask<BoundExpression?> ResolveVariableInitializerAsync(VariableSymbol valueSymbol, BindingContext context,
+        CancellationToken cancellationToken = default)
+    {
+        return _semanticResolver.ResolveVariableInitializerAsync(valueSymbol, context, cancellationToken);
     }
 }

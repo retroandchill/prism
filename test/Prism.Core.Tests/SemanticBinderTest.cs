@@ -43,7 +43,7 @@ public class SemanticBinderTest
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         var variableSymbol = (VariableSymbol)symbol;
         var bindingContext = new BindingContext(unit.Diagnostics, ResolutionContext.Empty);
-        var type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        var type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
         Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
         
         var namedType = (NamedTypeSymbol)type;
@@ -68,7 +68,7 @@ public class SemanticBinderTest
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         var variableSymbol = (VariableSymbol)symbol;
         var bindingContext = new BindingContext(unit.Diagnostics, ResolutionContext.Empty);
-        var type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        var type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
         Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
         
         var namedType = (NamedTypeSymbol)type;
@@ -98,7 +98,7 @@ public class SemanticBinderTest
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         var variableSymbol = (VariableSymbol)symbol;
         var bindingContext = new BindingContext(unit.Diagnostics, ResolutionContext.Empty);
-        var type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        var type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
         Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
         
         var namedType = (NamedTypeSymbol)type;
@@ -111,7 +111,7 @@ public class SemanticBinderTest
         symbol = y[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         variableSymbol = (VariableSymbol)symbol;
-        type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
         Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
 
         namedType = (NamedTypeSymbol)type;
@@ -141,7 +141,7 @@ public class SemanticBinderTest
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         var variableSymbol = (VariableSymbol)symbol;
         var bindingContext = new BindingContext(unit.Diagnostics, ResolutionContext.Empty);
-        var type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        var type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
         Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
         
         var namedType = (NamedTypeSymbol)type;
@@ -154,7 +154,7 @@ public class SemanticBinderTest
         symbol = y[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         variableSymbol = (VariableSymbol)symbol;
-        type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
         Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
 
         namedType = (NamedTypeSymbol)type;
@@ -184,7 +184,7 @@ public class SemanticBinderTest
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         var variableSymbol = (VariableSymbol)symbol;
         var bindingContext = new BindingContext(unit.Diagnostics, ResolutionContext.Empty);
-        var type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        var type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
         Assert.That(type, Is.InstanceOf<ErrorTypeSymbol>());
         
         Assert.That(unit.Diagnostics, Has.Count.EqualTo(1));
@@ -195,7 +195,41 @@ public class SemanticBinderTest
         symbol = y[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         variableSymbol = (VariableSymbol)symbol;
-        type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
         Assert.That(type, Is.InstanceOf<ErrorTypeSymbol>());
+    }
+
+    [Test]
+    public async Task FullSymbolResolution()
+    {
+        var unit = CreateCompilationUnit(
+            """
+            var x: bool = !y;
+            var y = true;
+            """
+        );
+
+        Assert.That(unit.Diagnostics, Is.Empty);
+
+        var compilation = new Compilation(TargetPlatform);
+        compilation.SemanticModel.AddCompilationUnit(unit.Syntax);
+
+        await compilation.SemanticModel.BindSymbolsAsync();
+
+        var scope = compilation.SemanticModel.GlobalScope;
+        var x = scope.GetDeclaredHere("x");
+        Assert.That(x, Has.Length.EqualTo(1));
+        
+        var symbol = x[0];
+        Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
+        var variableSymbol = (VariableSymbol)symbol;
+        Assert.That(variableSymbol.Type, Is.InstanceOf<NamedTypeSymbol>());
+        Assert.That(variableSymbol.Initializer, Is.Not.Null);
+        
+        var namedType = (NamedTypeSymbol)variableSymbol.Type;
+        Assert.That(namedType.Name.ToString(), Is.EqualTo("bool"));
+        Assert.That(namedType.BuiltInType, Is.EqualTo(BuiltInType.Bool));
+        
+        
     }
 }
