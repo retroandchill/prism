@@ -71,7 +71,7 @@ internal sealed class AsyncResolutionState<T>
     public Task<T> GetOrStart(Func<Task<T>> factory)
     {
         using var scope = _lock.EnterScope();
-        _task ??= factory();
+        _task ??= Task.Run(factory);
         return _task;
     }
     

@@ -26,7 +26,7 @@ public static partial class SemanticDiagnostics
         Severity = DiagnosticSeverity.Error
     )]
     public static partial void CyclicSymbolDefinition(this IDiagnosticSink sink, SourceRange range, Name source,
-        Name target);
+        string chain);
 
     [Diagnostic(
         Id = "PRISM1003",

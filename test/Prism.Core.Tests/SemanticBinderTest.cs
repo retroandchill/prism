@@ -12,136 +12,190 @@ namespace Prism.Core.Tests;
 
 public class SemanticBinderTest
 {
-    /*
-    private static (CompilationUnitSyntax Syntax, CompilationContext Context) CreateCompilationUnit(
+    private static readonly TargetPlatform TargetPlatform = new()
+    {
+        PointerSize = 8
+    };
+    
+    private static SourceUnit CreateCompilationUnit(
         string code
     )
     {
-        var context = new CompilationContext(new SourceFile(code));
+        var context = new SourceDocument(code);
         var parser = new Parser(context);
-        return (parser.ParseCompilationUnit(), context);
+        return parser.ParseCompilationUnit();
     }
 
     [Test]
-    public void BindVariableExplicitType()
+    public async Task BindVariableExplicitType()
     {
-        var (syntax, context) = CreateCompilationUnit("var x: i32 = 5;");
+        var unit = CreateCompilationUnit("var x: i32 = 5;");
 
-        Assert.That(context.Diagnostics, Is.Empty);
+        Assert.That(unit.Diagnostics, Is.Empty);
 
-        var scope = syntax.ScanDeclarations();
-        var x = scope.FindDeclarations("x");
+        var compilation = new Compilation(TargetPlatform);
+        compilation.SemanticModel.AddCompilationUnit(unit.Syntax);
+        var scope = compilation.SemanticModel.GlobalScope;
+        var x = scope.GetDeclaredHere("x");
         Assert.That(x, Has.Length.EqualTo(1));
-
-        var binder = new SemanticBinder();
-        var symbol = binder.GetSymbol(x[0], context);
+        
+        var symbol = x[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         var variableSymbol = (VariableSymbol)symbol;
-        Assert.That(variableSymbol.Type, Is.InstanceOf<NamedTypeSymbol>());
-
-        var type = (NamedTypeSymbol)variableSymbol.Type;
+        var bindingContext = new BindingContext(unit.Diagnostics, ResolutionContext.Empty);
+        var type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
+        
+        var namedType = (NamedTypeSymbol)type;
         Assert.That(type.Name.ToString(), Is.EqualTo("i32"));
-        Assert.That(type.BuiltInType, Is.EqualTo(BuiltInType.I32));
+        Assert.That(namedType.BuiltInType, Is.EqualTo(BuiltInType.I32));
     }
 
     [Test]
-    public void BindVariableInferredType()
+    public async Task BindVariableInferredType()
     {
-        var (syntax, context) = CreateCompilationUnit("var x = 5;");
+        var unit = CreateCompilationUnit("var x: i32 = 5;");
 
-        Assert.That(context.Diagnostics, Is.Empty);
+        Assert.That(unit.Diagnostics, Is.Empty);
 
-        var scope = syntax.ScanDeclarations();
-        var x = scope.FindDeclarations("x");
+        var compilation = new Compilation(TargetPlatform);
+        compilation.SemanticModel.AddCompilationUnit(unit.Syntax);
+        var scope = compilation.SemanticModel.GlobalScope;
+        var x = scope.GetDeclaredHere("x");
         Assert.That(x, Has.Length.EqualTo(1));
-
-        var binder = new SemanticBinder();
-        var symbol = binder.GetSymbol(x[0], context);
+        
+        var symbol = x[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         var variableSymbol = (VariableSymbol)symbol;
-        Assert.That(variableSymbol.Type, Is.InstanceOf<NamedTypeSymbol>());
-
-        var type = (NamedTypeSymbol)variableSymbol.Type;
+        var bindingContext = new BindingContext(unit.Diagnostics, ResolutionContext.Empty);
+        var type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
+        
+        var namedType = (NamedTypeSymbol)type;
         Assert.That(type.Name.ToString(), Is.EqualTo("i32"));
-        Assert.That(type.BuiltInType, Is.EqualTo(BuiltInType.I32));
+        Assert.That(namedType.BuiltInType, Is.EqualTo(BuiltInType.I32));
     }
 
     [Test]
-    public void BindVariableFromOtherVariable()
+    public async Task BindVariableFromOtherVariable()
     {
-        var (syntax, context) = CreateCompilationUnit(
+        var unit = CreateCompilationUnit(
             """
             var x = y;
             var y = 4;
             """
         );
 
-        Assert.That(context.Diagnostics, Is.Empty);
+        Assert.That(unit.Diagnostics, Is.Empty);
 
-        var scope = syntax.ScanDeclarations();
-        var x = scope.FindDeclarations("x");
+        var compilation = new Compilation(TargetPlatform);
+        compilation.SemanticModel.AddCompilationUnit(unit.Syntax);
+        var scope = compilation.SemanticModel.GlobalScope;
+        var x = scope.GetDeclaredHere("x");
         Assert.That(x, Has.Length.EqualTo(1));
-
-        var binder = new SemanticBinder();
-        var symbol = binder.GetSymbol(x[0], context);
+        
+        var symbol = x[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         var variableSymbol = (VariableSymbol)symbol;
-        Assert.That(variableSymbol.Type, Is.InstanceOf<NamedTypeSymbol>());
-
-        var type = (NamedTypeSymbol)variableSymbol.Type;
+        var bindingContext = new BindingContext(unit.Diagnostics, ResolutionContext.Empty);
+        var type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
+        
+        var namedType = (NamedTypeSymbol)type;
         Assert.That(type.Name.ToString(), Is.EqualTo("i32"));
-        Assert.That(type.BuiltInType, Is.EqualTo(BuiltInType.I32));
+        Assert.That(namedType.BuiltInType, Is.EqualTo(BuiltInType.I32));
 
-        var y = scope.FindDeclarations("y");
+        var y = scope.GetDeclaredHere("y");
         Assert.That(x, Has.Length.EqualTo(1));
 
-        symbol = binder.GetSymbol(y[0], context);
+        symbol = y[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         variableSymbol = (VariableSymbol)symbol;
-        Assert.That(variableSymbol.Type, Is.InstanceOf<NamedTypeSymbol>());
+        type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
 
-        type = (NamedTypeSymbol)variableSymbol.Type;
+        namedType = (NamedTypeSymbol)type;
         Assert.That(type.Name.ToString(), Is.EqualTo("i32"));
-        Assert.That(type.BuiltInType, Is.EqualTo(BuiltInType.I32));
+        Assert.That(namedType.BuiltInType, Is.EqualTo(BuiltInType.I32));
     }
 
     [Test]
-    public void BindVariableFromUnaryOperator()
+    public async Task BindVariableFromUnaryOperator()
     {
-        var (syntax, context) = CreateCompilationUnit(
+        var unit = CreateCompilationUnit(
             """
             var x = !y;
             var y = true;
             """
         );
 
-        Assert.That(context.Diagnostics, Is.Empty);
+        Assert.That(unit.Diagnostics, Is.Empty);
 
-        var scope = syntax.ScanDeclarations();
-        var x = scope.FindDeclarations("x");
+        var compilation = new Compilation(TargetPlatform);
+        compilation.SemanticModel.AddCompilationUnit(unit.Syntax);
+        var scope = compilation.SemanticModel.GlobalScope;
+        var x = scope.GetDeclaredHere("x");
         Assert.That(x, Has.Length.EqualTo(1));
-
-        var binder = new SemanticBinder();
-        var symbol = binder.GetSymbol(x[0], context);
+        
+        var symbol = x[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         var variableSymbol = (VariableSymbol)symbol;
-        Assert.That(variableSymbol.Type, Is.InstanceOf<NamedTypeSymbol>());
-
-        var type = (NamedTypeSymbol)variableSymbol.Type;
+        var bindingContext = new BindingContext(unit.Diagnostics, ResolutionContext.Empty);
+        var type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
+        
+        var namedType = (NamedTypeSymbol)type;
         Assert.That(type.Name.ToString(), Is.EqualTo("bool"));
-        Assert.That(type.BuiltInType, Is.EqualTo(BuiltInType.Bool));
+        Assert.That(namedType.BuiltInType, Is.EqualTo(BuiltInType.Bool));
 
-        var y = scope.FindDeclarations("y");
+        var y = scope.GetDeclaredHere("y");
         Assert.That(x, Has.Length.EqualTo(1));
 
-        symbol = binder.GetSymbol(y[0], context);
+        symbol = y[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         variableSymbol = (VariableSymbol)symbol;
-        Assert.That(variableSymbol.Type, Is.InstanceOf<NamedTypeSymbol>());
+        type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
 
-        type = (NamedTypeSymbol)variableSymbol.Type;
+        namedType = (NamedTypeSymbol)type;
         Assert.That(type.Name.ToString(), Is.EqualTo("bool"));
-        Assert.That(type.BuiltInType, Is.EqualTo(BuiltInType.Bool));
+        Assert.That(namedType.BuiltInType, Is.EqualTo(BuiltInType.Bool));
     }
-    */
+    
+    [Test]
+    public async Task UnableToBindCycle()
+    {
+        var unit = CreateCompilationUnit(
+            """
+            var x = y;
+            var y = x;
+            """
+        );
+
+        Assert.That(unit.Diagnostics, Is.Empty);
+
+        var compilation = new Compilation(TargetPlatform);
+        compilation.SemanticModel.AddCompilationUnit(unit.Syntax);
+        var scope = compilation.SemanticModel.GlobalScope;
+        var x = scope.GetDeclaredHere("x");
+        Assert.That(x, Has.Length.EqualTo(1));
+        
+        var symbol = x[0];
+        Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
+        var variableSymbol = (VariableSymbol)symbol;
+        var bindingContext = new BindingContext(unit.Diagnostics, ResolutionContext.Empty);
+        var type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        Assert.That(type, Is.InstanceOf<ErrorTypeSymbol>());
+        
+        Assert.That(unit.Diagnostics, Has.Count.EqualTo(1));
+
+        var y = scope.GetDeclaredHere("y");
+        Assert.That(x, Has.Length.EqualTo(1));
+
+        symbol = y[0];
+        Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
+        variableSymbol = (VariableSymbol)symbol;
+        type = await compilation.SemanticModel.GetValueTypeAsync(variableSymbol, bindingContext);
+        Assert.That(type, Is.InstanceOf<ErrorTypeSymbol>());
+    }
 }

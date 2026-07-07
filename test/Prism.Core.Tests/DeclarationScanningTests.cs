@@ -12,7 +12,7 @@ namespace Prism.Core.Tests;
 
 public class DeclarationScanningTests
 {
-    private readonly TargetPlatform _targetPlatform = new()
+    private static readonly TargetPlatform TargetPlatform = new()
     {
         PointerSize = 8
     };
@@ -40,7 +40,7 @@ public class DeclarationScanningTests
 
         Assert.That(unit.Diagnostics, Is.Empty);
 
-        var compilation = new Compilation(_targetPlatform);
+        var compilation = new Compilation(TargetPlatform);
         var semanticModel = compilation.SemanticModel;
         semanticModel.AddCompilationUnit(unit.Syntax);
         var scope = semanticModel.GlobalScope;

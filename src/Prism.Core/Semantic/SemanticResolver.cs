@@ -10,6 +10,7 @@ using Prism.Core.Ast;
 using Prism.Core.Diagnostics;
 using Prism.Core.Semantic.Binding;
 using Prism.Core.Semantic.Symbols;
+using ZLinq;
 
 namespace Prism.Core.Semantic;
 
@@ -37,10 +38,12 @@ internal sealed class SemanticResolver(SemanticModel model, SemanticBinder binde
     public ValueTask<TypeSymbol> ResolveValueTypeAsync(ValueSymbol symbol, BindingContext context,
         CancellationToken cancellationToken = default)
     {
+        EnsureSymbolResolvable(symbol.Declaration);
         var key = new ResolutionKey(symbol, ResolutionKind.ValueType);
 
         if (context.Resolution.Contains(key))
         {
+            context.Diagnostics.CyclicSymbolDefinition(symbol.Declaration.Range, symbol.Name, context.Resolution.CollectCycle(key));
             return ValueTask.FromResult<TypeSymbol>(model.ErrorTypeSymbol);
         }
         
