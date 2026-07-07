@@ -3,40 +3,35 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using Prism.Core.Parse;
 using Prism.Core.Semantic.Symbols;
 using Prism.Core.Strings;
 
 namespace Prism.Core.Semantic;
 
-public sealed class LocalScope
+
+internal sealed class LocalScope(DeclarationScope enclosingScope, IDiagnosticSink diagnostics)
 {
-    private union ParentScope(DeclarationScope, LocalScope);
-    private readonly ParentScope _enclosingScope;
+    public LocalScope? OuterLocal { get; }
+    public DeclarationScope OuterDeclaration { get; } = enclosingScope;
 
-    private readonly Dictionary<Name, Symbol> _locals = new();
-    private readonly CompilationContext _context;
+    private readonly Dictionary<Name, ValueSymbol> _locals = new();
+    private readonly IDiagnosticSink _diagnostics = diagnostics;
 
-    public LocalScope(DeclarationScope enclosingScope, CompilationContext context)
+    public LocalScope(LocalScope parent) : this(parent.OuterDeclaration, parent._diagnostics)
     {
-        _enclosingScope = enclosingScope;
-        _context = context;
-    }
-
-    public LocalScope(LocalScope parent)
-    {
-        _enclosingScope = parent;
-        _context = parent._context;
+        OuterLocal = parent;
     }
 
     public LocalScope CreateChildScope() => new(this);
 
-    public void DefineLocal(Symbol symbol)
+    public void DefineLocal(ValueSymbol symbol)
     {
         if (_locals.ContainsKey(symbol.Name))
         {
             // Report the duplicate symbol but continue processing with the new symbol definition
-            _context.ReportDiagnostic(new Diagnostic
+            _diagnostics.Report(new Diagnostic
             {
                 Descriptor = SemanticDiagnostics.DuplicateSymbolDefinition,
                 Range = symbol.Declaration?.Range ?? SourceRange.Empty,
@@ -46,4 +41,6 @@ public sealed class LocalScope
 
         _locals[symbol.Name] = symbol;
     }
+    
+    public ValueSymbol? GetLocal(Name name) => _locals.GetValueOrDefault(name);
 }

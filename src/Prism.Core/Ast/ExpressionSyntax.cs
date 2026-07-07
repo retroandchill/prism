@@ -6,11 +6,10 @@
 using System.Collections.Immutable;
 using System.Numerics;
 using Prism.Core.Strings;
-#pragma warning disable CA1067
 
 namespace Prism.Core.Ast;
 
-public closed record ExpressionSyntax : SyntaxNode;
+public abstract record ExpressionSyntax : SyntaxNode, IFunctionBodySyntax;
 
 public sealed record BooleanLiteralExpressionSyntax : ExpressionSyntax
 {

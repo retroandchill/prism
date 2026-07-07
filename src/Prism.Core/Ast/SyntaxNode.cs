@@ -15,7 +15,7 @@ public enum SyntaxFlags
     Unknown = 1 << 1
 }
 
-public closed record SyntaxNode
+public abstract record SyntaxNode
 {
     public required SourceRange Range { get; init; }
 

@@ -3,8 +3,6 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Collections.Immutable;
-using Prism.Core.Ast;
 using Prism.Core.Parse;
 using Prism.Core.Semantic;
 
@@ -12,21 +10,26 @@ namespace Prism.Core;
 
 public sealed class CompilerExecutor(TargetPlatform? targetPlatform = null)
 {
-    private readonly SemanticModel _semanticModel = new();
     private readonly TargetPlatform _targetPlatform = targetPlatform ?? TargetPlatform.Default;
 
-    public async Task CompileAsync(
+    public async Task<Compilation> CompileAsync(
         IEnumerable<FileInfo> files,
         CancellationToken cancellationToken = default
     )
     {
+        var compilation = new Compilation(_targetPlatform);
         var compileResults = await Task.WhenAll(
-            files.Select(file => ParseFileAsync(file, cancellationToken))
+            files.Select(file => Task.Run(() => ParseFileAsync(file, compilation, cancellationToken), cancellationToken))
         );
+        
+        await Task.WhenAll(compileResults.Select(result => Task.Run(() => BindSyntaxAsync(result, compilation, cancellationToken), cancellationToken)));
+        
+        return compilation;
     }
 
-    private async Task<SourceUnit> ParseFileAsync(
+    private static async Task<SourceUnit> ParseFileAsync(
         FileInfo file,
+        Compilation compilation,
         CancellationToken cancellationToken = default
     )
     {
@@ -44,8 +47,13 @@ public sealed class CompilerExecutor(TargetPlatform? targetPlatform = null)
         var unit = parser.ParseCompilationUnit();
 
         cancellationToken.ThrowIfCancellationRequested();
-        _semanticModel.AddCompilationUnit(unit.Syntax);
+        compilation.SemanticModel.AddCompilationUnit(unit.Syntax);
 
         return unit;
+    }
+
+    private static async Task BindSyntaxAsync(SourceUnit unit, Compilation compilation, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
     }
 }

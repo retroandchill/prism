@@ -30,6 +30,12 @@ public sealed class DeclarationScope
         _declarations.AddOrUpdate(symbol.Name, [symbol], (_, existing) => existing.Add(symbol));
     }
 
+    public ImmutableArray<Symbol> GetDeclaredHere(Name name)
+    {
+        return _declarations.GetValueOrDefault(name, []);
+    }
+
+    [Obsolete("Use GetDeclaredHere instead")]
     public ImmutableArray<Symbol> FindDeclarations(Name name)
     {
         if (_declarations.TryGetValue(name, out var declarations))
@@ -40,6 +46,7 @@ public sealed class DeclarationScope
         return Parent?.FindDeclarations(name) ?? [];
     }
 
+    [Obsolete("Use GetDeclaredHere instead")]
     public IEnumerable<Symbol> FindAllDeclarations(Name name)
     {
         return _declarations

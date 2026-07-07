@@ -18,8 +18,8 @@ public enum KnownName
     [EnumMember(Value = "<error>")]
     Error,
 
-    [EnumMember(Value = "<inferring>")]
-    Inferring,
+    [EnumMember(Value = "<pending>")]
+    Pending,
 
     #region Built-In Types
     [EnumMember(Value = "void")]

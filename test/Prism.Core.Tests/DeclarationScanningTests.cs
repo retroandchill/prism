@@ -12,6 +12,11 @@ namespace Prism.Core.Tests;
 
 public class DeclarationScanningTests
 {
+    private readonly TargetPlatform _targetPlatform = new()
+    {
+        PointerSize = 8
+    };
+    
     private static SourceUnit CreateCompilationUnit(string code)
     {
         var context = new SourceDocument(code);
@@ -35,7 +40,8 @@ public class DeclarationScanningTests
 
         Assert.That(unit.Diagnostics, Is.Empty);
 
-        var semanticModel = new SemanticModel();
+        var compilation = new Compilation(_targetPlatform);
+        var semanticModel = compilation.SemanticModel;
         semanticModel.AddCompilationUnit(unit.Syntax);
         var scope = semanticModel.GlobalScope;
         var x = scope.FindDeclarations("x");

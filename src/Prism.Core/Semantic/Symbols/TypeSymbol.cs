@@ -8,4 +8,4 @@ using Prism.Core.Strings;
 
 namespace Prism.Core.Semantic.Symbols;
 
-public closed class TypeSymbol(Name name, DeclarationSyntax? origin = null, Symbol? containingSymbol = null) : Symbol(name, origin, containingSymbol);
+public abstract class TypeSymbol(Name name, Compilation compilation, DeclarationSyntax? origin = null, Symbol? containingSymbol = null) : Symbol(name, compilation, origin, containingSymbol);

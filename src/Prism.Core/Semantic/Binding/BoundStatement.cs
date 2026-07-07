@@ -5,10 +5,11 @@
 
 using System.Collections.Immutable;
 using Prism.Core.Ast;
+using Prism.Core.Semantic.Symbols;
 
 namespace Prism.Core.Semantic.Binding;
 
-public closed class BoundStatement : BoundNode;
+public abstract class BoundStatement : BoundNode;
 
 public sealed class BoundBlock : BoundStatement
 {
@@ -17,7 +18,9 @@ public sealed class BoundBlock : BoundStatement
 
 public sealed class BoundLocalVariable : BoundStatement
 {
-    public required BoundVariable Variable { get; init; }
+    public required VariableSymbol Symbol { get; init; }
+
+    public required BoundExpression? Initializer { get; init; }
 }
 
 public sealed class BoundExpressionStatement : BoundStatement

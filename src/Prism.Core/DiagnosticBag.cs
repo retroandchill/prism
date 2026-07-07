@@ -7,7 +7,7 @@ using System.Collections;
 
 namespace Prism.Core;
 
-public sealed class DiagnosticBag : IReadOnlyList<Diagnostic>
+public sealed class DiagnosticBag :  IDiagnosticSink, IReadOnlyList<Diagnostic>
 {
     private readonly List<Diagnostic> _diagnostics = [];
     public bool HasErrors { get; private set; }

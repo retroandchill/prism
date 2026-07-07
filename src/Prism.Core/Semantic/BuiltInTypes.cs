@@ -11,80 +11,8 @@ namespace Prism.Core.Semantic;
 
 public static partial class BuiltInTypes
 {
-    private static readonly NamedTypeSymbol Void = new(BuiltInType.Void);
-
-    public static readonly NamedTypeSymbol Bool = new(BuiltInType.Bool);
-
-    public static readonly NamedTypeSymbol I8 = new(BuiltInType.I8);
-
-    public static readonly NamedTypeSymbol I16 = new(BuiltInType.I16);
-
-    public static readonly NamedTypeSymbol I32 = new(BuiltInType.I32);
-
-    public static readonly NamedTypeSymbol I64 = new(BuiltInType.I64);
-
-    public static readonly NamedTypeSymbol I128 = new(BuiltInType.I128);
-
-    // ReSharper disable once InconsistentNaming
-    public static readonly NamedTypeSymbol ISize = new(BuiltInType.ISize);
-
-    public static readonly NamedTypeSymbol U8 = new(BuiltInType.U8);
-
-    public static readonly NamedTypeSymbol U16 = new(BuiltInType.U16);
-
-    public static readonly NamedTypeSymbol U32 = new(BuiltInType.U32);
-
-    public static readonly NamedTypeSymbol U64 = new(BuiltInType.U64);
-
-    public static readonly NamedTypeSymbol U128 = new(BuiltInType.U128);
-
-    public static readonly NamedTypeSymbol USize = new(BuiltInType.USize);
-
-    public static readonly NamedTypeSymbol F16 = new(BuiltInType.F16);
-
-    public static readonly NamedTypeSymbol F32 = new(BuiltInType.F32);
-
-    public static readonly NamedTypeSymbol F64 = new(BuiltInType.F64);
-
-    private static readonly NamedTypeSymbol Char = new(BuiltInType.Char);
-
-    private static readonly NamedTypeSymbol Char16 = new(BuiltInType.Char16);
-
-    private static readonly NamedTypeSymbol Rune = new(BuiltInType.Rune);
-
-    public static readonly NamedTypeSymbol Str = new(BuiltInType.Str);
-
     extension(BuiltInType type)
     {
-        public NamedTypeSymbol GetSymbol()
-        {
-            return type switch
-            {
-                BuiltInType.Void => Void,
-                BuiltInType.Bool => Bool,
-                BuiltInType.I8 => I8,
-                BuiltInType.I16 => I16,
-                BuiltInType.I32 => I32,
-                BuiltInType.I64 => I64,
-                BuiltInType.I128 => I128,
-                BuiltInType.ISize => ISize,
-                BuiltInType.U8 => U8,
-                BuiltInType.U16 => U16,
-                BuiltInType.U32 => U32,
-                BuiltInType.U64 => U64,
-                BuiltInType.U128 => U128,
-                BuiltInType.USize => USize,
-                BuiltInType.F16 => F16,
-                BuiltInType.F32 => F32,
-                BuiltInType.F64 => F64,
-                BuiltInType.Char => Char,
-                BuiltInType.Char16 => Char16,
-                BuiltInType.Rune => Rune,
-                BuiltInType.Str => Str,
-                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
-            };
-        }
-
         public bool IsSignedInteger =>
             type
                 is BuiltInType.I8
@@ -199,38 +127,5 @@ public static partial class BuiltInTypes
 
             return false;
         }
-    }
-
-    public static NamedTypeSymbol GetTypeSymbol(this IntegerSuffix suffix)
-    {
-        return suffix switch
-        {
-            IntegerSuffix.None => I32,
-            IntegerSuffix.I8 => I8,
-            IntegerSuffix.I16 => I16,
-            IntegerSuffix.I32 => I32,
-            IntegerSuffix.I64 => I64,
-            IntegerSuffix.I128 => I128,
-            IntegerSuffix.ISize => ISize,
-            IntegerSuffix.U8 => U8,
-            IntegerSuffix.U16 => U16,
-            IntegerSuffix.U32 => U32,
-            IntegerSuffix.U64 => U64,
-            IntegerSuffix.U128 => U128,
-            IntegerSuffix.USize => USize,
-            _ => throw new ArgumentOutOfRangeException(nameof(suffix), suffix, null),
-        };
-    }
-
-    public static NamedTypeSymbol GetTypeSymbol(this FloatSuffix suffix)
-    {
-        return suffix switch
-        {
-            FloatSuffix.None => F64,
-            FloatSuffix.F16 => F16,
-            FloatSuffix.F32 => F32,
-            FloatSuffix.F64 => F64,
-            _ => throw new ArgumentOutOfRangeException(nameof(suffix), suffix, null),
-        };
     }
 }

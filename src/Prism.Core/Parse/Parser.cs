@@ -185,7 +185,7 @@ public sealed class Parser(SourceDocument sourceDocument)
             returnType = ParseType();
         }
 
-        FunctionBodySyntax body;
+        IFunctionBodySyntax body;
         var next = _stream.Peek();
         switch (next.Kind)
         {

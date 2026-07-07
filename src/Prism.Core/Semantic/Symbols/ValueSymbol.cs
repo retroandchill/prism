@@ -8,7 +8,11 @@ using Prism.Core.Strings;
 
 namespace Prism.Core.Semantic.Symbols;
 
-public closed class ValueSymbol(Name name, DeclarationSyntax declaration, Symbol? containingSymbol = null) : Symbol(name, declaration, containingSymbol)
+public abstract class ValueSymbol : Symbol
 {
-    public abstract TypeSymbol? Type { get; }
+    private protected ValueSymbol(Name name, Compilation compilation, DeclarationSyntax? declaration = null, Symbol? containingSymbol = null) : base(name, compilation, declaration, containingSymbol)
+    {
+    }
+
+    public TypeSymbol Type => Compilation.SemanticModel.GetValueType(this);
 }

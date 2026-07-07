@@ -7,7 +7,7 @@ using Prism.Core.Ast;
 
 namespace Prism.Core.Semantic.Binding;
 
-public closed class BoundNode
+public abstract class BoundNode
 {
     public required SyntaxNode Syntax { get; init; }
 }

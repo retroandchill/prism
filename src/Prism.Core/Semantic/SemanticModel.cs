@@ -5,7 +5,9 @@
 
 using System.Collections.Concurrent;
 using Prism.Core.Ast;
+using Prism.Core.Semantic.Binding;
 using Prism.Core.Semantic.Symbols;
+using Prism.Core.Strings;
 
 namespace Prism.Core.Semantic;
 
@@ -17,11 +19,35 @@ public sealed class SemanticModel
 
     private readonly ConcurrentDictionary<DeclarationSyntax, DeclarationScope> _declaringScopes =
         new(ReferenceEqualityComparer.Instance);
+
     private readonly ConcurrentDictionary<DeclarationSyntax, DeclarationScope> _ownedScopes = new(
         ReferenceEqualityComparer.Instance
     );
 
+    private readonly SemanticBinder _semanticBinder;
+    private readonly SemanticResolver _semanticResolver;
+    private ResolvedSemanticState? _resolvedSemanticState;
+
+    private readonly Compilation _compilation;
+    
+    public TargetPlatform TargetPlatform => _compilation.TargetPlatform;
+    
+    internal BuiltInTypeSet BuiltInTypes { get; }
+
+    internal ErrorTypeSymbol ErrorTypeSymbol { get; }
+    internal UnresolvedValueSymbol UnresolvedValueSymbol { get; }
+
     public DeclarationScope GlobalScope { get; } = new();
+
+    internal SemanticModel(Compilation compilation)
+    {
+        _compilation = compilation;
+        BuiltInTypes = new BuiltInTypeSet(compilation);
+        ErrorTypeSymbol = new ErrorTypeSymbol(compilation);
+        UnresolvedValueSymbol = new UnresolvedValueSymbol(compilation);
+        _semanticBinder = new SemanticBinder(this);
+        _semanticResolver = new SemanticResolver(this, _semanticBinder);
+    }
 
     public Symbol? GetSymbol(DeclarationSyntax node)
     {
@@ -44,38 +70,61 @@ public sealed class SemanticModel
             AddSymbol(declaration, GlobalScope);
     }
 
-    private void AddSymbol(DeclarationSyntax declaration, DeclarationScope scope)
+    private void AddSymbol(DeclarationSyntax declaration, DeclarationScope scope, Symbol? containingSymbol = null)
     {
         switch (declaration)
         {
             case VariableDeclarationSyntax variableDeclaration:
-                AddSymbol(variableDeclaration, v => new VariableSymbol(v), scope);
+                AddSymbol(variableDeclaration, (v, c) => new VariableSymbol(v, _compilation, containingSymbol: c), scope,
+                    containingSymbol);
                 break;
             case ParameterDeclarationSyntax parameterDeclaration:
-                AddSymbol(parameterDeclaration, p => new ParameterSymbol(p), scope);
+                AddSymbol(parameterDeclaration, (p, c) => new ParameterSymbol(p, _compilation, containingSymbol: c),
+                    scope, containingSymbol);
                 break;
             case FunctionDeclarationSyntax functionDeclaration:
-                AddSymbol(functionDeclaration, scope);
+                AddSymbol(functionDeclaration, scope, containingSymbol);
                 break;
         }
     }
 
-    private TSymbol AddSymbol<TSymbol, TSyntax>(TSyntax syntax, Func<TSyntax, TSymbol> createSymbol, DeclarationScope scope)
+    private TSymbol AddSymbol<TSymbol, TSyntax>(TSyntax syntax, Func<TSyntax, Symbol?, TSymbol> createSymbol,
+        DeclarationScope scope, Symbol? containingSymbol)
         where TSymbol : Symbol
         where TSyntax : DeclarationSyntax
     {
-        var symbol = createSymbol(syntax);
+        var symbol = createSymbol(syntax, containingSymbol);
         scope.AddDeclaration(symbol);
         _symbolCache[syntax] = symbol;
         _declaringScopes[syntax] = scope;
         return symbol;
     }
-    
-    private void AddSymbol(FunctionDeclarationSyntax declaration, DeclarationScope scope)
+
+    private void AddSymbol(FunctionDeclarationSyntax declaration, DeclarationScope scope, Symbol? containingSymbol)
     {
         var functionScope = new DeclarationScope(declaration, scope);
         _ownedScopes[declaration] = functionScope;
-        AddSymbol(declaration, f => new FunctionSymbol(f, p => AddSymbol(p, x => new ParameterSymbol(x), functionScope)), scope);
-        
+        AddSymbol(declaration,
+            (f, c) => new FunctionSymbol(f, _compilation,
+                (p, s) => AddSymbol(p, 
+                    (x, c1) => new ParameterSymbol(x, _compilation, c1), functionScope, s), containingSymbol: c), scope,
+            containingSymbol);
+    }
+
+    internal TypeSymbol GetValueType(ValueSymbol valueSymbol)
+    {
+        return _resolvedSemanticState is not null ? _resolvedSemanticState.ValueTypes[valueSymbol] : throw new InvalidOperationException("Type resolution not complete");
+    }
+
+    internal ValueTask<TypeSymbol> GetValueTypeAsync(ValueSymbol valueSymbol,
+        BindingContext context,
+        CancellationToken cancellationToken = default)
+    {
+        return _semanticResolver.ResolveValueTypeAsync(valueSymbol, context, cancellationToken);
+    }
+    
+    internal BoundExpression? GetVariableInitializer(VariableSymbol symbol)
+    {
+        return _resolvedSemanticState is not null ? _resolvedSemanticState.Initializers.GetValueOrDefault(symbol) : throw new InvalidOperationException("Type resolution not complete");
     }
 }

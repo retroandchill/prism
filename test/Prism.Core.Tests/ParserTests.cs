@@ -6,7 +6,6 @@
 using System.Numerics;
 using Prism.Core.Ast;
 using Prism.Core.Parse;
-using Prism.Core.Tests.Constraints;
 
 namespace Prism.Core.Tests;
 
@@ -69,7 +68,7 @@ public class ParserTests
         var parameter2Type = (BuiltInTypeSyntax)function.Parameters[1].Type;
         Assert.That(parameter2Type.Type, Is.EqualTo(BuiltInType.I32));
 
-        Assert.That(function.Body, Has.Alternative<BlockSyntax>());
+        Assert.That(function.Body, Is.InstanceOf<BlockSyntax>());
     }
 
     [Test]

@@ -9,18 +9,19 @@ using ZLinq;
 
 namespace Prism.Core.Semantic.Symbols;
 
-public sealed class FunctionSymbol(
-    FunctionDeclarationSyntax declaration,
-    Func<ParameterDeclarationSyntax, ParameterSymbol> parameterFactory,
-    Symbol? containingSymbol = null
-) : Symbol(declaration.Identifier.Name, declaration, containingSymbol)
+public sealed class FunctionSymbol : Symbol
 {
-    public override SymbolCompletionState CompletionState => Semantics.CompletionState;
+    internal FunctionSymbol(FunctionDeclarationSyntax declaration,
+        Compilation compilation,
+        Func<ParameterDeclarationSyntax, FunctionSymbol, ParameterSymbol> parameterFactory,
+        Symbol? containingSymbol = null) : base(declaration.Identifier.Name, compilation, declaration, containingSymbol)
+    {
+        Parameters = [.. declaration.Parameters.AsValueEnumerable().Select(x => parameterFactory(x, this))];
+    }
 
     public TypeSymbol? ReturnType => Semantics.ReturnType;
 
-    public ImmutableArray<ParameterSymbol> Parameters { get; } =
-    [.. declaration.Parameters.AsValueEnumerable().Select(parameterFactory)];
+    public ImmutableArray<ParameterSymbol> Parameters { get; }
 
     internal FunctionSymbolSemantics Semantics
     {
@@ -31,7 +32,5 @@ public sealed class FunctionSymbol(
 
 internal sealed record FunctionSymbolSemantics
 {
-    public SymbolCompletionState CompletionState { get; init; } = SymbolCompletionState.Declared;
-
     public TypeSymbol? ReturnType { get; init; }
 }

@@ -6,22 +6,24 @@
 using Prism.Core.Ast;
 using Prism.Core.Strings;
 
-#pragma warning disable CA1067
-#pragma warning disable CA1050
-
 namespace Prism.Core.Semantic.Symbols;
 
-public closed class Symbol(Name name, DeclarationSyntax? declaration = null, Symbol? containingSymbol = null)
+public abstract class Symbol
 {
-    public Name Name { get; } = name;
+    private protected Symbol(Name name, Compilation compilation, DeclarationSyntax? declaration = null,
+        Symbol? containingSymbol = null)
+    {
+        Name = name;
+        Compilation = compilation;
+        Declaration = declaration;
+        ContainingSymbol = containingSymbol;
+    }
+
+    public Name Name { get; }
     
-    public DeclarationSyntax? Declaration { get; } = declaration;
+    public DeclarationSyntax? Declaration { get; }
     
-    public Symbol? ContainingSymbol { get; } = containingSymbol;
+    public Symbol? ContainingSymbol { get; }
     
-    public abstract SymbolCompletionState CompletionState { get; }
-    
-    public bool IsBound => CompletionState == SymbolCompletionState.Bound;
-    
-    public bool HasErrors => CompletionState == SymbolCompletionState.Error;
+    public Compilation Compilation { get; }
 }

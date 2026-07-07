@@ -11,7 +11,7 @@ using Prism.Core.Utils;
 
 namespace Prism.Core.Semantic.Binding;
 
-public closed class BoundExpression : BoundNode
+public abstract class BoundExpression : BoundNode
 {
     public required TypeSymbol Type { get; init; }
 }
@@ -40,7 +40,7 @@ public sealed class BoundStringLiteralExpression : BoundExpression
 
 public sealed class BoundVariableExpression : BoundExpression
 {
-    public required VariableSymbol Symbol { get; init; }
+    public required ValueSymbol Symbol { get; init; }
 }
 
 public sealed class BoundConversionExpression : BoundExpression

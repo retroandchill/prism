@@ -8,5 +8,5 @@ using Prism.Core.Strings;
 
 namespace Prism.Core.Semantic.Symbols;
 
-public sealed class ErrorTypeSymbol(Compilation compilation, Symbol? containingSymbol = null)
-    : TypeSymbol(KnownName.Error, compilation, containingSymbol: containingSymbol);
+public sealed class PendingTypeSymbol(Compilation compilation, Symbol? containingSymbol = null)
+    : TypeSymbol(KnownName.Pending, compilation, containingSymbol: containingSymbol);
