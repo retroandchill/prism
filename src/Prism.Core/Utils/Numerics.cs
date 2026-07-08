@@ -10,6 +10,7 @@ using System.Numerics;
 using Prism.Core.Ast;
 using Prism.Core.Semantic;
 using Prism.Core.Semantic.Symbols;
+using Singulink.Numerics;
 
 namespace Prism.Core.Utils;
 
@@ -105,7 +106,7 @@ public static class Numerics
         }
     }
 
-    public static (decimal Value, FloatSuffix Suffix) ParseFloat(ReadOnlySpan<char> literalValue)
+    public static (BigDecimal Value, FloatSuffix Suffix) ParseFloat(ReadOnlySpan<char> literalValue)
     {
         var suffix = FloatSuffix.None;
         foreach (var (str, type) in FloatSuffixes)
@@ -118,7 +119,7 @@ public static class Numerics
         }
 
         return (
-            decimal.Parse(literalValue, NumberStyles.Float, CultureInfo.InvariantCulture),
+            BigDecimal.Parse(literalValue, NumberStyles.Float, CultureInfo.InvariantCulture),
             suffix
         );
     }

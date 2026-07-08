@@ -8,6 +8,7 @@ using System.Numerics;
 using Prism.Core.Ast;
 using Prism.Core.Semantic.Symbols;
 using Prism.Core.Utils;
+using Singulink.Numerics;
 
 namespace Prism.Core.Semantic.Binding;
 
@@ -51,10 +52,10 @@ public sealed class BoundIntegerLiteralExpression : BoundExpression
 public sealed class BoundFloatLiteralExpression : BoundExpression
 {
     public override TypeSymbol Type => SemanticModel.BuiltInTypes.GetTypeSymbol(Suffix);
-    public decimal Value { get; }
+    public BigDecimal Value { get; }
     public FloatSuffix Suffix { get; }
     
-    internal BoundFloatLiteralExpression(SyntaxNode syntax, SemanticModel model, decimal value, FloatSuffix suffix) : base(syntax, model)
+    internal BoundFloatLiteralExpression(SyntaxNode syntax, SemanticModel model, BigDecimal value, FloatSuffix suffix) : base(syntax, model)
     {
         Value = value;
         Suffix = suffix;

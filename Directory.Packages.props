@@ -14,6 +14,7 @@
     <PackageVersion Include="Retro.SourceGeneratorUtilities" Version="0.1.5" />
     <PackageVersion Include="RhoMicro.CodeAnalysis.UtilityGenerators" Version="24.1.9" />
     <PackageVersion Include="Riok.Mapperly" Version="4.3.1" />
+    <PackageVersion Include="Singulink.Numerics.BigDecimal" Version="3.4.0" />
     <PackageVersion Include="System.CommandLine" Version="2.0.9" />
     <PackageVersion Include="System.IO.Hashing" Version="10.0.9" />
     <PackageVersion Include="System.Linq.AsyncEnumerable" Version="10.0.9" />

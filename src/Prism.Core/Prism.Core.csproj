@@ -11,6 +11,7 @@
       <PackageReference Include="NetEscapades.EnumGenerators" />
       <PackageReference Include="Nito.Collections.Deque" />
       <PackageReference Include="Riok.Mapperly" />
+      <PackageReference Include="Singulink.Numerics.BigDecimal" />
       <PackageReference Include="System.IO.Hashing" />
       <PackageReference Include="System.Linq.AsyncEnumerable" />
       <PackageReference Include="ZLinq" />

@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Numerics;
 using Prism.Core.Parse;
 using Prism.Core.Strings;
+using Singulink.Numerics;
 
 namespace Prism.Core.Ast;
 
@@ -60,7 +61,7 @@ public enum FloatSuffix : byte
 
 public sealed record FloatLiteralExpressionSyntax : ExpressionSyntax
 {
-    public required decimal Value { get; init; }
+    public required BigDecimal Value { get; init; }
 
     public required FloatSuffix Suffix { get; init; }
 
