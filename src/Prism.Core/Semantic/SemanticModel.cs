@@ -36,6 +36,7 @@ public sealed class SemanticModel
 
     internal ErrorTypeSymbol ErrorTypeSymbol { get; }
     internal UnresolvedValueSymbol UnresolvedValueSymbol { get; }
+    internal UnresolvedCallableSymbol UnresolvedCallableSymbol { get; }
 
     public DeclarationScope GlobalScope { get; } = new();
 
@@ -45,6 +46,7 @@ public sealed class SemanticModel
         BuiltInTypes = new BuiltInTypeSet(compilation);
         ErrorTypeSymbol = new ErrorTypeSymbol(compilation);
         UnresolvedValueSymbol = new UnresolvedValueSymbol(compilation);
+        UnresolvedCallableSymbol = new UnresolvedCallableSymbol(compilation);
         _semanticBinder = new SemanticBinder(this);
         _semanticResolver = new SemanticResolver(this, _semanticBinder);
     }
@@ -171,5 +173,12 @@ public sealed class SemanticModel
         CancellationToken cancellationToken = default)
     {
         return _semanticResolver.ResolveVariableInitializerAsync(valueSymbol, context, cancellationToken);
+    }
+    
+    internal ValueTask<TypeSymbol> ResolveFunctionReturnTypeAsync(CallableSymbol functionSymbol,
+        BindingContext context,
+        CancellationToken cancellationToken = default)
+    {
+        return _semanticResolver.ResolveFunctionReturnTypeAsync(functionSymbol, context, cancellationToken);
     }
 }

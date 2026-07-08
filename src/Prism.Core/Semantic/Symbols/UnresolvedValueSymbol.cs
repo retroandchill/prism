@@ -13,4 +13,6 @@ public sealed class UnresolvedValueSymbol : ValueSymbol
     internal UnresolvedValueSymbol(Compilation compilation) : base(KnownName.Error, compilation)
     {
     }
+
+    public override bool IsAssignable => false;
 }

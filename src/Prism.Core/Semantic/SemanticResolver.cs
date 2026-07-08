@@ -19,8 +19,11 @@ internal sealed class SemanticResolver(SemanticModel model, SemanticBinder binde
     private readonly ConcurrentDictionary<ValueSymbol, AsyncResolutionState<TypeSymbol>> _valueTypeSlots = new(
         ReferenceEqualityComparer.Instance
     );
-    
     private readonly ConcurrentDictionary<VariableSymbol, AsyncResolutionState<BoundExpression>> _variableInitializers = new(
+        ReferenceEqualityComparer.Instance
+    );
+    
+    private readonly ConcurrentDictionary<CallableSymbol, AsyncResolutionState<TypeSymbol>> _functionReturnTypes = new(
         ReferenceEqualityComparer.Instance
     );
 
@@ -33,6 +36,11 @@ internal sealed class SemanticResolver(SemanticModel model, SemanticBinder binde
             Initializers = _variableInitializers.ToFrozenDictionary(kvp => kvp.Key,
                 kvp => kvp.Value.Result)
         };
+    }
+    
+    internal TypeSymbol? GetValueTypeUnsafe(ValueSymbol valueSymbol)
+    {
+        return _valueTypeSlots.TryGetValue(valueSymbol, out var slot) && slot.IsCompleted ? slot.Result : null;
     }
 
     public ValueTask<TypeSymbol> ResolveValueTypeAsync(ValueSymbol symbol, BindingContext context,
@@ -131,5 +139,38 @@ internal sealed class SemanticResolver(SemanticModel model, SemanticBinder binde
             var targetType = syntax.Type is not null ? _valueTypeSlots[symbol].Result : null;
             return await binder.BindAsync(syntax.Initializer, localScope, context, targetType, cancellationToken);
         })!);
+    }
+    
+    public ValueTask<TypeSymbol> ResolveFunctionReturnTypeAsync(CallableSymbol symbol, BindingContext context,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureSymbolResolvable(symbol.Declaration);
+        var key = new ResolutionKey(symbol, ResolutionKind.ValueType);
+
+        if (context.Resolution.Contains(key))
+        {
+            context.Diagnostics.CyclicSymbolDefinition(symbol.Declaration.Range, symbol.Name, context.Resolution.CollectCycle(key));
+            return ValueTask.FromResult<TypeSymbol>(model.ErrorTypeSymbol);
+        }
+        
+        var slot = _functionReturnTypes.GetOrAdd(symbol, static _ => new AsyncResolutionState<TypeSymbol>());
+        
+        return new ValueTask<TypeSymbol>(
+            slot.GetOrStart(() => ResolveReturnTypeCoreAsync(symbol, context with { Resolution = context.Resolution.Push(key) }, cancellationToken))
+        );
+    }
+    
+    private async Task<TypeSymbol> ResolveReturnTypeCoreAsync(CallableSymbol symbol, BindingContext context,
+        CancellationToken cancellationToken)
+    {
+        EnsureSymbolResolvable(symbol.Declaration);
+        var syntax = (FunctionDeclarationSyntax)symbol.Declaration;
+        if (syntax.ReturnType is not null)
+        {
+            return await ResolveExplicitTypeAsync(syntax.ReturnType, cancellationToken);
+        }
+        
+        // We need to resolve the bodies in this instance
+        throw new NotImplementedException();
     }
 }

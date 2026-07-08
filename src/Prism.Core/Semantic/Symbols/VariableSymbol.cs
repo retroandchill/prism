@@ -16,6 +16,8 @@ public sealed class VariableSymbol(
 ) : ValueSymbol(declaration.Identifier.Name, compilation, declaration, containingSymbol)
 {
     public bool IsMutable { get; } = declaration.IsMutable;
+    
+    public override bool IsAssignable => IsMutable;
 
     public BoundExpression? Initializer => Compilation.SemanticModel.GetVariableInitializer(this);
 }

@@ -7,11 +7,16 @@ using Prism.Core.Ast;
 
 namespace Prism.Core.Semantic.Symbols;
 
-public sealed class ParameterSymbol(
-    ParameterDeclarationSyntax declaration,
-    Compilation compilation,
-    Symbol? containingSymbol = null
-) : ValueSymbol(declaration.Identifier.Name, compilation, declaration, containingSymbol)
+public sealed class ParameterSymbol : ValueSymbol
 {
-    public bool IsMutable { get; } = declaration.IsMutable;
+    public bool IsMutable { get; }
+    
+    public override bool IsAssignable => IsMutable;
+    
+    internal ParameterSymbol(ParameterDeclarationSyntax declaration,
+        Compilation compilation,
+        Symbol? containingSymbol = null) : base(declaration.Identifier.Name, compilation, declaration, containingSymbol)
+    {
+        IsMutable = declaration.IsMutable;
+    }
 }

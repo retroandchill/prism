@@ -9,5 +9,13 @@ namespace Prism.Core.Semantic.Binding;
 
 public abstract class BoundNode
 {
-    public required SyntaxNode Syntax { get; init; }
+    public SyntaxNode Syntax { get; }
+    
+    public SemanticModel SemanticModel { get; }
+
+    private protected BoundNode(SyntaxNode syntax, SemanticModel semanticModel)
+    {
+        Syntax = syntax;
+        SemanticModel = semanticModel;
+    }
 }

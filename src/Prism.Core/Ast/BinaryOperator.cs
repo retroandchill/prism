@@ -3,10 +3,12 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using NetEscapades.EnumGenerators;
 using Prism.Core.Parse;
 
 namespace Prism.Core.Ast;
 
+[EnumExtensions(ExtensionClassName = "BinaryOperators")]
 public enum BinaryOperator
 {
     Add,
@@ -50,7 +52,7 @@ public enum BinaryOperator
     UnsignedShiftRightAssign,
 }
 
-public static class BinaryOperatorExtensions
+public static partial class BinaryOperators
 {
     public static BinaryOperator ToBinaryOperator(this TokenKind kind)
     {
@@ -91,5 +93,10 @@ public static class BinaryOperatorExtensions
             TokenKind.EqualEqual => BinaryOperator.Equal,
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
+    }
+
+    extension(BinaryOperator op)
+    {
+        public bool IsAssignmentOperator => op.AsUnderlyingType() >= BinaryOperator.Assign.AsUnderlyingType();
     }
 }

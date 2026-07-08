@@ -9,26 +9,52 @@ using Prism.Core.Semantic.Symbols;
 
 namespace Prism.Core.Semantic.Binding;
 
-public abstract class BoundStatement : BoundNode;
+public abstract class BoundStatement : BoundNode
+{
+    private protected BoundStatement(SyntaxNode syntax, SemanticModel semanticModel) : base(syntax, semanticModel)
+    {
+    }
+}
 
 public sealed class BoundBlock : BoundStatement
 {
-    public required ImmutableArray<BoundStatement> Statements { get; init; }
+    public ImmutableArray<BoundStatement> Statements { get; }
+    
+    internal BoundBlock(SyntaxNode syntax, SemanticModel semanticModel, ImmutableArray<BoundStatement> statements) : base(syntax, semanticModel)
+    {
+        Statements = statements;
+    }
 }
 
 public sealed class BoundLocalVariable : BoundStatement
 {
-    public required VariableSymbol Symbol { get; init; }
+    public VariableSymbol Symbol { get; }
 
-    public required BoundExpression? Initializer { get; init; }
+    public BoundExpression? Initializer { get; }
+    
+    internal BoundLocalVariable(SyntaxNode syntax, SemanticModel semanticModel, VariableSymbol symbol, BoundExpression? initializer) : base(syntax, semanticModel)
+    {
+        Symbol = symbol;
+        Initializer = initializer;
+    }
 }
 
 public sealed class BoundExpressionStatement : BoundStatement
 {
-    public required BoundExpression Expression { get; init; }
+    public BoundExpression Expression { get; }
+    
+    internal BoundExpressionStatement(SyntaxNode syntax, SemanticModel semanticModel, BoundExpression expression) : base(syntax, semanticModel)
+    {
+        Expression = expression;
+    }
 }
 
 public sealed class BoundReturnStatement : BoundStatement
 {
-    public required BoundExpression? Expression { get; init; }
+    public BoundExpression? Expression { get; }
+    
+    internal BoundReturnStatement(SyntaxNode syntax, SemanticModel semanticModel, BoundExpression? expression) : base(syntax, semanticModel)
+    {
+        Expression = expression;
+    }
 }

@@ -71,4 +71,39 @@ public static partial class SemanticDiagnostics
     )]
     public static partial void NoImplicitConversion(this IDiagnosticSink sink, SourceRange range,
         Name from, Name to);
+    
+    [Diagnostic(
+        Id = "PRISM1009",
+        Title = "No mutual implicit conversion",
+        MessageFormat = "No mutually implicit conversion between '{0}' to '{1}'",
+        Severity = DiagnosticSeverity.Error
+    )]
+    public static partial void NoMutualImplicitConversion(this IDiagnosticSink sink, SourceRange range,
+        Name left, Name right);
+    
+    [Diagnostic(
+        Id = "PRISM1010",
+        Title = "Not invocable",
+        MessageFormat = "Expression is not invocable",
+        Severity = DiagnosticSeverity.Error
+    )]
+    public static partial void NotInvocable(this IDiagnosticSink sink, SourceRange range);
+    
+    [Diagnostic(
+        Id = "PRISM1011",
+        Title = "Wrong number of arguments",
+        MessageFormat = "Wrong number of arguments for '{0}', expected {1}, provided {2}",
+        Severity = DiagnosticSeverity.Error
+        )]
+    public static partial void WrongNumberOfArguments(this IDiagnosticSink sink, SourceRange range,
+        Name function, int expected, int provided);
+    
+    [Diagnostic(
+        Id = "PRISM1012",
+        Title = "No suitable overload",
+        MessageFormat = "No suitable overload of '{0}' for the provided arguments",
+        Severity = DiagnosticSeverity.Error
+    )]
+    public static partial void NoSuitableOverload(this IDiagnosticSink sink, SourceRange range,
+        Name function);
 }

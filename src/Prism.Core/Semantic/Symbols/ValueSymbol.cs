@@ -10,9 +10,11 @@ namespace Prism.Core.Semantic.Symbols;
 
 public abstract class ValueSymbol : Symbol
 {
+    public TypeSymbol Type => Compilation.SemanticModel.GetValueType(this);
+    
+    public abstract bool IsAssignable { get; }
+    
     private protected ValueSymbol(Name name, Compilation compilation, DeclarationSyntax? declaration = null, Symbol? containingSymbol = null) : base(name, compilation, declaration, containingSymbol)
     {
     }
-
-    public TypeSymbol Type => Compilation.SemanticModel.GetValueType(this);
 }

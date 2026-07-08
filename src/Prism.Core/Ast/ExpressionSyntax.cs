@@ -5,6 +5,7 @@
 
 using System.Collections.Immutable;
 using System.Numerics;
+using Prism.Core.Parse;
 using Prism.Core.Strings;
 
 namespace Prism.Core.Ast;
@@ -99,6 +100,7 @@ public sealed record InvocationExpressionSyntax : ExpressionSyntax
 {
     public required ExpressionSyntax Callee { get; init; }
     public ImmutableArray<ExpressionSyntax> Arguments { get; init; } = [];
+    public required SourceRange ArgumentsRange { get; init; }
 }
 
 public sealed record NamedArgumentSyntax : ExpressionSyntax

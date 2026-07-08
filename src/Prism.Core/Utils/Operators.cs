@@ -5,6 +5,7 @@
 
 using Prism.Core.Ast;
 using Prism.Core.Semantic;
+using Prism.Core.Semantic.Binding;
 
 namespace Prism.Core.Utils;
 
@@ -56,7 +57,7 @@ internal static class Operators
     }
 
     public static bool TryResolveBinary(
-        BinaryOperator @operator,
+        BoundBinaryOperator @operator,
         BuiltInType leftType,
         BuiltInType rightType,
         TargetPlatform platform,
@@ -65,14 +66,14 @@ internal static class Operators
     {
         switch (@operator)
         {
-            case BinaryOperator.Add
-            or BinaryOperator.Sub
-            or BinaryOperator.Mul
-            or BinaryOperator.Div
-            or BinaryOperator.Mod when leftType.IsNumeric && rightType.IsNumeric:
-            case BinaryOperator.BitAnd
-            or BinaryOperator.BitOr
-            or BinaryOperator.BitXor when leftType.IsInteger && rightType.IsInteger:
+            case BoundBinaryOperator.Add
+            or BoundBinaryOperator.Sub
+            or BoundBinaryOperator.Mul
+            or BoundBinaryOperator.Div
+            or BoundBinaryOperator.Mod when leftType.IsNumeric && rightType.IsNumeric:
+            case BoundBinaryOperator.BitAnd
+            or BoundBinaryOperator.BitOr
+            or BoundBinaryOperator.BitXor when leftType.IsInteger && rightType.IsInteger:
             {
                 if (TryGetCommonNumericType(leftType, rightType, platform, out var common))
                 {
@@ -82,7 +83,7 @@ internal static class Operators
 
                 break;
             }
-            case BinaryOperator.Equal or BinaryOperator.NotEqual:
+            case BoundBinaryOperator.Equal or BoundBinaryOperator.NotEqual:
             {
                 if (
                     leftType.IsNumeric
@@ -109,10 +110,10 @@ internal static class Operators
 
                 break;
             }
-            case BinaryOperator.Greater
-            or BinaryOperator.GreaterEqual
-            or BinaryOperator.Less
-            or BinaryOperator.LessEqual when leftType.IsNumeric && rightType.IsNumeric:
+            case BoundBinaryOperator.Greater
+            or BoundBinaryOperator.GreaterEqual
+            or BoundBinaryOperator.Less
+            or BoundBinaryOperator.LessEqual when leftType.IsNumeric && rightType.IsNumeric:
             {
                 if (TryGetCommonNumericType(leftType, rightType, platform, out var common))
                 {
@@ -122,8 +123,8 @@ internal static class Operators
 
                 break;
             }
-            case BinaryOperator.LogicalAnd
-            or BinaryOperator.LogicalOr
+            case BoundBinaryOperator.LogicalAnd
+            or BoundBinaryOperator.LogicalOr
                 when leftType is BuiltInType.Bool && rightType is BuiltInType.Bool:
                 result = new BinaryOperatorInfo(
                     BuiltInType.Bool,
@@ -131,9 +132,9 @@ internal static class Operators
                     BuiltInType.Bool
                 );
                 return true;
-            case BinaryOperator.ShiftLeft
-            or BinaryOperator.ShiftRight
-            or BinaryOperator.UnsignedShiftRightAssign
+            case BoundBinaryOperator.ShiftLeft
+            or BoundBinaryOperator.ShiftRight
+            or BoundBinaryOperator.UnsignedShiftRight
                 when leftType.IsInteger && rightType.IsInteger:
             {
                 var promoted = ApplyArithmeticPromotion(leftType);

@@ -614,12 +614,13 @@ public sealed class Parser(SourceDocument sourceDocument)
         {
             case TokenKind.LParen:
                 _stream.Advance();
-                var arguments = ParseArgumentList();
+                var (arguments, range) = ParseArgumentList(next);
                 var end = Expect(TokenKind.RParen);
                 return new InvocationExpressionSyntax
                 {
                     Callee = expression,
                     Arguments = arguments,
+                    ArgumentsRange = range,
                     Range = expression.Range.Concat(end.Range),
                 };
             case TokenKind.PlusPlus:
@@ -643,7 +644,7 @@ public sealed class Parser(SourceDocument sourceDocument)
         }
     }
 
-    private ImmutableArray<ExpressionSyntax> ParseArgumentList()
+    private (ImmutableArray<ExpressionSyntax>, SourceRange) ParseArgumentList(Token start)
     {
         var builder = ImmutableArray.CreateBuilder<ExpressionSyntax>();
         var next = _stream.Peek();
@@ -697,7 +698,7 @@ public sealed class Parser(SourceDocument sourceDocument)
 
             next = _stream.Peek();
         }
-        return builder.DrainToImmutable();
+        return (builder.DrainToImmutable(), start.Range.Concat(next.Range));
     }
 
     private bool Match(TokenKind kind) => Match(kind, out _);

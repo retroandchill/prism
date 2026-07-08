@@ -13,8 +13,10 @@
     <PackageVersion Include="PolySharp" Version="1.16.0" />
     <PackageVersion Include="Retro.SourceGeneratorUtilities" Version="0.1.5" />
     <PackageVersion Include="RhoMicro.CodeAnalysis.UtilityGenerators" Version="24.1.9" />
+    <PackageVersion Include="Riok.Mapperly" Version="4.3.1" />
     <PackageVersion Include="System.CommandLine" Version="2.0.9" />
     <PackageVersion Include="System.IO.Hashing" Version="10.0.9" />
+    <PackageVersion Include="System.Linq.AsyncEnumerable" Version="10.0.9" />
     <PackageVersion Include="ZLinq" Version="1.5.6" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.0" />

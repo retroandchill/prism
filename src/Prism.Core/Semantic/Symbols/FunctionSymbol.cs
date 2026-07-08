@@ -9,7 +9,7 @@ using ZLinq;
 
 namespace Prism.Core.Semantic.Symbols;
 
-public sealed class FunctionSymbol : Symbol
+public sealed class FunctionSymbol : CallableSymbol
 {
     internal FunctionSymbol(FunctionDeclarationSyntax declaration,
         Compilation compilation,
@@ -19,18 +19,7 @@ public sealed class FunctionSymbol : Symbol
         Parameters = [.. declaration.Parameters.AsValueEnumerable().Select(x => parameterFactory(x, this))];
     }
 
-    public TypeSymbol? ReturnType => Semantics.ReturnType;
+    public override TypeSymbol ReturnType { get; } = null!;
 
-    public ImmutableArray<ParameterSymbol> Parameters { get; }
-
-    internal FunctionSymbolSemantics Semantics
-    {
-        get;
-        set => Interlocked.Exchange(ref field, value);
-    } = new();
-}
-
-internal sealed record FunctionSymbolSemantics
-{
-    public TypeSymbol? ReturnType { get; init; }
+    public override ImmutableArray<ParameterSymbol> Parameters { get; }
 }

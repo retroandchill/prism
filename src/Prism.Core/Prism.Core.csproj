@@ -10,7 +10,9 @@
     <ItemGroup>
       <PackageReference Include="NetEscapades.EnumGenerators" />
       <PackageReference Include="Nito.Collections.Deque" />
+      <PackageReference Include="Riok.Mapperly" />
       <PackageReference Include="System.IO.Hashing" />
+      <PackageReference Include="System.Linq.AsyncEnumerable" />
       <PackageReference Include="ZLinq" />
       <PackageReference Include="ZString" />
     </ItemGroup>

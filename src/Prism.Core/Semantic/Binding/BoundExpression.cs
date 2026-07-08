@@ -13,71 +13,204 @@ namespace Prism.Core.Semantic.Binding;
 
 public abstract class BoundExpression : BoundNode
 {
-    public required TypeSymbol Type { get; init; }
+    public abstract TypeSymbol Type { get;}
+    
+    public virtual bool IsLValue => false;
+    
+    public virtual bool IsAssignable => false;
+    
+    private protected BoundExpression(SyntaxNode syntax, SemanticModel semanticModel) : base(syntax, semanticModel)
+    {
+    }
 }
 
 public sealed class BoundBoolLiteralExpression : BoundExpression
 {
-    public required bool Value { get; init; }
+    public override TypeSymbol Type => SemanticModel.BuiltInTypes.Bool;
+    public bool Value { get; }
+    
+    internal BoundBoolLiteralExpression(SyntaxNode syntax, SemanticModel semanticModel, bool value) : base(syntax, semanticModel)
+    {
+        Value = value;
+    }
 }
 
 public sealed class BoundIntegerLiteralExpression : BoundExpression
 {
-    public required BigInteger Value { get; init; }
-    public required IntegerSuffix Suffix { get; init; }
+    public override TypeSymbol Type => SemanticModel.BuiltInTypes.GetTypeSymbol(Suffix);
+    public BigInteger Value { get; }
+    public IntegerSuffix Suffix { get; }
+    
+    internal BoundIntegerLiteralExpression(SyntaxNode syntax, SemanticModel model, BigInteger value, IntegerSuffix suffix) : base(syntax, model)
+    {
+        Value = value;
+        Suffix = suffix;
+    }
 }
 
 public sealed class BoundFloatLiteralExpression : BoundExpression
 {
-    public required decimal Value { get; init; }
-    public required FloatSuffix Suffix { get; init; }
+    public override TypeSymbol Type => SemanticModel.BuiltInTypes.GetTypeSymbol(Suffix);
+    public decimal Value { get; }
+    public FloatSuffix Suffix { get; }
+    
+    internal BoundFloatLiteralExpression(SyntaxNode syntax, SemanticModel model, decimal value, FloatSuffix suffix) : base(syntax, model)
+    {
+        Value = value;
+        Suffix = suffix;
+    }
 }
 
 public sealed class BoundStringLiteralExpression : BoundExpression
 {
-    public required string Value { get; init; }
+    public string Value { get; }
+
+    public override TypeSymbol Type => SemanticModel.BuiltInTypes.Str;
+    
+    internal BoundStringLiteralExpression(SyntaxNode syntax, SemanticModel model, string value) : base(syntax, model)
+    {
+        Value = value;
+    }
 }
 
 public sealed class BoundVariableExpression : BoundExpression
 {
-    public required ValueSymbol Symbol { get; init; }
+    public ValueSymbol Symbol { get; }
+
+    public override TypeSymbol Type { get; }
+    public override bool IsLValue => true;
+    
+    public override bool IsAssignable => Symbol.IsAssignable;
+    
+    internal BoundVariableExpression(ValueSymbol symbol, TypeSymbol type) : base(symbol.Declaration.RequireNonNull(), symbol.Compilation.SemanticModel)
+    {
+        Symbol = symbol;
+        Type = type;
+    }
+}
+
+public sealed class BoundFunctionReferenceExpression : BoundExpression
+{
+    public CallableSymbol Function { get; }
+
+    // TODO: Overload sets and function references will eventually be considered their own unique types
+    public override TypeSymbol Type => SemanticModel.ErrorTypeSymbol;
+    
+    internal BoundFunctionReferenceExpression(SyntaxNode syntax, FunctionSymbol function) : base(syntax, function.Compilation.SemanticModel)
+    {
+        Function = function;
+    }
+}
+
+public sealed class BoundOverloadSetExpression : BoundExpression
+{
+    public ImmutableArray<CallableSymbol> Functions { get; }
+
+    // TODO: Overload sets and function references will eventually be considered their own unique types
+    public override TypeSymbol Type => SemanticModel.ErrorTypeSymbol;
+    
+    internal BoundOverloadSetExpression(SyntaxNode syntax, SemanticModel semanticModel, ImmutableArray<CallableSymbol> functions) : base(syntax, semanticModel)
+    {
+        Functions = functions;
+    }
 }
 
 public sealed class BoundConversionExpression : BoundExpression
 {
-    public required BoundExpression Input { get; init; }
 
-    public bool IsImplicit { get; init; }
+    public override TypeSymbol Type { get; }
+    public BoundExpression Input { get; }
+
+    public bool IsImplicit { get; }
+    
+    internal BoundConversionExpression(SyntaxNode syntax, TypeSymbol type, BoundExpression input, bool isImplicit = false) : base(syntax, input.SemanticModel)
+    {
+        Input = input;
+        IsImplicit = isImplicit;
+        Type = type;
+    }
 }
 
 public sealed class BoundUnaryExpression : BoundExpression
 {
-    public required BoundExpression Operand { get; init; }
+    public override TypeSymbol Type { get; }
+    public BoundExpression Operand { get; }
 
-    public required UnaryOperator Operator { get; init; }
+    public UnaryOperator Operator { get; }
+    
+    internal BoundUnaryExpression(SyntaxNode syntax, BoundExpression operand, UnaryOperator @operator, TypeSymbol resultType) : base(syntax, operand.SemanticModel)
+    {
+        Type = resultType;
+        Operand = operand;
+        Operator = @operator;
+    }
 }
 
 public sealed class BoundBinaryExpression : BoundExpression
 {
-    public required BoundExpression Left { get; init; }
+    public override TypeSymbol Type { get; }
+    public BoundExpression Left { get; }
 
-    public required BoundExpression Right { get; init; }
+    public BoundExpression Right { get; }
 
-    public required BinaryOperator Operator { get; init; }
+    public BoundBinaryOperator Operator { get; }
+    
+    internal BoundBinaryExpression(SyntaxNode syntax, BoundExpression left, BoundExpression right,
+        BoundBinaryOperator @operator, TypeSymbol resultType) : base(syntax, left.SemanticModel)
+    {
+        Left = left;
+        Right = right;
+        Operator = @operator;
+        Type = resultType;
+    }
 }
 
-public sealed class BoundTernaryExpression : BoundExpression
+public sealed class BoundAssignmentExpression : BoundExpression
 {
-    public required BoundExpression Condition { get; init; }
+    public BoundExpression Assignee { get; }
+    public BoundExpression Value { get; }
 
-    public required BoundExpression TrueExpression { get; init; }
+    public override TypeSymbol Type => SemanticModel.BuiltInTypes.Void;
+    
+    internal BoundAssignmentExpression(SyntaxNode syntax, SemanticModel semanticModel, BoundExpression assignee, BoundExpression value) : base(syntax, semanticModel)
+    {
+        Assignee = assignee;
+        Value = value;
+    }
+}
 
-    public required BoundExpression FalseExpression { get; init; }
+public sealed class BoundConditionalExpression : BoundExpression
+{
+
+    public override TypeSymbol Type { get; }
+    public BoundExpression Condition { get; }
+
+    public BoundExpression TrueExpression { get; }
+
+    public BoundExpression FalseExpression { get; }
+    
+    internal BoundConditionalExpression(SyntaxNode syntax, BoundExpression condition, BoundExpression trueExpression,
+        BoundExpression falseExpression, TypeSymbol resultType) : base(syntax, condition.SemanticModel)
+    {
+        Condition = condition;
+        TrueExpression = trueExpression;
+        FalseExpression = falseExpression;
+        Type = resultType;
+    }
 }
 
 public sealed class BoundInvocationExpression : BoundExpression
 {
-    public required FunctionSymbol CalledFunction { get; init; }
+    public CallableSymbol CalledFunction { get; }
 
-    public required ImmutableArray<BoundExpression> Arguments { get; init; }
+    public override TypeSymbol Type { get; }
+
+    public ImmutableArray<BoundExpression> Arguments { get; }
+    
+    internal BoundInvocationExpression(SyntaxNode syntax, CallableSymbol calledFunction, TypeSymbol returnType, ImmutableArray<BoundExpression> arguments) : base(syntax, calledFunction.Compilation.SemanticModel)
+    {
+        CalledFunction = calledFunction;
+        Type = returnType;
+        Arguments = arguments;
+    }
 }

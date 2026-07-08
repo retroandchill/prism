@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
+using System.Numerics;
 
 namespace Prism.Core.Strings;
 
@@ -17,7 +18,8 @@ public readonly struct Name
     : IEquatable<Name>,
         IEquatable<ReadOnlySpan<char>>,
         IEquatable<string>,
-        IComparable<Name>
+        IComparable<Name>,
+        IEqualityOperators<Name, Name, bool>
 {
     public const int MaxLength = 256;
     internal const int MaxBlockBits = 13;
@@ -121,4 +123,13 @@ public readonly struct Name
     }
 
     public override string ToString() => GetStringValue(Id);
+    public static bool operator ==(Name left, Name right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(Name left, Name right)
+    {
+        return !(left == right);
+    }
 }

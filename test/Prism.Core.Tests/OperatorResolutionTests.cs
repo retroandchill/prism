@@ -1,4 +1,5 @@
 ﻿using Prism.Core.Ast;
+using Prism.Core.Semantic.Binding;
 using Prism.Core.Utils;
 
 namespace Prism.Core.Tests;
@@ -27,7 +28,7 @@ public class OperatorResolutionTests
         {
             Assert.That(
                 Operators.TryResolveBinary(
-                    BinaryOperator.Add,
+                    BoundBinaryOperator.Add,
                     left,
                     right,
                     Platform,
@@ -47,7 +48,7 @@ public class OperatorResolutionTests
     public void InvalidBinaryArithmetic(BuiltInType left, BuiltInType right)
     {
         Assert.That(
-            Operators.TryResolveBinary(BinaryOperator.Add, left, right, Platform, out _),
+            Operators.TryResolveBinary(BoundBinaryOperator.Add, left, right, Platform, out _),
             Is.False
         );
     }
@@ -78,7 +79,7 @@ public class OperatorResolutionTests
         {
             Assert.That(
                 Operators.TryResolveBinary(
-                    BinaryOperator.Equal,
+                    BoundBinaryOperator.Equal,
                     left,
                     right,
                     Platform,
@@ -97,7 +98,7 @@ public class OperatorResolutionTests
     public void InvalidBinaryComparison(BuiltInType left, BuiltInType right)
     {
         Assert.That(
-            Operators.TryResolveBinary(BinaryOperator.Add, left, right, Platform, out _),
+            Operators.TryResolveBinary(BoundBinaryOperator.Add, left, right, Platform, out _),
             Is.False
         );
     }
