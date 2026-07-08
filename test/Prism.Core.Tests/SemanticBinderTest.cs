@@ -3,23 +3,18 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using Prism.Core.Ast;
 using Prism.Core.Parse;
 using Prism.Core.Semantic;
 using Prism.Core.Semantic.Symbols;
+using Prism.Core.Syntax;
 
 namespace Prism.Core.Tests;
 
 public class SemanticBinderTest
 {
-    private static readonly TargetPlatform TargetPlatform = new()
-    {
-        PointerSize = 8
-    };
-    
-    private static SourceUnit CreateCompilationUnit(
-        string code
-    )
+    private static readonly TargetPlatform TargetPlatform = new() { PointerSize = 8 };
+
+    private static SourceUnit CreateCompilationUnit(string code)
     {
         var context = new SourceDocument(code);
         var parser = new Parser(context);
@@ -38,14 +33,17 @@ public class SemanticBinderTest
         var scope = compilation.SemanticModel.GlobalScope;
         var x = scope.GetDeclaredHere("x");
         Assert.That(x, Has.Length.EqualTo(1));
-        
+
         var symbol = x[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         var variableSymbol = (VariableSymbol)symbol;
         var bindingContext = new BindingContext(unit.Diagnostics, ResolutionContext.Empty);
-        var type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
+        var type = await compilation.SemanticModel.ResolveValueTypeAsync(
+            variableSymbol,
+            bindingContext
+        );
         Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
-        
+
         var namedType = (NamedTypeSymbol)type;
         Assert.That(type.Name.ToString(), Is.EqualTo("i32"));
         Assert.That(namedType.BuiltInType, Is.EqualTo(BuiltInType.I32));
@@ -63,14 +61,17 @@ public class SemanticBinderTest
         var scope = compilation.SemanticModel.GlobalScope;
         var x = scope.GetDeclaredHere("x");
         Assert.That(x, Has.Length.EqualTo(1));
-        
+
         var symbol = x[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         var variableSymbol = (VariableSymbol)symbol;
         var bindingContext = new BindingContext(unit.Diagnostics, ResolutionContext.Empty);
-        var type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
+        var type = await compilation.SemanticModel.ResolveValueTypeAsync(
+            variableSymbol,
+            bindingContext
+        );
         Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
-        
+
         var namedType = (NamedTypeSymbol)type;
         Assert.That(type.Name.ToString(), Is.EqualTo("i32"));
         Assert.That(namedType.BuiltInType, Is.EqualTo(BuiltInType.I32));
@@ -93,14 +94,17 @@ public class SemanticBinderTest
         var scope = compilation.SemanticModel.GlobalScope;
         var x = scope.GetDeclaredHere("x");
         Assert.That(x, Has.Length.EqualTo(1));
-        
+
         var symbol = x[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         var variableSymbol = (VariableSymbol)symbol;
         var bindingContext = new BindingContext(unit.Diagnostics, ResolutionContext.Empty);
-        var type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
+        var type = await compilation.SemanticModel.ResolveValueTypeAsync(
+            variableSymbol,
+            bindingContext
+        );
         Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
-        
+
         var namedType = (NamedTypeSymbol)type;
         Assert.That(type.Name.ToString(), Is.EqualTo("i32"));
         Assert.That(namedType.BuiltInType, Is.EqualTo(BuiltInType.I32));
@@ -111,7 +115,10 @@ public class SemanticBinderTest
         symbol = y[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         variableSymbol = (VariableSymbol)symbol;
-        type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
+        type = await compilation.SemanticModel.ResolveValueTypeAsync(
+            variableSymbol,
+            bindingContext
+        );
         Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
 
         namedType = (NamedTypeSymbol)type;
@@ -136,14 +143,17 @@ public class SemanticBinderTest
         var scope = compilation.SemanticModel.GlobalScope;
         var x = scope.GetDeclaredHere("x");
         Assert.That(x, Has.Length.EqualTo(1));
-        
+
         var symbol = x[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         var variableSymbol = (VariableSymbol)symbol;
         var bindingContext = new BindingContext(unit.Diagnostics, ResolutionContext.Empty);
-        var type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
+        var type = await compilation.SemanticModel.ResolveValueTypeAsync(
+            variableSymbol,
+            bindingContext
+        );
         Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
-        
+
         var namedType = (NamedTypeSymbol)type;
         Assert.That(type.Name.ToString(), Is.EqualTo("bool"));
         Assert.That(namedType.BuiltInType, Is.EqualTo(BuiltInType.Bool));
@@ -154,14 +164,17 @@ public class SemanticBinderTest
         symbol = y[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         variableSymbol = (VariableSymbol)symbol;
-        type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
+        type = await compilation.SemanticModel.ResolveValueTypeAsync(
+            variableSymbol,
+            bindingContext
+        );
         Assert.That(type, Is.InstanceOf<NamedTypeSymbol>());
 
         namedType = (NamedTypeSymbol)type;
         Assert.That(type.Name.ToString(), Is.EqualTo("bool"));
         Assert.That(namedType.BuiltInType, Is.EqualTo(BuiltInType.Bool));
     }
-    
+
     [Test]
     public async Task UnableToBindCycle()
     {
@@ -179,14 +192,17 @@ public class SemanticBinderTest
         var scope = compilation.SemanticModel.GlobalScope;
         var x = scope.GetDeclaredHere("x");
         Assert.That(x, Has.Length.EqualTo(1));
-        
+
         var symbol = x[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         var variableSymbol = (VariableSymbol)symbol;
         var bindingContext = new BindingContext(unit.Diagnostics, ResolutionContext.Empty);
-        var type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
+        var type = await compilation.SemanticModel.ResolveValueTypeAsync(
+            variableSymbol,
+            bindingContext
+        );
         Assert.That(type, Is.InstanceOf<ErrorTypeSymbol>());
-        
+
         Assert.That(unit.Diagnostics, Has.Count.EqualTo(1));
 
         var y = scope.GetDeclaredHere("y");
@@ -195,7 +211,10 @@ public class SemanticBinderTest
         symbol = y[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         variableSymbol = (VariableSymbol)symbol;
-        type = await compilation.SemanticModel.ResolveValueTypeAsync(variableSymbol, bindingContext);
+        type = await compilation.SemanticModel.ResolveValueTypeAsync(
+            variableSymbol,
+            bindingContext
+        );
         Assert.That(type, Is.InstanceOf<ErrorTypeSymbol>());
     }
 
@@ -219,18 +238,18 @@ public class SemanticBinderTest
         var scope = compilation.SemanticModel.GlobalScope;
         var x = scope.GetDeclaredHere("x");
         Assert.That(x, Has.Length.EqualTo(1));
-        
+
         var symbol = x[0];
         Assert.That(symbol, Is.InstanceOf<VariableSymbol>());
         var variableSymbol = (VariableSymbol)symbol;
         Assert.That(variableSymbol.Type, Is.InstanceOf<NamedTypeSymbol>());
         Assert.That(variableSymbol.Initializer, Is.Not.Null);
-        
+
         var namedType = (NamedTypeSymbol)variableSymbol.Type;
         Assert.That(namedType.Name.ToString(), Is.EqualTo("bool"));
         Assert.That(namedType.BuiltInType, Is.EqualTo(BuiltInType.Bool));
     }
-    
+
     [Test]
     public async Task NoImplicitConversion()
     {

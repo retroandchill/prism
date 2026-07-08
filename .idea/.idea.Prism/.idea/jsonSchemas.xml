@@ -7,7 +7,10 @@
           <value>
             <SchemaInfo>
               <option name="name" value="launchsettings.json" />
-              <option name="relativePathToSchema" value="https://www.schemastore.org/launchsettings.json" />
+              <option
+                name="relativePathToSchema"
+                value="https://www.schemastore.org/launchsettings.json"
+              />
               <option name="applicationDefined" value="true" />
               <option name="patterns">
                 <list>

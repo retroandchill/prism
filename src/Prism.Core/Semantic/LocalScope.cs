@@ -10,7 +10,6 @@ using Prism.Core.Strings;
 
 namespace Prism.Core.Semantic;
 
-
 internal sealed class LocalScope(DeclarationScope enclosingScope, IDiagnosticSink diagnostics)
 {
     public LocalScope? OuterLocal { get; }
@@ -19,7 +18,8 @@ internal sealed class LocalScope(DeclarationScope enclosingScope, IDiagnosticSin
     private readonly Dictionary<Name, ValueSymbol> _locals = new();
     private readonly IDiagnosticSink _diagnostics = diagnostics;
 
-    public LocalScope(LocalScope parent) : this(parent.OuterDeclaration, parent._diagnostics)
+    public LocalScope(LocalScope parent)
+        : this(parent.OuterDeclaration, parent._diagnostics)
     {
         OuterLocal = parent;
     }
@@ -31,11 +31,14 @@ internal sealed class LocalScope(DeclarationScope enclosingScope, IDiagnosticSin
         if (_locals.ContainsKey(symbol.Name))
         {
             // Report the duplicate symbol but continue processing with the new symbol definition
-            _diagnostics.DuplicateSymbolDefinition(symbol.Declaration?.Range ?? SourceRange.Empty, symbol.Name);
+            _diagnostics.DuplicateSymbolDefinition(
+                symbol.Declaration?.Range ?? TextSpan.Empty,
+                symbol.Name
+            );
         }
 
         _locals[symbol.Name] = symbol;
     }
-    
+
     public ValueSymbol? GetLocal(Name name) => _locals.GetValueOrDefault(name);
 }

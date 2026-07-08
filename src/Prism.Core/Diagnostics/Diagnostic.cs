@@ -10,7 +10,7 @@ namespace Prism.Core.Diagnostics;
 public abstract class Diagnostic
 {
     public abstract DiagnosticDescriptor Descriptor { get; }
-    public abstract SourceRange Range { get; }
+    public abstract TextSpan Range { get; }
 
     public abstract string GetMessage(IFormatProvider? provider = null);
 

@@ -45,8 +45,8 @@ public sealed class TokenKindGenerator : IIncrementalGenerator
         var punctuationsBuilder = new List<TokenLabel>(fields.Length);
         foreach (var field in fields)
         {
-            var isKeyword = field.HasAttribute<KeywordTokenAttribute>();
-            var isPunctuation = field.HasAttribute<PunctuationTokenAttribute>();
+            var isKeyword = field.TryGetKeywordTokenInfo(out var keywordInfo);
+            var isPunctuation = field.TryGetPunctuationTokenInfo(out var punctuationInfo);
 
             if (!isKeyword && !isPunctuation)
                 continue;
@@ -63,24 +63,15 @@ public sealed class TokenKindGenerator : IIncrementalGenerator
                 );
             }
 
-            string value;
-            if (field.TryGetEnumMemberAttributeInfo(out var info) && info.Value is not null)
-            {
-                value = info.Value;
-            }
-            else
-            {
-                value = field.Name.ToLower();
-            }
-
+            SyntaxToken token;
             if (isKeyword)
             {
-                keywordsBuilder.Add(new TokenLabel(field.Name, value));
+                keywordsBuilder.Add(new TokenLabel(field.Name, keywordInfo.Token));
             }
 
             if (isPunctuation)
             {
-                punctuationsBuilder.Add(new TokenLabel(field.Name, value));
+                punctuationsBuilder.Add(new TokenLabel(field.Name, punctuationInfo.Token));
             }
         }
 

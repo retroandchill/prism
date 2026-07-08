@@ -5,7 +5,7 @@
 
 using System.Runtime.Serialization;
 using NetEscapades.EnumGenerators;
-using Prism.Core.Ast;
+using Prism.Core.Syntax;
 
 namespace Prism.Core.Strings;
 
@@ -117,7 +117,7 @@ public static partial class KnownNames
                 BuiltInType.Char16 => KnownName.Char16,
                 BuiltInType.Rune => KnownName.Rune,
                 BuiltInType.Str => KnownName.Str,
-                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
             };
         }
     }

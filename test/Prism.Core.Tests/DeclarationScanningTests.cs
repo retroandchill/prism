@@ -4,19 +4,16 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
-using Prism.Core.Ast;
 using Prism.Core.Parse;
 using Prism.Core.Semantic;
+using Prism.Core.Syntax;
 
 namespace Prism.Core.Tests;
 
 public class DeclarationScanningTests
 {
-    private static readonly TargetPlatform TargetPlatform = new()
-    {
-        PointerSize = 8
-    };
-    
+    private static readonly TargetPlatform TargetPlatform = new() { PointerSize = 8 };
+
     private static SourceUnit CreateCompilationUnit(string code)
     {
         var context = new SourceDocument(code);

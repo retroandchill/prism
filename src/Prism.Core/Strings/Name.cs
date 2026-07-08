@@ -123,6 +123,7 @@ public readonly struct Name
     }
 
     public override string ToString() => GetStringValue(Id);
+
     public static bool operator ==(Name left, Name right)
     {
         return left.Equals(right);

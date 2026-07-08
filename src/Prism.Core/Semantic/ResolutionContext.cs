@@ -1,5 +1,5 @@
 ﻿// @file ResolutionContext.cs
-// 
+//
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
@@ -22,7 +22,7 @@ internal readonly record struct ResolutionKey(Symbol Symbol, ResolutionKind Kind
 internal sealed class ResolutionContext
 {
     public static ResolutionContext Empty { get; } = new([], []);
-    
+
     private readonly ImmutableHashSet<ResolutionKey> _active;
     public ImmutableArray<ResolutionKey> Stack { get; }
 
@@ -34,9 +34,9 @@ internal sealed class ResolutionContext
         _active = active;
         Stack = stack;
     }
-    
+
     public bool Contains(ResolutionKey key) => _active.Contains(key);
-    
+
     public ResolutionContext Push(ResolutionKey key)
     {
         return new ResolutionContext(_active.Add(key), Stack.Add(key));
@@ -46,7 +46,6 @@ internal sealed class ResolutionContext
     {
         if (Stack.IsEmpty)
             throw new InvalidOperationException("No cycle detected");
-
 
         using var builder = ZString.CreateStringBuilder();
         var foundStart = false;
@@ -59,10 +58,10 @@ internal sealed class ResolutionContext
                 foundStart = true;
             }
         }
-        
+
         if (!foundStart)
             throw new InvalidOperationException("No cycle detected");
-        
+
         builder.Append(key.Symbol.Name);
         return builder.ToString();
     }

@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using Prism.Core.Diagnostics;
+using Prism.Core.Syntax;
 
 namespace Prism.Core.Parse;
 
@@ -16,7 +17,11 @@ public static partial class ParseDiagnostics
         MessageFormat = "Unexpected token '{0}'",
         Description = "The parser encountered an unexpected token."
     )]
-    public static partial void UnexpectedToken(this IDiagnosticSink sink, SourceRange range, TokenKind tokenKind);
+    public static partial void UnexpectedToken(
+        this IDiagnosticSink sink,
+        TextSpan range,
+        SyntaxKind syntaxKind
+    );
 
     [Diagnostic(
         Id = "PRISM0002",
@@ -25,7 +30,7 @@ public static partial class ParseDiagnostics
         MessageFormat = "Empty statement",
         Description = "The parser encountered an unexpected token."
     )]
-    public static partial void EmptyStatement(this IDiagnosticSink sink, SourceRange range);
+    public static partial void EmptyStatement(this IDiagnosticSink sink, TextSpan range);
 
     [Diagnostic(
         Id = "PRISM0003",
@@ -33,7 +38,7 @@ public static partial class ParseDiagnostics
         Title = "Unexpected end of file",
         MessageFormat = "Unexpected end of file"
     )]
-    public static partial void UnexpectedEndOfFile(this IDiagnosticSink sink, SourceRange range);
+    public static partial void UnexpectedEndOfFile(this IDiagnosticSink sink, TextSpan range);
 
     [Diagnostic(
         Id = "PRISM0004",
@@ -41,5 +46,9 @@ public static partial class ParseDiagnostics
         Title = "Unexpected escape sequence",
         MessageFormat = "Unexpected escape sequence: '{0}'"
     )]
-    public static partial void UnexpectedEscape(this IDiagnosticSink sink, SourceRange range, ReadOnlyMemory<char> sequence);
+    public static partial void UnexpectedEscape(
+        this IDiagnosticSink sink,
+        TextSpan range,
+        ReadOnlyMemory<char> sequence
+    );
 }

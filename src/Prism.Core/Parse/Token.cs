@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Runtime.InteropServices;
+using Prism.Core.Syntax;
 
 namespace Prism.Core.Parse;
 
@@ -17,8 +18,8 @@ public enum TokenFlags : ushort
 
 [StructLayout(LayoutKind.Auto)]
 public readonly record struct Token(
-    TokenKind Kind,
-    SourceRange Range,
+    SyntaxKind Kind,
+    TextSpan Range,
     TokenFlags Flags = TokenFlags.None
 )
 {

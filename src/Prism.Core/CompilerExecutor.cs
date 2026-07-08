@@ -19,11 +19,23 @@ public sealed class CompilerExecutor(TargetPlatform? targetPlatform = null)
     {
         var compilation = new Compilation(_targetPlatform);
         var compileResults = await Task.WhenAll(
-            files.Select(file => Task.Run(() => ParseFileAsync(file, compilation, cancellationToken), cancellationToken))
+            files.Select(file =>
+                Task.Run(
+                    () => ParseFileAsync(file, compilation, cancellationToken),
+                    cancellationToken
+                )
+            )
         );
-        
-        await Task.WhenAll(compileResults.Select(result => Task.Run(() => BindSyntaxAsync(result, compilation, cancellationToken), cancellationToken)));
-        
+
+        await Task.WhenAll(
+            compileResults.Select(result =>
+                Task.Run(
+                    () => BindSyntaxAsync(result, compilation, cancellationToken),
+                    cancellationToken
+                )
+            )
+        );
+
         return compilation;
     }
 
@@ -52,7 +64,11 @@ public sealed class CompilerExecutor(TargetPlatform? targetPlatform = null)
         return unit;
     }
 
-    private static async Task BindSyntaxAsync(SourceUnit unit, Compilation compilation, CancellationToken cancellationToken = default)
+    private static async Task BindSyntaxAsync(
+        SourceUnit unit,
+        Compilation compilation,
+        CancellationToken cancellationToken = default
+    )
     {
         throw new NotImplementedException();
     }

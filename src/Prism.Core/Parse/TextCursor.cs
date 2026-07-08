@@ -42,10 +42,10 @@ public sealed class TextCursor
         Position += characters;
     }
 
-    public SourceRange Since(int start)
+    public TextSpan Since(int start)
     {
         var position = AtEnd ? _text.Length : Position;
         ArgumentOutOfRangeException.ThrowIfGreaterThan(start, position);
-        return new SourceRange(start, position - start);
+        return new TextSpan(start, position - start);
     }
 }

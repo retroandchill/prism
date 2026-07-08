@@ -9,7 +9,7 @@ using Prism.Core.Parse;
 using Prism.Core.Strings;
 using Singulink.Numerics;
 
-namespace Prism.Core.Ast;
+namespace Prism.Core.Syntax;
 
 public abstract record ExpressionSyntax : SyntaxNode, IFunctionBodySyntax;
 
@@ -22,7 +22,7 @@ public enum IntegerBase : byte
 {
     Decimal,
     Hex,
-    Binary
+    Binary,
 }
 
 public enum IntegerSuffix : byte
@@ -39,7 +39,7 @@ public enum IntegerSuffix : byte
     U32,
     U64,
     U128,
-    USize
+    USize,
 }
 
 public sealed record IntegerLiteralExpressionSyntax : ExpressionSyntax
@@ -56,7 +56,7 @@ public enum FloatSuffix : byte
     None,
     F16,
     F32,
-    F64
+    F64,
 }
 
 public sealed record FloatLiteralExpressionSyntax : ExpressionSyntax
@@ -64,7 +64,6 @@ public sealed record FloatLiteralExpressionSyntax : ExpressionSyntax
     public required BigDecimal Value { get; init; }
 
     public required FloatSuffix Suffix { get; init; }
-
 }
 
 public sealed record StringLiteralExpressionSyntax : ExpressionSyntax
@@ -101,7 +100,7 @@ public sealed record InvocationExpressionSyntax : ExpressionSyntax
 {
     public required ExpressionSyntax Callee { get; init; }
     public ImmutableArray<ExpressionSyntax> Arguments { get; init; } = [];
-    public required SourceRange ArgumentsRange { get; init; }
+    public required TextSpan ArgumentsRange { get; init; }
 }
 
 public sealed record NamedArgumentSyntax : ExpressionSyntax

@@ -4,20 +4,21 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using Prism.Core.Parse;
+using Prism.Core.Syntax;
 
 namespace Prism.Core.Tests;
 
 public class LexerTests
 {
-    private static List<TokenKind> LexAll(string source)
+    private static List<SyntaxKind> LexAll(string source)
     {
         var lexer = new Lexer(new SourceFile(source));
-        var tokens = new List<TokenKind>();
+        var tokens = new List<SyntaxKind>();
         while (true)
         {
             var token = lexer.Next();
             tokens.Add(token.Kind);
-            if (token.Kind == TokenKind.EOF)
+            if (token.Kind == SyntaxKind.EndOfFileToken)
                 break;
         }
 
@@ -36,21 +37,21 @@ public class LexerTests
         Assert.That(
             tokens,
             Is.EquivalentTo([
-                TokenKind.Func,
-                TokenKind.Identifier,
-                TokenKind.LParen,
-                TokenKind.Identifier,
-                TokenKind.Colon,
-                TokenKind.I32,
-                TokenKind.RParen,
-                TokenKind.LBrace,
-                TokenKind.Return,
-                TokenKind.Identifier,
-                TokenKind.Plus,
-                TokenKind.IntegerLiteral,
-                TokenKind.Semicolon,
-                TokenKind.RBrace,
-                TokenKind.EOF,
+                SyntaxKind.FuncKeyword,
+                SyntaxKind.IdentifierToken,
+                SyntaxKind.LParenToken,
+                SyntaxKind.IdentifierToken,
+                SyntaxKind.ColonToken,
+                SyntaxKind.I32Keyword,
+                SyntaxKind.RParenToken,
+                SyntaxKind.LBraceToken,
+                SyntaxKind.ReturnKeyword,
+                SyntaxKind.IdentifierToken,
+                SyntaxKind.PlusToken,
+                SyntaxKind.IntegerLiteralToken,
+                SyntaxKind.SemicolonToken,
+                SyntaxKind.RBraceToken,
+                SyntaxKind.EndOfFileToken,
             ])
         );
     }
@@ -66,14 +67,12 @@ public class LexerTests
         Assert.That(
             tokens,
             Is.EquivalentTo([
-                TokenKind.Comment,
-                TokenKind.Var,
-                TokenKind.Identifier,
-                TokenKind.Equal,
-                TokenKind.IntegerLiteral,
-                TokenKind.Semicolon,
-                TokenKind.Comment,
-                TokenKind.EOF,
+                SyntaxKind.VarKeyword,
+                SyntaxKind.IdentifierToken,
+                SyntaxKind.EqualToken,
+                SyntaxKind.IntegerLiteralToken,
+                SyntaxKind.SemicolonToken,
+                SyntaxKind.EndOfFileToken,
             ])
         );
     }
@@ -86,13 +85,12 @@ public class LexerTests
         Assert.That(
             tokens,
             Is.EquivalentTo([
-                TokenKind.Var,
-                TokenKind.Identifier,
-                TokenKind.Comment,
-                TokenKind.Equal,
-                TokenKind.IntegerLiteral,
-                TokenKind.Semicolon,
-                TokenKind.EOF,
+                SyntaxKind.VarKeyword,
+                SyntaxKind.IdentifierToken,
+                SyntaxKind.EqualToken,
+                SyntaxKind.IntegerLiteralToken,
+                SyntaxKind.SemicolonToken,
+                SyntaxKind.EndOfFileToken,
             ])
         );
     }
@@ -111,13 +109,12 @@ public class LexerTests
         Assert.That(
             tokens,
             Is.EquivalentTo([
-                TokenKind.Comment,
-                TokenKind.Var,
-                TokenKind.Identifier,
-                TokenKind.Equal,
-                TokenKind.IntegerLiteral,
-                TokenKind.Semicolon,
-                TokenKind.EOF,
+                SyntaxKind.VarKeyword,
+                SyntaxKind.IdentifierToken,
+                SyntaxKind.EqualToken,
+                SyntaxKind.IntegerLiteralToken,
+                SyntaxKind.SemicolonToken,
+                SyntaxKind.EndOfFileToken,
             ])
         );
     }

@@ -7,12 +7,12 @@ using System.Runtime.InteropServices;
 using Prism.Core.Parse;
 using Prism.Core.Strings;
 
-namespace Prism.Core.Ast;
+namespace Prism.Core.Syntax;
 
 [StructLayout(LayoutKind.Auto)]
 public readonly record struct IdentifierSyntax(
     Name Name,
-    SourceRange Range,
+    TextSpan Range,
     SyntaxFlags Flags = SyntaxFlags.None
 );
 
@@ -24,6 +24,6 @@ public enum Modifier : ushort
 [StructLayout(LayoutKind.Auto)]
 public readonly record struct ModifierSyntax(
     Modifier Modifier,
-    SourceRange Range,
+    TextSpan Range,
     SyntaxFlags Flags = SyntaxFlags.None
 );

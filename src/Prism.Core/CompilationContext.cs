@@ -22,7 +22,7 @@ public class CompilationContext(
 
     public TargetPlatform Platform { get; init; } = TargetPlatform.Default;
 
-    public ReadOnlySpan<char> GetSpan(SourceRange range) => SourceFile.GetSpan(range);
+    public ReadOnlySpan<char> GetSpan(TextSpan range) => SourceFile.GetSpan(range);
 
     public void ReportDiagnostic(Diagnostic diagnostic)
     {

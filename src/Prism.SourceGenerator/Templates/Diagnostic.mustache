@@ -7,12 +7,12 @@ namespace {{Namespace}};
 
 partial {{ClassType}} {{ClassName}}
 {
-    {{Access}}{{Static}} partial void {{MethodName}}({{#IsExtension}}this {{/IsExtension}}{{SinkType}} {{SinkParam}}, SourceRange {{RangeParam}}{{#FormatParams}}, {{Type}} {{Name}}{{/FormatParams}})
+    {{Access}}{{Static}} partial void {{MethodName}}({{#IsExtension}}this {{/IsExtension}}{{SinkType}} {{SinkParam}}, TextSpan {{RangeParam}}{{#FormatParams}}, {{Type}} {{Name}}{{/FormatParams}})
     {
         {{SinkParam}}.Report(new {{DiagnosticClass}}Diagnostic({{RangeParam}}{{#FormatParams}}, {{Name}}{{/FormatParams}}));
     }
 
-    private sealed class {{DiagnosticClass}}Diagnostic(SourceRange range{{#FormatParams}}, {{Type}} param_{{Name}}{{/FormatParams}}) : Diagnostic
+    private sealed class {{DiagnosticClass}}Diagnostic(TextSpan range{{#FormatParams}}, {{Type}} param_{{Name}}{{/FormatParams}}) : Diagnostic
     {
         private static readonly DiagnosticDescriptor StaticDescriptor = new()
         {
@@ -30,7 +30,7 @@ partial {{ClassType}} {{ClassName}}
         {{/Equals}}   
 
         public override DiagnosticDescriptor Descriptor => StaticDescriptor;
-        public override SourceRange Range { get; } = range;
+        public override TextSpan Range { get; } = range;
         
         public override string GetMessage(IFormatProvider? provider = null)
         {

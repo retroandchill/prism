@@ -5,7 +5,7 @@
 
 using System.Collections.Immutable;
 
-namespace Prism.Core.Ast;
+namespace Prism.Core.Syntax;
 
 public abstract record DeclarationSyntax : SyntaxNode
 {
@@ -18,7 +18,6 @@ public sealed record VariableDeclarationSyntax : DeclarationSyntax
     public TypeSyntax? Type { get; init; }
     public bool IsMutable { get; init; }
     public ExpressionSyntax? Initializer { get; init; }
-
 }
 
 public interface IFunctionBodySyntax;

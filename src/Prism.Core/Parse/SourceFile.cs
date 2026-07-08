@@ -8,21 +8,21 @@ using ZLinq;
 
 namespace Prism.Core.Parse;
 
-public readonly record struct SourceRange(int Start, int Length)
+public readonly record struct TextSpan(int Start, int Length)
 {
     public int End => Start + Length;
 
     public bool IsEmpty => Length == 0;
 
-    public static SourceRange Empty => new(0, 0);
+    public static TextSpan Empty => new(0, 0);
 
-    public SourceRange AsEmpty() => new(Start, 0);
+    public TextSpan AsEmpty() => new(Start, 0);
 
-    public SourceRange Concat(SourceRange other)
+    public TextSpan Concat(TextSpan other)
     {
         var start = Math.Min(Start, other.Start);
         var end = Math.Max(End, other.End);
-        return new SourceRange(start, end - start);
+        return new TextSpan(start, end - start);
     }
 }
 
@@ -60,8 +60,8 @@ public readonly struct SourceFile
         return (line, index - _lineOffsets[line]);
     }
 
-    public ReadOnlySpan<char> GetSpan(SourceRange range) => Text.AsSpan(range.Start, range.Length);
+    public ReadOnlySpan<char> GetSpan(TextSpan range) => Text.AsSpan(range.Start, range.Length);
 
-    public ReadOnlyMemory<char> GetMemory(SourceRange range) =>
+    public ReadOnlyMemory<char> GetMemory(TextSpan range) =>
         Text.AsMemory(range.Start, range.Length);
 }

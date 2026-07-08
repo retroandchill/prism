@@ -1,10 +1,10 @@
 ﻿// @file cs
-// 
+//
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using Prism.Core.Ast;
 using Prism.Core.Semantic.Symbols;
+using Prism.Core.Syntax;
 
 namespace Prism.Core.Semantic;
 
@@ -52,7 +52,7 @@ internal sealed class BuiltInTypeSet(Compilation compilation)
     public NamedTypeSymbol Rune { get; } = new(BuiltInType.Rune, compilation);
 
     public NamedTypeSymbol Str { get; } = new(BuiltInType.Str, compilation);
-    
+
     public NamedTypeSymbol GetSymbol(BuiltInType type)
     {
         return type switch
@@ -81,7 +81,7 @@ internal sealed class BuiltInTypeSet(Compilation compilation)
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
     }
-    
+
     public NamedTypeSymbol GetTypeSymbol(IntegerSuffix suffix)
     {
         return suffix switch

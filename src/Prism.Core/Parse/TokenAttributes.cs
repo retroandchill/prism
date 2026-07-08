@@ -9,7 +9,7 @@ namespace Prism.Core.Parse;
 internal sealed class TokenKindAttribute : Attribute;
 
 [AttributeUsage(AttributeTargets.Field)]
-internal sealed class KeywordTokenAttribute : Attribute;
+internal sealed class KeywordTokenAttribute(string token) : Attribute;
 
 [AttributeUsage(AttributeTargets.Field)]
-internal sealed class PunctuationTokenAttribute : Attribute;
+internal sealed class PunctuationTokenAttribute(string token) : Attribute;

@@ -1,13 +1,13 @@
 ﻿// @file SemanticModel.cs
-// 
+//
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Concurrent;
-using Prism.Core.Ast;
 using Prism.Core.Diagnostics;
 using Prism.Core.Semantic.Binding;
 using Prism.Core.Semantic.Symbols;
+using Prism.Core.Syntax;
 
 namespace Prism.Core.Semantic;
 
@@ -29,9 +29,9 @@ public sealed class SemanticModel
     private ResolvedSemanticState? _resolvedSemanticState;
 
     private readonly Compilation _compilation;
-    
+
     public TargetPlatform TargetPlatform => _compilation.TargetPlatform;
-    
+
     internal BuiltInTypeSet BuiltInTypes { get; }
 
     internal ErrorTypeSymbol ErrorTypeSymbol { get; }
@@ -72,17 +72,29 @@ public sealed class SemanticModel
             AddSymbol(declaration, GlobalScope);
     }
 
-    private void AddSymbol(DeclarationSyntax declaration, DeclarationScope scope, Symbol? containingSymbol = null)
+    private void AddSymbol(
+        DeclarationSyntax declaration,
+        DeclarationScope scope,
+        Symbol? containingSymbol = null
+    )
     {
         switch (declaration)
         {
             case VariableDeclarationSyntax variableDeclaration:
-                AddSymbol(variableDeclaration, (v, c) => new VariableSymbol(v, _compilation, containingSymbol: c), scope,
-                    containingSymbol);
+                AddSymbol(
+                    variableDeclaration,
+                    (v, c) => new VariableSymbol(v, _compilation, containingSymbol: c),
+                    scope,
+                    containingSymbol
+                );
                 break;
             case ParameterDeclarationSyntax parameterDeclaration:
-                AddSymbol(parameterDeclaration, (p, c) => new ParameterSymbol(p, _compilation, containingSymbol: c),
-                    scope, containingSymbol);
+                AddSymbol(
+                    parameterDeclaration,
+                    (p, c) => new ParameterSymbol(p, _compilation, containingSymbol: c),
+                    scope,
+                    containingSymbol
+                );
                 break;
             case FunctionDeclarationSyntax functionDeclaration:
                 AddSymbol(functionDeclaration, scope, containingSymbol);
@@ -90,8 +102,12 @@ public sealed class SemanticModel
         }
     }
 
-    private TSymbol AddSymbol<TSymbol, TSyntax>(TSyntax syntax, Func<TSyntax, Symbol?, TSymbol> createSymbol,
-        DeclarationScope scope, Symbol? containingSymbol)
+    private TSymbol AddSymbol<TSymbol, TSyntax>(
+        TSyntax syntax,
+        Func<TSyntax, Symbol?, TSymbol> createSymbol,
+        DeclarationScope scope,
+        Symbol? containingSymbol
+    )
         where TSymbol : Symbol
         where TSyntax : DeclarationSyntax
     {
@@ -102,24 +118,47 @@ public sealed class SemanticModel
         return symbol;
     }
 
-    private void AddSymbol(FunctionDeclarationSyntax declaration, DeclarationScope scope, Symbol? containingSymbol)
+    private void AddSymbol(
+        FunctionDeclarationSyntax declaration,
+        DeclarationScope scope,
+        Symbol? containingSymbol
+    )
     {
         var functionScope = new DeclarationScope(declaration, scope);
         _ownedScopes[declaration] = functionScope;
-        AddSymbol(declaration,
-            (f, c) => new FunctionSymbol(f, _compilation,
-                (p, s) => AddSymbol(p, 
-                    (x, c1) => new ParameterSymbol(x, _compilation, c1), functionScope, s), containingSymbol: c), scope,
-            containingSymbol);
+        AddSymbol(
+            declaration,
+            (f, c) =>
+                new FunctionSymbol(
+                    f,
+                    _compilation,
+                    (p, s) =>
+                        AddSymbol(
+                            p,
+                            (x, c1) => new ParameterSymbol(x, _compilation, c1),
+                            functionScope,
+                            s
+                        ),
+                    containingSymbol: c
+                ),
+            scope,
+            containingSymbol
+        );
     }
 
-    internal async ValueTask<DiagnosticBag> BindSymbolsAsync(CancellationToken cancellationToken = default)
+    internal async ValueTask<DiagnosticBag> BindSymbolsAsync(
+        CancellationToken cancellationToken = default
+    )
     {
         var topLevelBag = new DiagnosticBag();
-        await foreach (var task in Task
-                           .WhenEach(_symbolCache.Keys.Select(x =>
-                               BindSymbolAsync(_symbolCache[x], cancellationToken)))
-                           .WithCancellation(cancellationToken))
+        await foreach (
+            var task in Task.WhenEach(
+                    _symbolCache.Keys.Select(x =>
+                        BindSymbolAsync(_symbolCache[x], cancellationToken)
+                    )
+                )
+                .WithCancellation(cancellationToken)
+        )
         {
             var result = task.Result;
             foreach (var diagnostic in result)
@@ -132,7 +171,10 @@ public sealed class SemanticModel
         return topLevelBag;
     }
 
-    private async Task<DiagnosticBag> BindSymbolAsync(Symbol symbol, CancellationToken cancellationToken = default)
+    private async Task<DiagnosticBag> BindSymbolAsync(
+        Symbol symbol,
+        CancellationToken cancellationToken = default
+    )
     {
         var bag = new DiagnosticBag();
         var context = new BindingContext(bag, ResolutionContext.Empty);
@@ -148,37 +190,56 @@ public sealed class SemanticModel
             default:
                 throw new NotImplementedException();
         }
-        
+
         return bag;
     }
 
     internal TypeSymbol GetValueType(ValueSymbol valueSymbol)
     {
-        return _resolvedSemanticState is not null ? _resolvedSemanticState.ValueTypes[valueSymbol] : throw new InvalidOperationException("Type resolution not complete");
+        return _resolvedSemanticState is not null
+            ? _resolvedSemanticState.ValueTypes[valueSymbol]
+            : throw new InvalidOperationException("Type resolution not complete");
     }
 
-    internal ValueTask<TypeSymbol> ResolveValueTypeAsync(ValueSymbol valueSymbol,
+    internal ValueTask<TypeSymbol> ResolveValueTypeAsync(
+        ValueSymbol valueSymbol,
         BindingContext context,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         return _semanticResolver.ResolveValueTypeAsync(valueSymbol, context, cancellationToken);
     }
-    
+
     internal BoundExpression? GetVariableInitializer(VariableSymbol symbol)
     {
-        return _resolvedSemanticState is not null ? _resolvedSemanticState.Initializers.GetValueOrDefault(symbol) : throw new InvalidOperationException("Type resolution not complete");
+        return _resolvedSemanticState is not null
+            ? _resolvedSemanticState.Initializers.GetValueOrDefault(symbol)
+            : throw new InvalidOperationException("Type resolution not complete");
     }
 
-    internal ValueTask<BoundExpression?> ResolveVariableInitializerAsync(VariableSymbol valueSymbol, BindingContext context,
-        CancellationToken cancellationToken = default)
-    {
-        return _semanticResolver.ResolveVariableInitializerAsync(valueSymbol, context, cancellationToken);
-    }
-    
-    internal ValueTask<TypeSymbol> ResolveFunctionReturnTypeAsync(CallableSymbol functionSymbol,
+    internal ValueTask<BoundExpression?> ResolveVariableInitializerAsync(
+        VariableSymbol valueSymbol,
         BindingContext context,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
-        return _semanticResolver.ResolveFunctionReturnTypeAsync(functionSymbol, context, cancellationToken);
+        return _semanticResolver.ResolveVariableInitializerAsync(
+            valueSymbol,
+            context,
+            cancellationToken
+        );
+    }
+
+    internal ValueTask<TypeSymbol> ResolveFunctionReturnTypeAsync(
+        CallableSymbol functionSymbol,
+        BindingContext context,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return _semanticResolver.ResolveFunctionReturnTypeAsync(
+            functionSymbol,
+            context,
+            cancellationToken
+        );
     }
 }

@@ -5,7 +5,7 @@
 
 using System.Collections.Immutable;
 
-namespace Prism.Core.Ast;
+namespace Prism.Core.Syntax;
 
 public abstract record StatementSyntax : SyntaxNode;
 

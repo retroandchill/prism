@@ -1,4 +1,4 @@
-﻿using Prism.Core.Ast;
+﻿using Prism.Core.Syntax;
 
 namespace Prism.Core.Semantic;
 

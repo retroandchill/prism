@@ -7,9 +7,9 @@ using System.Buffers;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Numerics;
-using Prism.Core.Ast;
 using Prism.Core.Semantic;
 using Prism.Core.Semantic.Symbols;
+using Prism.Core.Syntax;
 using Singulink.Numerics;
 
 namespace Prism.Core.Utils;

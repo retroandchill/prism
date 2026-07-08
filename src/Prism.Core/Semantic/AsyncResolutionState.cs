@@ -1,5 +1,5 @@
 ﻿// @file AsyncResolutionState.cs
-// 
+//
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
@@ -21,7 +21,7 @@ internal sealed class AsyncResolutionState<T>
 {
     public delegate Task<T> AsyncTaskFactory<TContext>(in TContext context)
         where TContext : allows ref struct;
-    
+
     private readonly Lock _lock = new();
     private Task<T>? _task;
 
@@ -33,7 +33,7 @@ internal sealed class AsyncResolutionState<T>
             return _task is not null;
         }
     }
-    
+
     public bool IsCompleted
     {
         get
@@ -48,7 +48,9 @@ internal sealed class AsyncResolutionState<T>
         get
         {
             using var scope = _lock.EnterScope();
-            return _task is { IsCompletedSuccessfully: true } ? _task.Result : throw new InvalidOperationException("The task has not completed successfully.");
+            return _task is { IsCompletedSuccessfully: true }
+                ? _task.Result
+                : throw new InvalidOperationException("The task has not completed successfully.");
         }
     }
 
@@ -74,7 +76,7 @@ internal sealed class AsyncResolutionState<T>
         _task ??= Task.Run(factory);
         return _task;
     }
-    
+
     public Task<T> GetOrStart<TContext>(in TContext context, AsyncTaskFactory<TContext> factory)
         where TContext : allows ref struct
     {
@@ -91,7 +93,7 @@ internal sealed class AsyncResolutionState<T>
             value = _task.Result;
             return true;
         }
-        
+
         value = default;
         return false;
     }

@@ -1,5 +1,5 @@
-﻿using Prism.Core.Ast;
-using Prism.Core.Semantic.Binding;
+﻿using Prism.Core.Semantic.Binding;
+using Prism.Core.Syntax;
 using Prism.Core.Utils;
 
 namespace Prism.Core.Tests;

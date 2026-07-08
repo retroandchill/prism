@@ -4,8 +4,8 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Numerics;
-using Prism.Core.Ast;
 using Prism.Core.Parse;
+using Prism.Core.Syntax;
 
 namespace Prism.Core.Tests;
 

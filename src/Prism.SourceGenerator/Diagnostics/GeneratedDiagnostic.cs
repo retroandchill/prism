@@ -1,5 +1,5 @@
 ﻿// @file GeneratedDiagnostic.cs
-// 
+//
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
@@ -28,7 +28,7 @@ public sealed record GeneratedDiagnostic
     public required string RangeParam { get; init; }
     public required string DiagnosticClass { get; init; }
     public required ImmutableArray<FormatParam> FormatParams { get; init; }
-    
+
     public required string Id { get; init; }
     public required string Title { get; init; }
     public required string? Description { get; init; }

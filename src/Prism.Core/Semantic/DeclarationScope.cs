@@ -5,9 +5,9 @@
 
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using Prism.Core.Ast;
 using Prism.Core.Semantic.Symbols;
 using Prism.Core.Strings;
+using Prism.Core.Syntax;
 
 namespace Prism.Core.Semantic;
 

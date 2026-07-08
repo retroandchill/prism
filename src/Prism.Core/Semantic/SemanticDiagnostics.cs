@@ -17,7 +17,11 @@ public static partial class SemanticDiagnostics
         MessageFormat = "Symbol '{0}' is already defined in this scope.",
         Severity = DiagnosticSeverity.Error
     )]
-    public static partial void DuplicateSymbolDefinition(this IDiagnosticSink sink, SourceRange range, Name name);
+    public static partial void DuplicateSymbolDefinition(
+        this IDiagnosticSink sink,
+        TextSpan range,
+        Name name
+    );
 
     [Diagnostic(
         Id = "PRISM1002",
@@ -25,18 +29,24 @@ public static partial class SemanticDiagnostics
         MessageFormat = "Symbol '{0}' cannot be resolved due to a cyclic reference:\n{1}",
         Severity = DiagnosticSeverity.Error
     )]
-    public static partial void CyclicSymbolDefinition(this IDiagnosticSink sink, SourceRange range, Name source,
-        string chain);
+    public static partial void CyclicSymbolDefinition(
+        this IDiagnosticSink sink,
+        TextSpan range,
+        Name source,
+        string chain
+    );
 
     [Diagnostic(
         Id = "PRISM1003",
         Title = "Cyclic symbol definition",
-        MessageFormat =
-            "The type of variable '{0}' cannot be resolved because it lacks both a type annotation and an initializer",
+        MessageFormat = "The type of variable '{0}' cannot be resolved because it lacks both a type annotation and an initializer",
         Severity = DiagnosticSeverity.Error
     )]
-    public static partial void
-        VariableWithoutTypeOrInitializer(this IDiagnosticSink sink, SourceRange range, Name name);
+    public static partial void VariableWithoutTypeOrInitializer(
+        this IDiagnosticSink sink,
+        TextSpan range,
+        Name name
+    );
 
     [Diagnostic(
         Id = "PRISM1004",
@@ -44,7 +54,7 @@ public static partial class SemanticDiagnostics
         MessageFormat = "The numeric literal is too large to be represented by the target type",
         Severity = DiagnosticSeverity.Error
     )]
-    public static partial void NumberTooLarge(this IDiagnosticSink sink, SourceRange range);
+    public static partial void NumberTooLarge(this IDiagnosticSink sink, TextSpan range);
 
     [Diagnostic(
         Id = "PRISM1006",
@@ -52,7 +62,11 @@ public static partial class SemanticDiagnostics
         MessageFormat = "Type '{0}' cannot be used with the unary operator",
         Severity = DiagnosticSeverity.Error
     )]
-    public static partial void UnaryOperatorUndefined(this IDiagnosticSink sink, SourceRange range, Name name);
+    public static partial void UnaryOperatorUndefined(
+        this IDiagnosticSink sink,
+        TextSpan range,
+        Name name
+    );
 
     [Diagnostic(
         Id = "PRISM1007",
@@ -60,50 +74,70 @@ public static partial class SemanticDiagnostics
         MessageFormat = "Types '{0}' and '{1}' cannot be used with the binary operator",
         Severity = DiagnosticSeverity.Error
     )]
-    public static partial void BinaryOperatorUndefined(this IDiagnosticSink sink, SourceRange range, Name left,
-        Name right);
-    
+    public static partial void BinaryOperatorUndefined(
+        this IDiagnosticSink sink,
+        TextSpan range,
+        Name left,
+        Name right
+    );
+
     [Diagnostic(
         Id = "PRISM1008",
         Title = "No implicit conversion",
         MessageFormat = "No implicit conversion from '{0}' to '{1}'",
         Severity = DiagnosticSeverity.Error
     )]
-    public static partial void NoImplicitConversion(this IDiagnosticSink sink, SourceRange range,
-        Name from, Name to);
-    
+    public static partial void NoImplicitConversion(
+        this IDiagnosticSink sink,
+        TextSpan range,
+        Name from,
+        Name to
+    );
+
     [Diagnostic(
         Id = "PRISM1009",
         Title = "No mutual implicit conversion",
         MessageFormat = "No mutually implicit conversion between '{0}' to '{1}'",
         Severity = DiagnosticSeverity.Error
     )]
-    public static partial void NoMutualImplicitConversion(this IDiagnosticSink sink, SourceRange range,
-        Name left, Name right);
-    
+    public static partial void NoMutualImplicitConversion(
+        this IDiagnosticSink sink,
+        TextSpan range,
+        Name left,
+        Name right
+    );
+
     [Diagnostic(
         Id = "PRISM1010",
         Title = "Not invocable",
         MessageFormat = "Expression is not invocable",
         Severity = DiagnosticSeverity.Error
     )]
-    public static partial void NotInvocable(this IDiagnosticSink sink, SourceRange range);
-    
+    public static partial void NotInvocable(this IDiagnosticSink sink, TextSpan range);
+
     [Diagnostic(
         Id = "PRISM1011",
         Title = "Wrong number of arguments",
         MessageFormat = "Wrong number of arguments for '{0}', expected {1}, provided {2}",
         Severity = DiagnosticSeverity.Error
-        )]
-    public static partial void WrongNumberOfArguments(this IDiagnosticSink sink, SourceRange range,
-        Name function, int expected, int provided);
-    
+    )]
+    public static partial void WrongNumberOfArguments(
+        this IDiagnosticSink sink,
+        TextSpan range,
+        Name function,
+        int expected,
+        int provided
+    );
+
     [Diagnostic(
         Id = "PRISM1012",
         Title = "No suitable overload",
         MessageFormat = "No suitable overload of '{0}' for the provided arguments",
         Severity = DiagnosticSeverity.Error
     )]
-    public static partial void NoSuitableOverload(this IDiagnosticSink sink, SourceRange range,
-        Name function);
+    public static partial void NoSuitableOverload(
+        this IDiagnosticSink sink,
+        TextSpan range,
+        Name function
+    );
 }

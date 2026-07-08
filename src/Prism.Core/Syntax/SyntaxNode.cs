@@ -5,19 +5,11 @@
 
 using Prism.Core.Parse;
 
-namespace Prism.Core.Ast;
-
-[Flags]
-public enum SyntaxFlags
-{
-    None = 0,
-    Missing = 1 << 0,
-    Unknown = 1 << 1
-}
+namespace Prism.Core.Syntax;
 
 public abstract record SyntaxNode
 {
-    public required SourceRange Range { get; init; }
+    public required TextSpan Range { get; init; }
 
     public SyntaxFlags Flags { get; init; }
 }
