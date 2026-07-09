@@ -17,7 +17,6 @@ set(PRISM_PUBLIC_MODULES
         src/public/memory/alignment.ixx
         src/public/memory/arena_allocator.ixx
         src/public/memory/buffer_pool.ixx
-        src/public/syntax.ixx
         src/public/syntax/kind.ixx
         src/public/syntax/green_node.ixx
         src/public/syntax/flags.ixx
@@ -26,6 +25,7 @@ set(PRISM_PUBLIC_MODULES
         src/public/util/make_array.ixx
         src/public/memory/ref_counted_ptr.ixx
         src/public/type_traits/basic.ixx
+        src/public/core.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})
@@ -45,6 +45,7 @@ target_sources(prism_core PUBLIC
         FILE_SET prism_core_private
         TYPE CXX_MODULES
         FILES
+        ${PRISM_SOURCES}
         ${PRISM_PRIVATE_MODULES})
 
 target_sources(prism_core PUBLIC

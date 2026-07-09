@@ -4,9 +4,9 @@
  * @date 7/9/2026
  * @brief
  */
-export module prism.core.memory.ref_counted_ptr;
+export module prism.core:memory.ref_counted_ptr;
 
-import prism.core.type_traits.basic;
+import :type_traits.basic;
 import std;
 
 namespace prism

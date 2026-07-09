@@ -4,7 +4,7 @@
  * @date 7/9/2026
  * @brief
  */
-export module prism.core.type_traits.basic;
+export module prism.core:type_traits.basic;
 
 import std;
 

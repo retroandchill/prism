@@ -4,7 +4,9 @@
  * @date 7/2/2026
  * @brief
  */
-module prism.core.memory.buffer_pool;
+module prism.core:memory.buffer_pool.impl;
+
+import :memory.buffer_pool;
 
 namespace prism
 {

@@ -8,10 +8,10 @@ module;
 
 #include <cassert>
 
-export module prism.core.memory.arena_allocator;
+export module prism.core:memory.arena_allocator;
 
 import std;
-import prism.core.util.noncopyable;
+import :util.noncopyable;
 
 namespace prism
 {

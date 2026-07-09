@@ -4,9 +4,9 @@
  * @date 7/9/2026
  * @brief
  */
-module prism.core.syntax;
+module prism.core:syntax.green_node.impl;
 
-import :green_node;
+import :syntax.green_node;
 
 namespace prism
 {

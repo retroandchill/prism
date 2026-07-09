@@ -8,11 +8,11 @@ module;
 
 #include <cassert>
 
-export module prism.core.syntax:green_node;
+export module prism.core:syntax.green_node;
 
-import :kind;
-import :flags;
-import prism.core.memory.ref_counted_ptr;
+import :syntax.kind;
+import :syntax.flags;
+import :memory.ref_counted_ptr;
 
 namespace prism
 {

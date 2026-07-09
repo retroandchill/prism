@@ -4,7 +4,7 @@
  * @date 6/30/2026
  * @brief
  */
-export module prism.core.memory.alignment;
+export module prism.core:memory.alignment;
 
 import std;
 

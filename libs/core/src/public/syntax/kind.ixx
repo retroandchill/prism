@@ -8,7 +8,7 @@ module;
 
 #include "prism/core/syntax.hpp"
 
-export module prism.core.syntax:kind;
+export module prism.core:syntax.kind;
 
 import std;
 

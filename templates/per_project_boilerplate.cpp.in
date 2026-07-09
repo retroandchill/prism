@@ -5,7 +5,7 @@
 #include <prism/core/per_project_boilerplate.hpp>
 
 import std;
-import prism.core.strings.name;
+import prism.core;
 
 struct NameDebugVisualizer
 {

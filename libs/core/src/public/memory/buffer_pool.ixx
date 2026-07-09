@@ -8,10 +8,10 @@ module;
 
 #include "prism/core/exports.h"
 
-export module prism.core.memory.buffer_pool;
+export module prism.core:memory.buffer_pool;
 
 import std;
-import prism.core.util.make_array;
+import :util.make_array;
 
 namespace prism
 {

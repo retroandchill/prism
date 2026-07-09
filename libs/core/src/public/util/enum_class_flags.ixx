@@ -4,7 +4,7 @@
  * @date 7/9/2026
  * @brief
  */
-export module prism.core.util.enum_class_flags;
+export module prism.core:util.enum_class_flags;
 
 import std;
 

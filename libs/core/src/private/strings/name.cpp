@@ -10,11 +10,12 @@ module;
 
 #include <cassert>
 
-module prism.core.strings.name;
+module prism.core:strings.name.impl;
 
-import prism.core.memory.alignment;
+import :strings.name;
 import xxhash;
-import prism.core.util.make_array;
+import :memory.alignment;
+import :util.make_array;
 
 namespace prism
 {
@@ -119,7 +120,7 @@ namespace prism
             return id_and_hash_ != 0;
         }
 
-        constexpr friend bool operator==(NameSlot lhs, NameSlot rhs) noexcept = default;
+        constexpr bool operator==(const NameSlot &rhs) const noexcept = default;
 
       private:
         std::uint32_t id_and_hash_ = 0;
@@ -303,7 +304,7 @@ namespace prism
             return str == "<none>"sv;
         }
 
-        [[nodiscard]] constexpr friend bool operator==(NameHash lhs, NameHash rhs) noexcept = default;
+        [[nodiscard]] constexpr bool operator==(const NameHash &other) const noexcept = default;
     };
 
     struct NameValue
@@ -688,26 +689,6 @@ namespace prism
         return as_string_view() <=> other;
     }
 
-    bool operator==(const Name lhs, const std::string_view rhs) noexcept
-    {
-        return lhs.as_string_view() == rhs;
-    }
-
-    bool operator==(const std::string_view lhs, const Name rhs) noexcept
-    {
-        return lhs == rhs.as_string_view();
-    }
-
-    bool operator==(const Name lhs, const KnownName rhs) noexcept
-    {
-        return lhs == Name{rhs};
-    }
-
-    bool operator==(const KnownName lhs, const Name rhs) noexcept
-    {
-        return Name{lhs} == rhs;
-    }
-
     const NameEntry &Name::resolve_entry(NameEntryId lookup_id)
     {
         return NamePool::get().resolve(lookup_id);
@@ -730,7 +711,7 @@ namespace prism
         return pool.find(str);
     }
 
-    const std::byte *const *debug_get_name_memory()
+    const std::byte *const *DebugNameMemoryGetter::get()
     {
         static_assert(sizeof(std::byte *) == sizeof(NameEntryBlockPtr));
         return reinterpret_cast<const std::byte *const *>(NamePool::get().debug_memory().data());

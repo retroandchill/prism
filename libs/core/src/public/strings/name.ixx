@@ -11,7 +11,7 @@ module;
 
 #include <cstddef>
 
-export module prism.core.strings.name;
+export module prism.core:strings.name;
 
 import std;
 
@@ -103,7 +103,7 @@ namespace prism
     {
         std::uint16_t length = 0;
 
-        [[nodiscard]] constexpr friend bool operator==(NameEntryHeader lhs, NameEntryHeader rhs) noexcept = default;
+        [[nodiscard]] constexpr bool operator==(const NameEntryHeader &rhs) const noexcept = default;
     };
 
     export class alignas(name_entry_alignment) PRISM_CORE_API NameEntry
@@ -203,13 +203,25 @@ namespace prism
 
         [[nodiscard]] constexpr friend bool operator==(Name lhs, Name rhs) noexcept = default;
 
-        [[nodiscard]] friend bool operator==(Name lhs, std::string_view rhs) noexcept;
+        [[nodiscard]] friend inline bool operator==(const Name lhs, const std::string_view rhs) noexcept
+        {
+            return lhs.as_string_view() == rhs;
+        }
 
-        [[nodiscard]] friend bool operator==(std::string_view lhs, Name rhs) noexcept;
+        [[nodiscard]] friend inline bool operator==(const std::string_view lhs, const Name rhs) noexcept
+        {
+            return lhs == rhs.as_string_view();
+        }
 
-        [[nodiscard]] friend bool operator==(Name lhs, KnownName rhs) noexcept;
+        [[nodiscard]] friend inline bool operator==(const Name lhs, const KnownName rhs) noexcept
+        {
+            return lhs == Name{rhs};
+        }
 
-        [[nodiscard]] friend bool operator==(KnownName lhs, Name rhs) noexcept;
+        [[nodiscard]] friend inline bool operator==(const KnownName lhs, const Name rhs) noexcept
+        {
+            return Name{lhs} == rhs;
+        }
 
         [[nodiscard]] constexpr friend std::strong_ordering operator<=>(Name lhs, Name rhs) noexcept = default;
 
@@ -221,7 +233,15 @@ namespace prism
         NameEntryId id_;
     };
 
-    export PRISM_CORE_API const std::byte *const *debug_get_name_memory();
+    struct DebugNameMemoryGetter
+    {
+        PRISM_CORE_API static const std::byte *const *get();
+    };
+
+    export inline const std::byte *const *debug_get_name_memory()
+    {
+        return DebugNameMemoryGetter::get();
+    }
 
 } // namespace prism
 
