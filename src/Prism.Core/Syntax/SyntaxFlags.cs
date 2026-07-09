@@ -11,5 +11,5 @@ public enum SyntaxFlags
     None = 0,
     Missing = 1 << 0,
     Unknown = 1 << 1,
-    UnterminatedLiteral = 1 << 2,
+    ContainsDiagnostics = 1 << 2,
 }

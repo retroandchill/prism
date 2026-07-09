@@ -3,7 +3,9 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using Cysharp.Text;
+using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 using Prism.Core.Syntax.Green;
 using Prism.Core.Utils;
@@ -173,7 +175,7 @@ public sealed class Lexer(SourceFile sourceFile)
 
         return new GreenTrivia(SyntaxKind.BlockCommentTrivia, builder.ToString())
         {
-            Flags = SyntaxFlags.UnterminatedLiteral,
+            Diagnostics = [ParseDiagnostics.UnterminatedBlockComment()],
         };
     }
 
@@ -184,15 +186,18 @@ public sealed class Lexer(SourceFile sourceFile)
 
         int firstSkip;
         char firstChar;
+        bool isEscaped;
         if (_cursor.Current == '@')
         {
             firstSkip = 2;
             firstChar = _cursor.Peek();
+            isEscaped = true;
         }
         else
         {
             firstSkip = 1;
             firstChar = _cursor.Current;
+            isEscaped = false;
         }
 
         if (!char.IsAsciiLetter(firstChar) || firstChar == '_')
@@ -208,14 +213,20 @@ public sealed class Lexer(SourceFile sourceFile)
         var identifier = remaining[..range.Length];
         if (SyntaxKind.MatchKeyword(identifier) is { } matchedKeyword)
         {
-            return matchedKeyword
-                .GetGreenToken()
-                .WithLeadingAndTrailingTrivia(leadingTrivia, CollectTrivia());
+            var baseToken = matchedKeyword switch
+            {
+                SyntaxKind.TrueKeyword => GreenLiteralToken.BoolTrue,
+                SyntaxKind.FalseKeyword => GreenLiteralToken.BoolFalse,
+                _ => matchedKeyword.GetGreenToken(),
+            };
+
+            return baseToken.WithLeadingAndTrailingTrivia(leadingTrivia, CollectTrivia());
         }
 
-        return new GreenToken(
+        var info = new IdentifierInfo(isEscaped ? identifier[1..] : identifier, isEscaped);
+        return new GreenIdentifierToken(
             SyntaxKind.IdentifierToken,
-            sourceFile.GetSpan(range),
+            info,
             leadingTrivia,
             CollectTrivia()
         );
@@ -223,88 +234,94 @@ public sealed class Lexer(SourceFile sourceFile)
 
     private GreenToken? MatchNumber(GreenTriviaList leadingTrivia)
     {
+        var start = _cursor.Position;
         var remainder = _cursor.Remaining;
+        bool isFloat;
         if (remainder.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
         {
-            return HandleHexLiteral(leadingTrivia);
+            isFloat = false;
+            if (!HandleHexLiteral())
+            {
+                // If we fail to parse just grab the leading 0 as the literal
+                _cursor.Advance();
+            }
+        }
+        else if (remainder.StartsWith("0b", StringComparison.OrdinalIgnoreCase))
+        {
+            isFloat = false;
+            if (!HandleBinaryLiteral())
+            {
+                // If we fail to parse just grab the leading 0 as the literal
+                _cursor.Advance();
+            }
+        }
+        else
+        {
+            var foundDigits = ConsumeDigitSequence(char.IsAsciiDigit);
+            if (foundDigits && _cursor.AtEnd)
+            {
+                var literalText = _cursor.Since(start);
+                var info = Numerics.ParseInteger(literalText);
+                return GreenLiteralToken.Create(
+                    info,
+                    literalText.ToString(),
+                    leadingTrivia,
+                    CollectTrivia()
+                );
+            }
+            isFloat = _cursor.Current == '.';
+            if (isFloat)
+            {
+                _cursor.Advance();
+                ConsumeDigitSequence(char.IsAsciiDigit);
+            }
+            else if (!foundDigits)
+                return null;
+
+            isFloat &= ConsumeFloatSuffix();
+            if (!isFloat)
+            {
+                ConsumeIntegerSizeSuffix();
+            }
         }
 
-        if (remainder.StartsWith("0b", StringComparison.OrdinalIgnoreCase))
-        {
-            return HandleBinaryLiteral(leadingTrivia);
-        }
-
-        var start = _cursor.Position;
-        var foundDigits = ConsumeDigitSequence();
-        if (foundDigits && _cursor.AtEnd)
-        {
-            return new GreenToken(
-                SyntaxKind.IntegerLiteralToken,
-                sourceFile.GetSpan(_cursor.Since(start)).ToString(),
-                leadingTrivia,
-                CollectTrivia()
-            );
-        }
-        var isFloat = _cursor.Current == '.';
+        var text = _cursor.Since(start);
         if (isFloat)
         {
-            _cursor.Advance();
-            ConsumeDigitSequence();
+            var info = Numerics.ParseFloat(text);
+            return GreenLiteralToken.Create(info, text.ToString(), leadingTrivia, CollectTrivia());
         }
-        else if (!foundDigits)
-            return null;
-
-        isFloat &= ConsumeFloatSuffix();
-        if (isFloat)
-            return new GreenToken(
-                SyntaxKind.FloatingPointLiteralToken,
-                sourceFile.GetSpan(_cursor.Since(start)).ToString(),
-                leadingTrivia,
-                CollectTrivia()
-            );
-        ConsumeIntegerSizeSuffix();
-        return new GreenToken(
-            SyntaxKind.IntegerLiteralToken,
-            sourceFile.GetSpan(_cursor.Since(start)).ToString(),
-            leadingTrivia,
-            CollectTrivia()
-        );
+        else
+        {
+            var info = Numerics.ParseInteger(text);
+            return GreenLiteralToken.Create(info, text.ToString(), leadingTrivia, CollectTrivia());
+        }
     }
 
-    private GreenToken HandleHexLiteral(GreenTriviaList leadingTrivia)
+    private bool HandleHexLiteral()
     {
-        var start = _cursor.Position;
+        if (!char.IsAsciiHexDigit(_cursor.Peek(3)))
+            return false;
+
         _cursor.Advance(2);
 
-        while (!_cursor.AtEnd && char.IsAsciiHexDigit(_cursor.Current))
-            _cursor.Advance();
+        ConsumeDigitSequence(char.IsAsciiHexDigit);
 
-        var range = _cursor.Since(start);
         ConsumeIntegerSizeSuffix();
-        return new GreenToken(
-            SyntaxKind.IntegerLiteralToken,
-            sourceFile.GetSpan(range).ToString(),
-            leadingTrivia,
-            CollectTrivia()
-        );
+        return true;
     }
 
-    private GreenToken HandleBinaryLiteral(GreenTriviaList leadingTrivia)
+    private bool HandleBinaryLiteral()
     {
-        var start = _cursor.Position;
+        if (_cursor.Peek(3) is not ('0' or '1'))
+            return false;
+
         _cursor.Advance(2);
 
-        while (_cursor is { AtEnd: false, Current: '0' or '1' })
-            _cursor.Advance();
+        ConsumeDigitSequence(c => c is '0' or '1');
 
-        var range = _cursor.Since(start);
         ConsumeIntegerSizeSuffix();
-        return new GreenToken(
-            SyntaxKind.IntegerLiteralToken,
-            sourceFile.GetSpan(range).ToString(),
-            leadingTrivia,
-            CollectTrivia()
-        );
+        return true;
     }
 
     private void ConsumeIntegerSizeSuffix()
@@ -334,20 +351,20 @@ public sealed class Lexer(SourceFile sourceFile)
         return true;
     }
 
-    private bool ConsumeDigitSequence()
+    private bool ConsumeDigitSequence(Func<char, bool> predicate)
     {
-        if (_cursor.AtEnd || !char.IsAsciiDigit(_cursor.Current))
+        if (_cursor.AtEnd || !predicate(_cursor.Current))
             return false;
 
         _cursor.Advance();
         while (!_cursor.AtEnd)
         {
             var current = _cursor.Current;
-            if (current == '_' && char.IsAsciiDigit(_cursor.Peek()))
+            if (current == '_' && predicate(_cursor.Peek()))
             {
                 _cursor.Advance(2);
             }
-            else if (char.IsAsciiDigit(current))
+            else if (predicate(current))
             {
                 _cursor.Advance();
             }
@@ -377,37 +394,78 @@ public sealed class Lexer(SourceFile sourceFile)
             return null;
 
         var start = _cursor.Position;
+        using var builder = ZString.CreateStringBuilder();
+        var diagnostics = ImmutableArray.CreateBuilder<DiagnosticInfo>();
+        var terminated = false;
         while (!_cursor.AtEnd)
         {
             _cursor.Advance();
 
-            switch (_cursor.Current)
+            var current = _cursor.Current;
+            if (current == '"')
             {
-                case '"':
-                    _cursor.Advance();
-                    return new GreenToken(
-                        SyntaxKind.StringLiteralToken,
-                        sourceFile.GetSpan(_cursor.Since(start)).ToString(),
-                        leadingTrivia,
-                        CollectTrivia()
-                    );
-                case '\\':
-                    _cursor.Advance();
-                    break;
+                _cursor.Advance();
+                terminated = true;
+                break;
             }
 
             if (_cursor.Any('\r', '\n'))
                 break;
+
+            if (current != '\\')
+            {
+                builder.Append(current);
+                continue;
+            }
+
+            var next = _cursor.Peek();
+            switch (next)
+            {
+                case 'n':
+                    builder.Append('\n');
+                    break;
+                case 'r':
+                    builder.Append('\r');
+                    break;
+                case 't':
+                    builder.Append('\t');
+                    break;
+                case '\\':
+                    builder.Append(@"\\");
+                    break;
+                case 'b':
+                    builder.Append(@"\b");
+                    break;
+                case '\'':
+                    builder.Append(@"\'");
+                    break;
+                case '"':
+                    builder.Append('"');
+                    break;
+                default:
+                    builder.Append('\\');
+                    builder.Append(next);
+                    diagnostics.Add(ParseDiagnostics.UnexpectedEscape($@"\{next}"));
+                    break;
+            }
+
+            _cursor.Advance(2);
         }
 
-        return new GreenToken(
-            SyntaxKind.StringLiteralToken,
-            sourceFile.GetSpan(_cursor.Since(start)).ToString(),
+        if (!terminated)
+        {
+            diagnostics.Add(ParseDiagnostics.UnterminatedStringLiteral());
+        }
+
+        var literal = new StringLiteralValue(builder.ToString(), CharacterEncoding.Utf8);
+        return new GreenLiteralToken<StringLiteralValue>(
+            literal,
+            _cursor.Since(start).ToString(),
             leadingTrivia,
             CollectTrivia()
         )
         {
-            Flags = SyntaxFlags.UnterminatedLiteral,
+            Diagnostics = diagnostics.DrainToImmutable(),
         };
     }
 }

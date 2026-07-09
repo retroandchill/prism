@@ -279,6 +279,8 @@ public enum SyntaxKind : ushort
 
     FloatingPointLiteralToken,
 
+    CharacterLiteralToken,
+
     StringLiteralToken,
 
     #endregion

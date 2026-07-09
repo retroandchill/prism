@@ -42,16 +42,13 @@ public sealed class Parser(SourceDocument sourceDocument)
     {
         var identifier = Expect(SyntaxKind.IdentifierToken);
         var flags = SyntaxFlags.None;
-        if (identifier.IsSynthetic)
+        if (identifier.IsMissing)
         {
             flags |= SyntaxFlags.Missing;
         }
 
-        var span = sourceDocument.SourceFile.GetSpan(identifier.Range);
-        // If it starts with '@', that isn't part of the symbol;
-        // it's just escaping what might be a keyword in a given context
-        span = span.StartsWith('@') ? span[1..] : span;
-        return new IdentifierSyntax(span, identifier.Range, flags);
+        identifier.TryGetIdentifierInfo(out var info);
+        return new IdentifierSyntax(info.Identifier, identifier.Span, flags);
     }
 
     public DeclarationSyntax ParseDeclaration()
@@ -66,11 +63,11 @@ public sealed class Parser(SourceDocument sourceDocument)
                 return ParseFunctionDeclaration(modifiers);
             case SyntaxKind.SemicolonToken when modifiers.IsEmpty:
                 _stream.Advance();
-                sourceDocument.Diagnostics.EmptyStatement(next.Range);
-                return new EmptyDeclarationSyntax { Range = next.Range };
+                //sourceDocument.Diagnostics.EmptyStatement(next.Range);
+                return new EmptyDeclarationSyntax { Range = next.Span };
             default:
-                sourceDocument.Diagnostics.UnexpectedToken(next.Range, next.Kind);
-                return new EmptyDeclarationSyntax { Range = next.Range };
+                //sourceDocument.Diagnostics.UnexpectedToken(next.Range, next.Kind);
+                return new EmptyDeclarationSyntax { Range = next.Span };
         }
     }
 
@@ -92,7 +89,7 @@ public sealed class Parser(SourceDocument sourceDocument)
             if (GetModifier(next.Kind) is { } modifier)
             {
                 _stream.Advance();
-                builder.Add(new ModifierSyntax(modifier, next.Range));
+                builder.Add(new ModifierSyntax(modifier, next.Span));
             }
             else
             {
@@ -108,7 +105,7 @@ public sealed class Parser(SourceDocument sourceDocument)
     )
     {
         var varKeyword = Expect(SyntaxKind.VarKeyword);
-        var start = modifiers.IsEmpty ? varKeyword.Range : modifiers[0].Range;
+        var start = modifiers.IsEmpty ? varKeyword.Span : modifiers[0].Range;
 
         var isMutable = Match(SyntaxKind.MutKeyword);
         var name = ParseIdentifier();
@@ -127,7 +124,7 @@ public sealed class Parser(SourceDocument sourceDocument)
                 Identifier = name,
                 Type = type,
                 IsMutable = isMutable,
-                Range = start.Concat(_stream.Previous.Range),
+                Range = start.Concat(_stream.Previous.Span),
             };
         }
 
@@ -143,7 +140,7 @@ public sealed class Parser(SourceDocument sourceDocument)
             Type = type,
             IsMutable = isMutable,
             Initializer = initializer,
-            Range = start.Concat(_stream.Previous.Range),
+            Range = start.Concat(_stream.Previous.Span),
         };
     }
 
@@ -152,13 +149,13 @@ public sealed class Parser(SourceDocument sourceDocument)
     )
     {
         var funcKeyword = Expect(SyntaxKind.FuncKeyword);
-        var start = modifiers.IsEmpty ? funcKeyword.Range : modifiers[0].Range;
+        var start = modifiers.IsEmpty ? funcKeyword.Span : modifiers[0].Range;
 
         var name = ParseIdentifier();
 
         ImmutableArray<ParameterDeclarationSyntax> parameters;
         var paramStart = Expect(SyntaxKind.LParenToken);
-        if (!paramStart.IsSynthetic)
+        if (!paramStart.IsMissing)
         {
             parameters = ParseParameterList();
             Expect(SyntaxKind.RParenToken);
@@ -192,7 +189,7 @@ public sealed class Parser(SourceDocument sourceDocument)
                 break;
             default:
                 body = EmptyBody.Instance;
-                sourceDocument.Diagnostics.UnexpectedToken(next.Range, next.Kind);
+                //sourceDocument.Diagnostics.UnexpectedToken(next.Range, next.Kind);
                 Synchronize(false);
                 break;
         }
@@ -204,7 +201,7 @@ public sealed class Parser(SourceDocument sourceDocument)
             ReturnType = returnType,
             Parameters = parameters,
             Body = body,
-            Range = start.Concat(_stream.Previous.Range),
+            Range = start.Concat(_stream.Previous.Span),
         };
     }
 
@@ -220,7 +217,7 @@ public sealed class Parser(SourceDocument sourceDocument)
                 Expect(SyntaxKind.CommaToken);
             }
 
-            var start = next.Range;
+            var start = next.Span;
 
             var isMutable = Match(SyntaxKind.MutKeyword);
             var name = ParseIdentifier();
@@ -233,7 +230,7 @@ public sealed class Parser(SourceDocument sourceDocument)
                     Identifier = name,
                     IsMutable = isMutable,
                     Type = type,
-                    Range = start.Concat(_stream.Previous.Range),
+                    Range = start.Concat(_stream.Previous.Span),
                 }
             );
 
@@ -249,16 +246,16 @@ public sealed class Parser(SourceDocument sourceDocument)
         if (BuiltInType.TryGet(next.Kind, out var type))
         {
             _stream.Advance();
-            return new BuiltInTypeSyntax { Type = type, Range = next.Range };
+            return new BuiltInTypeSyntax { Type = type, Range = next.Span };
         }
 
         var identifier = Expect(SyntaxKind.IdentifierToken);
-        if (identifier.IsSynthetic)
+        if (identifier.IsMissing)
         {
             return new BuiltInTypeSyntax
             {
                 Type = BuiltInType.Void,
-                Range = identifier.Range,
+                Range = identifier.Span,
                 Flags = SyntaxFlags.Missing,
             };
         }
@@ -266,10 +263,10 @@ public sealed class Parser(SourceDocument sourceDocument)
         return new NamedTypeSyntax
         {
             Name = new IdentifierSyntax(
-                sourceDocument.SourceFile.GetSpan(identifier.Range),
-                identifier.Range
+                sourceDocument.SourceFile.GetSpan(identifier.Span),
+                identifier.Span
             ),
-            Range = identifier.Range,
+            Range = identifier.Span,
         };
     }
 
@@ -293,8 +290,8 @@ public sealed class Parser(SourceDocument sourceDocument)
                 return ParseBlock();
             case SyntaxKind.SemicolonToken:
                 _stream.Advance();
-                sourceDocument.Diagnostics.EmptyStatement(next.Range);
-                return new EmptyStatementSyntax { Range = next.Range };
+                //sourceDocument.Diagnostics.EmptyStatement(next.Range);
+                return new EmptyStatementSyntax { Range = next.Span };
             default:
                 return ParseExpressionStatement();
         }
@@ -303,20 +300,20 @@ public sealed class Parser(SourceDocument sourceDocument)
     private BlockSyntax ParseBlock()
     {
         var builder = ImmutableArray.CreateBuilder<StatementSyntax>();
-        var start = Expect(SyntaxKind.LBraceToken).Range;
+        var start = Expect(SyntaxKind.LBraceToken).Span;
 
         while (_stream.Peek().Kind != SyntaxKind.RBraceToken)
         {
             if (_stream.AtEnd)
             {
-                sourceDocument.Diagnostics.UnexpectedEndOfFile(_stream.Peek().Range);
+                //sourceDocument.Diagnostics.UnexpectedEndOfFile(_stream.Peek().Range);
                 break;
             }
 
             builder.Add(ParseStatement());
         }
 
-        var end = Expect(SyntaxKind.RBraceToken).Range;
+        var end = Expect(SyntaxKind.RBraceToken).Span;
         var statements = builder.DrainToImmutable();
 
         return new BlockSyntax { Statements = statements, Range = start.Concat(end) };
@@ -329,16 +326,16 @@ public sealed class Parser(SourceDocument sourceDocument)
         return new ExpressionStatementSyntax
         {
             Expression = expression,
-            Range = expression.Range.Concat(_stream.Previous.Range),
+            Range = expression.Range.Concat(_stream.Previous.Span),
         };
     }
 
     private ReturnStatementSyntax ParseReturnStatement()
     {
-        var start = Expect(SyntaxKind.ReturnKeyword).Range;
+        var start = Expect(SyntaxKind.ReturnKeyword).Span;
         if (Match(SyntaxKind.SemicolonToken))
         {
-            return new ReturnStatementSyntax { Range = start.Concat(_stream.Previous.Range) };
+            return new ReturnStatementSyntax { Range = start.Concat(_stream.Previous.Span) };
         }
 
         var expression = ParseExpression();
@@ -346,7 +343,7 @@ public sealed class Parser(SourceDocument sourceDocument)
         return new ReturnStatementSyntax
         {
             Expression = expression,
-            Range = start.Concat(_stream.Previous.Range),
+            Range = start.Concat(_stream.Previous.Span),
         };
     }
 
@@ -453,45 +450,44 @@ public sealed class Parser(SourceDocument sourceDocument)
     private ExpressionSyntax ParsePrimaryExpression()
     {
         var next = _stream.Peek();
-        var span = sourceDocument.SourceFile.GetSpan(next.Range);
+        var span = sourceDocument.SourceFile.GetSpan(next.Span);
         switch (next.Kind)
         {
             case SyntaxKind.FalseKeyword:
                 _stream.Advance();
-                return new BooleanLiteralExpressionSyntax { Value = false, Range = next.Range };
+                return new BooleanLiteralExpressionSyntax { Value = false, Range = next.Span };
             case SyntaxKind.TrueKeyword:
                 _stream.Advance();
-                return new BooleanLiteralExpressionSyntax { Value = true, Range = next.Range };
+                return new BooleanLiteralExpressionSyntax { Value = true, Range = next.Span };
             case SyntaxKind.IntegerLiteralToken:
             {
-                var (@base, value, suffix) = Numerics.ParseInteger(span);
+                next.TryGetLiteralValue<IntegerLiteralValue>(out var info);
                 _stream.Advance();
                 return new IntegerLiteralExpressionSyntax
                 {
-                    Base = @base,
-                    Value = value,
-                    Suffix = suffix,
-                    Range = next.Range,
+                    Base = info.Base,
+                    Value = info.Value,
+                    Suffix = info.Suffix,
+                    Range = next.Span,
                 };
             }
             case SyntaxKind.FloatingPointLiteralToken:
             {
-                var (value, suffix) = Numerics.ParseFloat(span);
+                next.TryGetLiteralValue<FloatLiteralValue>(out var info);
                 _stream.Advance();
                 return new FloatLiteralExpressionSyntax
                 {
-                    Value = value,
-                    Suffix = suffix,
-                    Range = next.Range,
+                    Value = info.Value,
+                    Suffix = info.Suffix,
+                    Range = next.Span,
                 };
             }
             case SyntaxKind.StringLiteralToken:
+            {
                 _stream.Advance();
-                return new StringLiteralExpressionSyntax
-                {
-                    Value = ParseEscapedString(next),
-                    Range = next.Range,
-                };
+                next.TryGetLiteralValue<StringLiteralValue>(out var value);
+                return new StringLiteralExpressionSyntax { Value = value.Value, Range = next.Span };
+            }
             case SyntaxKind.IdentifierToken:
             {
                 var identifier = ParseIdentifier();
@@ -509,79 +505,13 @@ public sealed class Parser(SourceDocument sourceDocument)
                 return expression;
             }
             default:
-                sourceDocument.Diagnostics.UnexpectedToken(next.Range, next.Kind);
+                //sourceDocument.Diagnostics.UnexpectedToken(next.Range, next.Kind);
                 return new InvalidExpressionSyntax()
                 {
-                    Range = next.Range,
+                    Range = next.Span,
                     Flags = SyntaxFlags.Unknown,
                 };
         }
-    }
-
-    private string ParseEscapedString(SyntaxToken token)
-    {
-        using var builder = ZString.CreateStringBuilder();
-        var source = sourceDocument.SourceFile.GetMemory(token.Range);
-        var str = token.IsUnterminated ? source[1..] : source[1..^1];
-        for (var i = 0; i < str.Length; i++)
-        {
-            var c = str.Span[i];
-            if (c != '/')
-            {
-                builder.Append(c);
-                continue;
-            }
-
-            if (i + 1 >= str.Length)
-            {
-                sourceDocument.Diagnostics.UnexpectedEscape(
-                    new TextSpan(token.Range.Start + i, 1),
-                    str.Slice(i, 1)
-                );
-                break;
-            }
-
-            var next = str.Span[i + 1];
-            switch (next)
-            {
-                case 'n':
-                    builder.Append('\n');
-                    i++;
-                    break;
-                case 'r':
-                    builder.Append('\r');
-                    i++;
-                    break;
-                case 't':
-                    builder.Append('\t');
-                    i++;
-                    break;
-                case '\\':
-                    builder.Append(@"\\");
-                    i++;
-                    break;
-                case 'b':
-                    builder.Append(@"\b");
-                    i++;
-                    break;
-                case '\'':
-                    builder.Append(@"\'");
-                    i++;
-                    break;
-                case '"':
-                    builder.Append('"');
-                    i++;
-                    break;
-                default:
-                    sourceDocument.Diagnostics.UnexpectedEscape(
-                        new TextSpan(token.Range.Start + i, 2),
-                        str.Slice(i, 2)
-                    );
-                    break;
-            }
-        }
-
-        return builder.ToString();
     }
 
     private ExpressionSyntax ParsePrefixExpression()
@@ -596,7 +526,7 @@ public sealed class Parser(SourceDocument sourceDocument)
         {
             Operator = op,
             Operand = operand,
-            Range = next.Range.Concat(operand.Range),
+            Range = next.Span.Concat(operand.Range),
         };
     }
 
@@ -631,7 +561,7 @@ public sealed class Parser(SourceDocument sourceDocument)
                     Callee = expression,
                     Arguments = arguments,
                     ArgumentsRange = range,
-                    Range = expression.Range.Concat(end.Range),
+                    Range = expression.Range.Concat(end.Span),
                 };
             case SyntaxKind.PlusPlusToken:
                 _stream.Advance();
@@ -639,7 +569,7 @@ public sealed class Parser(SourceDocument sourceDocument)
                 {
                     Operator = UnaryOperator.PostIncrement,
                     Operand = expression,
-                    Range = expression.Range.Concat(next.Range),
+                    Range = expression.Range.Concat(next.Span),
                 };
             case SyntaxKind.MinusMinusToken:
                 _stream.Advance();
@@ -647,7 +577,7 @@ public sealed class Parser(SourceDocument sourceDocument)
                 {
                     Operator = UnaryOperator.PostDecrement,
                     Operand = expression,
-                    Range = expression.Range.Concat(next.Range),
+                    Range = expression.Range.Concat(next.Span),
                 };
             default:
                 return expression;
@@ -662,7 +592,7 @@ public sealed class Parser(SourceDocument sourceDocument)
         {
             if (_stream.AtEnd)
             {
-                sourceDocument.Diagnostics.UnexpectedEndOfFile(next.Range);
+                //sourceDocument.Diagnostics.UnexpectedEndOfFile(next.Range);
                 break;
             }
 
@@ -692,7 +622,7 @@ public sealed class Parser(SourceDocument sourceDocument)
                         Range = name.Range.AsEmpty(),
                         Flags = SyntaxFlags.Missing,
                     };
-                    sourceDocument.Diagnostics.UnexpectedToken(next.Range, next.Kind);
+                    //sourceDocument.Diagnostics.UnexpectedToken(next.Range, next.Kind);
                 }
 
                 builder.Add(
@@ -711,7 +641,7 @@ public sealed class Parser(SourceDocument sourceDocument)
 
             next = _stream.Peek();
         }
-        return (builder.DrainToImmutable(), start.Range.Concat(next.Range));
+        return (builder.DrainToImmutable(), start.Span.Concat(next.Span));
     }
 
     private bool Match(SyntaxKind kind) => Match(kind, out _);
@@ -734,7 +664,7 @@ public sealed class Parser(SourceDocument sourceDocument)
     {
         if (!Match(kind, out var token))
         {
-            sourceDocument.Diagnostics.UnexpectedToken(_stream.Peek().Range, token.Kind);
+            //sourceDocument.Diagnostics.UnexpectedToken(_stream.Peek().Range, token.Kind);
         }
 
         return token;

@@ -14,5 +14,12 @@ internal sealed class GreenTrivia(SyntaxKind kind, string text) : GreenNode(kind
     public static readonly GreenTrivia LineFeed = new(SyntaxKind.NewLineTrivia, "\n");
     public static readonly GreenTrivia CarriageReturn = new(SyntaxKind.NewLineTrivia, "\r");
 
+    public override int Width => Text.Length;
+
+    public override int LeadingTriviaWidth => 0;
+    public override int TrailingTriviaWidth => 0;
+
     public string Text { get; } = text;
+
+    public override GreenNode? GetChild(int index) => null;
 }

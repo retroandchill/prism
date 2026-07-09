@@ -23,11 +23,9 @@ public sealed record GeneratedDiagnostic
     public required string Static { get; init; }
     public required string MethodName { get; init; }
     public required bool IsExtension { get; init; }
-    public required string SinkType { get; init; }
-    public required string SinkParam { get; init; }
-    public required string RangeParam { get; init; }
-    public required string DiagnosticClass { get; init; }
+    public required string? LocationParam { get; init; }
     public required ImmutableArray<FormatParam> FormatParams { get; init; }
+    public required bool ReturnsDiagnostic { get; init; }
 
     public required string Id { get; init; }
     public required string Title { get; init; }

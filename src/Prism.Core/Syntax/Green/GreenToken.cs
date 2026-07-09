@@ -3,44 +3,23 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Collections.Immutable;
-using System.Runtime.InteropServices;
-using Prism.Core.Strings;
-
 namespace Prism.Core.Syntax.Green;
 
-internal sealed class GreenToken : GreenNode
+internal class GreenToken : GreenNode
 {
-    public string? Text { get; private init; }
-
-    public Name IdentifierName { get; private init; }
+    public virtual string Text => Kind.GetTokenText();
 
     public GreenTriviaList LeadingTrivia { get; }
-    public override int LeadingTriviaWidth => LeadingTrivia.FullWidth;
+    public sealed override int LeadingTriviaWidth => LeadingTrivia.FullWidth;
     public GreenTriviaList TrailingTrivia { get; }
-    public override int TrailingTriviaWidth => TrailingTrivia.FullWidth;
+    public sealed override int TrailingTriviaWidth => TrailingTrivia.FullWidth;
 
     public GreenToken(
         SyntaxKind kind,
-        Name name,
         GreenTriviaList? leadingTrivia = null,
         GreenTriviaList? trailingTrivia = null
     )
-        : this(kind, name.ToString(), leadingTrivia, trailingTrivia)
-    {
-        IdentifierName = name;
-    }
-
-    public GreenToken(
-        SyntaxKind kind,
-        string text,
-        GreenTriviaList? leadingTrivia = null,
-        GreenTriviaList? trailingTrivia = null
-    )
-        : this(kind, text.Length, leadingTrivia, trailingTrivia)
-    {
-        Text = text;
-    }
+        : this(kind, kind.GetTokenText().Length, leadingTrivia, trailingTrivia) { }
 
     public GreenToken(
         SyntaxKind kind,
@@ -52,23 +31,41 @@ internal sealed class GreenToken : GreenNode
     {
         LeadingTrivia = leadingTrivia ?? GreenTriviaList.Empty;
         TrailingTrivia = trailingTrivia ?? GreenTriviaList.Empty;
+        ChildCount = (!LeadingTrivia.IsEmpty ? 1 : 0) + (!TrailingTrivia.IsEmpty ? 1 : 0);
     }
 
-    public GreenToken WithLeadingTrivia(GreenTriviaList leadingTrivia)
+    public override GreenTriviaList? GetChild(int index)
+    {
+        switch (index)
+        {
+            case 0:
+                if (!LeadingTrivia.IsEmpty)
+                    return LeadingTrivia;
+                if (!TrailingTrivia.IsEmpty)
+                    return TrailingTrivia;
+                break;
+            case 1 when !LeadingTrivia.IsEmpty:
+                return !TrailingTrivia.IsEmpty ? TrailingTrivia : null;
+        }
+
+        return null;
+    }
+
+    public virtual GreenToken WithLeadingTrivia(GreenTriviaList leadingTrivia)
     {
         return leadingTrivia == LeadingTrivia
             ? this
             : new GreenToken(Kind, Width, leadingTrivia, TrailingTrivia);
     }
 
-    public GreenToken WithTrailingTrivia(GreenTriviaList trailingTrivia)
+    public virtual GreenToken WithTrailingTrivia(GreenTriviaList trailingTrivia)
     {
         return trailingTrivia == TrailingTrivia
             ? this
             : new GreenToken(Kind, Width, LeadingTrivia, trailingTrivia);
     }
 
-    public GreenToken WithLeadingAndTrailingTrivia(
+    public virtual GreenToken WithLeadingAndTrailingTrivia(
         GreenTriviaList leadingTrivia,
         GreenTriviaList trailingTrivia
     )

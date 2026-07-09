@@ -63,11 +63,13 @@ internal sealed class SemanticResolver(SemanticModel model, SemanticBinder binde
 
         if (context.Resolution.Contains(key))
         {
+            /*
             context.Diagnostics.CyclicSymbolDefinition(
                 symbol.Declaration.Range,
                 symbol.Name,
                 context.Resolution.CollectCycle(key)
             );
+            */
             return ValueTask.FromResult<TypeSymbol>(model.ErrorTypeSymbol);
         }
 
@@ -141,7 +143,9 @@ internal sealed class SemanticResolver(SemanticModel model, SemanticBinder binde
         if (boundInitializer is not null)
             return boundInitializer.Type;
 
+        /*
         context.Diagnostics.VariableWithoutTypeOrInitializer(syntax.Range, symbol.Name);
+        */
         return model.ErrorTypeSymbol;
     }
 
@@ -217,11 +221,13 @@ internal sealed class SemanticResolver(SemanticModel model, SemanticBinder binde
 
         if (context.Resolution.Contains(key))
         {
+            /*
             context.Diagnostics.CyclicSymbolDefinition(
                 symbol.Declaration.Range,
                 symbol.Name,
                 context.Resolution.CollectCycle(key)
             );
+            */
             return ValueTask.FromResult<TypeSymbol>(model.ErrorTypeSymbol);
         }
 

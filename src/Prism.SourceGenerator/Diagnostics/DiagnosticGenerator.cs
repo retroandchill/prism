@@ -34,28 +34,28 @@ public sealed class DiagnosticGenerator : IIncrementalGenerator
         true
     );
 
-    private static readonly DiagnosticDescriptor DiagnosticMethodMustHaveAtLeast2Params = new(
+    private static readonly DiagnosticDescriptor MethodMustReturnDiagnostic = new(
         "PRSM1003",
-        "Diagnostic method must have 2 parameters",
-        "Method '{0}' must have at least two parameters",
+        "Method must return Diagnostic",
+        "Method '{0}' must return Diagnostic",
         "Prism",
         DiagnosticSeverity.Error,
         true
     );
 
-    private static readonly DiagnosticDescriptor ParamMustImplementIDiagnosticSink = new(
+    private static readonly DiagnosticDescriptor MustHaveAtLeastOneParameter = new(
         "PRSM1004",
-        "Parameter must implement IDiagnostic sink",
-        "Parameter '{0}' must be a type that is is or implements IDiagnosticSink",
+        "Diagnostic method must have at least once param",
+        "Method '{0}' must have at least one parameter",
         "Prism",
         DiagnosticSeverity.Error,
         true
     );
 
-    private static readonly DiagnosticDescriptor ParamMustBeSourceRange = new(
-        "PRSM1004",
-        "Parameter must be of type SourceRange",
-        "Parameter '{0}' must be type SourceRange",
+    private static readonly DiagnosticDescriptor ParamMustBeSourceLocation = new(
+        "PRSM1005",
+        "Parameter must be of type Location",
+        "Parameter '{0}' must be type Location",
         "Prism",
         DiagnosticSeverity.Error,
         true
@@ -117,60 +117,51 @@ public sealed class DiagnosticGenerator : IIncrementalGenerator
             );
         }
 
-        if (method.Parameters.Length < 2)
+        var returnsDiagnostic = true;
+        var returnType = method.ReturnType;
+        switch (returnType.ToDisplayString())
         {
-            isValid = false;
-            context.ReportDiagnostic(
-                Diagnostic.Create(
-                    DiagnosticMethodMustHaveAtLeast2Params,
-                    method.Locations[0],
-                    method.Name
-                )
-            );
-        }
-
-        if (method.Parameters.Length > 0)
-        {
-            var sinkType = method.Parameters[0].Type;
-            if (
-                sinkType.ToDisplayString() != DiagnosticSymbols.IDiagnosticSink
-                && !sinkType.AllInterfaces.Any(x =>
-                    x.ToDisplayString() == DiagnosticSymbols.IDiagnosticSink
-                )
-            )
-            {
+            case DiagnosticSymbols.Diagnostic:
+                if (method.Parameters.Length < 1)
+                {
+                    isValid = false;
+                    context.ReportDiagnostic(
+                        Diagnostic.Create(
+                            MustHaveAtLeastOneParameter,
+                            method.Locations[0],
+                            method.Name
+                        )
+                    );
+                }
+                else if (method.Parameters[0].Type.ToDisplayString() != DiagnosticSymbols.Location)
+                {
+                    isValid = false;
+                    context.ReportDiagnostic(
+                        Diagnostic.Create(
+                            ParamMustBeSourceLocation,
+                            method.Parameters[0].Locations[0],
+                            method.Parameters[0].Name
+                        )
+                    );
+                }
+                break;
+            case DiagnosticSymbols.DiagnosticInfo:
+                returnsDiagnostic = false;
+                break;
+            default:
                 isValid = false;
                 context.ReportDiagnostic(
-                    Diagnostic.Create(
-                        ParamMustImplementIDiagnosticSink,
-                        method.Locations[0],
-                        method.Parameters[0].Name
-                    )
+                    Diagnostic.Create(MethodMustReturnDiagnostic, method.Locations[0], method.Name)
                 );
-            }
-        }
-
-        if (method.Parameters.Length > 1)
-        {
-            var sourceRangeType = method.Parameters[1].Type;
-            if (sourceRangeType.ToDisplayString() != DiagnosticSymbols.TextSpan)
-            {
-                isValid = false;
-                context.ReportDiagnostic(
-                    Diagnostic.Create(
-                        ParamMustBeSourceRange,
-                        method.Locations[0],
-                        method.Parameters[1].Name
-                    )
-                );
-            }
+                break;
         }
 
         if (!isValid)
             return;
 
-        var builder = ImmutableArray.CreateBuilder<FormatParam>(method.Parameters.Length - 2);
-        for (var i = 2; i < method.Parameters.Length; i++)
+        var offset = returnsDiagnostic ? 1 : 0;
+        var builder = ImmutableArray.CreateBuilder<FormatParam>(method.Parameters.Length - offset);
+        for (var i = offset; i < method.Parameters.Length; i++)
         {
             builder.Add(
                 new FormatParam
@@ -190,11 +181,9 @@ public sealed class DiagnosticGenerator : IIncrementalGenerator
             Static = method.IsStatic ? " static" : "",
             MethodName = method.Name,
             IsExtension = method.IsExtensionMethod,
-            SinkType = method.Parameters[0].Type.ToDisplayString(),
-            SinkParam = method.Parameters[0].Name,
-            RangeParam = method.Parameters[1].Name,
-            DiagnosticClass = method.Name.StartsWith("Report") ? method.Name[6..] : method.Name,
+            LocationParam = returnsDiagnostic ? method.Parameters[0].Name : null,
             FormatParams = builder.DrainToImmutable(),
+            ReturnsDiagnostic = returnsDiagnostic,
             Id = SymbolDisplay.FormatLiteral(info.Id, true),
             Title = SymbolDisplay.FormatLiteral(info.Title, true),
             Description = info.Description is not null

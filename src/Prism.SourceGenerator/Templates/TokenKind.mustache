@@ -34,10 +34,10 @@ static partial class {{EnumName}}Extensions
     }
 
     {{#Keywords}}
-    private static readonly GreenToken Green{{Name}} = new({{../EnumName}}.{{Name}}, "{{Value}}");
+    private static readonly GreenToken Green{{Name}} = new({{../EnumName}}.{{Name}});
     {{/Keywords}}
     {{#Punctuations}}
-    private static readonly GreenToken Green{{Name}} = new({{../EnumName}}.{{Name}}, "{{Value}}");
+    private static readonly GreenToken Green{{Name}} = new({{../EnumName}}.{{Name}});
     {{/Punctuations}}
 
     internal static GreenToken GetGreenToken(this {{EnumName}} token) {

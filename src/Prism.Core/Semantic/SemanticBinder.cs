@@ -147,11 +147,13 @@ internal sealed class SemanticBinder(SemanticModel semanticModel)
                     true
                 );
             case ConversionKind.Explicit or ConversionKind.None:
+                /*
                 context.Diagnostics.NoImplicitConversion(
                     expression.Syntax.Range,
                     expression.Type.Name,
                     expectedType.Name
                 );
+                */
                 break;
         }
 
@@ -233,7 +235,9 @@ internal sealed class SemanticBinder(SemanticModel semanticModel)
 
         if (!isValidType)
         {
+            /*
             context.Diagnostics.UnaryOperatorUndefined(expression.Range, operand.Type.Name);
+            */
         }
 
         return new BoundUnaryExpression(expression, operand, expression.Operator, targetType);
@@ -308,11 +312,13 @@ internal sealed class SemanticBinder(SemanticModel semanticModel)
         }
         else if (!ReferenceEquals(ifTrue.Type, ifFalse.Type))
         {
+            /*
             context.Diagnostics.NoMutualImplicitConversion(
                 expression.Range,
                 ifTrue.Type.Name,
                 ifFalse.Type.Name
             );
+            */
         }
 
         return new BoundConditionalExpression(expression, condition, ifTrue, ifFalse, ifTrue.Type);
@@ -357,7 +363,9 @@ internal sealed class SemanticBinder(SemanticModel semanticModel)
                     cancellationToken
                 );
             default:
+                /*
                 context.Diagnostics.NotInvocable(expression.Range);
+                */
                 return new BoundInvocationExpression(
                     expression,
                     semanticModel.UnresolvedCallableSymbol,
@@ -420,11 +428,13 @@ internal sealed class SemanticBinder(SemanticModel semanticModel)
             }
         }
 
+        /*
         context.Diagnostics.BinaryOperatorUndefined(
             expression.Range,
             left.Type.Name,
             right.Type.Name
         );
+        */
 
         return new BoundBinaryExpression(
             expression,
@@ -472,12 +482,14 @@ internal sealed class SemanticBinder(SemanticModel semanticModel)
 
         if (parameterTypes.Length != arguments.Length)
         {
+            /*
             context.Diagnostics.WrongNumberOfArguments(
                 syntax.ArgumentsRange,
                 function.Name,
                 parameterTypes.Length,
                 arguments.Length
             );
+            */
         }
         else
         {
@@ -544,10 +556,13 @@ internal sealed class SemanticBinder(SemanticModel semanticModel)
             );
         }
 
+        /*
         context.Diagnostics.NoSuitableOverload(
             syntax.ArgumentsRange,
             functionRef.Functions[0].Name
         );
+        */
+
         return new BoundInvocationExpression(
             syntax,
             semanticModel.UnresolvedCallableSymbol,

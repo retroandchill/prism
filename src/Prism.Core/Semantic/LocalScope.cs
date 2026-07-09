@@ -30,11 +30,13 @@ internal sealed class LocalScope(DeclarationScope enclosingScope, IDiagnosticSin
     {
         if (_locals.ContainsKey(symbol.Name))
         {
+            /*
             // Report the duplicate symbol but continue processing with the new symbol definition
             _diagnostics.DuplicateSymbolDefinition(
                 symbol.Declaration?.Range ?? TextSpan.Empty,
                 symbol.Name
             );
+            */
         }
 
         _locals[symbol.Name] = symbol;

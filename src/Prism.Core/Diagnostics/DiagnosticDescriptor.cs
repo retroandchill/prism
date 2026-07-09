@@ -17,4 +17,6 @@ public sealed record DiagnosticDescriptor
 
     [StringSyntax(StringSyntaxAttribute.CompositeFormat)]
     public required string MessageFormat { get; init; }
+
+    internal CompositeFormat CompositeFormat => field ??= CompositeFormat.Parse(MessageFormat);
 }

@@ -63,7 +63,7 @@ public sealed class TokenKindGenerator : IIncrementalGenerator
                 );
             }
 
-            SyntaxToken token;
+            SyntaxTriviaList triviaList = default;
             if (isKeyword)
             {
                 keywordsBuilder.Add(new TokenLabel(field.Name, keywordInfo.Token));

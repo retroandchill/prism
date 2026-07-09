@@ -17,11 +17,7 @@ public static partial class ParseDiagnostics
         MessageFormat = "Unexpected token '{0}'",
         Description = "The parser encountered an unexpected token."
     )]
-    public static partial void UnexpectedToken(
-        this IDiagnosticSink sink,
-        TextSpan range,
-        SyntaxKind syntaxKind
-    );
+    public static partial Diagnostic UnexpectedToken(Location location, SyntaxKind syntaxKind);
 
     [Diagnostic(
         Id = "PRISM0002",
@@ -30,7 +26,7 @@ public static partial class ParseDiagnostics
         MessageFormat = "Empty statement",
         Description = "The parser encountered an unexpected token."
     )]
-    public static partial void EmptyStatement(this IDiagnosticSink sink, TextSpan range);
+    public static partial Diagnostic EmptyStatement(Location location);
 
     [Diagnostic(
         Id = "PRISM0003",
@@ -38,7 +34,7 @@ public static partial class ParseDiagnostics
         Title = "Unexpected end of file",
         MessageFormat = "Unexpected end of file"
     )]
-    public static partial void UnexpectedEndOfFile(this IDiagnosticSink sink, TextSpan range);
+    public static partial Diagnostic UnexpectedEndOfFile(Location location);
 
     [Diagnostic(
         Id = "PRISM0004",
@@ -46,9 +42,21 @@ public static partial class ParseDiagnostics
         Title = "Unexpected escape sequence",
         MessageFormat = "Unexpected escape sequence: '{0}'"
     )]
-    public static partial void UnexpectedEscape(
-        this IDiagnosticSink sink,
-        TextSpan range,
-        ReadOnlyMemory<char> sequence
-    );
+    internal static partial DiagnosticInfo UnexpectedEscape(string sequence);
+
+    [Diagnostic(
+        Id = "PRISM0005",
+        Severity = DiagnosticSeverity.Error,
+        Title = "Unterminated string literal",
+        MessageFormat = "Unterminated string literal"
+    )]
+    internal static partial DiagnosticInfo UnterminatedStringLiteral();
+
+    [Diagnostic(
+        Id = "PRISM0006",
+        Severity = DiagnosticSeverity.Error,
+        Title = "Unterminated block comment",
+        MessageFormat = "Unterminated block comment"
+    )]
+    internal static partial DiagnosticInfo UnterminatedBlockComment();
 }

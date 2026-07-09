@@ -7,8 +7,9 @@ namespace Prism.SourceGenerator.Diagnostics;
 
 public static class DiagnosticSymbols
 {
+    public const string PrismCoreAssembly = "Prism.Core";
     private const string DiagnosticsNamespace = "Prism.Core.Diagnostics";
-    private const string ParseNamespace = "Prism.Core.Parse";
-    public const string IDiagnosticSink = $"{DiagnosticsNamespace}.IDiagnosticSink";
-    public const string TextSpan = $"{ParseNamespace}.TextSpan";
+    public const string Diagnostic = $"{DiagnosticsNamespace}.Diagnostic";
+    public const string DiagnosticInfo = $"{DiagnosticsNamespace}.DiagnosticInfo";
+    public const string Location = $"{PrismCoreAssembly}.Location";
 }

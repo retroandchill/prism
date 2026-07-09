@@ -39,11 +39,9 @@ public static class Numerics
         ("f64", FloatSuffix.F64),
     ];
 
-    public static (IntegerBase Base, BigInteger Value, IntegerSuffix Suffix) ParseInteger(
-        ReadOnlySpan<char> literalValue
-    )
+    public static IntegerLiteralValue ParseInteger(ReadOnlySpan<char> literalValue)
     {
-        IntegerSuffix suffix = IntegerSuffix.None;
+        var suffix = IntegerSuffix.None;
         foreach (var (str, type) in IntegerSuffixes)
         {
             if (!literalValue.EndsWith(str, StringComparison.Ordinal))
@@ -93,9 +91,9 @@ public static class Numerics
                 literalValue = scratchBuffer.AsSpan(i + 1);
             }
 
-            return (
-                @base,
+            return new IntegerLiteralValue(
                 BigInteger.Parse(literalValue, styles, CultureInfo.InvariantCulture),
+                @base,
                 suffix
             );
         }
@@ -106,7 +104,7 @@ public static class Numerics
         }
     }
 
-    public static (BigDecimal Value, FloatSuffix Suffix) ParseFloat(ReadOnlySpan<char> literalValue)
+    public static FloatLiteralValue ParseFloat(ReadOnlySpan<char> literalValue)
     {
         var suffix = FloatSuffix.None;
         foreach (var (str, type) in FloatSuffixes)
@@ -118,7 +116,7 @@ public static class Numerics
             break;
         }
 
-        return (
+        return new FloatLiteralValue(
             BigDecimal.Parse(literalValue, NumberStyles.Float, CultureInfo.InvariantCulture),
             suffix
         );

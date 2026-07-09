@@ -7,14 +7,7 @@ namespace {{Namespace}};
 
 partial {{ClassType}} {{ClassName}}
 {
-    {{Access}}{{Static}} partial void {{MethodName}}({{#IsExtension}}this {{/IsExtension}}{{SinkType}} {{SinkParam}}, TextSpan {{RangeParam}}{{#FormatParams}}, {{Type}} {{Name}}{{/FormatParams}})
-    {
-        {{SinkParam}}.Report(new {{DiagnosticClass}}Diagnostic({{RangeParam}}{{#FormatParams}}, {{Name}}{{/FormatParams}}));
-    }
-
-    private sealed class {{DiagnosticClass}}Diagnostic(TextSpan range{{#FormatParams}}, {{Type}} param_{{Name}}{{/FormatParams}}) : Diagnostic
-    {
-        private static readonly DiagnosticDescriptor StaticDescriptor = new()
+    private static readonly DiagnosticDescriptor {{MethodName}}Descriptor = new()
         {
             Id = {{Id}},
             Title = {{Title}},
@@ -25,21 +18,16 @@ partial {{ClassType}} {{ClassName}}
             MessageFormat = {{MessageFormat}}
         };
 
-        {{^Equals FormatParams.Length 0}}
-        private static readonly Utf16PreparedFormat<{{#Joined ", " FormatParams}}{{Type}}{{/Joined}}> Format = ZString.PrepareUtf16<{{#Joined ", " FormatParams}}{{Type}}{{/Joined}}>({{MessageFormat}});
-        {{/Equals}}   
-
-        public override DiagnosticDescriptor Descriptor => StaticDescriptor;
-        public override TextSpan Range { get; } = range;
-        
-        public override string GetMessage(IFormatProvider? provider = null)
-        {
-            {{#Equals FormatParams.Length 0}}
-            return StaticDescriptor.MessageFormat;    
-            {{/Equals}}
-            {{^Equals FormatParams.Length 0}}
-            return Format.Format({{#Joined ", " FormatParams}}param_{{Name}}{{/Joined}});   
-            {{/Equals}}    
-        }
+    {{#ReturnsDiagnostic}}
+    {{Access}}{{Static}} partial Diagnostic {{MethodName}}(Location {{LocationParam}}{{#FormatParams}}, {{Type}} {{Name}}{{/FormatParams}})
+    {
+        return Diagnostic.Create({{MethodName}}Descriptor, {{LocationParam}}{{#FormatParams}}, {{Name}}{{/FormatParams}});
     }
+    {{/ReturnsDiagnostic}}
+    {{^ReturnsDiagnostic}}
+    {{Access}}{{Static}} partial DiagnosticInfo {{MethodName}}({{#Joined ", " FormatParams}}{{Type}} {{Name}}{{/Joined}})
+    {
+        return new DiagnosticInfo({{MethodName}}Descriptor{{#FormatParams}}, {{Name}}{{/FormatParams}});
+    }
+    {{/ReturnsDiagnostic}}
 }
