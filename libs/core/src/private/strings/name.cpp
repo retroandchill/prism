@@ -14,7 +14,7 @@ module prism.core.strings.name;
 
 import prism.core.memory.alignment;
 import xxhash;
-import prism.core.util;
+import prism.core.util.make_array;
 
 namespace prism
 {

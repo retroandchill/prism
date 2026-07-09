@@ -7,19 +7,25 @@ set(PRISM_HEADERS include/prism/core/exports.h
 set(PRISM_SOURCES
         src/private/strings/name.cpp
         src/private/memory/buffer_pool.cpp
+        src/private/syntax/green_node.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
 
 set(PRISM_PUBLIC_MODULES
-        src/public/util.ixx
         src/public/strings/name.ixx
         src/public/memory/alignment.ixx
         src/public/memory/arena_allocator.ixx
-        src/public/memory/persistent_allocator.ixx
         src/public/memory/buffer_pool.ixx
         src/public/syntax.ixx
         src/public/syntax/kind.ixx
+        src/public/syntax/green_node.ixx
+        src/public/syntax/flags.ixx
+        src/public/util/enum_class_flags.ixx
+        src/public/util/noncopyable.ixx
+        src/public/util/make_array.ixx
+        src/public/memory/ref_counted_ptr.ixx
+        src/public/type_traits/basic.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

@@ -5,3 +5,5 @@
  * @brief
  */
 export module prism.core.syntax;
+
+export import :kind;

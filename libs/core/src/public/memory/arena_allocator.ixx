@@ -11,7 +11,7 @@ module;
 export module prism.core.memory.arena_allocator;
 
 import std;
-import prism.core.util;
+import prism.core.util.noncopyable;
 
 namespace prism
 {

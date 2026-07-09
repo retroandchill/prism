@@ -11,7 +11,7 @@ module;
 export module prism.core.memory.buffer_pool;
 
 import std;
-import prism.core.util;
+import prism.core.util.make_array;
 
 namespace prism
 {
