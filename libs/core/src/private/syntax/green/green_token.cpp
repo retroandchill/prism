@@ -7,7 +7,6 @@
 module;
 
 #include <cassert>
-#include <optional>
 
 module prism.core:syntax.green.green_token.impl;
 
@@ -52,22 +51,22 @@ namespace prism
         return trailing_trivia_ != nullptr ? trailing_trivia_->width() : 0;
     }
 
-    std::optional<const GreenNode &> GreenToken::get_child(std::size_t index) const
+    const GreenTriviaList *GreenToken::get_child(std::size_t index) const
     {
         if (index == 0)
         {
             if (leading_trivia_ != nullptr)
-                return *leading_trivia_;
+                return leading_trivia_.get();
             if (trailing_trivia_ != nullptr)
-                return *trailing_trivia_;
+                return trailing_trivia_.get();
         }
         else if (index == 1)
         {
             if (leading_trivia_ == nullptr && trailing_trivia_ != nullptr)
-                return *trailing_trivia_;
+                return trailing_trivia_.get();
         }
 
-        return std::nullopt;
+        return nullptr;
     }
 
     RefCountPtr<GreenToken> GreenToken::with_leading_trivia(RefCountPtr<const GreenTriviaList> leading_trivia) const

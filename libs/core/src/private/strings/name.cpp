@@ -9,7 +9,6 @@ module;
 #include "prism/core/names.hpp"
 
 #include <cassert>
-#include <string_view>
 
 module prism.core:strings.name.impl;
 
@@ -667,9 +666,9 @@ namespace prism
         return resolve_entry(id);
     }
 
-    std::string_view Name::as_string_view() const
+    std::string_view Name::as_string_view(bool escaped) const
     {
-        return NamePool::get().resolve(id_).get_name();
+        return NamePool::get().resolve(id_).get_name(escaped);
     }
 
     std::optional<KnownName> Name::to_known_name() const
@@ -702,6 +701,11 @@ namespace prism
         if (str.size() > max_name_size)
         {
             throw std::invalid_argument{"Name too long"};
+        }
+
+        if (!str.empty() && str[0] == '@')
+        {
+            str = str.substr(1);
         }
 
         auto &pool = NamePool::get();

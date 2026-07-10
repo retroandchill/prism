@@ -8,13 +8,11 @@ option(PRISM_BUILD_TESTS "Build tests for the library" ON)
 
 if (PRISM_BUILD_SHARED)
     set(BUILD_SHARED_LIBS ON)
-    set(VCPKG_TARGET_TRIPLET x64-mingw-dynamic)
 else ()
     set(BUILD_SHARED_LIBS OFF)
 
     set(VCPKG_CRT_LINKAGE static)
     set(VCPKG_LIBRARY_LINKAGE static)
-    set(VCPKG_TARGET_TRIPLET x64-mingw-static)
 endif ()
 
 set(VCPKG_DEPS_DIR ${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET})
@@ -26,7 +24,7 @@ endif()
 
 project(prism LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 26)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_MODULE_STD ON)
 if (MSVC)

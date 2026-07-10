@@ -27,12 +27,9 @@ namespace prism
             return trivia_.empty();
         }
 
-        [[nodiscard]] std::optional<const GreenNode &> get_child(const std::size_t index) const override
+        [[nodiscard]] const GreenTrivia *get_child(const std::size_t index) const override
         {
-            if (index >= trivia_.size())
-                return std::nullopt;
-
-            return *trivia_[index];
+            return trivia_[index].get();
         }
 
       private:

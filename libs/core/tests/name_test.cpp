@@ -45,3 +45,13 @@ TEST_CASE("Find does not create new entries", "[strings]")
     const Name unknown{unknown_name, FindName::find};
     CHECK(unknown.is_none());
 }
+
+TEST_CASE("Escaped and unescaped names are equivalent", "[strings]")
+{
+    const Name unescaped = "base";
+    const Name escaped = "@base";
+
+    CHECK(unescaped == escaped);
+    CHECK(unescaped.as_string_view() == "base");
+    CHECK(unescaped.as_string_view(true) == "@base");
+}

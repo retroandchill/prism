@@ -191,7 +191,7 @@ namespace prism
 
         [[nodiscard]] static const NameEntry &get_entry(NameEntryId id);
 
-        [[nodiscard]] std::string_view as_string_view() const;
+        [[nodiscard]] std::string_view as_string_view(bool escaped = false) const;
 
         [[nodiscard]] std::optional<KnownName> to_known_name() const;
 
@@ -224,6 +224,11 @@ namespace prism
         }
 
         [[nodiscard]] constexpr friend std::strong_ordering operator<=>(Name lhs, Name rhs) noexcept = default;
+
+        friend inline std::ostream &operator<<(std::ostream &os, const Name name)
+        {
+            return os << name.as_string_view();
+        }
 
       private:
         static const NameEntry &resolve_entry(NameEntryId lookup_id);

@@ -82,26 +82,13 @@ namespace prism
         std::unordered_map<const void *, std::size_t> allocated_indices_;
     };
 
-    // This is a consteval hack to get around the fact that CLion's constant evaluator struggles to solve std::bit_width
-    consteval std::size_t get_bit_width(std::size_t value) noexcept
-    {
-        std::size_t bits = 0;
-        while (value > 0)
-        {
-            bits++;
-            value >>= 1;
-        }
-
-        return bits;
-    }
-
     export class PRISM_CORE_API BufferPool
     {
         static constexpr std::size_t min_bucket_size = 32;
         static constexpr std::size_t max_bucket_size = 4096;
 
-        static constexpr std::size_t index_offset = get_bit_width(min_bucket_size);
-        static constexpr std::size_t bucket_count = get_bit_width(max_bucket_size) - index_offset + 1;
+        static constexpr std::size_t index_offset = std::bit_width(min_bucket_size);
+        static constexpr std::size_t bucket_count = std::bit_width(max_bucket_size) - index_offset + 1;
 
       public:
         static BufferPool &shared();

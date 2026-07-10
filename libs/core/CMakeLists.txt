@@ -36,7 +36,6 @@ set(PRISM_PUBLIC_MODULES
         src/public/syntax/green/green_token.ixx
         src/public/syntax/green/green_trivia.ixx
         src/public/syntax/green/green_trivia_list.ixx
-        src/public/util/optional_ref.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})
