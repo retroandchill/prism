@@ -39,7 +39,7 @@ namespace prism
 
         [[nodiscard]] std::uint32_t trailing_trivia_width() const override;
 
-        [[nodiscard]] const GreenTriviaList *get_child(std::size_t index) const final;
+        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const final;
 
         [[nodiscard]] virtual RefCountPtr<GreenToken> with_leading_trivia(
             RefCountPtr<const GreenTriviaList> leading_trivia) const;

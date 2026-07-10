@@ -14,6 +14,7 @@ module;
 export module prism.core:strings.name;
 
 import std;
+import :util.optional;
 
 namespace prism
 {
@@ -193,7 +194,7 @@ namespace prism
 
         [[nodiscard]] std::string_view as_string_view(bool escaped = false) const;
 
-        [[nodiscard]] std::optional<KnownName> to_known_name() const;
+        [[nodiscard]] Optional<KnownName> to_known_name() const;
 
         [[nodiscard]] std::strong_ordering compare_semantic(Name other) const;
 

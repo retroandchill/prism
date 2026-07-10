@@ -530,10 +530,10 @@ namespace prism
             return known_names_[std::to_underlying(name)];
         }
 
-        std::optional<KnownName> find_known(const NameEntryId id) const
+        Optional<KnownName> find_known(const NameEntryId id) const
         {
             return id.to_unstable_int() <= std::to_underlying(KnownName::count)
-                       ? std::make_optional(entry_to_known_name_.find(id)->second)
+                       ? make_optional(entry_to_known_name_.find(id)->second)
                        : std::nullopt;
         }
 
@@ -671,7 +671,7 @@ namespace prism
         return NamePool::get().resolve(id_).get_name(escaped);
     }
 
-    std::optional<KnownName> Name::to_known_name() const
+    Optional<KnownName> Name::to_known_name() const
     {
         return NamePool::get().find_known(id_);
     }

@@ -14,6 +14,7 @@ import :syntax.kind;
 import :syntax.flags;
 import :memory.ref_counted_ptr;
 import :diagnostics.diagnostic_info;
+import :util.optional;
 
 namespace prism
 {
@@ -79,9 +80,9 @@ namespace prism
             return trailing_trivia_width() > 0;
         }
 
-        [[nodiscard]] const GreenNode *first_leaf() const;
+        [[nodiscard]] Optional<const GreenNode &> first_leaf() const;
 
-        [[nodiscard]] const GreenNode *last_leaf() const;
+        [[nodiscard]] Optional<const GreenNode &> last_leaf() const;
 
         [[nodiscard]] constexpr std::size_t child_count() const noexcept
         {
@@ -95,25 +96,31 @@ namespace prism
         }
 
       public:
-        [[nodiscard]] virtual const GreenNode *get_child(std::size_t index) const = 0;
+        [[nodiscard]] virtual Optional<const GreenNode &> get_child(std::size_t index) const = 0;
 
         template <std::derived_from<GreenNode> T>
-        const T *get_child(const std::size_t index) const
+        Optional<const T &> get_child(const std::size_t index) const
         {
-            return dynamic_cast<const T *>(get_child(index));
+            return get_child(index).and_then(
+                [](const GreenNode &child) -> Optional<const T &>
+                {
+                    auto *node = dynamic_cast<const T *>(&child);
+                    return node != nullptr ? Optional<const T &>{*node} : std::nullopt;
+                });
         }
 
         template <std::derived_from<GreenNode> T>
-        const T *get_child_unchecked(const std::size_t index) const
+        Optional<const T &> get_child_unchecked(const std::size_t index) const
         {
-            return static_cast<const T *>(get_child(index));
+            return get_child(index).transform([](const GreenNode &child) -> auto &
+                                              { return static_cast<const T &>(child); });
         }
 
         template <std::derived_from<GreenNode> T>
         const T &get_required_child(const std::size_t index) const
         {
             auto child = get_child<T>(index);
-            assert(child != nullptr);
+            assert(child.has_value());
             return *child;
         }
 

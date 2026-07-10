@@ -44,7 +44,7 @@ namespace prism
             return 0;
         }
 
-        const GreenNode *get_child(std::size_t index) const override
+        Optional<const GreenNode &> get_child(std::size_t index) const override
         {
             // This should never get called because it has no slots
             std::unreachable();

@@ -14,10 +14,13 @@ export import :memory.ref_counted_ptr;
 export import :strings.name;
 
 export import :type_traits.basic;
+export import :type_traits.comparison;
 
 export import :util.enum_class_flags;
 export import :util.make_array;
 export import :util.noncopyable;
+export import :util.optional;
+export import :util.hashing;
 
 export import :diagnostics.diagnostic_descriptor;
 

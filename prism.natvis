@@ -12,4 +12,20 @@
     <Type Name="prism::Name">
         <DisplayString>{id_}</DisplayString>
     </Type>
+
+    <Type Name="prism::Optional&lt;*&gt;">
+        <DisplayString Condition="!has_value_">nullopt</DisplayString>
+        <DisplayString Condition="has_value_">{value_}</DisplayString>
+        <Expand>
+            <Item Condition="has_value_" Name="[value]">value_</Item>
+        </Expand>
+    </Type>
+
+    <Type Name="prism::Optional&lt;*&gt;" Priority="Low">
+        <DisplayString Condition="value_ == nullptr">nullopt</DisplayString>
+        <DisplayString Condition="value_ != nullptr">{*value_}</DisplayString>
+        <Expand>
+            <Item Condition="value_ != nullptr" Name="[value]">*value_</Item>
+        </Expand>
+    </Type>
 </AutoVisualizer>

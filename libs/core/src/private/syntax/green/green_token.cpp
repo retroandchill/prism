@@ -51,7 +51,7 @@ namespace prism
         return trailing_trivia_ != nullptr ? trailing_trivia_->width() : 0;
     }
 
-    const GreenTriviaList *GreenToken::get_child(std::size_t index) const
+    Optional<const GreenNode &> GreenToken::get_child(std::size_t index) const
     {
         if (index == 0)
         {
