@@ -95,25 +95,31 @@ namespace prism
         }
 
       public:
-        [[nodiscard]] virtual const GreenNode *get_child(std::size_t index) const = 0;
+        [[nodiscard]] virtual std::optional<const GreenNode &> get_child(std::size_t index) const = 0;
 
         template <std::derived_from<GreenNode> T>
-        const T *get_child(const std::size_t index) const
+        std::optional<const T &> get_child(const std::size_t index) const
         {
-            return dynamic_cast<const T *>(get_child(index));
+            return get_child(index).and_then(
+                [](const GreenNode &child) -> std::optional<const T &>
+                {
+                    auto *node = dynamic_cast<const T *>(&child);
+                    return node != nullptr ? std::optional<const T &>{*node} : std::nullopt;
+                });
         }
 
         template <std::derived_from<GreenNode> T>
-        const T *get_child_unchecked(const std::size_t index) const
+        std::optional<const T &> get_child_unchecked(const std::size_t index) const
         {
-            return static_cast<const T *>(get_child(index));
+            return get_child(index).transform([](const GreenNode &child) -> auto &
+                                              { return static_cast<const T &>(child); });
         }
 
         template <std::derived_from<GreenNode> T>
         const T &get_required_child(const std::size_t index) const
         {
             auto child = get_child<T>(index);
-            assert(child != nullptr);
+            assert(child.has_value());
             return *child;
         }
 

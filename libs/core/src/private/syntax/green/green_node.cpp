@@ -35,11 +35,11 @@ namespace prism
             const GreenNode *first_child = nullptr;
             for (const std::size_t i : std::views::iota(0uz, node->child_count()))
             {
-                auto *child = node->get_child(i);
-                if (child == nullptr)
+                auto child = node->get_child(i);
+                if (child.has_value())
                     continue;
 
-                first_child = child;
+                first_child = &*child;
                 break;
             }
 
@@ -59,11 +59,11 @@ namespace prism
 
             for (std::size_t i = node->child_count() - 1; i != std::numeric_limits<std::size_t>::max(); --i)
             {
-                auto *child = get_child(i);
-                if (child == nullptr)
+                auto child = get_child(i);
+                if (child.has_value())
                     continue;
 
-                last_child = child;
+                last_child = &*child;
                 break;
             }
 
@@ -79,8 +79,8 @@ namespace prism
         std::uint32_t offset = 0;
         for (std::size_t i = 0; i < index; ++i)
         {
-            auto *child = get_child(i);
-            if (child == nullptr)
+            auto child = get_child(i);
+            if (child.has_value())
                 continue;
 
             offset += child->full_width();

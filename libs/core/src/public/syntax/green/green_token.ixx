@@ -8,6 +8,7 @@ export module prism.core:syntax.green.green_token;
 
 import :syntax.green.green_node;
 import :syntax.green.green_trivia_list;
+import :util.optional_ref;
 
 namespace prism
 {
@@ -25,21 +26,21 @@ namespace prism
 
         [[nodiscard]] virtual std::string_view text() const;
 
-        [[nodiscard]] constexpr const GreenTriviaList *leading_trivia() const noexcept
+        [[nodiscard]] constexpr std::optional<const GreenTriviaList &> leading_trivia() const noexcept
         {
-            return leading_trivia_.get();
+            return make_optional_ref(leading_trivia_.get());
         }
 
         [[nodiscard]] std::uint32_t leading_trivia_width() const override;
 
-        [[nodiscard]] constexpr const GreenTriviaList *trailing_trivia() const noexcept
+        [[nodiscard]] constexpr std::optional<const GreenTriviaList &> trailing_trivia() const noexcept
         {
-            return trailing_trivia_.get();
+            return make_optional_ref(trailing_trivia_.get());
         }
 
         [[nodiscard]] std::uint32_t trailing_trivia_width() const override;
 
-        [[nodiscard]] const GreenTriviaList *get_child(std::size_t index) const final;
+        [[nodiscard]] std::optional<const GreenNode &> get_child(std::size_t index) const final;
 
         [[nodiscard]] virtual RefCountPtr<GreenToken> with_leading_trivia(
             RefCountPtr<const GreenTriviaList> leading_trivia) const;

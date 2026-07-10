@@ -12,13 +12,13 @@ import :memory.ref_counted_ptr;
 
 namespace prism
 {
-    class DiagnosticInfo final : IntrusiveRefCounted
+    class DiagnosticInfo final : public IntrusiveRefCounted
     {
       public:
         template <typename... Args>
         explicit constexpr DiagnosticInfo(const DiagnosticDescriptor &descriptor, Args &&...args)
             : descriptor_{&descriptor},
-              format_message_{[args = std::forward<Args>(args)...](const std::string_view message)
+              format_message_{[... args = std::forward<Args>(args)](const std::string_view message)
                               {
                                   return std::vformat(message, std::make_format_args(args...));
                               }}
@@ -30,12 +30,7 @@ namespace prism
             return *descriptor_;
         }
 
-        [[nodiscard]] std::string_view message() const
-        {
-            std::call_once(message_once_, [this] { message_ = format_message_(descriptor_->message_format()); });
-
-            return *message_;
-        }
+        [[nodiscard]] std::string_view message() const;
 
       private:
         const DiagnosticDescriptor *descriptor_;

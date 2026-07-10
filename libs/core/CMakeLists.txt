@@ -10,6 +10,7 @@ set(PRISM_SOURCES
         src/private/syntax/green/green_node.cpp
         src/private/syntax/green/green_trivia_list.cpp
         src/private/syntax/green/green_token.cpp
+        src/private/diagnostics/diagnostic_info.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -35,6 +36,7 @@ set(PRISM_PUBLIC_MODULES
         src/public/syntax/green/green_token.ixx
         src/public/syntax/green/green_trivia.ixx
         src/public/syntax/green/green_trivia_list.ixx
+        src/public/util/optional_ref.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})
@@ -47,7 +49,6 @@ target_include_directories(prism_core PUBLIC include
 find_package(Boost CONFIG REQUIRED COMPONENTS preprocessor)
 target_link_libraries(prism_core
         PRIVATE xxHash::cpp
-                matchit::cppm
                 Boost::preprocessor)
 
 target_sources(prism_core PUBLIC

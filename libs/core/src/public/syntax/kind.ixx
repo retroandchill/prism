@@ -21,7 +21,7 @@ namespace prism
     constexpr std::uint16_t node_start = 400;
 
 #define GEN_ENUM(r, start, i, elem)                                                                                    \
-    BOOST_PP_IF(BOOST_PP_EQUAL(i, 0), PRISM_KIND_ENUM_NAME(elem) = start, PRISM_KIND_ENUM_NAME(elem), ),
+    BOOST_PP_IF(BOOST_PP_EQUAL(i, 0), PRISM_KIND_ENUM_NAME(elem) = start, PRISM_KIND_ENUM_NAME(elem)),
 
 #define PRISM_SYNTAX_KINDS(MACRO)                                                                                      \
     BOOST_PP_SEQ_FOR_EACH_I(MACRO, trivia_start, PRISM_SYNTAX_TRIVIA(PRISM_TRIVIA_ELEM))                               \

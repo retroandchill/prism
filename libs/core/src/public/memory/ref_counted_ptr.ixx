@@ -50,7 +50,7 @@ namespace prism
         } -> ControlBlockFor<T>;
     };
 
-    export template <RefCounted T>
+    export template <typename T>
     class RefCountPtr
     {
       public:
@@ -279,7 +279,7 @@ namespace prism
         }
 
       private:
-        template <RefCounted U>
+        template <typename U>
         friend class RefCountPtr;
 
         T *ptr_ = nullptr;

@@ -19,6 +19,6 @@ export import :util.enum_class_flags;
 export import :util.make_array;
 export import :util.noncopyable;
 
-export import :diagnostics.descriptor;
+export import :diagnostics.diagnostic_descriptor;
 
 export import :syntax.kind;

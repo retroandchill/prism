@@ -121,7 +121,7 @@ namespace prism
             return header_.length;
         }
 
-        [[nodiscard]] std::string_view get_name() const noexcept;
+        [[nodiscard]] std::string_view get_name(bool escaped = false) const noexcept;
 
         [[nodiscard]] std::size_t size_in_bytes() const noexcept;
 

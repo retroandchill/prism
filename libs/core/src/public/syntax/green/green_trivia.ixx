@@ -7,6 +7,7 @@
 module;
 
 #include <cassert>
+#include <optional>
 
 export module prism.core:syntax.green.green_trivia;
 
@@ -44,7 +45,7 @@ namespace prism
             return 0;
         }
 
-        const GreenNode *get_child(std::size_t index) const override
+        std::optional<const GreenNode &> get_child(std::size_t index) const override
         {
             // This should never get called because it has no slots
             std::unreachable();

@@ -15,7 +15,7 @@ namespace prism
     constexpr bool is_flag_enum = false;
 
     export template <typename T>
-        requires std::is_scoped_enum_v<T> && is_flag_enum<T>
+        requires is_flag_enum<T>
     constexpr T operator|(T lhs, T rhs)
     {
         return static_cast<T>(static_cast<std::underlying_type_t<T>>(lhs) |
@@ -23,7 +23,7 @@ namespace prism
     }
 
     export template <typename T>
-        requires std::is_scoped_enum_v<T> && is_flag_enum<T>
+        requires is_flag_enum<T>
     constexpr T &operator|=(T &lhs, T rhs)
     {
         lhs = lhs | rhs;
@@ -31,7 +31,7 @@ namespace prism
     }
 
     export template <typename T>
-        requires std::is_scoped_enum_v<T> && is_flag_enum<T>
+        requires is_flag_enum<T>
     constexpr T operator&(T lhs, T rhs)
     {
         return static_cast<T>(static_cast<std::underlying_type_t<T>>(lhs) &
@@ -39,7 +39,7 @@ namespace prism
     }
 
     export template <typename T>
-        requires std::is_scoped_enum_v<T> && is_flag_enum<T>
+        requires is_flag_enum<T>
     constexpr T &operator&=(T &lhs, T rhs)
     {
         lhs = lhs & rhs;
@@ -47,7 +47,7 @@ namespace prism
     }
 
     export template <typename T>
-        requires std::is_scoped_enum_v<T> && is_flag_enum<T>
+        requires is_flag_enum<T>
     constexpr T operator^(T lhs, T rhs)
     {
         return static_cast<T>(static_cast<std::underlying_type_t<T>>(lhs) ^
@@ -55,7 +55,7 @@ namespace prism
     }
 
     export template <typename T>
-        requires std::is_scoped_enum_v<T> && is_flag_enum<T>
+        requires is_flag_enum<T>
     constexpr T &operator^=(T &lhs, T rhs)
     {
         lhs = lhs ^ rhs;
@@ -63,14 +63,14 @@ namespace prism
     }
 
     export template <typename T>
-        requires std::is_scoped_enum_v<T> && is_flag_enum<T>
+        requires is_flag_enum<T>
     constexpr T operator~(T value)
     {
         return static_cast<T>(~static_cast<std::underlying_type_t<T>>(value));
     }
 
     export template <typename T>
-    concept FlagEnum = std::is_scoped_enum_v<T> && requires(T &lhs, T rhs) {
+    concept FlagEnum = requires(T &lhs, T rhs) {
         {
             lhs | rhs
         } -> std::convertible_to<T>;

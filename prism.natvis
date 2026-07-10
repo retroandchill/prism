@@ -3,7 +3,7 @@
     <Type Name="prism::NameEntryId">
         <DisplayString Condition="value_ &amp; NameDebugVisualizer::unused_mask">Illegal name (block index out of range)</DisplayString>
         <DisplayString Condition="!debug_name_table[value_ &gt;&gt; NameDebugVisualizer::offset_bits]">Illegal name (null block)</DisplayString>
-        <DisplayString>{(prism::NameEntry&amp;)debug_name_table[value_ &gt;&gt; NameDebugVisualizer::offset_bits][NameDebugVisualizer::entry_stride * (value_ &amp; NameDebugVisualizer::offset_mask)]}</DisplayString>
+        <DisplayString>{(prism::NameEntry&amp;)debug_name_table[value_ &gt;&gt; NameDebugVisualizer::offset_bits][NameDebugVisualizer::entry_stride * (value_ &amp; NameDebugVisualizer::offset_mask) + 1]}</DisplayString>
     </Type>
     <Type Name="prism::NameEntry">
         <DisplayString Condition="header_.length &gt; NameDebugVisualizer::max_length">Illegal name (length > max)</DisplayString>

@@ -9,6 +9,7 @@ module;
 #include "prism/core/names.hpp"
 
 #include <cassert>
+#include <string_view>
 
 module prism.core:strings.name.impl;
 
@@ -32,12 +33,13 @@ namespace prism
         static std::uint32_t try_place(std::byte *, const std::uint32_t size, const std::string_view name)
         {
             const auto bytes = get_default_size(static_cast<std::uint32_t>(name.size()));
-            return bytes <= size ? bytes : 0;
+            return bytes <= size + 1 ? bytes : 0;
         }
 
         static void finalize(std::byte *name_data, const std::string_view name)
         {
-            std::memcpy(name_data, name.data(), name.length());
+            name_data[0] = static_cast<std::byte>('@');
+            std::memcpy(std::next(name_data, 1), name.data(), name.length());
         }
 
         static std::uint32_t get_size(const NameEntry &entry)
@@ -604,9 +606,10 @@ namespace prism
         return NamePool::get().find(name);
     }
 
-    std::string_view NameEntry::get_name() const noexcept
+    std::string_view NameEntry::get_name(const bool escaped) const noexcept
     {
-        return std::string_view{name_, header_.length};
+        return escaped ? std::string_view{name_, header_.length + 1uz}
+                       : std::string_view{std::next(name_, 1), header_.length};
     }
 
     std::size_t NameEntry::size_in_bytes() const noexcept

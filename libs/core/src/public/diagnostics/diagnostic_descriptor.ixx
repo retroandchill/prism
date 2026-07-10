@@ -14,11 +14,11 @@ namespace prism
     export class DiagnosticDescriptor
     {
       public:
-        constexpr DiagnosticDescriptor(std::string_view id,
-                                       std::string_view title,
-                                       std::string_view message_format,
-                                       std::string_view category,
-                                       DiagnosticSeverity severity) noexcept
+        constexpr DiagnosticDescriptor(const std::string_view id,
+                                       const std::string_view title,
+                                       const std::string_view message_format,
+                                       const std::string_view category,
+                                       const DiagnosticSeverity severity) noexcept
             : id_{id}, title_{title}, message_format_{message_format}, category_{category}, severity_{severity}
         {
         }
