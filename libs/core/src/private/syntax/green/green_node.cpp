@@ -4,9 +4,9 @@
  * @date 7/9/2026
  * @brief
  */
-module prism.core:syntax.green_node.impl;
+module prism.core:syntax.green.green_node.impl;
 
-import :syntax.green_node;
+import :syntax.green.green_node;
 
 namespace prism
 {
@@ -82,5 +82,14 @@ namespace prism
         }
 
         return offset;
+    }
+
+    void GreenNode::add_diagnostic(RefCountPtr<DiagnosticInfo> diagnostic)
+    {
+        diagnostics_.push_back(std::move(diagnostic));
+        if (diagnostics_.size() > 1)
+        {
+            flags_ |= SyntaxFlags::contains_diagnostics;
+        }
     }
 } // namespace prism

@@ -8,11 +8,12 @@ module;
 
 #include <cassert>
 
-export module prism.core:syntax.green_node;
+export module prism.core:syntax.green.green_node;
 
 import :syntax.kind;
 import :syntax.flags;
 import :memory.ref_counted_ptr;
+import :diagnostics.diagnostic_info;
 
 namespace prism
 {
@@ -116,10 +117,29 @@ namespace prism
 
         [[nodiscard]] std::uint32_t get_child_offset(std::size_t index) const;
 
+        [[nodiscard]] constexpr const std::vector<RefCountPtr<DiagnosticInfo>> &diagnostics() const noexcept
+        {
+            return diagnostics_;
+        }
+
+        void add_diagnostic(RefCountPtr<DiagnosticInfo> diagnostic);
+
+        template <std::ranges::input_range Range>
+            requires std::convertible_to<std::ranges::range_reference_t<Range>, RefCountPtr<DiagnosticInfo>>
+        void add_diagnostics(Range &&range)
+        {
+            diagnostics_.append_range(std::forward<Range>(range));
+            if (diagnostics_.size() > 1)
+            {
+                flags_ |= SyntaxFlags::contains_diagnostics;
+            }
+        }
+
       private:
         SyntaxKind kind_;
         SyntaxFlags flags_ = SyntaxFlags::none;
         std::uint32_t full_width_;
         std::size_t child_count_ = 0;
+        std::vector<RefCountPtr<DiagnosticInfo>> diagnostics_;
     };
 } // namespace prism

@@ -7,7 +7,7 @@ set(PRISM_HEADERS include/prism/core/exports.h
 set(PRISM_SOURCES
         src/private/strings/name.cpp
         src/private/memory/buffer_pool.cpp
-        src/private/syntax/green_node.cpp
+        src/private/syntax/green/green_node.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -18,7 +18,7 @@ set(PRISM_PUBLIC_MODULES
         src/public/memory/arena_allocator.ixx
         src/public/memory/buffer_pool.ixx
         src/public/syntax/kind.ixx
-        src/public/syntax/green_node.ixx
+        src/public/syntax/green/green_node.ixx
         src/public/syntax/flags.ixx
         src/public/util/enum_class_flags.ixx
         src/public/util/noncopyable.ixx
@@ -26,6 +26,9 @@ set(PRISM_PUBLIC_MODULES
         src/public/memory/ref_counted_ptr.ixx
         src/public/type_traits/basic.ixx
         src/public/core.ixx
+        src/public/diagnostics/diagnostic_descriptor.ixx
+        src/public/diagnostics/diagnostic_severity.ixx
+        src/public/diagnostics/diagnostic_info.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})
