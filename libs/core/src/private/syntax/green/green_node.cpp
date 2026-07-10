@@ -11,6 +11,11 @@ import :syntax.green.green_node;
 namespace prism
 {
 
+    std::uint32_t GreenNode::width() const
+    {
+        return full_width_ - leading_trivia_width() - trailing_trivia_width();
+    }
+
     std::uint32_t GreenNode::leading_trivia_width() const
     {
         return full_width_ > 0 ? first_leaf()->leading_trivia_width() : 0;

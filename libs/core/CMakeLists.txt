@@ -8,6 +8,8 @@ set(PRISM_SOURCES
         src/private/strings/name.cpp
         src/private/memory/buffer_pool.cpp
         src/private/syntax/green/green_node.cpp
+        src/private/syntax/green/green_trivia_list.cpp
+        src/private/syntax/green/green_token.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -29,6 +31,10 @@ set(PRISM_PUBLIC_MODULES
         src/public/diagnostics/diagnostic_descriptor.ixx
         src/public/diagnostics/diagnostic_severity.ixx
         src/public/diagnostics/diagnostic_info.ixx
+        src/public/syntax/token.ixx
+        src/public/syntax/green/green_token.ixx
+        src/public/syntax/green/green_trivia.ixx
+        src/public/syntax/green/green_trivia_list.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

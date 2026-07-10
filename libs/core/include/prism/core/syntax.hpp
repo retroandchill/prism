@@ -29,12 +29,10 @@
     X(i16)                                                                                                             \
     X(i32)                                                                                                             \
     X(i64)                                                                                                             \
-    X(i128)                                                                                                            \
     X(u8)                                                                                                              \
     X(u16)                                                                                                             \
     X(u32)                                                                                                             \
     X(u64)                                                                                                             \
-    X(u128)                                                                                                            \
     X(isize)                                                                                                           \
     X(usize)                                                                                                           \
     X(f16)                                                                                                             \
@@ -111,6 +109,7 @@
 #define PRISM_KEYWORD_ELEM(name) ((name, keyword, BOOST_PP_STRINGIZE(name), keyword))
 #define PRISM_PUNCTUATION_ELEM(name, str) ((name, token, str, punctuation))
 #define PRISM_TOKEN_ELEM(name, str) ((name, token, str, token))
+#define PRISM_SYNTAX_ELEM(name, str) ((name, token, str, token))
 
 #define PRISM_SYNTAX_KIND_ENTRIES                                                                                      \
     PRISM_SYNTAX_TRIVIA(PRISM_TRIVIA_ELEM)                                                                             \

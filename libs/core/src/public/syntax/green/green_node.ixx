@@ -17,7 +17,7 @@ import :diagnostics.diagnostic_info;
 
 namespace prism
 {
-    class GreenNode : IntrusiveRefCounted
+    class GreenNode : public IntrusiveRefCounted
     {
       protected:
         constexpr GreenNode(const SyntaxKind kind, const std::uint32_t full_width)
@@ -33,10 +33,12 @@ namespace prism
             return kind_;
         }
 
-        [[nodiscard]] constexpr std::size_t full_width() const noexcept
+        [[nodiscard]] constexpr std::uint32_t full_width() const noexcept
         {
             return full_width_;
         }
+
+        [[nodiscard]] virtual std::uint32_t width() const;
 
         [[nodiscard]] constexpr SyntaxFlags flags() const noexcept
         {
