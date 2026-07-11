@@ -12,6 +12,7 @@ export module prism.core:text.source_file;
 
 import std;
 import :text.text_span;
+import uni_algo;
 
 namespace prism
 {
@@ -62,8 +63,10 @@ namespace prism
 
             const auto it = std::ranges::upper_bound(line_offsets_, index);
             const auto line = static_cast<std::uint32_t>(std::distance(line_offsets_.begin(), it) - 1);
-            const auto column = index - line_offsets_[line];
-            return SourcePosition{line + 1, column + 1};
+            const auto utf_offset = index - line_offsets_[line];
+            const auto column =
+                std::ranges::distance(std::string_view{text_}.substr(index, utf_offset) | una::views::utf8);
+            return SourcePosition{line + 1, static_cast<std::uint32_t>(column) + 1};
         }
 
         [[nodiscard]] constexpr std::string_view slice(const TextSpan span) const

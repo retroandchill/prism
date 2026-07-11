@@ -12,6 +12,8 @@ module prism.core:syntax.lexer.impl;
 
 import :syntax.lexer;
 import :syntax.diagnostics;
+import uni_algo;
+import :memory.buffer_pool;
 
 namespace prism
 {
@@ -26,6 +28,26 @@ namespace prism
                       operators.end(),
                       [](const auto &lhs, const auto &rhs) { return lhs.first.size() > rhs.first.size(); });
             return operators;
+        }
+
+        template <std::forward_iterator I, std::sentinel_for<I> S = I>
+            requires std::same_as<std::iter_value_t<I>, char32_t>
+        constexpr Optional<std::pair<char32_t, std::size_t>> parse_hex_sequence(I it,
+                                                                                S end,
+                                                                                std::size_t min,
+                                                                                std::size_t max)
+        {
+            std::uint32_t result = 0;
+            std::size_t i = 0;
+            for (; i < max && it != end && is_hex_digit(*it); ++i, ++it)
+            {
+                result = result * 16 + hex_digit_value(*it);
+            }
+
+            if (i >= min && i <= max)
+                return std::make_pair(static_cast<char32_t>(result), i);
+
+            return std::nullopt;
         }
     } // namespace
 
@@ -178,6 +200,12 @@ namespace prism
         return GreenToken::bad_token->with_leading_and_trailing_trivia(std::move(leading_trivia), collect_trivia());
     }
 
+    Optional<GreenPtr<GreenToken>> Lexer::match_number(GreenPtr<GreenTriviaList> leading_trivia)
+    {
+
+        return std::nullopt;
+    }
+
     Optional<GreenPtr<GreenToken>> Lexer::match_punctuation(GreenPtr<GreenTriviaList> leading_trivia)
     {
         using namespace std::string_view_literals;
@@ -203,7 +231,82 @@ namespace prism
 
     Optional<GreenPtr<GreenToken>> Lexer::match_character_literal(GreenPtr<GreenTriviaList> leading_trivia)
     {
-        return std::nullopt;
+        DiagnosticInfoList diagnostics;
+        CharacterEncoding encoding;
+        auto start = cursor_.position();
+        auto remaining = cursor_.remaining();
+        std::uint32_t advance;
+        if (remaining.starts_with("u'"))
+        {
+            encoding = CharacterEncoding::utf16;
+            advance = 2;
+        }
+        else if (remaining.starts_with("U'"))
+        {
+            encoding = CharacterEncoding::utf32;
+            advance = 2;
+        }
+        else if (remaining.starts_with('\''))
+        {
+            encoding = CharacterEncoding::utf8;
+            advance = 1;
+        }
+        else
+        {
+            return std::nullopt;
+        }
+        cursor_.advance(advance);
+
+        auto terminated = false;
+        auto character = U'\0';
+        if (!cursor_.at_end() && !cursor_.any('\n', '\r'))
+        {
+            auto current = cursor_.current();
+            if (current != '\\')
+            {
+                character = current;
+                cursor_.advance();
+            }
+            else if (auto escape = parse_escape_sequence(cursor_.remaining().substr(1)))
+            {
+                character = escape->first;
+                cursor_.advance(escape->second + 1);
+            }
+            else
+            {
+                character = cursor_.peek();
+                if (character != '\0')
+                {
+                    diagnostics.push_back(
+                        DiagnosticInfo::create(unexpected_escape, advance, static_cast<std::uint32_t>(character)));
+                    cursor_.advance();
+                }
+                else
+                {
+                    using namespace std::string_view_literals;
+                    diagnostics.push_back(DiagnosticInfo::create(unexpected_escape, advance, ""sv));
+                    cursor_.advance(2);
+                }
+            }
+
+            if (!cursor_.at_end() && cursor_.current() == '\'')
+            {
+                cursor_.advance();
+                terminated = true;
+            }
+        }
+
+        if (!terminated)
+        {
+            diagnostics.push_back(DiagnosticInfo::create(unterminated_character_literal, cursor_.position() - start));
+        }
+
+        auto ptr = make_green_value(CharacterLiteralData{character, encoding},
+                                    std::string{remaining.substr(0, cursor_.position() - start)},
+                                    std::move(leading_trivia),
+                                    collect_trivia());
+        ptr->set_diagnostics(std::move(diagnostics));
+        return std::move(ptr);
     }
 
     Optional<GreenPtr<GreenToken>> Lexer::match_string_literal(GreenPtr<GreenTriviaList> leading_trivia)
@@ -237,57 +340,28 @@ namespace prism
                 continue;
             }
 
-            using namespace std::string_view_literals;
-            switch (auto next = cursor_.peek())
+            const auto peeked = cursor_.remaining().substr(1);
+            if (auto escaped_char = parse_escape_sequence(peeked); escaped_char.has_value())
             {
-                case 'n':
-                    str.push_back('\n');
-                    cursor_.advance(2);
-                    break;
-                case 'r':
-                    str.push_back('\r');
-                    cursor_.advance(2);
-                    break;
-                case 't':
-                    str.push_back('\t');
-                    cursor_.advance(2);
-                    break;
-                case '\\':
-                    str.push_back('\\');
-                    cursor_.advance(2);
-                    break;
-                case 'b':
-                    str.push_back('\b');
-                    cursor_.advance(2);
-                    break;
-                case 'a':
-                    str.push_back('\a');
-                    cursor_.advance(2);
-                    break;
-                case 'v':
-                    str.push_back('\v');
-                    cursor_.advance(2);
-                    break;
-                case '\'':
-                    str.push_back('\'');
-                    cursor_.advance(2);
-                    break;
-                case '"':
-                    str.push_back('"');
-                    cursor_.advance(2);
-                    break;
-                case '\0':
-                    str.push_back('\\');
-                    diagnostics.emplace_back(
-                        DiagnosticInfo::create(unexpected_escape, cursor_.position() - start, ""sv));
-                    cursor_.advance(2);
-                    break;
-                default:
-                    str.push_back('\\');
+                auto [c, length] = escaped_char.value();
+                // TODO: We need to actually extract the codepoints from this
+                str.push_back(static_cast<char>(c));
+                cursor_.advance(length + 1);
+            }
+            else
+            {
+                auto next = cursor_.peek();
+                str.push_back('\\');
+                if (next != '\0')
+                {
                     str.push_back(next);
                     diagnostics.push_back(DiagnosticInfo::create(unexpected_escape, cursor_.position() - start, next));
-                    cursor_.advance(2);
-                    break;
+                }
+                else
+                {
+                    using namespace std::string_view_literals;
+                    diagnostics.push_back(DiagnosticInfo::create(unexpected_escape, cursor_.position() - start, ""sv));
+                }
             }
         }
 
@@ -350,6 +424,38 @@ namespace prism
         }
 
         return make_green_value(IdentifierData{identifier, is_escaped}, std::move(leading_trivia), collect_trivia());
+    }
+
+    Optional<std::pair<char32_t, std::uint32_t>> Lexer::parse_escape_sequence(std::string_view view)
+    {
+        if (view.empty())
+            return std::nullopt;
+
+        switch (view[0])
+        {
+            case 'n':
+                return std::make_pair(U'\n', 1);
+            case 'r':
+                return std::make_pair(U'\r', 1);
+            case 't':
+                return std::make_pair(U'\t', 1);
+            case '\\':
+                return std::make_pair(U'\\', 1);
+            case 'b':
+                return std::make_pair(U'\b', 1);
+            case 'a':
+                return std::make_pair(U'\a', 1);
+            case 'v':
+                return std::make_pair(U'\v', 1);
+            case '\'':
+                return std::make_pair(U'\'', 1);
+            case '"':
+                return std::make_pair(U'"', 1);
+            case '0':
+                return std::make_pair(U'\0', 1);
+            default:
+                return std::nullopt;
+        }
     }
 
 } // namespace prism

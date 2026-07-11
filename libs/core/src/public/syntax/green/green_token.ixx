@@ -18,15 +18,15 @@ namespace prism
         static const GreenPtr<GreenToken> bad_token;
 
         explicit GreenToken(SyntaxKind kind,
-                            RefCountPtr<const GreenTriviaList> leading_trivia = nullptr,
-                            RefCountPtr<const GreenTriviaList> trailing_trivia = nullptr);
+                            GreenPtr<GreenTriviaList> leading_trivia = nullptr,
+                            GreenPtr<GreenTriviaList> trailing_trivia = nullptr);
 
         GreenToken(SyntaxKind kind,
                    std::uint32_t width,
-                   RefCountPtr<const GreenTriviaList> leading_trivia = nullptr,
-                   RefCountPtr<const GreenTriviaList> trailing_trivia = nullptr);
+                   GreenPtr<GreenTriviaList> leading_trivia = nullptr,
+                   GreenPtr<GreenTriviaList> trailing_trivia = nullptr);
 
-        static GreenPtr<const GreenToken> from(SyntaxKind kind);
+        static GreenPtr<GreenToken> from(SyntaxKind kind);
 
         [[nodiscard]] virtual std::string_view text() const;
 

@@ -40,6 +40,8 @@ namespace prism
         Optional<GreenPtr<GreenToken>> match_string_literal(GreenPtr<GreenTriviaList> leading_trivia);
         Optional<GreenPtr<GreenToken>> match_identifier_or_keyword(GreenPtr<GreenTriviaList> leading_trivia);
 
+        static Optional<std::pair<char32_t, std::uint32_t>> parse_escape_sequence(std::string_view view);
+
         TextCursor cursor_;
     };
 } // namespace prism

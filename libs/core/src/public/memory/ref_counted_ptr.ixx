@@ -487,7 +487,7 @@ namespace prism
         requires std::constructible_from<T, Args...>
     constexpr RefCountPtr<T> make_ref_counted(Args &&...args)
     {
-        return RefCountPtr<T>::no_ref(new std::remove_cv_t<T>{std::forward<Args>(args)...});
+        return RefCountPtr<T>::no_ref(new std::remove_cv_t<T>(std::forward<Args>(args)...));
     }
 
     export template <RefCounted T, RefCounted U>

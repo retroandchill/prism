@@ -72,8 +72,8 @@ namespace prism
         using Data = std::conditional_t<std::is_trivially_copy_constructible_v<T>, RawData, RefCountPtr<const RawData>>;
 
         constexpr GreenValueToken(Data data,
-                                  RefCountPtr<const GreenTriviaList> leading_trivia,
-                                  RefCountPtr<const GreenTriviaList> trailing_trivia)
+                                  GreenPtr<GreenTriviaList> leading_trivia,
+                                  GreenPtr<GreenTriviaList> trailing_trivia)
             : GreenToken{T::kind, get_width(data), std::move(leading_trivia), std::move(trailing_trivia)},
               data_{std::move(data)}
         {
@@ -103,11 +103,11 @@ namespace prism
         {
             if constexpr (CanGetStringView<T>)
             {
-                return data().text;
+                return data().value.get_string_view();
             }
             else
             {
-                return data().value.get_string_view();
+                return data().text;
             }
         }
 
@@ -120,7 +120,8 @@ namespace prism
         GreenPtr<GreenToken> clone_with_trivia(GreenPtr<GreenTriviaList> leading_trivia,
                                                GreenPtr<GreenTriviaList> trailing_trivia) const override
         {
-            return make_ref_counted<GreenValueToken>(data_, std::move(leading_trivia), std::move(trailing_trivia));
+            return GreenPtr<GreenToken>::no_ref(
+                new GreenValueToken{data_, std::move(leading_trivia), std::move(trailing_trivia)});
         }
 
       private:
@@ -196,8 +197,8 @@ namespace prism
         requires StandardLiteralData<std::decay_t<T>> && CanGetStringView<std::decay_t<T>>
     constexpr RefCountPtr<GreenValueToken<std::decay_t<T>>> make_green_value(
         T &&value,
-        RefCountPtr<const GreenTriviaList> leading_trivia = nullptr,
-        RefCountPtr<const GreenTriviaList> trailing_trivia = nullptr)
+        GreenPtr<GreenTriviaList> leading_trivia = nullptr,
+        GreenPtr<GreenTriviaList> trailing_trivia = nullptr)
     {
         return make_ref_counted<GreenValueToken<std::decay_t<T>>>(std::forward<T>(value),
                                                                   std::move(leading_trivia),

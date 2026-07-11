@@ -20,8 +20,8 @@ namespace prism
     const GreenPtr<GreenToken> GreenToken::bad_token = make_ref_counted<const GreenToken>(SyntaxKind::bad_token, 1);
 
     GreenToken::GreenToken(const SyntaxKind kind,
-                           RefCountPtr<const GreenTriviaList> leading_trivia,
-                           RefCountPtr<const GreenTriviaList> trailing_trivia)
+                           GreenPtr<GreenTriviaList> leading_trivia,
+                           GreenPtr<GreenTriviaList> trailing_trivia)
         : GreenToken{kind,
                      static_cast<std::uint32_t>(to_string(kind).length()),
                      std::move(leading_trivia),
@@ -31,8 +31,8 @@ namespace prism
 
     GreenToken::GreenToken(const SyntaxKind kind,
                            const std::uint32_t width,
-                           RefCountPtr<const GreenTriviaList> leading_trivia,
-                           RefCountPtr<const GreenTriviaList> trailing_trivia)
+                           GreenPtr<GreenTriviaList> leading_trivia,
+                           GreenPtr<GreenTriviaList> trailing_trivia)
         : GreenNode{kind, width}, leading_trivia_{normalize_trivia(std::move(leading_trivia))},
           trailing_trivia_{normalize_trivia(std::move(trailing_trivia))}
     {
@@ -40,7 +40,7 @@ namespace prism
         set_child_count((leading_trivia != nullptr ? 1 : 0) + (trailing_trivia != nullptr ? 1 : 0));
     }
 
-    GreenPtr<const GreenToken> GreenToken::from(const SyntaxKind kind)
+    GreenPtr<GreenToken> GreenToken::from(const SyntaxKind kind)
     {
         using namespace std::string_view_literals;
         if (is_keyword(kind))
