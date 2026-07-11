@@ -11,6 +11,7 @@ set(PRISM_SOURCES
         src/private/syntax/green/green_trivia_list.cpp
         src/private/syntax/green/green_token.cpp
         src/private/diagnostics/diagnostic_info.cpp
+        src/private/syntax/trivia.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -45,6 +46,7 @@ set(PRISM_PUBLIC_MODULES
         src/public/syntax/trivia.ixx
         src/public/text/text_span.ixx
         src/public/text/source_file.ixx
+        src/public/syntax/list_view.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

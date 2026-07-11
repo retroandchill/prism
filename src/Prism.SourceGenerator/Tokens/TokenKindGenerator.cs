@@ -36,7 +36,7 @@ public sealed class TokenKindGenerator : IIncrementalGenerator
             static (node, _) => (INamedTypeSymbol)node.TargetSymbol
         );
 
-        TextSpan span;
+        SyntaxToken span;
         context.RegisterSourceOutput(tokenKindEnums, Execute);
     }
 

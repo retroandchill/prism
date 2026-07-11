@@ -113,10 +113,9 @@ namespace prism
         }
 
         template <std::derived_from<GreenNode> T>
-        Optional<const T &> get_child_unchecked(const std::size_t index) const
+        const T &get_child_unchecked(const std::size_t index) const
         {
-            return get_child(index).transform([](const GreenNode &child) -> auto &
-                                              { return static_cast<const T &>(child); });
+            return static_cast<const T &>(*get_child(index));
         }
 
         template <std::derived_from<GreenNode> T>

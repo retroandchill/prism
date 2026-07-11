@@ -551,6 +551,18 @@ namespace prism
             return std::forward<U>(u);
         }
 
+        constexpr std::remove_cv_t<T> value_or_default() const &
+            requires std::is_default_constructible_v<T> && std::is_copy_constructible_v<T>
+        {
+            return has_value_ ? value_ : T{};
+        }
+
+        constexpr std::remove_cv_t<T> value_or_default() &&
+            requires std::is_default_constructible_v<T> && std::is_move_constructible_v<T>
+        {
+            return has_value_ ? std::move(value_) : T{};
+        }
+
         template <typename Self, typename Functor>
             requires std::invocable<Functor, ForwardLikeType<Self, T>> &&
                      OptionalSpecialization<std::invoke_result_t<Functor, ForwardLikeType<Self, T>>>

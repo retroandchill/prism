@@ -7,33 +7,60 @@
 export module prism.core:syntax.token;
 
 import :syntax.literals;
+import :text.text_span;
 
 namespace prism
 {
+    class SyntaxTriviaList;
+
     template <LiteralData T>
     using LiteralDataResult = decltype(LiteralDataTraits<T>::get_value(std::declval<const GreenToken>()));
 
     export class SyntaxToken
     {
         SyntaxToken(RefCountPtr<const GreenToken> token, std::uint32_t position)
-            : token_{std::move(token)}, position_{position}
+            : green_{std::move(token)}, position_{position}
         {
         }
 
       public:
         [[nodiscard]] constexpr SyntaxKind kind() const noexcept
         {
-            return token_->kind();
+            return green_->kind();
+        }
+
+        [[nodiscard]] constexpr TextSpan full_span() const noexcept
+        {
+            return {position_, green_->full_width()};
+        }
+
+        [[nodiscard]] constexpr TextSpan span() const
+        {
+            return {position_ + green_->leading_trivia_width(), green_->width()};
         }
 
         [[nodiscard]] constexpr bool is_missing() const noexcept
         {
-            return token_->is_missing();
+            return green_->is_missing();
         }
 
         [[nodiscard]] constexpr std::uint32_t contains_diagnostics() const noexcept
         {
-            return token_->contains_diagnostics();
+            return green_->contains_diagnostics();
+        }
+
+        [[nodiscard]] constexpr SyntaxTriviaList leading_trivia() const noexcept;
+
+        [[nodiscard]] constexpr bool has_leading_trivia() const noexcept
+        {
+            return green_->has_leading_trivia();
+        }
+
+        [[nodiscard]] constexpr SyntaxTriviaList trailing_trivia() const noexcept;
+
+        [[nodiscard]] constexpr bool has_trailing_trivia() const noexcept
+        {
+            return green_->has_trailing_trivia();
         }
 
         template <LiteralData T>
@@ -41,7 +68,7 @@ namespace prism
         {
             if (LiteralDataTraits<T>::valid_kind(kind()))
             {
-                return LiteralDataTraits<T>::get_value(*token_);
+                return LiteralDataTraits<T>::get_value(*green_);
             }
 
             return std::nullopt;
@@ -59,11 +86,13 @@ namespace prism
         template <LiteralData T>
         LiteralDataResult<T> get_value_unchecked() const
         {
-            return LiteralDataResult<T>::get_value(*token_);
+            return LiteralDataResult<T>::get_value(*green_);
         }
 
       private:
-        RefCountPtr<const GreenToken> token_;
+        friend class SyntaxTriviaList;
+
+        RefCountPtr<const GreenToken> green_;
         std::uint32_t position_;
     };
 } // namespace prism

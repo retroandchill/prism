@@ -554,9 +554,9 @@ namespace prism
         }
 
         template <typename Self>
-        [[nodiscard]] RefCountPtr<Self> shared_from_this(this const Self &self) noexcept
+        [[nodiscard]] auto shared_from_this(this Self &&self) noexcept
         {
-            return RefCountPtr<Self>::ref(const_cast<Self *>(std::addressof(self)));
+            return RefCountPtr<std::remove_reference_t<Self>>::ref(std::addressof(self));
         }
 
       private:

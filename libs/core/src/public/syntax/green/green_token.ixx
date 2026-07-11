@@ -25,14 +25,14 @@ namespace prism
 
         [[nodiscard]] virtual std::string_view text() const;
 
-        [[nodiscard]] constexpr const GreenTriviaList *leading_trivia() const noexcept
+        [[nodiscard]] constexpr Optional<const GreenTriviaList &> leading_trivia() const noexcept
         {
             return leading_trivia_.get();
         }
 
         [[nodiscard]] std::uint32_t leading_trivia_width() const override;
 
-        [[nodiscard]] constexpr const GreenTriviaList *trailing_trivia() const noexcept
+        [[nodiscard]] constexpr Optional<const GreenTriviaList &> trailing_trivia() const noexcept
         {
             return trailing_trivia_.get();
         }
