@@ -17,7 +17,7 @@ namespace prism
         {
         }
 
-        explicit constexpr GreenTriviaList(std::vector<RefCountPtr<const GreenTrivia>> trivia)
+        explicit constexpr GreenTriviaList(std::vector<GreenPtr<GreenTrivia>> trivia)
             : GreenNode{SyntaxKind::list, calculate_width(trivia)}, trivia_{std::move(trivia)}
         {
         }
@@ -33,10 +33,10 @@ namespace prism
         }
 
       private:
-        static std::uint32_t calculate_width(const std::vector<RefCountPtr<const GreenTrivia>> &trivia);
+        static std::uint32_t calculate_width(const std::vector<GreenPtr<GreenTrivia>> &trivia);
 
-        std::vector<RefCountPtr<const GreenTrivia>> trivia_;
+        std::vector<GreenPtr<GreenTrivia>> trivia_;
     };
 
-    RefCountPtr<const GreenTriviaList> normalize_trivia(RefCountPtr<const GreenTriviaList> trivia);
+    GreenPtr<GreenTriviaList> normalize_trivia(GreenPtr<GreenTriviaList> trivia);
 } // namespace prism

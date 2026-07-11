@@ -12,6 +12,7 @@ export module prism.core:memory.buffer_pool;
 
 import std;
 import :util.make_array;
+import :type_traits.basic;
 
 namespace prism
 {
@@ -188,4 +189,12 @@ namespace prism
 
     export template <typename T>
     using PooledVector = std::vector<T, BufferPoolAllocator<T>>;
+
+    export template <Char T>
+    using BasicPooledString = std::basic_string<T, std::char_traits<T>, BufferPoolAllocator<T>>;
+
+    export using PooledString = BasicPooledString<char>;
+    export using PooledWString = BasicPooledString<wchar_t>;
+    export using PooledU16String = BasicPooledString<char16_t>;
+    export using PooledU32String = BasicPooledString<char32_t>;
 } // namespace prism

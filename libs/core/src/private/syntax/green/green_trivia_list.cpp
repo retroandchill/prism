@@ -10,14 +10,14 @@ import :syntax.green.green_trivia_list;
 
 namespace prism
 {
-    std::uint32_t GreenTriviaList::calculate_width(const std::vector<RefCountPtr<const GreenTrivia>> &trivia)
+    std::uint32_t GreenTriviaList::calculate_width(const std::vector<GreenPtr<GreenTrivia>> &trivia)
     {
         return std::ranges::fold_left(trivia,
                                       0u,
                                       [](const std::uint32_t acc, const auto &t) { return acc + t->full_width(); });
     }
 
-    RefCountPtr<const GreenTriviaList> normalize_trivia(RefCountPtr<const GreenTriviaList> trivia)
+    GreenPtr<GreenTriviaList> normalize_trivia(GreenPtr<GreenTriviaList> trivia)
     {
         if (trivia == nullptr || trivia->empty())
             return nullptr;

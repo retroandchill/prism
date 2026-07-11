@@ -57,6 +57,18 @@ namespace prism
         return underlying >= trivia_start && underlying < keyword_start;
     }
 
+    export constexpr bool is_keyword(const SyntaxKind kind) noexcept
+    {
+        const auto underlying = std::to_underlying(kind);
+        return underlying >= keyword_start && underlying < punctuation_start;
+    }
+
+    export constexpr bool is_punctuation(const SyntaxKind kind) noexcept
+    {
+        const auto underlying = std::to_underlying(kind);
+        return underlying >= punctuation_start && underlying < token_start;
+    }
+
     export constexpr bool is_token(const SyntaxKind kind) noexcept
     {
         const auto underlying = std::to_underlying(kind);

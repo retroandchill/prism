@@ -89,7 +89,7 @@ namespace prism
         return offset;
     }
 
-    void GreenNode::add_diagnostic(RefCountPtr<DiagnosticInfo> diagnostic)
+    void GreenNode::add_diagnostic(RefCountPtr<const DiagnosticInfo> diagnostic)
     {
         diagnostics_.push_back(std::move(diagnostic));
         if (diagnostics_.size() > 1)

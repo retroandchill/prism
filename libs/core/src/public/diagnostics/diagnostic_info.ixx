@@ -17,13 +17,21 @@ namespace prism
     {
       public:
         template <typename... Args>
-        explicit constexpr DiagnosticInfo(const DiagnosticDescriptor &descriptor, Args &&...args)
-            : descriptor_{&descriptor},
+        explicit constexpr DiagnosticInfo(const DiagnosticDescriptor &descriptor, std::uint32_t offset, Args &&...args)
+            : offset_{offset}, descriptor_{&descriptor},
               format_message_{[... args = std::forward<Args>(args)](const std::string_view message)
                               {
                                   return std::vformat(message, std::make_format_args(args...));
                               }}
         {
+        }
+
+        template <typename... Args>
+        static constexpr RefCountPtr<const DiagnosticInfo> create(const DiagnosticDescriptor &descriptor,
+                                                                  std::uint32_t offset,
+                                                                  Args &&...args)
+        {
+            return make_ref_counted<const DiagnosticInfo>(descriptor, offset, std::forward<Args>(args)...);
         }
 
         [[nodiscard]] constexpr const DiagnosticDescriptor &descriptor() const noexcept
@@ -34,10 +42,13 @@ namespace prism
         [[nodiscard]] std::string_view message() const;
 
       private:
+        std::uint32_t offset_;
         const DiagnosticDescriptor *descriptor_;
         std::function<std::string(std::string_view)> format_message_;
 
         mutable std::once_flag message_once_;
         mutable Optional<std::string> message_;
     };
+
+    using DiagnosticInfoList = std::vector<RefCountPtr<const DiagnosticInfo>>;
 } // namespace prism

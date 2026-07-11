@@ -19,5 +19,8 @@
   }, {
     "name" : "boost-multiprecision",
     "version>=" : "1.91.0"
+  }, {
+    "name" : "uni-algo",
+    "version>=" : "1.2.0"
   } ]
 }

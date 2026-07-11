@@ -6,6 +6,8 @@
  */
 module;
 
+#include "prism/core/syntax.hpp"
+
 #include <cassert>
 
 module prism.core:syntax.green.green_token.impl;
@@ -14,6 +16,8 @@ import :syntax.green.green_token;
 
 namespace prism
 {
+    const GreenPtr<GreenToken> GreenToken::eof = make_ref_counted<const GreenToken>(SyntaxKind::end_of_file_token);
+    const GreenPtr<GreenToken> GreenToken::bad_token = make_ref_counted<const GreenToken>(SyntaxKind::bad_token, 1);
 
     GreenToken::GreenToken(const SyntaxKind kind,
                            RefCountPtr<const GreenTriviaList> leading_trivia,
@@ -34,6 +38,34 @@ namespace prism
     {
         assert(is_token(kind));
         set_child_count((leading_trivia != nullptr ? 1 : 0) + (trailing_trivia != nullptr ? 1 : 0));
+    }
+
+    GreenPtr<const GreenToken> GreenToken::from(const SyntaxKind kind)
+    {
+        using namespace std::string_view_literals;
+        if (is_keyword(kind))
+        {
+            static std::array keywords = {
+#define X(name) make_ref_counted<GreenToken>(SyntaxKind::name##_keyword),
+                PRISM_SYNTAX_KEYWORDS(X)
+#undef X
+            };
+
+            return keywords[std::to_underlying(kind) - keyword_start];
+        }
+
+        if (is_punctuation(kind))
+        {
+            static std::array punctuations = {
+#define X(name, str) make_ref_counted<GreenToken>(SyntaxKind::name##_token),
+                PRISM_SYNTAX_PUNCTUATIONS(X)
+#undef X
+            };
+
+            return punctuations[std::to_underlying(kind) - punctuation_start];
+        }
+
+        return nullptr;
     }
 
     std::string_view GreenToken::text() const

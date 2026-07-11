@@ -128,15 +128,15 @@ namespace prism
 
         [[nodiscard]] std::uint32_t get_child_offset(std::size_t index) const;
 
-        [[nodiscard]] constexpr const std::vector<RefCountPtr<DiagnosticInfo>> &diagnostics() const noexcept
+        [[nodiscard]] constexpr const DiagnosticInfoList &diagnostics() const noexcept
         {
             return diagnostics_;
         }
 
-        void add_diagnostic(RefCountPtr<DiagnosticInfo> diagnostic);
+        void add_diagnostic(RefCountPtr<const DiagnosticInfo> diagnostic);
 
         template <std::ranges::input_range Range>
-            requires std::convertible_to<std::ranges::range_reference_t<Range>, RefCountPtr<DiagnosticInfo>>
+            requires std::convertible_to<std::ranges::range_reference_t<Range>, RefCountPtr<const DiagnosticInfo>>
         void add_diagnostics(Range &&range)
         {
             diagnostics_.append_range(std::forward<Range>(range));
@@ -147,10 +147,17 @@ namespace prism
         }
 
       private:
+        friend class Lexer;
+
+        constexpr void set_diagnostics(DiagnosticInfoList list)
+        {
+            diagnostics_ = std::move(list);
+        }
+
         SyntaxKind kind_;
         SyntaxFlags flags_ = SyntaxFlags::none;
         std::uint32_t full_width_;
         std::size_t child_count_ = 0;
-        std::vector<RefCountPtr<DiagnosticInfo>> diagnostics_;
+        DiagnosticInfoList diagnostics_;
     };
 } // namespace prism

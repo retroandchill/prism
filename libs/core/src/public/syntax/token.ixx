@@ -91,6 +91,7 @@ namespace prism
 
       private:
         friend class SyntaxTriviaList;
+        friend class Lexer;
 
         RefCountPtr<const GreenToken> green_;
         std::uint32_t position_;

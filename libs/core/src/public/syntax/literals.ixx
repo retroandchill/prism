@@ -10,6 +10,7 @@ import std;
 import :syntax.kind;
 import :syntax.green.green_value_token;
 import :util.numerics;
+import :text.name;
 
 namespace prism
 {
@@ -54,6 +55,19 @@ namespace prism
         } -> std::convertible_to<T>;
     };
 
+    export struct IdentifierData
+    {
+        static constexpr auto kind = SyntaxKind::identifier_token;
+
+        Name name;
+        bool is_escaped = false;
+
+        constexpr std::string_view get_string_view() const noexcept
+        {
+            return name.as_string_view(is_escaped);
+        }
+    };
+
     export enum class IntegerBase : std::uint8_t
     {
         decimal,
@@ -83,8 +97,8 @@ namespace prism
         static constexpr auto kind = SyntaxKind::integer_token;
 
         BigInteger value;
-        IntegerBase base;
-        IntegerSuffix suffix;
+        IntegerBase base = IntegerBase::decimal;
+        IntegerSuffix suffix = IntegerSuffix::none;
     };
 
     export enum class FloatSuffix : std::uint8_t
@@ -100,7 +114,7 @@ namespace prism
         static constexpr auto kind = SyntaxKind::float_token;
 
         BigDecimal value;
-        FloatSuffix suffix;
+        FloatSuffix suffix = FloatSuffix::none;
     };
 
     export enum class CharacterEncoding : std::uint8_t
@@ -114,8 +128,8 @@ namespace prism
     {
         static constexpr auto kind = SyntaxKind::character_token;
 
-        char32_t value;
-        CharacterEncoding encoding;
+        char32_t value = '\0';
+        CharacterEncoding encoding = CharacterEncoding::utf8;
     };
 
     export struct StringLiteralData
@@ -123,6 +137,6 @@ namespace prism
         static constexpr auto kind = SyntaxKind::string_literal_token;
 
         std::string value;
-        CharacterEncoding encoding;
+        CharacterEncoding encoding = CharacterEncoding::utf8;
     };
 } // namespace prism

@@ -30,3 +30,5 @@ export import :diagnostics.diagnostic_descriptor;
 export import :syntax.kind;
 export import :syntax.literals;
 export import :syntax.token;
+export import :syntax.trivia;
+export import :syntax.lexer;

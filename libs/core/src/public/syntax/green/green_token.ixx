@@ -14,6 +14,9 @@ namespace prism
     class GreenToken : public GreenNode
     {
       public:
+        static const GreenPtr<GreenToken> eof;
+        static const GreenPtr<GreenToken> bad_token;
+
         explicit GreenToken(SyntaxKind kind,
                             RefCountPtr<const GreenTriviaList> leading_trivia = nullptr,
                             RefCountPtr<const GreenTriviaList> trailing_trivia = nullptr);
@@ -22,6 +25,8 @@ namespace prism
                    std::uint32_t width,
                    RefCountPtr<const GreenTriviaList> leading_trivia = nullptr,
                    RefCountPtr<const GreenTriviaList> trailing_trivia = nullptr);
+
+        static GreenPtr<const GreenToken> from(SyntaxKind kind);
 
         [[nodiscard]] virtual std::string_view text() const;
 

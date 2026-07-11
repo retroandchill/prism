@@ -14,7 +14,7 @@ namespace prism
     template <typename T>
     concept CanGetStringView = requires(const T &t) {
         {
-            t.get_string_view(t)
+            t.get_string_view()
         } -> std::convertible_to<std::string_view>;
     };
 
@@ -176,4 +176,31 @@ namespace prism
 
         Data data_;
     };
+
+    template <typename T>
+        requires StandardLiteralData<std::decay_t<T>> &&
+                 !CanGetStringView<std::decay_t<T>>
+                 constexpr RefCountPtr<GreenValueToken<std::decay_t<T>>> make_green_value(
+                     T && value,
+                     std::string text,
+                     RefCountPtr<const GreenTriviaList> leading_trivia = nullptr,
+                     RefCountPtr<const GreenTriviaList> trailing_trivia = nullptr)
+    {
+        return make_ref_counted<GreenValueToken<std::decay_t<T>>>(std::forward<T>(value),
+                                                                  std::move(text),
+                                                                  std::move(leading_trivia),
+                                                                  std::move(trailing_trivia));
+    }
+
+    template <typename T>
+        requires StandardLiteralData<std::decay_t<T>> && CanGetStringView<std::decay_t<T>>
+    constexpr RefCountPtr<GreenValueToken<std::decay_t<T>>> make_green_value(
+        T &&value,
+        RefCountPtr<const GreenTriviaList> leading_trivia = nullptr,
+        RefCountPtr<const GreenTriviaList> trailing_trivia = nullptr)
+    {
+        return make_ref_counted<GreenValueToken<std::decay_t<T>>>(std::forward<T>(value),
+                                                                  std::move(leading_trivia),
+                                                                  std::move(trailing_trivia));
+    }
 } // namespace prism

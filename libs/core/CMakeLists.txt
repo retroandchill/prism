@@ -12,6 +12,8 @@ set(PRISM_SOURCES
         src/private/syntax/green/green_token.cpp
         src/private/diagnostics/diagnostic_info.cpp
         src/private/syntax/trivia.cpp
+        src/private/syntax/lexer.cpp
+        src/private/syntax/green/green_trivia.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -47,6 +49,9 @@ set(PRISM_PUBLIC_MODULES
         src/public/text/text_span.ixx
         src/public/text/source_file.ixx
         src/public/syntax/list_view.ixx
+        src/public/syntax/lexer.ixx
+        src/public/text/cursor.ixx
+        src/public/syntax/diagnostics.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})
@@ -58,9 +63,10 @@ target_include_directories(prism_core PUBLIC include
 
 find_package(Boost CONFIG REQUIRED COMPONENTS preprocessor)
 target_link_libraries(prism_core
-        PRIVATE xxHash::cpp
+        PUBLIC Boost::cppm
+                uni_algo_cppm
                 Boost::preprocessor
-                Boost::cppm)
+        PRIVATE xxHash::cpp)
 
 target_sources(prism_core PUBLIC
         FILE_SET prism_core_private

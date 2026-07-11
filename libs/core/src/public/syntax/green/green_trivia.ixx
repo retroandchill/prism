@@ -17,6 +17,10 @@ namespace prism
     class GreenTrivia final : public GreenNode
     {
       public:
+        static const GreenPtr<GreenTrivia> carriage_return_line_feed;
+        static const GreenPtr<GreenTrivia> carriage_return;
+        static const GreenPtr<GreenTrivia> line_feed;
+
         constexpr GreenTrivia(const SyntaxKind kind, std::string text)
             : GreenNode{kind, static_cast<std::uint32_t>(text.size())}, text_{std::move(text)}
         {
