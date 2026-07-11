@@ -16,5 +16,8 @@
   }, {
     "name" : "fmt",
     "version>=" : "12.2.0"
+  }, {
+    "name" : "boost-multiprecision",
+    "version>=" : "1.91.0"
   } ]
 }

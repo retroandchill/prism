@@ -1,0 +1,24 @@
+[module]
+name = "boost"
+
+[headers]
+include_dirs = [
+    "."
+]
+library_headers = [
+    "boost_sample.hpp",
+]
+header_guard_format = "BOOST_(\\w+_)_HPP"
+
+[macros]
+expand_from_definition = [
+]
+explicit_macros = [
+    "BOOST_MP_FORCEINLINE",
+]
+
+[symbols]
+exclude = [
+    "boost::multiprecision::detail",
+    "std"
+]

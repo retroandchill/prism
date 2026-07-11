@@ -18,6 +18,9 @@ import :util.optional;
 
 namespace prism
 {
+    template <typename T>
+    using GreenPtr = RefCountPtr<const T>;
+
     class GreenNode : public IntrusiveRefCounted
     {
       protected:

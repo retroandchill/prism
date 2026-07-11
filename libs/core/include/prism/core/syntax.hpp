@@ -29,10 +29,12 @@
     X(i16)                                                                                                             \
     X(i32)                                                                                                             \
     X(i64)                                                                                                             \
+    X(i128)                                                                                                            \
     X(u8)                                                                                                              \
     X(u16)                                                                                                             \
     X(u32)                                                                                                             \
     X(u64)                                                                                                             \
+    X(u128)                                                                                                            \
     X(isize)                                                                                                           \
     X(usize)                                                                                                           \
     X(f16)                                                                                                             \
@@ -103,6 +105,8 @@
     X(bad, "<unrecognized>")                                                                                           \
     X(identifier, "identifier")                                                                                        \
     X(integer, "integer")                                                                                              \
+    X(float, "float")                                                                                                  \
+    X(character, "character")                                                                                          \
     X(string_literal, "string literal")
 
 #define PRISM_TRIVIA_ELEM(name, str) ((name, trivia, str, trivia))

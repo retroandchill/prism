@@ -41,6 +41,7 @@ set(PRISM_PUBLIC_MODULES
         src/public/util/optional.ixx
         src/public/util/hashing.ixx
         src/public/type_traits/comparison.ixx
+        src/public/util/numerics.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})
@@ -53,7 +54,8 @@ target_include_directories(prism_core PUBLIC include
 find_package(Boost CONFIG REQUIRED COMPONENTS preprocessor)
 target_link_libraries(prism_core
         PRIVATE xxHash::cpp
-                Boost::preprocessor)
+                Boost::preprocessor
+                Boost::cppm)
 
 target_sources(prism_core PUBLIC
         FILE_SET prism_core_private

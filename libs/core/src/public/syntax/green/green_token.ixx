@@ -41,23 +41,21 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const final;
 
-        [[nodiscard]] virtual RefCountPtr<GreenToken> with_leading_trivia(
-            RefCountPtr<const GreenTriviaList> leading_trivia) const;
+        [[nodiscard]] virtual GreenPtr<GreenToken> with_leading_trivia(GreenPtr<GreenTriviaList> leading_trivia) const;
 
-        [[nodiscard]] virtual RefCountPtr<GreenToken> with_trailing_trivia(
-            RefCountPtr<const GreenTriviaList> trailing_trivia) const;
+        [[nodiscard]] virtual GreenPtr<GreenToken> with_trailing_trivia(
+            GreenPtr<GreenTriviaList> trailing_trivia) const;
 
-        [[nodiscard]] virtual RefCountPtr<GreenToken> with_leading_and_trailing_trivia(
-            RefCountPtr<const GreenTriviaList> leading_trivia,
-            RefCountPtr<const GreenTriviaList> trailing_trivia) const;
+        [[nodiscard]] virtual GreenPtr<GreenToken> with_leading_and_trailing_trivia(
+            GreenPtr<GreenTriviaList> leading_trivia,
+            GreenPtr<GreenTriviaList> trailing_trivia) const;
 
       protected:
-        [[nodiscard]] virtual RefCountPtr<GreenToken> clone_with_trivia(
-            RefCountPtr<const GreenTriviaList> leading_trivia,
-            RefCountPtr<const GreenTriviaList> trailing_trivia) const;
+        [[nodiscard]] virtual GreenPtr<GreenToken> clone_with_trivia(GreenPtr<GreenTriviaList> leading_trivia,
+                                                                     GreenPtr<GreenTriviaList> trailing_trivia) const;
 
       private:
-        RefCountPtr<const GreenTriviaList> leading_trivia_;
-        RefCountPtr<const GreenTriviaList> trailing_trivia_;
+        GreenPtr<GreenTriviaList> leading_trivia_;
+        GreenPtr<GreenTriviaList> trailing_trivia_;
     };
 } // namespace prism

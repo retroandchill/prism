@@ -69,7 +69,7 @@ namespace prism
         return nullptr;
     }
 
-    RefCountPtr<GreenToken> GreenToken::with_leading_trivia(RefCountPtr<const GreenTriviaList> leading_trivia) const
+    GreenPtr<GreenToken> GreenToken::with_leading_trivia(GreenPtr<GreenTriviaList> leading_trivia) const
     {
         leading_trivia = normalize_trivia(std::move(leading_trivia));
 
@@ -79,7 +79,7 @@ namespace prism
         return clone_with_trivia(std::move(leading_trivia), trailing_trivia_);
     }
 
-    RefCountPtr<GreenToken> GreenToken::with_trailing_trivia(RefCountPtr<const GreenTriviaList> trailing_trivia) const
+    GreenPtr<GreenToken> GreenToken::with_trailing_trivia(GreenPtr<GreenTriviaList> trailing_trivia) const
     {
         trailing_trivia = normalize_trivia(std::move(trailing_trivia));
 
@@ -89,9 +89,8 @@ namespace prism
         return clone_with_trivia(leading_trivia_, std::move(trailing_trivia));
     }
 
-    RefCountPtr<GreenToken> GreenToken::with_leading_and_trailing_trivia(
-        RefCountPtr<const GreenTriviaList> leading_trivia,
-        RefCountPtr<const GreenTriviaList> trailing_trivia) const
+    GreenPtr<GreenToken> GreenToken::with_leading_and_trailing_trivia(GreenPtr<GreenTriviaList> leading_trivia,
+                                                                      GreenPtr<GreenTriviaList> trailing_trivia) const
     {
         leading_trivia = normalize_trivia(std::move(leading_trivia));
         trailing_trivia = normalize_trivia(std::move(trailing_trivia));
@@ -102,9 +101,12 @@ namespace prism
         return clone_with_trivia(std::move(leading_trivia), std::move(trailing_trivia));
     }
 
-    RefCountPtr<GreenToken> GreenToken::clone_with_trivia(RefCountPtr<const GreenTriviaList> leading_trivia,
-                                                          RefCountPtr<const GreenTriviaList> trailing_trivia) const
+    GreenPtr<GreenToken> GreenToken::clone_with_trivia(GreenPtr<GreenTriviaList> leading_trivia,
+                                                       GreenPtr<GreenTriviaList> trailing_trivia) const
     {
-        return make_ref_counted<GreenToken>(kind(), width(), std::move(leading_trivia), std::move(trailing_trivia));
+        return make_ref_counted<const GreenToken>(kind(),
+                                                  width(),
+                                                  std::move(leading_trivia),
+                                                  std::move(trailing_trivia));
     }
 } // namespace prism

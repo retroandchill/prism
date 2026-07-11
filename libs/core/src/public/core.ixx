@@ -21,7 +21,10 @@ export import :util.make_array;
 export import :util.noncopyable;
 export import :util.optional;
 export import :util.hashing;
+export import :util.numerics;
 
 export import :diagnostics.diagnostic_descriptor;
 
 export import :syntax.kind;
+export import :syntax.literals;
+export import :syntax.token;
