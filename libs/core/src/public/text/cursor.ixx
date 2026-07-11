@@ -58,6 +58,14 @@ namespace prism
             return {std::next(buffer_, position_), length_ - position_};
         }
 
+        [[nodiscard]] constexpr std::string_view since(const std::uint32_t start) const
+        {
+            auto position = at_end() ? length_ : position_;
+            if (start > position)
+                throw std::out_of_range{"start position is greater than current position"};
+            return {std::next(buffer_, start), position - start};
+        }
+
         constexpr void advance(const std::uint32_t characters = 1)
         {
             assert(characters != 0);

@@ -14,6 +14,7 @@ set(PRISM_SOURCES
         src/private/syntax/trivia.cpp
         src/private/syntax/lexer.cpp
         src/private/syntax/green/green_trivia.cpp
+        src/private/syntax/literals.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )

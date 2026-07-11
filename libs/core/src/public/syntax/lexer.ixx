@@ -40,6 +40,14 @@ namespace prism
         Optional<GreenPtr<GreenToken>> match_string_literal(GreenPtr<GreenTriviaList> leading_trivia);
         Optional<GreenPtr<GreenToken>> match_identifier_or_keyword(GreenPtr<GreenTriviaList> leading_trivia);
 
+        bool handle_hex_literal();
+        bool handle_binary_literal();
+        void consume_integer_suffix();
+        bool consume_float_suffix();
+
+        template <std::predicate<char> Predicate>
+        bool consume_digit_sequence(Predicate predicate);
+
         static Optional<std::pair<char32_t, std::uint32_t>> parse_escape_sequence(std::string_view view);
 
         TextCursor cursor_;

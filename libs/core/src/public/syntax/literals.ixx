@@ -4,6 +4,10 @@
  * @date 7/10/2026
  * @brief
  */
+module;
+
+#include "prism/core/exports.h"
+
 export module prism.core:syntax.literals;
 
 import std;
@@ -99,6 +103,8 @@ namespace prism
         BigInteger value;
         IntegerBase base = IntegerBase::decimal;
         IntegerSuffix suffix = IntegerSuffix::none;
+
+        PRISM_CORE_API static IntegerLiteralData parse(std::string_view text);
     };
 
     export enum class FloatSuffix : std::uint8_t
@@ -115,6 +121,8 @@ namespace prism
 
         BigDecimal value;
         FloatSuffix suffix = FloatSuffix::none;
+
+        PRISM_CORE_API static FloatLiteralData parse(std::string_view text);
     };
 
     export enum class CharacterEncoding : std::uint8_t

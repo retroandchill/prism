@@ -22,32 +22,12 @@ namespace prism
         using OpPair = std::pair<std::string_view, SyntaxKind>;
 
         template <std::size_t N>
-        constexpr std::array<OpPair, N> sort_operators_by_length(std::array<OpPair, N> operators)
+        consteval std::array<OpPair, N> sort_operators_by_length(std::array<OpPair, N> operators)
         {
             std::sort(operators.begin(),
                       operators.end(),
                       [](const auto &lhs, const auto &rhs) { return lhs.first.size() > rhs.first.size(); });
             return operators;
-        }
-
-        template <std::forward_iterator I, std::sentinel_for<I> S = I>
-            requires std::same_as<std::iter_value_t<I>, char32_t>
-        constexpr Optional<std::pair<char32_t, std::size_t>> parse_hex_sequence(I it,
-                                                                                S end,
-                                                                                std::size_t min,
-                                                                                std::size_t max)
-        {
-            std::uint32_t result = 0;
-            std::size_t i = 0;
-            for (; i < max && it != end && is_hex_digit(*it); ++i, ++it)
-            {
-                result = result * 16 + hex_digit_value(*it);
-            }
-
-            if (i >= min && i <= max)
-                return std::make_pair(static_cast<char32_t>(result), i);
-
-            return std::nullopt;
         }
     } // namespace
 
@@ -202,8 +182,68 @@ namespace prism
 
     Optional<GreenPtr<GreenToken>> Lexer::match_number(GreenPtr<GreenTriviaList> leading_trivia)
     {
+        auto start = cursor_.position();
+        auto remainder = cursor_.remaining();
+        bool is_float;
+        if (remainder.starts_with("0x") || remainder.starts_with("0X"))
+        {
+            is_float = false;
+            if (!handle_hex_literal())
+            {
+                // If we fail to parse just grab the leading 0 as the literal
+                cursor_.advance();
+            }
+        }
+        else if (remainder.starts_with("0b") || remainder.starts_with("0B"))
+        {
+            is_float = false;
+            if (!handle_binary_literal())
+            {
+                // If we fail to parse just grab the leading 0 as the literal
+                cursor_.advance();
+            }
+        }
+        else
+        {
+            const auto found_digits = consume_digit_sequence([](const char c) { return std::isdigit(c); });
+            if (found_digits && cursor_.at_end())
+            {
+                const auto literal_text = cursor_.since(start);
+                return make_green_value(IntegerLiteralData::parse(literal_text),
+                                        std::string{literal_text},
+                                        std::move(leading_trivia),
+                                        collect_trivia());
+            }
 
-        return std::nullopt;
+            is_float = !cursor_.at_end() && cursor_.current() != '.';
+            if (is_float)
+            {
+                cursor_.advance();
+                consume_digit_sequence([](const char c) { return std::isdigit(c); });
+            }
+            else if (!found_digits)
+                return std::nullopt;
+
+            is_float &= consume_float_suffix();
+            if (!is_float)
+            {
+                consume_integer_suffix();
+            }
+        }
+
+        const auto text = cursor_.since(start);
+        if (is_float)
+        {
+            return make_green_value(FloatLiteralData::parse(text),
+                                    std::string{text},
+                                    std::move(leading_trivia),
+                                    collect_trivia());
+        }
+
+        return make_green_value(IntegerLiteralData::parse(text),
+                                std::string{text},
+                                std::move(leading_trivia),
+                                collect_trivia());
     }
 
     Optional<GreenPtr<GreenToken>> Lexer::match_punctuation(GreenPtr<GreenTriviaList> leading_trivia)
@@ -302,7 +342,7 @@ namespace prism
         }
 
         auto ptr = make_green_value(CharacterLiteralData{character, encoding},
-                                    std::string{remaining.substr(0, cursor_.position() - start)},
+                                    std::string{cursor_.since(start)},
                                     std::move(leading_trivia),
                                     collect_trivia());
         ptr->set_diagnostics(std::move(diagnostics));
@@ -314,8 +354,7 @@ namespace prism
         if (cursor_.current() != '"')
             return std::nullopt;
 
-        auto start = cursor_.position();
-        auto remaining = cursor_.remaining();
+        const auto start = cursor_.position();
         std::string str;
         DiagnosticInfoList diagnostics;
         auto terminated = false;
@@ -370,7 +409,7 @@ namespace prism
             diagnostics.push_back(DiagnosticInfo::create(unterminated_string_literal, cursor_.position() - start));
         }
 
-        const auto slice = remaining.substr(0, cursor_.position() - start);
+        const auto slice = cursor_.since(start);
         auto literal = make_green_value(StringLiteralData{std::move(str)},
                                         std::string{slice},
                                         std::move(leading_trivia),
@@ -424,6 +463,84 @@ namespace prism
         }
 
         return make_green_value(IdentifierData{identifier, is_escaped}, std::move(leading_trivia), collect_trivia());
+    }
+    bool Lexer::handle_hex_literal()
+    {
+        if (!is_hex_digit(cursor_.peek(3)))
+            return false;
+
+        cursor_.advance(2);
+
+        consume_digit_sequence([](const char c) { return is_hex_digit(c); });
+        return true;
+    }
+
+    bool Lexer::handle_binary_literal()
+    {
+        if (!is_binary_digit(cursor_.peek(3)))
+            return false;
+
+        cursor_.advance(2);
+
+        consume_digit_sequence([](const char c) { return is_binary_digit(c); });
+        return true;
+    }
+
+    void Lexer::consume_integer_suffix()
+    {
+        using namespace std::literals;
+        if (cursor_.at_end() || !cursor_.any('u', 'i'))
+            return;
+
+        auto remaining = cursor_.remaining();
+        static constexpr std::array bit_sizes = {"8"sv, "16"sv, "32"sv, "64"sv, "128"sv, "z"sv};
+        if (const auto it =
+                std::ranges::find_if(bit_sizes, [&](const auto &suffix) { return remaining.starts_with(suffix); });
+            it != bit_sizes.end())
+            cursor_.advance(it->size() + 1);
+    }
+
+    bool Lexer::consume_float_suffix()
+    {
+        using namespace std::literals;
+        if (cursor_.at_end() || cursor_.remaining().starts_with('f'))
+            return false;
+
+        auto remaining = cursor_.remaining();
+        static constexpr std::array bit_sizes = {"16"sv, "32"sv, "64"sv};
+        if (const auto it =
+                std::ranges::find_if(bit_sizes, [&](const auto &suffix) { return remaining.starts_with(suffix); });
+            it != bit_sizes.end())
+            cursor_.advance(it->size() + 1);
+
+        return true;
+    }
+
+    template <std::predicate<char> Predicate>
+    bool Lexer::consume_digit_sequence(Predicate predicate)
+    {
+        if (cursor_.at_end() || !std::invoke(predicate, cursor_.current()))
+            return false;
+
+        cursor_.advance();
+        while (!cursor_.at_end())
+        {
+            auto current = cursor_.current();
+            if (current == '_' && std::invoke(predicate, cursor_.peek()))
+            {
+                cursor_.advance(2);
+            }
+            else if (std::invoke(predicate, current))
+            {
+                cursor_.advance();
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return true;
     }
 
     Optional<std::pair<char32_t, std::uint32_t>> Lexer::parse_escape_sequence(std::string_view view)
