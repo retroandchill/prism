@@ -6,6 +6,7 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 using Prism.Core.Parse;
 using Retro.SourceGeneratorUtilities.Utilities.Attributes;
 
@@ -35,6 +36,7 @@ public sealed class TokenKindGenerator : IIncrementalGenerator
             static (node, _) => (INamedTypeSymbol)node.TargetSymbol
         );
 
+        TextSpan span;
         context.RegisterSourceOutput(tokenKindEnums, Execute);
     }
 

@@ -11,7 +11,7 @@ module;
 
 #include <cstddef>
 
-export module prism.core:strings.name;
+export module prism.core:text.name;
 
 import std;
 import :util.optional;

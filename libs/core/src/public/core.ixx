@@ -11,7 +11,9 @@ export import :memory.arena_allocator;
 export import :memory.buffer_pool;
 export import :memory.ref_counted_ptr;
 
-export import :strings.name;
+export import :text.name;
+export import :text.text_span;
+export import :text.source_file;
 
 export import :type_traits.basic;
 export import :type_traits.comparison;

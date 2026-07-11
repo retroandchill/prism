@@ -5,7 +5,7 @@ set(PRISM_HEADERS include/prism/core/exports.h
 )
 
 set(PRISM_SOURCES
-        src/private/strings/name.cpp
+        src/private/text/name.cpp
         src/private/memory/buffer_pool.cpp
         src/private/syntax/green/green_node.cpp
         src/private/syntax/green/green_trivia_list.cpp
@@ -16,7 +16,7 @@ set(PRISM_SOURCES
 set(PRISM_PRIVATE_MODULES )
 
 set(PRISM_PUBLIC_MODULES
-        src/public/strings/name.ixx
+        src/public/text/name.ixx
         src/public/memory/alignment.ixx
         src/public/memory/arena_allocator.ixx
         src/public/memory/buffer_pool.ixx
@@ -42,6 +42,9 @@ set(PRISM_PUBLIC_MODULES
         src/public/util/hashing.ixx
         src/public/type_traits/comparison.ixx
         src/public/util/numerics.ixx
+        src/public/syntax/trivia.ixx
+        src/public/text/text_span.ixx
+        src/public/text/source_file.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

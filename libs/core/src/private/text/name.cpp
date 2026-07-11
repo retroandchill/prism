@@ -10,9 +10,9 @@ module;
 
 #include <cassert>
 
-module prism.core:strings.name.impl;
+module prism.core:text.name.impl;
 
-import :strings.name;
+import :text.name;
 import xxhash;
 import :memory.alignment;
 import :util.make_array;
