@@ -40,22 +40,26 @@ namespace prism
             if (!text.ends_with(str))
                 continue;
             suffix = type;
-            text = text.substr(0, text.size() - str.size());
+            text.remove_suffix(str.size());
             break;
         }
 
         IntegerBase base;
+        std::uint8_t base_value;
         if (text.starts_with("0x") || text.starts_with("0X"))
         {
             base = IntegerBase::hex;
+            base_value = 16;
         }
         else if (text.starts_with("0b") || text.starts_with("0B"))
         {
             base = IntegerBase::binary;
+            base_value = 2;
         }
         else
         {
             base = IntegerBase::decimal;
+            base_value = 10;
         }
 
         Optional<PooledString> scratch_buffer;
@@ -76,9 +80,39 @@ namespace prism
             text = *scratch_buffer;
         }
 
+        BigInteger value = 0;
+        for (const auto c : text)
+        {
+            value *= base_value;
+            value += hex_digit_value(c);
+        }
+
         return IntegerLiteralData{
-            .value = BigInteger{text},
+            .value = std::move(value),
             .base = base,
+            .suffix = suffix,
+        };
+    }
+
+    FloatLiteralData FloatLiteralData::parse(std::string_view text)
+    {
+        auto suffix = FloatSuffix::none;
+        using namespace std::literals;
+        static constexpr std::array float_suffixes = {std::make_pair("f16"sv, FloatSuffix::f16),
+                                                      std::make_pair("f32"sv, FloatSuffix::f32),
+                                                      std::make_pair("f64"sv, FloatSuffix::f64)};
+        for (auto [str, type] : float_suffixes)
+        {
+            if (!text.ends_with(str))
+                continue;
+
+            suffix = type;
+            text.remove_suffix(str.size());
+            break;
+        }
+
+        return FloatLiteralData{
+            .value = BigDecimal{text},
             .suffix = suffix,
         };
     }

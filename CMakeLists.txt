@@ -29,6 +29,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_MODULE_STD ON)
 if (MSVC)
     add_compile_definitions(_UTF8)
+    add_compile_options(/Zc:preprocessor)
 endif()
 
 set(TOOLS_DIR ${CMAKE_BINARY_DIR}/tools)

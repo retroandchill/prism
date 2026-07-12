@@ -69,7 +69,7 @@ namespace prism
 
     Optional<GreenPtr<GreenTrivia>> Lexer::match_whitespace()
     {
-        if (cursor_.at_end() || cursor_.any('\n', '\r') || !std::isspace(cursor_.peek()))
+        if (cursor_.at_end() || cursor_.any('\n', '\r') || !std::isspace(cursor_.current()))
             return std::nullopt;
 
         std::string str;
@@ -77,7 +77,7 @@ namespace prism
         {
             str.push_back(cursor_.current());
             cursor_.advance();
-        } while (!cursor_.at_end() && !cursor_.any('\n', '\r') && std::isspace(cursor_.peek()));
+        } while (!cursor_.at_end() && !cursor_.any('\n', '\r') && std::isspace(cursor_.current()));
 
         if (str.empty())
             return std::nullopt;
@@ -163,6 +163,8 @@ namespace prism
                 str.append("*/");
                 return make_ref_counted<const GreenTrivia>(SyntaxKind::block_comment_trivia, std::move(str));
             }
+
+            cursor_.advance();
         }
 
         auto ptr = make_ref_counted<GreenTrivia>(SyntaxKind::block_comment_trivia, std::move(str));
@@ -177,6 +179,7 @@ namespace prism
 
     GreenPtr<GreenToken> Lexer::make_bad_token(GreenPtr<GreenTriviaList> leading_trivia)
     {
+        cursor_.advance();
         return GreenToken::bad_token->with_leading_and_trailing_trivia(std::move(leading_trivia), collect_trivia());
     }
 
@@ -215,7 +218,7 @@ namespace prism
                                         collect_trivia());
             }
 
-            is_float = !cursor_.at_end() && cursor_.current() != '.';
+            is_float = !cursor_.at_end() && cursor_.current() == '.';
             if (is_float)
             {
                 cursor_.advance();

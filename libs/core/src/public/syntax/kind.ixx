@@ -81,3 +81,9 @@ namespace prism
         return underlying >= node_start;
     }
 } // namespace prism
+
+export constexpr std::ostream &operator<<(std::ostream &os, const prism::SyntaxKind kind)
+{
+    os << to_string(kind);
+    return os;
+}

@@ -3,6 +3,9 @@ module;
 #include "boost_deps.hpp"
 
 export module boost;
+
+export import std;
+
 namespace boost
 {
     export using boost::addressof;
@@ -333,7 +336,16 @@ namespace boost
 #if BOOST_MP_CPP_DOUBLE_FP_HAS_FLOAT128
         export using multiprecision::cpp_double_float128;
 #endif
-    } // namespace multiprecision
+
+        namespace backends
+        {
+            export using backends::eval_add;
+            export using backends::eval_subtract;
+            export using backends::eval_multiply;
+            export using backends::eval_divide;
+            export using backends::eval_pow;
+        } // namespace backends
+    }     // namespace multiprecision
     namespace math
     {
         export using math::fpclassify;
@@ -342,4 +354,5 @@ namespace boost
         export using math::isinf;
         export using math::isnormal;
     } // namespace math
+
 } // namespace boost

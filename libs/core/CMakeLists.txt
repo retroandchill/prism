@@ -15,6 +15,7 @@ set(PRISM_SOURCES
         src/private/syntax/lexer.cpp
         src/private/syntax/green/green_trivia.cpp
         src/private/syntax/literals.cpp
+        src/private/syntax/token_stream.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -53,6 +54,7 @@ set(PRISM_PUBLIC_MODULES
         src/public/syntax/lexer.ixx
         src/public/text/cursor.ixx
         src/public/syntax/diagnostics.ixx
+        src/public/syntax/token_stream.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})
