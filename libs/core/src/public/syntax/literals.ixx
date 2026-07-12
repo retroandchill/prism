@@ -12,7 +12,7 @@ export module prism.core:syntax.literals;
 
 import std;
 import :syntax.kind;
-import :syntax.green.green_value_token;
+import :syntax.green.token;
 import :util.numerics;
 import :text.name;
 

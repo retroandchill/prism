@@ -1,5 +1,5 @@
 /**
- * @file green_node.ixx
+ * @file node.ixx
  * @author Francesco Corso
  * @date 7/9/2026
  * @brief
@@ -8,7 +8,7 @@ module;
 
 #include <cassert>
 
-export module prism.core:syntax.green.green_node;
+export module prism.core:syntax.green.node;
 
 import :syntax.kind;
 import :syntax.flags;
@@ -24,7 +24,7 @@ namespace prism
     class GreenNode : public IntrusiveRefCounted
     {
       protected:
-        constexpr GreenNode(const SyntaxKind kind, const std::uint32_t full_width)
+        explicit constexpr GreenNode(const SyntaxKind kind, const std::uint32_t full_width = 0)
             : kind_{kind}, full_width_{full_width}
         {
         }
@@ -61,7 +61,7 @@ namespace prism
 
         [[nodiscard]] constexpr bool is_missing() const noexcept
         {
-            return has_flag(flags_, SyntaxFlags::missing);
+            return !has_flag(flags_, SyntaxFlags::not_missing);
         }
 
         [[nodiscard]] constexpr bool contains_diagnostics() const noexcept
@@ -145,6 +145,9 @@ namespace prism
                 flags_ |= SyntaxFlags::contains_diagnostics;
             }
         }
+
+      protected:
+        void adjust_flags_and_width(const GreenNode &node);
 
       private:
         friend class Lexer;

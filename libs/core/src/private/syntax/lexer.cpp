@@ -31,7 +31,7 @@ namespace prism
         }
     } // namespace
 
-    SyntaxToken Lexer::next()
+    GreenPtr<GreenToken> Lexer::next()
     {
         const auto start = cursor_.position();
         auto leading_trivia = collect_trivia(false);
@@ -39,13 +39,12 @@ namespace prism
         if (cursor_.at_end())
             return make_eof(start, std::move(leading_trivia));
 
-        auto green_token = *match_number(leading_trivia)
-                                .or_else([&] { return match_punctuation(leading_trivia); })
-                                .or_else([&] { return match_character_literal(leading_trivia); })
-                                .or_else([&] { return match_string_literal(leading_trivia); })
-                                .or_else([&] { return match_identifier_or_keyword(leading_trivia); })
-                                .or_else([&] { return Optional{make_bad_token(leading_trivia)}; });
-        return SyntaxToken{std::move(green_token), start};
+        return *match_number(leading_trivia)
+                    .or_else([&] { return match_punctuation(leading_trivia); })
+                    .or_else([&] { return match_character_literal(leading_trivia); })
+                    .or_else([&] { return match_string_literal(leading_trivia); })
+                    .or_else([&] { return match_identifier_or_keyword(leading_trivia); })
+                    .or_else([&] { return Optional{make_bad_token(leading_trivia)}; });
     }
 
     GreenPtr<GreenTriviaList> Lexer::collect_trivia(bool stop_after_newline)
@@ -172,9 +171,9 @@ namespace prism
         return std::move(ptr);
     }
 
-    SyntaxToken Lexer::make_eof(const std::uint32_t start, GreenPtr<GreenTriviaList> leading_trivia)
+    GreenPtr<GreenToken> Lexer::make_eof(const std::uint32_t start, GreenPtr<GreenTriviaList> leading_trivia)
     {
-        return SyntaxToken{GreenToken::eof->with_leading_trivia(std::move(leading_trivia)), start};
+        return GreenToken::eof->with_leading_trivia(std::move(leading_trivia));
     }
 
     GreenPtr<GreenToken> Lexer::make_bad_token(GreenPtr<GreenTriviaList> leading_trivia)

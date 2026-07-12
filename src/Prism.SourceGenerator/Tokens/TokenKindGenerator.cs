@@ -65,6 +65,7 @@ public sealed class TokenKindGenerator : IIncrementalGenerator
                 );
             }
 
+            SyntaxTree tree;
             SyntaxTriviaList triviaList = default;
             if (isKeyword)
             {

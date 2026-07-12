@@ -109,17 +109,38 @@
     X(character, "character")                                                                                          \
     X(string_literal, "string literal")
 
+#define PRISM_SYNTAX_TYPE_NODES(X) X(identifier_name, "identifier name type")
+
+#define PRISM_SYNTAX_STATEMENT_NODES(X)
+
+#define PRISM_SYNTAX_DECLARATION_NODES(X) X(variable, "variable declaration")
+
+#define PRISM_SYNTAX_EXPRESSION_NODES(X)
+
+#define PRISM_SYNTAX_OTHER_NODES(X)                                                                                    \
+    X(type_hint, "type hint")                                                                                          \
+    X(initializer, "initializer")
+
 #define PRISM_TRIVIA_ELEM(name, str) ((name, trivia, str, trivia))
-#define PRISM_KEYWORD_ELEM(name) ((name, keyword, BOOST_PP_STRINGIZE(name), keyword))
-#define PRISM_PUNCTUATION_ELEM(name, str) ((name, token, str, punctuation))
+#define PRISM_KEYWORD_ELEM(name) ((name, keyword, BOOST_PP_STRINGIZE(name), token))
+#define PRISM_PUNCTUATION_ELEM(name, str) ((name, token, str, token))
 #define PRISM_TOKEN_ELEM(name, str) ((name, token, str, token))
-#define PRISM_SYNTAX_ELEM(name, str) ((name, token, str, token))
+#define PRISM_TYPE_ELEM(name, str) ((name, type_node, str, node))
+#define PRISM_STATEMENT_ELEM(name, str) ((name, statement_node, str, node))
+#define PRISM_DECLARATION_ELEM(name, str) ((name, declaration_node, str, node))
+#define PRISM_EXPRESSION_ELEM(name, str) ((name, expression_node, str, node))
+#define PRISM_OTHER_SYNTAX_ELEM(name, str) ((name, node, str, node))
 
 #define PRISM_SYNTAX_KIND_ENTRIES                                                                                      \
     PRISM_SYNTAX_TRIVIA(PRISM_TRIVIA_ELEM)                                                                             \
     PRISM_SYNTAX_KEYWORDS(PRISM_KEYWORD_ELEM)                                                                          \
     PRISM_SYNTAX_PUNCTUATIONS(PRISM_PUNCTUATION_ELEM)                                                                  \
-    PRISM_SYNTAX_OTHER_TOKENS(PRISM_TOKEN_ELEM)
+    PRISM_SYNTAX_OTHER_TOKENS(PRISM_TOKEN_ELEM)                                                                        \
+    PRISM_SYNTAX_TYPE_NODES(PRISM_TYPE_ELEM)                                                                           \
+    PRISM_SYNTAX_STATEMENT_NODES(PRISM_STATEMENT_ELEM)                                                                 \
+    PRISM_SYNTAX_DECLARATION_NODES(PRISM_DECLARATION_ELEM)                                                             \
+    PRISM_SYNTAX_EXPRESSION_NODES(PRISM_EXPRESSION_ELEM)                                                               \
+    PRISM_SYNTAX_OTHER_NODES(PRISM_OTHER_SYNTAX_ELEM)
 
 #define PRISM_KIND_NAME(elem) BOOST_PP_TUPLE_ELEM(4, 0, elem)
 #define PRISM_KIND_SUFFIX(elem) BOOST_PP_TUPLE_ELEM(4, 1, elem)

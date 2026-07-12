@@ -11,6 +11,7 @@ import :text.text_span;
 
 namespace prism
 {
+    class SyntaxNode;
     class SyntaxTriviaList;
 
     template <LiteralData T>
@@ -18,8 +19,7 @@ namespace prism
 
     export class SyntaxToken
     {
-        SyntaxToken(RefCountPtr<const GreenToken> token, std::uint32_t position)
-            : green_{std::move(token)}, position_{position}
+        SyntaxToken(const GreenToken &token, const std::uint32_t position) : green_{&token}, position_{position}
         {
         }
 
@@ -93,7 +93,8 @@ namespace prism
         friend class SyntaxTriviaList;
         friend class Lexer;
 
-        RefCountPtr<const GreenToken> green_;
+        SyntaxNode *parent_ = nullptr;
+        const GreenToken *green_;
         std::uint32_t position_;
     };
 } // namespace prism

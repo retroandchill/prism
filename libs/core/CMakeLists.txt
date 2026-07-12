@@ -7,15 +7,18 @@ set(PRISM_HEADERS include/prism/core/exports.h
 set(PRISM_SOURCES
         src/private/text/name.cpp
         src/private/memory/buffer_pool.cpp
-        src/private/syntax/green/green_node.cpp
-        src/private/syntax/green/green_trivia_list.cpp
-        src/private/syntax/green/green_token.cpp
+        src/private/syntax/green/node.cpp
+        src/private/syntax/green/token.cpp
         src/private/diagnostics/diagnostic_info.cpp
         src/private/syntax/trivia.cpp
         src/private/syntax/lexer.cpp
-        src/private/syntax/green/green_trivia.cpp
+        src/private/syntax/green/trivia.cpp
         src/private/syntax/literals.cpp
         src/private/syntax/token_stream.cpp
+        src/private/syntax/green/type.cpp
+        src/private/syntax/green/type_hint.cpp
+        src/private/syntax/green/declaration.cpp
+        src/private/syntax/green/initializer.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -26,7 +29,7 @@ set(PRISM_PUBLIC_MODULES
         src/public/memory/arena_allocator.ixx
         src/public/memory/buffer_pool.ixx
         src/public/syntax/kind.ixx
-        src/public/syntax/green/green_node.ixx
+        src/public/syntax/green/node.ixx
         src/public/syntax/flags.ixx
         src/public/util/enum_class_flags.ixx
         src/public/util/noncopyable.ixx
@@ -38,11 +41,9 @@ set(PRISM_PUBLIC_MODULES
         src/public/diagnostics/diagnostic_severity.ixx
         src/public/diagnostics/diagnostic_info.ixx
         src/public/syntax/token.ixx
-        src/public/syntax/green/green_token.ixx
-        src/public/syntax/green/green_trivia.ixx
-        src/public/syntax/green/green_trivia_list.ixx
+        src/public/syntax/green/token.ixx
+        src/public/syntax/green/trivia.ixx
         src/public/syntax/literals.ixx
-        src/public/syntax/green/green_value_token.ixx
         src/public/util/optional.ixx
         src/public/util/hashing.ixx
         src/public/type_traits/comparison.ixx
@@ -55,6 +56,15 @@ set(PRISM_PUBLIC_MODULES
         src/public/text/cursor.ixx
         src/public/syntax/diagnostics.ixx
         src/public/syntax/token_stream.ixx
+        src/public/syntax/node.ixx
+        src/public/syntax/tree.ixx
+        src/public/syntax/parsed_tree.ixx
+        src/public/syntax/green/type.ixx
+        src/public/syntax/green/declaration.ixx
+        src/public/syntax/green/list.ixx
+        src/public/syntax/green/type_hint.ixx
+        src/public/syntax/green/expression.ixx
+        src/public/syntax/green/initializer.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

@@ -17,6 +17,6 @@ namespace prism
             throw std::out_of_range{"Invalid index"};
 
         auto &element = green_->get_child_unchecked<GreenTrivia>(index);
-        return SyntaxTrivia{parent_, element.shared_from_this(), green_->get_child_offset(index)};
+        return SyntaxTrivia{parent_, element, green_->get_child_offset(index)};
     }
 } // namespace prism

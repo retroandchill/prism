@@ -19,8 +19,8 @@ namespace prism
 
     export class SyntaxTrivia final
     {
-        constexpr SyntaxTrivia(SyntaxToken parent, GreenPtr<GreenTrivia> trivia, const std::uint32_t position)
-            : parent_{std::move(parent)}, green_{std::move(trivia)}, position_{position}
+        constexpr SyntaxTrivia(SyntaxToken parent, const GreenTrivia &trivia, const std::uint32_t position)
+            : parent_{std::move(parent)}, green_{&trivia}, position_{position}
         {
         }
 
@@ -49,21 +49,21 @@ namespace prism
         friend class SyntaxTriviaList;
 
         SyntaxToken parent_;
-        GreenPtr<GreenTrivia> green_;
+        const GreenTrivia *green_;
         std::uint32_t position_;
     };
 
     class SyntaxTriviaList PRISM_CORE_API final : public SyntaxListView<SyntaxTrivia>
     {
-        constexpr explicit SyntaxTriviaList(SyntaxToken parent, GreenPtr<GreenTriviaList> trivia_list)
-            : parent_{std::move(parent)}, green_{std::move(trivia_list)}, position_{parent.position_}
+        constexpr explicit SyntaxTriviaList(SyntaxToken parent, const GreenTriviaList *trivia_list)
+            : parent_{std::move(parent)}, green_{trivia_list}, position_{parent.position_}
         {
         }
 
         constexpr explicit SyntaxTriviaList(SyntaxToken parent,
-                                            GreenPtr<GreenTriviaList> trivia_list,
+                                            const GreenTriviaList *trivia_list,
                                             std::uint32_t position)
-            : parent_{std::move(parent)}, green_{std::move(trivia_list)}, position_{position}
+            : parent_{std::move(parent)}, green_{trivia_list}, position_{position}
         {
         }
 
@@ -79,23 +79,19 @@ namespace prism
         friend class SyntaxToken;
 
         SyntaxToken parent_;
-        GreenPtr<GreenTriviaList> green_;
+        const GreenTriviaList *green_;
         std::uint32_t position_;
     };
 
     constexpr SyntaxTriviaList SyntaxToken::leading_trivia() const noexcept
     {
-        auto trivia = green_->leading_trivia()
-                          .transform([](const GreenTriviaList &list) { return list.shared_from_this(); })
-                          .value_or_default();
+        auto *trivia = green_->leading_trivia().value_ptr();
         return SyntaxTriviaList{*this, std::move(trivia)};
     }
 
     constexpr SyntaxTriviaList SyntaxToken::trailing_trivia() const noexcept
     {
-        auto trivia = green_->trailing_trivia()
-                          .transform([](const GreenTriviaList &list) { return list.shared_from_this(); })
-                          .value_or_default();
-        return SyntaxTriviaList{*this, std::move(trivia)};
+        auto *trivia = green_->trailing_trivia().value_ptr();
+        return SyntaxTriviaList{*this, trivia};
     }
 } // namespace prism

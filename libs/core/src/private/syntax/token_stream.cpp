@@ -20,22 +20,22 @@ namespace prism
         return peek().kind() == SyntaxKind::end_of_file_token;
     }
 
-    const SyntaxToken &TokenStream::peek(const std::size_t count)
+    const GreenToken &TokenStream::peek(const std::size_t count)
     {
         if (lookahead_.empty())
             buffer_tokens();
 
-        return !lookahead_.empty() ? lookahead_[count - 1] : previous();
+        return !lookahead_.empty() ? *lookahead_[count - 1] : previous();
     }
 
     void TokenStream::advance()
     {
-        auto token = peek();
-        tokens_.push_back(std::move(token));
+        auto &token = peek();
+        tokens_.push_back(token.shared_from_this());
         lookahead_.pop_front();
     }
 
-    void TokenStream::replace_next(SyntaxToken token)
+    void TokenStream::replace_next(GreenPtr<GreenToken> token)
     {
         [[maybe_unused]] const auto &next = peek();
         assert(next.kind() != SyntaxKind::end_of_file_token);
@@ -48,10 +48,10 @@ namespace prism
     {
         static constexpr std::size_t max_tokens = 1024;
 
-        for (auto i : std::views::iota(0uz, max_tokens))
+        for ([[maybe_unused]] auto i : std::views::iota(0uz, max_tokens))
         {
             if (const auto &token = lookahead_.emplace_back(lexer_.next());
-                token.kind() == SyntaxKind::end_of_file_token)
+                token->kind() == SyntaxKind::end_of_file_token)
                 break;
         }
     }

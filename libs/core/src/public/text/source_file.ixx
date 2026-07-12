@@ -30,10 +30,10 @@ namespace prism
         }
     };
 
-    export class SourceFile final
+    export class SourceText final
     {
       public:
-        constexpr explicit SourceFile(std::string text) : text_{std::move(text)}
+        constexpr explicit SourceText(std::string text) : text_{std::move(text)}
         {
             assert(text.size() <= std::numeric_limits<std::uint32_t>::max());
 

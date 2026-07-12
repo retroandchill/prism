@@ -4,10 +4,13 @@
  * @date 6/30/2026
  * @brief
  */
+module;
 #include <catch2/catch_test_macros.hpp>
 
+module prism.core:tests.name;
+
 import std;
-import prism.core;
+import :text.name;
 
 using namespace prism;
 

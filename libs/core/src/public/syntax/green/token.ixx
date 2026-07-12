@@ -1,16 +1,69 @@
 /**
- * @file green_value_token.ixx
+ * @file token.ixx
  * @author Francesco Corso
- * @date 7/10/2026
+ * @date 7/9/2026
  * @brief
  */
-export module prism.core:syntax.green.green_value_token;
+export module prism.core:syntax.green.token;
 
-import std;
-import :syntax.green.green_token;
+import :syntax.green.node;
+import :syntax.green.trivia;
 
 namespace prism
 {
+    class GreenToken : public GreenNode
+    {
+      public:
+        static const GreenPtr<GreenToken> eof;
+        static const GreenPtr<GreenToken> bad_token;
+
+        explicit GreenToken(SyntaxKind kind,
+                            GreenPtr<GreenTriviaList> leading_trivia = nullptr,
+                            GreenPtr<GreenTriviaList> trailing_trivia = nullptr);
+
+        GreenToken(SyntaxKind kind,
+                   std::uint32_t width,
+                   GreenPtr<GreenTriviaList> leading_trivia = nullptr,
+                   GreenPtr<GreenTriviaList> trailing_trivia = nullptr);
+
+        static GreenPtr<GreenToken> from(SyntaxKind kind);
+
+        [[nodiscard]] virtual std::string_view text() const;
+
+        [[nodiscard]] constexpr Optional<const GreenTriviaList &> leading_trivia() const noexcept
+        {
+            return leading_trivia_.get();
+        }
+
+        [[nodiscard]] std::uint32_t leading_trivia_width() const override;
+
+        [[nodiscard]] constexpr Optional<const GreenTriviaList &> trailing_trivia() const noexcept
+        {
+            return trailing_trivia_.get();
+        }
+
+        [[nodiscard]] std::uint32_t trailing_trivia_width() const override;
+
+        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const final;
+
+        [[nodiscard]] virtual GreenPtr<GreenToken> with_leading_trivia(GreenPtr<GreenTriviaList> leading_trivia) const;
+
+        [[nodiscard]] virtual GreenPtr<GreenToken> with_trailing_trivia(
+            GreenPtr<GreenTriviaList> trailing_trivia) const;
+
+        [[nodiscard]] virtual GreenPtr<GreenToken> with_leading_and_trailing_trivia(
+            GreenPtr<GreenTriviaList> leading_trivia,
+            GreenPtr<GreenTriviaList> trailing_trivia) const;
+
+      protected:
+        [[nodiscard]] virtual GreenPtr<GreenToken> clone_with_trivia(GreenPtr<GreenTriviaList> leading_trivia,
+                                                                     GreenPtr<GreenTriviaList> trailing_trivia) const;
+
+      private:
+        GreenPtr<GreenTriviaList> leading_trivia_;
+        GreenPtr<GreenTriviaList> trailing_trivia_;
+    };
+
     template <typename T>
     concept CanGetStringView = requires(const T &t) {
         {
@@ -204,4 +257,6 @@ namespace prism
                                                                   std::move(leading_trivia),
                                                                   std::move(trailing_trivia));
     }
+
+    using GreenTokenList = GreenSyntaxList<GreenToken>;
 } // namespace prism

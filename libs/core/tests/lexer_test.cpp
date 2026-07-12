@@ -4,13 +4,16 @@
  * @date 7/12/2026
  * @brief
  */
+module;
 #include "prism/core/syntax.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_all.hpp>
+module prism.core:tests.lexer;
+
+import :syntax.lexer;
 
 import std;
-import prism.core;
 
 using namespace prism;
 
@@ -33,8 +36,8 @@ namespace
         while (true)
         {
             auto token = lexer.next();
-            tokens.push_back(token.kind());
-            if (token.kind() == SyntaxKind::end_of_file_token)
+            tokens.push_back(token->kind());
+            if (token->kind() == SyntaxKind::end_of_file_token)
                 break;
         }
 

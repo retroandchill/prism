@@ -18,7 +18,11 @@ namespace prism
     constexpr std::uint16_t keyword_start = 100;
     constexpr std::uint16_t punctuation_start = 200;
     constexpr std::uint16_t token_start = 300;
-    constexpr std::uint16_t node_start = 400;
+    constexpr std::uint16_t type_syntax_start = 400;
+    constexpr std::uint16_t statement_syntax_start = 500;
+    constexpr std::uint16_t declaration_syntax_start = 600;
+    constexpr std::uint16_t expression_syntax_start = 700;
+    constexpr std::uint16_t other_syntax_start = 800;
 
 #define GEN_ENUM(r, start, i, elem)                                                                                    \
     BOOST_PP_IF(BOOST_PP_EQUAL(i, 0), PRISM_KIND_ENUM_NAME(elem) = start, PRISM_KIND_ENUM_NAME(elem)),
@@ -27,7 +31,12 @@ namespace prism
     BOOST_PP_SEQ_FOR_EACH_I(MACRO, trivia_start, PRISM_SYNTAX_TRIVIA(PRISM_TRIVIA_ELEM))                               \
     BOOST_PP_SEQ_FOR_EACH_I(MACRO, keyword_start, PRISM_SYNTAX_KEYWORDS(PRISM_KEYWORD_ELEM))                           \
     BOOST_PP_SEQ_FOR_EACH_I(MACRO, punctuation_start, PRISM_SYNTAX_PUNCTUATIONS(PRISM_PUNCTUATION_ELEM))               \
-    BOOST_PP_SEQ_FOR_EACH_I(MACRO, token_start, PRISM_SYNTAX_OTHER_TOKENS(PRISM_TOKEN_ELEM))
+    BOOST_PP_SEQ_FOR_EACH_I(MACRO, token_start, PRISM_SYNTAX_OTHER_TOKENS(PRISM_TOKEN_ELEM))                           \
+    BOOST_PP_SEQ_FOR_EACH_I(MACRO, type_syntax_start, PRISM_SYNTAX_TYPE_NODES(PRISM_TYPE_ELEM))                        \
+    BOOST_PP_SEQ_FOR_EACH_I(MACRO, statement_syntax_start, PRISM_SYNTAX_STATEMENT_NODES(PRISM_STATEMENT_ELEM))         \
+    BOOST_PP_SEQ_FOR_EACH_I(MACRO, declaration_syntax_start, PRISM_SYNTAX_DECLARATION_NODES(PRISM_DECLARATION_ELEM))   \
+    BOOST_PP_SEQ_FOR_EACH_I(MACRO, expression_syntax_start, PRISM_SYNTAX_EXPRESSION_NODES(PRISM_EXPRESSION_ELEM))      \
+    BOOST_PP_SEQ_FOR_EACH_I(MACRO, other_syntax_start, PRISM_SYNTAX_OTHER_NODES(PRISM_OTHER_SYNTAX_ELEM))
 
     export enum class SyntaxKind : std::uint16_t
     {
@@ -72,13 +81,13 @@ namespace prism
     export constexpr bool is_token(const SyntaxKind kind) noexcept
     {
         const auto underlying = std::to_underlying(kind);
-        return underlying >= keyword_start && underlying < node_start;
+        return underlying >= keyword_start && underlying < type_syntax_start;
     }
 
     export constexpr bool is_node(const SyntaxKind kind) noexcept
     {
         const auto underlying = std::to_underlying(kind);
-        return underlying >= node_start;
+        return underlying >= type_syntax_start;
     }
 } // namespace prism
 

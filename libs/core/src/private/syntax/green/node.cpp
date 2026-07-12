@@ -4,9 +4,9 @@
  * @date 7/9/2026
  * @brief
  */
-module prism.core:syntax.green.green_node.impl;
+module prism.core:syntax.green.node.impl;
 
-import :syntax.green.green_node;
+import :syntax.green.node;
 
 namespace prism
 {
@@ -96,5 +96,11 @@ namespace prism
         {
             flags_ |= SyntaxFlags::contains_diagnostics;
         }
+    }
+
+    void GreenNode::adjust_flags_and_width(const GreenNode &node)
+    {
+        set_flags(node.flags() & SyntaxFlags::inherit_mask);
+        full_width_ += node.full_width();
     }
 } // namespace prism

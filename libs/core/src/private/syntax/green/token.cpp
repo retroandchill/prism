@@ -10,9 +10,9 @@ module;
 
 #include <cassert>
 
-module prism.core:syntax.green.green_token.impl;
+module prism.core:syntax.green.token.impl;
 
-import :syntax.green.green_token;
+import :syntax.green.token;
 
 namespace prism
 {

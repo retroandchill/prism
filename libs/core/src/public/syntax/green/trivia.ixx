@@ -1,5 +1,5 @@
 /**
- * @file green_trivia.ixx
+ * @file trivia.ixx
  * @author Francesco Corso
  * @date 7/9/2026
  * @brief
@@ -8,9 +8,10 @@ module;
 
 #include <cassert>
 
-export module prism.core:syntax.green.green_trivia;
+export module prism.core:syntax.green.trivia;
 
-import :syntax.green.green_node;
+import :syntax.green.node;
+import :syntax.green.list;
 
 namespace prism
 {
@@ -57,4 +58,8 @@ namespace prism
       private:
         std::string text_;
     };
+
+    using GreenTriviaList = GreenSyntaxList<GreenTrivia>;
+
+    GreenPtr<GreenTriviaList> normalize_trivia(GreenPtr<GreenTriviaList> trivia);
 } // namespace prism
