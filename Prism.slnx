@@ -1,12 +1,4 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/Prism.Compiler/Prism.Compiler.csproj" />
-    <Project Path="src/Prism.Core/Prism.Core.csproj" />
-    <Project Path="src/Prism.SourceGenerator/Prism.SourceGenerator.csproj" />
-  </Folder>
-  <Folder Name="/test/">
-    <Project Path="test/Prism.Core.Tests/Prism.Core.Tests.csproj" />
-  </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/Prism.SyntaxGenerator/Prism.SyntaxGenerator.csproj" />
   </Folder>
