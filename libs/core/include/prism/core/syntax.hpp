@@ -104,8 +104,7 @@
     X(end_of_file, "EOF")                                                                                              \
     X(bad, "<unrecognized>")                                                                                           \
     X(identifier, "identifier")                                                                                        \
-    X(integer, "integer")                                                                                              \
-    X(float, "float")                                                                                                  \
+    X(number, "integer")                                                                                               \
     X(character, "character")                                                                                          \
     X(string_literal, "string literal")
 
@@ -115,7 +114,19 @@
 
 #define PRISM_SYNTAX_DECLARATION_NODES(X) X(variable, "variable declaration")
 
-#define PRISM_SYNTAX_EXPRESSION_NODES(X)
+#define PRISM_SYNTAX_EXPRESSION_NODES(X)                                                                               \
+    X(numeric_literal, "numeric literal")                                                                              \
+    X(string_literal, "string literal")                                                                                \
+    X(character_literal, "character literal")                                                                          \
+    X(true_literal, "true literal")                                                                                    \
+    X(false_literal, "false literal")                                                                                  \
+    X(identifier, "identifier expression")                                                                             \
+    X(parenthesized, "parenthesized expression")                                                                       \
+    X(binary, "binary expression")                                                                                     \
+    X(prefix, "prefix expression")                                                                                     \
+    X(postfix, "postfix expression")                                                                                   \
+    X(ternary, "ternary expression")                                                                                   \
+    X(invocation, "invocation expression")
 
 #define PRISM_SYNTAX_OTHER_NODES(X)                                                                                    \
     X(type_hint, "type hint")                                                                                          \
@@ -125,11 +136,11 @@
 #define PRISM_KEYWORD_ELEM(name) ((name, keyword, BOOST_PP_STRINGIZE(name), token))
 #define PRISM_PUNCTUATION_ELEM(name, str) ((name, token, str, token))
 #define PRISM_TOKEN_ELEM(name, str) ((name, token, str, token))
-#define PRISM_TYPE_ELEM(name, str) ((name, type_node, str, node))
-#define PRISM_STATEMENT_ELEM(name, str) ((name, statement_node, str, node))
-#define PRISM_DECLARATION_ELEM(name, str) ((name, declaration_node, str, node))
-#define PRISM_EXPRESSION_ELEM(name, str) ((name, expression_node, str, node))
-#define PRISM_OTHER_SYNTAX_ELEM(name, str) ((name, node, str, node))
+#define PRISM_TYPE_ELEM(name, str) ((name, type, str, node))
+#define PRISM_STATEMENT_ELEM(name, str) ((name, statement, str, node))
+#define PRISM_DECLARATION_ELEM(name, str) ((name, declaration, str, node))
+#define PRISM_EXPRESSION_ELEM(name, str) ((name, expression, str, node))
+#define PRISM_OTHER_SYNTAX_ELEM(name, str) ((name, syntax, str, node))
 
 #define PRISM_SYNTAX_KIND_ENTRIES                                                                                      \
     PRISM_SYNTAX_TRIVIA(PRISM_TRIVIA_ELEM)                                                                             \

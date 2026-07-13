@@ -8,6 +8,8 @@ module;
 
 #include "prism/core/syntax.hpp"
 
+#include <boost/multiprecision/cpp_dec_float.hpp>
+
 module prism.core:syntax.lexer.impl;
 
 import :syntax.lexer;
@@ -186,66 +188,78 @@ namespace prism
     {
         auto start = cursor_.position();
         auto remainder = cursor_.remaining();
-        bool is_float;
+        BigDecimal value;
+        auto kind = NumericLiteralKind::integer;
         if (remainder.starts_with("0x") || remainder.starts_with("0X"))
         {
-            is_float = false;
-            if (!handle_hex_literal())
+            if (!handle_hex_literal(value))
             {
                 // If we fail to parse just grab the leading 0 as the literal
                 cursor_.advance();
             }
+
+            kind = NumericLiteralKind::hex;
         }
         else if (remainder.starts_with("0b") || remainder.starts_with("0B"))
         {
-            is_float = false;
-            if (!handle_binary_literal())
+            if (!handle_binary_literal(value))
             {
                 // If we fail to parse just grab the leading 0 as the literal
                 cursor_.advance();
             }
+
+            kind = NumericLiteralKind::binary;
         }
         else
         {
-            const auto found_digits = consume_digit_sequence([](const char c) { return std::isdigit(c); });
+            const auto found_digits = consume_digit_sequence([](const char c) { return std::isdigit(c); },
+                                                             [&value](const char c)
+                                                             {
+                                                                 const auto digit = c - '0';
+                                                                 value = value * 10 + digit;
+                                                             });
             if (found_digits && cursor_.at_end())
             {
                 const auto literal_text = cursor_.since(start);
-                return make_green_value(IntegerLiteralData::parse(literal_text),
-                                        std::string{literal_text},
-                                        std::move(leading_trivia),
-                                        collect_trivia());
+                return make_green_value(
+                    NumericLiteralData{
+                        .value = std::move(value),
+                        .base = kind,
+                    },
+                    std::string{literal_text},
+                    std::move(leading_trivia),
+                    collect_trivia());
             }
 
-            is_float = !cursor_.at_end() && cursor_.current() == '.';
-            if (is_float)
+            if (!cursor_.at_end() && cursor_.current() == '.')
             {
                 cursor_.advance();
-                consume_digit_sequence([](const char c) { return std::isdigit(c); });
+                kind = NumericLiteralKind::floating_point;
+                BigDecimal place{"0.1"};
+                consume_digit_sequence([](const char c) { return std::isdigit(c); },
+                                       [&place, &value](const char c)
+                                       {
+                                           const auto digit = c - '0';
+                                           value += place * digit;
+                                           place /= 10;
+                                       });
             }
             else if (!found_digits)
                 return std::nullopt;
-
-            is_float &= consume_float_suffix();
-            if (!is_float)
-            {
-                consume_integer_suffix();
-            }
         }
+
+        const auto suffix = consume_numeric_suffix(kind);
 
         const auto text = cursor_.since(start);
-        if (is_float)
-        {
-            return make_green_value(FloatLiteralData::parse(text),
-                                    std::string{text},
-                                    std::move(leading_trivia),
-                                    collect_trivia());
-        }
-
-        return make_green_value(IntegerLiteralData::parse(text),
-                                std::string{text},
-                                std::move(leading_trivia),
-                                collect_trivia());
+        return make_green_value(
+            NumericLiteralData{
+                .value = std::move(value),
+                .base = kind,
+                .suffix = suffix,
+            },
+            std::string{text},
+            std::move(leading_trivia),
+            collect_trivia());
     }
 
     Optional<GreenPtr<GreenToken>> Lexer::match_punctuation(GreenPtr<GreenTriviaList> leading_trivia)
@@ -422,8 +436,8 @@ namespace prism
 
     Optional<GreenPtr<GreenToken>> Lexer::match_identifier_or_keyword(GreenPtr<GreenTriviaList> leading_trivia)
     {
-        auto view = cursor_.remaining();
-        auto start = cursor_.position();
+        const auto view = cursor_.remaining();
+        const auto start = cursor_.position();
 
         std::uint32_t first_skip;
         char first_char;
@@ -466,75 +480,140 @@ namespace prism
 
         return make_green_value(IdentifierData{identifier, is_escaped}, std::move(leading_trivia), collect_trivia());
     }
-    bool Lexer::handle_hex_literal()
+    bool Lexer::handle_hex_literal(BigDecimal &value)
     {
         if (!is_hex_digit(cursor_.peek(3)))
             return false;
 
         cursor_.advance(2);
 
-        consume_digit_sequence([](const char c) { return is_hex_digit(c); });
+        consume_digit_sequence([](const char c) { return is_hex_digit(c); },
+                               [&value](const char c)
+                               {
+                                   const auto hex_digit = hex_digit_value(c);
+                                   value = value * 16 + hex_digit;
+                               });
         return true;
     }
 
-    bool Lexer::handle_binary_literal()
+    bool Lexer::handle_binary_literal(BigDecimal &value)
     {
         if (!is_binary_digit(cursor_.peek(3)))
             return false;
 
         cursor_.advance(2);
 
-        consume_digit_sequence([](const char c) { return is_binary_digit(c); });
+        consume_digit_sequence([](const char c) { return is_binary_digit(c); },
+                               [&value](const char c)
+                               {
+                                   const std::uint32_t digit = c == '1' ? 1 : 0;
+                                   value = value * 2 + digit;
+                               });
         return true;
     }
 
-    void Lexer::consume_integer_suffix()
+    NumericSuffix Lexer::consume_numeric_suffix(NumericLiteralKind kind)
     {
         using namespace std::literals;
-        if (cursor_.at_end() || !cursor_.any('u', 'i'))
-            return;
+        static constexpr std::array integer_suffixes = {
+            std::make_pair("i8"sv, NumericSuffix::i8),
+            std::make_pair("i16"sv, NumericSuffix::i16),
+            std::make_pair("i32"sv, NumericSuffix::i32),
+            std::make_pair("i64"sv, NumericSuffix::i64),
+            std::make_pair("i128"sv, NumericSuffix::i128),
+            std::make_pair("u8"sv, NumericSuffix::u8),
+            std::make_pair("u16"sv, NumericSuffix::u16),
+            std::make_pair("u32"sv, NumericSuffix::u32),
+            std::make_pair("u64"sv, NumericSuffix::u64),
+            std::make_pair("u128"sv, NumericSuffix::u128),
+            std::make_pair("iz"sv, NumericSuffix::iz),
+            std::make_pair("uz"sv, NumericSuffix::uz),
+            std::make_pair("f16"sv, NumericSuffix::f16),
+            std::make_pair("f32"sv, NumericSuffix::f16),
+            std::make_pair("f64"sv, NumericSuffix::f16),
+        };
+
+        static constexpr std::array float_suffixes = {
+            std::make_pair("f16"sv, NumericSuffix::f16),
+            std::make_pair("f32"sv, NumericSuffix::f16),
+            std::make_pair("f64"sv, NumericSuffix::f16),
+        };
 
         auto remaining = cursor_.remaining();
-        static constexpr std::array bit_sizes = {"8"sv, "16"sv, "32"sv, "64"sv, "128"sv, "z"sv};
-        if (const auto it =
-                std::ranges::find_if(bit_sizes, [&](const auto &suffix) { return remaining.starts_with(suffix); });
-            it != bit_sizes.end())
-            cursor_.advance(it->size() + 1);
+        if (kind != NumericLiteralKind::floating_point)
+        {
+            for (auto [str, type] : integer_suffixes)
+            {
+                if (remaining.starts_with(str))
+                {
+                    cursor_.advance(str.size());
+                    return type;
+                }
+            }
+        }
+
+        if (kind == NumericLiteralKind::floating_point || kind == NumericLiteralKind::integer)
+        {
+            for (auto [str, type] : float_suffixes)
+            {
+                if (remaining.starts_with(str))
+                {
+                    cursor_.advance(str.size());
+                    return type;
+                }
+            }
+        }
+
+        return NumericSuffix::none;
     }
 
-    bool Lexer::consume_float_suffix()
-    {
-        using namespace std::literals;
-        if (cursor_.at_end() || cursor_.remaining().starts_with('f'))
-            return false;
-
-        auto remaining = cursor_.remaining();
-        static constexpr std::array bit_sizes = {"16"sv, "32"sv, "64"sv};
-        if (const auto it =
-                std::ranges::find_if(bit_sizes, [&](const auto &suffix) { return remaining.starts_with(suffix); });
-            it != bit_sizes.end())
-            cursor_.advance(it->size() + 1);
-
-        return true;
-    }
-
-    template <std::predicate<char> Predicate>
-    bool Lexer::consume_digit_sequence(Predicate predicate)
+    template <std::predicate<char> Predicate, std::invocable<char> OnDigit>
+    bool Lexer::consume_digit_sequence(Predicate predicate, OnDigit on_digit)
     {
         if (cursor_.at_end() || !std::invoke(predicate, cursor_.current()))
             return false;
+
+        const auto look_ahead_for_digits = [&predicate, this] -> Optional<std::uint32_t>
+        {
+            std::uint32_t lookahead = 1;
+            while (true)
+            {
+                if (const auto c = cursor_.peek(lookahead); c == '_')
+                {
+                    lookahead++;
+                }
+                else if (std::invoke(predicate, c))
+                {
+                    return lookahead;
+                }
+                else
+                {
+                    return std::nullopt;
+                }
+            }
+        };
 
         cursor_.advance();
         while (!cursor_.at_end())
         {
             auto current = cursor_.current();
-            if (current == '_' && std::invoke(predicate, cursor_.peek()))
+            if (current == '_')
             {
-                cursor_.advance(2);
+                auto underscores = look_ahead_for_digits();
+                if (underscores.has_value())
+                {
+                    cursor_.advance(*underscores);
+                }
+                else
+                {
+                    break;
+                }
             }
-            else if (std::invoke(predicate, current))
+
+            if (std::invoke(predicate, current))
             {
                 cursor_.advance();
+                std::invoke(on_digit, current);
             }
             else
             {

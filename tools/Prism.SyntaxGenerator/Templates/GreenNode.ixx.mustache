@@ -1,0 +1,57 @@
+﻿export module prism.core:{{GreenName}};
+
+import :syntax.green.node;
+import :syntax.green.token;
+
+namespace prism
+{
+    {{#ForwardDeclarations}}
+    class {{Green}};
+    {{/ForwardDeclarations}}
+
+    {{#Nodes}}
+    class {{GreenName}}{{^IsAbstract}} final{{/IsAbstract}} : public {{GreenBase}}
+    {
+        {{#IsAbstract}}
+    protected:
+        explicit constexpr {{GreenName}}(const SyntaxKind kind, DiagnosticInfoList diagnostics = {}) : {{GreenBase}}{kind, std::move(diagnostics)} {}
+
+    public:
+        ~{{GreenName}}() override;
+
+        {{#Children}}
+        [[nodiscard]] virtual {{GreenGetterType}} {{GetterName}}() const noexcept = 0;
+
+        {{/Children}}
+        {{/IsAbstract}}
+        {{^IsAbstract}}
+    public:
+        {{GreenName}}(SyntaxKind kind{{#Children}}, {{GreenFieldType}} {{Name}}{{/Children}}, DiagnosticInfoList diagnostics = {});
+        ~{{GreenName}}() override;
+
+        {{#Children}}
+        [[nodiscard]] constexpr {{GreenGetterType}} {{GetterName}}() const noexcept{{#IsOverride}} override{{/IsOverride}}
+        {
+            {{#IsOptional}}
+            return {{FieldName}}.get();
+            {{/IsOptional}}
+            {{^IsOptional}}
+            return *{{FieldName}};
+            {{/IsOptional}}
+        }
+
+        {{/Children}}
+
+        [[nodiscard]] Optional<const GreenNode&> get_child(std::size_t index) const override;
+
+    {{^Equals Children.Length 0}}
+    private:
+    {{/Equals}}
+        {{#Children}}
+        {{GreenFieldType}} {{FieldName}};
+        {{/Children}}
+        {{/IsAbstract}}
+    };
+
+    {{/Nodes}}
+}

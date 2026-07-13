@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="CaseConverter" />
+      <PackageReference Include="DotMake.CommandLine" />
+      <PackageReference Include="Handlebars.Net" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="Templates\GreenNode.ixx.mustache" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Templates\**\*.mustache" />
+    </ItemGroup>
+
+</Project>

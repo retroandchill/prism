@@ -1,0 +1,41 @@
+﻿module prism.core:{{GreenName}}.impl;
+
+import :{{GreenName}};
+{{#Imports}}
+import :{{Green}};
+{{/Imports}}
+
+namespace prism
+{
+    {{#Nodes}}
+    {{^IsAbstract}}
+    {{GreenName}}::{{GreenName}}(const SyntaxKind kind{{#Children}}, {{GreenFieldType}} {{Name}}{{/Children}}, DiagnosticInfoList diagnostics)
+        : {{GreenBase}}{kind, std::move(diagnostics)}{{#Children}}, {{FieldName}}{std::move({{Name}})}{{/Children}}
+    {
+        {{^Equals Children.Length 0}}
+        set_child_count({{Children.Length}});
+        {{/Equals}}
+        {{#Children}}
+        {{#IsOptional}}if ({{FieldName}} != nullptr) {{/IsOptional}}adjust_flags_and_width(*{{FieldName}});
+        {{/Children}}
+    }
+    {{/IsAbstract}}
+    {{GreenName}}::~{{GreenName}}() = default;
+
+    {{^IsAbstract}}
+    Optional<const GreenNode&> {{GreenName}}::get_child(std::size_t index) const
+    {
+        switch (index)
+        {
+            {{#Indexed Children}}
+            case {{@Index}}:
+                return {{#IsOptional}}{{FieldName}}.get(){{/IsOptional}}{{^IsOptional}}*{{FieldName}}{{/IsOptional}};
+            {{/Indexed}}
+            default:
+                return std::nullopt;
+        }
+    }
+
+    {{/IsAbstract}}
+    {{/Nodes}}
+}

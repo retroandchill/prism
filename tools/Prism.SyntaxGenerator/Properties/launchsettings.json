@@ -1,0 +1,15 @@
+﻿{
+  "$schema": "https://schemastore.org",
+  "profiles": {
+    "ExportSchema": {
+      "commandName": "Project",
+      "commandLineArgs": "schema --export ../../grammar/schema.json",
+      "workingDirectory": "."
+    },
+    "EmitNodes": {
+      "commandName": "Project",
+      "commandLineArgs": "generate --input ../../grammar/nodes.json --output ../../libs/core/src",
+      "workingDirectory": "."
+    }
+  }
+}

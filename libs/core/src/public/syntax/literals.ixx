@@ -72,14 +72,15 @@ namespace prism
         }
     };
 
-    export enum class IntegerBase : std::uint8_t
+    export enum class NumericLiteralKind : std::uint8_t
     {
-        decimal,
-        hex,
-        binary
+        integer,
+        floating_point,
+        binary,
+        hex
     };
 
-    export enum class IntegerSuffix : std::uint8_t
+    export enum class NumericSuffix : std::uint8_t
     {
         none,
         i8,
@@ -94,35 +95,18 @@ namespace prism
         u64,
         u128,
         uz,
-    };
-
-    export struct IntegerLiteralData
-    {
-        static constexpr auto kind = SyntaxKind::integer_token;
-
-        BigInteger value;
-        IntegerBase base = IntegerBase::decimal;
-        IntegerSuffix suffix = IntegerSuffix::none;
-
-        PRISM_CORE_API static IntegerLiteralData parse(std::string_view text);
-    };
-
-    export enum class FloatSuffix : std::uint8_t
-    {
-        none,
         f16,
         f32,
         f64
     };
 
-    export struct FloatLiteralData
+    export struct NumericLiteralData
     {
-        static constexpr auto kind = SyntaxKind::float_token;
+        static constexpr auto kind = SyntaxKind::number_token;
 
         BigDecimal value;
-        FloatSuffix suffix = FloatSuffix::none;
-
-        PRISM_CORE_API static FloatLiteralData parse(std::string_view text);
+        NumericLiteralKind base = NumericLiteralKind::integer;
+        NumericSuffix suffix = NumericSuffix::none;
     };
 
     export enum class CharacterEncoding : std::uint8_t

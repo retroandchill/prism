@@ -24,8 +24,15 @@ namespace prism
     class GreenNode : public IntrusiveRefCounted
     {
       protected:
-        explicit constexpr GreenNode(const SyntaxKind kind, const std::uint32_t full_width = 0)
-            : kind_{kind}, full_width_{full_width}
+        explicit constexpr GreenNode(const SyntaxKind kind,
+                                     const std::uint32_t full_width = 0,
+                                     DiagnosticInfoList diagnostics = {})
+            : kind_{kind}, full_width_{full_width}, diagnostics_{std::move(diagnostics)}
+        {
+        }
+
+        constexpr GreenNode(const SyntaxKind kind, DiagnosticInfoList diagnostics)
+            : kind_{kind}, diagnostics_{std::move(diagnostics)}
         {
         }
 
@@ -98,6 +105,19 @@ namespace prism
             child_count_ = count;
         }
 
+        template <std::derived_from<GreenNode>... Ts>
+        constexpr void set_children(const GreenPtr<Ts> &...children)
+        {
+            set_child_count(sizeof...(Ts));
+            (
+                [&]
+                {
+                    if (children != nullptr)
+                        adjust_flags_and_width(*children);
+                }(),
+                ...);
+        }
+
       public:
         [[nodiscard]] virtual Optional<const GreenNode &> get_child(std::size_t index) const = 0;
 
@@ -159,7 +179,7 @@ namespace prism
 
         SyntaxKind kind_;
         SyntaxFlags flags_ = SyntaxFlags::none;
-        std::uint32_t full_width_;
+        std::uint32_t full_width_ = 0;
         std::size_t child_count_ = 0;
         DiagnosticInfoList diagnostics_;
     };

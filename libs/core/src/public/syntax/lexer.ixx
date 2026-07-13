@@ -36,13 +36,12 @@ namespace prism
         Optional<GreenPtr<GreenToken>> match_string_literal(GreenPtr<GreenTriviaList> leading_trivia);
         Optional<GreenPtr<GreenToken>> match_identifier_or_keyword(GreenPtr<GreenTriviaList> leading_trivia);
 
-        bool handle_hex_literal();
-        bool handle_binary_literal();
-        void consume_integer_suffix();
-        bool consume_float_suffix();
+        bool handle_hex_literal(BigDecimal &value);
+        bool handle_binary_literal(BigDecimal &value);
+        NumericSuffix consume_numeric_suffix(NumericLiteralKind kind);
 
-        template <std::predicate<char> Predicate>
-        bool consume_digit_sequence(Predicate predicate);
+        template <std::predicate<char> Predicate, std::invocable<char> OnDigit>
+        bool consume_digit_sequence(Predicate predicate, OnDigit on_digit);
 
         static Optional<std::pair<char32_t, std::uint32_t>> parse_escape_sequence(std::string_view view);
 

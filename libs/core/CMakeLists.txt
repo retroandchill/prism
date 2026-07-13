@@ -13,12 +13,11 @@ set(PRISM_SOURCES
         src/private/syntax/trivia.cpp
         src/private/syntax/lexer.cpp
         src/private/syntax/green/trivia.cpp
-        src/private/syntax/literals.cpp
         src/private/syntax/token_stream.cpp
         src/private/syntax/green/type.cpp
-        src/private/syntax/green/type_hint.cpp
         src/private/syntax/green/declaration.cpp
-        src/private/syntax/green/initializer.cpp
+        src/private/syntax/green/expression.cpp
+        src/private/syntax/green/clauses.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -62,9 +61,8 @@ set(PRISM_PUBLIC_MODULES
         src/public/syntax/green/type.ixx
         src/public/syntax/green/declaration.ixx
         src/public/syntax/green/list.ixx
-        src/public/syntax/green/type_hint.ixx
         src/public/syntax/green/expression.ixx
-        src/public/syntax/green/initializer.ixx
+        src/public/syntax/green/clauses.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

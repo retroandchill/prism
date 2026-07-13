@@ -65,7 +65,7 @@ TEST_CASE("Simple grammar", "[lexer]")
                                              SyntaxKind::return_keyword,
                                              SyntaxKind::identifier_token,
                                              SyntaxKind::plus_token,
-                                             SyntaxKind::integer_token,
+                                             SyntaxKind::number_token,
                                              SyntaxKind::semicolon_token,
                                              SyntaxKind::rbrace_token,
                                              SyntaxKind::end_of_file_token}));
@@ -83,7 +83,7 @@ TEST_CASE("Skips line comments", "[lexer]")
                Catch::Matchers::RangeEquals({SyntaxKind::var_keyword,
                                              SyntaxKind::identifier_token,
                                              SyntaxKind::equal_token,
-                                             SyntaxKind::integer_token,
+                                             SyntaxKind::number_token,
                                              SyntaxKind::semicolon_token,
                                              SyntaxKind::end_of_file_token}));
 }
@@ -97,7 +97,7 @@ TEST_CASE("Skips block comments", "[lexer]")
                Catch::Matchers::RangeEquals({SyntaxKind::var_keyword,
                                              SyntaxKind::identifier_token,
                                              SyntaxKind::equal_token,
-                                             SyntaxKind::integer_token,
+                                             SyntaxKind::number_token,
                                              SyntaxKind::semicolon_token,
                                              SyntaxKind::end_of_file_token}));
 }
@@ -117,7 +117,7 @@ TEST_CASE("Block comments span multiple lines", "[lexer]")
                Catch::Matchers::RangeEquals({SyntaxKind::var_keyword,
                                              SyntaxKind::identifier_token,
                                              SyntaxKind::equal_token,
-                                             SyntaxKind::integer_token,
+                                             SyntaxKind::number_token,
                                              SyntaxKind::semicolon_token,
                                              SyntaxKind::end_of_file_token}));
 }

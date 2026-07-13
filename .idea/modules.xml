@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/prism.iml" filepath="$PROJECT_DIR$/.idea/prism.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/syntaxgen.iml" filepath="$PROJECT_DIR$/.idea/syntaxgen.iml" />
     </modules>
   </component>
 </project>

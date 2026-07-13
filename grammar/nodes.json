@@ -1,0 +1,254 @@
+{
+  "$schema": "./schema.json",
+  "version": 1,
+  "modules": [
+    {
+      "name": "type",
+      "nodes": [
+        {
+          "name": "Type",
+          "isAbstract": true
+        },
+        {
+          "name": "NamedType",
+          "base": "Type",
+          "isAbstract": true
+        },
+        {
+          "name": "SimpleNamedType",
+          "base": "NamedType",
+          "isAbstract": true
+        },
+        {
+          "name": "IdentifierNamedType",
+          "base": "SimpleNamedType",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "identifier",
+              "type": "Token"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "clauses",
+      "nodes": [
+        {
+          "name": "Initializer",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "equal_sign",
+              "type": "Token"
+            },
+            {
+              "name": "value",
+              "type": "Expression"
+            }
+          ]
+        },
+        {
+          "name": "TypeHint",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "colon",
+              "type": "Token"
+            },
+            {
+              "name": "type",
+              "type": "Type"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "expression",
+      "nodes": [
+        {
+          "name": "Expression",
+          "isAbstract": true
+        },
+        {
+          "name": "LiteralExpression",
+          "base": "Expression",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "value",
+              "type": "Token"
+            }
+          ]
+        },
+        {
+          "name": "IdentifierExpression",
+          "base": "Expression",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "value",
+              "type": "Token"
+            }
+          ]
+        },
+        {
+          "name": "ParenthesizedExpression",
+          "base": "Expression",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "open",
+              "type": "Token"
+            },
+            {
+              "name": "expression",
+              "type": "Expression"
+            },
+            {
+              "name": "close",
+              "type": "Token"
+            }
+          ]
+        },
+        {
+          "name": "BinaryExpression",
+          "base": "Expression",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "left",
+              "type": "Expression"
+            },
+            {
+              "name": "op",
+              "type": "Token"
+            },
+            {
+              "name": "right",
+              "type": "Expression"
+            }
+          ]
+        },
+        {
+          "name": "PrefixExpression",
+          "base": "Expression",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "op",
+              "type": "Token"
+            },
+            {
+              "name": "operand",
+              "type": "Expression"
+            }
+          ]
+        },
+        {
+          "name": "PostfixExpression",
+          "base": "Expression",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "operand",
+              "type": "Expression"
+            },
+            {
+              "name": "op",
+              "type": "Token"
+            }
+          ]
+        },
+        {
+          "name": "TernaryExpression",
+          "base": "Expression",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "condition",
+              "type": "Expression"
+            },
+            {
+              "name": "question_mark",
+              "type": "Token"
+            },
+            {
+              "name": "when_true",
+              "type": "Expression"
+            },
+            {
+              "name": "colon",
+              "type": "Token"
+            },
+            {
+              "name": "when_false",
+              "type": "Expression"
+            }
+          ]
+        },
+        {
+          "name": "InvocationExpression",
+          "base": "Expression",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "callee",
+              "type": "Expression"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "declaration",
+      "nodes": [
+        {
+          "name": "Declaration",
+          "isAbstract": true,
+          "children": [
+            {
+              "name": "modifiers",
+              "type": "TokenList"
+            }
+          ]
+        },
+        {
+          "name": "VariableDeclaration",
+          "base": "Declaration",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "modifiers",
+              "type": "TokenList"
+            },
+            {
+              "name": "var_keyword",
+              "type": "Token"
+            },
+            {
+              "name": "identifier",
+              "type": "Token"
+            },
+            {
+              "name": "type",
+              "type": "TypeHint",
+              "isOptional": true
+            },
+            {
+              "name": "initializer",
+              "type": "Initializer",
+              "isOptional": true
+            },
+            {
+              "name": "semicolon",
+              "type": "Token"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

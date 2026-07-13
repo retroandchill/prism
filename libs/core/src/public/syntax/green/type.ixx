@@ -1,9 +1,3 @@
-/**
- * @file green_type.ixx
- * @author Francesco Corso
- * @date 7/12/2026
- * @brief
- */
 export module prism.core:syntax.green.type;
 
 import :syntax.green.node;
@@ -11,32 +5,58 @@ import :syntax.green.token;
 
 namespace prism
 {
+
     class GreenType : public GreenNode
     {
       protected:
-        using GreenNode::GreenNode;
+        explicit constexpr GreenType(const SyntaxKind kind, DiagnosticInfoList diagnostics = {})
+            : GreenNode{kind, std::move(diagnostics)}
+        {
+        }
+
+      public:
+        ~GreenType() override;
     };
 
     class GreenNamedType : public GreenType
     {
       protected:
-        using GreenType::GreenType;
+        explicit constexpr GreenNamedType(const SyntaxKind kind, DiagnosticInfoList diagnostics = {})
+            : GreenType{kind, std::move(diagnostics)}
+        {
+        }
+
+      public:
+        ~GreenNamedType() override;
     };
 
     class GreenSimpleNamedType : public GreenNamedType
     {
       protected:
-        using GreenNamedType::GreenNamedType;
+        explicit constexpr GreenSimpleNamedType(const SyntaxKind kind, DiagnosticInfoList diagnostics = {})
+            : GreenNamedType{kind, std::move(diagnostics)}
+        {
+        }
+
+      public:
+        ~GreenSimpleNamedType() override;
     };
 
     class GreenIdentifierNamedType final : public GreenSimpleNamedType
     {
       public:
-        explicit GreenIdentifierNamedType(GreenPtr<GreenToken> identifier);
+        GreenIdentifierNamedType(SyntaxKind kind, GreenPtr<GreenToken> identifier, DiagnosticInfoList diagnostics = {});
+        ~GreenIdentifierNamedType() override;
+
+        [[nodiscard]] constexpr const GreenToken &identifier() const noexcept
+        {
+            return *identifier_;
+        }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
       private:
         GreenPtr<GreenToken> identifier_;
     };
+
 } // namespace prism
