@@ -21,6 +21,15 @@ namespace prism
     template <typename T>
     using GreenPtr = RefCountPtr<const T>;
 
+    class GreenNode;
+
+    template <typename T>
+    concept GreenNodeWrapper = requires(const T &wrapper) {
+        {
+            wrapper.node()
+        } -> std::convertible_to<const GreenNode &>;
+    };
+
     class GreenNode : public IntrusiveRefCounted
     {
       protected:
@@ -42,6 +51,16 @@ namespace prism
         [[nodiscard]] constexpr SyntaxKind kind() const noexcept
         {
             return kind_;
+        }
+
+        [[nodiscard]] virtual constexpr bool is_token() const noexcept
+        {
+            return false;
+        }
+
+        [[nodiscard]] virtual constexpr bool is_trivia() const noexcept
+        {
+            return false;
         }
 
         [[nodiscard]] constexpr std::uint32_t full_width() const noexcept
@@ -105,19 +124,6 @@ namespace prism
             child_count_ = count;
         }
 
-        template <std::derived_from<GreenNode>... Ts>
-        constexpr void set_children(const GreenPtr<Ts> &...children)
-        {
-            set_child_count(sizeof...(Ts));
-            (
-                [&]
-                {
-                    if (children != nullptr)
-                        adjust_flags_and_width(*children);
-                }(),
-                ...);
-        }
-
       public:
         [[nodiscard]] virtual Optional<const GreenNode &> get_child(std::size_t index) const = 0;
 
@@ -168,6 +174,12 @@ namespace prism
 
       protected:
         void adjust_flags_and_width(const GreenNode &node);
+
+        template <GreenNodeWrapper T>
+        void adjust_flags_and_width(const T &wrapper)
+        {
+            adjust_flags_and_width(wrapper.node());
+        }
 
       private:
         friend class Lexer;

@@ -122,16 +122,47 @@ public static class SpecificationTransformer
         var redType = GetRedName(child.Type);
 
         string greenGetterType;
+        string greenFieldType;
         string redGetterType;
-        if (child.IsOptional)
+        string greenGetterBody;
+        string getChildrenExpression;
+        string adjustExpression;
+        switch (child.Shape)
         {
-            greenGetterType = $"Optional<const {greenType}&>";
-            redGetterType = $"Optional<const {redType}&>";
-        }
-        else
-        {
-            greenGetterType = $"const {greenType}&";
-            redGetterType = $"const {redType}&";
+            case ChildShape.Single:
+                greenGetterType = $"const {greenType}&";
+                redGetterType = $"const {redType}&";
+                greenFieldType = $"GreenPtr<{greenType}>";
+                greenGetterBody = $"*{fieldName}";
+                adjustExpression = greenGetterBody;
+                getChildrenExpression = greenGetterBody;
+                break;
+            case ChildShape.Optional:
+                greenGetterType = $"Optional<const {greenType}&>";
+                redGetterType = $"Optional<const {redType}&>";
+                greenFieldType = $"GreenPtr<{greenType}>";
+                greenGetterBody = $"{fieldName}.get()";
+                adjustExpression = $"*{fieldName}";
+                getChildrenExpression = greenGetterBody;
+                break;
+            case ChildShape.List:
+                greenGetterType = $"const GreenSyntaxList<{greenType}>&";
+                redGetterType = $"SyntaxList<{redType}>";
+                greenFieldType = $"GreenSyntaxList<{greenType}>";
+                greenGetterBody = fieldName;
+                getChildrenExpression = $"{fieldName}.node()";
+                adjustExpression = fieldName;
+                break;
+            case ChildShape.SeparatedList:
+                greenGetterType = $"const GreenSeparatedList<{greenType}>&";
+                redGetterType = $"SeparatedSyntaxList<{redType}>";
+                greenFieldType = $"GreenSeparatedList<{greenType}>";
+                greenGetterBody = fieldName;
+                getChildrenExpression = $"{fieldName}.node()";
+                adjustExpression = fieldName;
+                break;
+            default:
+                throw new InvalidOperationException("Unknown shape");
         }
 
         return new GeneratedChild
@@ -140,10 +171,13 @@ public static class SpecificationTransformer
             FieldName = fieldName,
             GetterName = baseName,
             GreenGetterType = greenGetterType,
-            GreenFieldType = $"GreenPtr<{greenType}>",
+            GreenFieldType = greenFieldType,
+            GreenGetterBody = greenGetterBody,
+            GetChildExpression = getChildrenExpression,
+            AdjustExpression = adjustExpression,
             RedGetterType = redGetterType,
             RedFieldType = $"RedPtr<{redType}>",
-            IsOptional = child.IsOptional,
+            IsOptional = child.Shape == ChildShape.Optional,
             IsOverride = existingMembers.Contains(child.Name),
         };
     }

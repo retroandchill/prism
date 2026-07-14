@@ -1,6 +1,7 @@
 module prism.core:syntax.green.expression.impl;
 
 import :syntax.green.expression;
+import :syntax.green.clauses;
 
 namespace prism
 {
@@ -199,11 +200,13 @@ namespace prism
 
     GreenInvocationExpression::GreenInvocationExpression(const SyntaxKind kind,
                                                          GreenPtr<GreenExpression> callee,
+                                                         GreenPtr<GreenArgumentList> arguments,
                                                          DiagnosticInfoList diagnostics)
-        : GreenExpression{kind, std::move(diagnostics)}, callee_{std::move(callee)}
+        : GreenExpression{kind, std::move(diagnostics)}, callee_{std::move(callee)}, arguments_{std::move(arguments)}
     {
-        set_child_count(1);
+        set_child_count(2);
         adjust_flags_and_width(*callee_);
+        adjust_flags_and_width(*arguments_);
     }
     GreenInvocationExpression::~GreenInvocationExpression() = default;
 
@@ -213,6 +216,8 @@ namespace prism
         {
             case 0:
                 return *callee_;
+            case 1:
+                return *arguments_;
             default:
                 return std::nullopt;
         }

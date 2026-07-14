@@ -18,6 +18,8 @@ set(PRISM_SOURCES
         src/private/syntax/green/declaration.cpp
         src/private/syntax/green/expression.cpp
         src/private/syntax/green/clauses.cpp
+        src/private/syntax/green/statement.cpp
+        src/private/syntax/green/list.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -63,6 +65,8 @@ set(PRISM_PUBLIC_MODULES
         src/public/syntax/green/list.ixx
         src/public/syntax/green/expression.ixx
         src/public/syntax/green/clauses.ixx
+        src/public/syntax/green/separated_list.ixx
+        src/public/syntax/green/statement.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

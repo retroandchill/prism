@@ -26,7 +26,8 @@
           "children": [
             {
               "name": "identifier",
-              "type": "Token"
+              "type": "Token",
+              "shape": "single"
             }
           ]
         }
@@ -41,11 +42,13 @@
           "children": [
             {
               "name": "equal_sign",
-              "type": "Token"
+              "type": "Token",
+              "shape": "single"
             },
             {
               "name": "value",
-              "type": "Expression"
+              "type": "Expression",
+              "shape": "single"
             }
           ]
         },
@@ -55,11 +58,66 @@
           "children": [
             {
               "name": "colon",
-              "type": "Token"
+              "type": "Token",
+              "shape": "single"
             },
             {
               "name": "type",
-              "type": "Type"
+              "type": "Type",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "NamedParameter",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "name",
+              "type": "Token",
+              "shape": "single"
+            },
+            {
+              "name": "colon",
+              "type": "Token",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "ArgumentList",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "open_paren",
+              "type": "Token",
+              "shape": "single"
+            },
+            {
+              "name": "argument",
+              "type": "Argument",
+              "shape": "separated_list"
+            },
+            {
+              "name": "close_paren",
+              "type": "Token",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "Argument",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "name",
+              "type": "NamedParameter",
+              "shape": "optional"
+            },
+            {
+              "name": "value",
+              "type": "Expression",
+              "shape": "single"
             }
           ]
         }
@@ -79,7 +137,8 @@
           "children": [
             {
               "name": "value",
-              "type": "Token"
+              "type": "Token",
+              "shape": "single"
             }
           ]
         },
@@ -90,7 +149,8 @@
           "children": [
             {
               "name": "value",
-              "type": "Token"
+              "type": "Token",
+              "shape": "single"
             }
           ]
         },
@@ -101,15 +161,18 @@
           "children": [
             {
               "name": "open",
-              "type": "Token"
+              "type": "Token",
+              "shape": "single"
             },
             {
               "name": "expression",
-              "type": "Expression"
+              "type": "Expression",
+              "shape": "single"
             },
             {
               "name": "close",
-              "type": "Token"
+              "type": "Token",
+              "shape": "single"
             }
           ]
         },
@@ -120,15 +183,18 @@
           "children": [
             {
               "name": "left",
-              "type": "Expression"
+              "type": "Expression",
+              "shape": "single"
             },
             {
               "name": "op",
-              "type": "Token"
+              "type": "Token",
+              "shape": "single"
             },
             {
               "name": "right",
-              "type": "Expression"
+              "type": "Expression",
+              "shape": "single"
             }
           ]
         },
@@ -139,11 +205,13 @@
           "children": [
             {
               "name": "op",
-              "type": "Token"
+              "type": "Token",
+              "shape": "single"
             },
             {
               "name": "operand",
-              "type": "Expression"
+              "type": "Expression",
+              "shape": "single"
             }
           ]
         },
@@ -154,11 +222,13 @@
           "children": [
             {
               "name": "operand",
-              "type": "Expression"
+              "type": "Expression",
+              "shape": "single"
             },
             {
               "name": "op",
-              "type": "Token"
+              "type": "Token",
+              "shape": "single"
             }
           ]
         },
@@ -169,23 +239,28 @@
           "children": [
             {
               "name": "condition",
-              "type": "Expression"
+              "type": "Expression",
+              "shape": "single"
             },
             {
               "name": "question_mark",
-              "type": "Token"
+              "type": "Token",
+              "shape": "single"
             },
             {
               "name": "when_true",
-              "type": "Expression"
+              "type": "Expression",
+              "shape": "single"
             },
             {
               "name": "colon",
-              "type": "Token"
+              "type": "Token",
+              "shape": "single"
             },
             {
               "name": "when_false",
-              "type": "Expression"
+              "type": "Expression",
+              "shape": "single"
             }
           ]
         },
@@ -196,7 +271,98 @@
           "children": [
             {
               "name": "callee",
-              "type": "Expression"
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "name": "arguments",
+              "type": "ArgumentList",
+              "shape": "single"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "statement",
+      "nodes": [
+        {
+          "name": "Statement",
+          "isAbstract": true
+        },
+        {
+          "name": "VariableDeclarationStatement",
+          "base": "Statement",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "declaration",
+              "type": "VariableDeclaration",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "Block",
+          "base": "Statement",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "statements",
+              "type": "Statement",
+              "shape": "list"
+            }
+          ]
+        },
+        {
+          "name": "ReturnStatement",
+          "base": "Statement",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "return_keyword",
+              "type": "Token",
+              "shape": "single"
+            },
+            {
+              "name": "expression",
+              "type": "Expression",
+              "shape": "optional"
+            },
+            {
+              "name": "semicolon",
+              "type": "Token",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "ExpressionStatement",
+          "base": "Statement",
+          "isAbstract": false,
+          "children": [
+
+            {
+              "name": "expression",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "name": "semicolon",
+              "type": "Token",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "EmptyStatement",
+          "base": "Statement",
+          "isAbstract": false,
+          "children": [
+            {
+              "name": "semicolon",
+              "type": "Token",
+              "shape": "single"
             }
           ]
         }
@@ -211,7 +377,8 @@
           "children": [
             {
               "name": "modifiers",
-              "type": "TokenList"
+              "type": "Token",
+              "shape": "list"
             }
           ]
         },
@@ -222,29 +389,40 @@
           "children": [
             {
               "name": "modifiers",
-              "type": "TokenList"
+              "type": "Token",
+              "shape": "list"
             },
             {
               "name": "var_keyword",
-              "type": "Token"
+              "type": "Token",
+              "shape": "single"
+            },
+            {
+              "name": "mut_keyword",
+              "type": "Token",
+              "shape": "optional"
             },
             {
               "name": "identifier",
-              "type": "Token"
+              "type": "Token",
+              "shape": "single"
             },
             {
               "name": "type",
               "type": "TypeHint",
-              "isOptional": true
+              "isOptional": true,
+              "shape": "single"
             },
             {
               "name": "initializer",
               "type": "Initializer",
-              "isOptional": true
+              "isOptional": true,
+              "shape": "single"
             },
             {
               "name": "semicolon",
-              "type": "Token"
+              "type": "Token",
+              "shape": "single"
             }
           ]
         }

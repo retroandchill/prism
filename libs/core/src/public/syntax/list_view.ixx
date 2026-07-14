@@ -34,14 +34,20 @@ namespace prism
             return std::strong_ordering{index_ <=> other.index_};
         }
 
-        [[nodiscard]] constexpr value_type operator[](const std::size_t n) const noexcept
+        [[nodiscard]] constexpr decltype(auto) operator[](const std::size_t n) const noexcept
         {
             return (*view_)[index_ + n];
         }
 
-        [[nodiscard]] constexpr value_type operator*() const noexcept
+        [[nodiscard]] constexpr decltype(auto) operator*() const noexcept
         {
             return (*view_)[index_];
+        }
+
+        [[nodiscard]] constexpr auto *operator->() const noexcept
+            requires std::is_lvalue_reference_v<decltype((*this->view_)[this->index_])>
+        {
+            return std::addressof((*view_)[index_]);
         }
 
         [[nodiscard]] constexpr SyntaxListViewIterator operator+(const std::size_t n) const noexcept

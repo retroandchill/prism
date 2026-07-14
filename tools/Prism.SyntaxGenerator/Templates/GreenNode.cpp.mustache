@@ -16,7 +16,7 @@ namespace prism
         set_child_count({{Children.Length}});
         {{/Equals}}
         {{#Children}}
-        {{#IsOptional}}if ({{FieldName}} != nullptr) {{/IsOptional}}adjust_flags_and_width(*{{FieldName}});
+        {{#IsOptional}}if ({{FieldName}} != nullptr) {{/IsOptional}}adjust_flags_and_width({{AdjustExpression}});
         {{/Children}}
     }
     {{/IsAbstract}}
@@ -29,7 +29,7 @@ namespace prism
         {
             {{#Indexed Children}}
             case {{@Index}}:
-                return {{#IsOptional}}{{FieldName}}.get(){{/IsOptional}}{{^IsOptional}}*{{FieldName}}{{/IsOptional}};
+                return {{GetChildExpression}};
             {{/Indexed}}
             default:
                 return std::nullopt;

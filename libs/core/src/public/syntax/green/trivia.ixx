@@ -18,15 +18,20 @@ namespace prism
     class GreenTrivia final : public GreenNode
     {
       public:
-        static const GreenPtr<GreenTrivia> carriage_return_line_feed;
-        static const GreenPtr<GreenTrivia> carriage_return;
-        static const GreenPtr<GreenTrivia> line_feed;
-
         constexpr GreenTrivia(const SyntaxKind kind, std::string text)
             : GreenNode{kind, static_cast<std::uint32_t>(text.size())}, text_{std::move(text)}
         {
             assert(text_.size() <= std::numeric_limits<std::uint32_t>::max());
-            assert(is_trivia(kind));
+            assert(prism::is_trivia(kind));
+        }
+
+        static const GreenPtr<GreenTrivia> &carriage_return_line_feed();
+        static const GreenPtr<GreenTrivia> &carriage_return();
+        static const GreenPtr<GreenTrivia> &line_feed();
+
+        [[nodiscard]] constexpr bool is_trivia() const noexcept override
+        {
+            return true;
         }
 
         [[nodiscard]] constexpr const std::string &text() const noexcept
@@ -60,6 +65,4 @@ namespace prism
     };
 
     using GreenTriviaList = GreenSyntaxList<GreenTrivia>;
-
-    GreenPtr<GreenTriviaList> normalize_trivia(GreenPtr<GreenTriviaList> trivia);
 } // namespace prism

@@ -2,9 +2,11 @@ export module prism.core:syntax.green.expression;
 
 import :syntax.green.node;
 import :syntax.green.token;
+import :syntax.green.separated_list;
 
 namespace prism
 {
+    class GreenArgumentList;
 
     class GreenExpression : public GreenNode
     {
@@ -222,6 +224,7 @@ namespace prism
       public:
         GreenInvocationExpression(SyntaxKind kind,
                                   GreenPtr<GreenExpression> callee,
+                                  GreenPtr<GreenArgumentList> arguments,
                                   DiagnosticInfoList diagnostics = {});
         ~GreenInvocationExpression() override;
 
@@ -230,10 +233,16 @@ namespace prism
             return *callee_;
         }
 
+        [[nodiscard]] constexpr const GreenArgumentList &arguments() const noexcept
+        {
+            return *arguments_;
+        }
+
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
       private:
         GreenPtr<GreenExpression> callee_;
+        GreenPtr<GreenArgumentList> arguments_;
     };
 
 } // namespace prism

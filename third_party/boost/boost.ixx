@@ -3,9 +3,6 @@ module;
 #include "boost_deps.hpp"
 
 export module boost;
-
-export import std;
-
 namespace boost
 {
     export using boost::addressof;
@@ -82,8 +79,8 @@ namespace boost
         export using core::max_align_t;
         export using core::max_align;
         export using core::memory_resource;
-        export using serialization::nvp;
         export using serialization::make_nvp;
+        export using serialization::nvp;
         export using core::split_free;
         export using core::split_member;
         export using core::load_construct_data_adl;
@@ -300,8 +297,10 @@ namespace boost
         export using multiprecision::checked_int256_t;
         export using multiprecision::checked_int512_t;
         export using multiprecision::checked_int1024_t;
+#if __has_include(<gmp.hpp>)
         export using multiprecision::gmp_int;
         export using multiprecision::mpz_int;
+#endif
         export using multiprecision::tommath_int;
         export using multiprecision::tom_int;
         export using multiprecision::gmp_float;
@@ -354,5 +353,51 @@ namespace boost
         export using math::isinf;
         export using math::isnormal;
     } // namespace math
-
+    namespace container
+    {
+        export using container::adaptive_pool;
+        export using container::allocator;
+        export using container::allocator_traits;
+        export using container::deque;
+        export using container::flat_map;
+        export using container::flat_multimap;
+        export using container::flat_set;
+        export using container::flat_multiset;
+        export using container::list;
+        export using container::map;
+        export using container::multimap;
+        export using container::node_allocator;
+        export using container::tree_type;
+        export using container::optimize_size;
+        export using container::tree_assoc_options;
+        export using container::constructible_with_allocator_suffix;
+        export using container::constructible_with_allocator_prefix;
+        export using container::uses_allocator;
+        export using container::scoped_allocator_adaptor;
+        export using container::operator==;
+        export using container::operator!=;
+        export using container::set;
+        export using container::multiset;
+        export using container::slist;
+        export using container::static_vector;
+        export using container::operator<;
+        export using container::operator>;
+        export using container::operator<=;
+        export using container::operator>=;
+        export using container::swap;
+        export using container::basic_string;
+        export using container::string;
+        export using container::wstring;
+        export using container::operator+;
+        export using container::operator<<;
+        export using container::operator>>;
+        export using container::getline;
+        export using container::throw_bad_alloc;
+        export using container::throw_out_of_range;
+        export using container::throw_length_error;
+        export using container::throw_logic_error;
+        export using container::throw_runtime_error;
+        export using container::vector;
+        export using container::small_vector;
+    } // namespace container
 } // namespace boost

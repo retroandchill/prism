@@ -39,6 +39,9 @@ public sealed record GeneratedChild
 
     public required string GreenFieldType { get; init; }
     public required string GreenGetterType { get; init; }
+    public required string GreenGetterBody { get; init; }
+    public required string GetChildExpression { get; init; }
+    public required string AdjustExpression { get; init; }
 
     public required string RedFieldType { get; init; }
     public required string RedGetterType { get; init; }

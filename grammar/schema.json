@@ -52,13 +52,19 @@
                       "type": {
                         "type": "string"
                       },
-                      "isOptional": {
-                        "type": "boolean"
+                      "shape": {
+                        "enum": [
+                          "single",
+                          "optional",
+                          "list",
+                          "separated_list"
+                        ]
                       }
                     },
                     "required": [
                       "name",
-                      "type"
+                      "type",
+                      "shape"
                     ]
                   }
                 }

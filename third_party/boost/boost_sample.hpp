@@ -1470,3 +1470,335 @@ namespace boost
 
     } // namespace multiprecision
 } // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <typename T,
+                  std::size_t NodesPerBlock = ADP_nodes_per_block,
+                  std::size_t MaxFreeBlocks = ADP_max_free_blocks,
+                  std::size_t OverheadPercent = ADP_overhead_percent>
+        class adaptive_pool;
+    }
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <typename T>
+        class allocator;
+    }
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <typename Alloc>
+        struct allocator_traits;
+    }
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <typename T, typename Allocator = std::allocator<T>>
+        class deque;
+    }
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <typename Key,
+                  typename T,
+                  typename Compare = std::less<Key>,
+                  typename Allocator = std::allocator<std::pair<Key, T>>>
+        class flat_map;
+        template <typename Key,
+                  typename T,
+                  typename Compare = std::less<Key>,
+                  typename Allocator = std::allocator<std::pair<Key, T>>>
+        class flat_multimap;
+    } // namespace container
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <typename Key, typename Compare = std::less<Key>, typename Allocator = std::allocator<Key>>
+        class flat_set;
+        template <typename Key, typename Compare = std::less<Key>, typename Allocator = std::allocator<Key>>
+        class flat_multiset;
+    } // namespace container
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <typename T, typename Allocator = std::allocator<T>>
+        class list;
+    }
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <typename Key,
+                  typename T,
+                  typename Compare = std::less<Key>,
+                  typename Allocator = std::allocator<std::pair<const Key, T>>,
+                  typename MapOptions = tree_assoc_defaults>
+        class map;
+        template <typename Key,
+                  typename T,
+                  typename Compare = std::less<Key>,
+                  typename Allocator = std::allocator<std::pair<const Key, T>>,
+                  typename MultiMapOptions = tree_assoc_defaults>
+        class multimap;
+    } // namespace container
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <typename T, std::size_t NodesPerBlock = NodeAlloc_nodes_per_block>
+        class node_allocator;
+    }
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <tree_type_enum TreeType>
+        struct tree_type;
+        template <bool Enabled>
+        struct optimize_size;
+        template <class... Options>
+        struct tree_assoc_options;
+    } // namespace container
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <typename T>
+        struct constructible_with_allocator_suffix;
+        template <typename T>
+        struct constructible_with_allocator_prefix;
+        template <typename T, typename Alloc>
+        struct uses_allocator;
+
+        template <typename OuterAlloc, typename... InnerAllocs>
+        class scoped_allocator_adaptor;
+        template <typename OuterA1, typename OuterA2, typename... InnerAllocs>
+        bool operator==(const scoped_allocator_adaptor<OuterA1, InnerAllocs...> &a,
+                        const scoped_allocator_adaptor<OuterA2, InnerAllocs...> &b);
+        template <typename OuterA1, typename OuterA2, typename... InnerAllocs>
+        bool operator!=(const scoped_allocator_adaptor<OuterA1, InnerAllocs...> &a,
+                        const scoped_allocator_adaptor<OuterA2, InnerAllocs...> &b);
+    } // namespace container
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <typename Key,
+                  typename Compare = std::less<Key>,
+                  typename Allocator = std::allocator<Key>,
+                  typename SetOptions = tree_assoc_defaults>
+        class set;
+        template <typename Key,
+                  typename Compare = std::less<Key>,
+                  typename Allocator = std::allocator<Key>,
+                  typename MultiSetOptions = tree_assoc_defaults>
+        class multiset;
+    } // namespace container
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <typename T, typename Allocator = std::allocator<T>>
+        class slist;
+    }
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <typename Value, std::size_t Capacity>
+        class static_vector;
+        template <typename V, std::size_t C1, std::size_t C2>
+        bool operator==(static_vector<V, C1> const &, static_vector<V, C2> const &);
+        template <typename V, std::size_t C1, std::size_t C2>
+        bool operator!=(static_vector<V, C1> const &, static_vector<V, C2> const &);
+        template <typename V, std::size_t C1, std::size_t C2>
+        bool operator<(static_vector<V, C1> const &, static_vector<V, C2> const &);
+        template <typename V, std::size_t C1, std::size_t C2>
+        bool operator>(static_vector<V, C1> const &, static_vector<V, C2> const &);
+        template <typename V, std::size_t C1, std::size_t C2>
+        bool operator<=(static_vector<V, C1> const &, static_vector<V, C2> const &);
+        template <typename V, std::size_t C1, std::size_t C2>
+        bool operator>=(static_vector<V, C1> const &, static_vector<V, C2> const &);
+        template <typename V, std::size_t C1, std::size_t C2>
+        void swap(static_vector<V, C1> &, static_vector<V, C2> &);
+    } // namespace container
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <typename CharT, typename Traits = std::char_traits<CharT>, typename Allocator = std::allocator<CharT>>
+        class basic_string;
+        typedef basic_string<char, std::char_traits<char>, std::allocator<char>> string;
+        typedef basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t>> wstring;
+        template <typename CharT, typename Traits, typename Allocator>
+        basic_string<CharT, Traits, Allocator> operator+(const basic_string<CharT, Traits, Allocator> &x,
+                                                         const basic_string<CharT, Traits, Allocator> &y);
+        template <typename CharT, typename Traits, typename Allocator>
+        basic_string<CharT, Traits, Allocator> operator+(basic_string<CharT, Traits, Allocator> &&mx,
+                                                         basic_string<CharT, Traits, Allocator> &&my);
+        template <typename CharT, typename Traits, typename Allocator>
+        basic_string<CharT, Traits, Allocator> operator+(basic_string<CharT, Traits, Allocator> &&mx,
+                                                         const basic_string<CharT, Traits, Allocator> &y);
+        template <typename CharT, typename Traits, typename Allocator>
+        basic_string<CharT, Traits, Allocator> operator+(const basic_string<CharT, Traits, Allocator> &x,
+                                                         basic_string<CharT, Traits, Allocator> &&my);
+        template <typename CharT, typename Traits, typename Allocator>
+        basic_string<CharT, Traits, Allocator> operator+(const CharT *s, basic_string<CharT, Traits, Allocator> y);
+        template <typename CharT, typename Traits, typename Allocator>
+        basic_string<CharT, Traits, Allocator> operator+(basic_string<CharT, Traits, Allocator> x, const CharT *s);
+        template <typename CharT, typename Traits, typename Allocator>
+        basic_string<CharT, Traits, Allocator> operator+(CharT c, basic_string<CharT, Traits, Allocator> y);
+        template <typename CharT, typename Traits, typename Allocator>
+        basic_string<CharT, Traits, Allocator> operator+(basic_string<CharT, Traits, Allocator> x, const CharT c);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator==(const basic_string<CharT, Traits, Allocator> &x,
+                        const basic_string<CharT, Traits, Allocator> &y);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator==(const CharT *s, const basic_string<CharT, Traits, Allocator> &y);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator==(const basic_string<CharT, Traits, Allocator> &x, const CharT *s);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator!=(const basic_string<CharT, Traits, Allocator> &x,
+                        const basic_string<CharT, Traits, Allocator> &y);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator!=(const CharT *s, const basic_string<CharT, Traits, Allocator> &y);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator!=(const basic_string<CharT, Traits, Allocator> &x, const CharT *s);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator<(const basic_string<CharT, Traits, Allocator> &x,
+                       const basic_string<CharT, Traits, Allocator> &y);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator<(const CharT *s, const basic_string<CharT, Traits, Allocator> &y);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator<(const basic_string<CharT, Traits, Allocator> &x, const CharT *s);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator>(const basic_string<CharT, Traits, Allocator> &x,
+                       const basic_string<CharT, Traits, Allocator> &y);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator>(const CharT *s, const basic_string<CharT, Traits, Allocator> &y);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator>(const basic_string<CharT, Traits, Allocator> &x, const CharT *s);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator<=(const basic_string<CharT, Traits, Allocator> &x,
+                        const basic_string<CharT, Traits, Allocator> &y);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator<=(const CharT *s, const basic_string<CharT, Traits, Allocator> &y);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator<=(const basic_string<CharT, Traits, Allocator> &x, const CharT *s);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator>=(const basic_string<CharT, Traits, Allocator> &x,
+                        const basic_string<CharT, Traits, Allocator> &y);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator>=(const CharT *s, const basic_string<CharT, Traits, Allocator> &y);
+        template <typename CharT, typename Traits, typename Allocator>
+        bool operator>=(const basic_string<CharT, Traits, Allocator> &x, const CharT *s);
+        template <typename CharT, typename Traits, typename Allocator>
+        void swap(basic_string<CharT, Traits, Allocator> &x, basic_string<CharT, Traits, Allocator> &y);
+        template <typename CharT, typename Traits, typename Allocator>
+        std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &os,
+                                                      const basic_string<CharT, Traits, Allocator> &s);
+        template <typename CharT, typename Traits, typename Allocator>
+        std::basic_istream<CharT, Traits> &operator>>(std::basic_istream<CharT, Traits> &is,
+                                                      basic_string<CharT, Traits, Allocator> &s);
+        template <typename CharT, typename Traits, typename Allocator>
+        std::basic_istream<CharT, Traits> &getline(std::istream &is,
+                                                   basic_string<CharT, Traits, Allocator> &s,
+                                                   CharT delim);
+        template <typename CharT, typename Traits, typename Allocator>
+        std::basic_istream<CharT, Traits> &getline(std::basic_istream<CharT, Traits> &is,
+                                                   basic_string<CharT, Traits, Allocator> &s);
+        template <typename Ch, typename Allocator>
+        std::size_t hash_value(basic_string<Ch, std::char_traits<Ch>, Allocator> const &v);
+    } // namespace container
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        void throw_bad_alloc();
+        void throw_out_of_range(const char *);
+        void throw_length_error(const char *);
+        void throw_logic_error(const char *);
+        void throw_runtime_error(const char *);
+    } // namespace container
+} // namespace boost
+
+namespace boost
+{
+    namespace container
+    {
+        template <typename T, typename Allocator = std::allocator<T>>
+        class vector;
+
+        template <typename T, std::size_t N, typename Allocator = new_allocator<T>>
+        class small_vector : public boost::container::small_vector_base<T, Allocator>
+        {
+          public:
+            // construct/copy/destruct
+            small_vector() noexcept(dtl::is_nothrow_default_constructible< Allocator >::value));
+            explicit small_vector(const allocator_type &);
+            explicit small_vector(size_type);
+            small_vector(size_type, const allocator_type &);
+            small_vector(size_type, default_init_t);
+            small_vector(size_type, default_init_t, const allocator_type &);
+            small_vector(size_type, const value_type &);
+            small_vector(size_type, const value_type &, const allocator_type &);
+            template <typename InIt>
+            small_vector(InIt, InIt last);
+            template <typename InIt>
+            small_vector(InIt, InIt, const allocator_type &a);
+            small_vector(const small_vector &);
+            small_vector(const small_vector &, const allocator_type &);
+            explicit small_vector(const base_type &);
+            explicit small_vector(base_type &&);
+            small_vector(small_vector &&);
+            small_vector(small_vector &&, const allocator_type &);
+            small_vector(std::initializer_list<value_type>, const allocator_type & = allocator_type());
+            small_vector &operator=(const small_vector &);
+            small_vector &operator=(small_vector &&);
+            small_vector &operator=(const base_type &);
+            small_vector &operator=(base_type &&);
+
+            // public member functions
+            void swap(small_vector &);
+        };
+    } // namespace container
+} // namespace boost

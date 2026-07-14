@@ -55,13 +55,13 @@ namespace prism
 
     class SyntaxTriviaList PRISM_CORE_API final : public SyntaxListView<SyntaxTrivia>
     {
-        constexpr explicit SyntaxTriviaList(SyntaxToken parent, const GreenTriviaList *trivia_list)
+        constexpr explicit SyntaxTriviaList(SyntaxToken parent, const GreenTriviaList &trivia_list)
             : parent_{std::move(parent)}, green_{trivia_list}, position_{parent.position_}
         {
         }
 
         constexpr explicit SyntaxTriviaList(SyntaxToken parent,
-                                            const GreenTriviaList *trivia_list,
+                                            const GreenTriviaList &trivia_list,
                                             std::uint32_t position)
             : parent_{std::move(parent)}, green_{trivia_list}, position_{position}
         {
@@ -70,7 +70,7 @@ namespace prism
       public:
         [[nodiscard]] constexpr std::size_t size() const noexcept
         {
-            return green_ != nullptr ? green_->child_count() : 0;
+            return green_.size();
         }
 
         [[nodiscard]] SyntaxTrivia operator[](std::size_t index) const;
@@ -79,19 +79,19 @@ namespace prism
         friend class SyntaxToken;
 
         SyntaxToken parent_;
-        const GreenTriviaList *green_;
+        GreenSyntaxList<GreenTrivia, false> green_;
         std::uint32_t position_;
     };
 
     constexpr SyntaxTriviaList SyntaxToken::leading_trivia() const noexcept
     {
-        auto *trivia = green_->leading_trivia().value_ptr();
-        return SyntaxTriviaList{*this, std::move(trivia)};
+        auto &trivia = green_->leading_trivia();
+        return SyntaxTriviaList{*this, trivia};
     }
 
     constexpr SyntaxTriviaList SyntaxToken::trailing_trivia() const noexcept
     {
-        auto *trivia = green_->trailing_trivia().value_ptr();
+        auto &trivia = green_->trailing_trivia();
         return SyntaxTriviaList{*this, trivia};
     }
 } // namespace prism

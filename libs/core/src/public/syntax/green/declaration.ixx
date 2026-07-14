@@ -2,6 +2,7 @@ export module prism.core:syntax.green.declaration;
 
 import :syntax.green.node;
 import :syntax.green.token;
+import :syntax.green.separated_list;
 
 namespace prism
 {
@@ -19,15 +20,16 @@ namespace prism
       public:
         ~GreenDeclaration() override;
 
-        [[nodiscard]] virtual const GreenTokenList &modifiers() const noexcept = 0;
+        [[nodiscard]] virtual const GreenSyntaxList<GreenToken> &modifiers() const noexcept = 0;
     };
 
     class GreenVariableDeclaration final : public GreenDeclaration
     {
       public:
         GreenVariableDeclaration(SyntaxKind kind,
-                                 GreenPtr<GreenTokenList> modifiers,
+                                 GreenSyntaxList<GreenToken> modifiers,
                                  GreenPtr<GreenToken> var_keyword,
+                                 GreenPtr<GreenToken> mut_keyword,
                                  GreenPtr<GreenToken> identifier,
                                  GreenPtr<GreenTypeHint> type,
                                  GreenPtr<GreenInitializer> initializer,
@@ -35,9 +37,9 @@ namespace prism
                                  DiagnosticInfoList diagnostics = {});
         ~GreenVariableDeclaration() override;
 
-        [[nodiscard]] constexpr const GreenTokenList &modifiers() const noexcept override
+        [[nodiscard]] constexpr const GreenSyntaxList<GreenToken> &modifiers() const noexcept override
         {
-            return *modifiers_;
+            return modifiers_;
         }
 
         [[nodiscard]] constexpr const GreenToken &var_keyword() const noexcept
@@ -45,19 +47,24 @@ namespace prism
             return *var_keyword_;
         }
 
+        [[nodiscard]] constexpr Optional<const GreenToken &> mut_keyword() const noexcept
+        {
+            return mut_keyword_.get();
+        }
+
         [[nodiscard]] constexpr const GreenToken &identifier() const noexcept
         {
             return *identifier_;
         }
 
-        [[nodiscard]] constexpr Optional<const GreenTypeHint &> type() const noexcept
+        [[nodiscard]] constexpr const GreenTypeHint &type() const noexcept
         {
-            return type_.get();
+            return *type_;
         }
 
-        [[nodiscard]] constexpr Optional<const GreenInitializer &> initializer() const noexcept
+        [[nodiscard]] constexpr const GreenInitializer &initializer() const noexcept
         {
-            return initializer_.get();
+            return *initializer_;
         }
 
         [[nodiscard]] constexpr const GreenToken &semicolon() const noexcept
@@ -68,8 +75,9 @@ namespace prism
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
       private:
-        GreenPtr<GreenTokenList> modifiers_;
+        GreenSyntaxList<GreenToken> modifiers_;
         GreenPtr<GreenToken> var_keyword_;
+        GreenPtr<GreenToken> mut_keyword_;
         GreenPtr<GreenToken> identifier_;
         GreenPtr<GreenTypeHint> type_;
         GreenPtr<GreenInitializer> initializer_;

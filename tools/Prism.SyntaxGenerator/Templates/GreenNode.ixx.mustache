@@ -2,6 +2,7 @@
 
 import :syntax.green.node;
 import :syntax.green.token;
+import :syntax.green.separated_list;
 
 namespace prism
 {
@@ -32,12 +33,7 @@ namespace prism
         {{#Children}}
         [[nodiscard]] constexpr {{GreenGetterType}} {{GetterName}}() const noexcept{{#IsOverride}} override{{/IsOverride}}
         {
-            {{#IsOptional}}
-            return {{FieldName}}.get();
-            {{/IsOptional}}
-            {{^IsOptional}}
-            return *{{FieldName}};
-            {{/IsOptional}}
+            return {{GreenGetterBody}};
         }
 
         {{/Children}}

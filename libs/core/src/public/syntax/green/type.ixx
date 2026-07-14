@@ -2,6 +2,7 @@ export module prism.core:syntax.green.type;
 
 import :syntax.green.node;
 import :syntax.green.token;
+import :syntax.green.separated_list;
 
 namespace prism
 {

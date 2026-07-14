@@ -28,9 +28,25 @@ public sealed record NodeDefinition
     public ImmutableArray<ChildDefinition> Children { get; init; } = [];
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter<ChildShape>))]
+public enum ChildShape
+{
+    [JsonStringEnumMemberName("single")]
+    Single,
+
+    [JsonStringEnumMemberName("optional")]
+    Optional,
+
+    [JsonStringEnumMemberName("list")]
+    List,
+
+    [JsonStringEnumMemberName("separated_list")]
+    SeparatedList,
+}
+
 public sealed record ChildDefinition
 {
     public required string Name { get; init; }
     public required string Type { get; init; }
-    public bool IsOptional { get; init; }
+    public required ChildShape Shape { get; init; }
 }
