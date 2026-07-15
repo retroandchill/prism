@@ -3,7 +3,9 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.CodeDom.Compiler;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using CaseConverter;
 using Prism.SyntaxGenerator.Models;
@@ -157,6 +159,8 @@ public static class SpecificationTransformer
             );
         }
 
+        var punctuationTrie = ConstructPunctuationTrie(punctuationGroup.Kinds);
+
         return new GeneratedSyntaxKindList
         {
             Trivia = triviaGroup,
@@ -165,9 +169,95 @@ public static class SpecificationTransformer
                 Keywords = keywordsGroup,
                 Punctuations = punctuationGroup,
                 Others = otherTokens,
+
+                KeywordsByLength =
+                [
+                    .. keywordsGroup
+                        .Kinds.GroupBy(k => k.Name.Length)
+                        .OrderBy(g => g.Key)
+                        .Select(g => new GroupedKeywords { Length = g.Key, Keywords = [.. g] }),
+                ],
+                PunctuationTrie = RenderPunctuationTrie(punctuationTrie),
             },
             Nodes = builder.DrainToImmutable(),
         };
+    }
+
+    private static TrieNode ConstructPunctuationTrie(
+        ImmutableArray<GeneratedSyntaxKind> punctuations
+    )
+    {
+        var node = new TrieNode();
+        foreach (var production in punctuations)
+        {
+            var current = node;
+
+            foreach (var c in production.DisplayName)
+            {
+                if (current.Children.TryGetValue(c, out var child))
+                {
+                    current = child;
+                }
+                else
+                {
+                    child = new TrieNode();
+                    current.Children[c] = child;
+                    current = child;
+                }
+            }
+
+            current.Value = production;
+        }
+
+        return node;
+    }
+
+    private static string RenderPunctuationTrie(TrieNode root)
+    {
+        // The recursive nature of this algorithm makes it difficult to render using raw Mustache templates, so we're
+        // just going to render it ahead of time a splice it in.
+        using var writer = new StringWriter();
+        using var indentWriter = new IndentedTextWriter(writer);
+        indentWriter.Indent = 2;
+        WriteTrie(indentWriter, root);
+        return writer.ToString();
+    }
+
+    private static void WriteTrie(IndentedTextWriter writer, TrieNode node)
+    {
+        switch (node.Children.Count)
+        {
+            case 1:
+            {
+                var (character, child) = node.Children.Single();
+                writer.WriteLine($"if (cursor.current() == '{character}')");
+                using var block = writer.OpenBlock();
+                writer.WriteLine("cursor.advance();");
+                WriteTrie(writer, child);
+                break;
+            }
+            case > 1:
+            {
+                writer.WriteLine("switch (cursor.current())");
+                using var block = writer.OpenBlock();
+                foreach (var (character, child) in node.Children)
+                {
+                    writer.WriteLine($"case '{character}':");
+                    using var unmarkedBlock = writer.OpenCaseBlock();
+                    writer.WriteLine("cursor.advance();");
+                    WriteTrie(writer, child);
+                    if (child.Value is null)
+                        writer.WriteLine("break;");
+                }
+
+                break;
+            }
+        }
+
+        if (node.Value is { } terminal)
+        {
+            writer.WriteLine($"return SyntaxKind::{terminal.CppName};");
+        }
     }
 
     private static string ToDisplayCase(this string str)

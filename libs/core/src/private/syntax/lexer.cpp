@@ -4,10 +4,6 @@
  * @date 7/11/2026
  * @brief
  */
-module;
-
-#include "prism/core/syntax.hpp"
-
 module prism.core:syntax.lexer.impl;
 
 import :syntax.lexer;
@@ -18,20 +14,6 @@ import :syntax.lexing_utils;
 
 namespace prism
 {
-    namespace
-    {
-        using OpPair = std::pair<std::string_view, SyntaxKind>;
-
-        template <std::size_t N>
-        consteval std::array<OpPair, N> sort_operators_by_length(std::array<OpPair, N> operators)
-        {
-            std::sort(operators.begin(),
-                      operators.end(),
-                      [](const auto &lhs, const auto &rhs) { return lhs.first.size() > rhs.first.size(); });
-            return operators;
-        }
-    } // namespace
-
     GreenPtr<GreenToken> Lexer::next()
     {
         auto leading_trivia = collect_trivia(false);
@@ -262,25 +244,11 @@ namespace prism
 
     Optional<GreenPtr<GreenToken>> Lexer::match_punctuation(GreenTriviaList leading_trivia)
     {
-        using namespace std::string_view_literals;
-        static constexpr auto punctuations = sort_operators_by_length(std::array{
-#define X(name, str) std::make_pair(str##sv, SyntaxKind::name##_token),
-            PRISM_SYNTAX_PUNCTUATIONS(X)
-#undef X
-        });
-
-        const auto view = cursor_.remaining();
-        for (auto &[str, kind] : punctuations)
-        {
-            if (!view.starts_with(str))
-                continue;
-
-            cursor_.advance(static_cast<std::uint32_t>(str.size()));
-            return GreenToken::from(kind)->with_leading_and_trailing_trivia(std::move(leading_trivia),
-                                                                            collect_trivia());
-        }
-
-        return std::nullopt;
+        return prism::match_punctuation(cursor_).transform(
+            [&](const SyntaxKind kind) {
+                return GreenToken::from(kind)->with_leading_and_trailing_trivia(std::move(leading_trivia),
+                                                                                collect_trivia());
+            });
     }
 
     Optional<GreenPtr<GreenToken>> Lexer::match_character_literal(GreenTriviaList leading_trivia)

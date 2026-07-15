@@ -83,28 +83,21 @@ public readonly record struct GroupedKeywords
     public required ImmutableArray<GeneratedSyntaxKind> Keywords { get; init; }
 }
 
+public sealed class TrieNode
+{
+    public Dictionary<char, TrieNode> Children { get; } = new();
+    public GeneratedSyntaxKind? Value { get; set; }
+}
+
 public sealed record GeneratedTokens : IEnumerable<GeneratedSyntaxKindGroup>
 {
-    public required GeneratedSyntaxKindGroup Keywords
-    {
-        get;
-        init
-        {
-            field = value;
-            KeywordsByLength =
-            [
-                .. value
-                    .Kinds.GroupBy(k => k.Name.Length)
-                    .OrderBy(g => g.Key)
-                    .Select(g => new GroupedKeywords { Length = g.Key, Keywords = [.. g] }),
-            ];
-        }
-    }
+    public required GeneratedSyntaxKindGroup Keywords { get; init; }
 
     public required GeneratedSyntaxKindGroup Punctuations { get; init; }
     public required GeneratedSyntaxKindGroup Others { get; init; }
 
-    public ImmutableArray<GroupedKeywords> KeywordsByLength { get; private init; }
+    public required ImmutableArray<GroupedKeywords> KeywordsByLength { get; init; }
+    public required string PunctuationTrie { get; init; }
 
     public IEnumerator<GeneratedSyntaxKindGroup> GetEnumerator()
     {

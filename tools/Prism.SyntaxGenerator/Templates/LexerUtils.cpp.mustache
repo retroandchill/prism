@@ -47,4 +47,11 @@ namespace prism
 
         return std::nullopt;
     }
+
+    Optional<SyntaxKind> match_punctuation(TextCursor& cursor)
+    {
+{{Tokens.PunctuationTrie}}
+
+        return std::nullopt;
+    }
 }
