@@ -1,0 +1,50 @@
+﻿module prism.core:syntax.lexing_utils.impl;
+
+import :syntax.lexing_utils;
+
+namespace prism
+{
+    GreenPtr<GreenToken> get_static_green_token(SyntaxKind kind)
+    {
+        if (is_keyword(kind))
+        {
+            static std::array keywords = {
+                {{#Tokens.Keywords.Kinds}}
+                make_ref_counted<GreenToken>(SyntaxKind::{{CppName}}),
+                {{/Tokens.Keywords.Kinds}}
+            };
+
+            return keywords[std::to_underlying(kind) - std::to_underlying(SyntaxKind::keyword_start)];
+        }
+
+        if (is_punctuation(kind))
+        {
+            static std::array punctuations = {
+                {{#Tokens.Punctuations.Kinds}}
+                make_ref_counted<GreenToken>(SyntaxKind::{{CppName}}),
+                {{/Tokens.Punctuations.Kinds}}
+            };
+
+            return punctuations[std::to_underlying(kind) - std::to_underlying(SyntaxKind::punctuation_start)];
+        }
+
+        return nullptr;
+    }
+
+    Optional<SyntaxKind> match_keyword(std::string_view text)
+    {
+        switch (text.size())
+        {
+            {{#Tokens.KeywordsByLength}}
+            case {{Length}}:
+                {{#Keywords}}
+                if (text == "{{Name}}")
+                    return SyntaxKind::{{CppName}};
+                {{/Keywords}}
+                break;
+            {{/Tokens.KeywordsByLength}}
+        }
+
+        return std::nullopt;
+    }
+}

@@ -77,11 +77,34 @@ public sealed record GeneratedSyntaxKindGroup
     public required int EndValue { get; init; }
 }
 
+public readonly record struct GroupedKeywords
+{
+    public required int Length { get; init; }
+    public required ImmutableArray<GeneratedSyntaxKind> Keywords { get; init; }
+}
+
 public sealed record GeneratedTokens : IEnumerable<GeneratedSyntaxKindGroup>
 {
-    public required GeneratedSyntaxKindGroup Keywords { get; init; }
+    public required GeneratedSyntaxKindGroup Keywords
+    {
+        get;
+        init
+        {
+            field = value;
+            KeywordsByLength =
+            [
+                .. value
+                    .Kinds.GroupBy(k => k.Name.Length)
+                    .OrderBy(g => g.Key)
+                    .Select(g => new GroupedKeywords { Length = g.Key, Keywords = [.. g] }),
+            ];
+        }
+    }
+
     public required GeneratedSyntaxKindGroup Punctuations { get; init; }
     public required GeneratedSyntaxKindGroup Others { get; init; }
+
+    public ImmutableArray<GroupedKeywords> KeywordsByLength { get; private init; }
 
     public IEnumerator<GeneratedSyntaxKindGroup> GetEnumerator()
     {

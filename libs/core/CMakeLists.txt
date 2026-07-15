@@ -20,6 +20,7 @@ set(PRISM_SOURCES
         generated/private/syntax/green/clauses.cpp
         generated/private/syntax/green/statement.cpp
         src/private/syntax/green/list.cpp
+        generated/private/syntax/lexing_utils.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )

@@ -3,6 +3,7 @@
   <component name="TemplateDataLanguageMappings">
     <file url="file://$PROJECT_DIR$/tools/Prism.SyntaxGenerator/Templates/GreenNode.cpp.mustache" dialect="C++" />
     <file url="file://$PROJECT_DIR$/tools/Prism.SyntaxGenerator/Templates/GreenNode.ixx.mustache" dialect="C++" />
+    <file url="file://$PROJECT_DIR$/tools/Prism.SyntaxGenerator/Templates/LexerUtils.cpp.mustache" dialect="C++" />
     <file url="file://$PROJECT_DIR$/tools/Prism.SyntaxGenerator/Templates/LexerUtils.ixx.mustache" dialect="C++" />
     <file url="file://$PROJECT_DIR$/tools/Prism.SyntaxGenerator/Templates/SyntaxKind.ixx.mustache" dialect="C++" />
   </component>

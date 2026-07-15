@@ -12,7 +12,8 @@ namespace Prism.SyntaxGenerator;
 public sealed class Emitter
 {
     private readonly HandlebarsTemplate<object?, object?> _syntaxKindTemplate;
-    private readonly HandlebarsTemplate<object?, object?> _lexerUtilsTemplate;
+    private readonly HandlebarsTemplate<object?, object?> _lexerUtilsInterfaceTemplate;
+    private readonly HandlebarsTemplate<object?, object?> _lexerUtilsImplementationTemplate;
     private readonly HandlebarsTemplate<object?, object?> _greenInterfaceTemplate;
     private readonly HandlebarsTemplate<object?, object?> _greenImplementationTemplate;
 
@@ -22,7 +23,12 @@ public sealed class Emitter
         handlebars.Configuration.TextEncoder = null;
         handlebars.RegisterAllHelpers();
         _syntaxKindTemplate = handlebars.Compile(TemplateLoader.LoadTemplate("SyntaxKind.ixx"));
-        _lexerUtilsTemplate = handlebars.Compile(TemplateLoader.LoadTemplate("LexerUtils.ixx"));
+        _lexerUtilsInterfaceTemplate = handlebars.Compile(
+            TemplateLoader.LoadTemplate("LexerUtils.ixx")
+        );
+        _lexerUtilsImplementationTemplate = handlebars.Compile(
+            TemplateLoader.LoadTemplate("LexerUtils.cpp")
+        );
         _greenInterfaceTemplate = handlebars.Compile(TemplateLoader.LoadTemplate("GreenNode.ixx"));
         _greenImplementationTemplate = handlebars.Compile(
             TemplateLoader.LoadTemplate("GreenNode.cpp")
@@ -49,7 +55,13 @@ public sealed class Emitter
         await GenerateAndSave(
             Path.Combine(publicSyntaxDir, "lexing_utils.ixx"),
             model.SyntaxKinds,
-            _lexerUtilsTemplate,
+            _lexerUtilsInterfaceTemplate,
+            cancellationToken
+        );
+        await GenerateAndSave(
+            Path.Combine(privateSyntaxDir, "lexing_utils.cpp"),
+            model.SyntaxKinds,
+            _lexerUtilsImplementationTemplate,
             cancellationToken
         );
         foreach (var module in model.Modules)

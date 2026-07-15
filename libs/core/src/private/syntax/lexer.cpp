@@ -8,14 +8,13 @@ module;
 
 #include "prism/core/syntax.hpp"
 
-#include <boost/multiprecision/cpp_dec_float.hpp>
-
 module prism.core:syntax.lexer.impl;
 
 import :syntax.lexer;
 import :syntax.diagnostics;
 import uni_algo;
 import :memory.buffer_pool;
+import :syntax.lexing_utils;
 
 namespace prism
 {
@@ -464,17 +463,12 @@ namespace prism
         const auto length = cursor_.position() - start;
         const auto identifier = view.substr(0, length);
 
-        using namespace std::string_view_literals;
-        static constexpr std::array keywords = {
-#define X(name) std::make_pair(SyntaxKind::name##_keyword, #name##sv),
-            PRISM_SYNTAX_KEYWORDS(X)
-#undef X
-        };
-        for (auto [kind, keyword] : keywords)
+        // Escaped identifiers are never keywords
+        if (!identifier.starts_with('@'))
         {
-            if (identifier == keyword)
-                return GreenToken::from(kind)->with_leading_and_trailing_trivia(std::move(leading_trivia),
-                                                                                collect_trivia());
+            if (auto keyword = match_keyword(identifier); keyword.has_value())
+                return GreenToken::from(*keyword)->with_leading_and_trailing_trivia(std::move(leading_trivia),
+                                                                                    collect_trivia());
         }
 
         return make_green_value(IdentifierData{identifier, is_escaped}, std::move(leading_trivia), collect_trivia());
