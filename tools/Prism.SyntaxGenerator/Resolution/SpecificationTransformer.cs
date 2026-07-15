@@ -240,7 +240,8 @@ public static class SpecificationTransformer
             {
                 writer.WriteLine("switch (cursor.current())");
                 using var block = writer.OpenBlock();
-                foreach (var (character, child) in node.Children)
+                // Sort by the key to ensure consistent output
+                foreach (var (character, child) in node.Children.OrderBy(x => x.Key))
                 {
                     writer.WriteLine($"case '{character}':");
                     using var unmarkedBlock = writer.OpenCaseBlock();

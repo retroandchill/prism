@@ -185,36 +185,22 @@ namespace prism
     {
         switch (cursor.current())
         {
-            case '[':
+            case '!':
                 cursor.advance();
-                return SyntaxKind::lbracket_token;
-            case ']':
-                cursor.advance();
-                return SyntaxKind::rbracket_token;
-            case '(':
-                cursor.advance();
-                return SyntaxKind::lparen_token;
-            case ')':
-                cursor.advance();
-                return SyntaxKind::rparen_token;
-            case '{':
-                cursor.advance();
-                return SyntaxKind::lbrace_token;
-            case '}':
-                cursor.advance();
-                return SyntaxKind::rbrace_token;
-            case '.':
-                cursor.advance();
-                if (cursor.current() == '.')
+                if (cursor.current() == '=')
                 {
                     cursor.advance();
-                    if (cursor.current() == '.')
-                    {
-                        cursor.advance();
-                        return SyntaxKind::ellipsis_token;
-                    }
+                    return SyntaxKind::exclaim_equal_token;
                 }
-                return SyntaxKind::period_token;
+                return SyntaxKind::exclaim_token;
+            case '%':
+                cursor.advance();
+                if (cursor.current() == '=')
+                {
+                    cursor.advance();
+                    return SyntaxKind::percent_equal_token;
+                }
+                return SyntaxKind::percent_token;
             case '&':
                 cursor.advance();
                 switch (cursor.current())
@@ -227,6 +213,12 @@ namespace prism
                         return SyntaxKind::amp_equal_token;
                 }
                 return SyntaxKind::amp_token;
+            case '(':
+                cursor.advance();
+                return SyntaxKind::lparen_token;
+            case ')':
+                cursor.advance();
+                return SyntaxKind::rparen_token;
             case '*':
                 cursor.advance();
                 if (cursor.current() == '=')
@@ -247,32 +239,36 @@ namespace prism
                         return SyntaxKind::plus_equal_token;
                 }
                 return SyntaxKind::plus_token;
+            case ',':
+                cursor.advance();
+                return SyntaxKind::comma_token;
             case '-':
                 cursor.advance();
                 switch (cursor.current())
                 {
-                    case '>':
-                        cursor.advance();
-                        return SyntaxKind::arrow_token;
                     case '-':
                         cursor.advance();
                         return SyntaxKind::minus_minus_token;
                     case '=':
                         cursor.advance();
                         return SyntaxKind::minus_equal_token;
+                    case '>':
+                        cursor.advance();
+                        return SyntaxKind::arrow_token;
                 }
                 return SyntaxKind::minus_token;
-            case '~':
+            case '.':
                 cursor.advance();
-                return SyntaxKind::tilde_token;
-            case '!':
-                cursor.advance();
-                if (cursor.current() == '=')
+                if (cursor.current() == '.')
                 {
                     cursor.advance();
-                    return SyntaxKind::exclaim_equal_token;
+                    if (cursor.current() == '.')
+                    {
+                        cursor.advance();
+                        return SyntaxKind::ellipsis_token;
+                    }
                 }
-                return SyntaxKind::exclaim_token;
+                return SyntaxKind::period_token;
             case '/':
                 cursor.advance();
                 if (cursor.current() == '=')
@@ -281,14 +277,17 @@ namespace prism
                     return SyntaxKind::slash_equal_token;
                 }
                 return SyntaxKind::slash_token;
-            case '%':
+            case ':':
                 cursor.advance();
-                if (cursor.current() == '=')
+                if (cursor.current() == ':')
                 {
                     cursor.advance();
-                    return SyntaxKind::percent_equal_token;
+                    return SyntaxKind::colon_colon_token;
                 }
-                return SyntaxKind::percent_token;
+                return SyntaxKind::colon_token;
+            case ';':
+                cursor.advance();
+                return SyntaxKind::semicolon_token;
             case '<':
                 cursor.advance();
                 switch (cursor.current())
@@ -311,14 +310,32 @@ namespace prism
                         return SyntaxKind::less_equal_token;
                 }
                 return SyntaxKind::less_token;
+            case '=':
+                cursor.advance();
+                switch (cursor.current())
+                {
+                    case '=':
+                        cursor.advance();
+                        return SyntaxKind::equal_equal_token;
+                    case '>':
+                        cursor.advance();
+                        return SyntaxKind::big_arrow_token;
+                }
+                return SyntaxKind::equal_token;
             case '>':
                 cursor.advance();
                 switch (cursor.current())
                 {
+                    case '=':
+                        cursor.advance();
+                        return SyntaxKind::greater_equal_token;
                     case '>':
                         cursor.advance();
                         switch (cursor.current())
                         {
+                            case '=':
+                                cursor.advance();
+                                return SyntaxKind::greater_greater_equal_token;
                             case '>':
                                 cursor.advance();
                                 if (cursor.current() == '=')
@@ -327,16 +344,28 @@ namespace prism
                                     return SyntaxKind::greater_greater_greater_equal_token;
                                 }
                                 return SyntaxKind::greater_greater_greater_token;
-                            case '=':
-                                cursor.advance();
-                                return SyntaxKind::greater_greater_equal_token;
                         }
                         return SyntaxKind::greater_greater_token;
-                    case '=':
-                        cursor.advance();
-                        return SyntaxKind::greater_equal_token;
                 }
                 return SyntaxKind::greater_token;
+            case '?':
+                cursor.advance();
+                switch (cursor.current())
+                {
+                    case '.':
+                        cursor.advance();
+                        return SyntaxKind::question_period_token;
+                    case '?':
+                        cursor.advance();
+                        return SyntaxKind::question_question_token;
+                }
+                return SyntaxKind::question_token;
+            case '[':
+                cursor.advance();
+                return SyntaxKind::lbracket_token;
+            case ']':
+                cursor.advance();
+                return SyntaxKind::rbracket_token;
             case '^':
                 cursor.advance();
                 if (cursor.current() == '=')
@@ -345,56 +374,27 @@ namespace prism
                     return SyntaxKind::caret_equal_token;
                 }
                 return SyntaxKind::caret_token;
+            case '{':
+                cursor.advance();
+                return SyntaxKind::lbrace_token;
             case '|':
                 cursor.advance();
                 switch (cursor.current())
                 {
-                    case '|':
-                        cursor.advance();
-                        return SyntaxKind::pipe_pipe_token;
                     case '=':
                         cursor.advance();
                         return SyntaxKind::pipe_equal_token;
+                    case '|':
+                        cursor.advance();
+                        return SyntaxKind::pipe_pipe_token;
                 }
                 return SyntaxKind::pipe_token;
-            case '?':
+            case '}':
                 cursor.advance();
-                switch (cursor.current())
-                {
-                    case '?':
-                        cursor.advance();
-                        return SyntaxKind::question_question_token;
-                    case '.':
-                        cursor.advance();
-                        return SyntaxKind::question_period_token;
-                }
-                return SyntaxKind::question_token;
-            case ':':
+                return SyntaxKind::rbrace_token;
+            case '~':
                 cursor.advance();
-                if (cursor.current() == ':')
-                {
-                    cursor.advance();
-                    return SyntaxKind::colon_colon_token;
-                }
-                return SyntaxKind::colon_token;
-            case ';':
-                cursor.advance();
-                return SyntaxKind::semicolon_token;
-            case '=':
-                cursor.advance();
-                switch (cursor.current())
-                {
-                    case '>':
-                        cursor.advance();
-                        return SyntaxKind::big_arrow_token;
-                    case '=':
-                        cursor.advance();
-                        return SyntaxKind::equal_equal_token;
-                }
-                return SyntaxKind::equal_token;
-            case ',':
-                cursor.advance();
-                return SyntaxKind::comma_token;
+                return SyntaxKind::tilde_token;
         }
 
         return std::nullopt;
