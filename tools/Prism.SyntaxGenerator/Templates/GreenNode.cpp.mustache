@@ -9,8 +9,8 @@ namespace prism
 {
     {{#Nodes}}
     {{^IsAbstract}}
-    {{GreenName}}::{{GreenName}}(const SyntaxKind kind{{#Children}}, {{GreenFieldType}} {{Name}}{{/Children}}, DiagnosticInfoList diagnostics)
-        : {{GreenBase}}{kind, std::move(diagnostics)}{{#Children}}, {{FieldName}}{std::move({{Name}})}{{/Children}}
+    {{GreenName}}::{{GreenName}}({{#Children}}{{GreenFieldType}} {{Name}}, {{/Children}}DiagnosticInfoList diagnostics)
+        : {{GreenBase}}{SyntaxKind::{{KindName}}, std::move(diagnostics)}{{#Children}}, {{FieldName}}{std::move({{Name}})}{{/Children}}
     {
         {{^Equals Children.Length 0}}
         set_child_count({{Children.Length}});

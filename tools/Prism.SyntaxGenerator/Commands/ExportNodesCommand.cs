@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using DotMake.CommandLine;
 using Prism.SyntaxGenerator.Models;
+using Prism.SyntaxGenerator.Resolution;
 
 namespace Prism.SyntaxGenerator.Commands;
 
@@ -21,11 +22,7 @@ public class ExportNodesCommand
 
     public async Task RunAsync(CliContext context)
     {
-        var options = new JsonSerializerOptions(JsonSerializerOptions.Default)
-        {
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        };
+        var options = ModelJsonSerializerContext.CompositeOptions;
         SyntaxSpecification syntax;
         await using (var stream = File.OpenRead(InputPath))
         {
@@ -41,7 +38,9 @@ public class ExportNodesCommand
                 );
         }
 
-        var generatedModules = SpecificationTransformer.Transform(syntax);
+        var builder = new SyntaxModelBuilder();
+        var resolvedModel = builder.Build(syntax);
+        var generatedModules = SpecificationTransformer.Transform(resolvedModel);
         var emitter = new Emitter();
         await emitter.EmitNodesAsync(generatedModules, OutputPath, context.CancellationToken);
     }

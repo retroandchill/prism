@@ -30,6 +30,14 @@ namespace prism
         } -> std::convertible_to<const GreenNode &>;
     };
 
+    template <typename T>
+    concept GreenNodeLike =
+        std::same_as<T, GreenNode> || (std::derived_from<T, GreenNode> && requires(const GreenNode &node) {
+            {
+                T:: instanceof (node)
+            } -> std::convertible_to<bool>;
+        });
+
     class GreenNode : public IntrusiveRefCounted
     {
       protected:
@@ -125,17 +133,38 @@ namespace prism
         }
 
       public:
+        template <GreenNodeLike T>
+        [[nodiscard]] bool is() const
+        {
+            if constexpr (std::is_same_v<T, GreenNode>)
+            {
+                return true;
+            }
+            else
+            {
+                return T:: instanceof (*this);
+            }
+        }
+
+        template <GreenNodeLike T>
+        [[nodiscard]] Optional<const T &> as() const
+        {
+            if constexpr (std::is_same_v<T, GreenNode>)
+            {
+                return *this;
+            }
+            else
+            {
+                return T:: instanceof (*this) ? Optional<const T &>{static_cast<const T &>(*this)} : std::nullopt;
+            }
+        }
+
         [[nodiscard]] virtual Optional<const GreenNode &> get_child(std::size_t index) const = 0;
 
         template <std::derived_from<GreenNode> T>
         Optional<const T &> get_child(const std::size_t index) const
         {
-            return get_child(index).and_then(
-                [](const GreenNode &child) -> Optional<const T &>
-                {
-                    auto *node = dynamic_cast<const T *>(&child);
-                    return node != nullptr ? Optional<const T &>{*node} : std::nullopt;
-                });
+            return get_child(index).and_then([](const GreenNode &child) { return child.as<T>(); });
         }
 
         template <std::derived_from<GreenNode> T>

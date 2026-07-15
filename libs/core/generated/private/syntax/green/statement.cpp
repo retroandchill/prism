@@ -1,17 +1,19 @@
 module prism.core:syntax.green.statement.impl;
 
 import :syntax.green.statement;
+import :syntax.green.clauses;
 import :syntax.green.declaration;
 import :syntax.green.expression;
+import :syntax.green.type;
 
 namespace prism
 {
     GreenStatement::~GreenStatement() = default;
 
-    GreenVariableDeclarationStatement::GreenVariableDeclarationStatement(const SyntaxKind kind,
-                                                                         GreenPtr<GreenVariableDeclaration> declaration,
+    GreenVariableDeclarationStatement::GreenVariableDeclarationStatement(GreenPtr<GreenVariableDeclaration> declaration,
                                                                          DiagnosticInfoList diagnostics)
-        : GreenStatement{kind, std::move(diagnostics)}, declaration_{std::move(declaration)}
+        : GreenStatement{SyntaxKind::variable_declaration_statement, std::move(diagnostics)},
+          declaration_{std::move(declaration)}
     {
         set_child_count(1);
         adjust_flags_and_width(*declaration_);
@@ -29,10 +31,8 @@ namespace prism
         }
     }
 
-    GreenBlock::GreenBlock(const SyntaxKind kind,
-                           GreenSyntaxList<GreenStatement> statements,
-                           DiagnosticInfoList diagnostics)
-        : GreenStatement{kind, std::move(diagnostics)}, statements_{std::move(statements)}
+    GreenBlock::GreenBlock(GreenSyntaxList<GreenStatement> statements, DiagnosticInfoList diagnostics)
+        : GreenStatement{SyntaxKind::block, std::move(diagnostics)}, statements_{std::move(statements)}
     {
         set_child_count(1);
         adjust_flags_and_width(statements_);
@@ -50,13 +50,13 @@ namespace prism
         }
     }
 
-    GreenReturnStatement::GreenReturnStatement(const SyntaxKind kind,
-                                               GreenPtr<GreenToken> return_keyword,
+    GreenReturnStatement::GreenReturnStatement(GreenPtr<GreenToken> return_keyword,
                                                GreenPtr<GreenExpression> expression,
                                                GreenPtr<GreenToken> semicolon,
                                                DiagnosticInfoList diagnostics)
-        : GreenStatement{kind, std::move(diagnostics)}, return_keyword_{std::move(return_keyword)},
-          expression_{std::move(expression)}, semicolon_{std::move(semicolon)}
+        : GreenStatement{SyntaxKind::return_statement, std::move(diagnostics)},
+          return_keyword_{std::move(return_keyword)}, expression_{std::move(expression)},
+          semicolon_{std::move(semicolon)}
     {
         set_child_count(3);
         adjust_flags_and_width(*return_keyword_);
@@ -81,11 +81,10 @@ namespace prism
         }
     }
 
-    GreenExpressionStatement::GreenExpressionStatement(const SyntaxKind kind,
-                                                       GreenPtr<GreenExpression> expression,
+    GreenExpressionStatement::GreenExpressionStatement(GreenPtr<GreenExpression> expression,
                                                        GreenPtr<GreenToken> semicolon,
                                                        DiagnosticInfoList diagnostics)
-        : GreenStatement{kind, std::move(diagnostics)}, expression_{std::move(expression)},
+        : GreenStatement{SyntaxKind::expression_statement, std::move(diagnostics)}, expression_{std::move(expression)},
           semicolon_{std::move(semicolon)}
     {
         set_child_count(2);
@@ -107,10 +106,8 @@ namespace prism
         }
     }
 
-    GreenEmptyStatement::GreenEmptyStatement(const SyntaxKind kind,
-                                             GreenPtr<GreenToken> semicolon,
-                                             DiagnosticInfoList diagnostics)
-        : GreenStatement{kind, std::move(diagnostics)}, semicolon_{std::move(semicolon)}
+    GreenEmptyStatement::GreenEmptyStatement(GreenPtr<GreenToken> semicolon, DiagnosticInfoList diagnostics)
+        : GreenStatement{SyntaxKind::empty_statement, std::move(diagnostics)}, semicolon_{std::move(semicolon)}
     {
         set_child_count(1);
         adjust_flags_and_width(*semicolon_);

@@ -1,6 +1,10 @@
 module prism.core:syntax.green.type.impl;
 
 import :syntax.green.type;
+import :syntax.green.clauses;
+import :syntax.green.declaration;
+import :syntax.green.expression;
+import :syntax.green.statement;
 
 namespace prism
 {
@@ -10,10 +14,9 @@ namespace prism
 
     GreenSimpleNamedType::~GreenSimpleNamedType() = default;
 
-    GreenIdentifierNamedType::GreenIdentifierNamedType(const SyntaxKind kind,
-                                                       GreenPtr<GreenToken> identifier,
-                                                       DiagnosticInfoList diagnostics)
-        : GreenSimpleNamedType{kind, std::move(diagnostics)}, identifier_{std::move(identifier)}
+    GreenIdentifierNamedType::GreenIdentifierNamedType(GreenPtr<GreenToken> identifier, DiagnosticInfoList diagnostics)
+        : GreenSimpleNamedType{SyntaxKind::identifier_named_type, std::move(diagnostics)},
+          identifier_{std::move(identifier)}
     {
         set_child_count(1);
         adjust_flags_and_width(*identifier_);

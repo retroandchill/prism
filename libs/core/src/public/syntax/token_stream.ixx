@@ -45,7 +45,7 @@ namespace prism
         void replace_next(Range &&range)
         {
             [[maybe_unused]] const auto &next = peek();
-            assert(next.kind() != SyntaxKind::end_of_file_token);
+            assert(next.kind() != SyntaxKind::eof_token);
 
             lookahead_.pop_front();
             lookahead_.append_range(std::forward<Range>(range));

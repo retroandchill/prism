@@ -2,13 +2,15 @@ module prism.core:syntax.green.declaration.impl;
 
 import :syntax.green.declaration;
 import :syntax.green.clauses;
+import :syntax.green.expression;
+import :syntax.green.statement;
+import :syntax.green.type;
 
 namespace prism
 {
     GreenDeclaration::~GreenDeclaration() = default;
 
-    GreenVariableDeclaration::GreenVariableDeclaration(const SyntaxKind kind,
-                                                       GreenSyntaxList<GreenToken> modifiers,
+    GreenVariableDeclaration::GreenVariableDeclaration(GreenSyntaxList<GreenToken> modifiers,
                                                        GreenPtr<GreenToken> var_keyword,
                                                        GreenPtr<GreenToken> mut_keyword,
                                                        GreenPtr<GreenToken> identifier,
@@ -16,7 +18,7 @@ namespace prism
                                                        GreenPtr<GreenInitializer> initializer,
                                                        GreenPtr<GreenToken> semicolon,
                                                        DiagnosticInfoList diagnostics)
-        : GreenDeclaration{kind, std::move(diagnostics)}, modifiers_{std::move(modifiers)},
+        : GreenDeclaration{SyntaxKind::variable_declaration, std::move(diagnostics)}, modifiers_{std::move(modifiers)},
           var_keyword_{std::move(var_keyword)}, mut_keyword_{std::move(mut_keyword)},
           identifier_{std::move(identifier)}, type_{std::move(type)}, initializer_{std::move(initializer)},
           semicolon_{std::move(semicolon)}

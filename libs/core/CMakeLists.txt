@@ -14,11 +14,11 @@ set(PRISM_SOURCES
         src/private/syntax/lexer.cpp
         src/private/syntax/green/trivia.cpp
         src/private/syntax/token_stream.cpp
-        src/private/syntax/green/type.cpp
-        src/private/syntax/green/declaration.cpp
-        src/private/syntax/green/expression.cpp
-        src/private/syntax/green/clauses.cpp
-        src/private/syntax/green/statement.cpp
+        generated/private/syntax/green/type.cpp
+        generated/private/syntax/green/declaration.cpp
+        generated/private/syntax/green/expression.cpp
+        generated/private/syntax/green/clauses.cpp
+        generated/private/syntax/green/statement.cpp
         src/private/syntax/green/list.cpp
 )
 
@@ -29,7 +29,7 @@ set(PRISM_PUBLIC_MODULES
         src/public/memory/alignment.ixx
         src/public/memory/arena_allocator.ixx
         src/public/memory/buffer_pool.ixx
-        src/public/syntax/kind.ixx
+        generated/public/syntax/kind.ixx
         src/public/syntax/green/node.ixx
         src/public/syntax/flags.ixx
         src/public/util/enum_class_flags.ixx
@@ -60,13 +60,14 @@ set(PRISM_PUBLIC_MODULES
         src/public/syntax/node.ixx
         src/public/syntax/tree.ixx
         src/public/syntax/parsed_tree.ixx
-        src/public/syntax/green/type.ixx
-        src/public/syntax/green/declaration.ixx
+        generated/public/syntax/green/type.ixx
+        generated/public/syntax/green/declaration.ixx
         src/public/syntax/green/list.ixx
-        src/public/syntax/green/expression.ixx
-        src/public/syntax/green/clauses.ixx
+        generated/public/syntax/green/expression.ixx
+        generated/public/syntax/green/clauses.ixx
         src/public/syntax/green/separated_list.ixx
-        src/public/syntax/green/statement.ixx
+        generated/public/syntax/green/statement.ixx
+        generated/public/syntax/lexing_utils.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

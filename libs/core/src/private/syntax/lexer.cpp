@@ -35,11 +35,10 @@ namespace prism
 
     GreenPtr<GreenToken> Lexer::next()
     {
-        const auto start = cursor_.position();
         auto leading_trivia = collect_trivia(false);
 
         if (cursor_.at_end())
-            return make_eof(start, std::move(leading_trivia));
+            return make_eof(std::move(leading_trivia));
 
         return *match_number(leading_trivia)
                     .or_else([&] { return match_punctuation(leading_trivia); })
@@ -49,7 +48,7 @@ namespace prism
                     .or_else([&] { return Optional{make_bad_token(leading_trivia)}; });
     }
 
-    GreenTriviaList Lexer::collect_trivia(bool stop_after_newline)
+    GreenTriviaList Lexer::collect_trivia(const bool stop_after_newline)
     {
         GreenListBuilder<GreenTrivia> builder;
         while (!cursor_.at_end())
@@ -152,7 +151,7 @@ namespace prism
 
     GreenPtr<GreenTrivia> Lexer::handle_block_comment()
     {
-        auto start = cursor_.position();
+        const auto start = cursor_.position();
         std::string str = "/*";
         cursor_.advance(2);
         while (!cursor_.at_end())
@@ -173,7 +172,7 @@ namespace prism
         return std::move(ptr);
     }
 
-    GreenPtr<GreenToken> Lexer::make_eof(const std::uint32_t start, GreenTriviaList leading_trivia)
+    GreenPtr<GreenToken> Lexer::make_eof(GreenTriviaList leading_trivia)
     {
         return GreenToken::eof()->with_leading_trivia(std::move(leading_trivia));
     }

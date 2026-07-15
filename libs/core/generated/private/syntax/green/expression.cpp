@@ -2,15 +2,16 @@ module prism.core:syntax.green.expression.impl;
 
 import :syntax.green.expression;
 import :syntax.green.clauses;
+import :syntax.green.declaration;
+import :syntax.green.statement;
+import :syntax.green.type;
 
 namespace prism
 {
     GreenExpression::~GreenExpression() = default;
 
-    GreenLiteralExpression::GreenLiteralExpression(const SyntaxKind kind,
-                                                   GreenPtr<GreenToken> value,
-                                                   DiagnosticInfoList diagnostics)
-        : GreenExpression{kind, std::move(diagnostics)}, value_{std::move(value)}
+    GreenLiteralExpression::GreenLiteralExpression(GreenPtr<GreenToken> value, DiagnosticInfoList diagnostics)
+        : GreenExpression{SyntaxKind::literal_expression, std::move(diagnostics)}, value_{std::move(value)}
     {
         set_child_count(1);
         adjust_flags_and_width(*value_);
@@ -28,10 +29,8 @@ namespace prism
         }
     }
 
-    GreenIdentifierExpression::GreenIdentifierExpression(const SyntaxKind kind,
-                                                         GreenPtr<GreenToken> value,
-                                                         DiagnosticInfoList diagnostics)
-        : GreenExpression{kind, std::move(diagnostics)}, value_{std::move(value)}
+    GreenIdentifierExpression::GreenIdentifierExpression(GreenPtr<GreenToken> value, DiagnosticInfoList diagnostics)
+        : GreenExpression{SyntaxKind::identifier_expression, std::move(diagnostics)}, value_{std::move(value)}
     {
         set_child_count(1);
         adjust_flags_and_width(*value_);
@@ -49,13 +48,12 @@ namespace prism
         }
     }
 
-    GreenParenthesizedExpression::GreenParenthesizedExpression(const SyntaxKind kind,
-                                                               GreenPtr<GreenToken> open,
+    GreenParenthesizedExpression::GreenParenthesizedExpression(GreenPtr<GreenToken> open,
                                                                GreenPtr<GreenExpression> expression,
                                                                GreenPtr<GreenToken> close,
                                                                DiagnosticInfoList diagnostics)
-        : GreenExpression{kind, std::move(diagnostics)}, open_{std::move(open)}, expression_{std::move(expression)},
-          close_{std::move(close)}
+        : GreenExpression{SyntaxKind::parenthesized_expression, std::move(diagnostics)}, open_{std::move(open)},
+          expression_{std::move(expression)}, close_{std::move(close)}
     {
         set_child_count(3);
         adjust_flags_and_width(*open_);
@@ -79,13 +77,12 @@ namespace prism
         }
     }
 
-    GreenBinaryExpression::GreenBinaryExpression(const SyntaxKind kind,
-                                                 GreenPtr<GreenExpression> left,
+    GreenBinaryExpression::GreenBinaryExpression(GreenPtr<GreenExpression> left,
                                                  GreenPtr<GreenToken> op,
                                                  GreenPtr<GreenExpression> right,
                                                  DiagnosticInfoList diagnostics)
-        : GreenExpression{kind, std::move(diagnostics)}, left_{std::move(left)}, op_{std::move(op)},
-          right_{std::move(right)}
+        : GreenExpression{SyntaxKind::binary_expression, std::move(diagnostics)}, left_{std::move(left)},
+          op_{std::move(op)}, right_{std::move(right)}
     {
         set_child_count(3);
         adjust_flags_and_width(*left_);
@@ -109,11 +106,11 @@ namespace prism
         }
     }
 
-    GreenPrefixExpression::GreenPrefixExpression(const SyntaxKind kind,
-                                                 GreenPtr<GreenToken> op,
+    GreenPrefixExpression::GreenPrefixExpression(GreenPtr<GreenToken> op,
                                                  GreenPtr<GreenExpression> operand,
                                                  DiagnosticInfoList diagnostics)
-        : GreenExpression{kind, std::move(diagnostics)}, op_{std::move(op)}, operand_{std::move(operand)}
+        : GreenExpression{SyntaxKind::prefix_expression, std::move(diagnostics)}, op_{std::move(op)},
+          operand_{std::move(operand)}
     {
         set_child_count(2);
         adjust_flags_and_width(*op_);
@@ -134,11 +131,11 @@ namespace prism
         }
     }
 
-    GreenPostfixExpression::GreenPostfixExpression(const SyntaxKind kind,
-                                                   GreenPtr<GreenExpression> operand,
+    GreenPostfixExpression::GreenPostfixExpression(GreenPtr<GreenExpression> operand,
                                                    GreenPtr<GreenToken> op,
                                                    DiagnosticInfoList diagnostics)
-        : GreenExpression{kind, std::move(diagnostics)}, operand_{std::move(operand)}, op_{std::move(op)}
+        : GreenExpression{SyntaxKind::postfix_expression, std::move(diagnostics)}, operand_{std::move(operand)},
+          op_{std::move(op)}
     {
         set_child_count(2);
         adjust_flags_and_width(*operand_);
@@ -159,14 +156,13 @@ namespace prism
         }
     }
 
-    GreenTernaryExpression::GreenTernaryExpression(const SyntaxKind kind,
-                                                   GreenPtr<GreenExpression> condition,
+    GreenTernaryExpression::GreenTernaryExpression(GreenPtr<GreenExpression> condition,
                                                    GreenPtr<GreenToken> question_mark,
                                                    GreenPtr<GreenExpression> when_true,
                                                    GreenPtr<GreenToken> colon,
                                                    GreenPtr<GreenExpression> when_false,
                                                    DiagnosticInfoList diagnostics)
-        : GreenExpression{kind, std::move(diagnostics)}, condition_{std::move(condition)},
+        : GreenExpression{SyntaxKind::ternary_expression, std::move(diagnostics)}, condition_{std::move(condition)},
           question_mark_{std::move(question_mark)}, when_true_{std::move(when_true)}, colon_{std::move(colon)},
           when_false_{std::move(when_false)}
     {
@@ -198,11 +194,11 @@ namespace prism
         }
     }
 
-    GreenInvocationExpression::GreenInvocationExpression(const SyntaxKind kind,
-                                                         GreenPtr<GreenExpression> callee,
+    GreenInvocationExpression::GreenInvocationExpression(GreenPtr<GreenExpression> callee,
                                                          GreenPtr<GreenArgumentList> arguments,
                                                          DiagnosticInfoList diagnostics)
-        : GreenExpression{kind, std::move(diagnostics)}, callee_{std::move(callee)}, arguments_{std::move(arguments)}
+        : GreenExpression{SyntaxKind::invocation_expression, std::move(diagnostics)}, callee_{std::move(callee)},
+          arguments_{std::move(arguments)}
     {
         set_child_count(2);
         adjust_flags_and_width(*callee_);

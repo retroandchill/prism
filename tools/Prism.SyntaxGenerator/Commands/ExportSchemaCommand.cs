@@ -18,11 +18,7 @@ public class ExportSchemaCommand
 
     public async Task RunAsync(CliContext context)
     {
-        var options = new JsonSerializerOptions(JsonSerializerOptions.Default)
-        {
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        };
+        var options = ModelJsonSerializerContext.CompositeOptions;
         var schema = options.GetJsonSchemaAsNode(typeof(SyntaxSpecification));
         if (ExportPath is not null)
         {

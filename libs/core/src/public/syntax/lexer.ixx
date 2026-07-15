@@ -28,7 +28,7 @@ namespace prism
         GreenPtr<GreenTrivia> handle_line_comment();
         GreenPtr<GreenTrivia> handle_block_comment();
 
-        static GreenPtr<GreenToken> make_eof(std::uint32_t start, GreenTriviaList leading_trivia);
+        static GreenPtr<GreenToken> make_eof(GreenTriviaList leading_trivia);
         GreenPtr<GreenToken> make_bad_token(GreenTriviaList leading_trivia);
         Optional<GreenPtr<GreenToken>> match_number(GreenTriviaList leading_trivia);
         Optional<GreenPtr<GreenToken>> match_punctuation(GreenTriviaList leading_trivia);

@@ -17,16 +17,6 @@ import std;
 
 using namespace prism;
 
-#define ENUM_VALUE(r, data, i, elem) (SyntaxKind::PRISM_KIND_ENUM_NAME(elem))
-
-#define PRISM_SYNTAX_KINDS(MACRO)                                                                                      \
-    BOOST_PP_SEQ_FOR_EACH_I(MACRO, _, PRISM_SYNTAX_TRIVIA(PRISM_TRIVIA_ELEM))                                          \
-    BOOST_PP_SEQ_FOR_EACH_I(MACRO, _, PRISM_SYNTAX_KEYWORDS(PRISM_KEYWORD_ELEM))                                       \
-    BOOST_PP_SEQ_FOR_EACH_I(MACRO, _, PRISM_SYNTAX_PUNCTUATIONS(PRISM_PUNCTUATION_ELEM))                               \
-    BOOST_PP_SEQ_FOR_EACH_I(MACRO, _, PRISM_SYNTAX_OTHER_TOKENS(PRISM_TOKEN_ELEM))
-
-CATCH_REGISTER_ENUM(SyntaxKind, BOOST_PP_SEQ_ENUM(PRISM_SYNTAX_KINDS(ENUM_VALUE)))
-
 namespace
 {
     std::vector<SyntaxKind> lex_all(std::string_view source)
@@ -37,7 +27,7 @@ namespace
         {
             auto token = lexer.next();
             tokens.push_back(token->kind());
-            if (token->kind() == SyntaxKind::end_of_file_token)
+            if (token->kind() == SyntaxKind::eof_token)
                 break;
         }
 
@@ -68,7 +58,7 @@ TEST_CASE("Simple grammar", "[lexer]")
                                              SyntaxKind::number_token,
                                              SyntaxKind::semicolon_token,
                                              SyntaxKind::rbrace_token,
-                                             SyntaxKind::end_of_file_token}));
+                                             SyntaxKind::eof_token}));
 }
 
 TEST_CASE("Skips line comments", "[lexer]")
@@ -85,7 +75,7 @@ TEST_CASE("Skips line comments", "[lexer]")
                                              SyntaxKind::equal_token,
                                              SyntaxKind::number_token,
                                              SyntaxKind::semicolon_token,
-                                             SyntaxKind::end_of_file_token}));
+                                             SyntaxKind::eof_token}));
 }
 
 TEST_CASE("Skips block comments", "[lexer]")
@@ -99,7 +89,7 @@ TEST_CASE("Skips block comments", "[lexer]")
                                              SyntaxKind::equal_token,
                                              SyntaxKind::number_token,
                                              SyntaxKind::semicolon_token,
-                                             SyntaxKind::end_of_file_token}));
+                                             SyntaxKind::eof_token}));
 }
 
 TEST_CASE("Block comments span multiple lines", "[lexer]")
@@ -119,5 +109,5 @@ TEST_CASE("Block comments span multiple lines", "[lexer]")
                                              SyntaxKind::equal_token,
                                              SyntaxKind::number_token,
                                              SyntaxKind::semicolon_token,
-                                             SyntaxKind::end_of_file_token}));
+                                             SyntaxKind::eof_token}));
 }

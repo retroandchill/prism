@@ -3,12 +3,12 @@
   "profiles": {
     "ExportSchema": {
       "commandName": "Project",
-      "commandLineArgs": "schema --export ../../grammar/schema.json",
+      "commandLineArgs": "schema --export schema.json",
       "workingDirectory": "."
     },
     "EmitNodes": {
       "commandName": "Project",
-      "commandLineArgs": "generate --input ../../grammar/nodes.json --output ../../libs/core/src",
+      "commandLineArgs": "generate --input nodes.json --output ../../libs/core/generated",
       "workingDirectory": "."
     }
   }

@@ -11,34 +11,26 @@ namespace Prism.SyntaxGenerator;
 
 public sealed class Emitter
 {
-    private HandlebarsTemplate<object?, object?> GreenInterfaceTemplate { get; }
-    private HandlebarsTemplate<object?, object?> GreenImplementationTemplate { get; }
+    private readonly HandlebarsTemplate<object?, object?> _syntaxKindTemplate;
+    private readonly HandlebarsTemplate<object?, object?> _lexerUtilsTemplate;
+    private readonly HandlebarsTemplate<object?, object?> _greenInterfaceTemplate;
+    private readonly HandlebarsTemplate<object?, object?> _greenImplementationTemplate;
 
     public Emitter()
     {
         var handlebars = Handlebars.Create();
         handlebars.Configuration.TextEncoder = null;
         handlebars.RegisterAllHelpers();
-        GreenInterfaceTemplate = handlebars.Compile(TemplateLoader.LoadTemplate("GreenNode.ixx"));
-        GreenImplementationTemplate = handlebars.Compile(
+        _syntaxKindTemplate = handlebars.Compile(TemplateLoader.LoadTemplate("SyntaxKind.ixx"));
+        _lexerUtilsTemplate = handlebars.Compile(TemplateLoader.LoadTemplate("LexerUtils.ixx"));
+        _greenInterfaceTemplate = handlebars.Compile(TemplateLoader.LoadTemplate("GreenNode.ixx"));
+        _greenImplementationTemplate = handlebars.Compile(
             TemplateLoader.LoadTemplate("GreenNode.cpp")
         );
     }
 
     public async Task EmitNodesAsync(
-        ImmutableArray<GeneratedModule> modules,
-        string outputPath,
-        CancellationToken cancellationToken = default
-    )
-    {
-        foreach (var module in modules)
-        {
-            await EmitNode(module, outputPath, cancellationToken);
-        }
-    }
-
-    private async Task EmitNode(
-        GeneratedModule module,
+        GeneratedSyntaxModel model,
         string outputPath,
         CancellationToken cancellationToken = default
     )
@@ -49,22 +41,37 @@ public sealed class Emitter
         var privateGreenDir = Path.Combine(privateSyntaxDir, "green");
 
         await GenerateAndSave(
-            Path.Combine(publicGreenDir, $"{module.Name}.ixx"),
-            module,
-            GreenInterfaceTemplate,
+            Path.Combine(publicSyntaxDir, "kind.ixx"),
+            model.SyntaxKinds,
+            _syntaxKindTemplate,
             cancellationToken
         );
         await GenerateAndSave(
-            Path.Combine(privateGreenDir, $"{module.Name}.cpp"),
-            module,
-            GreenImplementationTemplate,
+            Path.Combine(publicSyntaxDir, "lexing_utils.ixx"),
+            model.SyntaxKinds,
+            _lexerUtilsTemplate,
             cancellationToken
         );
+        foreach (var module in model.Modules)
+        {
+            await GenerateAndSave(
+                Path.Combine(publicGreenDir, $"{module.Name}.ixx"),
+                module,
+                _greenInterfaceTemplate,
+                cancellationToken
+            );
+            await GenerateAndSave(
+                Path.Combine(privateGreenDir, $"{module.Name}.cpp"),
+                module,
+                _greenImplementationTemplate,
+                cancellationToken
+            );
+        }
     }
 
-    private static async Task GenerateAndSave(
+    private static async Task GenerateAndSave<TModel>(
         string filePath,
-        GeneratedModule module,
+        TModel module,
         HandlebarsTemplate<object?, object?> template,
         CancellationToken cancellationToken = default
     )

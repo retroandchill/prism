@@ -7,13 +7,87 @@
     "version": {
       "type": "integer"
     },
+    "trivia": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "tokens": {
+      "type": "object",
+      "properties": {
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "punctuations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "value"
+            ]
+          }
+        },
+        "other": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "displayName": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "name"
+            ]
+          }
+        }
+      },
+      "required": [
+        "keywords",
+        "punctuations",
+        "other"
+      ]
+    },
     "modules": {
       "type": "array",
       "items": {
-        "type": [
-          "object",
-          "null"
-        ],
+        "type": "object",
         "properties": {
           "name": {
             "type": "string"
@@ -34,9 +108,6 @@
                     "string",
                     "null"
                   ]
-                },
-                "isAbstract": {
-                  "type": "boolean"
                 },
                 "children": {
                   "type": "array",
@@ -71,7 +142,7 @@
               },
               "required": [
                 "name",
-                "isAbstract"
+                "children"
               ]
             }
           }
@@ -85,6 +156,8 @@
   },
   "required": [
     "version",
+    "trivia",
+    "tokens",
     "modules"
   ]
 }

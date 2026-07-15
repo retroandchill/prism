@@ -6,7 +6,15 @@ import :syntax.green.separated_list;
 
 namespace prism
 {
+    class GreenArgument;
     class GreenArgumentList;
+    class GreenExpression;
+    class GreenInitializer;
+    class GreenNamedParameter;
+    class GreenStatement;
+    class GreenType;
+    class GreenTypeHint;
+    class GreenVariableDeclaration;
 
     class GreenExpression : public GreenNode
     {
@@ -18,17 +26,31 @@ namespace prism
 
       public:
         ~GreenExpression() override;
+
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::literal_expression || node.kind() == SyntaxKind::identifier_expression ||
+                   node.kind() == SyntaxKind::parenthesized_expression ||
+                   node.kind() == SyntaxKind::binary_expression || node.kind() == SyntaxKind::prefix_expression ||
+                   node.kind() == SyntaxKind::postfix_expression || node.kind() == SyntaxKind::ternary_expression ||
+                   node.kind() == SyntaxKind::invocation_expression;
+        }
     };
 
     class GreenLiteralExpression final : public GreenExpression
     {
       public:
-        GreenLiteralExpression(SyntaxKind kind, GreenPtr<GreenToken> value, DiagnosticInfoList diagnostics = {});
+        explicit GreenLiteralExpression(GreenPtr<GreenToken> value, DiagnosticInfoList diagnostics = {});
         ~GreenLiteralExpression() override;
 
         [[nodiscard]] constexpr const GreenToken &value() const noexcept
         {
             return *value_;
+        }
+
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::literal_expression;
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
@@ -40,12 +62,17 @@ namespace prism
     class GreenIdentifierExpression final : public GreenExpression
     {
       public:
-        GreenIdentifierExpression(SyntaxKind kind, GreenPtr<GreenToken> value, DiagnosticInfoList diagnostics = {});
+        explicit GreenIdentifierExpression(GreenPtr<GreenToken> value, DiagnosticInfoList diagnostics = {});
         ~GreenIdentifierExpression() override;
 
         [[nodiscard]] constexpr const GreenToken &value() const noexcept
         {
             return *value_;
+        }
+
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::identifier_expression;
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
@@ -57,8 +84,7 @@ namespace prism
     class GreenParenthesizedExpression final : public GreenExpression
     {
       public:
-        GreenParenthesizedExpression(SyntaxKind kind,
-                                     GreenPtr<GreenToken> open,
+        GreenParenthesizedExpression(GreenPtr<GreenToken> open,
                                      GreenPtr<GreenExpression> expression,
                                      GreenPtr<GreenToken> close,
                                      DiagnosticInfoList diagnostics = {});
@@ -79,6 +105,11 @@ namespace prism
             return *close_;
         }
 
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::parenthesized_expression;
+        }
+
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
       private:
@@ -90,8 +121,7 @@ namespace prism
     class GreenBinaryExpression final : public GreenExpression
     {
       public:
-        GreenBinaryExpression(SyntaxKind kind,
-                              GreenPtr<GreenExpression> left,
+        GreenBinaryExpression(GreenPtr<GreenExpression> left,
                               GreenPtr<GreenToken> op,
                               GreenPtr<GreenExpression> right,
                               DiagnosticInfoList diagnostics = {});
@@ -112,6 +142,11 @@ namespace prism
             return *right_;
         }
 
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::binary_expression;
+        }
+
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
       private:
@@ -123,10 +158,9 @@ namespace prism
     class GreenPrefixExpression final : public GreenExpression
     {
       public:
-        GreenPrefixExpression(SyntaxKind kind,
-                              GreenPtr<GreenToken> op,
-                              GreenPtr<GreenExpression> operand,
-                              DiagnosticInfoList diagnostics = {});
+        explicit GreenPrefixExpression(GreenPtr<GreenToken> op,
+                                       GreenPtr<GreenExpression> operand,
+                                       DiagnosticInfoList diagnostics = {});
         ~GreenPrefixExpression() override;
 
         [[nodiscard]] constexpr const GreenToken &op() const noexcept
@@ -139,6 +173,11 @@ namespace prism
             return *operand_;
         }
 
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::prefix_expression;
+        }
+
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
       private:
@@ -149,10 +188,9 @@ namespace prism
     class GreenPostfixExpression final : public GreenExpression
     {
       public:
-        GreenPostfixExpression(SyntaxKind kind,
-                               GreenPtr<GreenExpression> operand,
-                               GreenPtr<GreenToken> op,
-                               DiagnosticInfoList diagnostics = {});
+        explicit GreenPostfixExpression(GreenPtr<GreenExpression> operand,
+                                        GreenPtr<GreenToken> op,
+                                        DiagnosticInfoList diagnostics = {});
         ~GreenPostfixExpression() override;
 
         [[nodiscard]] constexpr const GreenExpression &operand() const noexcept
@@ -165,6 +203,11 @@ namespace prism
             return *op_;
         }
 
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::postfix_expression;
+        }
+
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
       private:
@@ -175,8 +218,7 @@ namespace prism
     class GreenTernaryExpression final : public GreenExpression
     {
       public:
-        GreenTernaryExpression(SyntaxKind kind,
-                               GreenPtr<GreenExpression> condition,
+        GreenTernaryExpression(GreenPtr<GreenExpression> condition,
                                GreenPtr<GreenToken> question_mark,
                                GreenPtr<GreenExpression> when_true,
                                GreenPtr<GreenToken> colon,
@@ -209,6 +251,11 @@ namespace prism
             return *when_false_;
         }
 
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::ternary_expression;
+        }
+
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
       private:
@@ -222,10 +269,9 @@ namespace prism
     class GreenInvocationExpression final : public GreenExpression
     {
       public:
-        GreenInvocationExpression(SyntaxKind kind,
-                                  GreenPtr<GreenExpression> callee,
-                                  GreenPtr<GreenArgumentList> arguments,
-                                  DiagnosticInfoList diagnostics = {});
+        explicit GreenInvocationExpression(GreenPtr<GreenExpression> callee,
+                                           GreenPtr<GreenArgumentList> arguments,
+                                           DiagnosticInfoList diagnostics = {});
         ~GreenInvocationExpression() override;
 
         [[nodiscard]] constexpr const GreenExpression &callee() const noexcept
@@ -236,6 +282,11 @@ namespace prism
         [[nodiscard]] constexpr const GreenArgumentList &arguments() const noexcept
         {
             return *arguments_;
+        }
+
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::invocation_expression;
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;

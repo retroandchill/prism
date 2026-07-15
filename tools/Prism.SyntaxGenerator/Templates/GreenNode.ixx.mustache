@@ -24,10 +24,14 @@ namespace prism
         [[nodiscard]] virtual {{GreenGetterType}} {{GetterName}}() const noexcept = 0;
 
         {{/Children}}
+        [[nodiscard]] static constexpr bool instanceof(const GreenNode& node) noexcept
+        {
+            return {{#Joined " || " ChildKinds}}node.kind() == SyntaxKind::{{.}}{{/Joined}};
+        }
         {{/IsAbstract}}
         {{^IsAbstract}}
     public:
-        {{GreenName}}(SyntaxKind kind{{#Children}}, {{GreenFieldType}} {{Name}}{{/Children}}, DiagnosticInfoList diagnostics = {});
+        {{#LessOrEqual Children.Length 2}}explicit {{/LessOrEqual}}{{GreenName}}({{#Children}}{{GreenFieldType}} {{Name}}, {{/Children}}DiagnosticInfoList diagnostics = {});
         ~{{GreenName}}() override;
 
         {{#Children}}
@@ -37,6 +41,10 @@ namespace prism
         }
 
         {{/Children}}
+        [[nodiscard]] static constexpr bool instanceof(const GreenNode& node) noexcept
+        {
+            return node.kind() == SyntaxKind::{{KindName}};
+        }
 
         [[nodiscard]] Optional<const GreenNode&> get_child(std::size_t index) const override;
 

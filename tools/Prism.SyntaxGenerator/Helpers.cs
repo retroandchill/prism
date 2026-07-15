@@ -62,6 +62,31 @@ internal static class Helpers
         }
     }
 
+    private static void LessOrEqual(
+        EncodedTextWriter output,
+        BlockHelperOptions options,
+        Context context,
+        Arguments arguments
+    )
+    {
+        if (arguments.Length != 2)
+        {
+            throw new HandlebarsException("Equals helper requires exactly two arguments");
+        }
+
+        var left = arguments.At<int>(0);
+        var right = arguments.At<int>(1);
+
+        if (left <= right)
+        {
+            options.Template(output, context);
+        }
+        else
+        {
+            options.Inverse(output, context);
+        }
+    }
+
     private static void NotNull(
         EncodedTextWriter output,
         BlockHelperOptions options,
@@ -113,6 +138,7 @@ internal static class Helpers
     {
         handlebars.RegisterHelper("Joined", Joined);
         handlebars.RegisterHelper("Equals", Equals);
+        handlebars.RegisterHelper("LessOrEqual", LessOrEqual);
         handlebars.RegisterHelper("NotNull", NotNull);
         handlebars.RegisterHelper("Indexed", Indexed);
     }

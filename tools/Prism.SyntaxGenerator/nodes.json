@@ -1,28 +1,309 @@
 {
   "$schema": "./schema.json",
   "version": 1,
+  "trivia": [
+    {
+      "name": "Whitespace"
+    },
+    {
+      "name": "NewLine"
+    },
+    {
+      "name": "LineComment"
+    },
+    {
+      "name": "BlockComment"
+    }
+  ],
+  "tokens": {
+    "keywords": [
+      "var",
+      "func",
+      "extern",
+      "return",
+      "mut",
+      "true",
+      "false",
+      "void",
+      "bool",
+      "i8",
+      "i16",
+      "i32",
+      "i64",
+      "i128",
+      "u8",
+      "u16",
+      "u32",
+      "u64",
+      "u128",
+      "isize",
+      "usize",
+      "f16",
+      "f32",
+      "f64",
+      "char",
+      "char16",
+      "rune",
+      "str"
+    ],
+    "punctuations": [
+      {
+        "name": "lbracket",
+        "value": "["
+      },
+      {
+        "name": "rbracket",
+        "value": "]"
+      },
+      {
+        "name": "lparen",
+        "value": "("
+      },
+      {
+        "name": "rparen",
+        "value": ")"
+      },
+      {
+        "name": "lbrace",
+        "value": "{"
+      },
+      {
+        "name": "rbrace",
+        "value": "}"
+      },
+      {
+        "name": "period",
+        "value": "."
+      },
+      {
+        "name": "ellipsis",
+        "value": "..."
+      },
+      {
+        "name": "amp",
+        "value": "&"
+      },
+      {
+        "name": "amp_amp",
+        "value": "&&"
+      },
+      {
+        "name": "amp_equal",
+        "value": "&="
+      },
+      {
+        "name": "star",
+        "value": "*"
+      },
+      {
+        "name": "star_equal",
+        "value": "*="
+      },
+      {
+        "name": "plus",
+        "value": "+"
+      },
+      {
+        "name": "plus_plus",
+        "value": "++"
+      },
+      {
+        "name": "plus_equal",
+        "value": "+="
+      },
+      {
+        "name": "minus",
+        "value": "-"
+      },
+      {
+        "name": "arrow",
+        "value": "->"
+      },
+      {
+        "name": "minus_minus",
+        "value": "--"
+      },
+      {
+        "name": "minus_equal",
+        "value": "-="
+      },
+      {
+        "name": "tilde",
+        "value": "~"
+      },
+      {
+        "name": "exclaim",
+        "value": "!"
+      },
+      {
+        "name": "exclaim_equal",
+        "value": "!="
+      },
+      {
+        "name": "slash",
+        "value": "/"
+      },
+      {
+        "name": "slash_equal",
+        "value": "/="
+      },
+      {
+        "name": "percent",
+        "value": "%"
+      },
+      {
+        "name": "percent_equal",
+        "value": "%="
+      },
+      {
+        "name": "less",
+        "value": "<"
+      },
+      {
+        "name": "less_less",
+        "value": "<<"
+      },
+      {
+        "name": "less_equal",
+        "value": "<="
+      },
+      {
+        "name": "less_less_equal",
+        "value": "<<="
+      },
+      {
+        "name": "spaceship",
+        "value": "<=>"
+      },
+      {
+        "name": "greater",
+        "value": ">"
+      },
+      {
+        "name": "greater_greater",
+        "value": ">>"
+      },
+      {
+        "name": "greater_greater_greater",
+        "value": ">>>"
+      },
+      {
+        "name": "greater_equal",
+        "value": ">="
+      },
+      {
+        "name": "greater_greater_equal",
+        "value": ">>="
+      },
+      {
+        "name": "greater_greater_greater_equal",
+        "value": ">>>="
+      },
+      {
+        "name": "caret",
+        "value": "^"
+      },
+      {
+        "name": "caret_equal",
+        "value": "^="
+      },
+      {
+        "name": "pipe",
+        "value": "|"
+      },
+      {
+        "name": "pipe_pipe",
+        "value": "||"
+      },
+      {
+        "name": "pipe_equal",
+        "value": "|="
+      },
+      {
+        "name": "question",
+        "value": "?"
+      },
+      {
+        "name": "question_question",
+        "value": "??"
+      },
+      {
+        "name": "question_period",
+        "value": "?."
+      },
+      {
+        "name": "colon",
+        "value": ":"
+      },
+      {
+        "name": "colon_colon",
+        "value": "::"
+      },
+      {
+        "name": "semicolon",
+        "value": ";"
+      },
+      {
+        "name": "equal",
+        "value": "="
+      },
+      {
+        "name": "big_arrow",
+        "value": "=>"
+      },
+      {
+        "name": "equal_equal",
+        "value": "=="
+      },
+      {
+        "name": "comma",
+        "value": ","
+      }
+    ],
+    "other": [
+      {
+        "name": "eof",
+        "displayName": "EOF"
+      },
+      {
+        "name": "bad",
+        "displayName": "<unrecognized>"
+      },
+      {
+        "name": "identifier"
+      },
+      {
+        "name": "number"
+      },
+      {
+        "name": "character_literal"
+      },
+      {
+        "name": "string_literal"
+      }
+    ]
+  },
   "modules": [
     {
       "name": "type",
       "nodes": [
         {
           "name": "Type",
-          "isAbstract": true
+          "children": []
         },
         {
           "name": "NamedType",
           "base": "Type",
-          "isAbstract": true
+          "children": []
         },
         {
           "name": "SimpleNamedType",
           "base": "NamedType",
-          "isAbstract": true
+          "children": []
         },
         {
           "name": "IdentifierNamedType",
           "base": "SimpleNamedType",
-          "isAbstract": false,
           "children": [
             {
               "name": "identifier",
@@ -38,7 +319,6 @@
       "nodes": [
         {
           "name": "Initializer",
-          "isAbstract": false,
           "children": [
             {
               "name": "equal_sign",
@@ -54,7 +334,6 @@
         },
         {
           "name": "TypeHint",
-          "isAbstract": false,
           "children": [
             {
               "name": "colon",
@@ -70,7 +349,6 @@
         },
         {
           "name": "NamedParameter",
-          "isAbstract": false,
           "children": [
             {
               "name": "name",
@@ -86,7 +364,6 @@
         },
         {
           "name": "ArgumentList",
-          "isAbstract": false,
           "children": [
             {
               "name": "open_paren",
@@ -107,7 +384,6 @@
         },
         {
           "name": "Argument",
-          "isAbstract": false,
           "children": [
             {
               "name": "name",
@@ -128,12 +404,11 @@
       "nodes": [
         {
           "name": "Expression",
-          "isAbstract": true
+          "children": []
         },
         {
           "name": "LiteralExpression",
           "base": "Expression",
-          "isAbstract": false,
           "children": [
             {
               "name": "value",
@@ -145,7 +420,6 @@
         {
           "name": "IdentifierExpression",
           "base": "Expression",
-          "isAbstract": false,
           "children": [
             {
               "name": "value",
@@ -157,7 +431,6 @@
         {
           "name": "ParenthesizedExpression",
           "base": "Expression",
-          "isAbstract": false,
           "children": [
             {
               "name": "open",
@@ -179,7 +452,6 @@
         {
           "name": "BinaryExpression",
           "base": "Expression",
-          "isAbstract": false,
           "children": [
             {
               "name": "left",
@@ -201,7 +473,6 @@
         {
           "name": "PrefixExpression",
           "base": "Expression",
-          "isAbstract": false,
           "children": [
             {
               "name": "op",
@@ -218,7 +489,6 @@
         {
           "name": "PostfixExpression",
           "base": "Expression",
-          "isAbstract": false,
           "children": [
             {
               "name": "operand",
@@ -235,7 +505,6 @@
         {
           "name": "TernaryExpression",
           "base": "Expression",
-          "isAbstract": false,
           "children": [
             {
               "name": "condition",
@@ -267,7 +536,6 @@
         {
           "name": "InvocationExpression",
           "base": "Expression",
-          "isAbstract": false,
           "children": [
             {
               "name": "callee",
@@ -288,12 +556,11 @@
       "nodes": [
         {
           "name": "Statement",
-          "isAbstract": true
+          "children": []
         },
         {
           "name": "VariableDeclarationStatement",
           "base": "Statement",
-          "isAbstract": false,
           "children": [
             {
               "name": "declaration",
@@ -305,7 +572,6 @@
         {
           "name": "Block",
           "base": "Statement",
-          "isAbstract": false,
           "children": [
             {
               "name": "statements",
@@ -317,7 +583,6 @@
         {
           "name": "ReturnStatement",
           "base": "Statement",
-          "isAbstract": false,
           "children": [
             {
               "name": "return_keyword",
@@ -339,9 +604,7 @@
         {
           "name": "ExpressionStatement",
           "base": "Statement",
-          "isAbstract": false,
           "children": [
-
             {
               "name": "expression",
               "type": "Expression",
@@ -357,7 +620,6 @@
         {
           "name": "EmptyStatement",
           "base": "Statement",
-          "isAbstract": false,
           "children": [
             {
               "name": "semicolon",
@@ -373,7 +635,6 @@
       "nodes": [
         {
           "name": "Declaration",
-          "isAbstract": true,
           "children": [
             {
               "name": "modifiers",
@@ -385,7 +646,6 @@
         {
           "name": "VariableDeclaration",
           "base": "Declaration",
-          "isAbstract": false,
           "children": [
             {
               "name": "modifiers",

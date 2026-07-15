@@ -118,7 +118,7 @@ namespace prism
 
     export struct CharacterLiteralData
     {
-        static constexpr auto kind = SyntaxKind::character_token;
+        static constexpr auto kind = SyntaxKind::character_literal_token;
 
         char32_t value = '\0';
         CharacterEncoding encoding = CharacterEncoding::utf8;

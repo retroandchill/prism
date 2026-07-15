@@ -1,0 +1,52 @@
+﻿export module prism.core:syntax.kind;
+
+import std;
+
+namespace prism
+{
+    export enum class SyntaxKind : std::uint16_t
+    {
+        none = 0,
+        list = 1,
+        {{#each .}}
+
+#pragma region {{Name}}
+        {{CppName}}_start = {{StartValue}},
+        {{#Kinds}}
+        {{CppName}} = {{Value}},
+        {{/Kinds}}
+        {{CppName}}_end = {{EndValue}},
+#pragma endregion
+        {{/each}}
+    };
+
+    export constexpr std::string_view get_name(const SyntaxKind kind)
+    {
+        switch (kind)
+        {
+            {{#each .}}
+            {{#Kinds}}
+            case SyntaxKind::{{CppName}}: return "{{DisplayName}}";
+            {{/Kinds}}
+            {{/each}}
+            default: throw std::invalid_argument{"Unknown SyntaxKind"};
+        };
+    }
+    {{#each .}}
+
+    export constexpr bool is_{{CppName}}(const SyntaxKind kind)
+    {
+        return std::to_underlying(kind) >= std::to_underlying(SyntaxKind::{{CppName}}_start) && std::to_underlying(kind) <= std::to_underlying(SyntaxKind::{{CppName}}_end);
+    }
+    {{/each}}
+
+    export constexpr bool is_token(const SyntaxKind kind)
+    {
+        return {{#Joined " || " Tokens}}is_{{CppName}}(kind){{/Joined}};
+    }
+
+    export constexpr bool is_node(const SyntaxKind kind)
+    {
+        return {{#Joined " || " Nodes}}is_{{CppName}}(kind){{/Joined}};
+    }
+}

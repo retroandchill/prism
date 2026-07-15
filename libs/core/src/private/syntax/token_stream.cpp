@@ -17,7 +17,7 @@ namespace prism
 
     bool TokenStream::at_end()
     {
-        return peek().kind() == SyntaxKind::end_of_file_token;
+        return peek().kind() == SyntaxKind::eof_token;
     }
 
     const GreenToken &TokenStream::peek(const std::size_t count)
@@ -38,7 +38,7 @@ namespace prism
     void TokenStream::replace_next(GreenPtr<GreenToken> token)
     {
         [[maybe_unused]] const auto &next = peek();
-        assert(next.kind() != SyntaxKind::end_of_file_token);
+        assert(next.kind() != SyntaxKind::eof_token);
 
         lookahead_.pop_front();
         lookahead_.push_front(std::move(token));
@@ -50,8 +50,7 @@ namespace prism
 
         for ([[maybe_unused]] auto i : std::views::iota(0uz, max_tokens))
         {
-            if (const auto &token = lookahead_.emplace_back(lexer_.next());
-                token->kind() == SyntaxKind::end_of_file_token)
+            if (const auto &token = lookahead_.emplace_back(lexer_.next()); token->kind() == SyntaxKind::eof_token)
                 break;
         }
     }

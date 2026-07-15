@@ -6,8 +6,15 @@ import :syntax.green.separated_list;
 
 namespace prism
 {
+    class GreenArgument;
+    class GreenArgumentList;
+    class GreenExpression;
     class GreenInitializer;
+    class GreenNamedParameter;
+    class GreenStatement;
+    class GreenType;
     class GreenTypeHint;
+    class GreenVariableDeclaration;
 
     class GreenDeclaration : public GreenNode
     {
@@ -21,13 +28,17 @@ namespace prism
         ~GreenDeclaration() override;
 
         [[nodiscard]] virtual const GreenSyntaxList<GreenToken> &modifiers() const noexcept = 0;
+
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::variable_declaration;
+        }
     };
 
     class GreenVariableDeclaration final : public GreenDeclaration
     {
       public:
-        GreenVariableDeclaration(SyntaxKind kind,
-                                 GreenSyntaxList<GreenToken> modifiers,
+        GreenVariableDeclaration(GreenSyntaxList<GreenToken> modifiers,
                                  GreenPtr<GreenToken> var_keyword,
                                  GreenPtr<GreenToken> mut_keyword,
                                  GreenPtr<GreenToken> identifier,
@@ -70,6 +81,11 @@ namespace prism
         [[nodiscard]] constexpr const GreenToken &semicolon() const noexcept
         {
             return *semicolon_;
+        }
+
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::variable_declaration;
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
