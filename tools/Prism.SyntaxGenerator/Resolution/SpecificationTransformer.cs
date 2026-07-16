@@ -5,10 +5,12 @@
 
 using System.CodeDom.Compiler;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using CaseConverter;
 using Prism.SyntaxGenerator.Models;
+using Prism.SyntaxGenerator.Models.Resolved;
+using Prism.SyntaxGenerator.Models.Spec;
+using ZLinq;
 
 namespace Prism.SyntaxGenerator.Resolution;
 
@@ -24,16 +26,16 @@ public static class SpecificationTransformer
     private const int NodeSyntaxKindStartValue = 400;
     private const int NodeSyntaxKindStep = 100;
 
-    public static GeneratedSyntaxModel Transform(ResolvedSyntaxModel spec)
+    public static GeneratedSyntaxModel Transform(SyntaxModel spec)
     {
         return new GeneratedSyntaxModel
         {
             SyntaxKinds = CollectSyntaxKindGroups(spec),
-            Modules = [.. spec.Modules.Values.Select(Transform)],
+            Modules = [.. spec.Modules.Select(Transform)],
         };
     }
 
-    private static GeneratedSyntaxKindList CollectSyntaxKindGroups(ResolvedSyntaxModel spec)
+    private static GeneratedSyntaxKindList CollectSyntaxKindGroups(SyntaxModel spec)
     {
         var triviaGroup = new GeneratedSyntaxKindGroup
         {
@@ -56,73 +58,79 @@ public static class SpecificationTransformer
             EndValue = TriviaSyntaxKindStartValue + spec.Trivia.Length - 1,
         };
 
+        var keywordKinds = spec
+            .Tokens.AsValueEnumerable()
+            .Where(x => x.Category == TokenCategory.Keyword)
+            .Select(
+                (keyword, i) =>
+                    new GeneratedSyntaxKind
+                    {
+                        Name = keyword.Name,
+                        CppName = $"{keyword.Name}_keyword",
+                        DisplayName = keyword.Name,
+                        Value = KeywordSyntaxKindStartValue + i,
+                    }
+            )
+            .ToImmutableArray();
         var keywordsGroup = new GeneratedSyntaxKindGroup
         {
             Name = "Keywords",
             CppName = "keyword",
-            Kinds =
-            [
-                .. spec.Tokens.Keywords.Select(
-                    (keyword, i) =>
-                        new GeneratedSyntaxKind
-                        {
-                            Name = keyword,
-                            CppName = $"{keyword}_keyword",
-                            DisplayName = keyword,
-                            Value = KeywordSyntaxKindStartValue + i,
-                        }
-                ),
-            ],
+            Kinds = keywordKinds,
             StartValue = KeywordSyntaxKindStartValue,
-            EndValue = KeywordSyntaxKindStartValue + spec.Tokens.Keywords.Length - 1,
+            EndValue = KeywordSyntaxKindStartValue + keywordKinds.Length - 1,
         };
 
+        var punctuationTokens = spec
+            .Tokens.AsValueEnumerable()
+            .Where(punctuation => punctuation.Category == TokenCategory.Punctuation)
+            .Select(
+                (punctuation, i) =>
+                    new GeneratedSyntaxKind
+                    {
+                        Name = punctuation.Name,
+                        CppName = $"{punctuation.Name.ToSnakeCase()}_token",
+                        DisplayName = punctuation.Text!,
+                        Value = PunctuationSyntaxKindStartValue + i,
+                    }
+            )
+            .ToImmutableArray();
         var punctuationGroup = new GeneratedSyntaxKindGroup
         {
             Name = "Punctuation",
             CppName = "punctuation",
-            Kinds =
-            [
-                .. spec.Tokens.Punctuations.Select(
-                    (punctuation, i) =>
-                        new GeneratedSyntaxKind
-                        {
-                            Name = punctuation.Name,
-                            CppName = $"{punctuation.Name.ToSnakeCase()}_token",
-                            DisplayName = punctuation.Value,
-                            Value = PunctuationSyntaxKindStartValue + i,
-                        }
-                ),
-            ],
+            Kinds = punctuationTokens,
             StartValue = PunctuationSyntaxKindStartValue,
-            EndValue = PunctuationSyntaxKindStartValue + spec.Tokens.Punctuations.Length - 1,
+            EndValue = PunctuationSyntaxKindStartValue + punctuationTokens.Length - 1,
         };
 
+        var otherTokenKinds = spec
+            .Tokens.AsValueEnumerable()
+            .Where(x => x.Category == TokenCategory.Other)
+            .Select(
+                (other, i) =>
+                    new GeneratedSyntaxKind
+                    {
+                        Name = other.Name,
+                        CppName = $"{other.Name.ToSnakeCase()}_token",
+                        DisplayName = other.DisplayName ?? other.Name.ToDisplayCase(),
+                        Value = OtherSyntaxKindStartValue + i,
+                    }
+            )
+            .ToImmutableArray();
         var otherTokens = new GeneratedSyntaxKindGroup
         {
             Name = "Other Tokens",
             CppName = "other_token",
-            Kinds =
-            [
-                .. spec.Tokens.Other.Select(
-                    (other, i) =>
-                        new GeneratedSyntaxKind
-                        {
-                            Name = other.Name,
-                            CppName = $"{other.Name.ToSnakeCase()}_token",
-                            DisplayName = other.DisplayName ?? other.Name.ToDisplayCase(),
-                            Value = OtherSyntaxKindStartValue + i,
-                        }
-                ),
-            ],
+            Kinds = otherTokenKinds,
             StartValue = OtherSyntaxKindStartValue,
-            EndValue = OtherSyntaxKindStartValue + spec.Tokens.Other.Length - 1,
+            EndValue = OtherSyntaxKindStartValue + otherTokenKinds.Length - 1,
         };
 
         var index = 0;
         var endValue = 0;
-        var builder = ImmutableArray.CreateBuilder<GeneratedSyntaxKindGroup>(spec.Modules.Count);
-        foreach (var module in spec.Modules.Values)
+        var builder = ImmutableArray.CreateBuilder<GeneratedSyntaxKindGroup>(spec.Modules.Length);
+        foreach (var module in spec.Modules)
         {
             int tokenStart;
 
@@ -266,7 +274,7 @@ public static class SpecificationTransformer
         return str.ToPascalCase().SplitCamelCase().FirstCharToUpperCase();
     }
 
-    private static GeneratedModule Transform(ResolvedModule module)
+    private static GeneratedModule Transform(SyntaxModule module)
     {
         var nodes = module.Nodes.Select(Transform).ToImmutableArray();
         var moduleName = module.Name.ToSnakeCase();
@@ -297,8 +305,8 @@ public static class SpecificationTransformer
 
     private static GeneratedNode Transform(SyntaxNode spec)
     {
-        var children = new GeneratedChild[spec.Children.Count];
-        foreach (var (i, child) in spec.Children.Index())
+        var children = new GeneratedChild[spec.Properties.Count];
+        foreach (var (i, child) in spec.Properties.Index())
         {
             children[i] = Transform(child);
         }
@@ -336,13 +344,13 @@ public static class SpecificationTransformer
         }
     }
 
-    private static GeneratedChild Transform(SyntaxChild child)
+    private static GeneratedChild Transform(SyntaxProperty property)
     {
-        var baseName = child.Name.ToSnakeCase();
+        var baseName = property.Name.ToSnakeCase();
         var fieldName = $"{baseName}_";
 
-        var greenType = GetGreenName(child.Type.Name);
-        var redType = GetRedName(child.Type.Name);
+        var greenType = GetGreenName(property.Type.Name);
+        var redType = GetRedName(property.Type.Name);
 
         string greenGetterType;
         string greenFieldType;
@@ -350,9 +358,9 @@ public static class SpecificationTransformer
         string greenGetterBody;
         string getChildrenExpression;
         string adjustExpression;
-        switch (child.Shape)
+        switch (property.Shape)
         {
-            case ChildShape.Single:
+            case PropertyShape.Single:
                 greenGetterType = $"const {greenType}&";
                 redGetterType = $"const {redType}&";
                 greenFieldType = $"GreenPtr<{greenType}>";
@@ -360,7 +368,7 @@ public static class SpecificationTransformer
                 adjustExpression = greenGetterBody;
                 getChildrenExpression = greenGetterBody;
                 break;
-            case ChildShape.Optional:
+            case PropertyShape.Optional:
                 greenGetterType = $"Optional<const {greenType}&>";
                 redGetterType = $"Optional<const {redType}&>";
                 greenFieldType = $"GreenPtr<{greenType}>";
@@ -368,7 +376,7 @@ public static class SpecificationTransformer
                 adjustExpression = $"*{fieldName}";
                 getChildrenExpression = greenGetterBody;
                 break;
-            case ChildShape.List:
+            case PropertyShape.List:
                 greenGetterType = $"const GreenSyntaxList<{greenType}>&";
                 redGetterType = $"SyntaxList<{redType}>";
                 greenFieldType = $"GreenSyntaxList<{greenType}>";
@@ -376,7 +384,7 @@ public static class SpecificationTransformer
                 getChildrenExpression = $"{fieldName}.node()";
                 adjustExpression = fieldName;
                 break;
-            case ChildShape.SeparatedList:
+            case PropertyShape.SeparatedList:
                 greenGetterType = $"const GreenSeparatedList<{greenType}>&";
                 redGetterType = $"SeparatedSyntaxList<{redType}>";
                 greenFieldType = $"GreenSeparatedList<{greenType}>";
@@ -400,8 +408,8 @@ public static class SpecificationTransformer
             AdjustExpression = adjustExpression,
             RedGetterType = redGetterType,
             RedFieldType = $"RedPtr<{redType}>",
-            IsOptional = child.Shape == ChildShape.Optional,
-            IsOverride = child.IsOverride,
+            IsOptional = property.Shape == PropertyShape.Optional,
+            IsOverride = property.IsOverride,
         };
     }
 

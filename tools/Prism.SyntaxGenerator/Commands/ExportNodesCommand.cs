@@ -7,7 +7,9 @@ using System.Diagnostics;
 using System.Text.Json;
 using DotMake.CommandLine;
 using Prism.SyntaxGenerator.Models;
+using Prism.SyntaxGenerator.Models.Spec;
 using Prism.SyntaxGenerator.Resolution;
+using ModelJsonSerializerContext = Prism.SyntaxGenerator.Serialization.ModelJsonSerializerContext;
 
 namespace Prism.SyntaxGenerator.Commands;
 

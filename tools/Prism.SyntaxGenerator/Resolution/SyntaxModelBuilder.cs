@@ -3,35 +3,132 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using Prism.SyntaxGenerator.Models;
+using System.Runtime.InteropServices;
+using Prism.SyntaxGenerator.Models.Resolved;
+using Prism.SyntaxGenerator.Models.Spec;
+using ZLinq;
 
 namespace Prism.SyntaxGenerator.Resolution;
 
 public sealed class SyntaxModelBuilder
 {
-    private readonly OrderedDictionary<string, ResolvedModule> _modules = new();
-    private readonly Dictionary<string, SyntaxNode> _nodes = new();
+    private const int TriviaStart = 100;
+    private const int KeywordsStart = 200;
+    private const int PunctuationsStart = 300;
+    private const int OtherTokensStart = 400;
+    private const int SyntaxNodeStart = 1000;
+    private const int SyntaxNodeStep = 1000;
 
-    public ResolvedSyntaxModel Build(SyntaxSpecification spec)
+    private readonly OrderedDictionary<string, SyntaxKind> _syntaxKinds = new();
+    private readonly OrderedDictionary<string, SyntaxTrivia> _trivia = new();
+    private readonly OrderedDictionary<string, SyntaxToken> _tokens = new();
+    private readonly OrderedDictionary<string, SyntaxModule> _modules = new();
+    private readonly Dictionary<string, SyntaxNode> _nodes = new();
+    private readonly Dictionary<SyntaxNode, NodeDefinition> _nodeDefinitions = new();
+    private readonly Dictionary<SyntaxNode, Dictionary<string, SyntaxProperty>> _nodeProperties =
+        new();
+    private readonly Dictionary<SyntaxProduction, ProductionDefinition> _productionDefinitions =
+        new();
+
+    public SyntaxModel Build(SyntaxSpecification spec)
     {
+        EnsureCapacity(spec);
+        LoadTrivia(spec);
+        LoadTokens(spec);
         LoadNodes(spec);
         ResolveInheritance();
-        ResolveChildren();
+        ResolveProperties();
+        ResolveProductions();
         ResolveOverrides();
         ResolveDependencies();
-        return new ResolvedSyntaxModel(spec.Trivia, spec.Tokens, _modules, _nodes);
+        ResolveNodeSyntaxKinds();
+        return new SyntaxModel(
+            [.. _syntaxKinds.Values],
+            [.. _trivia.Values],
+            [.. _tokens.Values],
+            [.. _modules.Values]
+        );
+    }
+
+    private void EnsureCapacity(SyntaxSpecification spec)
+    {
+        _syntaxKinds.EnsureCapacity(
+            spec.Trivia.Length
+                + spec.Tokens.Length
+                + spec.Modules.AsValueEnumerable()
+                    .SelectMany(m => m.Nodes)
+                    .Select(m => m.Productions.Length + 1)
+                    .Sum()
+        );
+        _trivia.EnsureCapacity(spec.Trivia.Length);
+        _tokens.EnsureCapacity(spec.Tokens.Length);
+        _modules.EnsureCapacity(spec.Modules.Length);
+        _nodes.EnsureCapacity(spec.Modules.AsValueEnumerable().Select(m => m.Nodes.Length).Sum());
+    }
+
+    private void LoadTrivia(SyntaxSpecification spec)
+    {
+        foreach (var (i, definition) in spec.Trivia.AsValueEnumerable().Index())
+        {
+            var trivia = new SyntaxTrivia(definition.Name, definition.DisplayName);
+            trivia.Kind = new SyntaxKind(definition.Name, TriviaStart + i, trivia);
+            _syntaxKinds.Add(trivia.Kind.Name, trivia.Kind);
+            _trivia.Add(trivia.Kind.Name, trivia);
+        }
+    }
+
+    private void LoadTokens(SyntaxSpecification spec)
+    {
+        foreach (var (i, definition) in spec.Tokens.Keywords.AsValueEnumerable().Index())
+        {
+            var token = new SyntaxToken(definition.Name, TokenCategory.Keyword)
+            {
+                Flags = definition.Contextual ? TokenFlags.Contextual : TokenFlags.None,
+                Text = definition.Text,
+            };
+            token.Kind = new SyntaxKind(token.Name, KeywordsStart + i, token);
+
+            _syntaxKinds.Add(token.Kind.Name, token.Kind);
+            _tokens.Add(token.Kind.Name, token);
+        }
+
+        foreach (var (i, definition) in spec.Tokens.Punctuations.AsValueEnumerable().Index())
+        {
+            var token = new SyntaxToken(definition.Name, TokenCategory.Punctuation)
+            {
+                Text = definition.Text,
+            };
+            token.Kind = new SyntaxKind(token.Name, PunctuationsStart + i, token);
+
+            _syntaxKinds.Add(token.Kind.Name, token.Kind);
+            _tokens.Add(token.Kind.Name, token);
+        }
+
+        foreach (var (i, definition) in spec.Tokens.Other.AsValueEnumerable().Index())
+        {
+            var token = new SyntaxToken(definition.Name, TokenCategory.Other)
+            {
+                DisplayName = definition.DisplayName,
+            };
+            token.Kind = new SyntaxKind(token.Name, OtherTokensStart + i, token);
+
+            _syntaxKinds.Add(token.Kind.Name, token.Kind);
+            _tokens.Add(token.Kind.Name, token);
+        }
     }
 
     private void LoadNodes(SyntaxSpecification spec)
     {
         foreach (var module in spec.Modules)
         {
-            var resolvedModule = new ResolvedModule { Name = module.Name };
+            var resolvedModule = new SyntaxModule { Name = module.Name };
             _modules.Add(module.Name, resolvedModule);
+            resolvedModule.EnsureCapacity(module.Nodes.Length);
             foreach (var definition in module.Nodes)
             {
-                var node = new SyntaxNode { Definition = definition, Module = resolvedModule };
-                resolvedModule.Nodes.Add(node);
+                var node = new SyntaxNode(resolvedModule, definition.Name);
+                _nodeDefinitions.Add(node, definition);
+                resolvedModule.AddNode(node);
                 _nodes.Add(definition.Name, node);
             }
         }
@@ -41,42 +138,78 @@ public sealed class SyntaxModelBuilder
     {
         foreach (var node in _nodes.Values)
         {
-            if (node.Definition.Base is null)
+            var definition = _nodeDefinitions[node];
+            if (definition.Base is null)
                 continue;
 
-            var baseNode = _nodes[node.Definition.Base];
+            var baseNode = _nodes[definition.Base];
 
             node.Base = baseNode;
-            baseNode.DerivedTypes.Add(node);
+            baseNode.AddDerivedType(node);
         }
     }
 
-    private void ResolveChildren()
+    private void ResolveProperties()
     {
         foreach (var node in _nodes.Values)
         {
-            foreach (var child in node.Definition.Children)
+            var definition = _nodeDefinitions[node];
+            var propertiesDict = new Dictionary<string, SyntaxProperty>();
+            propertiesDict.EnsureCapacity(definition.Fields.Length);
+            foreach (var child in definition.Fields)
             {
-                node.Children.Add(
-                    new SyntaxChild
-                    {
-                        Name = child.Name,
-                        Type = ResolveType(child.Type),
-                        Shape = child.Shape,
-                    }
-                );
+                var prop = new SyntaxProperty(child.Name, ResolveType(child.Type), child.Shape);
+                propertiesDict.Add(child.Name, prop);
+                node.AddProperty(prop);
             }
+            _nodeProperties.Add(node, propertiesDict);
         }
     }
 
     private SyntaxTypeReference ResolveType(string name)
     {
-        if (name is "Node" or "Token" or "Trivia")
-        {
-            return new SyntaxTypeReference { Name = name };
-        }
+        return name is "Node" or "Token" or "Trivia"
+            ? new SyntaxTypeReference(name)
+            : new SyntaxTypeReference(name, _nodes[name]);
+    }
 
-        return new SyntaxTypeReference { Name = name, Definition = _nodes[name] };
+    private void ResolveProductions()
+    {
+        foreach (var node in _nodes.Values)
+        {
+            var propertiesDict = _nodeProperties[node];
+            foreach (var production in _nodeDefinitions[node].Productions)
+            {
+                var constraints = new SyntaxProductionConstraint[production.Constraints.Length];
+                foreach (var (i, constraint) in production.Constraints.AsValueEnumerable().Index())
+                {
+                    var property = propertiesDict[constraint.Property];
+                    switch (constraint)
+                    {
+                        case TokenConstraint tokenConstraint:
+                        {
+                            var token = _tokens[tokenConstraint.Token];
+                            constraints[i] = new SyntaxTokenConstraint(property, token);
+                            break;
+                        }
+                        case PropertyPresenceConstraint presenceConstraint:
+                            constraints[i] = new SyntaxPropertyPresenceConstraint(
+                                property,
+                                presenceConstraint.Required
+                            );
+                            break;
+                    }
+                }
+
+                var resolvedProduction = new SyntaxProduction(
+                    production.Name,
+                    node,
+                    ImmutableCollectionsMarshal.AsImmutableArray(constraints)
+                );
+                node.AddProduction(resolvedProduction);
+                _productionDefinitions.Add(resolvedProduction, production);
+            }
+        }
     }
 
     private void ResolveOverrides()
@@ -85,22 +218,26 @@ public sealed class SyntaxModelBuilder
         {
             if (node.Base is null)
                 continue;
-            var parentChildren = CollectParentChildren(node);
+            var parentChildren = CollectParentProperties(node);
 
-            foreach (var child in node.Children.Where(child => parentChildren.Contains(child.Name)))
+            foreach (
+                var child in node
+                    .Properties.AsValueEnumerable()
+                    .Where(child => parentChildren.Contains(child.Name))
+            )
             {
                 child.IsOverride = true;
             }
         }
     }
 
-    private HashSet<string> CollectParentChildren(SyntaxNode node)
+    private static HashSet<string> CollectParentProperties(SyntaxNode node)
     {
         var result = new HashSet<string>();
         var @base = node.Base;
         while (@base is not null)
         {
-            result.UnionWith(@base.Children.Select(x => x.Name));
+            result.UnionWith(@base.Properties.Select(x => x.Name));
             @base = @base.Base;
         }
         return result;
@@ -116,23 +253,51 @@ public sealed class SyntaxModelBuilder
                 seen.Add(node.Name);
                 if (node.Base is not null && node.Base.Module != module)
                 {
-                    module.Dependencies.Add(node.Base.Module);
+                    module.AddDependency(node.Base.Module);
                 }
 
-                foreach (var child in node.Children)
+                foreach (var child in node.Properties)
                 {
                     if (child.Type.Definition is null)
                         continue;
 
                     if (child.Type.Definition.Module != module)
                     {
-                        module.Dependencies.Add(child.Type.Definition.Module);
-                        module.ForwardDeclarations.Add(child.Type.Definition);
+                        module.AddDependency(child.Type.Definition.Module);
+                        module.AddForwardDeclaration(child.Type.Definition);
                     }
                     else if (!seen.Contains(child.Type.Definition.Name))
                     {
-                        module.ForwardDeclarations.Add(child.Type.Definition);
+                        module.AddForwardDeclaration(child.Type.Definition);
                     }
+                }
+            }
+        }
+    }
+
+    private void ResolveNodeSyntaxKinds()
+    {
+        foreach (var (i, module) in _modules.Values.AsValueEnumerable().Index())
+        {
+            var nextValue = SyntaxNodeStart + SyntaxNodeStep * i;
+            foreach (var node in module.Nodes.AsValueEnumerable().Where(x => !x.IsAbstract))
+            {
+                var productionUsed = false;
+                foreach (var production in node.Productions.AsValueEnumerable())
+                {
+                    var definition = _productionDefinitions[production];
+                    if (definition.SyntaxKind is null)
+                        continue;
+
+                    production.Kind = new SyntaxKind(production.Name, nextValue++, production);
+                    _syntaxKinds.Add(production.Kind.Name, production.Kind);
+                    productionUsed = true;
+                }
+
+                if (!productionUsed)
+                {
+                    node.Kind = new SyntaxKind(node.Name, nextValue++, node);
+                    _syntaxKinds.Add(node.Kind.Name, node.Kind);
                 }
             }
         }

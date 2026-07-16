@@ -3,283 +3,283 @@
   "version": 1,
   "trivia": [
     {
-      "name": "Whitespace"
+      "name": "WhitespaceTrivia"
     },
     {
-      "name": "NewLine"
+      "name": "NewLineTrivia"
     },
     {
-      "name": "LineComment"
+      "name": "LineCommentTrivia"
     },
     {
-      "name": "BlockComment"
+      "name": "BlockCommentTrivia"
     }
   ],
   "tokens": {
     "keywords": [
-      "var",
-      "func",
-      "extern",
-      "return",
-      "mut",
-      "true",
-      "false",
-      "void",
-      "bool",
-      "i8",
-      "i16",
-      "i32",
-      "i64",
-      "i128",
-      "u8",
-      "u16",
-      "u32",
-      "u64",
-      "u128",
-      "isize",
-      "usize",
-      "f16",
-      "f32",
-      "f64",
-      "char",
-      "char16",
-      "rune",
-      "str"
+      { "name": "VarKeyword", "text": "var" },
+      { "name": "FuncKeyword", "text": "func" },
+      { "name": "ExternKeyword", "text": "extern" },
+      { "name": "ReturnKeyword", "text": "return" },
+      { "name": "MutKeyword", "text": "mut" },
+      { "name": "TrueKeyword", "text": "true" },
+      { "name": "FalseKeyword", "text": "false" },
+      { "name": "VoidKeyword", "text": "void" },
+      { "name": "BoolKeyword", "text": "bool" },
+      { "name": "I8Keyword", "text": "i8" },
+      { "name": "I16Keyword", "text": "i16" },
+      { "name": "I32Keyword", "text": "i32" },
+      { "name": "I64Keyword", "text": "i64" },
+      { "name": "I128Keyword", "text": "i128" },
+      { "name": "U8Keyword", "text": "u8" },
+      { "name": "U16Keyword", "text": "u16" },
+      { "name": "U32Keyword", "text": "u32" },
+      { "name": "U64Keyword", "text": "u64" },
+      { "name": "U128Keyword", "text": "u128" },
+      { "name": "ISizeKeyword", "text": "isize" },
+      { "name": "USizeKeyword", "text": "usize" },
+      { "name": "F16Keyword", "text": "f16" },
+      { "name": "F32Keyword", "text": "f32" },
+      { "name": "F64Keyword", "text": "f64" },
+      { "name": "CharKeyword", "text": "char" },
+      { "name": "Char16Keyword", "text": "char16" },
+      { "name": "RuneKeyword", "text": "rune" },
+      { "name": "StrKeyword", "text": "str" }
     ],
     "punctuations": [
       {
-        "name": "lbracket",
-        "value": "["
+        "name": "OpenBracketToken",
+        "text": "["
       },
       {
-        "name": "rbracket",
-        "value": "]"
+        "name": "CloseBracketToken",
+        "text": "]"
       },
       {
-        "name": "lparen",
-        "value": "("
+        "name": "OpenParenToken",
+        "text": "("
       },
       {
-        "name": "rparen",
-        "value": ")"
+        "name": "CloseParenToken",
+        "text": ")"
       },
       {
-        "name": "lbrace",
-        "value": "{"
+        "name": "OpenBraceToken",
+        "text": "{"
       },
       {
-        "name": "rbrace",
-        "value": "}"
+        "name": "CloseBraceToken",
+        "text": "}"
       },
       {
-        "name": "period",
-        "value": "."
+        "name": "PeriodToken",
+        "text": "."
       },
       {
-        "name": "ellipsis",
-        "value": "..."
+        "name": "EllipsisToken",
+        "text": "..."
       },
       {
-        "name": "amp",
-        "value": "&"
+        "name": "AmpToken",
+        "text": "&"
       },
       {
-        "name": "amp_amp",
-        "value": "&&"
+        "name": "AmpAmpToken",
+        "text": "&&"
       },
       {
-        "name": "amp_equal",
-        "value": "&="
+        "name": "AmpEqualToken",
+        "text": "&="
       },
       {
-        "name": "star",
-        "value": "*"
+        "name": "StarToken",
+        "text": "*"
       },
       {
-        "name": "star_equal",
-        "value": "*="
+        "name": "StarEqualToken",
+        "text": "*="
       },
       {
-        "name": "plus",
-        "value": "+"
+        "name": "PlusToken",
+        "text": "+"
       },
       {
-        "name": "plus_plus",
-        "value": "++"
+        "name": "PlusPlusToken",
+        "text": "++"
       },
       {
-        "name": "plus_equal",
-        "value": "+="
+        "name": "PlusEqualToken",
+        "text": "+="
       },
       {
-        "name": "minus",
-        "value": "-"
+        "name": "MinusToken",
+        "text": "-"
       },
       {
-        "name": "arrow",
-        "value": "->"
+        "name": "ArrowToken",
+        "text": "->"
       },
       {
-        "name": "minus_minus",
-        "value": "--"
+        "name": "MinusMinusToken",
+        "text": "--"
       },
       {
-        "name": "minus_equal",
-        "value": "-="
+        "name": "MinusEqualToken",
+        "text": "-="
       },
       {
-        "name": "tilde",
-        "value": "~"
+        "name": "TildeToken",
+        "text": "~"
       },
       {
-        "name": "exclaim",
-        "value": "!"
+        "name": "BangToken",
+        "text": "!"
       },
       {
-        "name": "exclaim_equal",
-        "value": "!="
+        "name": "BangEqualToken",
+        "text": "!="
       },
       {
-        "name": "slash",
-        "value": "/"
+        "name": "SlashToken",
+        "text": "/"
       },
       {
-        "name": "slash_equal",
-        "value": "/="
+        "name": "SlashEqualToken",
+        "text": "/="
       },
       {
-        "name": "percent",
-        "value": "%"
+        "name": "PercentToken",
+        "text": "%"
       },
       {
-        "name": "percent_equal",
-        "value": "%="
+        "name": "PercentEqualToken",
+        "text": "%="
       },
       {
-        "name": "less",
-        "value": "<"
+        "name": "LessToken",
+        "text": "<"
       },
       {
-        "name": "less_less",
-        "value": "<<"
+        "name": "LessLessToken",
+        "text": "<<"
       },
       {
-        "name": "less_equal",
-        "value": "<="
+        "name": "LessEqualToken",
+        "text": "<="
       },
       {
-        "name": "less_less_equal",
-        "value": "<<="
+        "name": "LessLessEqualToken",
+        "text": "<<="
       },
       {
-        "name": "spaceship",
-        "value": "<=>"
+        "name": "SpaceshipToken",
+        "text": "<=>"
       },
       {
-        "name": "greater",
-        "value": ">"
+        "name": "GreaterToken",
+        "text": ">"
       },
       {
-        "name": "greater_greater",
-        "value": ">>"
+        "name": "GreaterGreaterToken",
+        "text": ">>"
       },
       {
-        "name": "greater_greater_greater",
-        "value": ">>>"
+        "name": "GreaterGreaterGreaterToken",
+        "text": ">>>"
       },
       {
-        "name": "greater_equal",
-        "value": ">="
+        "name": "GreaterEqualToken",
+        "text": ">="
       },
       {
-        "name": "greater_greater_equal",
-        "value": ">>="
+        "name": "GreaterGreaterEqualToken",
+        "text": ">>="
       },
       {
-        "name": "greater_greater_greater_equal",
-        "value": ">>>="
+        "name": "GreaterGreaterGreaterEqualToken",
+        "text": ">>>="
       },
       {
-        "name": "caret",
-        "value": "^"
+        "name": "CaretToken",
+        "text": "^"
       },
       {
-        "name": "caret_equal",
-        "value": "^="
+        "name": "CaretEqualToken",
+        "text": "^="
       },
       {
-        "name": "pipe",
-        "value": "|"
+        "name": "PipeToken",
+        "text": "|"
       },
       {
-        "name": "pipe_pipe",
-        "value": "||"
+        "name": "PipePipeToken",
+        "text": "||"
       },
       {
-        "name": "pipe_equal",
-        "value": "|="
+        "name": "PipeEqualToken",
+        "text": "|="
       },
       {
-        "name": "question",
-        "value": "?"
+        "name": "QuestionToken",
+        "text": "?"
       },
       {
-        "name": "question_question",
-        "value": "??"
+        "name": "QuestionQuestionToken",
+        "text": "??"
       },
       {
-        "name": "question_period",
-        "value": "?."
+        "name": "QuestionPeriodToken",
+        "text": "?."
       },
       {
-        "name": "colon",
-        "value": ":"
+        "name": "ColonToken",
+        "text": ":"
       },
       {
-        "name": "colon_colon",
-        "value": "::"
+        "name": "DoubleColonToken",
+        "text": "::"
       },
       {
-        "name": "semicolon",
-        "value": ";"
+        "name": "SemicolonToken",
+        "text": ";"
       },
       {
-        "name": "equal",
-        "value": "="
+        "name": "EqualToken",
+        "text": "="
       },
       {
-        "name": "big_arrow",
-        "value": "=>"
+        "name": "BigArrayToken",
+        "text": "=>"
       },
       {
-        "name": "equal_equal",
-        "value": "=="
+        "name": "EqualEqualToken",
+        "text": "=="
       },
       {
-        "name": "comma",
-        "value": ","
+        "name": "CommaToken",
+        "text": ","
       }
     ],
     "other": [
       {
-        "name": "eof",
+        "name": "EofToken",
         "displayName": "EOF"
       },
       {
-        "name": "bad",
+        "name": "BadToken",
         "displayName": "<unrecognized>"
       },
       {
-        "name": "identifier"
+        "name": "IdentifierToken"
       },
       {
-        "name": "number"
+        "name": "NumericLiteralToken"
       },
       {
-        "name": "character_literal"
+        "name": "CharacterLiteralToken"
       },
       {
-        "name": "string_literal"
+        "name": "StringLiteralToken"
       }
     ]
   },

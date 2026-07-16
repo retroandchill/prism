@@ -34,48 +34,72 @@
           "type": "array",
           "items": {
             "type": [
-              "string",
+              "object",
               "null"
+            ],
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "contextual": {
+                "type": "boolean"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "text",
+              "name"
             ]
           }
         },
         "punctuations": {
           "type": "array",
           "items": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "properties": {
-              "name": {
+              "text": {
                 "type": "string"
               },
-              "value": {
+              "name": {
                 "type": "string"
               }
             },
             "required": [
-              "name",
-              "value"
+              "text",
+              "name"
             ]
           }
         },
         "other": {
           "type": "array",
           "items": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "properties": {
-              "name": {
-                "type": "string"
-              },
               "displayName": {
                 "type": [
                   "string",
                   "null"
                 ]
+              },
+              "name": {
+                "type": "string"
               }
             },
             "required": [
               "name"
             ]
           }
+        },
+        "length": {
+          "type": "integer"
         }
       },
       "required": [
@@ -138,11 +162,81 @@
                       "shape"
                     ]
                   }
+                },
+                "productions": {
+                  "type": "array",
+                  "items": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "syntaxKind": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "constraints": {
+                        "type": "array",
+                        "items": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "required": [
+                            "$type"
+                          ],
+                          "anyOf": [
+                            {
+                              "properties": {
+                                "$type": {
+                                  "const": "token"
+                                },
+                                "field": {
+                                  "type": "string"
+                                },
+                                "token": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "field",
+                                "token"
+                              ]
+                            },
+                            {
+                              "properties": {
+                                "$type": {
+                                  "const": "field"
+                                },
+                                "field": {
+                                  "type": "string"
+                                },
+                                "required": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "field",
+                                "required"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "name"
+                    ]
+                  }
                 }
               },
               "required": [
-                "name",
-                "children"
+                "name"
               ]
             }
           }
