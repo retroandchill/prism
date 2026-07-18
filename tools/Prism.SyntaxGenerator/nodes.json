@@ -873,7 +873,7 @@
       ]
     },
     {
-      "name": "statement",
+      "name": "statements",
       "nodes": [
         {
           "name": "Statement",
@@ -990,7 +990,7 @@
       ]
     },
     {
-      "name": "declaration",
+      "name": "declarations",
       "nodes": [
         {
           "name": "Declaration",

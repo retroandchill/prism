@@ -15,10 +15,10 @@ set(PRISM_SOURCES
         src/private/syntax/green/trivia.cpp
         src/private/syntax/token_stream.cpp
         generated/private/syntax/green/types.cpp
-        generated/private/syntax/green/declaration.cpp
+        generated/private/syntax/green/declarations.cpp
         generated/private/syntax/green/expressions.cpp
         generated/private/syntax/green/clauses.cpp
-        generated/private/syntax/green/statement.cpp
+        generated/private/syntax/green/statements.cpp
         src/private/syntax/green/list.cpp
 )
 
@@ -61,12 +61,12 @@ set(PRISM_PUBLIC_MODULES
         src/public/syntax/tree.ixx
         src/public/syntax/parsed_tree.ixx
         generated/public/syntax/green/types.ixx
-        generated/public/syntax/green/declaration.ixx
+        generated/public/syntax/green/declarations.ixx
         src/public/syntax/green/list.ixx
         generated/public/syntax/green/expressions.ixx
         generated/public/syntax/green/clauses.ixx
         src/public/syntax/green/separated_list.ixx
-        generated/public/syntax/green/statement.ixx
+        generated/public/syntax/green/statements.ixx
         generated/public/syntax/lexing_utils.ixx
 )
 

@@ -397,7 +397,7 @@ public sealed class CppEmitter
         {
             var info = GetInfo(property);
             writer.Write("[[nodiscard]] virtual ");
-            EmitPropertyGetterType(writer, property);
+            EmitGreenGetterType(writer, property);
             writer.WriteLine($" {info.GetterName}() const noexcept = 0;");
             writer.WriteLine();
         }
@@ -463,7 +463,7 @@ public sealed class CppEmitter
         {
             var info = GetInfo(property);
             writer.Write("[[nodiscard]] constexpr ");
-            EmitPropertyGetterType(writer, property);
+            EmitGreenGetterType(writer, property);
             var @override = property.IsOverride ? " override" : "";
             writer.WriteLine($" {info.GetterName}() const noexcept{@override}");
             using (writer.EnterBlockScope())
@@ -619,7 +619,7 @@ public sealed class CppEmitter
     }
     #endregion
 
-    private void EmitPropertyGetterType(CodeWriter writer, SyntaxProperty property)
+    private void EmitGreenGetterType(CodeWriter writer, SyntaxProperty property)
     {
         switch (property.Shape)
         {
