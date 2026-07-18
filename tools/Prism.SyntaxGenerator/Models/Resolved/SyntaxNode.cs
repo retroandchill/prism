@@ -7,7 +7,7 @@ using Prism.SyntaxGenerator.Models.Spec;
 
 namespace Prism.SyntaxGenerator.Models.Resolved;
 
-public sealed class SyntaxNode
+public sealed class SyntaxNode : ISyntaxVariant
 {
     private readonly List<SyntaxNode> _derivedTypes = [];
     private readonly List<SyntaxProperty> _properties = [];

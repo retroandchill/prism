@@ -8,18 +8,30 @@ using Prism.SyntaxGenerator.Models.Spec;
 
 namespace Prism.SyntaxGenerator.Models.Resolved;
 
-public sealed class SyntaxModel(
-    ImmutableArray<SyntaxKind> kinds,
-    ImmutableArray<SyntaxTrivia> trivia,
-    ImmutableArray<SyntaxToken> tokens,
-    ImmutableArray<SyntaxModule> modules
-)
+public sealed class SyntaxModel
 {
-    public ImmutableArray<SyntaxKind> Kinds { get; } = kinds;
+    public ImmutableArray<SyntaxKind> Kinds { get; }
 
-    public ImmutableArray<SyntaxTrivia> Trivia { get; } = trivia;
+    public ImmutableArray<SyntaxGroup> KindGroups { get; }
 
-    public ImmutableArray<SyntaxToken> Tokens { get; } = tokens;
+    public ImmutableArray<SyntaxTrivia> Trivia { get; }
 
-    public ImmutableArray<SyntaxModule> Modules { get; } = modules;
+    public ImmutableArray<SyntaxToken> Tokens { get; }
+
+    public ImmutableArray<SyntaxModule> Modules { get; }
+
+    internal SyntaxModel(
+        ImmutableArray<SyntaxKind> kinds,
+        ImmutableArray<SyntaxGroup> kindGroups,
+        ImmutableArray<SyntaxTrivia> trivia,
+        ImmutableArray<SyntaxToken> tokens,
+        ImmutableArray<SyntaxModule> modules
+    )
+    {
+        Kinds = kinds;
+        KindGroups = kindGroups;
+        Trivia = trivia;
+        Tokens = tokens;
+        Modules = modules;
+    }
 }

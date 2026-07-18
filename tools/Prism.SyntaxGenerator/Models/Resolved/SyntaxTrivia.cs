@@ -7,7 +7,7 @@ using JetBrains.Annotations;
 
 namespace Prism.SyntaxGenerator.Models.Resolved;
 
-public sealed class SyntaxTrivia
+public sealed class SyntaxTrivia : ISyntaxVariant
 {
     public string Name { get; }
 

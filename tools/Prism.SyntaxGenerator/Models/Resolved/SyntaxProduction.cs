@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 
 namespace Prism.SyntaxGenerator.Models.Resolved;
 
-public sealed class SyntaxProduction
+public sealed class SyntaxProduction : ISyntaxVariant
 {
     public string Name { get; }
 

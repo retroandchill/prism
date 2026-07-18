@@ -5,7 +5,7 @@
 
 namespace Prism.SyntaxGenerator.Models.Resolved;
 
-public closed class SyntaxProductionConstraint
+public abstract class SyntaxProductionConstraint
 {
     public SyntaxProperty Property { get; }
 
@@ -19,7 +19,8 @@ public sealed class SyntaxTokenConstraint : SyntaxProductionConstraint
 {
     public SyntaxToken Token { get; }
 
-    internal SyntaxTokenConstraint(SyntaxProperty property, SyntaxToken token) : base(property)
+    internal SyntaxTokenConstraint(SyntaxProperty property, SyntaxToken token)
+        : base(property)
     {
         Token = token;
     }
@@ -29,7 +30,8 @@ public sealed class SyntaxPropertyPresenceConstraint : SyntaxProductionConstrain
 {
     public bool Required { get; }
 
-    internal SyntaxPropertyPresenceConstraint(SyntaxProperty property, bool required) : base(property)
+    internal SyntaxPropertyPresenceConstraint(SyntaxProperty property, bool required)
+        : base(property)
     {
         Required = required;
     }

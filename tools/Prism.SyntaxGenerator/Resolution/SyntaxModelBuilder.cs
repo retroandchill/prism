@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using Prism.SyntaxGenerator.Models.Resolved;
 using Prism.SyntaxGenerator.Models.Spec;
@@ -20,6 +21,7 @@ public sealed class SyntaxModelBuilder
     private const int SyntaxNodeStep = 1000;
 
     private readonly OrderedDictionary<string, SyntaxKind> _syntaxKinds = new();
+    private readonly List<SyntaxGroup> _syntaxKindGroups = [];
     private readonly OrderedDictionary<string, SyntaxTrivia> _trivia = new();
     private readonly OrderedDictionary<string, SyntaxToken> _tokens = new();
     private readonly OrderedDictionary<string, SyntaxModule> _modules = new();
@@ -44,6 +46,7 @@ public sealed class SyntaxModelBuilder
         ResolveNodeSyntaxKinds();
         return new SyntaxModel(
             [.. _syntaxKinds.Values],
+            [.. _syntaxKindGroups],
             [.. _trivia.Values],
             [.. _tokens.Values],
             [.. _modules.Values]
@@ -60,6 +63,8 @@ public sealed class SyntaxModelBuilder
                     .Select(m => m.Productions.Length + 1)
                     .Sum()
         );
+        // Modules + 3 Token kind groups + trivia
+        _syntaxKindGroups.EnsureCapacity(spec.Modules.Length + 4);
         _trivia.EnsureCapacity(spec.Trivia.Length);
         _tokens.EnsureCapacity(spec.Tokens.Length);
         _modules.EnsureCapacity(spec.Modules.Length);
@@ -68,17 +73,28 @@ public sealed class SyntaxModelBuilder
 
     private void LoadTrivia(SyntaxSpecification spec)
     {
+        var kinds = new SyntaxKind[spec.Trivia.Length];
         foreach (var (i, definition) in spec.Trivia.AsValueEnumerable().Index())
         {
             var trivia = new SyntaxTrivia(definition.Name, definition.DisplayName);
             trivia.Kind = new SyntaxKind(definition.Name, TriviaStart + i, trivia);
+            kinds[i] = trivia.Kind;
             _syntaxKinds.Add(trivia.Kind.Name, trivia.Kind);
             _trivia.Add(trivia.Kind.Name, trivia);
         }
+
+        _syntaxKindGroups.Add(
+            new SyntaxGroup(
+                "Trivia",
+                SyntaxGroupKind.Trivia,
+                ImmutableCollectionsMarshal.AsImmutableArray(kinds)
+            )
+        );
     }
 
     private void LoadTokens(SyntaxSpecification spec)
     {
+        var kinds = new SyntaxKind[spec.Tokens.Keywords.Length];
         foreach (var (i, definition) in spec.Tokens.Keywords.AsValueEnumerable().Index())
         {
             var token = new SyntaxToken(definition.Name, TokenCategory.Keyword)
@@ -88,10 +104,19 @@ public sealed class SyntaxModelBuilder
             };
             token.Kind = new SyntaxKind(token.Name, KeywordsStart + i, token);
 
+            kinds[i] = token.Kind;
             _syntaxKinds.Add(token.Kind.Name, token.Kind);
             _tokens.Add(token.Kind.Name, token);
         }
+        _syntaxKindGroups.Add(
+            new SyntaxGroup(
+                "Keywords",
+                SyntaxGroupKind.Token,
+                ImmutableCollectionsMarshal.AsImmutableArray(kinds)
+            )
+        );
 
+        kinds = new SyntaxKind[spec.Tokens.Punctuations.Length];
         foreach (var (i, definition) in spec.Tokens.Punctuations.AsValueEnumerable().Index())
         {
             var token = new SyntaxToken(definition.Name, TokenCategory.Punctuation)
@@ -100,10 +125,19 @@ public sealed class SyntaxModelBuilder
             };
             token.Kind = new SyntaxKind(token.Name, PunctuationsStart + i, token);
 
+            kinds[i] = token.Kind;
             _syntaxKinds.Add(token.Kind.Name, token.Kind);
             _tokens.Add(token.Kind.Name, token);
         }
+        _syntaxKindGroups.Add(
+            new SyntaxGroup(
+                "Punctuations",
+                SyntaxGroupKind.Token,
+                ImmutableCollectionsMarshal.AsImmutableArray(kinds)
+            )
+        );
 
+        kinds = new SyntaxKind[spec.Tokens.Other.Length];
         foreach (var (i, definition) in spec.Tokens.Other.AsValueEnumerable().Index())
         {
             var token = new SyntaxToken(definition.Name, TokenCategory.Other)
@@ -115,6 +149,13 @@ public sealed class SyntaxModelBuilder
             _syntaxKinds.Add(token.Kind.Name, token.Kind);
             _tokens.Add(token.Kind.Name, token);
         }
+        _syntaxKindGroups.Add(
+            new SyntaxGroup(
+                "OtherTokens",
+                SyntaxGroupKind.Token,
+                ImmutableCollectionsMarshal.AsImmutableArray(kinds)
+            )
+        );
     }
 
     private void LoadNodes(SyntaxSpecification spec)
@@ -279,6 +320,7 @@ public sealed class SyntaxModelBuilder
     {
         foreach (var (i, module) in _modules.Values.AsValueEnumerable().Index())
         {
+            var kinds = ImmutableArray.CreateBuilder<SyntaxKind>();
             var nextValue = SyntaxNodeStart + SyntaxNodeStep * i;
             foreach (var node in module.Nodes.AsValueEnumerable().Where(x => !x.IsAbstract))
             {
@@ -290,15 +332,22 @@ public sealed class SyntaxModelBuilder
                         continue;
 
                     production.Kind = new SyntaxKind(production.Name, nextValue++, production);
+                    kinds.Add(production.Kind);
                     _syntaxKinds.Add(production.Kind.Name, production.Kind);
                     productionUsed = true;
                 }
 
-                if (!productionUsed)
-                {
-                    node.Kind = new SyntaxKind(node.Name, nextValue++, node);
-                    _syntaxKinds.Add(node.Kind.Name, node.Kind);
-                }
+                if (productionUsed)
+                    continue;
+                node.Kind = new SyntaxKind(node.Name, nextValue++, node);
+                _syntaxKinds.Add(node.Kind.Name, node.Kind);
+            }
+
+            if (kinds.Count > 0)
+            {
+                _syntaxKindGroups.Add(
+                    new SyntaxGroup(module.Name, SyntaxGroupKind.Node, kinds.DrainToImmutable())
+                );
             }
         }
     }

@@ -19,7 +19,7 @@ public enum TokenFlags
     Contextual = 1 << 0,
 }
 
-public sealed class SyntaxToken
+public sealed class SyntaxToken : ISyntaxVariant
 {
     public string Name { get; }
 

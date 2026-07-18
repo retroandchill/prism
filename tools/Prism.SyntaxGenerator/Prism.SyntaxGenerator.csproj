@@ -12,7 +12,9 @@
       <PackageReference Include="CaseConverter" />
       <PackageReference Include="DotMake.CommandLine" />
       <PackageReference Include="Handlebars.Net" />
+      <PackageReference Include="Humanizer" />
       <PackageReference Include="JetBrains.Annotations" />
+      <PackageReference Include="Utf8StringInterpolation" />
       <PackageReference Include="ZLinq" />
       <PackageReference Include="ZString" />
     </ItemGroup>
@@ -23,10 +25,6 @@
 
     <ItemGroup>
         <EmbeddedResource Include="Templates\**\*.mustache" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Output\" />
     </ItemGroup>
 
 </Project>

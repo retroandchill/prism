@@ -5,17 +5,17 @@
 
 namespace Prism.SyntaxGenerator.Models.Resolved;
 
-public union SyntaxVariant(SyntaxTrivia, SyntaxToken, SyntaxNode, SyntaxProduction);
+public interface ISyntaxVariant;
 
-public class SyntaxKind
+public sealed class SyntaxKind
 {
     public string Name { get; }
 
     public int Value { get; }
 
-    public SyntaxVariant Data { get; }
+    public ISyntaxVariant Data { get; }
 
-    internal SyntaxKind(string name, int value, SyntaxVariant data)
+    internal SyntaxKind(string name, int value, ISyntaxVariant data)
     {
         Name = name;
         Value = value;

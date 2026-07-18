@@ -133,7 +133,7 @@
                     "null"
                   ]
                 },
-                "children": {
+                "fields": {
                   "type": "array",
                   "items": {
                     "type": [
@@ -196,33 +196,33 @@
                                 "$type": {
                                   "const": "token"
                                 },
-                                "field": {
+                                "token": {
                                   "type": "string"
                                 },
-                                "token": {
+                                "property": {
                                   "type": "string"
                                 }
                               },
                               "required": [
-                                "field",
-                                "token"
+                                "token",
+                                "property"
                               ]
                             },
                             {
                               "properties": {
                                 "$type": {
-                                  "const": "field"
-                                },
-                                "field": {
-                                  "type": "string"
+                                  "const": "property"
                                 },
                                 "required": {
                                   "type": "boolean"
+                                },
+                                "property": {
+                                  "type": "string"
                                 }
                               },
                               "required": [
-                                "field",
-                                "required"
+                                "required",
+                                "property"
                               ]
                             }
                           ]

@@ -415,6 +415,58 @@
               "type": "Token",
               "shape": "single"
             }
+          ],
+          "productions": [
+            {
+              "name": "FalseLiteralExpression",
+              "constraints": [
+                {
+                  "$type": "token",
+                  "property": "value",
+                  "token": "FalseKeyword"
+                }
+              ]
+            },
+            {
+              "name": "TrueLiteralExpression",
+              "constraints": [
+                {
+                  "$type": "token",
+                  "property": "value",
+                  "token": "TrueKeyword"
+                }
+              ]
+            },
+            {
+              "name": "NumericLiteralExpression",
+              "constraints": [
+                {
+                  "$type": "token",
+                  "property": "value",
+                  "token": "NumericLiteralToken"
+                }
+              ]
+            },
+            {
+              "name": "CharacterLiteralExpression",
+              "constraints": [
+                {
+                  "$type": "token",
+                  "property": "value",
+                  "token": "CharacterLiteralToken"
+                }
+              ]
+            },
+            {
+              "name": "StringLiteralExpression",
+              "constraints": [
+                {
+                  "$type": "token",
+                  "property": "value",
+                  "token": "StringLiteralExpression"
+                }
+              ]
+            }
           ]
         },
         {
