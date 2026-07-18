@@ -16,8 +16,5 @@ public sealed record NodeDefinition
     public string? Base { get; init; }
 
     [UsedImplicitly]
-    public ImmutableArray<PropertyDefinition> Fields { get; init; } = [];
-
-    [UsedImplicitly]
-    public ImmutableArray<ProductionDefinition> Productions { get; init; } = [];
+    public ImmutableArray<PropertyDefinition> Properties { get; init; } = [];
 }

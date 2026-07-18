@@ -133,104 +133,97 @@
                     "null"
                   ]
                 },
-                "fields": {
+                "properties": {
                   "type": "array",
                   "items": {
                     "type": [
                       "object",
                       "null"
                     ],
-                    "properties": {
-                      "name": {
-                        "type": "string"
-                      },
-                      "type": {
-                        "type": "string"
-                      },
-                      "shape": {
-                        "enum": [
-                          "single",
-                          "optional",
-                          "list",
-                          "separated_list"
-                        ]
-                      }
-                    },
                     "required": [
-                      "name",
-                      "type",
-                      "shape"
-                    ]
-                  }
-                },
-                "productions": {
-                  "type": "array",
-                  "items": {
-                    "type": [
-                      "object",
-                      "null"
+                      "$type"
                     ],
-                    "properties": {
-                      "name": {
-                        "type": "string"
-                      },
-                      "syntaxKind": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "constraints": {
-                        "type": "array",
-                        "items": {
-                          "type": [
-                            "object",
-                            "null"
-                          ],
-                          "required": [
-                            "$type"
-                          ],
-                          "anyOf": [
-                            {
-                              "properties": {
-                                "$type": {
-                                  "const": "token"
-                                },
-                                "token": {
-                                  "type": "string"
-                                },
-                                "property": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "token",
-                                "property"
-                              ]
-                            },
-                            {
-                              "properties": {
-                                "$type": {
-                                  "const": "property"
-                                },
-                                "required": {
-                                  "type": "boolean"
-                                },
-                                "property": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "required",
-                                "property"
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "$type": {
+                            "const": "item"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "shape": {
+                            "enum": [
+                              "single",
+                              "optional",
+                              "list",
+                              "separated_list"
+                            ]
+                          },
+                          "kinds": {
+                            "type": "array",
+                            "items": {
+                              "type": [
+                                "string",
+                                "null"
                               ]
                             }
-                          ]
-                        }
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "type",
+                          "shape"
+                        ]
+                      },
+                      {
+                        "properties": {
+                          "$type": {
+                            "const": "reference"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name"
+                        ]
+                      },
+                      {
+                        "properties": {
+                          "$type": {
+                            "const": "choice"
+                          },
+                          "choices": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/properties/modules/items/properties/nodes/items/properties/properties/items"
+                            }
+                          }
+                        },
+                        "required": [
+                          "choices"
+                        ]
+                      },
+                      {
+                        "properties": {
+                          "$type": {
+                            "const": "sequence"
+                          },
+                          "elements": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/properties/modules/items/properties/nodes/items/properties/properties/items"
+                            }
+                          }
+                        },
+                        "required": [
+                          "elements"
+                        ]
                       }
-                    },
-                    "required": [
-                      "name"
                     ]
                   }
                 }
