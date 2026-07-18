@@ -29,6 +29,7 @@ public sealed class SyntaxGroup
     internal SyntaxGroup(string name, SyntaxGroupKind kind, ImmutableArray<SyntaxKind> syntaxKinds)
     {
         Name = name;
+        Kind = kind;
         StartValue = SyntaxKinds[0].Value;
         EndValue = SyntaxKinds[^1].Value;
         SyntaxKinds = syntaxKinds;

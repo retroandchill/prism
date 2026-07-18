@@ -7,24 +7,28 @@ using System.Collections.Immutable;
 
 namespace Prism.SyntaxGenerator.Models.Resolved;
 
+public readonly record struct SyntaxProductionArgument(SyntaxProperty Property, bool IsOptional);
+
 public sealed class SyntaxProduction : ISyntaxVariant
 {
-    public string Name { get; }
-
     public SyntaxNode Node { get; }
 
-    public SyntaxKind? Kind { get; internal set; }
+    private readonly List<SyntaxProductionArgument> _arguments;
+    public IReadOnlyList<SyntaxProductionArgument> Arguments => _arguments;
 
-    public ImmutableArray<SyntaxProductionConstraint> Constraints { get; }
-
-    internal SyntaxProduction(
-        string name,
-        SyntaxNode node,
-        ImmutableArray<SyntaxProductionConstraint> constraints
-    )
+    internal SyntaxProduction(SyntaxNode node, List<SyntaxProductionArgument>? arguments = null)
     {
-        Name = name;
         Node = node;
-        Constraints = constraints;
+        _arguments = arguments ?? [];
+    }
+
+    internal void Add(SyntaxProductionArgument argument)
+    {
+        _arguments.Add(argument);
+    }
+
+    internal SyntaxProduction Clone()
+    {
+        return new SyntaxProduction(Node, [.. _arguments]);
     }
 }

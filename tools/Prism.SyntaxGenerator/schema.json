@@ -171,6 +171,15 @@
                                 "null"
                               ]
                             }
+                          },
+                          "separators": {
+                            "type": "array",
+                            "items": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
                           }
                         },
                         "required": [

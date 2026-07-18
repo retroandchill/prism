@@ -37,6 +37,7 @@ public sealed record PropertyItemDefinition : PropertyDefinition
     public required string Type { get; init; }
     public required PropertyShape Shape { get; init; }
     public ImmutableArray<string> Kinds { get; init; }
+    public ImmutableArray<string> Separators { get; init; }
 }
 
 public sealed record PropertyReferenceDefinition : PropertyDefinition

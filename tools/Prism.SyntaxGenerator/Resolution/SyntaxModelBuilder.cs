@@ -3,6 +3,8 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Prism.SyntaxGenerator.Models.Resolved;
 using Prism.SyntaxGenerator.Models.Spec;
@@ -27,8 +29,6 @@ public sealed class SyntaxModelBuilder
     private readonly Dictionary<string, SyntaxNode> _nodes = new();
     private readonly Dictionary<SyntaxNode, NodeDefinition> _nodeDefinitions = new();
     private readonly Dictionary<SyntaxNode, Dictionary<string, SyntaxProperty>> _nodeProperties =
-        new();
-    private readonly Dictionary<SyntaxProduction, ProductionDefinition> _productionDefinitions =
         new();
 
     public SyntaxModel Build(SyntaxSpecification spec)
@@ -251,7 +251,97 @@ public sealed class SyntaxModelBuilder
             : new SyntaxTypeReference(name, _nodes[name]);
     }
 
-    private void ResolveProductions() { }
+    private void ResolveProductions()
+    {
+        foreach (var node in _nodes.Values)
+        {
+            var definition = _nodeDefinitions[node];
+            var propertyLookup = _nodeProperties[node];
+            var productions = ExpandMany(
+                definition.Properties,
+                propertyLookup,
+                [new SyntaxProduction(node)]
+            );
+            node.AddProductions(productions);
+        }
+    }
+
+    private void Expand(
+        PropertyDefinition property,
+        Dictionary<string, SyntaxProperty> propertyLookup,
+        SyntaxProduction production,
+        List<SyntaxProduction> next
+    )
+    {
+        switch (property)
+        {
+            case PropertyItemDefinition item:
+            {
+                ExpandFromName(item.Name, propertyLookup, production, next);
+                break;
+            }
+            case PropertyReferenceDefinition reference:
+                ExpandFromName(reference.Name, propertyLookup, production, next);
+                break;
+            case PropertySequenceDefinition sequence:
+            {
+                var branchProductions = ExpandMany(sequence.Elements, propertyLookup, [production]);
+                next.AddRange(branchProductions);
+                break;
+            }
+            case PropertyChoiceDefinition choice:
+            {
+                foreach (var branch in choice.Choices)
+                {
+                    Expand(branch, propertyLookup, production.Clone(), next);
+                }
+
+                break;
+            }
+            default:
+                throw new InvalidOperationException(
+                    $"Unexpected property definition type: {property.GetType().FullName}"
+                );
+        }
+    }
+
+    private List<SyntaxProduction> ExpandMany(
+        ImmutableArray<PropertyDefinition> properties,
+        Dictionary<string, SyntaxProperty> propertyLookup,
+        List<SyntaxProduction> productions
+    )
+    {
+        foreach (var property in properties)
+        {
+            var next = new List<SyntaxProduction>();
+
+            foreach (var production in productions)
+            {
+                Expand(property, propertyLookup, production, next);
+            }
+
+            productions = next;
+        }
+
+        return productions;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ExpandFromName(
+        string name,
+        Dictionary<string, SyntaxProperty> propertyLookup,
+        SyntaxProduction production,
+        List<SyntaxProduction> next
+    )
+    {
+        var property = propertyLookup[name];
+        var argument = new SyntaxProductionArgument(
+            property,
+            property.Shape == PropertyShape.Optional
+        );
+        production.Add(argument);
+        next.Add(production);
+    }
 
     private void ResolveOverrides()
     {

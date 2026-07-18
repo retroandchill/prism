@@ -11,7 +11,7 @@ public sealed class SyntaxProperty
 {
     public string Name { get; }
     public SyntaxTypeReference Type { get; }
-    public PropertyShape Shape { get; }
+    public PropertyShape Shape { get; internal set; }
     public bool IsOverride { get; internal set; }
 
     internal SyntaxProperty(string name, SyntaxTypeReference type, PropertyShape shape)

@@ -38,5 +38,6 @@ public sealed class SyntaxNode : ISyntaxVariant
 
     internal void AddProperty(SyntaxProperty property) => _properties.Add(property);
 
-    internal void AddProduction(SyntaxProduction production) => _productions.Add(production);
+    internal void AddProductions(IEnumerable<SyntaxProduction> production) =>
+        _productions.AddRange(production);
 }

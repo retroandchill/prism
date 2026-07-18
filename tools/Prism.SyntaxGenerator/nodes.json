@@ -17,34 +17,118 @@
   ],
   "tokens": {
     "keywords": [
-      { "name": "VarKeyword", "text": "var" },
-      { "name": "FuncKeyword", "text": "func" },
-      { "name": "ExternKeyword", "text": "extern" },
-      { "name": "ReturnKeyword", "text": "return" },
-      { "name": "MutKeyword", "text": "mut" },
-      { "name": "TrueKeyword", "text": "true" },
-      { "name": "FalseKeyword", "text": "false" },
-      { "name": "VoidKeyword", "text": "void" },
-      { "name": "BoolKeyword", "text": "bool" },
-      { "name": "I8Keyword", "text": "i8" },
-      { "name": "I16Keyword", "text": "i16" },
-      { "name": "I32Keyword", "text": "i32" },
-      { "name": "I64Keyword", "text": "i64" },
-      { "name": "I128Keyword", "text": "i128" },
-      { "name": "U8Keyword", "text": "u8" },
-      { "name": "U16Keyword", "text": "u16" },
-      { "name": "U32Keyword", "text": "u32" },
-      { "name": "U64Keyword", "text": "u64" },
-      { "name": "U128Keyword", "text": "u128" },
-      { "name": "ISizeKeyword", "text": "isize" },
-      { "name": "USizeKeyword", "text": "usize" },
-      { "name": "F16Keyword", "text": "f16" },
-      { "name": "F32Keyword", "text": "f32" },
-      { "name": "F64Keyword", "text": "f64" },
-      { "name": "CharKeyword", "text": "char" },
-      { "name": "Char16Keyword", "text": "char16" },
-      { "name": "RuneKeyword", "text": "rune" },
-      { "name": "StrKeyword", "text": "str" }
+      {
+        "name": "VarKeyword",
+        "text": "var"
+      },
+      {
+        "name": "FuncKeyword",
+        "text": "func"
+      },
+      {
+        "name": "ExternKeyword",
+        "text": "extern"
+      },
+      {
+        "name": "ReturnKeyword",
+        "text": "return"
+      },
+      {
+        "name": "MutKeyword",
+        "text": "mut"
+      },
+      {
+        "name": "TrueKeyword",
+        "text": "true"
+      },
+      {
+        "name": "FalseKeyword",
+        "text": "false"
+      },
+      {
+        "name": "VoidKeyword",
+        "text": "void"
+      },
+      {
+        "name": "BoolKeyword",
+        "text": "bool"
+      },
+      {
+        "name": "I8Keyword",
+        "text": "i8"
+      },
+      {
+        "name": "I16Keyword",
+        "text": "i16"
+      },
+      {
+        "name": "I32Keyword",
+        "text": "i32"
+      },
+      {
+        "name": "I64Keyword",
+        "text": "i64"
+      },
+      {
+        "name": "I128Keyword",
+        "text": "i128"
+      },
+      {
+        "name": "U8Keyword",
+        "text": "u8"
+      },
+      {
+        "name": "U16Keyword",
+        "text": "u16"
+      },
+      {
+        "name": "U32Keyword",
+        "text": "u32"
+      },
+      {
+        "name": "U64Keyword",
+        "text": "u64"
+      },
+      {
+        "name": "U128Keyword",
+        "text": "u128"
+      },
+      {
+        "name": "ISizeKeyword",
+        "text": "isize"
+      },
+      {
+        "name": "USizeKeyword",
+        "text": "usize"
+      },
+      {
+        "name": "F16Keyword",
+        "text": "f16"
+      },
+      {
+        "name": "F32Keyword",
+        "text": "f32"
+      },
+      {
+        "name": "F64Keyword",
+        "text": "f64"
+      },
+      {
+        "name": "CharKeyword",
+        "text": "char"
+      },
+      {
+        "name": "Char16Keyword",
+        "text": "char16"
+      },
+      {
+        "name": "RuneKeyword",
+        "text": "rune"
+      },
+      {
+        "name": "StrKeyword",
+        "text": "str"
+      }
     ],
     "punctuations": [
       {
@@ -114,10 +198,6 @@
       {
         "name": "MinusToken",
         "text": "-"
-      },
-      {
-        "name": "ArrowToken",
-        "text": "->"
       },
       {
         "name": "MinusMinusToken",
@@ -252,7 +332,7 @@
         "text": "="
       },
       {
-        "name": "BigArrayToken",
+        "name": "ArrowToken",
         "text": "=>"
       },
       {
@@ -314,14 +394,16 @@
               "name": "identifier",
               "type": "Token",
               "shape": "single",
-              "kinds": ["IdentifierToken"]
+              "kinds": [
+                "IdentifierToken"
+              ]
             }
           ]
         }
       ]
     },
     {
-      "name": "clauses",
+      "name": "Clauses",
       "nodes": [
         {
           "name": "Initializer",
@@ -331,7 +413,9 @@
               "name": "equal_sign",
               "type": "Token",
               "shape": "single",
-              "kinds": ["EqualToken"]
+              "kinds": [
+                "EqualToken"
+              ]
             },
             {
               "$type": "item",
@@ -342,14 +426,16 @@
           ]
         },
         {
-          "name": "TypeHint",
+          "name": "TypeSpecifier",
           "properties": [
             {
               "$type": "item",
               "name": "colon",
               "type": "Token",
               "shape": "single",
-              "kinds": ["ColonToken"]
+              "kinds": [
+                "ColonToken"
+              ]
             },
             {
               "$type": "item",
@@ -367,14 +453,18 @@
               "name": "name",
               "type": "Token",
               "shape": "single",
-              "kinds": ["IdentifierToken"]
+              "kinds": [
+                "IdentifierToken"
+              ]
             },
             {
               "$type": "item",
               "name": "colon",
               "type": "Token",
               "shape": "single",
-              "kinds": ["ColonToken"]
+              "kinds": [
+                "ColonToken"
+              ]
             }
           ]
         },
@@ -386,20 +476,27 @@
               "name": "open_paren",
               "type": "Token",
               "shape": "single",
-              "kinds": ["OpenParenToken"]
+              "kinds": [
+                "OpenParenToken"
+              ]
             },
             {
               "$type": "item",
-              "name": "argument",
+              "name": "arguments",
               "type": "Argument",
-              "shape": "separated_list"
+              "shape": "separated_list",
+              "separators": [
+                "CommaToken"
+              ]
             },
             {
               "$type": "item",
               "name": "close_paren",
               "type": "Token",
               "shape": "single",
-              "kinds": ["CloseParenToken"]
+              "kinds": [
+                "CloseParenToken"
+              ]
             }
           ]
         },
@@ -419,11 +516,98 @@
               "shape": "single"
             }
           ]
+        },
+        {
+          "name": "ParameterList",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "open_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "parameters",
+              "type": "Parameter",
+              "shape": "separated_list",
+              "separators": [
+                "CommaToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "close_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseParenToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Parameter",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "mut_keyword",
+              "type": "Token",
+              "shape": "optional",
+              "kinds": [
+                "MutKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "name",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "type_specifier",
+              "type": "TypeSpecifier",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "default_value",
+              "type": "Initializer",
+              "shape": "optional"
+            }
+          ]
+        },
+        {
+          "name": "ExpressionBody",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "arrow",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ArrowToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "expression",
+              "type": "Expression",
+              "shape": "single"
+            }
+          ]
         }
       ]
     },
     {
-      "name": "expression",
+      "name": "expressions",
       "nodes": [
         {
           "name": "Expression",
@@ -438,7 +622,13 @@
               "name": "value",
               "type": "Token",
               "shape": "single",
-              "kinds": ["TrueKeyword", "FalseKeyword", "NumericLiteralToken", "CharacterLiteralToken", "StringLiteralToken"]
+              "kinds": [
+                "TrueKeyword",
+                "FalseKeyword",
+                "NumericLiteralToken",
+                "CharacterLiteralToken",
+                "StringLiteralToken"
+              ]
             }
           ]
         },
@@ -451,7 +641,9 @@
               "name": "value",
               "type": "Token",
               "shape": "single",
-              "kinds": ["IdentifierToken"]
+              "kinds": [
+                "IdentifierToken"
+              ]
             }
           ]
         },
@@ -464,7 +656,9 @@
               "name": "open",
               "type": "Token",
               "shape": "single",
-              "kinds": ["OpenParenToken"]
+              "kinds": [
+                "OpenParenToken"
+              ]
             },
             {
               "$type": "item",
@@ -477,7 +671,9 @@
               "name": "close",
               "type": "Token",
               "shape": "single",
-              "kinds": ["CloseParenToken"]
+              "kinds": [
+                "CloseParenToken"
+              ]
             }
           ]
         },
@@ -629,7 +825,9 @@
               "name": "question_mark",
               "type": "Token",
               "shape": "single",
-              "kinds": ["QuestionToken"]
+              "kinds": [
+                "QuestionToken"
+              ]
             },
             {
               "$type": "item",
@@ -642,7 +840,9 @@
               "name": "colon",
               "type": "Token",
               "shape": "single",
-              "kinds": ["ColonToken"]
+              "kinds": [
+                "ColonToken"
+              ]
             },
             {
               "$type": "item",
@@ -700,7 +900,9 @@
               "name": "open_brace",
               "type": "Token",
               "shape": "single",
-              "kinds": ["OpenBraceToken"]
+              "kinds": [
+                "OpenBraceToken"
+              ]
             },
             {
               "$type": "item",
@@ -713,7 +915,9 @@
               "name": "close_brace",
               "type": "Token",
               "shape": "single",
-              "kinds": ["CloseBraceToken"]
+              "kinds": [
+                "CloseBraceToken"
+              ]
             }
           ]
         },
@@ -726,7 +930,9 @@
               "name": "return_keyword",
               "type": "Token",
               "shape": "single",
-              "kinds": ["ReturnKeyword"]
+              "kinds": [
+                "ReturnKeyword"
+              ]
             },
             {
               "$type": "item",
@@ -739,7 +945,9 @@
               "name": "semicolon",
               "type": "Token",
               "shape": "single",
-              "kinds": ["SemicolonToken"]
+              "kinds": [
+                "SemicolonToken"
+              ]
             }
           ]
         },
@@ -758,7 +966,9 @@
               "name": "semicolon",
               "type": "Token",
               "shape": "single",
-              "kinds": ["SemicolonToken"]
+              "kinds": [
+                "SemicolonToken"
+              ]
             }
           ]
         },
@@ -771,7 +981,9 @@
               "name": "semicolon",
               "type": "Token",
               "shape": "single",
-              "kinds": ["SemicolonToken"]
+              "kinds": [
+                "SemicolonToken"
+              ]
             }
           ]
         }
@@ -800,33 +1012,41 @@
               "name": "modifiers",
               "type": "Token",
               "shape": "list",
-              "kinds": ["ExternKeyword"]
+              "kinds": [
+                "ExternKeyword"
+              ]
             },
             {
               "$type": "item",
               "name": "var_keyword",
               "type": "Token",
               "shape": "single",
-              "kinds": ["VarKeyword"]
+              "kinds": [
+                "VarKeyword"
+              ]
             },
             {
               "$type": "item",
               "name": "mut_keyword",
               "type": "Token",
               "shape": "optional",
-              "kinds": ["MutKeyword"]
+              "kinds": [
+                "MutKeyword"
+              ]
             },
             {
               "$type": "item",
               "name": "identifier",
               "type": "Token",
               "shape": "single",
-              "kinds": ["IdentifierToken"]
+              "kinds": [
+                "IdentifierToken"
+              ]
             },
             {
               "$type": "item",
               "name": "type",
-              "type": "TypeHint",
+              "type": "TypeSpecifier",
               "isOptional": true,
               "shape": "single"
             },
@@ -842,7 +1062,89 @@
               "name": "semicolon",
               "type": "Token",
               "shape": "single",
-              "kinds": ["SemicolonToken"]
+              "kinds": [
+                "SemicolonToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "FunctionDeclaration",
+          "base": "Declaration",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "modifiers",
+              "type": "Token",
+              "shape": "list",
+              "kinds": [
+                "ExternKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "func_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "FuncKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "identifier",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "parameters",
+              "type": "ParameterList",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "return_type",
+              "type": "TypeSpecifier",
+              "shape": "optional"
+            },
+            {
+              "$type": "choice",
+              "choices": [
+                {
+                  "$type": "item",
+                  "name": "body",
+                  "type": "Block",
+                  "shape": "single"
+                },
+                {
+                  "$type": "sequence",
+                  "elements": [
+                    {
+                      "$type": "item",
+                      "name": "expression_body",
+                      "type": "ExpressionBody",
+                      "shape": "single"
+                    },
+                    {
+                      "$type": "item",
+                      "name": "semicolon",
+                      "type": "Token",
+                      "shape": "single",
+                      "kinds": [
+                        "SemicolonToken"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "$type": "reference",
+                  "name": "semicolon"
+                }
+              ]
             }
           ]
         }
