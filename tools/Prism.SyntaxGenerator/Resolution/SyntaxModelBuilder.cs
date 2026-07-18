@@ -137,6 +137,7 @@ public sealed class SyntaxModelBuilder
                 DisplayName = definition.DisplayName,
             };
             token.Kind = new SyntaxKind(token.Name, OtherTokensStart + i, token);
+            kinds[i] = token.Kind;
 
             _syntaxKinds.Add(token.Kind.Name, token.Kind);
             _tokens.Add(token.Kind.Name, token);
@@ -263,6 +264,28 @@ public sealed class SyntaxModelBuilder
                 [new SyntaxProduction(node)]
             );
             node.AddProductions(productions);
+
+            var productionCounts = new Dictionary<SyntaxProperty, int>();
+            productions.EnsureCapacity(node.Properties.Count);
+            foreach (var property in node.Properties)
+            {
+                productionCounts[property] = 0;
+            }
+            foreach (var production in node.Productions)
+            {
+                foreach (var (property, _) in production.Arguments)
+                {
+                    productionCounts[property]++;
+                }
+            }
+
+            foreach (var (property, count) in productionCounts)
+            {
+                if (count != node.Productions.Count)
+                {
+                    property.Shape = PropertyShape.Optional;
+                }
+            }
         }
     }
 

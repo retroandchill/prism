@@ -46,18 +46,18 @@ TEST_CASE("Simple grammar", "[lexer]")
     CHECK_THAT(tokens,
                Catch::Matchers::RangeEquals({SyntaxKind::func_keyword,
                                              SyntaxKind::identifier_token,
-                                             SyntaxKind::lparen_token,
+                                             SyntaxKind::open_paren_token,
                                              SyntaxKind::identifier_token,
                                              SyntaxKind::colon_token,
                                              SyntaxKind::i32_keyword,
-                                             SyntaxKind::rparen_token,
-                                             SyntaxKind::lbrace_token,
+                                             SyntaxKind::close_paren_token,
+                                             SyntaxKind::open_brace_token,
                                              SyntaxKind::return_keyword,
                                              SyntaxKind::identifier_token,
                                              SyntaxKind::plus_token,
-                                             SyntaxKind::number_token,
+                                             SyntaxKind::numeric_literal_token,
                                              SyntaxKind::semicolon_token,
-                                             SyntaxKind::rbrace_token,
+                                             SyntaxKind::close_brace_token,
                                              SyntaxKind::eof_token}));
 }
 
@@ -73,7 +73,7 @@ TEST_CASE("Skips line comments", "[lexer]")
                Catch::Matchers::RangeEquals({SyntaxKind::var_keyword,
                                              SyntaxKind::identifier_token,
                                              SyntaxKind::equal_token,
-                                             SyntaxKind::number_token,
+                                             SyntaxKind::numeric_literal_token,
                                              SyntaxKind::semicolon_token,
                                              SyntaxKind::eof_token}));
 }
@@ -87,7 +87,7 @@ TEST_CASE("Skips block comments", "[lexer]")
                Catch::Matchers::RangeEquals({SyntaxKind::var_keyword,
                                              SyntaxKind::identifier_token,
                                              SyntaxKind::equal_token,
-                                             SyntaxKind::number_token,
+                                             SyntaxKind::numeric_literal_token,
                                              SyntaxKind::semicolon_token,
                                              SyntaxKind::eof_token}));
 }
@@ -107,7 +107,7 @@ TEST_CASE("Block comments span multiple lines", "[lexer]")
                Catch::Matchers::RangeEquals({SyntaxKind::var_keyword,
                                              SyntaxKind::identifier_token,
                                              SyntaxKind::equal_token,
-                                             SyntaxKind::number_token,
+                                             SyntaxKind::numeric_literal_token,
                                              SyntaxKind::semicolon_token,
                                              SyntaxKind::eof_token}));
 }

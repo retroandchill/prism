@@ -14,13 +14,12 @@ set(PRISM_SOURCES
         src/private/syntax/lexer.cpp
         src/private/syntax/green/trivia.cpp
         src/private/syntax/token_stream.cpp
-        generated/private/syntax/green/type.cpp
+        generated/private/syntax/green/types.cpp
         generated/private/syntax/green/declaration.cpp
-        generated/private/syntax/green/expression.cpp
+        generated/private/syntax/green/expressions.cpp
         generated/private/syntax/green/clauses.cpp
         generated/private/syntax/green/statement.cpp
         src/private/syntax/green/list.cpp
-        generated/private/syntax/lexing_utils.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -61,10 +60,10 @@ set(PRISM_PUBLIC_MODULES
         src/public/syntax/node.ixx
         src/public/syntax/tree.ixx
         src/public/syntax/parsed_tree.ixx
-        generated/public/syntax/green/type.ixx
+        generated/public/syntax/green/types.ixx
         generated/public/syntax/green/declaration.ixx
         src/public/syntax/green/list.ixx
-        generated/public/syntax/green/expression.ixx
+        generated/public/syntax/green/expressions.ixx
         generated/public/syntax/green/clauses.ixx
         src/public/syntax/green/separated_list.ixx
         generated/public/syntax/green/statement.ixx

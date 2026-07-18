@@ -1,21 +1,20 @@
-module prism.core:syntax.green.expression.impl;
+module prism.core:syntax.green.expressions.impl;
 
-import :syntax.green.expression;
+import :syntax.green.expressions;
 import :syntax.green.clauses;
 import :syntax.green.declaration;
 import :syntax.green.statement;
-import :syntax.green.type;
+import :syntax.green.types;
 
 namespace prism
 {
-    GreenExpression::~GreenExpression() = default;
-
     GreenLiteralExpression::GreenLiteralExpression(GreenPtr<GreenToken> value, DiagnosticInfoList diagnostics)
         : GreenExpression{SyntaxKind::literal_expression, std::move(diagnostics)}, value_{std::move(value)}
     {
         set_child_count(1);
         adjust_flags_and_width(*value_);
     }
+
     GreenLiteralExpression::~GreenLiteralExpression() = default;
 
     Optional<const GreenNode &> GreenLiteralExpression::get_child(std::size_t index) const
@@ -28,13 +27,13 @@ namespace prism
                 return std::nullopt;
         }
     }
-
     GreenIdentifierExpression::GreenIdentifierExpression(GreenPtr<GreenToken> value, DiagnosticInfoList diagnostics)
         : GreenExpression{SyntaxKind::identifier_expression, std::move(diagnostics)}, value_{std::move(value)}
     {
         set_child_count(1);
         adjust_flags_and_width(*value_);
     }
+
     GreenIdentifierExpression::~GreenIdentifierExpression() = default;
 
     Optional<const GreenNode &> GreenIdentifierExpression::get_child(std::size_t index) const
@@ -47,7 +46,6 @@ namespace prism
                 return std::nullopt;
         }
     }
-
     GreenParenthesizedExpression::GreenParenthesizedExpression(GreenPtr<GreenToken> open,
                                                                GreenPtr<GreenExpression> expression,
                                                                GreenPtr<GreenToken> close,
@@ -60,6 +58,7 @@ namespace prism
         adjust_flags_and_width(*expression_);
         adjust_flags_and_width(*close_);
     }
+
     GreenParenthesizedExpression::~GreenParenthesizedExpression() = default;
 
     Optional<const GreenNode &> GreenParenthesizedExpression::get_child(std::size_t index) const
@@ -76,7 +75,6 @@ namespace prism
                 return std::nullopt;
         }
     }
-
     GreenBinaryExpression::GreenBinaryExpression(GreenPtr<GreenExpression> left,
                                                  GreenPtr<GreenToken> op,
                                                  GreenPtr<GreenExpression> right,
@@ -89,6 +87,7 @@ namespace prism
         adjust_flags_and_width(*op_);
         adjust_flags_and_width(*right_);
     }
+
     GreenBinaryExpression::~GreenBinaryExpression() = default;
 
     Optional<const GreenNode &> GreenBinaryExpression::get_child(std::size_t index) const
@@ -105,7 +104,35 @@ namespace prism
                 return std::nullopt;
         }
     }
+    GreenAssignmentExpression::GreenAssignmentExpression(GreenPtr<GreenExpression> left,
+                                                         GreenPtr<GreenToken> op,
+                                                         GreenPtr<GreenExpression> right,
+                                                         DiagnosticInfoList diagnostics)
+        : GreenExpression{SyntaxKind::assignment_expression, std::move(diagnostics)}, left_{std::move(left)},
+          op_{std::move(op)}, right_{std::move(right)}
+    {
+        set_child_count(3);
+        adjust_flags_and_width(*left_);
+        adjust_flags_and_width(*op_);
+        adjust_flags_and_width(*right_);
+    }
 
+    GreenAssignmentExpression::~GreenAssignmentExpression() = default;
+
+    Optional<const GreenNode &> GreenAssignmentExpression::get_child(std::size_t index) const
+    {
+        switch (index)
+        {
+            case 0:
+                return *left_;
+            case 1:
+                return *op_;
+            case 2:
+                return *right_;
+            default:
+                return std::nullopt;
+        }
+    }
     GreenPrefixExpression::GreenPrefixExpression(GreenPtr<GreenToken> op,
                                                  GreenPtr<GreenExpression> operand,
                                                  DiagnosticInfoList diagnostics)
@@ -116,6 +143,7 @@ namespace prism
         adjust_flags_and_width(*op_);
         adjust_flags_and_width(*operand_);
     }
+
     GreenPrefixExpression::~GreenPrefixExpression() = default;
 
     Optional<const GreenNode &> GreenPrefixExpression::get_child(std::size_t index) const
@@ -130,7 +158,6 @@ namespace prism
                 return std::nullopt;
         }
     }
-
     GreenPostfixExpression::GreenPostfixExpression(GreenPtr<GreenExpression> operand,
                                                    GreenPtr<GreenToken> op,
                                                    DiagnosticInfoList diagnostics)
@@ -141,6 +168,7 @@ namespace prism
         adjust_flags_and_width(*operand_);
         adjust_flags_and_width(*op_);
     }
+
     GreenPostfixExpression::~GreenPostfixExpression() = default;
 
     Optional<const GreenNode &> GreenPostfixExpression::get_child(std::size_t index) const
@@ -155,7 +183,6 @@ namespace prism
                 return std::nullopt;
         }
     }
-
     GreenTernaryExpression::GreenTernaryExpression(GreenPtr<GreenExpression> condition,
                                                    GreenPtr<GreenToken> question_mark,
                                                    GreenPtr<GreenExpression> when_true,
@@ -173,6 +200,7 @@ namespace prism
         adjust_flags_and_width(*colon_);
         adjust_flags_and_width(*when_false_);
     }
+
     GreenTernaryExpression::~GreenTernaryExpression() = default;
 
     Optional<const GreenNode &> GreenTernaryExpression::get_child(std::size_t index) const
@@ -193,7 +221,6 @@ namespace prism
                 return std::nullopt;
         }
     }
-
     GreenInvocationExpression::GreenInvocationExpression(GreenPtr<GreenExpression> callee,
                                                          GreenPtr<GreenArgumentList> arguments,
                                                          DiagnosticInfoList diagnostics)
@@ -204,6 +231,7 @@ namespace prism
         adjust_flags_and_width(*callee_);
         adjust_flags_and_width(*arguments_);
     }
+
     GreenInvocationExpression::~GreenInvocationExpression() = default;
 
     Optional<const GreenNode &> GreenInvocationExpression::get_child(std::size_t index) const
@@ -218,5 +246,4 @@ namespace prism
                 return std::nullopt;
         }
     }
-
 } // namespace prism

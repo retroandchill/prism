@@ -7,7 +7,9 @@ import :syntax.green.separated_list;
 namespace prism
 {
     class GreenArgument;
+    class GreenBlock;
     class GreenExpression;
+    class GreenParameter;
     class GreenStatement;
     class GreenType;
     class GreenVariableDeclaration;
@@ -15,9 +17,10 @@ namespace prism
     class GreenInitializer final : public GreenNode
     {
       public:
-        explicit GreenInitializer(GreenPtr<GreenToken> equal_sign,
-                                  GreenPtr<GreenExpression> value,
-                                  DiagnosticInfoList diagnostics = {});
+        GreenInitializer(GreenPtr<GreenToken> equal_sign,
+                         GreenPtr<GreenExpression> value,
+                         DiagnosticInfoList diagnostics = {});
+
         ~GreenInitializer() override;
 
         [[nodiscard]] constexpr const GreenToken &equal_sign() const noexcept
@@ -42,13 +45,12 @@ namespace prism
         GreenPtr<GreenExpression> value_;
     };
 
-    class GreenTypeHint final : public GreenNode
+    class GreenTypeSpecifier final : public GreenNode
     {
       public:
-        explicit GreenTypeHint(GreenPtr<GreenToken> colon,
-                               GreenPtr<GreenType> type,
-                               DiagnosticInfoList diagnostics = {});
-        ~GreenTypeHint() override;
+        GreenTypeSpecifier(GreenPtr<GreenToken> colon, GreenPtr<GreenType> type, DiagnosticInfoList diagnostics = {});
+
+        ~GreenTypeSpecifier() override;
 
         [[nodiscard]] constexpr const GreenToken &colon() const noexcept
         {
@@ -62,7 +64,7 @@ namespace prism
 
         [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
         {
-            return node.kind() == SyntaxKind::type_hint;
+            return node.kind() == SyntaxKind::type_specifier;
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
@@ -75,9 +77,8 @@ namespace prism
     class GreenNamedParameter final : public GreenNode
     {
       public:
-        explicit GreenNamedParameter(GreenPtr<GreenToken> name,
-                                     GreenPtr<GreenToken> colon,
-                                     DiagnosticInfoList diagnostics = {});
+        GreenNamedParameter(GreenPtr<GreenToken> name, GreenPtr<GreenToken> colon, DiagnosticInfoList diagnostics = {});
+
         ~GreenNamedParameter() override;
 
         [[nodiscard]] constexpr const GreenToken &name() const noexcept
@@ -106,9 +107,10 @@ namespace prism
     {
       public:
         GreenArgumentList(GreenPtr<GreenToken> open_paren,
-                          GreenSeparatedList<GreenArgument> argument,
+                          GreenSeparatedList<GreenArgument> arguments,
                           GreenPtr<GreenToken> close_paren,
                           DiagnosticInfoList diagnostics = {});
+
         ~GreenArgumentList() override;
 
         [[nodiscard]] constexpr const GreenToken &open_paren() const noexcept
@@ -116,9 +118,9 @@ namespace prism
             return *open_paren_;
         }
 
-        [[nodiscard]] constexpr const GreenSeparatedList<GreenArgument> &argument() const noexcept
+        [[nodiscard]] constexpr GreenSeparatedList<GreenArgument> arguments() const noexcept
         {
-            return argument_;
+            return arguments_;
         }
 
         [[nodiscard]] constexpr const GreenToken &close_paren() const noexcept
@@ -135,16 +137,17 @@ namespace prism
 
       private:
         GreenPtr<GreenToken> open_paren_;
-        GreenSeparatedList<GreenArgument> argument_;
+        GreenSeparatedList<GreenArgument> arguments_;
         GreenPtr<GreenToken> close_paren_;
     };
 
     class GreenArgument final : public GreenNode
     {
       public:
-        explicit GreenArgument(GreenPtr<GreenNamedParameter> name,
-                               GreenPtr<GreenExpression> value,
-                               DiagnosticInfoList diagnostics = {});
+        GreenArgument(GreenPtr<GreenNamedParameter> name,
+                      GreenPtr<GreenExpression> value,
+                      DiagnosticInfoList diagnostics = {});
+
         ~GreenArgument() override;
 
         [[nodiscard]] constexpr Optional<const GreenNamedParameter &> name() const noexcept
@@ -169,4 +172,117 @@ namespace prism
         GreenPtr<GreenExpression> value_;
     };
 
+    class GreenParameterList final : public GreenNode
+    {
+      public:
+        GreenParameterList(GreenPtr<GreenToken> open_paren,
+                           GreenSeparatedList<GreenParameter> parameters,
+                           GreenPtr<GreenToken> close_paren,
+                           DiagnosticInfoList diagnostics = {});
+
+        ~GreenParameterList() override;
+
+        [[nodiscard]] constexpr const GreenToken &open_paren() const noexcept
+        {
+            return *open_paren_;
+        }
+
+        [[nodiscard]] constexpr GreenSeparatedList<GreenParameter> parameters() const noexcept
+        {
+            return parameters_;
+        }
+
+        [[nodiscard]] constexpr const GreenToken &close_paren() const noexcept
+        {
+            return *close_paren_;
+        }
+
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::parameter_list;
+        }
+
+        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+      private:
+        GreenPtr<GreenToken> open_paren_;
+        GreenSeparatedList<GreenParameter> parameters_;
+        GreenPtr<GreenToken> close_paren_;
+    };
+
+    class GreenParameter final : public GreenNode
+    {
+      public:
+        GreenParameter(GreenPtr<GreenToken> mut_keyword,
+                       GreenPtr<GreenToken> name,
+                       GreenPtr<GreenTypeSpecifier> type_specifier,
+                       GreenPtr<GreenInitializer> default_value,
+                       DiagnosticInfoList diagnostics = {});
+
+        ~GreenParameter() override;
+
+        [[nodiscard]] constexpr Optional<const GreenToken &> mut_keyword() const noexcept
+        {
+            return mut_keyword_.get();
+        }
+
+        [[nodiscard]] constexpr const GreenToken &name() const noexcept
+        {
+            return *name_;
+        }
+
+        [[nodiscard]] constexpr const GreenTypeSpecifier &type_specifier() const noexcept
+        {
+            return *type_specifier_;
+        }
+
+        [[nodiscard]] constexpr Optional<const GreenInitializer &> default_value() const noexcept
+        {
+            return default_value_.get();
+        }
+
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::parameter;
+        }
+
+        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+      private:
+        GreenPtr<GreenToken> mut_keyword_;
+        GreenPtr<GreenToken> name_;
+        GreenPtr<GreenTypeSpecifier> type_specifier_;
+        GreenPtr<GreenInitializer> default_value_;
+    };
+
+    class GreenExpressionBody final : public GreenNode
+    {
+      public:
+        GreenExpressionBody(GreenPtr<GreenToken> arrow,
+                            GreenPtr<GreenExpression> expression,
+                            DiagnosticInfoList diagnostics = {});
+
+        ~GreenExpressionBody() override;
+
+        [[nodiscard]] constexpr const GreenToken &arrow() const noexcept
+        {
+            return *arrow_;
+        }
+
+        [[nodiscard]] constexpr const GreenExpression &expression() const noexcept
+        {
+            return *expression_;
+        }
+
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::expression_body;
+        }
+
+        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+      private:
+        GreenPtr<GreenToken> arrow_;
+        GreenPtr<GreenExpression> expression_;
+    };
 } // namespace prism

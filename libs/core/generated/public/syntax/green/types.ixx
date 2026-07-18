@@ -1,4 +1,4 @@
-export module prism.core:syntax.green.type;
+export module prism.core:syntax.green.types;
 
 import :syntax.green.node;
 import :syntax.green.token;
@@ -8,11 +8,15 @@ namespace prism
 {
     class GreenArgument;
     class GreenArgumentList;
+    class GreenBlock;
     class GreenExpression;
+    class GreenExpressionBody;
     class GreenInitializer;
     class GreenNamedParameter;
+    class GreenParameter;
+    class GreenParameterList;
     class GreenStatement;
-    class GreenTypeHint;
+    class GreenTypeSpecifier;
     class GreenVariableDeclaration;
 
     class GreenType : public GreenNode
@@ -24,8 +28,6 @@ namespace prism
         }
 
       public:
-        ~GreenType() override;
-
         [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::identifier_named_type;
@@ -41,8 +43,6 @@ namespace prism
         }
 
       public:
-        ~GreenNamedType() override;
-
         [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::identifier_named_type;
@@ -58,8 +58,6 @@ namespace prism
         }
 
       public:
-        ~GreenSimpleNamedType() override;
-
         [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::identifier_named_type;
@@ -70,6 +68,7 @@ namespace prism
     {
       public:
         explicit GreenIdentifierNamedType(GreenPtr<GreenToken> identifier, DiagnosticInfoList diagnostics = {});
+
         ~GreenIdentifierNamedType() override;
 
         [[nodiscard]] constexpr const GreenToken &identifier() const noexcept
@@ -87,5 +86,4 @@ namespace prism
       private:
         GreenPtr<GreenToken> identifier_;
     };
-
 } // namespace prism

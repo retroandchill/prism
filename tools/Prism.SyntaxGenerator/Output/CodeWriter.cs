@@ -13,7 +13,7 @@ public sealed class CodeWriter : IDisposable
 {
     private const int IndentSize = 4;
 
-    private Utf8ValueStringBuilder _builder;
+    private Utf8ValueStringBuilder _builder = ZString.CreateUtf8StringBuilder();
 
     private int _indentLevel;
     private bool _needsIndent = true;

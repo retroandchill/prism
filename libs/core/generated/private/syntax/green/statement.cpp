@@ -3,13 +3,11 @@ module prism.core:syntax.green.statement.impl;
 import :syntax.green.statement;
 import :syntax.green.clauses;
 import :syntax.green.declaration;
-import :syntax.green.expression;
-import :syntax.green.type;
+import :syntax.green.expressions;
+import :syntax.green.types;
 
 namespace prism
 {
-    GreenStatement::~GreenStatement() = default;
-
     GreenVariableDeclarationStatement::GreenVariableDeclarationStatement(GreenPtr<GreenVariableDeclaration> declaration,
                                                                          DiagnosticInfoList diagnostics)
         : GreenStatement{SyntaxKind::variable_declaration_statement, std::move(diagnostics)},
@@ -18,6 +16,7 @@ namespace prism
         set_child_count(1);
         adjust_flags_and_width(*declaration_);
     }
+
     GreenVariableDeclarationStatement::~GreenVariableDeclarationStatement() = default;
 
     Optional<const GreenNode &> GreenVariableDeclarationStatement::get_child(std::size_t index) const
@@ -30,13 +29,19 @@ namespace prism
                 return std::nullopt;
         }
     }
-
-    GreenBlock::GreenBlock(GreenSyntaxList<GreenStatement> statements, DiagnosticInfoList diagnostics)
-        : GreenStatement{SyntaxKind::block, std::move(diagnostics)}, statements_{std::move(statements)}
+    GreenBlock::GreenBlock(GreenPtr<GreenToken> open_brace,
+                           GreenSyntaxList<GreenStatement> statements,
+                           GreenPtr<GreenToken> close_brace,
+                           DiagnosticInfoList diagnostics)
+        : GreenStatement{SyntaxKind::block, std::move(diagnostics)}, open_brace_{std::move(open_brace)},
+          statements_{std::move(statements)}, close_brace_{std::move(close_brace)}
     {
-        set_child_count(1);
+        set_child_count(3);
+        adjust_flags_and_width(*open_brace_);
         adjust_flags_and_width(statements_);
+        adjust_flags_and_width(*close_brace_);
     }
+
     GreenBlock::~GreenBlock() = default;
 
     Optional<const GreenNode &> GreenBlock::get_child(std::size_t index) const
@@ -44,12 +49,15 @@ namespace prism
         switch (index)
         {
             case 0:
+                return *open_brace_;
+            case 1:
                 return statements_.node();
+            case 2:
+                return *close_brace_;
             default:
                 return std::nullopt;
         }
     }
-
     GreenReturnStatement::GreenReturnStatement(GreenPtr<GreenToken> return_keyword,
                                                GreenPtr<GreenExpression> expression,
                                                GreenPtr<GreenToken> semicolon,
@@ -64,6 +72,7 @@ namespace prism
             adjust_flags_and_width(*expression_);
         adjust_flags_and_width(*semicolon_);
     }
+
     GreenReturnStatement::~GreenReturnStatement() = default;
 
     Optional<const GreenNode &> GreenReturnStatement::get_child(std::size_t index) const
@@ -80,7 +89,6 @@ namespace prism
                 return std::nullopt;
         }
     }
-
     GreenExpressionStatement::GreenExpressionStatement(GreenPtr<GreenExpression> expression,
                                                        GreenPtr<GreenToken> semicolon,
                                                        DiagnosticInfoList diagnostics)
@@ -91,6 +99,7 @@ namespace prism
         adjust_flags_and_width(*expression_);
         adjust_flags_and_width(*semicolon_);
     }
+
     GreenExpressionStatement::~GreenExpressionStatement() = default;
 
     Optional<const GreenNode &> GreenExpressionStatement::get_child(std::size_t index) const
@@ -105,13 +114,13 @@ namespace prism
                 return std::nullopt;
         }
     }
-
     GreenEmptyStatement::GreenEmptyStatement(GreenPtr<GreenToken> semicolon, DiagnosticInfoList diagnostics)
         : GreenStatement{SyntaxKind::empty_statement, std::move(diagnostics)}, semicolon_{std::move(semicolon)}
     {
         set_child_count(1);
         adjust_flags_and_width(*semicolon_);
     }
+
     GreenEmptyStatement::~GreenEmptyStatement() = default;
 
     Optional<const GreenNode &> GreenEmptyStatement::get_child(std::size_t index) const
@@ -124,5 +133,4 @@ namespace prism
                 return std::nullopt;
         }
     }
-
 } // namespace prism

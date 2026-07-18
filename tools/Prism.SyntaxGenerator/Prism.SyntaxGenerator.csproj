@@ -9,7 +9,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="CaseConverter" />
       <PackageReference Include="DotMake.CommandLine" />
       <PackageReference Include="Handlebars.Net" />
       <PackageReference Include="Humanizer" />
@@ -17,14 +16,6 @@
       <PackageReference Include="Utf8StringInterpolation" />
       <PackageReference Include="ZLinq" />
       <PackageReference Include="ZString" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Include="Templates\GreenNode.ixx.mustache" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <EmbeddedResource Include="Templates\**\*.mustache" />
     </ItemGroup>
 
 </Project>

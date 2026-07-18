@@ -30,8 +30,8 @@ public sealed class SyntaxGroup
     {
         Name = name;
         Kind = kind;
-        StartValue = SyntaxKinds[0].Value;
-        EndValue = SyntaxKinds[^1].Value;
+        StartValue = syntaxKinds[0].Value;
+        EndValue = syntaxKinds[^1].Value;
         SyntaxKinds = syntaxKinds;
     }
 }

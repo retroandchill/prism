@@ -9,10 +9,13 @@ namespace prism
     class GreenArgument;
     class GreenArgumentList;
     class GreenExpression;
+    class GreenExpressionBody;
     class GreenInitializer;
     class GreenNamedParameter;
+    class GreenParameter;
+    class GreenParameterList;
     class GreenType;
-    class GreenTypeHint;
+    class GreenTypeSpecifier;
     class GreenVariableDeclaration;
 
     class GreenStatement : public GreenNode
@@ -24,8 +27,6 @@ namespace prism
         }
 
       public:
-        ~GreenStatement() override;
-
         [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::variable_declaration_statement || node.kind() == SyntaxKind::block ||
@@ -39,6 +40,7 @@ namespace prism
       public:
         explicit GreenVariableDeclarationStatement(GreenPtr<GreenVariableDeclaration> declaration,
                                                    DiagnosticInfoList diagnostics = {});
+
         ~GreenVariableDeclarationStatement() override;
 
         [[nodiscard]] constexpr const GreenVariableDeclaration &declaration() const noexcept
@@ -60,12 +62,26 @@ namespace prism
     class GreenBlock final : public GreenStatement
     {
       public:
-        explicit GreenBlock(GreenSyntaxList<GreenStatement> statements, DiagnosticInfoList diagnostics = {});
+        GreenBlock(GreenPtr<GreenToken> open_brace,
+                   GreenSyntaxList<GreenStatement> statements,
+                   GreenPtr<GreenToken> close_brace,
+                   DiagnosticInfoList diagnostics = {});
+
         ~GreenBlock() override;
 
-        [[nodiscard]] constexpr const GreenSyntaxList<GreenStatement> &statements() const noexcept
+        [[nodiscard]] constexpr const GreenToken &open_brace() const noexcept
+        {
+            return *open_brace_;
+        }
+
+        [[nodiscard]] constexpr GreenSyntaxList<GreenStatement> statements() const noexcept
         {
             return statements_;
+        }
+
+        [[nodiscard]] constexpr const GreenToken &close_brace() const noexcept
+        {
+            return *close_brace_;
         }
 
         [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
@@ -76,7 +92,9 @@ namespace prism
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
       private:
+        GreenPtr<GreenToken> open_brace_;
         GreenSyntaxList<GreenStatement> statements_;
+        GreenPtr<GreenToken> close_brace_;
     };
 
     class GreenReturnStatement final : public GreenStatement
@@ -86,6 +104,7 @@ namespace prism
                              GreenPtr<GreenExpression> expression,
                              GreenPtr<GreenToken> semicolon,
                              DiagnosticInfoList diagnostics = {});
+
         ~GreenReturnStatement() override;
 
         [[nodiscard]] constexpr const GreenToken &return_keyword() const noexcept
@@ -119,9 +138,10 @@ namespace prism
     class GreenExpressionStatement final : public GreenStatement
     {
       public:
-        explicit GreenExpressionStatement(GreenPtr<GreenExpression> expression,
-                                          GreenPtr<GreenToken> semicolon,
-                                          DiagnosticInfoList diagnostics = {});
+        GreenExpressionStatement(GreenPtr<GreenExpression> expression,
+                                 GreenPtr<GreenToken> semicolon,
+                                 DiagnosticInfoList diagnostics = {});
+
         ~GreenExpressionStatement() override;
 
         [[nodiscard]] constexpr const GreenExpression &expression() const noexcept
@@ -150,6 +170,7 @@ namespace prism
     {
       public:
         explicit GreenEmptyStatement(GreenPtr<GreenToken> semicolon, DiagnosticInfoList diagnostics = {});
+
         ~GreenEmptyStatement() override;
 
         [[nodiscard]] constexpr const GreenToken &semicolon() const noexcept
@@ -167,5 +188,4 @@ namespace prism
       private:
         GreenPtr<GreenToken> semicolon_;
     };
-
 } // namespace prism

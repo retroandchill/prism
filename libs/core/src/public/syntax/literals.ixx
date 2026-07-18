@@ -102,7 +102,7 @@ namespace prism
 
     export struct NumericLiteralData
     {
-        static constexpr auto kind = SyntaxKind::number_token;
+        static constexpr auto kind = SyntaxKind::numeric_literal_token;
 
         BigDecimal value;
         NumericLiteralKind base = NumericLiteralKind::integer;

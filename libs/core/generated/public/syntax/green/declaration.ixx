@@ -8,12 +8,16 @@ namespace prism
 {
     class GreenArgument;
     class GreenArgumentList;
+    class GreenBlock;
     class GreenExpression;
+    class GreenExpressionBody;
     class GreenInitializer;
     class GreenNamedParameter;
+    class GreenParameter;
+    class GreenParameterList;
     class GreenStatement;
     class GreenType;
-    class GreenTypeHint;
+    class GreenTypeSpecifier;
     class GreenVariableDeclaration;
 
     class GreenDeclaration : public GreenNode
@@ -25,13 +29,11 @@ namespace prism
         }
 
       public:
-        ~GreenDeclaration() override;
-
-        [[nodiscard]] virtual const GreenSyntaxList<GreenToken> &modifiers() const noexcept = 0;
+        [[nodiscard]] virtual GreenSyntaxList<GreenToken> modifiers() const noexcept = 0;
 
         [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
         {
-            return node.kind() == SyntaxKind::variable_declaration;
+            return node.kind() == SyntaxKind::variable_declaration || node.kind() == SyntaxKind::function_declaration;
         }
     };
 
@@ -42,13 +44,14 @@ namespace prism
                                  GreenPtr<GreenToken> var_keyword,
                                  GreenPtr<GreenToken> mut_keyword,
                                  GreenPtr<GreenToken> identifier,
-                                 GreenPtr<GreenTypeHint> type,
+                                 GreenPtr<GreenTypeSpecifier> type,
                                  GreenPtr<GreenInitializer> initializer,
                                  GreenPtr<GreenToken> semicolon,
                                  DiagnosticInfoList diagnostics = {});
+
         ~GreenVariableDeclaration() override;
 
-        [[nodiscard]] constexpr const GreenSyntaxList<GreenToken> &modifiers() const noexcept override
+        [[nodiscard]] constexpr GreenSyntaxList<GreenToken> modifiers() const noexcept override
         {
             return modifiers_;
         }
@@ -68,7 +71,7 @@ namespace prism
             return *identifier_;
         }
 
-        [[nodiscard]] constexpr const GreenTypeHint &type() const noexcept
+        [[nodiscard]] constexpr const GreenTypeSpecifier &type() const noexcept
         {
             return *type_;
         }
@@ -95,9 +98,81 @@ namespace prism
         GreenPtr<GreenToken> var_keyword_;
         GreenPtr<GreenToken> mut_keyword_;
         GreenPtr<GreenToken> identifier_;
-        GreenPtr<GreenTypeHint> type_;
+        GreenPtr<GreenTypeSpecifier> type_;
         GreenPtr<GreenInitializer> initializer_;
         GreenPtr<GreenToken> semicolon_;
     };
 
+    class GreenFunctionDeclaration final : public GreenDeclaration
+    {
+      public:
+        GreenFunctionDeclaration(GreenSyntaxList<GreenToken> modifiers,
+                                 GreenPtr<GreenToken> func_keyword,
+                                 GreenPtr<GreenToken> identifier,
+                                 GreenPtr<GreenParameterList> parameters,
+                                 GreenPtr<GreenTypeSpecifier> return_type,
+                                 GreenPtr<GreenBlock> body,
+                                 GreenPtr<GreenExpressionBody> expression_body,
+                                 GreenPtr<GreenToken> semicolon,
+                                 DiagnosticInfoList diagnostics = {});
+
+        ~GreenFunctionDeclaration() override;
+
+        [[nodiscard]] constexpr GreenSyntaxList<GreenToken> modifiers() const noexcept override
+        {
+            return modifiers_;
+        }
+
+        [[nodiscard]] constexpr const GreenToken &func_keyword() const noexcept
+        {
+            return *func_keyword_;
+        }
+
+        [[nodiscard]] constexpr const GreenToken &identifier() const noexcept
+        {
+            return *identifier_;
+        }
+
+        [[nodiscard]] constexpr const GreenParameterList &parameters() const noexcept
+        {
+            return *parameters_;
+        }
+
+        [[nodiscard]] constexpr Optional<const GreenTypeSpecifier &> return_type() const noexcept
+        {
+            return return_type_.get();
+        }
+
+        [[nodiscard]] constexpr Optional<const GreenBlock &> body() const noexcept
+        {
+            return body_.get();
+        }
+
+        [[nodiscard]] constexpr Optional<const GreenExpressionBody &> expression_body() const noexcept
+        {
+            return expression_body_.get();
+        }
+
+        [[nodiscard]] constexpr Optional<const GreenToken &> semicolon() const noexcept
+        {
+            return semicolon_.get();
+        }
+
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::function_declaration;
+        }
+
+        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+      private:
+        GreenSyntaxList<GreenToken> modifiers_;
+        GreenPtr<GreenToken> func_keyword_;
+        GreenPtr<GreenToken> identifier_;
+        GreenPtr<GreenParameterList> parameters_;
+        GreenPtr<GreenTypeSpecifier> return_type_;
+        GreenPtr<GreenBlock> body_;
+        GreenPtr<GreenExpressionBody> expression_body_;
+        GreenPtr<GreenToken> semicolon_;
+    };
 } // namespace prism

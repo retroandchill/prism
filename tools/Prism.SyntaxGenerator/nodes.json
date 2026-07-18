@@ -94,11 +94,11 @@
         "text": "u128"
       },
       {
-        "name": "ISizeKeyword",
+        "name": "IsizeKeyword",
         "text": "isize"
       },
       {
-        "name": "USizeKeyword",
+        "name": "UsizeKeyword",
         "text": "usize"
       },
       {
