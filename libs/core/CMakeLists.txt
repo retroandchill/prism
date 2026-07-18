@@ -59,7 +59,6 @@ set(PRISM_PUBLIC_MODULES
         src/public/syntax/token_stream.ixx
         src/public/syntax/node.ixx
         src/public/syntax/tree.ixx
-        src/public/syntax/parsed_tree.ixx
         generated/public/syntax/green/types.ixx
         generated/public/syntax/green/declarations.ixx
         src/public/syntax/green/list.ixx
@@ -68,6 +67,7 @@ set(PRISM_PUBLIC_MODULES
         src/public/syntax/green/separated_list.ixx
         generated/public/syntax/green/statements.ixx
         generated/public/syntax/lexing_utils.ixx
+        src/public/memory/persistent_allocator.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

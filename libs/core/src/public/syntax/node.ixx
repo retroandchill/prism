@@ -22,9 +22,9 @@ namespace prism
         {
         }
 
-      public:
-        virtual ~SyntaxNode() = default;
+        ~SyntaxNode() = default;
 
+      public:
         [[nodiscard]] constexpr SyntaxKind kind() const noexcept
         {
             return green_->kind();
@@ -32,12 +32,12 @@ namespace prism
 
         [[nodiscard]] constexpr TextSpan full_span() const noexcept
         {
-            return {position_, green_->full_width()};
+            return {.start = position_, .length = green_->full_width()};
         }
 
         [[nodiscard]] constexpr TextSpan span() const
         {
-            return {position_ + green_->leading_trivia_width(), green_->width()};
+            return {.start = position_ + green_->leading_trivia_width(), .length = green_->width()};
         }
 
       private:
