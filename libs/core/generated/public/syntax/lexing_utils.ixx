@@ -399,5 +399,7 @@ namespace prism
                 cursor.advance();
                 return SyntaxKind::tilde_token;
         }
+
+        return std::nullopt;
     }
 } // namespace prism

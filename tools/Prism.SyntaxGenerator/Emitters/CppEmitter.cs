@@ -239,6 +239,8 @@ public sealed class CppEmitter
         );
         using var block = writer.EnterBlockScope();
         WriteTrie(writer, trie);
+        writer.WriteLine();
+        writer.WriteLine("return std::nullopt;");
     }
 
     private sealed class TrieNode
