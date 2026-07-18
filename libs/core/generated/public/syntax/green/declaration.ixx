@@ -6,19 +6,11 @@ import :syntax.green.separated_list;
 
 namespace prism
 {
-    class GreenArgument;
-    class GreenArgumentList;
     class GreenBlock;
-    class GreenExpression;
     class GreenExpressionBody;
     class GreenInitializer;
-    class GreenNamedParameter;
-    class GreenParameter;
     class GreenParameterList;
-    class GreenStatement;
-    class GreenType;
     class GreenTypeSpecifier;
-    class GreenVariableDeclaration;
 
     class GreenDeclaration : public GreenNode
     {

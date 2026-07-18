@@ -1,10 +1,6 @@
 module prism.core:syntax.green.types.impl;
 
 import :syntax.green.types;
-import :syntax.green.clauses;
-import :syntax.green.declaration;
-import :syntax.green.expressions;
-import :syntax.green.statement;
 
 namespace prism
 {

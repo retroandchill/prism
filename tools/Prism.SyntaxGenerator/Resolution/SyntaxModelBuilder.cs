@@ -402,7 +402,7 @@ public sealed class SyntaxModelBuilder
         foreach (var module in _modules.Values)
         {
             var seen = new HashSet<string>();
-            foreach (var node in _nodes.Values)
+            foreach (var node in module.Nodes)
             {
                 seen.Add(node.Name);
                 if (node.Base is not null && node.Base.Module != module)
