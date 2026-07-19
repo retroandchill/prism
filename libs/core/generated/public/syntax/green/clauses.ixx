@@ -37,6 +37,13 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] GreenPtr<GreenInitializer> with_equal_sign(GreenPtr<GreenToken> equal_sign) const;
+
+        [[nodiscard]] GreenPtr<GreenInitializer> with_value(GreenPtr<GreenExpression> value) const;
+
+        [[nodiscard]] GreenPtr<GreenInitializer> update(GreenPtr<GreenToken> equal_sign,
+                                                        GreenPtr<GreenExpression> value) const;
+
       private:
         GreenPtr<GreenToken> equal_sign_;
         GreenPtr<GreenExpression> value_;
@@ -66,6 +73,12 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] GreenPtr<GreenTypeSpecifier> with_colon(GreenPtr<GreenToken> colon) const;
+
+        [[nodiscard]] GreenPtr<GreenTypeSpecifier> with_type(GreenPtr<GreenType> type) const;
+
+        [[nodiscard]] GreenPtr<GreenTypeSpecifier> update(GreenPtr<GreenToken> colon, GreenPtr<GreenType> type) const;
+
       private:
         GreenPtr<GreenToken> colon_;
         GreenPtr<GreenType> type_;
@@ -94,6 +107,12 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] GreenPtr<GreenNamedParameter> with_name(GreenPtr<GreenToken> name) const;
+
+        [[nodiscard]] GreenPtr<GreenNamedParameter> with_colon(GreenPtr<GreenToken> colon) const;
+
+        [[nodiscard]] GreenPtr<GreenNamedParameter> update(GreenPtr<GreenToken> name, GreenPtr<GreenToken> colon) const;
 
       private:
         GreenPtr<GreenToken> name_;
@@ -132,6 +151,16 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] GreenPtr<GreenArgumentList> with_open_paren(GreenPtr<GreenToken> open_paren) const;
+
+        [[nodiscard]] GreenPtr<GreenArgumentList> with_arguments(GreenSeparatedList<GreenArgument> arguments) const;
+
+        [[nodiscard]] GreenPtr<GreenArgumentList> with_close_paren(GreenPtr<GreenToken> close_paren) const;
+
+        [[nodiscard]] GreenPtr<GreenArgumentList> update(GreenPtr<GreenToken> open_paren,
+                                                         GreenSeparatedList<GreenArgument> arguments,
+                                                         GreenPtr<GreenToken> close_paren) const;
+
       private:
         GreenPtr<GreenToken> open_paren_;
         GreenSeparatedList<GreenArgument> arguments_;
@@ -163,6 +192,13 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] GreenPtr<GreenArgument> with_name(GreenPtr<GreenNamedParameter> name) const;
+
+        [[nodiscard]] GreenPtr<GreenArgument> with_value(GreenPtr<GreenExpression> value) const;
+
+        [[nodiscard]] GreenPtr<GreenArgument> update(GreenPtr<GreenNamedParameter> name,
+                                                     GreenPtr<GreenExpression> value) const;
 
       private:
         GreenPtr<GreenNamedParameter> name_;
@@ -200,6 +236,16 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] GreenPtr<GreenParameterList> with_open_paren(GreenPtr<GreenToken> open_paren) const;
+
+        [[nodiscard]] GreenPtr<GreenParameterList> with_parameters(GreenSeparatedList<GreenParameter> parameters) const;
+
+        [[nodiscard]] GreenPtr<GreenParameterList> with_close_paren(GreenPtr<GreenToken> close_paren) const;
+
+        [[nodiscard]] GreenPtr<GreenParameterList> update(GreenPtr<GreenToken> open_paren,
+                                                          GreenSeparatedList<GreenParameter> parameters,
+                                                          GreenPtr<GreenToken> close_paren) const;
 
       private:
         GreenPtr<GreenToken> open_paren_;
@@ -245,6 +291,19 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] GreenPtr<GreenParameter> with_mut_keyword(GreenPtr<GreenToken> mut_keyword) const;
+
+        [[nodiscard]] GreenPtr<GreenParameter> with_name(GreenPtr<GreenToken> name) const;
+
+        [[nodiscard]] GreenPtr<GreenParameter> with_type_specifier(GreenPtr<GreenTypeSpecifier> type_specifier) const;
+
+        [[nodiscard]] GreenPtr<GreenParameter> with_default_value(GreenPtr<GreenInitializer> default_value) const;
+
+        [[nodiscard]] GreenPtr<GreenParameter> update(GreenPtr<GreenToken> mut_keyword,
+                                                      GreenPtr<GreenToken> name,
+                                                      GreenPtr<GreenTypeSpecifier> type_specifier,
+                                                      GreenPtr<GreenInitializer> default_value) const;
+
       private:
         GreenPtr<GreenToken> mut_keyword_;
         GreenPtr<GreenToken> name_;
@@ -277,6 +336,13 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] GreenPtr<GreenExpressionBody> with_arrow(GreenPtr<GreenToken> arrow) const;
+
+        [[nodiscard]] GreenPtr<GreenExpressionBody> with_expression(GreenPtr<GreenExpression> expression) const;
+
+        [[nodiscard]] GreenPtr<GreenExpressionBody> update(GreenPtr<GreenToken> arrow,
+                                                           GreenPtr<GreenExpression> expression) const;
 
       private:
         GreenPtr<GreenToken> arrow_;

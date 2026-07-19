@@ -1,4 +1,4 @@
-export module prism.core:syntax.green.declaration;
+export module prism.core:syntax.green.declarations;
 
 import :syntax.green.node;
 import :syntax.green.token;
@@ -27,6 +27,17 @@ namespace prism
         {
             return node.kind() == SyntaxKind::variable_declaration || node.kind() == SyntaxKind::function_declaration;
         }
+
+        template <typename Self>
+        [[nodiscard]] constexpr GreenPtr<std::decay_t<Self>> with_modifiers(const Self &self,
+                                                                            GreenSyntaxList<GreenToken> modifiers)
+        {
+            return static_pointer_cast<std::decay_t<Self>>(self.with_modifiers_core(std::move(modifiers)));
+        }
+
+      protected:
+        [[nodiscard]] virtual GreenPtr<GreenDeclaration> with_modifiers_core(
+            GreenSyntaxList<GreenToken> modifiers) const = 0;
     };
 
     class GreenVariableDeclaration final : public GreenDeclaration
@@ -84,6 +95,31 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+      protected:
+        [[nodiscard]] GreenPtr<GreenDeclaration> with_modifiers_core(
+            GreenSyntaxList<GreenToken> modifiers) const override;
+
+      public:
+        [[nodiscard]] GreenPtr<GreenVariableDeclaration> with_var_keyword(GreenPtr<GreenToken> var_keyword) const;
+
+        [[nodiscard]] GreenPtr<GreenVariableDeclaration> with_mut_keyword(GreenPtr<GreenToken> mut_keyword) const;
+
+        [[nodiscard]] GreenPtr<GreenVariableDeclaration> with_identifier(GreenPtr<GreenToken> identifier) const;
+
+        [[nodiscard]] GreenPtr<GreenVariableDeclaration> with_type(GreenPtr<GreenTypeSpecifier> type) const;
+
+        [[nodiscard]] GreenPtr<GreenVariableDeclaration> with_initializer(GreenPtr<GreenInitializer> initializer) const;
+
+        [[nodiscard]] GreenPtr<GreenVariableDeclaration> with_semicolon(GreenPtr<GreenToken> semicolon) const;
+
+        [[nodiscard]] GreenPtr<GreenVariableDeclaration> update(GreenSyntaxList<GreenToken> modifiers,
+                                                                GreenPtr<GreenToken> var_keyword,
+                                                                GreenPtr<GreenToken> mut_keyword,
+                                                                GreenPtr<GreenToken> identifier,
+                                                                GreenPtr<GreenTypeSpecifier> type,
+                                                                GreenPtr<GreenInitializer> initializer,
+                                                                GreenPtr<GreenToken> semicolon) const;
 
       private:
         GreenSyntaxList<GreenToken> modifiers_;
@@ -156,6 +192,36 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+      protected:
+        [[nodiscard]] GreenPtr<GreenDeclaration> with_modifiers_core(
+            GreenSyntaxList<GreenToken> modifiers) const override;
+
+      public:
+        [[nodiscard]] GreenPtr<GreenFunctionDeclaration> with_func_keyword(GreenPtr<GreenToken> func_keyword) const;
+
+        [[nodiscard]] GreenPtr<GreenFunctionDeclaration> with_identifier(GreenPtr<GreenToken> identifier) const;
+
+        [[nodiscard]] GreenPtr<GreenFunctionDeclaration> with_parameters(GreenPtr<GreenParameterList> parameters) const;
+
+        [[nodiscard]] GreenPtr<GreenFunctionDeclaration> with_return_type(
+            GreenPtr<GreenTypeSpecifier> return_type) const;
+
+        [[nodiscard]] GreenPtr<GreenFunctionDeclaration> with_body(GreenPtr<GreenBlock> body) const;
+
+        [[nodiscard]] GreenPtr<GreenFunctionDeclaration> with_expression_body(
+            GreenPtr<GreenExpressionBody> expression_body) const;
+
+        [[nodiscard]] GreenPtr<GreenFunctionDeclaration> with_semicolon(GreenPtr<GreenToken> semicolon) const;
+
+        [[nodiscard]] GreenPtr<GreenFunctionDeclaration> update(GreenSyntaxList<GreenToken> modifiers,
+                                                                GreenPtr<GreenToken> func_keyword,
+                                                                GreenPtr<GreenToken> identifier,
+                                                                GreenPtr<GreenParameterList> parameters,
+                                                                GreenPtr<GreenTypeSpecifier> return_type,
+                                                                GreenPtr<GreenBlock> body,
+                                                                GreenPtr<GreenExpressionBody> expression_body,
+                                                                GreenPtr<GreenToken> semicolon) const;
 
       private:
         GreenSyntaxList<GreenToken> modifiers_;

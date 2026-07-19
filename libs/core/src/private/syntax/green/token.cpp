@@ -110,8 +110,7 @@ namespace prism
         return clone_with_trivia(leading_trivia_, std::move(trailing_trivia));
     }
 
-    GreenPtr<GreenToken> GreenToken::with_leading_and_trailing_trivia(GreenTriviaList leading_trivia,
-                                                                      GreenTriviaList trailing_trivia) const
+    GreenPtr<GreenToken> GreenToken::update(GreenTriviaList leading_trivia, GreenTriviaList trailing_trivia) const
     {
         if (leading_trivia_ == leading_trivia && trailing_trivia_ == trailing_trivia)
             return shared_from_this();

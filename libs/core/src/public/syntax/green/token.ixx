@@ -8,6 +8,7 @@ export module prism.core:syntax.green.token;
 
 import :syntax.green.node;
 import :syntax.green.trivia;
+import :util.exceptions;
 
 namespace prism
 {
@@ -53,13 +54,20 @@ namespace prism
 
         [[nodiscard]] virtual GreenPtr<GreenToken> with_trailing_trivia(GreenTriviaList trailing_trivia) const;
 
-        [[nodiscard]] virtual GreenPtr<GreenToken> with_leading_and_trailing_trivia(
-            GreenTriviaList leading_trivia,
-            GreenTriviaList trailing_trivia) const;
+        [[nodiscard]] virtual GreenPtr<GreenToken> update(GreenTriviaList leading_trivia,
+                                                          GreenTriviaList trailing_trivia) const;
 
       protected:
         [[nodiscard]] virtual GreenPtr<GreenToken> clone_with_trivia(GreenTriviaList leading_trivia,
                                                                      GreenTriviaList trailing_trivia) const;
+
+      public:
+        [[nodiscard]] const SyntaxNode &create_red(const SyntaxLifetime &,
+                                                   const SyntaxNode *,
+                                                   std::uint32_t) const final
+        {
+            throw UnsupportedOperationException{};
+        }
 
       private:
         GreenTriviaList leading_trivia_;

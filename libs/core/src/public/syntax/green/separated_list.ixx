@@ -61,7 +61,7 @@ namespace prism
         [[nodiscard]] constexpr friend bool operator==(const GreenSeparatedList &lhs,
                                                        const GreenSeparatedList &rhs) noexcept
         {
-            return lhs.children_ == rhs.children_;
+            return lhs.list_ == rhs.list_;
         }
 
       private:

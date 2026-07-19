@@ -15,13 +15,16 @@ import :syntax.flags;
 import :memory.ref_counted_ptr;
 import :diagnostics.diagnostic_info;
 import :util.optional;
+import :util.exceptions;
 
 namespace prism
 {
+    class GreenNode;
+    class SyntaxNode;
+    class SyntaxLifetime;
+
     template <typename T>
     using GreenPtr = RefCountPtr<const T>;
-
-    class GreenNode;
 
     template <typename T>
     concept GreenNodeWrapper = requires(const T &wrapper) {
@@ -199,6 +202,18 @@ namespace prism
             {
                 flags_ |= SyntaxFlags::contains_diagnostics;
             }
+        }
+
+        [[nodiscard]] const SyntaxNode &create_red(const SyntaxLifetime &lifetime) const
+        {
+            return create_red(lifetime, nullptr, 0);
+        }
+
+        [[nodiscard]] virtual const SyntaxNode &create_red(const SyntaxLifetime &lifetime,
+                                                           const SyntaxNode *parent,
+                                                           std::uint32_t position) const
+        {
+            throw UnsupportedOperationException{};
         }
 
       protected:

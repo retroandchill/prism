@@ -46,6 +46,10 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] GreenPtr<GreenLiteralExpression> with_value(GreenPtr<GreenToken> value) const;
+
+        [[nodiscard]] GreenPtr<GreenLiteralExpression> update(GreenPtr<GreenToken> value) const;
+
       private:
         GreenPtr<GreenToken> value_;
     };
@@ -68,6 +72,10 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] GreenPtr<GreenIdentifierExpression> with_value(GreenPtr<GreenToken> value) const;
+
+        [[nodiscard]] GreenPtr<GreenIdentifierExpression> update(GreenPtr<GreenToken> value) const;
 
       private:
         GreenPtr<GreenToken> value_;
@@ -104,6 +112,17 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] GreenPtr<GreenParenthesizedExpression> with_open(GreenPtr<GreenToken> open) const;
+
+        [[nodiscard]] GreenPtr<GreenParenthesizedExpression> with_expression(
+            GreenPtr<GreenExpression> expression) const;
+
+        [[nodiscard]] GreenPtr<GreenParenthesizedExpression> with_close(GreenPtr<GreenToken> close) const;
+
+        [[nodiscard]] GreenPtr<GreenParenthesizedExpression> update(GreenPtr<GreenToken> open,
+                                                                    GreenPtr<GreenExpression> expression,
+                                                                    GreenPtr<GreenToken> close) const;
 
       private:
         GreenPtr<GreenToken> open_;
@@ -143,6 +162,16 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] GreenPtr<GreenBinaryExpression> with_left(GreenPtr<GreenExpression> left) const;
+
+        [[nodiscard]] GreenPtr<GreenBinaryExpression> with_op(GreenPtr<GreenToken> op) const;
+
+        [[nodiscard]] GreenPtr<GreenBinaryExpression> with_right(GreenPtr<GreenExpression> right) const;
+
+        [[nodiscard]] GreenPtr<GreenBinaryExpression> update(GreenPtr<GreenExpression> left,
+                                                             GreenPtr<GreenToken> op,
+                                                             GreenPtr<GreenExpression> right) const;
+
       private:
         GreenPtr<GreenExpression> left_;
         GreenPtr<GreenToken> op_;
@@ -181,6 +210,16 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] GreenPtr<GreenAssignmentExpression> with_left(GreenPtr<GreenExpression> left) const;
+
+        [[nodiscard]] GreenPtr<GreenAssignmentExpression> with_op(GreenPtr<GreenToken> op) const;
+
+        [[nodiscard]] GreenPtr<GreenAssignmentExpression> with_right(GreenPtr<GreenExpression> right) const;
+
+        [[nodiscard]] GreenPtr<GreenAssignmentExpression> update(GreenPtr<GreenExpression> left,
+                                                                 GreenPtr<GreenToken> op,
+                                                                 GreenPtr<GreenExpression> right) const;
+
       private:
         GreenPtr<GreenExpression> left_;
         GreenPtr<GreenToken> op_;
@@ -213,6 +252,13 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] GreenPtr<GreenPrefixExpression> with_op(GreenPtr<GreenToken> op) const;
+
+        [[nodiscard]] GreenPtr<GreenPrefixExpression> with_operand(GreenPtr<GreenExpression> operand) const;
+
+        [[nodiscard]] GreenPtr<GreenPrefixExpression> update(GreenPtr<GreenToken> op,
+                                                             GreenPtr<GreenExpression> operand) const;
+
       private:
         GreenPtr<GreenToken> op_;
         GreenPtr<GreenExpression> operand_;
@@ -243,6 +289,13 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] GreenPtr<GreenPostfixExpression> with_operand(GreenPtr<GreenExpression> operand) const;
+
+        [[nodiscard]] GreenPtr<GreenPostfixExpression> with_op(GreenPtr<GreenToken> op) const;
+
+        [[nodiscard]] GreenPtr<GreenPostfixExpression> update(GreenPtr<GreenExpression> operand,
+                                                              GreenPtr<GreenToken> op) const;
 
       private:
         GreenPtr<GreenExpression> operand_;
@@ -293,6 +346,22 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] GreenPtr<GreenTernaryExpression> with_condition(GreenPtr<GreenExpression> condition) const;
+
+        [[nodiscard]] GreenPtr<GreenTernaryExpression> with_question_mark(GreenPtr<GreenToken> question_mark) const;
+
+        [[nodiscard]] GreenPtr<GreenTernaryExpression> with_when_true(GreenPtr<GreenExpression> when_true) const;
+
+        [[nodiscard]] GreenPtr<GreenTernaryExpression> with_colon(GreenPtr<GreenToken> colon) const;
+
+        [[nodiscard]] GreenPtr<GreenTernaryExpression> with_when_false(GreenPtr<GreenExpression> when_false) const;
+
+        [[nodiscard]] GreenPtr<GreenTernaryExpression> update(GreenPtr<GreenExpression> condition,
+                                                              GreenPtr<GreenToken> question_mark,
+                                                              GreenPtr<GreenExpression> when_true,
+                                                              GreenPtr<GreenToken> colon,
+                                                              GreenPtr<GreenExpression> when_false) const;
+
       private:
         GreenPtr<GreenExpression> condition_;
         GreenPtr<GreenToken> question_mark_;
@@ -326,6 +395,13 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] GreenPtr<GreenInvocationExpression> with_callee(GreenPtr<GreenExpression> callee) const;
+
+        [[nodiscard]] GreenPtr<GreenInvocationExpression> with_arguments(GreenPtr<GreenArgumentList> arguments) const;
+
+        [[nodiscard]] GreenPtr<GreenInvocationExpression> update(GreenPtr<GreenExpression> callee,
+                                                                 GreenPtr<GreenArgumentList> arguments) const;
 
       private:
         GreenPtr<GreenExpression> callee_;

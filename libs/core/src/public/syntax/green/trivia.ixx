@@ -12,6 +12,7 @@ export module prism.core:syntax.green.trivia;
 
 import :syntax.green.node;
 import :syntax.green.list;
+import :util.exceptions;
 
 namespace prism
 {
@@ -57,7 +58,14 @@ namespace prism
         Optional<const GreenNode &> get_child(std::size_t index) const override
         {
             // This should never get called because it has no slots
-            std::unreachable();
+            throw UnsupportedOperationException{};
+        }
+
+        [[nodiscard]] const SyntaxNode &create_red(const SyntaxLifetime &,
+                                                   const SyntaxNode *,
+                                                   std::uint32_t) const override
+        {
+            throw UnsupportedOperationException{};
         }
 
       private:

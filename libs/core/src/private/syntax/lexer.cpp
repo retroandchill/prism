@@ -161,7 +161,7 @@ namespace prism
     GreenPtr<GreenToken> Lexer::make_bad_token(GreenTriviaList leading_trivia)
     {
         cursor_.advance();
-        return GreenToken::bad_token()->with_leading_and_trailing_trivia(std::move(leading_trivia), collect_trivia());
+        return GreenToken::bad_token()->update(std::move(leading_trivia), collect_trivia());
     }
 
     Optional<GreenPtr<GreenToken>> Lexer::match_number(GreenTriviaList leading_trivia)
@@ -245,10 +245,8 @@ namespace prism
     Optional<GreenPtr<GreenToken>> Lexer::match_punctuation(GreenTriviaList leading_trivia)
     {
         return prism::match_punctuation(cursor_).transform(
-            [&](const SyntaxKind kind) {
-                return GreenToken::from(kind)->with_leading_and_trailing_trivia(std::move(leading_trivia),
-                                                                                collect_trivia());
-            });
+            [&](const SyntaxKind kind)
+            { return GreenToken::from(kind)->update(std::move(leading_trivia), collect_trivia()); });
     }
 
     Optional<GreenPtr<GreenToken>> Lexer::match_character_literal(GreenTriviaList leading_trivia)
@@ -435,8 +433,7 @@ namespace prism
         if (!identifier.starts_with('@'))
         {
             if (auto keyword = match_keyword(identifier); keyword.has_value())
-                return GreenToken::from(*keyword)->with_leading_and_trailing_trivia(std::move(leading_trivia),
-                                                                                    collect_trivia());
+                return GreenToken::from(*keyword)->update(std::move(leading_trivia), collect_trivia());
         }
 
         return make_green_value(IdentifierData{identifier, is_escaped}, std::move(leading_trivia), collect_trivia());

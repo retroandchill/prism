@@ -157,7 +157,7 @@ namespace prism
         expression_end = 3009,
 #pragma endregion
 
-#pragma region Statement
+#pragma region Statements
         statement_start = 4000,
         statement = 4000,
         variable_declaration_statement = 4001,
@@ -168,7 +168,7 @@ namespace prism
         statement_end = 4005,
 #pragma endregion
 
-#pragma region Declaration
+#pragma region Declarations
         declaration_start = 5000,
         declaration = 5000,
         variable_declaration = 5001,

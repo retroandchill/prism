@@ -18,6 +18,7 @@ namespace prism
 {
     export class PRISM_CORE_API SyntaxNode : NonCopyable
     {
+      protected:
         SyntaxNode(const GreenNode &node, const std::uint32_t position) : green_{&node}, position_{position}
         {
         }

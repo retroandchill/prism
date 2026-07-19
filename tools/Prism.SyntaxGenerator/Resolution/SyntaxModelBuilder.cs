@@ -225,7 +225,7 @@ public sealed class SyntaxModelBuilder
         {
             case PropertyItemDefinition item:
             {
-                var prop = new SyntaxProperty(item.Name, ResolveType(item.Type), item.Shape);
+                var prop = new SyntaxProperty(node, item.Name, ResolveType(item.Type), item.Shape);
                 propertiesDict.Add(item.Name, prop);
                 node.AddProperty(prop);
                 break;
@@ -374,24 +374,24 @@ public sealed class SyntaxModelBuilder
                 continue;
             var parentChildren = CollectParentProperties(node);
 
-            foreach (
-                var child in node
-                    .Properties.AsValueEnumerable()
-                    .Where(child => parentChildren.Contains(child.Name))
-            )
+            foreach (var child in node.Properties)
             {
-                child.IsOverride = true;
+                if (parentChildren.TryGetValue(child.Name, out var parentProperty))
+                    child.OverrideOf = parentProperty;
             }
         }
     }
 
-    private static HashSet<string> CollectParentProperties(SyntaxNode node)
+    private static Dictionary<string, SyntaxProperty> CollectParentProperties(SyntaxNode node)
     {
-        var result = new HashSet<string>();
+        var result = new Dictionary<string, SyntaxProperty>();
         var @base = node.Base;
         while (@base is not null)
         {
-            result.UnionWith(@base.Properties.Select(x => x.Name));
+            foreach (var property in @base.Properties)
+            {
+                result[property.Name] = property;
+            }
             @base = @base.Base;
         }
         return result;

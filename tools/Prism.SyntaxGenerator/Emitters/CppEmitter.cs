@@ -389,10 +389,7 @@ public sealed class CppEmitter
         );
         writer.WriteLine();
 
-        using (writer.EnterIndentationScope(-1))
-        {
-            writer.WriteLine("public:");
-        }
+        writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
         foreach (var property in node.Properties)
         {
             var info = GetInfo(property);
@@ -421,6 +418,42 @@ public sealed class CppEmitter
             }
             writer.WriteLine(";");
         }
+
+        if (node.Properties.Count == 0)
+            return;
+
+        writer.WriteLine();
+        foreach (var property in node.Properties)
+        {
+            var info = GetInfo(property);
+
+            writer.WriteLine("template <typename Self>");
+            writer.Write(
+                $"[[nodiscard]] constexpr GreenPtr<std::decay_t<Self>> with_{info.GetterName}(const Self& self, "
+            );
+            EmitGreenFieldType(writer, property);
+            writer.WriteLine($"{info.ParameterName})");
+            using (writer.EnterBlockScope())
+            {
+                writer.WriteLine(
+                    $"return static_pointer_cast<std::decay_t<Self>>(self.with_{info.GetterName}_core(std::move({info.ParameterName})));"
+                );
+            }
+
+            writer.WriteLine();
+        }
+
+        writer.WriteAccessSpecifier(CppAccessSpecifier.Protected);
+        foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
+        {
+            if (i > 0)
+                writer.WriteLine();
+
+            var info = GetInfo(property);
+            writer.Write($"[[nodiscard]] virtual GreenPtr<{name}> with_{info.GetterName}_core(");
+            EmitGreenFieldType(writer, property);
+            writer.WriteLine($"{info.ParameterName}) const = 0;");
+        }
     }
 
     private static IEnumerable<SyntaxNode> GetAllDerivedTypes(SyntaxNode node)
@@ -440,17 +473,14 @@ public sealed class CppEmitter
 
     private void EmitGreenNodeConcreteClassBody(CodeWriter writer, SyntaxNode node, string name)
     {
-        using (writer.EnterIndentationScope(-1))
-        {
-            writer.WriteLine("public:");
-        }
+        writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
 
         var explicitKeyword = node.Properties.Count <= 1 ? "explicit " : "";
         writer.Write($"{explicitKeyword}{name}(");
         foreach (var property in node.Properties)
         {
             var info = GetInfo(property);
-            EmitPropertyFieldType(writer, property);
+            EmitGreenFieldType(writer, property);
             writer.Write($" {info.ParameterName}, ");
         }
         writer.WriteLine("DiagnosticInfoList diagnostics = {});");
@@ -498,18 +528,66 @@ public sealed class CppEmitter
             $"[[nodiscard]] Optional<const {GreenNodeClass}&> get_child(std::size_t index) const override;"
         );
 
+        EmitGreenMutationDeclarations(writer, node, name);
+
         writer.WriteLine();
-        using (writer.EnterIndentationScope(-1))
-        {
-            writer.WriteLine("private:");
-        }
+        writer.WriteAccessSpecifier(CppAccessSpecifier.Private);
 
         foreach (var property in node.Properties)
         {
             var info = GetInfo(property);
-            EmitPropertyFieldType(writer, property);
+            EmitGreenFieldType(writer, property);
             writer.WriteLine($" {info.FieldName};");
         }
+    }
+
+    private void EmitGreenMutationDeclarations(CodeWriter writer, SyntaxNode node, string name)
+    {
+        var lastWasPublic = true;
+        foreach (var property in node.Properties.AsValueEnumerable())
+        {
+            writer.WriteLine();
+            var info = GetInfo(property);
+            if (property.IsOverride)
+            {
+                if (lastWasPublic)
+                {
+                    writer.WriteAccessSpecifier(CppAccessSpecifier.Protected);
+                    lastWasPublic = false;
+                }
+            }
+            else
+            {
+                if (!lastWasPublic)
+                {
+                    writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
+                    lastWasPublic = true;
+                }
+            }
+
+            var paramName = property.IsOverride ? GetGreenCppName(property.OverrideOf.Owner) : name;
+            var core = property.IsOverride ? "_core" : "";
+            writer.Write($"[[nodiscard]] GreenPtr<{paramName}> with_{info.GetterName}{core}(");
+            EmitGreenFieldType(writer, property);
+            var @override = property.IsOverride ? " override" : "";
+            writer.WriteLine($" {info.ParameterName}) const{@override};");
+        }
+
+        if (!lastWasPublic)
+            writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
+
+        writer.WriteLine();
+        writer.Write($"[[nodiscard]] GreenPtr<{name}> update(");
+        foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
+        {
+            if (i > 0)
+                writer.Write(", ");
+
+            var info = GetInfo(property);
+            EmitGreenFieldType(writer, property);
+            writer.Write($" {info.ParameterName}");
+        }
+        writer.WriteLine(") const;");
     }
 
     #endregion
@@ -527,15 +605,24 @@ public sealed class CppEmitter
         }
         writer.WriteLine();
         using var namespaceScope = writer.EnterNamespaceScope(PrismNamespace);
-        foreach (var node in module.Nodes.AsValueEnumerable().Where(n => !n.IsAbstract))
+        foreach (
+            var (i, node) in module.Nodes.AsValueEnumerable().Where(n => !n.IsAbstract).Index()
+        )
         {
+            if (i > 0)
+                writer.WriteLine();
+
             var nodeName = GetGreenCppName(node);
             EmitConcreteGreenNodeConstructor(writer, nodeName, node);
 
             writer.WriteLine();
             writer.WriteLine($"{nodeName}::~{nodeName}() = default;");
+
             writer.WriteLine();
             EmitGreenGetChildMethod(writer, node, nodeName);
+
+            writer.WriteLine();
+            EmitGreenUpdateMethod(writer, node, nodeName);
         }
     }
 
@@ -549,7 +636,7 @@ public sealed class CppEmitter
         foreach (var property in node.Properties)
         {
             var info = GetInfo(property);
-            EmitPropertyFieldType(writer, property);
+            EmitGreenFieldType(writer, property);
             writer.Write($" {info.ParameterName}, ");
         }
         writer.Write(
@@ -617,6 +704,79 @@ public sealed class CppEmitter
         writer.WriteLine("default:");
         writer.WriteLine("return std::nullopt;");
     }
+
+    private void EmitGreenUpdateMethod(CodeWriter writer, SyntaxNode node, string nodeName)
+    {
+        foreach (var property in node.Properties.AsValueEnumerable())
+        {
+            var info = GetInfo(property);
+            var paramName = property.IsOverride
+                ? GetGreenCppName(property.OverrideOf.Owner)
+                : nodeName;
+            var core = property.IsOverride ? "_core" : "";
+            writer.Write(
+                $"[[nodiscard]] GreenPtr<{paramName}> {nodeName}::with_{info.GetterName}{core}("
+            );
+            EmitGreenFieldType(writer, property);
+            writer.WriteLine($" {info.ParameterName}) const");
+            using (writer.EnterBlockScope())
+            {
+                writer.Write("return update(");
+                foreach (var (i, arg) in node.Properties.AsValueEnumerable().Index())
+                {
+                    if (i > 0)
+                        writer.Write(", ");
+
+                    var argInfo = GetInfo(arg);
+                    if (ReferenceEquals(property, arg))
+                        writer.Write($"std::move({info.ParameterName})");
+                    else
+                        writer.Write(argInfo.FieldName);
+                }
+                writer.WriteLine(");");
+            }
+
+            writer.WriteLine();
+        }
+
+        writer.Write($"GreenPtr<{nodeName}> {nodeName}::update(");
+        foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
+        {
+            if (i > 0)
+                writer.Write(", ");
+
+            var info = GetInfo(property);
+            EmitGreenFieldType(writer, property);
+            writer.Write($" {info.ParameterName}");
+        }
+        writer.WriteLine(") const");
+        using var scope = writer.EnterBlockScope();
+        writer.Write("if (");
+        foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
+        {
+            if (i > 0)
+                writer.Write(" && ");
+
+            var info = GetInfo(property);
+            writer.Write($"{info.ParameterName} == {info.FieldName}");
+        }
+        writer.WriteLine(')');
+        using (writer.EnterIndentationScope())
+            writer.WriteLine("return shared_from_this();");
+
+        writer.WriteLine();
+        writer.Write($"return make_ref_counted<const {nodeName}>(");
+        foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
+        {
+            if (i > 0)
+                writer.Write(", ");
+
+            var info = GetInfo(property);
+            writer.Write($"std::move({info.ParameterName})");
+        }
+
+        writer.WriteLine(");");
+    }
     #endregion
 
     private void EmitGreenGetterType(CodeWriter writer, SyntaxProperty property)
@@ -640,7 +800,7 @@ public sealed class CppEmitter
         }
     }
 
-    private void EmitPropertyFieldType(CodeWriter writer, SyntaxProperty property)
+    private void EmitGreenFieldType(CodeWriter writer, SyntaxProperty property)
     {
         switch (property.Shape)
         {

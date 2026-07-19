@@ -24,4 +24,18 @@ namespace prism
                 return std::nullopt;
         }
     }
+
+    [[nodiscard]] GreenPtr<GreenIdentifierNamedType> GreenIdentifierNamedType::with_identifier(
+        GreenPtr<GreenToken> identifier) const
+    {
+        return update(std::move(identifier));
+    }
+
+    GreenPtr<GreenIdentifierNamedType> GreenIdentifierNamedType::update(GreenPtr<GreenToken> identifier) const
+    {
+        if (identifier == identifier_)
+            return shared_from_this();
+
+        return make_ref_counted<const GreenIdentifierNamedType>(std::move(identifier));
+    }
 } // namespace prism

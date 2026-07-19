@@ -1,4 +1,4 @@
-export module prism.core:syntax.green.statement;
+export module prism.core:syntax.green.statements;
 
 import :syntax.green.node;
 import :syntax.green.token;
@@ -46,6 +46,12 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] GreenPtr<GreenVariableDeclarationStatement> with_declaration(
+            GreenPtr<GreenVariableDeclaration> declaration) const;
+
+        [[nodiscard]] GreenPtr<GreenVariableDeclarationStatement> update(
+            GreenPtr<GreenVariableDeclaration> declaration) const;
+
       private:
         GreenPtr<GreenVariableDeclaration> declaration_;
     };
@@ -81,6 +87,16 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] GreenPtr<GreenBlock> with_open_brace(GreenPtr<GreenToken> open_brace) const;
+
+        [[nodiscard]] GreenPtr<GreenBlock> with_statements(GreenSyntaxList<GreenStatement> statements) const;
+
+        [[nodiscard]] GreenPtr<GreenBlock> with_close_brace(GreenPtr<GreenToken> close_brace) const;
+
+        [[nodiscard]] GreenPtr<GreenBlock> update(GreenPtr<GreenToken> open_brace,
+                                                  GreenSyntaxList<GreenStatement> statements,
+                                                  GreenPtr<GreenToken> close_brace) const;
 
       private:
         GreenPtr<GreenToken> open_brace_;
@@ -120,6 +136,16 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] GreenPtr<GreenReturnStatement> with_return_keyword(GreenPtr<GreenToken> return_keyword) const;
+
+        [[nodiscard]] GreenPtr<GreenReturnStatement> with_expression(GreenPtr<GreenExpression> expression) const;
+
+        [[nodiscard]] GreenPtr<GreenReturnStatement> with_semicolon(GreenPtr<GreenToken> semicolon) const;
+
+        [[nodiscard]] GreenPtr<GreenReturnStatement> update(GreenPtr<GreenToken> return_keyword,
+                                                            GreenPtr<GreenExpression> expression,
+                                                            GreenPtr<GreenToken> semicolon) const;
+
       private:
         GreenPtr<GreenToken> return_keyword_;
         GreenPtr<GreenExpression> expression_;
@@ -152,6 +178,13 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] GreenPtr<GreenExpressionStatement> with_expression(GreenPtr<GreenExpression> expression) const;
+
+        [[nodiscard]] GreenPtr<GreenExpressionStatement> with_semicolon(GreenPtr<GreenToken> semicolon) const;
+
+        [[nodiscard]] GreenPtr<GreenExpressionStatement> update(GreenPtr<GreenExpression> expression,
+                                                                GreenPtr<GreenToken> semicolon) const;
+
       private:
         GreenPtr<GreenExpression> expression_;
         GreenPtr<GreenToken> semicolon_;
@@ -175,6 +208,10 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] GreenPtr<GreenEmptyStatement> with_semicolon(GreenPtr<GreenToken> semicolon) const;
+
+        [[nodiscard]] GreenPtr<GreenEmptyStatement> update(GreenPtr<GreenToken> semicolon) const;
 
       private:
         GreenPtr<GreenToken> semicolon_;

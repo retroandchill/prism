@@ -1,7 +1,7 @@
-module prism.core:syntax.green.statement.impl;
+module prism.core:syntax.green.statements.impl;
 
-import :syntax.green.statement;
-import :syntax.green.declaration;
+import :syntax.green.statements;
+import :syntax.green.declarations;
 import :syntax.green.expressions;
 
 namespace prism
@@ -27,6 +27,22 @@ namespace prism
                 return std::nullopt;
         }
     }
+
+    [[nodiscard]] GreenPtr<GreenVariableDeclarationStatement> GreenVariableDeclarationStatement::with_declaration(
+        GreenPtr<GreenVariableDeclaration> declaration) const
+    {
+        return update(std::move(declaration));
+    }
+
+    GreenPtr<GreenVariableDeclarationStatement> GreenVariableDeclarationStatement::update(
+        GreenPtr<GreenVariableDeclaration> declaration) const
+    {
+        if (declaration == declaration_)
+            return shared_from_this();
+
+        return make_ref_counted<const GreenVariableDeclarationStatement>(std::move(declaration));
+    }
+
     GreenBlock::GreenBlock(GreenPtr<GreenToken> open_brace,
                            GreenSyntaxList<GreenStatement> statements,
                            GreenPtr<GreenToken> close_brace,
@@ -56,6 +72,32 @@ namespace prism
                 return std::nullopt;
         }
     }
+
+    [[nodiscard]] GreenPtr<GreenBlock> GreenBlock::with_open_brace(GreenPtr<GreenToken> open_brace) const
+    {
+        return update(std::move(open_brace), statements_, close_brace_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenBlock> GreenBlock::with_statements(GreenSyntaxList<GreenStatement> statements) const
+    {
+        return update(open_brace_, std::move(statements), close_brace_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenBlock> GreenBlock::with_close_brace(GreenPtr<GreenToken> close_brace) const
+    {
+        return update(open_brace_, statements_, std::move(close_brace));
+    }
+
+    GreenPtr<GreenBlock> GreenBlock::update(GreenPtr<GreenToken> open_brace,
+                                            GreenSyntaxList<GreenStatement> statements,
+                                            GreenPtr<GreenToken> close_brace) const
+    {
+        if (open_brace == open_brace_ && statements == statements_ && close_brace == close_brace_)
+            return shared_from_this();
+
+        return make_ref_counted<const GreenBlock>(std::move(open_brace), std::move(statements), std::move(close_brace));
+    }
+
     GreenReturnStatement::GreenReturnStatement(GreenPtr<GreenToken> return_keyword,
                                                GreenPtr<GreenExpression> expression,
                                                GreenPtr<GreenToken> semicolon,
@@ -87,6 +129,37 @@ namespace prism
                 return std::nullopt;
         }
     }
+
+    [[nodiscard]] GreenPtr<GreenReturnStatement> GreenReturnStatement::with_return_keyword(
+        GreenPtr<GreenToken> return_keyword) const
+    {
+        return update(std::move(return_keyword), expression_, semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenReturnStatement> GreenReturnStatement::with_expression(
+        GreenPtr<GreenExpression> expression) const
+    {
+        return update(return_keyword_, std::move(expression), semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenReturnStatement> GreenReturnStatement::with_semicolon(
+        GreenPtr<GreenToken> semicolon) const
+    {
+        return update(return_keyword_, expression_, std::move(semicolon));
+    }
+
+    GreenPtr<GreenReturnStatement> GreenReturnStatement::update(GreenPtr<GreenToken> return_keyword,
+                                                                GreenPtr<GreenExpression> expression,
+                                                                GreenPtr<GreenToken> semicolon) const
+    {
+        if (return_keyword == return_keyword_ && expression == expression_ && semicolon == semicolon_)
+            return shared_from_this();
+
+        return make_ref_counted<const GreenReturnStatement>(std::move(return_keyword),
+                                                            std::move(expression),
+                                                            std::move(semicolon));
+    }
+
     GreenExpressionStatement::GreenExpressionStatement(GreenPtr<GreenExpression> expression,
                                                        GreenPtr<GreenToken> semicolon,
                                                        DiagnosticInfoList diagnostics)
@@ -112,6 +185,28 @@ namespace prism
                 return std::nullopt;
         }
     }
+
+    [[nodiscard]] GreenPtr<GreenExpressionStatement> GreenExpressionStatement::with_expression(
+        GreenPtr<GreenExpression> expression) const
+    {
+        return update(std::move(expression), semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenExpressionStatement> GreenExpressionStatement::with_semicolon(
+        GreenPtr<GreenToken> semicolon) const
+    {
+        return update(expression_, std::move(semicolon));
+    }
+
+    GreenPtr<GreenExpressionStatement> GreenExpressionStatement::update(GreenPtr<GreenExpression> expression,
+                                                                        GreenPtr<GreenToken> semicolon) const
+    {
+        if (expression == expression_ && semicolon == semicolon_)
+            return shared_from_this();
+
+        return make_ref_counted<const GreenExpressionStatement>(std::move(expression), std::move(semicolon));
+    }
+
     GreenEmptyStatement::GreenEmptyStatement(GreenPtr<GreenToken> semicolon, DiagnosticInfoList diagnostics)
         : GreenStatement{SyntaxKind::empty_statement, std::move(diagnostics)}, semicolon_{std::move(semicolon)}
     {
@@ -130,5 +225,19 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] GreenPtr<GreenEmptyStatement> GreenEmptyStatement::with_semicolon(
+        GreenPtr<GreenToken> semicolon) const
+    {
+        return update(std::move(semicolon));
+    }
+
+    GreenPtr<GreenEmptyStatement> GreenEmptyStatement::update(GreenPtr<GreenToken> semicolon) const
+    {
+        if (semicolon == semicolon_)
+            return shared_from_this();
+
+        return make_ref_counted<const GreenEmptyStatement>(std::move(semicolon));
     }
 } // namespace prism

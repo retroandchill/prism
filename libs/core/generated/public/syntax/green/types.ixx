@@ -70,6 +70,10 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] GreenPtr<GreenIdentifierNamedType> with_identifier(GreenPtr<GreenToken> identifier) const;
+
+        [[nodiscard]] GreenPtr<GreenIdentifierNamedType> update(GreenPtr<GreenToken> identifier) const;
+
       private:
         GreenPtr<GreenToken> identifier_;
     };

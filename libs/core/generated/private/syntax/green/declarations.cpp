@@ -1,8 +1,8 @@
-module prism.core:syntax.green.declaration.impl;
+module prism.core:syntax.green.declarations.impl;
 
-import :syntax.green.declaration;
+import :syntax.green.declarations;
 import :syntax.green.clauses;
-import :syntax.green.statement;
+import :syntax.green.statements;
 
 namespace prism
 {
@@ -54,6 +54,70 @@ namespace prism
                 return std::nullopt;
         }
     }
+
+    [[nodiscard]] GreenPtr<GreenDeclaration> GreenVariableDeclaration::with_modifiers_core(
+        GreenSyntaxList<GreenToken> modifiers) const
+    {
+        return update(std::move(modifiers), var_keyword_, mut_keyword_, identifier_, type_, initializer_, semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_var_keyword(
+        GreenPtr<GreenToken> var_keyword) const
+    {
+        return update(modifiers_, std::move(var_keyword), mut_keyword_, identifier_, type_, initializer_, semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_mut_keyword(
+        GreenPtr<GreenToken> mut_keyword) const
+    {
+        return update(modifiers_, var_keyword_, std::move(mut_keyword), identifier_, type_, initializer_, semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_identifier(
+        GreenPtr<GreenToken> identifier) const
+    {
+        return update(modifiers_, var_keyword_, mut_keyword_, std::move(identifier), type_, initializer_, semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_type(
+        GreenPtr<GreenTypeSpecifier> type) const
+    {
+        return update(modifiers_, var_keyword_, mut_keyword_, identifier_, std::move(type), initializer_, semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_initializer(
+        GreenPtr<GreenInitializer> initializer) const
+    {
+        return update(modifiers_, var_keyword_, mut_keyword_, identifier_, type_, std::move(initializer), semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_semicolon(
+        GreenPtr<GreenToken> semicolon) const
+    {
+        return update(modifiers_, var_keyword_, mut_keyword_, identifier_, type_, initializer_, std::move(semicolon));
+    }
+
+    GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::update(GreenSyntaxList<GreenToken> modifiers,
+                                                                        GreenPtr<GreenToken> var_keyword,
+                                                                        GreenPtr<GreenToken> mut_keyword,
+                                                                        GreenPtr<GreenToken> identifier,
+                                                                        GreenPtr<GreenTypeSpecifier> type,
+                                                                        GreenPtr<GreenInitializer> initializer,
+                                                                        GreenPtr<GreenToken> semicolon) const
+    {
+        if (modifiers == modifiers_ && var_keyword == var_keyword_ && mut_keyword == mut_keyword_ &&
+            identifier == identifier_ && type == type_ && initializer == initializer_ && semicolon == semicolon_)
+            return shared_from_this();
+
+        return make_ref_counted<const GreenVariableDeclaration>(std::move(modifiers),
+                                                                std::move(var_keyword),
+                                                                std::move(mut_keyword),
+                                                                std::move(identifier),
+                                                                std::move(type),
+                                                                std::move(initializer),
+                                                                std::move(semicolon));
+    }
+
     GreenFunctionDeclaration::GreenFunctionDeclaration(GreenSyntaxList<GreenToken> modifiers,
                                                        GreenPtr<GreenToken> func_keyword,
                                                        GreenPtr<GreenToken> identifier,
@@ -108,5 +172,133 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] GreenPtr<GreenDeclaration> GreenFunctionDeclaration::with_modifiers_core(
+        GreenSyntaxList<GreenToken> modifiers) const
+    {
+        return update(std::move(modifiers),
+                      func_keyword_,
+                      identifier_,
+                      parameters_,
+                      return_type_,
+                      body_,
+                      expression_body_,
+                      semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::with_func_keyword(
+        GreenPtr<GreenToken> func_keyword) const
+    {
+        return update(modifiers_,
+                      std::move(func_keyword),
+                      identifier_,
+                      parameters_,
+                      return_type_,
+                      body_,
+                      expression_body_,
+                      semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::with_identifier(
+        GreenPtr<GreenToken> identifier) const
+    {
+        return update(modifiers_,
+                      func_keyword_,
+                      std::move(identifier),
+                      parameters_,
+                      return_type_,
+                      body_,
+                      expression_body_,
+                      semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::with_parameters(
+        GreenPtr<GreenParameterList> parameters) const
+    {
+        return update(modifiers_,
+                      func_keyword_,
+                      identifier_,
+                      std::move(parameters),
+                      return_type_,
+                      body_,
+                      expression_body_,
+                      semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::with_return_type(
+        GreenPtr<GreenTypeSpecifier> return_type) const
+    {
+        return update(modifiers_,
+                      func_keyword_,
+                      identifier_,
+                      parameters_,
+                      std::move(return_type),
+                      body_,
+                      expression_body_,
+                      semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::with_body(
+        GreenPtr<GreenBlock> body) const
+    {
+        return update(modifiers_,
+                      func_keyword_,
+                      identifier_,
+                      parameters_,
+                      return_type_,
+                      std::move(body),
+                      expression_body_,
+                      semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::with_expression_body(
+        GreenPtr<GreenExpressionBody> expression_body) const
+    {
+        return update(modifiers_,
+                      func_keyword_,
+                      identifier_,
+                      parameters_,
+                      return_type_,
+                      body_,
+                      std::move(expression_body),
+                      semicolon_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::with_semicolon(
+        GreenPtr<GreenToken> semicolon) const
+    {
+        return update(modifiers_,
+                      func_keyword_,
+                      identifier_,
+                      parameters_,
+                      return_type_,
+                      body_,
+                      expression_body_,
+                      std::move(semicolon));
+    }
+
+    GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::update(GreenSyntaxList<GreenToken> modifiers,
+                                                                        GreenPtr<GreenToken> func_keyword,
+                                                                        GreenPtr<GreenToken> identifier,
+                                                                        GreenPtr<GreenParameterList> parameters,
+                                                                        GreenPtr<GreenTypeSpecifier> return_type,
+                                                                        GreenPtr<GreenBlock> body,
+                                                                        GreenPtr<GreenExpressionBody> expression_body,
+                                                                        GreenPtr<GreenToken> semicolon) const
+    {
+        if (modifiers == modifiers_ && func_keyword == func_keyword_ && identifier == identifier_ &&
+            parameters == parameters_ && return_type == return_type_ && body == body_ &&
+            expression_body == expression_body_ && semicolon == semicolon_)
+            return shared_from_this();
+
+        return make_ref_counted<const GreenFunctionDeclaration>(std::move(modifiers),
+                                                                std::move(func_keyword),
+                                                                std::move(identifier),
+                                                                std::move(parameters),
+                                                                std::move(return_type),
+                                                                std::move(body),
+                                                                std::move(expression_body),
+                                                                std::move(semicolon));
     }
 } // namespace prism
