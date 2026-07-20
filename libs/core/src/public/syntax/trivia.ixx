@@ -19,8 +19,8 @@ namespace prism
 
     export class SyntaxTrivia final
     {
-        constexpr SyntaxTrivia(SyntaxToken parent, const GreenTrivia &trivia, const std::uint32_t position)
-            : parent_{std::move(parent)}, green_{&trivia}, position_{position}
+        constexpr SyntaxTrivia(SyntaxToken parent, RefCountPtr<const GreenTrivia> trivia, const std::uint32_t position)
+            : parent_{std::move(parent)}, green_{std::move(trivia)}, position_{position}
         {
         }
 
@@ -32,12 +32,17 @@ namespace prism
 
         [[nodiscard]] constexpr TextSpan full_span() const noexcept
         {
-            return {position_, green_->full_width()};
+            return {.start = position_, .length = green_->full_width()};
         }
 
         [[nodiscard]] constexpr TextSpan span() const
         {
-            return {position_ + green_->leading_trivia_width(), green_->width()};
+            return {.start = position_ + green_->leading_trivia_width(), .length = green_->width()};
+        }
+
+        [[nodiscard]] constexpr std::shared_ptr<const SyntaxTree> syntax_tree() const noexcept
+        {
+            return parent_.syntax_tree();
         }
 
         [[nodiscard]] constexpr bool contains_diagnostics() const noexcept
@@ -49,14 +54,14 @@ namespace prism
         friend class SyntaxTriviaList;
 
         SyntaxToken parent_;
-        const GreenTrivia *green_;
+        RefCountPtr<const GreenTrivia> green_;
         std::uint32_t position_;
     };
 
     class SyntaxTriviaList PRISM_CORE_API final : public SyntaxListView<SyntaxTrivia>
     {
-        constexpr explicit SyntaxTriviaList(SyntaxToken parent, const GreenTriviaList &trivia_list)
-            : parent_{std::move(parent)}, green_{trivia_list}, position_{parent.position_}
+        constexpr explicit SyntaxTriviaList(SyntaxToken parent, GreenTriviaList trivia_list)
+            : parent_{std::move(parent)}, green_{std::move(trivia_list)}, position_{parent.position_}
         {
         }
 
@@ -79,7 +84,7 @@ namespace prism
         friend class SyntaxToken;
 
         SyntaxToken parent_;
-        GreenSyntaxList<GreenTrivia, false> green_;
+        GreenSyntaxList<GreenTrivia> green_;
         std::uint32_t position_;
     };
 

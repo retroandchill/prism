@@ -4,7 +4,8 @@ import :syntax.green.types;
 
 namespace prism
 {
-    GreenIdentifierNamedType::GreenIdentifierNamedType(GreenPtr<GreenToken> identifier, DiagnosticInfoList diagnostics)
+    GreenIdentifierNamedType::GreenIdentifierNamedType(RefCountPtr<const GreenToken> identifier,
+                                                       DiagnosticInfoList diagnostics)
         : GreenSimpleNamedType{SyntaxKind::identifier_named_type, std::move(diagnostics)},
           identifier_{std::move(identifier)}
     {
@@ -25,13 +26,14 @@ namespace prism
         }
     }
 
-    [[nodiscard]] GreenPtr<GreenIdentifierNamedType> GreenIdentifierNamedType::with_identifier(
-        GreenPtr<GreenToken> identifier) const
+    [[nodiscard]] RefCountPtr<const GreenIdentifierNamedType> GreenIdentifierNamedType::with_identifier(
+        RefCountPtr<const GreenToken> identifier) const
     {
         return update(std::move(identifier));
     }
 
-    GreenPtr<GreenIdentifierNamedType> GreenIdentifierNamedType::update(GreenPtr<GreenToken> identifier) const
+    RefCountPtr<const GreenIdentifierNamedType> GreenIdentifierNamedType::update(
+        RefCountPtr<const GreenToken> identifier) const
     {
         if (identifier == identifier_)
             return shared_from_this();

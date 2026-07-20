@@ -15,13 +15,13 @@ import boost;
 
 namespace prism
 {
-    template <typename T, bool Owning = true>
+    template <typename T>
     class GreenSeparatedList : public SyntaxListView<T>
     {
       public:
         using value_type = T;
 
-        explicit constexpr GreenSeparatedList(GreenSyntaxList<GreenNode, Owning> children) : list_{std::move(children)}
+        explicit constexpr GreenSeparatedList(GreenSyntaxList<GreenNode> children) : list_{std::move(children)}
         {
 #ifndef NDEBUG
             validate(list_);
@@ -48,7 +48,7 @@ namespace prism
             return static_cast<const GreenToken &>(*list_[index * 2 + 1]);
         }
 
-        [[nodiscard]] constexpr const GreenSyntaxList<GreenNode, Owning> &with_separators() const noexcept
+        [[nodiscard]] constexpr const GreenSyntaxList<GreenNode> &with_separators() const noexcept
         {
             return list_;
         }
@@ -66,7 +66,7 @@ namespace prism
 
       private:
 #ifndef NDEBUG
-        static void validate(const GreenSyntaxList<T, Owning> &list)
+        static void validate(const GreenSyntaxList<T> &list)
         {
             for (auto [i, item] : list | std::views::enumerate)
             {
@@ -82,19 +82,19 @@ namespace prism
         }
 #endif
 
-        GreenSyntaxList<GreenNode, Owning> list_;
+        GreenSyntaxList<GreenNode> list_;
     };
 
     template <typename T>
     class GreenSeparatedListBuilder final
     {
       public:
-        const T &add_item(GreenPtr<T> item)
+        const T &add_item(RefCountPtr<const T> item)
         {
             return static_cast<const T &>(children_.add(std::move(item)));
         }
 
-        const T &add_separator(GreenPtr<GreenToken> item)
+        const T &add_separator(RefCountPtr<const GreenToken> item)
         {
             return static_cast<const GreenToken &>(children_.add(std::move(item)));
         }
@@ -104,13 +104,13 @@ namespace prism
             children_.reserve(capacity);
         }
 
-        GreenPtr<GreenSeparatedList<T>> build() const &
+        RefCountPtr<const GreenSeparatedList<T>> build() const &
         {
 
             return GreenSeparatedList<T>{children_.build()};
         }
 
-        GreenPtr<GreenSeparatedList<T>> build() &&
+        RefCountPtr<const GreenSeparatedList<T>> build() &&
         {
             return GreenSeparatedList<T>{std::move(children_).build()};
         }

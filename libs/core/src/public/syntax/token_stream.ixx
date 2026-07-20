@@ -23,7 +23,7 @@ namespace prism
 
         [[nodiscard]] bool at_end();
 
-        [[nodiscard]] constexpr const std::vector<GreenPtr<GreenToken>> &tokens() const
+        [[nodiscard]] constexpr const std::vector<RefCountPtr<const GreenToken>> &tokens() const
         {
             return tokens_;
         }
@@ -38,10 +38,10 @@ namespace prism
 
         void advance();
 
-        void replace_next(GreenPtr<GreenToken> token);
+        void replace_next(RefCountPtr<const GreenToken> token);
 
         template <std::ranges::input_range Range>
-            requires std::convertible_to<std::ranges::range_reference_t<Range>, GreenPtr<GreenToken>>
+            requires std::convertible_to<std::ranges::range_reference_t<Range>, RefCountPtr<const GreenToken>>
         void replace_next(Range &&range)
         {
             [[maybe_unused]] const auto &next = peek();
@@ -55,7 +55,7 @@ namespace prism
         void buffer_tokens();
 
         Lexer lexer_;
-        std::vector<GreenPtr<GreenToken>> tokens_;
-        std::deque<GreenPtr<GreenToken>> lookahead_;
+        std::vector<RefCountPtr<const GreenToken>> tokens_;
+        std::deque<RefCountPtr<const GreenToken>> lookahead_;
     };
 } // namespace prism

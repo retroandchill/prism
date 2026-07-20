@@ -6,8 +6,9 @@ import :syntax.green.expressions;
 
 namespace prism
 {
-    GreenVariableDeclarationStatement::GreenVariableDeclarationStatement(GreenPtr<GreenVariableDeclaration> declaration,
-                                                                         DiagnosticInfoList diagnostics)
+    GreenVariableDeclarationStatement::GreenVariableDeclarationStatement(
+        RefCountPtr<const GreenVariableDeclaration> declaration,
+        DiagnosticInfoList diagnostics)
         : GreenStatement{SyntaxKind::variable_declaration_statement, std::move(diagnostics)},
           declaration_{std::move(declaration)}
     {
@@ -28,14 +29,14 @@ namespace prism
         }
     }
 
-    [[nodiscard]] GreenPtr<GreenVariableDeclarationStatement> GreenVariableDeclarationStatement::with_declaration(
-        GreenPtr<GreenVariableDeclaration> declaration) const
+    [[nodiscard]] RefCountPtr<const GreenVariableDeclarationStatement> GreenVariableDeclarationStatement::
+        with_declaration(RefCountPtr<const GreenVariableDeclaration> declaration) const
     {
         return update(std::move(declaration));
     }
 
-    GreenPtr<GreenVariableDeclarationStatement> GreenVariableDeclarationStatement::update(
-        GreenPtr<GreenVariableDeclaration> declaration) const
+    RefCountPtr<const GreenVariableDeclarationStatement> GreenVariableDeclarationStatement::update(
+        RefCountPtr<const GreenVariableDeclaration> declaration) const
     {
         if (declaration == declaration_)
             return shared_from_this();
@@ -43,9 +44,9 @@ namespace prism
         return make_ref_counted<const GreenVariableDeclarationStatement>(std::move(declaration));
     }
 
-    GreenBlock::GreenBlock(GreenPtr<GreenToken> open_brace,
+    GreenBlock::GreenBlock(RefCountPtr<const GreenToken> open_brace,
                            GreenSyntaxList<GreenStatement> statements,
-                           GreenPtr<GreenToken> close_brace,
+                           RefCountPtr<const GreenToken> close_brace,
                            DiagnosticInfoList diagnostics)
         : GreenStatement{SyntaxKind::block, std::move(diagnostics)}, open_brace_{std::move(open_brace)},
           statements_{std::move(statements)}, close_brace_{std::move(close_brace)}
@@ -73,24 +74,27 @@ namespace prism
         }
     }
 
-    [[nodiscard]] GreenPtr<GreenBlock> GreenBlock::with_open_brace(GreenPtr<GreenToken> open_brace) const
+    [[nodiscard]] RefCountPtr<const GreenBlock> GreenBlock::with_open_brace(
+        RefCountPtr<const GreenToken> open_brace) const
     {
         return update(std::move(open_brace), statements_, close_brace_);
     }
 
-    [[nodiscard]] GreenPtr<GreenBlock> GreenBlock::with_statements(GreenSyntaxList<GreenStatement> statements) const
+    [[nodiscard]] RefCountPtr<const GreenBlock> GreenBlock::with_statements(
+        GreenSyntaxList<GreenStatement> statements) const
     {
         return update(open_brace_, std::move(statements), close_brace_);
     }
 
-    [[nodiscard]] GreenPtr<GreenBlock> GreenBlock::with_close_brace(GreenPtr<GreenToken> close_brace) const
+    [[nodiscard]] RefCountPtr<const GreenBlock> GreenBlock::with_close_brace(
+        RefCountPtr<const GreenToken> close_brace) const
     {
         return update(open_brace_, statements_, std::move(close_brace));
     }
 
-    GreenPtr<GreenBlock> GreenBlock::update(GreenPtr<GreenToken> open_brace,
-                                            GreenSyntaxList<GreenStatement> statements,
-                                            GreenPtr<GreenToken> close_brace) const
+    RefCountPtr<const GreenBlock> GreenBlock::update(RefCountPtr<const GreenToken> open_brace,
+                                                     GreenSyntaxList<GreenStatement> statements,
+                                                     RefCountPtr<const GreenToken> close_brace) const
     {
         if (open_brace == open_brace_ && statements == statements_ && close_brace == close_brace_)
             return shared_from_this();
@@ -98,9 +102,9 @@ namespace prism
         return make_ref_counted<const GreenBlock>(std::move(open_brace), std::move(statements), std::move(close_brace));
     }
 
-    GreenReturnStatement::GreenReturnStatement(GreenPtr<GreenToken> return_keyword,
-                                               GreenPtr<GreenExpression> expression,
-                                               GreenPtr<GreenToken> semicolon,
+    GreenReturnStatement::GreenReturnStatement(RefCountPtr<const GreenToken> return_keyword,
+                                               RefCountPtr<const GreenExpression> expression,
+                                               RefCountPtr<const GreenToken> semicolon,
                                                DiagnosticInfoList diagnostics)
         : GreenStatement{SyntaxKind::return_statement, std::move(diagnostics)},
           return_keyword_{std::move(return_keyword)}, expression_{std::move(expression)},
@@ -130,27 +134,27 @@ namespace prism
         }
     }
 
-    [[nodiscard]] GreenPtr<GreenReturnStatement> GreenReturnStatement::with_return_keyword(
-        GreenPtr<GreenToken> return_keyword) const
+    [[nodiscard]] RefCountPtr<const GreenReturnStatement> GreenReturnStatement::with_return_keyword(
+        RefCountPtr<const GreenToken> return_keyword) const
     {
         return update(std::move(return_keyword), expression_, semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenReturnStatement> GreenReturnStatement::with_expression(
-        GreenPtr<GreenExpression> expression) const
+    [[nodiscard]] RefCountPtr<const GreenReturnStatement> GreenReturnStatement::with_expression(
+        RefCountPtr<const GreenExpression> expression) const
     {
         return update(return_keyword_, std::move(expression), semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenReturnStatement> GreenReturnStatement::with_semicolon(
-        GreenPtr<GreenToken> semicolon) const
+    [[nodiscard]] RefCountPtr<const GreenReturnStatement> GreenReturnStatement::with_semicolon(
+        RefCountPtr<const GreenToken> semicolon) const
     {
         return update(return_keyword_, expression_, std::move(semicolon));
     }
 
-    GreenPtr<GreenReturnStatement> GreenReturnStatement::update(GreenPtr<GreenToken> return_keyword,
-                                                                GreenPtr<GreenExpression> expression,
-                                                                GreenPtr<GreenToken> semicolon) const
+    RefCountPtr<const GreenReturnStatement> GreenReturnStatement::update(RefCountPtr<const GreenToken> return_keyword,
+                                                                         RefCountPtr<const GreenExpression> expression,
+                                                                         RefCountPtr<const GreenToken> semicolon) const
     {
         if (return_keyword == return_keyword_ && expression == expression_ && semicolon == semicolon_)
             return shared_from_this();
@@ -160,8 +164,8 @@ namespace prism
                                                             std::move(semicolon));
     }
 
-    GreenExpressionStatement::GreenExpressionStatement(GreenPtr<GreenExpression> expression,
-                                                       GreenPtr<GreenToken> semicolon,
+    GreenExpressionStatement::GreenExpressionStatement(RefCountPtr<const GreenExpression> expression,
+                                                       RefCountPtr<const GreenToken> semicolon,
                                                        DiagnosticInfoList diagnostics)
         : GreenStatement{SyntaxKind::expression_statement, std::move(diagnostics)}, expression_{std::move(expression)},
           semicolon_{std::move(semicolon)}
@@ -186,20 +190,21 @@ namespace prism
         }
     }
 
-    [[nodiscard]] GreenPtr<GreenExpressionStatement> GreenExpressionStatement::with_expression(
-        GreenPtr<GreenExpression> expression) const
+    [[nodiscard]] RefCountPtr<const GreenExpressionStatement> GreenExpressionStatement::with_expression(
+        RefCountPtr<const GreenExpression> expression) const
     {
         return update(std::move(expression), semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenExpressionStatement> GreenExpressionStatement::with_semicolon(
-        GreenPtr<GreenToken> semicolon) const
+    [[nodiscard]] RefCountPtr<const GreenExpressionStatement> GreenExpressionStatement::with_semicolon(
+        RefCountPtr<const GreenToken> semicolon) const
     {
         return update(expression_, std::move(semicolon));
     }
 
-    GreenPtr<GreenExpressionStatement> GreenExpressionStatement::update(GreenPtr<GreenExpression> expression,
-                                                                        GreenPtr<GreenToken> semicolon) const
+    RefCountPtr<const GreenExpressionStatement> GreenExpressionStatement::update(
+        RefCountPtr<const GreenExpression> expression,
+        RefCountPtr<const GreenToken> semicolon) const
     {
         if (expression == expression_ && semicolon == semicolon_)
             return shared_from_this();
@@ -207,7 +212,7 @@ namespace prism
         return make_ref_counted<const GreenExpressionStatement>(std::move(expression), std::move(semicolon));
     }
 
-    GreenEmptyStatement::GreenEmptyStatement(GreenPtr<GreenToken> semicolon, DiagnosticInfoList diagnostics)
+    GreenEmptyStatement::GreenEmptyStatement(RefCountPtr<const GreenToken> semicolon, DiagnosticInfoList diagnostics)
         : GreenStatement{SyntaxKind::empty_statement, std::move(diagnostics)}, semicolon_{std::move(semicolon)}
     {
         set_child_count(1);
@@ -227,13 +232,13 @@ namespace prism
         }
     }
 
-    [[nodiscard]] GreenPtr<GreenEmptyStatement> GreenEmptyStatement::with_semicolon(
-        GreenPtr<GreenToken> semicolon) const
+    [[nodiscard]] RefCountPtr<const GreenEmptyStatement> GreenEmptyStatement::with_semicolon(
+        RefCountPtr<const GreenToken> semicolon) const
     {
         return update(std::move(semicolon));
     }
 
-    GreenPtr<GreenEmptyStatement> GreenEmptyStatement::update(GreenPtr<GreenToken> semicolon) const
+    RefCountPtr<const GreenEmptyStatement> GreenEmptyStatement::update(RefCountPtr<const GreenToken> semicolon) const
     {
         if (semicolon == semicolon_)
             return shared_from_this();

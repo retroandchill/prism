@@ -10,27 +10,36 @@ import :text.source_file;
 import :syntax.green.node;
 import :util.noncopyable;
 import :syntax.node;
-import :memory.persistent_allocator;
 
 namespace prism
 {
-    export class SyntaxTree final : NonCopyable
+    export class SyntaxTree final : public std::enable_shared_from_this<SyntaxTree>
     {
+        struct NoClone
+        {
+        };
+
+        static constexpr NoClone no_clone;
+
       public:
-        constexpr const SourceText &text() const noexcept
+        constexpr SyntaxTree(NoClone, RefCountPtr<const SyntaxNode> root) noexcept : root_{std::move(root)}
+        {
+        }
+
+        [[nodiscard]] constexpr Optional<const SourceText &> text() const noexcept
         {
             return *text_;
         }
 
-        constexpr const SyntaxNode &root() const noexcept
+        [[nodiscard]] constexpr const SyntaxNode &root() const noexcept
         {
             return *root_;
         }
 
       private:
+        friend SyntaxNode;
+
         std::shared_ptr<SourceText> text_;
-        GreenPtr<GreenNode> green_root_;
-        PersistentAllocator allocator_;
-        const SyntaxNode *root_ = nullptr;
+        RefCountPtr<const SyntaxNode> root_;
     };
 } // namespace prism

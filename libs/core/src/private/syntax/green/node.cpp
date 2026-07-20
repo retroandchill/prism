@@ -7,6 +7,7 @@
 module prism.core:syntax.green.node.impl;
 
 import :syntax.green.node;
+import :syntax.node;
 
 namespace prism
 {
@@ -96,6 +97,11 @@ namespace prism
         {
             flags_ |= SyntaxFlags::contains_diagnostics;
         }
+    }
+
+    RefCountPtr<const SyntaxNode> GreenNode::create_red() const
+    {
+        return create_red(nullptr, 0);
     }
 
     void GreenNode::adjust_flags_and_width(const GreenNode &node)

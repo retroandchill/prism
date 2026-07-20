@@ -26,9 +26,9 @@ namespace prism
             assert(prism::is_trivia(kind));
         }
 
-        static const GreenPtr<GreenTrivia> &carriage_return_line_feed();
-        static const GreenPtr<GreenTrivia> &carriage_return();
-        static const GreenPtr<GreenTrivia> &line_feed();
+        static const RefCountPtr<const GreenTrivia> &carriage_return_line_feed();
+        static const RefCountPtr<const GreenTrivia> &carriage_return();
+        static const RefCountPtr<const GreenTrivia> &line_feed();
 
         [[nodiscard]] constexpr bool is_trivia() const noexcept override
         {
@@ -61,9 +61,7 @@ namespace prism
             throw UnsupportedOperationException{};
         }
 
-        [[nodiscard]] const SyntaxNode &create_red(const SyntaxLifetime &,
-                                                   const SyntaxNode *,
-                                                   std::uint32_t) const override
+        [[nodiscard]] RefCountPtr<const SyntaxNode> create_red(const SyntaxNode *, std::uint32_t) const override
         {
             throw UnsupportedOperationException{};
         }

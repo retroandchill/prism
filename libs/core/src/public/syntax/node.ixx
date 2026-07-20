@@ -16,16 +16,26 @@ import :text.text_span;
 
 namespace prism
 {
-    export class PRISM_CORE_API SyntaxNode : NonCopyable
+    class SyntaxTree;
+
+    export class PRISM_CORE_API SyntaxNode : public IntrusiveRefCounted
     {
       protected:
-        SyntaxNode(const GreenNode &node, const std::uint32_t position) : green_{&node}, position_{position}
+        SyntaxNode(RefCountPtr<const GreenNode> node, const SyntaxNode *parent, const std::uint32_t position)
+            : green_{std::move(node)}, parent_{parent}, position_{position}
         {
         }
 
-        ~SyntaxNode() = default;
+        SyntaxNode(RefCountPtr<const GreenNode> node,
+                   const std::uint32_t position,
+                   const std::shared_ptr<const SyntaxTree> &tree)
+            : green_{std::move(node)}, tree_{tree}, position_{position}
+        {
+        }
 
       public:
+        virtual ~SyntaxNode() = default;
+
         [[nodiscard]] constexpr SyntaxKind kind() const noexcept
         {
             return green_->kind();
@@ -41,9 +51,19 @@ namespace prism
             return {.start = position_ + green_->leading_trivia_width(), .length = green_->width()};
         }
 
+        [[nodiscard]] constexpr Optional<const SyntaxNode &> parent() const noexcept
+        {
+            return parent_;
+        }
+
+        [[nodiscard]] std::shared_ptr<const SyntaxTree> syntax_tree() const noexcept;
+
       private:
-        const GreenNode *green_;
-        SyntaxNode *parent_ = nullptr;
+        static std::shared_ptr<const SyntaxTree> compute_tree(const SyntaxNode *node);
+
+        RefCountPtr<const GreenNode> green_;
+        const SyntaxNode *parent_ = nullptr;
+        mutable std::atomic<std::weak_ptr<const SyntaxTree>> tree_;
         std::uint32_t position_;
     };
 } // namespace prism

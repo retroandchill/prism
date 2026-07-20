@@ -54,7 +54,8 @@ namespace prism
     class GreenIdentifierNamedType final : public GreenSimpleNamedType
     {
       public:
-        explicit GreenIdentifierNamedType(GreenPtr<GreenToken> identifier, DiagnosticInfoList diagnostics = {});
+        explicit GreenIdentifierNamedType(RefCountPtr<const GreenToken> identifier,
+                                          DiagnosticInfoList diagnostics = {});
 
         ~GreenIdentifierNamedType() override;
 
@@ -70,11 +71,13 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] GreenPtr<GreenIdentifierNamedType> with_identifier(GreenPtr<GreenToken> identifier) const;
+        [[nodiscard]] RefCountPtr<const GreenIdentifierNamedType> with_identifier(
+            RefCountPtr<const GreenToken> identifier) const;
 
-        [[nodiscard]] GreenPtr<GreenIdentifierNamedType> update(GreenPtr<GreenToken> identifier) const;
+        [[nodiscard]] RefCountPtr<const GreenIdentifierNamedType> update(
+            RefCountPtr<const GreenToken> identifier) const;
 
       private:
-        GreenPtr<GreenToken> identifier_;
+        RefCountPtr<const GreenToken> identifier_;
     };
 } // namespace prism

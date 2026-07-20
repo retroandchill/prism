@@ -7,12 +7,12 @@ import :syntax.green.statements;
 namespace prism
 {
     GreenVariableDeclaration::GreenVariableDeclaration(GreenSyntaxList<GreenToken> modifiers,
-                                                       GreenPtr<GreenToken> var_keyword,
-                                                       GreenPtr<GreenToken> mut_keyword,
-                                                       GreenPtr<GreenToken> identifier,
-                                                       GreenPtr<GreenTypeSpecifier> type,
-                                                       GreenPtr<GreenInitializer> initializer,
-                                                       GreenPtr<GreenToken> semicolon,
+                                                       RefCountPtr<const GreenToken> var_keyword,
+                                                       RefCountPtr<const GreenToken> mut_keyword,
+                                                       RefCountPtr<const GreenToken> identifier,
+                                                       RefCountPtr<const GreenTypeSpecifier> type,
+                                                       RefCountPtr<const GreenInitializer> initializer,
+                                                       RefCountPtr<const GreenToken> semicolon,
                                                        DiagnosticInfoList diagnostics)
         : GreenDeclaration{SyntaxKind::variable_declaration, std::move(diagnostics)}, modifiers_{std::move(modifiers)},
           var_keyword_{std::move(var_keyword)}, mut_keyword_{std::move(mut_keyword)},
@@ -55,55 +55,56 @@ namespace prism
         }
     }
 
-    [[nodiscard]] GreenPtr<GreenDeclaration> GreenVariableDeclaration::with_modifiers_core(
+    [[nodiscard]] RefCountPtr<const GreenDeclaration> GreenVariableDeclaration::with_modifiers_core(
         GreenSyntaxList<GreenToken> modifiers) const
     {
         return update(std::move(modifiers), var_keyword_, mut_keyword_, identifier_, type_, initializer_, semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_var_keyword(
-        GreenPtr<GreenToken> var_keyword) const
+    [[nodiscard]] RefCountPtr<const GreenVariableDeclaration> GreenVariableDeclaration::with_var_keyword(
+        RefCountPtr<const GreenToken> var_keyword) const
     {
         return update(modifiers_, std::move(var_keyword), mut_keyword_, identifier_, type_, initializer_, semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_mut_keyword(
-        GreenPtr<GreenToken> mut_keyword) const
+    [[nodiscard]] RefCountPtr<const GreenVariableDeclaration> GreenVariableDeclaration::with_mut_keyword(
+        RefCountPtr<const GreenToken> mut_keyword) const
     {
         return update(modifiers_, var_keyword_, std::move(mut_keyword), identifier_, type_, initializer_, semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_identifier(
-        GreenPtr<GreenToken> identifier) const
+    [[nodiscard]] RefCountPtr<const GreenVariableDeclaration> GreenVariableDeclaration::with_identifier(
+        RefCountPtr<const GreenToken> identifier) const
     {
         return update(modifiers_, var_keyword_, mut_keyword_, std::move(identifier), type_, initializer_, semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_type(
-        GreenPtr<GreenTypeSpecifier> type) const
+    [[nodiscard]] RefCountPtr<const GreenVariableDeclaration> GreenVariableDeclaration::with_type(
+        RefCountPtr<const GreenTypeSpecifier> type) const
     {
         return update(modifiers_, var_keyword_, mut_keyword_, identifier_, std::move(type), initializer_, semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_initializer(
-        GreenPtr<GreenInitializer> initializer) const
+    [[nodiscard]] RefCountPtr<const GreenVariableDeclaration> GreenVariableDeclaration::with_initializer(
+        RefCountPtr<const GreenInitializer> initializer) const
     {
         return update(modifiers_, var_keyword_, mut_keyword_, identifier_, type_, std::move(initializer), semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_semicolon(
-        GreenPtr<GreenToken> semicolon) const
+    [[nodiscard]] RefCountPtr<const GreenVariableDeclaration> GreenVariableDeclaration::with_semicolon(
+        RefCountPtr<const GreenToken> semicolon) const
     {
         return update(modifiers_, var_keyword_, mut_keyword_, identifier_, type_, initializer_, std::move(semicolon));
     }
 
-    GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::update(GreenSyntaxList<GreenToken> modifiers,
-                                                                        GreenPtr<GreenToken> var_keyword,
-                                                                        GreenPtr<GreenToken> mut_keyword,
-                                                                        GreenPtr<GreenToken> identifier,
-                                                                        GreenPtr<GreenTypeSpecifier> type,
-                                                                        GreenPtr<GreenInitializer> initializer,
-                                                                        GreenPtr<GreenToken> semicolon) const
+    RefCountPtr<const GreenVariableDeclaration> GreenVariableDeclaration::update(
+        GreenSyntaxList<GreenToken> modifiers,
+        RefCountPtr<const GreenToken> var_keyword,
+        RefCountPtr<const GreenToken> mut_keyword,
+        RefCountPtr<const GreenToken> identifier,
+        RefCountPtr<const GreenTypeSpecifier> type,
+        RefCountPtr<const GreenInitializer> initializer,
+        RefCountPtr<const GreenToken> semicolon) const
     {
         if (modifiers == modifiers_ && var_keyword == var_keyword_ && mut_keyword == mut_keyword_ &&
             identifier == identifier_ && type == type_ && initializer == initializer_ && semicolon == semicolon_)
@@ -119,13 +120,13 @@ namespace prism
     }
 
     GreenFunctionDeclaration::GreenFunctionDeclaration(GreenSyntaxList<GreenToken> modifiers,
-                                                       GreenPtr<GreenToken> func_keyword,
-                                                       GreenPtr<GreenToken> identifier,
-                                                       GreenPtr<GreenParameterList> parameters,
-                                                       GreenPtr<GreenTypeSpecifier> return_type,
-                                                       GreenPtr<GreenBlock> body,
-                                                       GreenPtr<GreenExpressionBody> expression_body,
-                                                       GreenPtr<GreenToken> semicolon,
+                                                       RefCountPtr<const GreenToken> func_keyword,
+                                                       RefCountPtr<const GreenToken> identifier,
+                                                       RefCountPtr<const GreenParameterList> parameters,
+                                                       RefCountPtr<const GreenTypeSpecifier> return_type,
+                                                       RefCountPtr<const GreenBlock> body,
+                                                       RefCountPtr<const GreenExpressionBody> expression_body,
+                                                       RefCountPtr<const GreenToken> semicolon,
                                                        DiagnosticInfoList diagnostics)
         : GreenDeclaration{SyntaxKind::function_declaration, std::move(diagnostics)}, modifiers_{std::move(modifiers)},
           func_keyword_{std::move(func_keyword)}, identifier_{std::move(identifier)},
@@ -174,7 +175,7 @@ namespace prism
         }
     }
 
-    [[nodiscard]] GreenPtr<GreenDeclaration> GreenFunctionDeclaration::with_modifiers_core(
+    [[nodiscard]] RefCountPtr<const GreenDeclaration> GreenFunctionDeclaration::with_modifiers_core(
         GreenSyntaxList<GreenToken> modifiers) const
     {
         return update(std::move(modifiers),
@@ -187,8 +188,8 @@ namespace prism
                       semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::with_func_keyword(
-        GreenPtr<GreenToken> func_keyword) const
+    [[nodiscard]] RefCountPtr<const GreenFunctionDeclaration> GreenFunctionDeclaration::with_func_keyword(
+        RefCountPtr<const GreenToken> func_keyword) const
     {
         return update(modifiers_,
                       std::move(func_keyword),
@@ -200,8 +201,8 @@ namespace prism
                       semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::with_identifier(
-        GreenPtr<GreenToken> identifier) const
+    [[nodiscard]] RefCountPtr<const GreenFunctionDeclaration> GreenFunctionDeclaration::with_identifier(
+        RefCountPtr<const GreenToken> identifier) const
     {
         return update(modifiers_,
                       func_keyword_,
@@ -213,8 +214,8 @@ namespace prism
                       semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::with_parameters(
-        GreenPtr<GreenParameterList> parameters) const
+    [[nodiscard]] RefCountPtr<const GreenFunctionDeclaration> GreenFunctionDeclaration::with_parameters(
+        RefCountPtr<const GreenParameterList> parameters) const
     {
         return update(modifiers_,
                       func_keyword_,
@@ -226,8 +227,8 @@ namespace prism
                       semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::with_return_type(
-        GreenPtr<GreenTypeSpecifier> return_type) const
+    [[nodiscard]] RefCountPtr<const GreenFunctionDeclaration> GreenFunctionDeclaration::with_return_type(
+        RefCountPtr<const GreenTypeSpecifier> return_type) const
     {
         return update(modifiers_,
                       func_keyword_,
@@ -239,8 +240,8 @@ namespace prism
                       semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::with_body(
-        GreenPtr<GreenBlock> body) const
+    [[nodiscard]] RefCountPtr<const GreenFunctionDeclaration> GreenFunctionDeclaration::with_body(
+        RefCountPtr<const GreenBlock> body) const
     {
         return update(modifiers_,
                       func_keyword_,
@@ -252,8 +253,8 @@ namespace prism
                       semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::with_expression_body(
-        GreenPtr<GreenExpressionBody> expression_body) const
+    [[nodiscard]] RefCountPtr<const GreenFunctionDeclaration> GreenFunctionDeclaration::with_expression_body(
+        RefCountPtr<const GreenExpressionBody> expression_body) const
     {
         return update(modifiers_,
                       func_keyword_,
@@ -265,8 +266,8 @@ namespace prism
                       semicolon_);
     }
 
-    [[nodiscard]] GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::with_semicolon(
-        GreenPtr<GreenToken> semicolon) const
+    [[nodiscard]] RefCountPtr<const GreenFunctionDeclaration> GreenFunctionDeclaration::with_semicolon(
+        RefCountPtr<const GreenToken> semicolon) const
     {
         return update(modifiers_,
                       func_keyword_,
@@ -278,14 +279,15 @@ namespace prism
                       std::move(semicolon));
     }
 
-    GreenPtr<GreenFunctionDeclaration> GreenFunctionDeclaration::update(GreenSyntaxList<GreenToken> modifiers,
-                                                                        GreenPtr<GreenToken> func_keyword,
-                                                                        GreenPtr<GreenToken> identifier,
-                                                                        GreenPtr<GreenParameterList> parameters,
-                                                                        GreenPtr<GreenTypeSpecifier> return_type,
-                                                                        GreenPtr<GreenBlock> body,
-                                                                        GreenPtr<GreenExpressionBody> expression_body,
-                                                                        GreenPtr<GreenToken> semicolon) const
+    RefCountPtr<const GreenFunctionDeclaration> GreenFunctionDeclaration::update(
+        GreenSyntaxList<GreenToken> modifiers,
+        RefCountPtr<const GreenToken> func_keyword,
+        RefCountPtr<const GreenToken> identifier,
+        RefCountPtr<const GreenParameterList> parameters,
+        RefCountPtr<const GreenTypeSpecifier> return_type,
+        RefCountPtr<const GreenBlock> body,
+        RefCountPtr<const GreenExpressionBody> expression_body,
+        RefCountPtr<const GreenToken> semicolon) const
     {
         if (modifiers == modifiers_ && func_keyword == func_keyword_ && identifier == identifier_ &&
             parameters == parameters_ && return_type == return_type_ && body == body_ &&
