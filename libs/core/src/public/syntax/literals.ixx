@@ -4,6 +4,10 @@
  * @date 7/10/2026
  * @brief
  */
+module;
+
+#include "prism/core/exports.h"
+
 export module prism.core:syntax.literals;
 
 import std;

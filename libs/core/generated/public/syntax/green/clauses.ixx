@@ -14,8 +14,8 @@ namespace prism
     class GreenInitializer final : public GreenNode
     {
       public:
-        GreenInitializer(RefCountPtr<const GreenToken> equal_sign,
-                         RefCountPtr<const GreenExpression> value,
+        GreenInitializer(GreenPtr<GreenToken> equal_sign,
+                         GreenPtr<GreenExpression> value,
                          DiagnosticInfoList diagnostics = {});
 
         ~GreenInitializer() override;
@@ -37,25 +37,22 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenInitializer> with_equal_sign(
-            RefCountPtr<const GreenToken> equal_sign) const;
+        [[nodiscard]] GreenPtr<GreenInitializer> with_equal_sign(GreenPtr<GreenToken> equal_sign) const;
 
-        [[nodiscard]] RefCountPtr<const GreenInitializer> with_value(RefCountPtr<const GreenExpression> value) const;
+        [[nodiscard]] GreenPtr<GreenInitializer> with_value(GreenPtr<GreenExpression> value) const;
 
-        [[nodiscard]] RefCountPtr<const GreenInitializer> update(RefCountPtr<const GreenToken> equal_sign,
-                                                                 RefCountPtr<const GreenExpression> value) const;
+        [[nodiscard]] GreenPtr<GreenInitializer> update(GreenPtr<GreenToken> equal_sign,
+                                                        GreenPtr<GreenExpression> value) const;
 
       private:
-        RefCountPtr<const GreenToken> equal_sign_;
-        RefCountPtr<const GreenExpression> value_;
+        GreenPtr<GreenToken> equal_sign_;
+        GreenPtr<GreenExpression> value_;
     };
 
     class GreenTypeSpecifier final : public GreenNode
     {
       public:
-        GreenTypeSpecifier(RefCountPtr<const GreenToken> colon,
-                           RefCountPtr<const GreenType> type,
-                           DiagnosticInfoList diagnostics = {});
+        GreenTypeSpecifier(GreenPtr<GreenToken> colon, GreenPtr<GreenType> type, DiagnosticInfoList diagnostics = {});
 
         ~GreenTypeSpecifier() override;
 
@@ -76,24 +73,21 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenTypeSpecifier> with_colon(RefCountPtr<const GreenToken> colon) const;
+        [[nodiscard]] GreenPtr<GreenTypeSpecifier> with_colon(GreenPtr<GreenToken> colon) const;
 
-        [[nodiscard]] RefCountPtr<const GreenTypeSpecifier> with_type(RefCountPtr<const GreenType> type) const;
+        [[nodiscard]] GreenPtr<GreenTypeSpecifier> with_type(GreenPtr<GreenType> type) const;
 
-        [[nodiscard]] RefCountPtr<const GreenTypeSpecifier> update(RefCountPtr<const GreenToken> colon,
-                                                                   RefCountPtr<const GreenType> type) const;
+        [[nodiscard]] GreenPtr<GreenTypeSpecifier> update(GreenPtr<GreenToken> colon, GreenPtr<GreenType> type) const;
 
       private:
-        RefCountPtr<const GreenToken> colon_;
-        RefCountPtr<const GreenType> type_;
+        GreenPtr<GreenToken> colon_;
+        GreenPtr<GreenType> type_;
     };
 
     class GreenNamedParameter final : public GreenNode
     {
       public:
-        GreenNamedParameter(RefCountPtr<const GreenToken> name,
-                            RefCountPtr<const GreenToken> colon,
-                            DiagnosticInfoList diagnostics = {});
+        GreenNamedParameter(GreenPtr<GreenToken> name, GreenPtr<GreenToken> colon, DiagnosticInfoList diagnostics = {});
 
         ~GreenNamedParameter() override;
 
@@ -114,24 +108,23 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenNamedParameter> with_name(RefCountPtr<const GreenToken> name) const;
+        [[nodiscard]] GreenPtr<GreenNamedParameter> with_name(GreenPtr<GreenToken> name) const;
 
-        [[nodiscard]] RefCountPtr<const GreenNamedParameter> with_colon(RefCountPtr<const GreenToken> colon) const;
+        [[nodiscard]] GreenPtr<GreenNamedParameter> with_colon(GreenPtr<GreenToken> colon) const;
 
-        [[nodiscard]] RefCountPtr<const GreenNamedParameter> update(RefCountPtr<const GreenToken> name,
-                                                                    RefCountPtr<const GreenToken> colon) const;
+        [[nodiscard]] GreenPtr<GreenNamedParameter> update(GreenPtr<GreenToken> name, GreenPtr<GreenToken> colon) const;
 
       private:
-        RefCountPtr<const GreenToken> name_;
-        RefCountPtr<const GreenToken> colon_;
+        GreenPtr<GreenToken> name_;
+        GreenPtr<GreenToken> colon_;
     };
 
     class GreenArgumentList final : public GreenNode
     {
       public:
-        GreenArgumentList(RefCountPtr<const GreenToken> open_paren,
+        GreenArgumentList(GreenPtr<GreenToken> open_paren,
                           GreenSeparatedList<GreenArgument> arguments,
-                          RefCountPtr<const GreenToken> close_paren,
+                          GreenPtr<GreenToken> close_paren,
                           DiagnosticInfoList diagnostics = {});
 
         ~GreenArgumentList() override;
@@ -158,30 +151,27 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenArgumentList> with_open_paren(
-            RefCountPtr<const GreenToken> open_paren) const;
+        [[nodiscard]] GreenPtr<GreenArgumentList> with_open_paren(GreenPtr<GreenToken> open_paren) const;
 
-        [[nodiscard]] RefCountPtr<const GreenArgumentList> with_arguments(
-            GreenSeparatedList<GreenArgument> arguments) const;
+        [[nodiscard]] GreenPtr<GreenArgumentList> with_arguments(GreenSeparatedList<GreenArgument> arguments) const;
 
-        [[nodiscard]] RefCountPtr<const GreenArgumentList> with_close_paren(
-            RefCountPtr<const GreenToken> close_paren) const;
+        [[nodiscard]] GreenPtr<GreenArgumentList> with_close_paren(GreenPtr<GreenToken> close_paren) const;
 
-        [[nodiscard]] RefCountPtr<const GreenArgumentList> update(RefCountPtr<const GreenToken> open_paren,
-                                                                  GreenSeparatedList<GreenArgument> arguments,
-                                                                  RefCountPtr<const GreenToken> close_paren) const;
+        [[nodiscard]] GreenPtr<GreenArgumentList> update(GreenPtr<GreenToken> open_paren,
+                                                         GreenSeparatedList<GreenArgument> arguments,
+                                                         GreenPtr<GreenToken> close_paren) const;
 
       private:
-        RefCountPtr<const GreenToken> open_paren_;
+        GreenPtr<GreenToken> open_paren_;
         GreenSeparatedList<GreenArgument> arguments_;
-        RefCountPtr<const GreenToken> close_paren_;
+        GreenPtr<GreenToken> close_paren_;
     };
 
     class GreenArgument final : public GreenNode
     {
       public:
-        GreenArgument(RefCountPtr<const GreenNamedParameter> name,
-                      RefCountPtr<const GreenExpression> value,
+        GreenArgument(GreenPtr<GreenNamedParameter> name,
+                      GreenPtr<GreenExpression> value,
                       DiagnosticInfoList diagnostics = {});
 
         ~GreenArgument() override;
@@ -203,24 +193,24 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenArgument> with_name(RefCountPtr<const GreenNamedParameter> name) const;
+        [[nodiscard]] GreenPtr<GreenArgument> with_name(GreenPtr<GreenNamedParameter> name) const;
 
-        [[nodiscard]] RefCountPtr<const GreenArgument> with_value(RefCountPtr<const GreenExpression> value) const;
+        [[nodiscard]] GreenPtr<GreenArgument> with_value(GreenPtr<GreenExpression> value) const;
 
-        [[nodiscard]] RefCountPtr<const GreenArgument> update(RefCountPtr<const GreenNamedParameter> name,
-                                                              RefCountPtr<const GreenExpression> value) const;
+        [[nodiscard]] GreenPtr<GreenArgument> update(GreenPtr<GreenNamedParameter> name,
+                                                     GreenPtr<GreenExpression> value) const;
 
       private:
-        RefCountPtr<const GreenNamedParameter> name_;
-        RefCountPtr<const GreenExpression> value_;
+        GreenPtr<GreenNamedParameter> name_;
+        GreenPtr<GreenExpression> value_;
     };
 
     class GreenParameterList final : public GreenNode
     {
       public:
-        GreenParameterList(RefCountPtr<const GreenToken> open_paren,
+        GreenParameterList(GreenPtr<GreenToken> open_paren,
                            GreenSeparatedList<GreenParameter> parameters,
-                           RefCountPtr<const GreenToken> close_paren,
+                           GreenPtr<GreenToken> close_paren,
                            DiagnosticInfoList diagnostics = {});
 
         ~GreenParameterList() override;
@@ -247,32 +237,29 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenParameterList> with_open_paren(
-            RefCountPtr<const GreenToken> open_paren) const;
+        [[nodiscard]] GreenPtr<GreenParameterList> with_open_paren(GreenPtr<GreenToken> open_paren) const;
 
-        [[nodiscard]] RefCountPtr<const GreenParameterList> with_parameters(
-            GreenSeparatedList<GreenParameter> parameters) const;
+        [[nodiscard]] GreenPtr<GreenParameterList> with_parameters(GreenSeparatedList<GreenParameter> parameters) const;
 
-        [[nodiscard]] RefCountPtr<const GreenParameterList> with_close_paren(
-            RefCountPtr<const GreenToken> close_paren) const;
+        [[nodiscard]] GreenPtr<GreenParameterList> with_close_paren(GreenPtr<GreenToken> close_paren) const;
 
-        [[nodiscard]] RefCountPtr<const GreenParameterList> update(RefCountPtr<const GreenToken> open_paren,
-                                                                   GreenSeparatedList<GreenParameter> parameters,
-                                                                   RefCountPtr<const GreenToken> close_paren) const;
+        [[nodiscard]] GreenPtr<GreenParameterList> update(GreenPtr<GreenToken> open_paren,
+                                                          GreenSeparatedList<GreenParameter> parameters,
+                                                          GreenPtr<GreenToken> close_paren) const;
 
       private:
-        RefCountPtr<const GreenToken> open_paren_;
+        GreenPtr<GreenToken> open_paren_;
         GreenSeparatedList<GreenParameter> parameters_;
-        RefCountPtr<const GreenToken> close_paren_;
+        GreenPtr<GreenToken> close_paren_;
     };
 
     class GreenParameter final : public GreenNode
     {
       public:
-        GreenParameter(RefCountPtr<const GreenToken> mut_keyword,
-                       RefCountPtr<const GreenToken> name,
-                       RefCountPtr<const GreenTypeSpecifier> type_specifier,
-                       RefCountPtr<const GreenInitializer> default_value,
+        GreenParameter(GreenPtr<GreenToken> mut_keyword,
+                       GreenPtr<GreenToken> name,
+                       GreenPtr<GreenTypeSpecifier> type_specifier,
+                       GreenPtr<GreenInitializer> default_value,
                        DiagnosticInfoList diagnostics = {});
 
         ~GreenParameter() override;
@@ -304,34 +291,31 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenParameter> with_mut_keyword(
-            RefCountPtr<const GreenToken> mut_keyword) const;
+        [[nodiscard]] GreenPtr<GreenParameter> with_mut_keyword(GreenPtr<GreenToken> mut_keyword) const;
 
-        [[nodiscard]] RefCountPtr<const GreenParameter> with_name(RefCountPtr<const GreenToken> name) const;
+        [[nodiscard]] GreenPtr<GreenParameter> with_name(GreenPtr<GreenToken> name) const;
 
-        [[nodiscard]] RefCountPtr<const GreenParameter> with_type_specifier(
-            RefCountPtr<const GreenTypeSpecifier> type_specifier) const;
+        [[nodiscard]] GreenPtr<GreenParameter> with_type_specifier(GreenPtr<GreenTypeSpecifier> type_specifier) const;
 
-        [[nodiscard]] RefCountPtr<const GreenParameter> with_default_value(
-            RefCountPtr<const GreenInitializer> default_value) const;
+        [[nodiscard]] GreenPtr<GreenParameter> with_default_value(GreenPtr<GreenInitializer> default_value) const;
 
-        [[nodiscard]] RefCountPtr<const GreenParameter> update(RefCountPtr<const GreenToken> mut_keyword,
-                                                               RefCountPtr<const GreenToken> name,
-                                                               RefCountPtr<const GreenTypeSpecifier> type_specifier,
-                                                               RefCountPtr<const GreenInitializer> default_value) const;
+        [[nodiscard]] GreenPtr<GreenParameter> update(GreenPtr<GreenToken> mut_keyword,
+                                                      GreenPtr<GreenToken> name,
+                                                      GreenPtr<GreenTypeSpecifier> type_specifier,
+                                                      GreenPtr<GreenInitializer> default_value) const;
 
       private:
-        RefCountPtr<const GreenToken> mut_keyword_;
-        RefCountPtr<const GreenToken> name_;
-        RefCountPtr<const GreenTypeSpecifier> type_specifier_;
-        RefCountPtr<const GreenInitializer> default_value_;
+        GreenPtr<GreenToken> mut_keyword_;
+        GreenPtr<GreenToken> name_;
+        GreenPtr<GreenTypeSpecifier> type_specifier_;
+        GreenPtr<GreenInitializer> default_value_;
     };
 
     class GreenExpressionBody final : public GreenNode
     {
       public:
-        GreenExpressionBody(RefCountPtr<const GreenToken> arrow,
-                            RefCountPtr<const GreenExpression> expression,
+        GreenExpressionBody(GreenPtr<GreenToken> arrow,
+                            GreenPtr<GreenExpression> expression,
                             DiagnosticInfoList diagnostics = {});
 
         ~GreenExpressionBody() override;
@@ -353,17 +337,15 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenExpressionBody> with_arrow(RefCountPtr<const GreenToken> arrow) const;
+        [[nodiscard]] GreenPtr<GreenExpressionBody> with_arrow(GreenPtr<GreenToken> arrow) const;
 
-        [[nodiscard]] RefCountPtr<const GreenExpressionBody> with_expression(
-            RefCountPtr<const GreenExpression> expression) const;
+        [[nodiscard]] GreenPtr<GreenExpressionBody> with_expression(GreenPtr<GreenExpression> expression) const;
 
-        [[nodiscard]] RefCountPtr<const GreenExpressionBody> update(
-            RefCountPtr<const GreenToken> arrow,
-            RefCountPtr<const GreenExpression> expression) const;
+        [[nodiscard]] GreenPtr<GreenExpressionBody> update(GreenPtr<GreenToken> arrow,
+                                                           GreenPtr<GreenExpression> expression) const;
 
       private:
-        RefCountPtr<const GreenToken> arrow_;
-        RefCountPtr<const GreenExpression> expression_;
+        GreenPtr<GreenToken> arrow_;
+        GreenPtr<GreenExpression> expression_;
     };
 } // namespace prism

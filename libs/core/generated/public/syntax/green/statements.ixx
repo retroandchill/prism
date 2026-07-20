@@ -29,7 +29,7 @@ namespace prism
     class GreenVariableDeclarationStatement final : public GreenStatement
     {
       public:
-        explicit GreenVariableDeclarationStatement(RefCountPtr<const GreenVariableDeclaration> declaration,
+        explicit GreenVariableDeclarationStatement(GreenPtr<GreenVariableDeclaration> declaration,
                                                    DiagnosticInfoList diagnostics = {});
 
         ~GreenVariableDeclarationStatement() override;
@@ -46,22 +46,22 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenVariableDeclarationStatement> with_declaration(
-            RefCountPtr<const GreenVariableDeclaration> declaration) const;
+        [[nodiscard]] GreenPtr<GreenVariableDeclarationStatement> with_declaration(
+            GreenPtr<GreenVariableDeclaration> declaration) const;
 
-        [[nodiscard]] RefCountPtr<const GreenVariableDeclarationStatement> update(
-            RefCountPtr<const GreenVariableDeclaration> declaration) const;
+        [[nodiscard]] GreenPtr<GreenVariableDeclarationStatement> update(
+            GreenPtr<GreenVariableDeclaration> declaration) const;
 
       private:
-        RefCountPtr<const GreenVariableDeclaration> declaration_;
+        GreenPtr<GreenVariableDeclaration> declaration_;
     };
 
     class GreenBlock final : public GreenStatement
     {
       public:
-        GreenBlock(RefCountPtr<const GreenToken> open_brace,
+        GreenBlock(GreenPtr<GreenToken> open_brace,
                    GreenSyntaxList<GreenStatement> statements,
-                   RefCountPtr<const GreenToken> close_brace,
+                   GreenPtr<GreenToken> close_brace,
                    DiagnosticInfoList diagnostics = {});
 
         ~GreenBlock() override;
@@ -88,28 +88,28 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenBlock> with_open_brace(RefCountPtr<const GreenToken> open_brace) const;
+        [[nodiscard]] GreenPtr<GreenBlock> with_open_brace(GreenPtr<GreenToken> open_brace) const;
 
-        [[nodiscard]] RefCountPtr<const GreenBlock> with_statements(GreenSyntaxList<GreenStatement> statements) const;
+        [[nodiscard]] GreenPtr<GreenBlock> with_statements(GreenSyntaxList<GreenStatement> statements) const;
 
-        [[nodiscard]] RefCountPtr<const GreenBlock> with_close_brace(RefCountPtr<const GreenToken> close_brace) const;
+        [[nodiscard]] GreenPtr<GreenBlock> with_close_brace(GreenPtr<GreenToken> close_brace) const;
 
-        [[nodiscard]] RefCountPtr<const GreenBlock> update(RefCountPtr<const GreenToken> open_brace,
-                                                           GreenSyntaxList<GreenStatement> statements,
-                                                           RefCountPtr<const GreenToken> close_brace) const;
+        [[nodiscard]] GreenPtr<GreenBlock> update(GreenPtr<GreenToken> open_brace,
+                                                  GreenSyntaxList<GreenStatement> statements,
+                                                  GreenPtr<GreenToken> close_brace) const;
 
       private:
-        RefCountPtr<const GreenToken> open_brace_;
+        GreenPtr<GreenToken> open_brace_;
         GreenSyntaxList<GreenStatement> statements_;
-        RefCountPtr<const GreenToken> close_brace_;
+        GreenPtr<GreenToken> close_brace_;
     };
 
     class GreenReturnStatement final : public GreenStatement
     {
       public:
-        GreenReturnStatement(RefCountPtr<const GreenToken> return_keyword,
-                             RefCountPtr<const GreenExpression> expression,
-                             RefCountPtr<const GreenToken> semicolon,
+        GreenReturnStatement(GreenPtr<GreenToken> return_keyword,
+                             GreenPtr<GreenExpression> expression,
+                             GreenPtr<GreenToken> semicolon,
                              DiagnosticInfoList diagnostics = {});
 
         ~GreenReturnStatement() override;
@@ -136,30 +136,27 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenReturnStatement> with_return_keyword(
-            RefCountPtr<const GreenToken> return_keyword) const;
+        [[nodiscard]] GreenPtr<GreenReturnStatement> with_return_keyword(GreenPtr<GreenToken> return_keyword) const;
 
-        [[nodiscard]] RefCountPtr<const GreenReturnStatement> with_expression(
-            RefCountPtr<const GreenExpression> expression) const;
+        [[nodiscard]] GreenPtr<GreenReturnStatement> with_expression(GreenPtr<GreenExpression> expression) const;
 
-        [[nodiscard]] RefCountPtr<const GreenReturnStatement> with_semicolon(
-            RefCountPtr<const GreenToken> semicolon) const;
+        [[nodiscard]] GreenPtr<GreenReturnStatement> with_semicolon(GreenPtr<GreenToken> semicolon) const;
 
-        [[nodiscard]] RefCountPtr<const GreenReturnStatement> update(RefCountPtr<const GreenToken> return_keyword,
-                                                                     RefCountPtr<const GreenExpression> expression,
-                                                                     RefCountPtr<const GreenToken> semicolon) const;
+        [[nodiscard]] GreenPtr<GreenReturnStatement> update(GreenPtr<GreenToken> return_keyword,
+                                                            GreenPtr<GreenExpression> expression,
+                                                            GreenPtr<GreenToken> semicolon) const;
 
       private:
-        RefCountPtr<const GreenToken> return_keyword_;
-        RefCountPtr<const GreenExpression> expression_;
-        RefCountPtr<const GreenToken> semicolon_;
+        GreenPtr<GreenToken> return_keyword_;
+        GreenPtr<GreenExpression> expression_;
+        GreenPtr<GreenToken> semicolon_;
     };
 
     class GreenExpressionStatement final : public GreenStatement
     {
       public:
-        GreenExpressionStatement(RefCountPtr<const GreenExpression> expression,
-                                 RefCountPtr<const GreenToken> semicolon,
+        GreenExpressionStatement(GreenPtr<GreenExpression> expression,
+                                 GreenPtr<GreenToken> semicolon,
                                  DiagnosticInfoList diagnostics = {});
 
         ~GreenExpressionStatement() override;
@@ -181,24 +178,22 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenExpressionStatement> with_expression(
-            RefCountPtr<const GreenExpression> expression) const;
+        [[nodiscard]] GreenPtr<GreenExpressionStatement> with_expression(GreenPtr<GreenExpression> expression) const;
 
-        [[nodiscard]] RefCountPtr<const GreenExpressionStatement> with_semicolon(
-            RefCountPtr<const GreenToken> semicolon) const;
+        [[nodiscard]] GreenPtr<GreenExpressionStatement> with_semicolon(GreenPtr<GreenToken> semicolon) const;
 
-        [[nodiscard]] RefCountPtr<const GreenExpressionStatement> update(RefCountPtr<const GreenExpression> expression,
-                                                                         RefCountPtr<const GreenToken> semicolon) const;
+        [[nodiscard]] GreenPtr<GreenExpressionStatement> update(GreenPtr<GreenExpression> expression,
+                                                                GreenPtr<GreenToken> semicolon) const;
 
       private:
-        RefCountPtr<const GreenExpression> expression_;
-        RefCountPtr<const GreenToken> semicolon_;
+        GreenPtr<GreenExpression> expression_;
+        GreenPtr<GreenToken> semicolon_;
     };
 
     class GreenEmptyStatement final : public GreenStatement
     {
       public:
-        explicit GreenEmptyStatement(RefCountPtr<const GreenToken> semicolon, DiagnosticInfoList diagnostics = {});
+        explicit GreenEmptyStatement(GreenPtr<GreenToken> semicolon, DiagnosticInfoList diagnostics = {});
 
         ~GreenEmptyStatement() override;
 
@@ -214,12 +209,11 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenEmptyStatement> with_semicolon(
-            RefCountPtr<const GreenToken> semicolon) const;
+        [[nodiscard]] GreenPtr<GreenEmptyStatement> with_semicolon(GreenPtr<GreenToken> semicolon) const;
 
-        [[nodiscard]] RefCountPtr<const GreenEmptyStatement> update(RefCountPtr<const GreenToken> semicolon) const;
+        [[nodiscard]] GreenPtr<GreenEmptyStatement> update(GreenPtr<GreenToken> semicolon) const;
 
       private:
-        RefCountPtr<const GreenToken> semicolon_;
+        GreenPtr<GreenToken> semicolon_;
     };
 } // namespace prism

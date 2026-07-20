@@ -6,8 +6,8 @@ import :syntax.green.types;
 
 namespace prism
 {
-    GreenInitializer::GreenInitializer(RefCountPtr<const GreenToken> equal_sign,
-                                       RefCountPtr<const GreenExpression> value,
+    GreenInitializer::GreenInitializer(GreenPtr<GreenToken> equal_sign,
+                                       GreenPtr<GreenExpression> value,
                                        DiagnosticInfoList diagnostics)
         : GreenNode{SyntaxKind::initializer, std::move(diagnostics)}, equal_sign_{std::move(equal_sign)},
           value_{std::move(value)}
@@ -32,20 +32,18 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenInitializer> GreenInitializer::with_equal_sign(
-        RefCountPtr<const GreenToken> equal_sign) const
+    [[nodiscard]] GreenPtr<GreenInitializer> GreenInitializer::with_equal_sign(GreenPtr<GreenToken> equal_sign) const
     {
         return update(std::move(equal_sign), value_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenInitializer> GreenInitializer::with_value(
-        RefCountPtr<const GreenExpression> value) const
+    [[nodiscard]] GreenPtr<GreenInitializer> GreenInitializer::with_value(GreenPtr<GreenExpression> value) const
     {
         return update(equal_sign_, std::move(value));
     }
 
-    RefCountPtr<const GreenInitializer> GreenInitializer::update(RefCountPtr<const GreenToken> equal_sign,
-                                                                 RefCountPtr<const GreenExpression> value) const
+    GreenPtr<GreenInitializer> GreenInitializer::update(GreenPtr<GreenToken> equal_sign,
+                                                        GreenPtr<GreenExpression> value) const
     {
         if (equal_sign == equal_sign_ && value == value_)
             return shared_from_this();
@@ -53,8 +51,8 @@ namespace prism
         return make_ref_counted<const GreenInitializer>(std::move(equal_sign), std::move(value));
     }
 
-    GreenTypeSpecifier::GreenTypeSpecifier(RefCountPtr<const GreenToken> colon,
-                                           RefCountPtr<const GreenType> type,
+    GreenTypeSpecifier::GreenTypeSpecifier(GreenPtr<GreenToken> colon,
+                                           GreenPtr<GreenType> type,
                                            DiagnosticInfoList diagnostics)
         : GreenNode{SyntaxKind::type_specifier, std::move(diagnostics)}, colon_{std::move(colon)},
           type_{std::move(type)}
@@ -79,20 +77,17 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenTypeSpecifier> GreenTypeSpecifier::with_colon(
-        RefCountPtr<const GreenToken> colon) const
+    [[nodiscard]] GreenPtr<GreenTypeSpecifier> GreenTypeSpecifier::with_colon(GreenPtr<GreenToken> colon) const
     {
         return update(std::move(colon), type_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenTypeSpecifier> GreenTypeSpecifier::with_type(
-        RefCountPtr<const GreenType> type) const
+    [[nodiscard]] GreenPtr<GreenTypeSpecifier> GreenTypeSpecifier::with_type(GreenPtr<GreenType> type) const
     {
         return update(colon_, std::move(type));
     }
 
-    RefCountPtr<const GreenTypeSpecifier> GreenTypeSpecifier::update(RefCountPtr<const GreenToken> colon,
-                                                                     RefCountPtr<const GreenType> type) const
+    GreenPtr<GreenTypeSpecifier> GreenTypeSpecifier::update(GreenPtr<GreenToken> colon, GreenPtr<GreenType> type) const
     {
         if (colon == colon_ && type == type_)
             return shared_from_this();
@@ -100,8 +95,8 @@ namespace prism
         return make_ref_counted<const GreenTypeSpecifier>(std::move(colon), std::move(type));
     }
 
-    GreenNamedParameter::GreenNamedParameter(RefCountPtr<const GreenToken> name,
-                                             RefCountPtr<const GreenToken> colon,
+    GreenNamedParameter::GreenNamedParameter(GreenPtr<GreenToken> name,
+                                             GreenPtr<GreenToken> colon,
                                              DiagnosticInfoList diagnostics)
         : GreenNode{SyntaxKind::named_parameter, std::move(diagnostics)}, name_{std::move(name)},
           colon_{std::move(colon)}
@@ -126,20 +121,18 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenNamedParameter> GreenNamedParameter::with_name(
-        RefCountPtr<const GreenToken> name) const
+    [[nodiscard]] GreenPtr<GreenNamedParameter> GreenNamedParameter::with_name(GreenPtr<GreenToken> name) const
     {
         return update(std::move(name), colon_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenNamedParameter> GreenNamedParameter::with_colon(
-        RefCountPtr<const GreenToken> colon) const
+    [[nodiscard]] GreenPtr<GreenNamedParameter> GreenNamedParameter::with_colon(GreenPtr<GreenToken> colon) const
     {
         return update(name_, std::move(colon));
     }
 
-    RefCountPtr<const GreenNamedParameter> GreenNamedParameter::update(RefCountPtr<const GreenToken> name,
-                                                                       RefCountPtr<const GreenToken> colon) const
+    GreenPtr<GreenNamedParameter> GreenNamedParameter::update(GreenPtr<GreenToken> name,
+                                                              GreenPtr<GreenToken> colon) const
     {
         if (name == name_ && colon == colon_)
             return shared_from_this();
@@ -147,9 +140,9 @@ namespace prism
         return make_ref_counted<const GreenNamedParameter>(std::move(name), std::move(colon));
     }
 
-    GreenArgumentList::GreenArgumentList(RefCountPtr<const GreenToken> open_paren,
+    GreenArgumentList::GreenArgumentList(GreenPtr<GreenToken> open_paren,
                                          GreenSeparatedList<GreenArgument> arguments,
-                                         RefCountPtr<const GreenToken> close_paren,
+                                         GreenPtr<GreenToken> close_paren,
                                          DiagnosticInfoList diagnostics)
         : GreenNode{SyntaxKind::argument_list, std::move(diagnostics)}, open_paren_{std::move(open_paren)},
           arguments_{std::move(arguments)}, close_paren_{std::move(close_paren)}
@@ -177,27 +170,26 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenArgumentList> GreenArgumentList::with_open_paren(
-        RefCountPtr<const GreenToken> open_paren) const
+    [[nodiscard]] GreenPtr<GreenArgumentList> GreenArgumentList::with_open_paren(GreenPtr<GreenToken> open_paren) const
     {
         return update(std::move(open_paren), arguments_, close_paren_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenArgumentList> GreenArgumentList::with_arguments(
+    [[nodiscard]] GreenPtr<GreenArgumentList> GreenArgumentList::with_arguments(
         GreenSeparatedList<GreenArgument> arguments) const
     {
         return update(open_paren_, std::move(arguments), close_paren_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenArgumentList> GreenArgumentList::with_close_paren(
-        RefCountPtr<const GreenToken> close_paren) const
+    [[nodiscard]] GreenPtr<GreenArgumentList> GreenArgumentList::with_close_paren(
+        GreenPtr<GreenToken> close_paren) const
     {
         return update(open_paren_, arguments_, std::move(close_paren));
     }
 
-    RefCountPtr<const GreenArgumentList> GreenArgumentList::update(RefCountPtr<const GreenToken> open_paren,
-                                                                   GreenSeparatedList<GreenArgument> arguments,
-                                                                   RefCountPtr<const GreenToken> close_paren) const
+    GreenPtr<GreenArgumentList> GreenArgumentList::update(GreenPtr<GreenToken> open_paren,
+                                                          GreenSeparatedList<GreenArgument> arguments,
+                                                          GreenPtr<GreenToken> close_paren) const
     {
         if (open_paren == open_paren_ && arguments == arguments_ && close_paren == close_paren_)
             return shared_from_this();
@@ -207,8 +199,8 @@ namespace prism
                                                          std::move(close_paren));
     }
 
-    GreenArgument::GreenArgument(RefCountPtr<const GreenNamedParameter> name,
-                                 RefCountPtr<const GreenExpression> value,
+    GreenArgument::GreenArgument(GreenPtr<GreenNamedParameter> name,
+                                 GreenPtr<GreenExpression> value,
                                  DiagnosticInfoList diagnostics)
         : GreenNode{SyntaxKind::argument, std::move(diagnostics)}, name_{std::move(name)}, value_{std::move(value)}
     {
@@ -233,20 +225,18 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenArgument> GreenArgument::with_name(
-        RefCountPtr<const GreenNamedParameter> name) const
+    [[nodiscard]] GreenPtr<GreenArgument> GreenArgument::with_name(GreenPtr<GreenNamedParameter> name) const
     {
         return update(std::move(name), value_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenArgument> GreenArgument::with_value(
-        RefCountPtr<const GreenExpression> value) const
+    [[nodiscard]] GreenPtr<GreenArgument> GreenArgument::with_value(GreenPtr<GreenExpression> value) const
     {
         return update(name_, std::move(value));
     }
 
-    RefCountPtr<const GreenArgument> GreenArgument::update(RefCountPtr<const GreenNamedParameter> name,
-                                                           RefCountPtr<const GreenExpression> value) const
+    GreenPtr<GreenArgument> GreenArgument::update(GreenPtr<GreenNamedParameter> name,
+                                                  GreenPtr<GreenExpression> value) const
     {
         if (name == name_ && value == value_)
             return shared_from_this();
@@ -254,9 +244,9 @@ namespace prism
         return make_ref_counted<const GreenArgument>(std::move(name), std::move(value));
     }
 
-    GreenParameterList::GreenParameterList(RefCountPtr<const GreenToken> open_paren,
+    GreenParameterList::GreenParameterList(GreenPtr<GreenToken> open_paren,
                                            GreenSeparatedList<GreenParameter> parameters,
-                                           RefCountPtr<const GreenToken> close_paren,
+                                           GreenPtr<GreenToken> close_paren,
                                            DiagnosticInfoList diagnostics)
         : GreenNode{SyntaxKind::parameter_list, std::move(diagnostics)}, open_paren_{std::move(open_paren)},
           parameters_{std::move(parameters)}, close_paren_{std::move(close_paren)}
@@ -284,27 +274,27 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenParameterList> GreenParameterList::with_open_paren(
-        RefCountPtr<const GreenToken> open_paren) const
+    [[nodiscard]] GreenPtr<GreenParameterList> GreenParameterList::with_open_paren(
+        GreenPtr<GreenToken> open_paren) const
     {
         return update(std::move(open_paren), parameters_, close_paren_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenParameterList> GreenParameterList::with_parameters(
+    [[nodiscard]] GreenPtr<GreenParameterList> GreenParameterList::with_parameters(
         GreenSeparatedList<GreenParameter> parameters) const
     {
         return update(open_paren_, std::move(parameters), close_paren_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenParameterList> GreenParameterList::with_close_paren(
-        RefCountPtr<const GreenToken> close_paren) const
+    [[nodiscard]] GreenPtr<GreenParameterList> GreenParameterList::with_close_paren(
+        GreenPtr<GreenToken> close_paren) const
     {
         return update(open_paren_, parameters_, std::move(close_paren));
     }
 
-    RefCountPtr<const GreenParameterList> GreenParameterList::update(RefCountPtr<const GreenToken> open_paren,
-                                                                     GreenSeparatedList<GreenParameter> parameters,
-                                                                     RefCountPtr<const GreenToken> close_paren) const
+    GreenPtr<GreenParameterList> GreenParameterList::update(GreenPtr<GreenToken> open_paren,
+                                                            GreenSeparatedList<GreenParameter> parameters,
+                                                            GreenPtr<GreenToken> close_paren) const
     {
         if (open_paren == open_paren_ && parameters == parameters_ && close_paren == close_paren_)
             return shared_from_this();
@@ -314,10 +304,10 @@ namespace prism
                                                           std::move(close_paren));
     }
 
-    GreenParameter::GreenParameter(RefCountPtr<const GreenToken> mut_keyword,
-                                   RefCountPtr<const GreenToken> name,
-                                   RefCountPtr<const GreenTypeSpecifier> type_specifier,
-                                   RefCountPtr<const GreenInitializer> default_value,
+    GreenParameter::GreenParameter(GreenPtr<GreenToken> mut_keyword,
+                                   GreenPtr<GreenToken> name,
+                                   GreenPtr<GreenTypeSpecifier> type_specifier,
+                                   GreenPtr<GreenInitializer> default_value,
                                    DiagnosticInfoList diagnostics)
         : GreenNode{SyntaxKind::parameter, std::move(diagnostics)}, mut_keyword_{std::move(mut_keyword)},
           name_{std::move(name)}, type_specifier_{std::move(type_specifier)}, default_value_{std::move(default_value)}
@@ -350,33 +340,32 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenParameter> GreenParameter::with_mut_keyword(
-        RefCountPtr<const GreenToken> mut_keyword) const
+    [[nodiscard]] GreenPtr<GreenParameter> GreenParameter::with_mut_keyword(GreenPtr<GreenToken> mut_keyword) const
     {
         return update(std::move(mut_keyword), name_, type_specifier_, default_value_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenParameter> GreenParameter::with_name(RefCountPtr<const GreenToken> name) const
+    [[nodiscard]] GreenPtr<GreenParameter> GreenParameter::with_name(GreenPtr<GreenToken> name) const
     {
         return update(mut_keyword_, std::move(name), type_specifier_, default_value_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenParameter> GreenParameter::with_type_specifier(
-        RefCountPtr<const GreenTypeSpecifier> type_specifier) const
+    [[nodiscard]] GreenPtr<GreenParameter> GreenParameter::with_type_specifier(
+        GreenPtr<GreenTypeSpecifier> type_specifier) const
     {
         return update(mut_keyword_, name_, std::move(type_specifier), default_value_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenParameter> GreenParameter::with_default_value(
-        RefCountPtr<const GreenInitializer> default_value) const
+    [[nodiscard]] GreenPtr<GreenParameter> GreenParameter::with_default_value(
+        GreenPtr<GreenInitializer> default_value) const
     {
         return update(mut_keyword_, name_, type_specifier_, std::move(default_value));
     }
 
-    RefCountPtr<const GreenParameter> GreenParameter::update(RefCountPtr<const GreenToken> mut_keyword,
-                                                             RefCountPtr<const GreenToken> name,
-                                                             RefCountPtr<const GreenTypeSpecifier> type_specifier,
-                                                             RefCountPtr<const GreenInitializer> default_value) const
+    GreenPtr<GreenParameter> GreenParameter::update(GreenPtr<GreenToken> mut_keyword,
+                                                    GreenPtr<GreenToken> name,
+                                                    GreenPtr<GreenTypeSpecifier> type_specifier,
+                                                    GreenPtr<GreenInitializer> default_value) const
     {
         if (mut_keyword == mut_keyword_ && name == name_ && type_specifier == type_specifier_ &&
             default_value == default_value_)
@@ -388,8 +377,8 @@ namespace prism
                                                       std::move(default_value));
     }
 
-    GreenExpressionBody::GreenExpressionBody(RefCountPtr<const GreenToken> arrow,
-                                             RefCountPtr<const GreenExpression> expression,
+    GreenExpressionBody::GreenExpressionBody(GreenPtr<GreenToken> arrow,
+                                             GreenPtr<GreenExpression> expression,
                                              DiagnosticInfoList diagnostics)
         : GreenNode{SyntaxKind::expression_body, std::move(diagnostics)}, arrow_{std::move(arrow)},
           expression_{std::move(expression)}
@@ -414,21 +403,19 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenExpressionBody> GreenExpressionBody::with_arrow(
-        RefCountPtr<const GreenToken> arrow) const
+    [[nodiscard]] GreenPtr<GreenExpressionBody> GreenExpressionBody::with_arrow(GreenPtr<GreenToken> arrow) const
     {
         return update(std::move(arrow), expression_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenExpressionBody> GreenExpressionBody::with_expression(
-        RefCountPtr<const GreenExpression> expression) const
+    [[nodiscard]] GreenPtr<GreenExpressionBody> GreenExpressionBody::with_expression(
+        GreenPtr<GreenExpression> expression) const
     {
         return update(arrow_, std::move(expression));
     }
 
-    RefCountPtr<const GreenExpressionBody> GreenExpressionBody::update(
-        RefCountPtr<const GreenToken> arrow,
-        RefCountPtr<const GreenExpression> expression) const
+    GreenPtr<GreenExpressionBody> GreenExpressionBody::update(GreenPtr<GreenToken> arrow,
+                                                              GreenPtr<GreenExpression> expression) const
     {
         if (arrow == arrow_ && expression == expression_)
             return shared_from_this();

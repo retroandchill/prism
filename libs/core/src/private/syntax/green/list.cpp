@@ -25,7 +25,7 @@ namespace prism
         }
     }
 
-    const RefCountPtr<const GreenListNode> &GreenListNode::empty()
+    const GreenPtr<GreenListNode> &GreenListNode::empty()
     {
         static auto instance = make_ref_counted<const GreenListNode>();
         return instance;

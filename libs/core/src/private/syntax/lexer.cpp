@@ -14,7 +14,7 @@ import :syntax.lexing_utils;
 
 namespace prism
 {
-    RefCountPtr<const GreenToken> Lexer::next()
+    GreenPtr<GreenToken> Lexer::next()
     {
         auto leading_trivia = collect_trivia(false);
 
@@ -48,7 +48,7 @@ namespace prism
         return std::move(builder).build();
     }
 
-    Optional<RefCountPtr<const GreenTrivia>> Lexer::match_whitespace()
+    Optional<GreenPtr<GreenTrivia>> Lexer::match_whitespace()
     {
         if (cursor_.at_end() || cursor_.any('\n', '\r') || !std::isspace(cursor_.current()))
             return std::nullopt;
@@ -65,7 +65,7 @@ namespace prism
 
         return make_ref_counted<GreenTrivia>(SyntaxKind::whitespace_trivia, std::move(str));
     }
-    Optional<RefCountPtr<const GreenTrivia>> Lexer::match_new_line()
+    Optional<GreenPtr<GreenTrivia>> Lexer::match_new_line()
     {
         const auto view = cursor_.remaining();
         if (view.starts_with("\r\n"))
@@ -89,7 +89,7 @@ namespace prism
         return std::nullopt;
     }
 
-    Optional<RefCountPtr<const GreenTrivia>> Lexer::match_comment()
+    Optional<GreenPtr<GreenTrivia>> Lexer::match_comment()
     {
         if (cursor_.current() != '/')
             return std::nullopt;
@@ -105,7 +105,7 @@ namespace prism
         }
     }
 
-    RefCountPtr<const GreenTrivia> Lexer::handle_line_comment()
+    GreenPtr<GreenTrivia> Lexer::handle_line_comment()
     {
         std::string str = "//";
         cursor_.advance(2);
@@ -130,7 +130,7 @@ namespace prism
         return make_ref_counted<const GreenTrivia>(SyntaxKind::line_comment_trivia, std::move(str));
     }
 
-    RefCountPtr<const GreenTrivia> Lexer::handle_block_comment()
+    GreenPtr<GreenTrivia> Lexer::handle_block_comment()
     {
         const auto start = cursor_.position();
         std::string str = "/*";
@@ -153,18 +153,18 @@ namespace prism
         return std::move(ptr);
     }
 
-    RefCountPtr<const GreenToken> Lexer::make_eof(GreenTriviaList leading_trivia)
+    GreenPtr<GreenToken> Lexer::make_eof(GreenTriviaList leading_trivia)
     {
         return GreenToken::eof()->with_leading_trivia(std::move(leading_trivia));
     }
 
-    RefCountPtr<const GreenToken> Lexer::make_bad_token(GreenTriviaList leading_trivia)
+    GreenPtr<GreenToken> Lexer::make_bad_token(GreenTriviaList leading_trivia)
     {
         cursor_.advance();
         return GreenToken::bad_token()->update(std::move(leading_trivia), collect_trivia());
     }
 
-    Optional<RefCountPtr<const GreenToken>> Lexer::match_number(GreenTriviaList leading_trivia)
+    Optional<GreenPtr<GreenToken>> Lexer::match_number(GreenTriviaList leading_trivia)
     {
         auto start = cursor_.position();
         auto remainder = cursor_.remaining();
@@ -242,14 +242,14 @@ namespace prism
             collect_trivia());
     }
 
-    Optional<RefCountPtr<const GreenToken>> Lexer::match_punctuation(GreenTriviaList leading_trivia)
+    Optional<GreenPtr<GreenToken>> Lexer::match_punctuation(GreenTriviaList leading_trivia)
     {
         return prism::match_punctuation(cursor_).transform(
             [&](const SyntaxKind kind)
             { return GreenToken::from(kind)->update(std::move(leading_trivia), collect_trivia()); });
     }
 
-    Optional<RefCountPtr<const GreenToken>> Lexer::match_character_literal(GreenTriviaList leading_trivia)
+    Optional<GreenPtr<GreenToken>> Lexer::match_character_literal(GreenTriviaList leading_trivia)
     {
         DiagnosticInfoList diagnostics;
         CharacterEncoding encoding;
@@ -329,7 +329,7 @@ namespace prism
         return std::move(ptr);
     }
 
-    Optional<RefCountPtr<const GreenToken>> Lexer::match_string_literal(GreenTriviaList leading_trivia)
+    Optional<GreenPtr<GreenToken>> Lexer::match_string_literal(GreenTriviaList leading_trivia)
     {
         if (cursor_.current() != '"')
             return std::nullopt;
@@ -398,7 +398,7 @@ namespace prism
         return std::move(literal);
     }
 
-    Optional<RefCountPtr<const GreenToken>> Lexer::match_identifier_or_keyword(GreenTriviaList leading_trivia)
+    Optional<GreenPtr<GreenToken>> Lexer::match_identifier_or_keyword(GreenTriviaList leading_trivia)
     {
         const auto view = cursor_.remaining();
         const auto start = cursor_.position();

@@ -5,7 +5,7 @@ import :text.cursor;
 
 namespace prism
 {
-    RefCountPtr<const GreenToken> get_static_green_token(const SyntaxKind kind)
+    GreenPtr<GreenToken> get_static_green_token(const SyntaxKind kind)
     {
         if (is_keyword(kind))
         {

@@ -5,7 +5,7 @@ import :syntax.green.clauses;
 
 namespace prism
 {
-    GreenLiteralExpression::GreenLiteralExpression(RefCountPtr<const GreenToken> value, DiagnosticInfoList diagnostics)
+    GreenLiteralExpression::GreenLiteralExpression(GreenPtr<GreenToken> value, DiagnosticInfoList diagnostics)
         : GreenExpression{SyntaxKind::literal_expression, std::move(diagnostics)}, value_{std::move(value)}
     {
         set_child_count(1);
@@ -25,13 +25,12 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenLiteralExpression> GreenLiteralExpression::with_value(
-        RefCountPtr<const GreenToken> value) const
+    [[nodiscard]] GreenPtr<GreenLiteralExpression> GreenLiteralExpression::with_value(GreenPtr<GreenToken> value) const
     {
         return update(std::move(value));
     }
 
-    RefCountPtr<const GreenLiteralExpression> GreenLiteralExpression::update(RefCountPtr<const GreenToken> value) const
+    GreenPtr<GreenLiteralExpression> GreenLiteralExpression::update(GreenPtr<GreenToken> value) const
     {
         if (value == value_)
             return shared_from_this();
@@ -39,8 +38,7 @@ namespace prism
         return make_ref_counted<const GreenLiteralExpression>(std::move(value));
     }
 
-    GreenIdentifierExpression::GreenIdentifierExpression(RefCountPtr<const GreenToken> value,
-                                                         DiagnosticInfoList diagnostics)
+    GreenIdentifierExpression::GreenIdentifierExpression(GreenPtr<GreenToken> value, DiagnosticInfoList diagnostics)
         : GreenExpression{SyntaxKind::identifier_expression, std::move(diagnostics)}, value_{std::move(value)}
     {
         set_child_count(1);
@@ -60,14 +58,13 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenIdentifierExpression> GreenIdentifierExpression::with_value(
-        RefCountPtr<const GreenToken> value) const
+    [[nodiscard]] GreenPtr<GreenIdentifierExpression> GreenIdentifierExpression::with_value(
+        GreenPtr<GreenToken> value) const
     {
         return update(std::move(value));
     }
 
-    RefCountPtr<const GreenIdentifierExpression> GreenIdentifierExpression::update(
-        RefCountPtr<const GreenToken> value) const
+    GreenPtr<GreenIdentifierExpression> GreenIdentifierExpression::update(GreenPtr<GreenToken> value) const
     {
         if (value == value_)
             return shared_from_this();
@@ -75,9 +72,9 @@ namespace prism
         return make_ref_counted<const GreenIdentifierExpression>(std::move(value));
     }
 
-    GreenParenthesizedExpression::GreenParenthesizedExpression(RefCountPtr<const GreenToken> open,
-                                                               RefCountPtr<const GreenExpression> expression,
-                                                               RefCountPtr<const GreenToken> close,
+    GreenParenthesizedExpression::GreenParenthesizedExpression(GreenPtr<GreenToken> open,
+                                                               GreenPtr<GreenExpression> expression,
+                                                               GreenPtr<GreenToken> close,
                                                                DiagnosticInfoList diagnostics)
         : GreenExpression{SyntaxKind::parenthesized_expression, std::move(diagnostics)}, open_{std::move(open)},
           expression_{std::move(expression)}, close_{std::move(close)}
@@ -105,28 +102,27 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenParenthesizedExpression> GreenParenthesizedExpression::with_open(
-        RefCountPtr<const GreenToken> open) const
+    [[nodiscard]] GreenPtr<GreenParenthesizedExpression> GreenParenthesizedExpression::with_open(
+        GreenPtr<GreenToken> open) const
     {
         return update(std::move(open), expression_, close_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenParenthesizedExpression> GreenParenthesizedExpression::with_expression(
-        RefCountPtr<const GreenExpression> expression) const
+    [[nodiscard]] GreenPtr<GreenParenthesizedExpression> GreenParenthesizedExpression::with_expression(
+        GreenPtr<GreenExpression> expression) const
     {
         return update(open_, std::move(expression), close_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenParenthesizedExpression> GreenParenthesizedExpression::with_close(
-        RefCountPtr<const GreenToken> close) const
+    [[nodiscard]] GreenPtr<GreenParenthesizedExpression> GreenParenthesizedExpression::with_close(
+        GreenPtr<GreenToken> close) const
     {
         return update(open_, expression_, std::move(close));
     }
 
-    RefCountPtr<const GreenParenthesizedExpression> GreenParenthesizedExpression::update(
-        RefCountPtr<const GreenToken> open,
-        RefCountPtr<const GreenExpression> expression,
-        RefCountPtr<const GreenToken> close) const
+    GreenPtr<GreenParenthesizedExpression> GreenParenthesizedExpression::update(GreenPtr<GreenToken> open,
+                                                                                GreenPtr<GreenExpression> expression,
+                                                                                GreenPtr<GreenToken> close) const
     {
         if (open == open_ && expression == expression_ && close == close_)
             return shared_from_this();
@@ -136,9 +132,9 @@ namespace prism
                                                                     std::move(close));
     }
 
-    GreenBinaryExpression::GreenBinaryExpression(RefCountPtr<const GreenExpression> left,
-                                                 RefCountPtr<const GreenToken> op,
-                                                 RefCountPtr<const GreenExpression> right,
+    GreenBinaryExpression::GreenBinaryExpression(GreenPtr<GreenExpression> left,
+                                                 GreenPtr<GreenToken> op,
+                                                 GreenPtr<GreenExpression> right,
                                                  DiagnosticInfoList diagnostics)
         : GreenExpression{SyntaxKind::binary_expression, std::move(diagnostics)}, left_{std::move(left)},
           op_{std::move(op)}, right_{std::move(right)}
@@ -166,28 +162,25 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenBinaryExpression> GreenBinaryExpression::with_left(
-        RefCountPtr<const GreenExpression> left) const
+    [[nodiscard]] GreenPtr<GreenBinaryExpression> GreenBinaryExpression::with_left(GreenPtr<GreenExpression> left) const
     {
         return update(std::move(left), op_, right_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenBinaryExpression> GreenBinaryExpression::with_op(
-        RefCountPtr<const GreenToken> op) const
+    [[nodiscard]] GreenPtr<GreenBinaryExpression> GreenBinaryExpression::with_op(GreenPtr<GreenToken> op) const
     {
         return update(left_, std::move(op), right_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenBinaryExpression> GreenBinaryExpression::with_right(
-        RefCountPtr<const GreenExpression> right) const
+    [[nodiscard]] GreenPtr<GreenBinaryExpression> GreenBinaryExpression::with_right(
+        GreenPtr<GreenExpression> right) const
     {
         return update(left_, op_, std::move(right));
     }
 
-    RefCountPtr<const GreenBinaryExpression> GreenBinaryExpression::update(
-        RefCountPtr<const GreenExpression> left,
-        RefCountPtr<const GreenToken> op,
-        RefCountPtr<const GreenExpression> right) const
+    GreenPtr<GreenBinaryExpression> GreenBinaryExpression::update(GreenPtr<GreenExpression> left,
+                                                                  GreenPtr<GreenToken> op,
+                                                                  GreenPtr<GreenExpression> right) const
     {
         if (left == left_ && op == op_ && right == right_)
             return shared_from_this();
@@ -195,9 +188,9 @@ namespace prism
         return make_ref_counted<const GreenBinaryExpression>(std::move(left), std::move(op), std::move(right));
     }
 
-    GreenAssignmentExpression::GreenAssignmentExpression(RefCountPtr<const GreenExpression> left,
-                                                         RefCountPtr<const GreenToken> op,
-                                                         RefCountPtr<const GreenExpression> right,
+    GreenAssignmentExpression::GreenAssignmentExpression(GreenPtr<GreenExpression> left,
+                                                         GreenPtr<GreenToken> op,
+                                                         GreenPtr<GreenExpression> right,
                                                          DiagnosticInfoList diagnostics)
         : GreenExpression{SyntaxKind::assignment_expression, std::move(diagnostics)}, left_{std::move(left)},
           op_{std::move(op)}, right_{std::move(right)}
@@ -225,28 +218,26 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenAssignmentExpression> GreenAssignmentExpression::with_left(
-        RefCountPtr<const GreenExpression> left) const
+    [[nodiscard]] GreenPtr<GreenAssignmentExpression> GreenAssignmentExpression::with_left(
+        GreenPtr<GreenExpression> left) const
     {
         return update(std::move(left), op_, right_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenAssignmentExpression> GreenAssignmentExpression::with_op(
-        RefCountPtr<const GreenToken> op) const
+    [[nodiscard]] GreenPtr<GreenAssignmentExpression> GreenAssignmentExpression::with_op(GreenPtr<GreenToken> op) const
     {
         return update(left_, std::move(op), right_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenAssignmentExpression> GreenAssignmentExpression::with_right(
-        RefCountPtr<const GreenExpression> right) const
+    [[nodiscard]] GreenPtr<GreenAssignmentExpression> GreenAssignmentExpression::with_right(
+        GreenPtr<GreenExpression> right) const
     {
         return update(left_, op_, std::move(right));
     }
 
-    RefCountPtr<const GreenAssignmentExpression> GreenAssignmentExpression::update(
-        RefCountPtr<const GreenExpression> left,
-        RefCountPtr<const GreenToken> op,
-        RefCountPtr<const GreenExpression> right) const
+    GreenPtr<GreenAssignmentExpression> GreenAssignmentExpression::update(GreenPtr<GreenExpression> left,
+                                                                          GreenPtr<GreenToken> op,
+                                                                          GreenPtr<GreenExpression> right) const
     {
         if (left == left_ && op == op_ && right == right_)
             return shared_from_this();
@@ -254,8 +245,8 @@ namespace prism
         return make_ref_counted<const GreenAssignmentExpression>(std::move(left), std::move(op), std::move(right));
     }
 
-    GreenPrefixExpression::GreenPrefixExpression(RefCountPtr<const GreenToken> op,
-                                                 RefCountPtr<const GreenExpression> operand,
+    GreenPrefixExpression::GreenPrefixExpression(GreenPtr<GreenToken> op,
+                                                 GreenPtr<GreenExpression> operand,
                                                  DiagnosticInfoList diagnostics)
         : GreenExpression{SyntaxKind::prefix_expression, std::move(diagnostics)}, op_{std::move(op)},
           operand_{std::move(operand)}
@@ -280,21 +271,19 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenPrefixExpression> GreenPrefixExpression::with_op(
-        RefCountPtr<const GreenToken> op) const
+    [[nodiscard]] GreenPtr<GreenPrefixExpression> GreenPrefixExpression::with_op(GreenPtr<GreenToken> op) const
     {
         return update(std::move(op), operand_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenPrefixExpression> GreenPrefixExpression::with_operand(
-        RefCountPtr<const GreenExpression> operand) const
+    [[nodiscard]] GreenPtr<GreenPrefixExpression> GreenPrefixExpression::with_operand(
+        GreenPtr<GreenExpression> operand) const
     {
         return update(op_, std::move(operand));
     }
 
-    RefCountPtr<const GreenPrefixExpression> GreenPrefixExpression::update(
-        RefCountPtr<const GreenToken> op,
-        RefCountPtr<const GreenExpression> operand) const
+    GreenPtr<GreenPrefixExpression> GreenPrefixExpression::update(GreenPtr<GreenToken> op,
+                                                                  GreenPtr<GreenExpression> operand) const
     {
         if (op == op_ && operand == operand_)
             return shared_from_this();
@@ -302,8 +291,8 @@ namespace prism
         return make_ref_counted<const GreenPrefixExpression>(std::move(op), std::move(operand));
     }
 
-    GreenPostfixExpression::GreenPostfixExpression(RefCountPtr<const GreenExpression> operand,
-                                                   RefCountPtr<const GreenToken> op,
+    GreenPostfixExpression::GreenPostfixExpression(GreenPtr<GreenExpression> operand,
+                                                   GreenPtr<GreenToken> op,
                                                    DiagnosticInfoList diagnostics)
         : GreenExpression{SyntaxKind::postfix_expression, std::move(diagnostics)}, operand_{std::move(operand)},
           op_{std::move(op)}
@@ -328,20 +317,19 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenPostfixExpression> GreenPostfixExpression::with_operand(
-        RefCountPtr<const GreenExpression> operand) const
+    [[nodiscard]] GreenPtr<GreenPostfixExpression> GreenPostfixExpression::with_operand(
+        GreenPtr<GreenExpression> operand) const
     {
         return update(std::move(operand), op_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenPostfixExpression> GreenPostfixExpression::with_op(
-        RefCountPtr<const GreenToken> op) const
+    [[nodiscard]] GreenPtr<GreenPostfixExpression> GreenPostfixExpression::with_op(GreenPtr<GreenToken> op) const
     {
         return update(operand_, std::move(op));
     }
 
-    RefCountPtr<const GreenPostfixExpression> GreenPostfixExpression::update(RefCountPtr<const GreenExpression> operand,
-                                                                             RefCountPtr<const GreenToken> op) const
+    GreenPtr<GreenPostfixExpression> GreenPostfixExpression::update(GreenPtr<GreenExpression> operand,
+                                                                    GreenPtr<GreenToken> op) const
     {
         if (operand == operand_ && op == op_)
             return shared_from_this();
@@ -349,11 +337,11 @@ namespace prism
         return make_ref_counted<const GreenPostfixExpression>(std::move(operand), std::move(op));
     }
 
-    GreenTernaryExpression::GreenTernaryExpression(RefCountPtr<const GreenExpression> condition,
-                                                   RefCountPtr<const GreenToken> question_mark,
-                                                   RefCountPtr<const GreenExpression> when_true,
-                                                   RefCountPtr<const GreenToken> colon,
-                                                   RefCountPtr<const GreenExpression> when_false,
+    GreenTernaryExpression::GreenTernaryExpression(GreenPtr<GreenExpression> condition,
+                                                   GreenPtr<GreenToken> question_mark,
+                                                   GreenPtr<GreenExpression> when_true,
+                                                   GreenPtr<GreenToken> colon,
+                                                   GreenPtr<GreenExpression> when_false,
                                                    DiagnosticInfoList diagnostics)
         : GreenExpression{SyntaxKind::ternary_expression, std::move(diagnostics)}, condition_{std::move(condition)},
           question_mark_{std::move(question_mark)}, when_true_{std::move(when_true)}, colon_{std::move(colon)},
@@ -388,42 +376,40 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenTernaryExpression> GreenTernaryExpression::with_condition(
-        RefCountPtr<const GreenExpression> condition) const
+    [[nodiscard]] GreenPtr<GreenTernaryExpression> GreenTernaryExpression::with_condition(
+        GreenPtr<GreenExpression> condition) const
     {
         return update(std::move(condition), question_mark_, when_true_, colon_, when_false_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenTernaryExpression> GreenTernaryExpression::with_question_mark(
-        RefCountPtr<const GreenToken> question_mark) const
+    [[nodiscard]] GreenPtr<GreenTernaryExpression> GreenTernaryExpression::with_question_mark(
+        GreenPtr<GreenToken> question_mark) const
     {
         return update(condition_, std::move(question_mark), when_true_, colon_, when_false_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenTernaryExpression> GreenTernaryExpression::with_when_true(
-        RefCountPtr<const GreenExpression> when_true) const
+    [[nodiscard]] GreenPtr<GreenTernaryExpression> GreenTernaryExpression::with_when_true(
+        GreenPtr<GreenExpression> when_true) const
     {
         return update(condition_, question_mark_, std::move(when_true), colon_, when_false_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenTernaryExpression> GreenTernaryExpression::with_colon(
-        RefCountPtr<const GreenToken> colon) const
+    [[nodiscard]] GreenPtr<GreenTernaryExpression> GreenTernaryExpression::with_colon(GreenPtr<GreenToken> colon) const
     {
         return update(condition_, question_mark_, when_true_, std::move(colon), when_false_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenTernaryExpression> GreenTernaryExpression::with_when_false(
-        RefCountPtr<const GreenExpression> when_false) const
+    [[nodiscard]] GreenPtr<GreenTernaryExpression> GreenTernaryExpression::with_when_false(
+        GreenPtr<GreenExpression> when_false) const
     {
         return update(condition_, question_mark_, when_true_, colon_, std::move(when_false));
     }
 
-    RefCountPtr<const GreenTernaryExpression> GreenTernaryExpression::update(
-        RefCountPtr<const GreenExpression> condition,
-        RefCountPtr<const GreenToken> question_mark,
-        RefCountPtr<const GreenExpression> when_true,
-        RefCountPtr<const GreenToken> colon,
-        RefCountPtr<const GreenExpression> when_false) const
+    GreenPtr<GreenTernaryExpression> GreenTernaryExpression::update(GreenPtr<GreenExpression> condition,
+                                                                    GreenPtr<GreenToken> question_mark,
+                                                                    GreenPtr<GreenExpression> when_true,
+                                                                    GreenPtr<GreenToken> colon,
+                                                                    GreenPtr<GreenExpression> when_false) const
     {
         if (condition == condition_ && question_mark == question_mark_ && when_true == when_true_ && colon == colon_ &&
             when_false == when_false_)
@@ -436,8 +422,8 @@ namespace prism
                                                               std::move(when_false));
     }
 
-    GreenInvocationExpression::GreenInvocationExpression(RefCountPtr<const GreenExpression> callee,
-                                                         RefCountPtr<const GreenArgumentList> arguments,
+    GreenInvocationExpression::GreenInvocationExpression(GreenPtr<GreenExpression> callee,
+                                                         GreenPtr<GreenArgumentList> arguments,
                                                          DiagnosticInfoList diagnostics)
         : GreenExpression{SyntaxKind::invocation_expression, std::move(diagnostics)}, callee_{std::move(callee)},
           arguments_{std::move(arguments)}
@@ -462,21 +448,20 @@ namespace prism
         }
     }
 
-    [[nodiscard]] RefCountPtr<const GreenInvocationExpression> GreenInvocationExpression::with_callee(
-        RefCountPtr<const GreenExpression> callee) const
+    [[nodiscard]] GreenPtr<GreenInvocationExpression> GreenInvocationExpression::with_callee(
+        GreenPtr<GreenExpression> callee) const
     {
         return update(std::move(callee), arguments_);
     }
 
-    [[nodiscard]] RefCountPtr<const GreenInvocationExpression> GreenInvocationExpression::with_arguments(
-        RefCountPtr<const GreenArgumentList> arguments) const
+    [[nodiscard]] GreenPtr<GreenInvocationExpression> GreenInvocationExpression::with_arguments(
+        GreenPtr<GreenArgumentList> arguments) const
     {
         return update(callee_, std::move(arguments));
     }
 
-    RefCountPtr<const GreenInvocationExpression> GreenInvocationExpression::update(
-        RefCountPtr<const GreenExpression> callee,
-        RefCountPtr<const GreenArgumentList> arguments) const
+    GreenPtr<GreenInvocationExpression> GreenInvocationExpression::update(GreenPtr<GreenExpression> callee,
+                                                                          GreenPtr<GreenArgumentList> arguments) const
     {
         if (callee == callee_ && arguments == arguments_)
             return shared_from_this();

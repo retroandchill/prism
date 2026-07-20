@@ -24,6 +24,9 @@ namespace prism
     class SyntaxLifetime;
 
     template <typename T>
+    using GreenPtr = RefCountPtr<const T>;
+
+    template <typename T>
     concept GreenNodeWrapper = requires(const T &wrapper) {
         {
             wrapper.node()
@@ -201,10 +204,14 @@ namespace prism
             }
         }
 
-        [[nodiscard]] RefCountPtr<const SyntaxNode> create_red() const;
+        [[nodiscard]] const SyntaxNode &create_red(const SyntaxLifetime &lifetime) const
+        {
+            return create_red(lifetime, nullptr, 0);
+        }
 
-        [[nodiscard]] virtual RefCountPtr<const SyntaxNode> create_red(const SyntaxNode *parent,
-                                                                       std::uint32_t position) const
+        [[nodiscard]] virtual const SyntaxNode &create_red(const SyntaxLifetime &lifetime,
+                                                           const SyntaxNode *parent,
+                                                           std::uint32_t position) const
         {
             throw UnsupportedOperationException{};
         }

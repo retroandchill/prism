@@ -41,19 +41,19 @@ namespace prism
         adjust_flags_and_width(trailing_trivia_);
     }
 
-    const RefCountPtr<const GreenToken> &GreenToken::eof()
+    const GreenPtr<GreenToken> &GreenToken::eof()
     {
         static auto instance = make_ref_counted<const GreenToken>(SyntaxKind::eof_token);
         return instance;
     }
 
-    const RefCountPtr<const GreenToken> &GreenToken::bad_token()
+    const GreenPtr<GreenToken> &GreenToken::bad_token()
     {
         static auto instance = make_ref_counted<const GreenToken>(SyntaxKind::bad_token, 1);
         return instance;
     }
 
-    RefCountPtr<const GreenToken> GreenToken::from(const SyntaxKind kind)
+    GreenPtr<GreenToken> GreenToken::from(const SyntaxKind kind)
     {
         switch (kind)
         {
@@ -94,7 +94,7 @@ namespace prism
         }
     }
 
-    RefCountPtr<const GreenToken> GreenToken::with_leading_trivia(GreenTriviaList leading_trivia) const
+    GreenPtr<GreenToken> GreenToken::with_leading_trivia(GreenTriviaList leading_trivia) const
     {
         if (leading_trivia_ == leading_trivia)
             return shared_from_this();
@@ -102,7 +102,7 @@ namespace prism
         return clone_with_trivia(std::move(leading_trivia), trailing_trivia_);
     }
 
-    RefCountPtr<const GreenToken> GreenToken::with_trailing_trivia(GreenTriviaList trailing_trivia) const
+    GreenPtr<GreenToken> GreenToken::with_trailing_trivia(GreenTriviaList trailing_trivia) const
     {
         if (trailing_trivia_ == trailing_trivia)
             return shared_from_this();
@@ -110,8 +110,7 @@ namespace prism
         return clone_with_trivia(leading_trivia_, std::move(trailing_trivia));
     }
 
-    RefCountPtr<const GreenToken> GreenToken::update(GreenTriviaList leading_trivia,
-                                                     GreenTriviaList trailing_trivia) const
+    GreenPtr<GreenToken> GreenToken::update(GreenTriviaList leading_trivia, GreenTriviaList trailing_trivia) const
     {
         if (leading_trivia_ == leading_trivia && trailing_trivia_ == trailing_trivia)
             return shared_from_this();
@@ -119,8 +118,8 @@ namespace prism
         return clone_with_trivia(std::move(leading_trivia), std::move(trailing_trivia));
     }
 
-    RefCountPtr<const GreenToken> GreenToken::clone_with_trivia(GreenTriviaList leading_trivia,
-                                                                GreenTriviaList trailing_trivia) const
+    GreenPtr<GreenToken> GreenToken::clone_with_trivia(GreenTriviaList leading_trivia,
+                                                       GreenTriviaList trailing_trivia) const
     {
         return make_ref_counted<const GreenToken>(kind(),
                                                   width(),

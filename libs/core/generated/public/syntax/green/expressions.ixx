@@ -30,7 +30,7 @@ namespace prism
     class GreenLiteralExpression final : public GreenExpression
     {
       public:
-        explicit GreenLiteralExpression(RefCountPtr<const GreenToken> value, DiagnosticInfoList diagnostics = {});
+        explicit GreenLiteralExpression(GreenPtr<GreenToken> value, DiagnosticInfoList diagnostics = {});
 
         ~GreenLiteralExpression() override;
 
@@ -46,18 +46,18 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenLiteralExpression> with_value(RefCountPtr<const GreenToken> value) const;
+        [[nodiscard]] GreenPtr<GreenLiteralExpression> with_value(GreenPtr<GreenToken> value) const;
 
-        [[nodiscard]] RefCountPtr<const GreenLiteralExpression> update(RefCountPtr<const GreenToken> value) const;
+        [[nodiscard]] GreenPtr<GreenLiteralExpression> update(GreenPtr<GreenToken> value) const;
 
       private:
-        RefCountPtr<const GreenToken> value_;
+        GreenPtr<GreenToken> value_;
     };
 
     class GreenIdentifierExpression final : public GreenExpression
     {
       public:
-        explicit GreenIdentifierExpression(RefCountPtr<const GreenToken> value, DiagnosticInfoList diagnostics = {});
+        explicit GreenIdentifierExpression(GreenPtr<GreenToken> value, DiagnosticInfoList diagnostics = {});
 
         ~GreenIdentifierExpression() override;
 
@@ -73,21 +73,20 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenIdentifierExpression> with_value(
-            RefCountPtr<const GreenToken> value) const;
+        [[nodiscard]] GreenPtr<GreenIdentifierExpression> with_value(GreenPtr<GreenToken> value) const;
 
-        [[nodiscard]] RefCountPtr<const GreenIdentifierExpression> update(RefCountPtr<const GreenToken> value) const;
+        [[nodiscard]] GreenPtr<GreenIdentifierExpression> update(GreenPtr<GreenToken> value) const;
 
       private:
-        RefCountPtr<const GreenToken> value_;
+        GreenPtr<GreenToken> value_;
     };
 
     class GreenParenthesizedExpression final : public GreenExpression
     {
       public:
-        GreenParenthesizedExpression(RefCountPtr<const GreenToken> open,
-                                     RefCountPtr<const GreenExpression> expression,
-                                     RefCountPtr<const GreenToken> close,
+        GreenParenthesizedExpression(GreenPtr<GreenToken> open,
+                                     GreenPtr<GreenExpression> expression,
+                                     GreenPtr<GreenToken> close,
                                      DiagnosticInfoList diagnostics = {});
 
         ~GreenParenthesizedExpression() override;
@@ -114,32 +113,29 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenParenthesizedExpression> with_open(
-            RefCountPtr<const GreenToken> open) const;
+        [[nodiscard]] GreenPtr<GreenParenthesizedExpression> with_open(GreenPtr<GreenToken> open) const;
 
-        [[nodiscard]] RefCountPtr<const GreenParenthesizedExpression> with_expression(
-            RefCountPtr<const GreenExpression> expression) const;
+        [[nodiscard]] GreenPtr<GreenParenthesizedExpression> with_expression(
+            GreenPtr<GreenExpression> expression) const;
 
-        [[nodiscard]] RefCountPtr<const GreenParenthesizedExpression> with_close(
-            RefCountPtr<const GreenToken> close) const;
+        [[nodiscard]] GreenPtr<GreenParenthesizedExpression> with_close(GreenPtr<GreenToken> close) const;
 
-        [[nodiscard]] RefCountPtr<const GreenParenthesizedExpression> update(
-            RefCountPtr<const GreenToken> open,
-            RefCountPtr<const GreenExpression> expression,
-            RefCountPtr<const GreenToken> close) const;
+        [[nodiscard]] GreenPtr<GreenParenthesizedExpression> update(GreenPtr<GreenToken> open,
+                                                                    GreenPtr<GreenExpression> expression,
+                                                                    GreenPtr<GreenToken> close) const;
 
       private:
-        RefCountPtr<const GreenToken> open_;
-        RefCountPtr<const GreenExpression> expression_;
-        RefCountPtr<const GreenToken> close_;
+        GreenPtr<GreenToken> open_;
+        GreenPtr<GreenExpression> expression_;
+        GreenPtr<GreenToken> close_;
     };
 
     class GreenBinaryExpression final : public GreenExpression
     {
       public:
-        GreenBinaryExpression(RefCountPtr<const GreenExpression> left,
-                              RefCountPtr<const GreenToken> op,
-                              RefCountPtr<const GreenExpression> right,
+        GreenBinaryExpression(GreenPtr<GreenExpression> left,
+                              GreenPtr<GreenToken> op,
+                              GreenPtr<GreenExpression> right,
                               DiagnosticInfoList diagnostics = {});
 
         ~GreenBinaryExpression() override;
@@ -166,29 +162,28 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenBinaryExpression> with_left(RefCountPtr<const GreenExpression> left) const;
+        [[nodiscard]] GreenPtr<GreenBinaryExpression> with_left(GreenPtr<GreenExpression> left) const;
 
-        [[nodiscard]] RefCountPtr<const GreenBinaryExpression> with_op(RefCountPtr<const GreenToken> op) const;
+        [[nodiscard]] GreenPtr<GreenBinaryExpression> with_op(GreenPtr<GreenToken> op) const;
 
-        [[nodiscard]] RefCountPtr<const GreenBinaryExpression> with_right(
-            RefCountPtr<const GreenExpression> right) const;
+        [[nodiscard]] GreenPtr<GreenBinaryExpression> with_right(GreenPtr<GreenExpression> right) const;
 
-        [[nodiscard]] RefCountPtr<const GreenBinaryExpression> update(RefCountPtr<const GreenExpression> left,
-                                                                      RefCountPtr<const GreenToken> op,
-                                                                      RefCountPtr<const GreenExpression> right) const;
+        [[nodiscard]] GreenPtr<GreenBinaryExpression> update(GreenPtr<GreenExpression> left,
+                                                             GreenPtr<GreenToken> op,
+                                                             GreenPtr<GreenExpression> right) const;
 
       private:
-        RefCountPtr<const GreenExpression> left_;
-        RefCountPtr<const GreenToken> op_;
-        RefCountPtr<const GreenExpression> right_;
+        GreenPtr<GreenExpression> left_;
+        GreenPtr<GreenToken> op_;
+        GreenPtr<GreenExpression> right_;
     };
 
     class GreenAssignmentExpression final : public GreenExpression
     {
       public:
-        GreenAssignmentExpression(RefCountPtr<const GreenExpression> left,
-                                  RefCountPtr<const GreenToken> op,
-                                  RefCountPtr<const GreenExpression> right,
+        GreenAssignmentExpression(GreenPtr<GreenExpression> left,
+                                  GreenPtr<GreenToken> op,
+                                  GreenPtr<GreenExpression> right,
                                   DiagnosticInfoList diagnostics = {});
 
         ~GreenAssignmentExpression() override;
@@ -215,30 +210,27 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenAssignmentExpression> with_left(
-            RefCountPtr<const GreenExpression> left) const;
+        [[nodiscard]] GreenPtr<GreenAssignmentExpression> with_left(GreenPtr<GreenExpression> left) const;
 
-        [[nodiscard]] RefCountPtr<const GreenAssignmentExpression> with_op(RefCountPtr<const GreenToken> op) const;
+        [[nodiscard]] GreenPtr<GreenAssignmentExpression> with_op(GreenPtr<GreenToken> op) const;
 
-        [[nodiscard]] RefCountPtr<const GreenAssignmentExpression> with_right(
-            RefCountPtr<const GreenExpression> right) const;
+        [[nodiscard]] GreenPtr<GreenAssignmentExpression> with_right(GreenPtr<GreenExpression> right) const;
 
-        [[nodiscard]] RefCountPtr<const GreenAssignmentExpression> update(
-            RefCountPtr<const GreenExpression> left,
-            RefCountPtr<const GreenToken> op,
-            RefCountPtr<const GreenExpression> right) const;
+        [[nodiscard]] GreenPtr<GreenAssignmentExpression> update(GreenPtr<GreenExpression> left,
+                                                                 GreenPtr<GreenToken> op,
+                                                                 GreenPtr<GreenExpression> right) const;
 
       private:
-        RefCountPtr<const GreenExpression> left_;
-        RefCountPtr<const GreenToken> op_;
-        RefCountPtr<const GreenExpression> right_;
+        GreenPtr<GreenExpression> left_;
+        GreenPtr<GreenToken> op_;
+        GreenPtr<GreenExpression> right_;
     };
 
     class GreenPrefixExpression final : public GreenExpression
     {
       public:
-        GreenPrefixExpression(RefCountPtr<const GreenToken> op,
-                              RefCountPtr<const GreenExpression> operand,
+        GreenPrefixExpression(GreenPtr<GreenToken> op,
+                              GreenPtr<GreenExpression> operand,
                               DiagnosticInfoList diagnostics = {});
 
         ~GreenPrefixExpression() override;
@@ -260,24 +252,23 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenPrefixExpression> with_op(RefCountPtr<const GreenToken> op) const;
+        [[nodiscard]] GreenPtr<GreenPrefixExpression> with_op(GreenPtr<GreenToken> op) const;
 
-        [[nodiscard]] RefCountPtr<const GreenPrefixExpression> with_operand(
-            RefCountPtr<const GreenExpression> operand) const;
+        [[nodiscard]] GreenPtr<GreenPrefixExpression> with_operand(GreenPtr<GreenExpression> operand) const;
 
-        [[nodiscard]] RefCountPtr<const GreenPrefixExpression> update(RefCountPtr<const GreenToken> op,
-                                                                      RefCountPtr<const GreenExpression> operand) const;
+        [[nodiscard]] GreenPtr<GreenPrefixExpression> update(GreenPtr<GreenToken> op,
+                                                             GreenPtr<GreenExpression> operand) const;
 
       private:
-        RefCountPtr<const GreenToken> op_;
-        RefCountPtr<const GreenExpression> operand_;
+        GreenPtr<GreenToken> op_;
+        GreenPtr<GreenExpression> operand_;
     };
 
     class GreenPostfixExpression final : public GreenExpression
     {
       public:
-        GreenPostfixExpression(RefCountPtr<const GreenExpression> operand,
-                               RefCountPtr<const GreenToken> op,
+        GreenPostfixExpression(GreenPtr<GreenExpression> operand,
+                               GreenPtr<GreenToken> op,
                                DiagnosticInfoList diagnostics = {});
 
         ~GreenPostfixExpression() override;
@@ -299,27 +290,26 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenPostfixExpression> with_operand(
-            RefCountPtr<const GreenExpression> operand) const;
+        [[nodiscard]] GreenPtr<GreenPostfixExpression> with_operand(GreenPtr<GreenExpression> operand) const;
 
-        [[nodiscard]] RefCountPtr<const GreenPostfixExpression> with_op(RefCountPtr<const GreenToken> op) const;
+        [[nodiscard]] GreenPtr<GreenPostfixExpression> with_op(GreenPtr<GreenToken> op) const;
 
-        [[nodiscard]] RefCountPtr<const GreenPostfixExpression> update(RefCountPtr<const GreenExpression> operand,
-                                                                       RefCountPtr<const GreenToken> op) const;
+        [[nodiscard]] GreenPtr<GreenPostfixExpression> update(GreenPtr<GreenExpression> operand,
+                                                              GreenPtr<GreenToken> op) const;
 
       private:
-        RefCountPtr<const GreenExpression> operand_;
-        RefCountPtr<const GreenToken> op_;
+        GreenPtr<GreenExpression> operand_;
+        GreenPtr<GreenToken> op_;
     };
 
     class GreenTernaryExpression final : public GreenExpression
     {
       public:
-        GreenTernaryExpression(RefCountPtr<const GreenExpression> condition,
-                               RefCountPtr<const GreenToken> question_mark,
-                               RefCountPtr<const GreenExpression> when_true,
-                               RefCountPtr<const GreenToken> colon,
-                               RefCountPtr<const GreenExpression> when_false,
+        GreenTernaryExpression(GreenPtr<GreenExpression> condition,
+                               GreenPtr<GreenToken> question_mark,
+                               GreenPtr<GreenExpression> when_true,
+                               GreenPtr<GreenToken> colon,
+                               GreenPtr<GreenExpression> when_false,
                                DiagnosticInfoList diagnostics = {});
 
         ~GreenTernaryExpression() override;
@@ -356,40 +346,35 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenTernaryExpression> with_condition(
-            RefCountPtr<const GreenExpression> condition) const;
+        [[nodiscard]] GreenPtr<GreenTernaryExpression> with_condition(GreenPtr<GreenExpression> condition) const;
 
-        [[nodiscard]] RefCountPtr<const GreenTernaryExpression> with_question_mark(
-            RefCountPtr<const GreenToken> question_mark) const;
+        [[nodiscard]] GreenPtr<GreenTernaryExpression> with_question_mark(GreenPtr<GreenToken> question_mark) const;
 
-        [[nodiscard]] RefCountPtr<const GreenTernaryExpression> with_when_true(
-            RefCountPtr<const GreenExpression> when_true) const;
+        [[nodiscard]] GreenPtr<GreenTernaryExpression> with_when_true(GreenPtr<GreenExpression> when_true) const;
 
-        [[nodiscard]] RefCountPtr<const GreenTernaryExpression> with_colon(RefCountPtr<const GreenToken> colon) const;
+        [[nodiscard]] GreenPtr<GreenTernaryExpression> with_colon(GreenPtr<GreenToken> colon) const;
 
-        [[nodiscard]] RefCountPtr<const GreenTernaryExpression> with_when_false(
-            RefCountPtr<const GreenExpression> when_false) const;
+        [[nodiscard]] GreenPtr<GreenTernaryExpression> with_when_false(GreenPtr<GreenExpression> when_false) const;
 
-        [[nodiscard]] RefCountPtr<const GreenTernaryExpression> update(
-            RefCountPtr<const GreenExpression> condition,
-            RefCountPtr<const GreenToken> question_mark,
-            RefCountPtr<const GreenExpression> when_true,
-            RefCountPtr<const GreenToken> colon,
-            RefCountPtr<const GreenExpression> when_false) const;
+        [[nodiscard]] GreenPtr<GreenTernaryExpression> update(GreenPtr<GreenExpression> condition,
+                                                              GreenPtr<GreenToken> question_mark,
+                                                              GreenPtr<GreenExpression> when_true,
+                                                              GreenPtr<GreenToken> colon,
+                                                              GreenPtr<GreenExpression> when_false) const;
 
       private:
-        RefCountPtr<const GreenExpression> condition_;
-        RefCountPtr<const GreenToken> question_mark_;
-        RefCountPtr<const GreenExpression> when_true_;
-        RefCountPtr<const GreenToken> colon_;
-        RefCountPtr<const GreenExpression> when_false_;
+        GreenPtr<GreenExpression> condition_;
+        GreenPtr<GreenToken> question_mark_;
+        GreenPtr<GreenExpression> when_true_;
+        GreenPtr<GreenToken> colon_;
+        GreenPtr<GreenExpression> when_false_;
     };
 
     class GreenInvocationExpression final : public GreenExpression
     {
       public:
-        GreenInvocationExpression(RefCountPtr<const GreenExpression> callee,
-                                  RefCountPtr<const GreenArgumentList> arguments,
+        GreenInvocationExpression(GreenPtr<GreenExpression> callee,
+                                  GreenPtr<GreenArgumentList> arguments,
                                   DiagnosticInfoList diagnostics = {});
 
         ~GreenInvocationExpression() override;
@@ -411,18 +396,15 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
-        [[nodiscard]] RefCountPtr<const GreenInvocationExpression> with_callee(
-            RefCountPtr<const GreenExpression> callee) const;
+        [[nodiscard]] GreenPtr<GreenInvocationExpression> with_callee(GreenPtr<GreenExpression> callee) const;
 
-        [[nodiscard]] RefCountPtr<const GreenInvocationExpression> with_arguments(
-            RefCountPtr<const GreenArgumentList> arguments) const;
+        [[nodiscard]] GreenPtr<GreenInvocationExpression> with_arguments(GreenPtr<GreenArgumentList> arguments) const;
 
-        [[nodiscard]] RefCountPtr<const GreenInvocationExpression> update(
-            RefCountPtr<const GreenExpression> callee,
-            RefCountPtr<const GreenArgumentList> arguments) const;
+        [[nodiscard]] GreenPtr<GreenInvocationExpression> update(GreenPtr<GreenExpression> callee,
+                                                                 GreenPtr<GreenArgumentList> arguments) const;
 
       private:
-        RefCountPtr<const GreenExpression> callee_;
-        RefCountPtr<const GreenArgumentList> arguments_;
+        GreenPtr<GreenExpression> callee_;
+        GreenPtr<GreenArgumentList> arguments_;
     };
 } // namespace prism

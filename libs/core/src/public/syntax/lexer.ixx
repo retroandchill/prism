@@ -18,23 +18,23 @@ namespace prism
         {
         }
 
-        RefCountPtr<const GreenToken> next();
+        GreenPtr<GreenToken> next();
 
       private:
         GreenTriviaList collect_trivia(bool stop_after_newline = true);
-        Optional<RefCountPtr<const GreenTrivia>> match_whitespace();
-        Optional<RefCountPtr<const GreenTrivia>> match_new_line();
-        Optional<RefCountPtr<const GreenTrivia>> match_comment();
-        RefCountPtr<const GreenTrivia> handle_line_comment();
-        RefCountPtr<const GreenTrivia> handle_block_comment();
+        Optional<GreenPtr<GreenTrivia>> match_whitespace();
+        Optional<GreenPtr<GreenTrivia>> match_new_line();
+        Optional<GreenPtr<GreenTrivia>> match_comment();
+        GreenPtr<GreenTrivia> handle_line_comment();
+        GreenPtr<GreenTrivia> handle_block_comment();
 
-        static RefCountPtr<const GreenToken> make_eof(GreenTriviaList leading_trivia);
-        RefCountPtr<const GreenToken> make_bad_token(GreenTriviaList leading_trivia);
-        Optional<RefCountPtr<const GreenToken>> match_number(GreenTriviaList leading_trivia);
-        Optional<RefCountPtr<const GreenToken>> match_punctuation(GreenTriviaList leading_trivia);
-        Optional<RefCountPtr<const GreenToken>> match_character_literal(GreenTriviaList leading_trivia);
-        Optional<RefCountPtr<const GreenToken>> match_string_literal(GreenTriviaList leading_trivia);
-        Optional<RefCountPtr<const GreenToken>> match_identifier_or_keyword(GreenTriviaList leading_trivia);
+        static GreenPtr<GreenToken> make_eof(GreenTriviaList leading_trivia);
+        GreenPtr<GreenToken> make_bad_token(GreenTriviaList leading_trivia);
+        Optional<GreenPtr<GreenToken>> match_number(GreenTriviaList leading_trivia);
+        Optional<GreenPtr<GreenToken>> match_punctuation(GreenTriviaList leading_trivia);
+        Optional<GreenPtr<GreenToken>> match_character_literal(GreenTriviaList leading_trivia);
+        Optional<GreenPtr<GreenToken>> match_string_literal(GreenTriviaList leading_trivia);
+        Optional<GreenPtr<GreenToken>> match_identifier_or_keyword(GreenTriviaList leading_trivia);
 
         bool handle_hex_literal(BigDecimal &value);
         bool handle_binary_literal(BigDecimal &value);

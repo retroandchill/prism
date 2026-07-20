@@ -35,7 +35,7 @@ namespace prism
         lookahead_.pop_front();
     }
 
-    void TokenStream::replace_next(RefCountPtr<const GreenToken> token)
+    void TokenStream::replace_next(GreenPtr<GreenToken> token)
     {
         [[maybe_unused]] const auto &next = peek();
         assert(next.kind() != SyntaxKind::eof_token);

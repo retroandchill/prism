@@ -10,19 +10,19 @@ import :syntax.green.trivia;
 
 namespace prism
 {
-    const RefCountPtr<const GreenTrivia> &GreenTrivia::carriage_return_line_feed()
+    const GreenPtr<GreenTrivia> &GreenTrivia::carriage_return_line_feed()
     {
         static auto instance = make_ref_counted<const GreenTrivia>(SyntaxKind::new_line_trivia, "\r\n");
         return instance;
     }
 
-    const RefCountPtr<const GreenTrivia> &GreenTrivia::carriage_return()
+    const GreenPtr<GreenTrivia> &GreenTrivia::carriage_return()
     {
         static auto instance = make_ref_counted<const GreenTrivia>(SyntaxKind::new_line_trivia, "\r");
         return instance;
     }
 
-    const RefCountPtr<const GreenTrivia> &GreenTrivia::line_feed()
+    const GreenPtr<GreenTrivia> &GreenTrivia::line_feed()
     {
         static auto instance = make_ref_counted<const GreenTrivia>(SyntaxKind::new_line_trivia, "\n");
         return instance;

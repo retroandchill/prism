@@ -22,10 +22,10 @@ namespace prism
                    GreenTriviaList leading_trivia = {},
                    GreenTriviaList trailing_trivia = {});
 
-        static const RefCountPtr<const GreenToken> &eof();
-        static const RefCountPtr<const GreenToken> &bad_token();
+        static const GreenPtr<GreenToken> &eof();
+        static const GreenPtr<GreenToken> &bad_token();
 
-        static RefCountPtr<const GreenToken> from(SyntaxKind kind);
+        static GreenPtr<GreenToken> from(SyntaxKind kind);
 
         [[nodiscard]] constexpr bool is_token() const noexcept final
         {
@@ -50,19 +50,21 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const final;
 
-        [[nodiscard]] virtual RefCountPtr<const GreenToken> with_leading_trivia(GreenTriviaList leading_trivia) const;
+        [[nodiscard]] virtual GreenPtr<GreenToken> with_leading_trivia(GreenTriviaList leading_trivia) const;
 
-        [[nodiscard]] virtual RefCountPtr<const GreenToken> with_trailing_trivia(GreenTriviaList trailing_trivia) const;
+        [[nodiscard]] virtual GreenPtr<GreenToken> with_trailing_trivia(GreenTriviaList trailing_trivia) const;
 
-        [[nodiscard]] virtual RefCountPtr<const GreenToken> update(GreenTriviaList leading_trivia,
-                                                                   GreenTriviaList trailing_trivia) const;
+        [[nodiscard]] virtual GreenPtr<GreenToken> update(GreenTriviaList leading_trivia,
+                                                          GreenTriviaList trailing_trivia) const;
 
       protected:
-        [[nodiscard]] virtual RefCountPtr<const GreenToken> clone_with_trivia(GreenTriviaList leading_trivia,
-                                                                              GreenTriviaList trailing_trivia) const;
+        [[nodiscard]] virtual GreenPtr<GreenToken> clone_with_trivia(GreenTriviaList leading_trivia,
+                                                                     GreenTriviaList trailing_trivia) const;
 
       public:
-        [[nodiscard]] RefCountPtr<const SyntaxNode> create_red(const SyntaxNode *, std::uint32_t) const final
+        [[nodiscard]] const SyntaxNode &create_red(const SyntaxLifetime &,
+                                                   const SyntaxNode *,
+                                                   std::uint32_t) const final
         {
             throw UnsupportedOperationException{};
         }
@@ -176,10 +178,10 @@ namespace prism
         }
 
       protected:
-        RefCountPtr<const GreenToken> clone_with_trivia(GreenTriviaList leading_trivia,
-                                                        GreenTriviaList trailing_trivia) const override
+        GreenPtr<GreenToken> clone_with_trivia(GreenTriviaList leading_trivia,
+                                               GreenTriviaList trailing_trivia) const override
         {
-            return RefCountPtr<const GreenToken>::no_ref(
+            return GreenPtr<GreenToken>::no_ref(
                 new GreenValueToken{data_, std::move(leading_trivia), std::move(trailing_trivia)});
         }
 

@@ -14,7 +14,7 @@ namespace prism
 {
     constexpr std::uint32_t small_list_size = 8;
 
-    using GreenSyntaxVector = boost::container::small_vector<RefCountPtr<const GreenNode>, small_list_size>;
+    using GreenSyntaxVector = boost::container::small_vector<GreenPtr<GreenNode>, small_list_size>;
 
     class GreenListNode final : public GreenNode
     {
@@ -25,7 +25,7 @@ namespace prism
 
         explicit GreenListNode(GreenSyntaxVector children);
 
-        static const RefCountPtr<const GreenListNode> &empty();
+        static const GreenPtr<GreenListNode> &empty();
 
         [[nodiscard]] constexpr Optional<const GreenNode &> get_child(const std::size_t index) const override
         {
@@ -43,7 +43,7 @@ namespace prism
       public:
         constexpr GreenListNodeBuilder() = default;
 
-        constexpr const GreenNode &add(RefCountPtr<const GreenNode> child)
+        constexpr const GreenNode &add(GreenPtr<GreenNode> child)
         {
             return *children_.emplace_back(std::move(child));
         }
@@ -53,7 +53,7 @@ namespace prism
             children_.reserve(capacity);
         }
 
-        RefCountPtr<const GreenListNode> build() const &
+        GreenPtr<GreenListNode> build() const &
         {
             if (children_.empty())
                 return GreenListNode::empty();
@@ -61,7 +61,7 @@ namespace prism
             return make_ref_counted<const GreenListNode>(children_);
         }
 
-        RefCountPtr<const GreenListNode> build() &&
+        GreenPtr<GreenListNode> build() &&
         {
             if (children_.empty())
                 return GreenListNode::empty();
@@ -73,17 +73,41 @@ namespace prism
         GreenSyntaxVector children_;
     };
 
-    template <typename T>
+    template <typename T, bool Owning = true>
     class GreenSyntaxList : public SyntaxListView<T>
     {
+        using Ptr = std::conditional_t<Owning, GreenPtr<GreenListNode>, const GreenListNode *>;
+
       public:
         using value_type = T;
 
-        constexpr GreenSyntaxList() : children_{GreenListNode::empty()}
+        constexpr GreenSyntaxList()
+            requires(!Owning)
+            : children_{GreenListNode::empty().get()}
         {
         }
 
-        explicit constexpr GreenSyntaxList(RefCountPtr<const GreenListNode> children) : children_{std::move(children)}
+        constexpr GreenSyntaxList()
+            requires(Owning)
+            : children_{GreenListNode::empty()}
+        {
+        }
+
+        explicit(false) constexpr GreenSyntaxList(const GreenSyntaxList<T> &other)
+            requires(!Owning)
+            : children_{other.children_.get()}
+        {
+        }
+
+        explicit constexpr GreenSyntaxList(const GreenListNode &children)
+            requires(!Owning)
+            : children_{&children}
+        {
+        }
+
+        explicit constexpr GreenSyntaxList(GreenPtr<GreenListNode> children)
+            requires(Owning)
+            : children_{std::move(children)}
         {
         }
 
@@ -121,14 +145,17 @@ namespace prism
         }
 
       private:
-        RefCountPtr<const GreenListNode> children_;
+        template <typename U, bool OtherOwning>
+        friend class GreenSyntaxList;
+
+        Ptr children_;
     };
 
     template <typename T>
     class GreenListBuilder
     {
       public:
-        const T &add(RefCountPtr<const T> child)
+        const T &add(GreenPtr<T> child)
         {
             return static_cast<const T &>(inner_.add(std::move(child)));
         }
