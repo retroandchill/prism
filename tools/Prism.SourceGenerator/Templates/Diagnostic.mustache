@@ -1,0 +1,33 @@
+﻿#nullable enable
+using Prism.Core.Diagnostics;
+using Cysharp.Text;
+using Prism.Core.Parse;
+
+namespace {{Namespace}};
+
+partial {{ClassType}} {{ClassName}}
+{
+    private static readonly DiagnosticDescriptor {{MethodName}}Descriptor = new()
+        {
+            Id = {{Id}},
+            Title = {{Title}},
+            {{#NotNull Description}}
+            Description = {{Description}},
+            {{/NotNull}}
+            Severity = DiagnosticSeverity.{{Severity}},
+            MessageFormat = {{MessageFormat}}
+        };
+
+    {{#ReturnsDiagnostic}}
+    {{Access}}{{Static}} partial Diagnostic {{MethodName}}(Location {{LocationParam}}{{#FormatParams}}, {{Type}} {{Name}}{{/FormatParams}})
+    {
+        return Diagnostic.Create({{MethodName}}Descriptor, {{LocationParam}}{{#FormatParams}}, {{Name}}{{/FormatParams}});
+    }
+    {{/ReturnsDiagnostic}}
+    {{^ReturnsDiagnostic}}
+    {{Access}}{{Static}} partial DiagnosticInfo {{MethodName}}({{#Joined ", " FormatParams}}{{Type}} {{Name}}{{/Joined}})
+    {
+        return new DiagnosticInfo({{MethodName}}Descriptor{{#FormatParams}}, {{Name}}{{/FormatParams}});
+    }
+    {{/ReturnsDiagnostic}}
+}
