@@ -11,12 +11,15 @@ import :syntax.green.node;
 import :util.noncopyable;
 import :syntax.node;
 import :memory.persistent_allocator;
+import :syntax.lifetime;
 
 namespace prism
 {
     export class SyntaxTree final : NonCopyable
     {
       public:
+        SyntaxTree(std::shared_ptr<SourceText> text, const GreenNode &root);
+
         constexpr const SourceText &text() const noexcept
         {
             return *text_;
@@ -29,8 +32,7 @@ namespace prism
 
       private:
         std::shared_ptr<SourceText> text_;
-        GreenPtr<GreenNode> green_root_;
-        PersistentAllocator allocator_;
+        SyntaxLifetime lifetime_;
         const SyntaxNode *root_ = nullptr;
     };
 } // namespace prism

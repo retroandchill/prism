@@ -6,7 +6,7 @@
  */
 module;
 
-#include <prism/core/exports.h>
+#include "prism/core/exports.h"
 
 export module prism.core:syntax.trivia;
 
@@ -17,17 +17,22 @@ namespace prism
 {
     export class SyntaxTriviaList;
 
-    export class SyntaxTrivia final
+    export class PRISM_CORE_API SyntaxTrivia final
     {
         constexpr SyntaxTrivia(SyntaxToken parent, const GreenTrivia &trivia, const std::uint32_t position)
-            : parent_{std::move(parent)}, green_{&trivia}, position_{position}
+            : token_{std::move(parent)}, green_{&trivia}, position_{position}
         {
         }
 
       public:
-        [[nodiscard]] constexpr const SyntaxToken &parent() const noexcept
+        [[nodiscard]] constexpr const SyntaxToken &token() const noexcept
         {
-            return parent_;
+            return token_;
+        }
+
+        [[nodiscard]] constexpr Optional<const SyntaxTree &> tree() const
+        {
+            return token_.tree();
         }
 
         [[nodiscard]] constexpr TextSpan full_span() const noexcept
@@ -48,7 +53,7 @@ namespace prism
       private:
         friend class SyntaxTriviaList;
 
-        SyntaxToken parent_;
+        SyntaxToken token_;
         const GreenTrivia *green_;
         std::uint32_t position_;
     };
@@ -82,16 +87,4 @@ namespace prism
         GreenSyntaxList<GreenTrivia, false> green_;
         std::uint32_t position_;
     };
-
-    constexpr SyntaxTriviaList SyntaxToken::leading_trivia() const noexcept
-    {
-        auto &trivia = green_->leading_trivia();
-        return SyntaxTriviaList{*this, trivia};
-    }
-
-    constexpr SyntaxTriviaList SyntaxToken::trailing_trivia() const noexcept
-    {
-        auto &trivia = green_->trailing_trivia();
-        return SyntaxTriviaList{*this, trivia};
-    }
 } // namespace prism

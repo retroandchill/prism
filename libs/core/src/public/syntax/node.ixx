@@ -16,14 +16,22 @@ import :text.text_span;
 
 namespace prism
 {
+    class SyntaxTree;
+
     export class PRISM_CORE_API SyntaxNode : NonCopyable
     {
       protected:
-        SyntaxNode(const GreenNode &node, const std::uint32_t position) : green_{&node}, position_{position}
+        constexpr SyntaxNode(const GreenNode &node, const SyntaxTree &tree, const std::uint32_t position)
+            : green_{&node}, tree_{&tree}, position_{position}
         {
         }
 
-        ~SyntaxNode() = default;
+        constexpr SyntaxNode(const GreenNode &node, const SyntaxNode &parent, const std::uint32_t position)
+            : green_{&node}, parent_{&parent}, position_{position}
+        {
+        }
+
+        constexpr ~SyntaxNode() = default;
 
       public:
         [[nodiscard]] constexpr SyntaxKind kind() const noexcept
@@ -41,9 +49,19 @@ namespace prism
             return {.start = position_ + green_->leading_trivia_width(), .length = green_->width()};
         }
 
+        [[nodiscard]] Optional<const SyntaxNode &> parent() const noexcept
+        {
+            return parent_;
+        }
+
+        [[nodiscard]] const SyntaxTree &tree() const;
+
       private:
+        static const SyntaxTree *compute_tree(const SyntaxNode *node);
+
         const GreenNode *green_;
-        SyntaxNode *parent_ = nullptr;
+        const SyntaxNode *parent_ = nullptr;
+        mutable std::atomic<const SyntaxTree *> tree_ = nullptr;
         std::uint32_t position_;
     };
 } // namespace prism

@@ -70,6 +70,9 @@ set(PRISM_PUBLIC_MODULES
         src/public/memory/persistent_allocator.ixx
         src/public/syntax/lifetime.ixx
         src/public/util/exceptions.ixx
+        src/private/syntax/tree.cpp
+        src/private/syntax/node.cpp
+        src/private/syntax/token.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

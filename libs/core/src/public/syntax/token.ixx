@@ -4,6 +4,10 @@
  * @date 7/9/2026
  * @brief
  */
+module;
+
+#include "prism/core/exports.h"
+
 export module prism.core:syntax.token;
 
 import :syntax.literals;
@@ -13,13 +17,19 @@ namespace prism
 {
     class SyntaxNode;
     class SyntaxTriviaList;
+    class SyntaxTree;
 
     template <LiteralData T>
     using LiteralDataResult = decltype(LiteralDataTraits<T>::get_value(std::declval<const GreenToken>()));
 
-    export class SyntaxToken
+    export class PRISM_CORE_API SyntaxToken final
     {
         SyntaxToken(const GreenToken &token, const std::uint32_t position) : green_{&token}, position_{position}
+        {
+        }
+
+        SyntaxToken(const GreenToken &token, const SyntaxNode &parent, const std::uint32_t position)
+            : green_{&token}, parent_{&parent}, position_{position}
         {
         }
 
@@ -31,13 +41,20 @@ namespace prism
 
         [[nodiscard]] constexpr TextSpan full_span() const noexcept
         {
-            return {position_, green_->full_width()};
+            return {.start = position_, .length = green_->full_width()};
         }
 
         [[nodiscard]] constexpr TextSpan span() const
         {
-            return {position_ + green_->leading_trivia_width(), green_->width()};
+            return {.start = position_ + green_->leading_trivia_width(), .length = green_->width()};
         }
+
+        [[nodiscard]] constexpr Optional<const SyntaxNode &> parent() const noexcept
+        {
+            return parent_;
+        }
+
+        [[nodiscard]] Optional<const SyntaxTree &> tree() const;
 
         [[nodiscard]] constexpr bool is_missing() const noexcept
         {
@@ -49,14 +66,14 @@ namespace prism
             return green_->contains_diagnostics();
         }
 
-        [[nodiscard]] constexpr SyntaxTriviaList leading_trivia() const noexcept;
+        [[nodiscard]] SyntaxTriviaList leading_trivia() const noexcept;
 
         [[nodiscard]] constexpr bool has_leading_trivia() const noexcept
         {
             return green_->has_leading_trivia();
         }
 
-        [[nodiscard]] constexpr SyntaxTriviaList trailing_trivia() const noexcept;
+        [[nodiscard]] SyntaxTriviaList trailing_trivia() const noexcept;
 
         [[nodiscard]] constexpr bool has_trailing_trivia() const noexcept
         {
@@ -93,7 +110,7 @@ namespace prism
         friend class SyntaxTriviaList;
         friend class Lexer;
 
-        SyntaxNode *parent_ = nullptr;
+        const SyntaxNode *parent_ = nullptr;
         const GreenToken *green_;
         std::uint32_t position_;
     };
