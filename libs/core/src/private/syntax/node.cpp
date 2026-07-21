@@ -11,6 +11,7 @@ module;
 module prism.core:syntax.node.impl;
 
 import :syntax.node;
+import :syntax.tree;
 
 namespace prism
 {
@@ -26,6 +27,10 @@ namespace prism
         assert(tree != nullptr);
 
         return *tree;
+    }
+    const SyntaxLifetime &SyntaxNode::lifetime() const
+    {
+        return *tree().lifetime_;
     }
 
     const SyntaxTree *SyntaxNode::compute_tree(const SyntaxNode *node)

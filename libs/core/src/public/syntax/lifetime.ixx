@@ -35,6 +35,8 @@ namespace prism
             return *roots_[index];
         }
 
+        void reset() noexcept;
+
       private:
         static constexpr std::size_t small_buffer_size = 4;
 

@@ -31,8 +31,10 @@ namespace prism
         }
 
       private:
+        friend SyntaxNode;
+
         std::shared_ptr<SourceText> text_;
-        SyntaxLifetime lifetime_;
+        std::unique_ptr<SyntaxLifetime> lifetime_ = std::make_unique<SyntaxLifetime>();
         const SyntaxNode *root_ = nullptr;
     };
 } // namespace prism

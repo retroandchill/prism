@@ -12,7 +12,7 @@ namespace prism
 {
 
     SyntaxTree::SyntaxTree(std::shared_ptr<SourceText> text, const GreenNode &root)
-        : text_{std::move(text)}, root_{&root.create_red(lifetime_)}
+        : text_{std::move(text)}, root_{&root.create_red(*lifetime_)}
     {
     }
 } // namespace prism

@@ -17,6 +17,7 @@ import :text.text_span;
 namespace prism
 {
     class SyntaxTree;
+    class SyntaxLifetime;
 
     export class PRISM_CORE_API SyntaxNode : NonCopyable
     {
@@ -55,6 +56,9 @@ namespace prism
         }
 
         [[nodiscard]] const SyntaxTree &tree() const;
+
+      protected:
+        [[nodiscard]] const SyntaxLifetime &lifetime() const;
 
       private:
         static const SyntaxTree *compute_tree(const SyntaxNode *node);

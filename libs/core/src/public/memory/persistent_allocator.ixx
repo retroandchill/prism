@@ -4,6 +4,14 @@
  * @date 7/1/2026
  * @brief
  */
+module;
+
+// CLion is being weird about std::start_lifetime_as in import std,
+// so this is just to shut it up
+#ifdef __JETBRAINS_IDE__
+#include <memory>
+#endif
+
 export module prism.core:memory.persistent_allocator;
 
 import std;
@@ -27,18 +35,13 @@ namespace prism
         PersistentAllocator() = default;
         inline ~PersistentAllocator()
         {
-            for (auto [ptr, deleter] : deleters_ | std::views::reverse)
-            {
-                deleter(ptr);
-            }
+            destruct_objects();
         }
 
         PersistentAllocator(const PersistentAllocator &) = delete;
         PersistentAllocator(PersistentAllocator &&) = delete;
         PersistentAllocator &operator=(const PersistentAllocator &) = delete;
         PersistentAllocator &operator=(PersistentAllocator &&) = delete;
-
-        static PersistentAllocator &shared() noexcept;
 
         template <typename T, typename... Args>
             requires std::constructible_from<T, Args...>
@@ -95,7 +98,22 @@ namespace prism
             return target;
         }
 
+        inline void reset() noexcept
+        {
+            destruct_objects();
+            deleters_.clear();
+            arena_.reset();
+        }
+
       private:
+        inline void destruct_objects() noexcept
+        {
+            for (auto [ptr, deleter] : deleters_ | std::views::reverse)
+            {
+                deleter(ptr);
+            }
+        }
+
         MultiArena arena_{block_size};
         std::vector<DeleterInvocation> deleters_;
     };

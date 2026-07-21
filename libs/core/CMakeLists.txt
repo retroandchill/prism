@@ -73,6 +73,7 @@ set(PRISM_PUBLIC_MODULES
         src/private/syntax/tree.cpp
         src/private/syntax/node.cpp
         src/private/syntax/token.cpp
+        src/private/syntax/lifetime.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})
