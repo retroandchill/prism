@@ -18,7 +18,7 @@ namespace prism
     export class SyntaxTree final : NonCopyable
     {
       public:
-        SyntaxTree(std::shared_ptr<SourceText> text, const GreenNode &root);
+        SyntaxTree(std::shared_ptr<SourceText> text, GreenPtr<GreenNode> root);
 
         constexpr const SourceText &text() const noexcept
         {

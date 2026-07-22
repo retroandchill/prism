@@ -4,14 +4,6 @@
  * @date 7/1/2026
  * @brief
  */
-module;
-
-// CLion is being weird about std::start_lifetime_as in import std,
-// so this is just to shut it up
-#ifdef __JETBRAINS_IDE__
-#include <memory>
-#endif
-
 export module prism.core:memory.persistent_allocator;
 
 import std;
@@ -48,7 +40,7 @@ namespace prism
         T &create(Args &&...args)
         {
             auto *data = arena_.allocate(sizeof(T), alignof(T));
-            auto *ptr = std::construct_at(std::start_lifetime_as<T>(data), std::forward<Args>(args)...);
+            auto *ptr = std::construct_at(static_cast<T *>(data), std::forward<Args>(args)...);
             if constexpr (!std::is_trivially_destructible_v<T>)
             {
                 deleters_.emplace_back(
@@ -56,6 +48,26 @@ namespace prism
                     +[](void *p) noexcept { std::destroy_at(static_cast<T *>(p)); });
             }
             return *ptr;
+        }
+
+        template <typename T>
+            requires std::is_default_constructible_v<T>
+        std::span<T> create_array(std::size_t size)
+        {
+            auto *data = arena_.allocate(size * sizeof(T), alignof(T));
+            auto ptr = std::span{static_cast<T *>(data), size};
+            for (auto [i, item] : ptr | std::views::enumerate)
+            {
+                auto *item_ptr = std::addressof(item);
+                std::construct_at(item_ptr);
+                if constexpr (!std::is_trivially_destructible_v<T>)
+                {
+                    deleters_.emplace_back(
+                        item_ptr,
+                        +[](void *p) noexcept { std::destroy_at(static_cast<T *>(p)); });
+                }
+            }
+            return ptr;
         }
 
         template <std::ranges::input_range Range>

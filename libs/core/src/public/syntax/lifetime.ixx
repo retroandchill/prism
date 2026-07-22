@@ -21,8 +21,16 @@ namespace prism
         constexpr const Red &add(const Green &green, const SyntaxNode *parent = nullptr, std::uint32_t position = 0)
         {
             std::scoped_lock lock{mutex_};
-            roots_.emplace_back(green.shared_from_this());
             return allocator_.create<Red>(green, parent, position);
+        }
+
+        void add_root(GreenPtr<GreenNode> root) noexcept;
+
+        template <std::derived_from<SyntaxNode> Red = SyntaxNode>
+        constexpr std::span<std::atomic<const Red *>> allocate_child_slots(const std::size_t count)
+        {
+            std::scoped_lock lock{mutex_};
+            return allocator_.create_array<std::atomic<const Red *>>(count);
         }
 
         constexpr std::size_t num_roots() const noexcept

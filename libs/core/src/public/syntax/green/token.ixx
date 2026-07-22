@@ -27,11 +27,6 @@ namespace prism
 
         static GreenPtr<GreenToken> from(SyntaxKind kind);
 
-        [[nodiscard]] constexpr bool is_token() const noexcept final
-        {
-            return true;
-        }
-
         [[nodiscard]] virtual std::string_view text() const;
 
         [[nodiscard]] constexpr const GreenTriviaList &leading_trivia() const noexcept
@@ -50,6 +45,18 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const final;
 
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return prism::is_token(node.kind());
+        }
+
+        [[nodiscard]] const SyntaxNode &create_red(const SyntaxLifetime &,
+                                                   const SyntaxNode *,
+                                                   std::uint32_t) const final
+        {
+            throw UnsupportedOperationException{};
+        }
+
         [[nodiscard]] virtual GreenPtr<GreenToken> with_leading_trivia(GreenTriviaList leading_trivia) const;
 
         [[nodiscard]] virtual GreenPtr<GreenToken> with_trailing_trivia(GreenTriviaList trailing_trivia) const;
@@ -60,14 +67,6 @@ namespace prism
       protected:
         [[nodiscard]] virtual GreenPtr<GreenToken> clone_with_trivia(GreenTriviaList leading_trivia,
                                                                      GreenTriviaList trailing_trivia) const;
-
-      public:
-        [[nodiscard]] const SyntaxNode &create_red(const SyntaxLifetime &,
-                                                   const SyntaxNode *,
-                                                   std::uint32_t) const final
-        {
-            throw UnsupportedOperationException{};
-        }
 
       private:
         GreenTriviaList leading_trivia_;

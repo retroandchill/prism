@@ -64,14 +64,19 @@ namespace prism
             return kind_;
         }
 
-        [[nodiscard]] virtual constexpr bool is_token() const noexcept
+        [[nodiscard]] constexpr bool is_list() const noexcept
         {
-            return false;
+            return kind_ == SyntaxKind::list;
         }
 
-        [[nodiscard]] virtual constexpr bool is_trivia() const noexcept
+        [[nodiscard]] constexpr bool is_token() const noexcept
         {
-            return false;
+            return prism::is_token(kind_);
+        }
+
+        [[nodiscard]] constexpr bool is_trivia() const noexcept
+        {
+            return prism::is_trivia(kind_);
         }
 
         [[nodiscard]] constexpr std::uint32_t full_width() const noexcept
@@ -170,7 +175,7 @@ namespace prism
             return get_child(index).and_then([](const GreenNode &child) { return child.as<T>(); });
         }
 
-        template <std::derived_from<GreenNode> T>
+        template <std::derived_from<GreenNode> T = GreenNode>
         const T &get_child_unchecked(const std::size_t index) const
         {
             return static_cast<const T &>(*get_child(index));

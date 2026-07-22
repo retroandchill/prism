@@ -30,11 +30,6 @@ namespace prism
         static const GreenPtr<GreenTrivia> &carriage_return();
         static const GreenPtr<GreenTrivia> &line_feed();
 
-        [[nodiscard]] constexpr bool is_trivia() const noexcept override
-        {
-            return true;
-        }
-
         [[nodiscard]] constexpr const std::string &text() const noexcept
         {
             return text_;

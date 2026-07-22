@@ -12,9 +12,22 @@ module prism.core:syntax.node.impl;
 
 import :syntax.node;
 import :syntax.tree;
+import :syntax.child_list;
+import :syntax.trivia;
+import :util.overload;
 
 namespace prism
 {
+
+    SyntaxTriviaList SyntaxNode::leading_trivia() const noexcept
+    {
+        return first_token().leading_trivia();
+    }
+
+    SyntaxTriviaList SyntaxNode::trailing_trivia() const noexcept
+    {
+        return last_token().trailing_trivia();
+    }
 
     const SyntaxTree &SyntaxNode::tree() const
     {
@@ -28,9 +41,86 @@ namespace prism
 
         return *tree;
     }
-    const SyntaxLifetime &SyntaxNode::lifetime() const
+
+    SyntaxLifetime &SyntaxNode::lifetime() const
     {
         return *tree().lifetime_;
+    }
+
+    std::uint32_t SyntaxNode::get_child_position(std::size_t index) const
+    {
+        if (const auto cached = get_cached_slot(index); cached.has_value())
+        {
+            return cached->position_;
+        }
+
+        std::uint32_t offset = 0;
+        auto *green = green_;
+        while (index > 0)
+        {
+            index--;
+            if (const auto prev_sibling = get_cached_slot(index); prev_sibling.has_value())
+            {
+                return prev_sibling->end_position() + offset;
+            }
+
+            if (const auto green_child = green->get_child(index); green_child.has_value())
+            {
+                offset += green_child->full_width();
+            }
+        }
+
+        return position_ + offset;
+    }
+
+    ChildSyntaxList SyntaxNode::child_nodes_and_tokens() const
+    {
+        return ChildSyntaxList{*this};
+    }
+
+    std::generator<const SyntaxNode &> SyntaxNode::child_nodes() const
+    {
+        for (const auto child : child_nodes_and_tokens())
+        {
+            auto *node = get_if<SyntaxNodeRef>(&child);
+            if (node != nullptr)
+                co_yield node->get();
+        }
+    }
+
+    std::generator<SyntaxToken> SyntaxNode::child_tokens() const
+    {
+        for (const auto child : child_nodes_and_tokens())
+        {
+            if (auto *token = get_if<SyntaxToken>(&child); token != nullptr)
+                co_yield *token;
+        }
+    }
+
+    SyntaxToken SyntaxNode::first_token() const
+    {
+        auto first = child_nodes_and_tokens().first();
+        const auto *token = get_if<SyntaxToken>(&first);
+        while (token == nullptr)
+        {
+            first = get<SyntaxNodeRef>(first).get().child_nodes_and_tokens().first();
+            token = get_if<SyntaxToken>(&first);
+        }
+
+        return *token;
+    }
+
+    SyntaxToken SyntaxNode::last_token() const
+    {
+        auto last = child_nodes_and_tokens().last();
+        const auto *token = get_if<SyntaxToken>(&last);
+        while (token == nullptr)
+        {
+            last = get<SyntaxNodeRef>(last).get().child_nodes_and_tokens().last();
+            token = get_if<SyntaxToken>(&last);
+        }
+
+        return *token;
     }
 
     const SyntaxTree *SyntaxNode::compute_tree(const SyntaxNode *node)

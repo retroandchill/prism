@@ -19,7 +19,7 @@ namespace prism
 
         constexpr SyntaxListViewIterator() noexcept = default;
 
-        constexpr explicit SyntaxListViewIterator(const T &view, std::size_t index = 0)
+        constexpr explicit SyntaxListViewIterator(const T &view, const std::size_t index = 0)
             : view_{std::addressof(view)}, index_{index}
         {
         }
@@ -128,6 +128,24 @@ namespace prism
         SyntaxListView &operator=(SyntaxListView &&) = default;
 
         using value_type = T;
+
+        template <typename Self>
+        constexpr bool empty(this const Self &self) noexcept
+        {
+            return self.size() == 0;
+        }
+
+        template <typename Self>
+        constexpr decltype(auto) first(this const Self &self)
+        {
+            return self[0];
+        }
+
+        template <typename Self>
+        constexpr decltype(auto) last(this const Self &self)
+        {
+            return self[self.size() - 1];
+        }
 
         template <typename Self>
             requires std::is_lvalue_reference_v<Self>

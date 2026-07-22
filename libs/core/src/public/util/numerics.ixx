@@ -11,6 +11,9 @@ import std;
 
 namespace prism
 {
+    export template <std::integral T>
+    constexpr T index_none = static_cast<T>(-1);
+
     export using BigInteger = boost::multiprecision::cpp_int;
     export using BigDecimal = boost::multiprecision::cpp_dec_float_50;
 

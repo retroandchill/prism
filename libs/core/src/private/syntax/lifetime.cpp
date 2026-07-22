@@ -10,6 +10,11 @@ import :syntax.lifetime;
 
 namespace prism
 {
+    void SyntaxLifetime::add_root(GreenPtr<GreenNode> root) noexcept
+    {
+        std::scoped_lock lock{mutex_};
+        roots_.push_back(std::move(root));
+    }
 
     void SyntaxLifetime::reset() noexcept
     {

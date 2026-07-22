@@ -28,8 +28,8 @@ namespace prism
         {
         }
 
-        SyntaxToken(const GreenToken &token, const SyntaxNode &parent, const std::uint32_t position)
-            : green_{&token}, parent_{&parent}, position_{position}
+        SyntaxToken(const GreenToken &token, const SyntaxNode *parent, const std::uint32_t position)
+            : parent_{parent}, green_{&token}, position_{position}
         {
         }
 
@@ -109,6 +109,7 @@ namespace prism
       private:
         friend class SyntaxTriviaList;
         friend class Lexer;
+        friend class ChildSyntaxList;
 
         const SyntaxNode *parent_ = nullptr;
         const GreenToken *green_;

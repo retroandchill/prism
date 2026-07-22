@@ -67,7 +67,7 @@ namespace prism
 
         constexpr explicit SyntaxTriviaList(SyntaxToken parent,
                                             const GreenTriviaList &trivia_list,
-                                            std::uint32_t position)
+                                            const std::uint32_t position)
             : parent_{std::move(parent)}, green_{trivia_list}, position_{position}
         {
         }
