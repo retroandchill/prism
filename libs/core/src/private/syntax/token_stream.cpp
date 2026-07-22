@@ -6,7 +6,7 @@
  */
 module;
 
-#include <cassert>
+#include <libassert/assert-macros.hpp>
 
 module prism.core:syntax.token_stream.impl;
 
@@ -38,7 +38,7 @@ namespace prism
     void TokenStream::replace_next(GreenPtr<GreenToken> token)
     {
         [[maybe_unused]] const auto &next = peek();
-        assert(next.kind() != SyntaxKind::eof_token);
+        DEBUG_ASSERT(next.kind() != SyntaxKind::eof_token);
 
         lookahead_.pop_front();
         lookahead_.push_front(std::move(token));

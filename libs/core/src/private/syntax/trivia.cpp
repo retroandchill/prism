@@ -17,6 +17,10 @@ namespace prism
             throw std::out_of_range{"Invalid index"};
 
         auto &element = green_[index];
-        return SyntaxTrivia{parent_, element, parent_.position_ + green_.node().get_child_offset(index)};
+        auto position =
+            parent_.position_ + green_.node()
+                                    .transform([index](const GreenNode &node) { return node.get_child_offset(index); })
+                                    .value_or(0);
+        return SyntaxTrivia{parent_, element, position};
     }
 } // namespace prism

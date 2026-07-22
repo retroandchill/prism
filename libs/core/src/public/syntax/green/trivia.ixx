@@ -6,13 +6,14 @@
  */
 module;
 
-#include <cassert>
+#include <libassert/assert-macros.hpp>
 
 export module prism.core:syntax.green.trivia;
 
 import :syntax.green.node;
 import :syntax.green.list;
 import :util.exceptions;
+import libassert;
 
 namespace prism
 {
@@ -22,8 +23,8 @@ namespace prism
         constexpr GreenTrivia(const SyntaxKind kind, std::string text)
             : GreenNode{kind, static_cast<std::uint32_t>(text.size())}, text_{std::move(text)}
         {
-            assert(text_.size() <= std::numeric_limits<std::uint32_t>::max());
-            assert(prism::is_trivia(kind));
+            DEBUG_ASSERT(text_.size() <= std::numeric_limits<std::uint32_t>::max());
+            DEBUG_ASSERT(prism::is_trivia(kind));
         }
 
         static const GreenPtr<GreenTrivia> &carriage_return_line_feed();

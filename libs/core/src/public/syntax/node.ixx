@@ -108,6 +108,8 @@ namespace prism
 
         [[nodiscard]] virtual Optional<const SyntaxNode &> get_node_slot(std::size_t index) const = 0;
 
+        [[nodiscard]] const SyntaxNode &get_required_node_slot(std::size_t index) const;
+
         template <std::derived_from<SyntaxNode> T>
         Optional<const T &> get_red(std::atomic<const T *> &slot) const
         {
@@ -196,6 +198,7 @@ namespace prism
         }
 
       private:
+        friend class SyntaxNodeOrTokenList;
         friend class ChildSyntaxList;
 
         static const SyntaxTree *compute_tree(const SyntaxNode *node);

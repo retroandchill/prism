@@ -25,5 +25,8 @@
   }, {
     "name" : "boost-container",
     "version>=" : "1.91.0"
+  }, {
+    "name" : "libassert",
+    "version>=" : "2.2.1"
   } ]
 }

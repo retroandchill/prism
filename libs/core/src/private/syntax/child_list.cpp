@@ -6,7 +6,7 @@
  */
 module;
 
-#include <cassert>
+#include <libassert/assert-macros.hpp>
 
 module prism.core:syntax.child_list.impl;
 
@@ -53,7 +53,7 @@ namespace prism
         Optional<const GreenNode &> green_child;
         auto &green = node.green();
 
-        assert(index > slot_data.preceding_occupant_slot_count);
+        DEBUG_ASSERT(index > slot_data.preceding_occupant_slot_count);
         auto idx = index - slot_data.preceding_occupant_slot_count;
         auto slot_index = slot_data.slot_index;
         auto position = slot_data.slot_index;
@@ -102,8 +102,8 @@ namespace prism
             green_child = green_child->get_child(idx);
         }
 
-        assert(green_child->is<GreenToken>());
-        assert(position <= std::numeric_limits<std::uint32_t>::max());
+        ASSUME(green_child->is<GreenToken>(), "The child must be a token");
+        DEBUG_ASSERT(position <= std::numeric_limits<std::uint32_t>::max());
         return SyntaxToken{static_cast<const GreenToken &>(*green_child), &node, static_cast<std::uint32_t>(position)};
     }
 

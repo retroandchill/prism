@@ -6,13 +6,14 @@
  */
 module;
 
-#include <cassert>
+#include <libassert/assert-macros.hpp>
 
 export module prism.core:text.source_file;
 
 import std;
 import :text.text_span;
 import uni_algo;
+import libassert;
 
 namespace prism
 {
@@ -35,7 +36,7 @@ namespace prism
       public:
         constexpr explicit SourceText(std::string text) : text_{std::move(text)}
         {
-            assert(text.size() <= std::numeric_limits<std::uint32_t>::max());
+            DEBUG_ASSERT(text.size() <= std::numeric_limits<std::uint32_t>::max());
 
             line_offsets_.push_back(0);
             for (std::uint32_t i = 0; i < text_.size(); ++i)

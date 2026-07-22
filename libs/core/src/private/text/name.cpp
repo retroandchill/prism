@@ -8,7 +8,7 @@ module;
 
 #include "prism/core/names.hpp"
 
-#include <cassert>
+#include <libassert/assert-macros.hpp>
 
 module prism.core:text.name.impl;
 
@@ -16,6 +16,7 @@ import :text.name;
 import xxhash;
 import :memory.alignment;
 import :util.make_array;
+import libassert;
 
 namespace prism
 {
@@ -68,8 +69,8 @@ namespace prism
 
         constexpr NameEntryHandle(const std::uint32_t block, const std::uint32_t offset) : block(block), offset(offset)
         {
-            assert(block < name_max_blocks);
-            assert(offset < name_block_offsets);
+            DEBUG_ASSERT(block < name_max_blocks);
+            DEBUG_ASSERT(offset < name_block_offsets);
         }
 
         constexpr explicit(false) NameEntryHandle(const NameEntryId id)
@@ -103,7 +104,8 @@ namespace prism
         constexpr NameSlot(const NameEntryId value, const std::uint32_t probe_hash)
             : id_and_hash_{value.to_unstable_int() | probe_hash}
         {
-            assert((value.to_unstable_int() & probe_hash_mask) == 0 && (probe_hash & entry_id_mask) == 0 && used());
+            DEBUG_ASSERT((value.to_unstable_int() & probe_hash_mask) == 0 && (probe_hash & entry_id_mask) == 0 &&
+                         used());
         }
 
         [[nodiscard]] constexpr NameEntryId id() const noexcept
@@ -155,8 +157,8 @@ namespace prism
 
         NameEntryHandle allocate(const std::uint32_t bytes)
         {
-            assert(current_byte_cursor_ % stride == 0);
-            assert(current_byte_cursor_ + bytes <= block_size_bytes);
+            DEBUG_ASSERT(current_byte_cursor_ % stride == 0);
+            DEBUG_ASSERT(current_byte_cursor_ + bytes <= block_size_bytes);
 
             auto byte_offset = current_byte_cursor_;
             auto step = align(bytes, alignof(NameEntry));
@@ -180,7 +182,7 @@ namespace prism
                 bytes = NameStore::try_place(std::next(blocks_[current_block_].get(), current_byte_cursor_),
                                              block_size_bytes - current_byte_cursor_,
                                              name);
-                assert(bytes != 0);
+                DEBUG_ASSERT(bytes != 0);
             }
 
             return allocate(bytes);
@@ -236,7 +238,7 @@ namespace prism
             ++current_block_;
             current_byte_cursor_ = 0;
 
-            assert(current_block_ < name_max_blocks);
+            DEBUG_ASSERT(current_block_ < name_max_blocks);
             if (blocks_[current_block_] == nullptr)
             {
                 blocks_[current_block_] = alloc_block();
@@ -384,7 +386,7 @@ namespace prism
 
         void claim_slot(NameSlot &unused_slot, NameSlot new_value)
         {
-            assert(!unused_slot.used());
+            DEBUG_ASSERT(!unused_slot.used());
 
             unused_slot = new_value;
             ++used_slots_;
@@ -425,7 +427,7 @@ namespace prism
                 rehash_and_insert(old_slot);
             }
 
-            assert(old_used_slots == used_slots_);
+            DEBUG_ASSERT(old_used_slots == used_slots_);
             slots_ = std::move(new_slots);
         }
 
@@ -453,7 +455,7 @@ namespace prism
 
         void rehash_and_insert(const NameSlot old_slot)
         {
-            assert(old_slot.used());
+            DEBUG_ASSERT(old_slot.used());
 
             const auto &entry = entries_.resolve(old_slot.id());
             const auto name = entry.get_name();
@@ -526,7 +528,7 @@ namespace prism
 
         NameEntryId find(const KnownName name) const
         {
-            assert(std::to_underlying(name) < std::to_underlying(KnownName::count));
+            DEBUG_ASSERT(std::to_underlying(name) < std::to_underlying(KnownName::count));
             return known_names_[std::to_underlying(name)];
         }
 
@@ -714,7 +716,7 @@ namespace prism
             return pool.store(str);
         }
 
-        assert(find_type == FindName::find);
+        DEBUG_ASSERT(find_type == FindName::find);
         return pool.find(str);
     }
 

@@ -6,7 +6,7 @@
  */
 module;
 
-#include <cassert>
+#include <libassert/assert-macros.hpp>
 
 module prism.core:syntax.node.impl;
 
@@ -37,7 +37,7 @@ namespace prism
             tree = compute_tree(this);
         }
 
-        assert(tree != nullptr);
+        DEBUG_ASSERT(tree != nullptr);
 
         return *tree;
     }
@@ -45,6 +45,10 @@ namespace prism
     SyntaxLifetime &SyntaxNode::lifetime() const
     {
         return *tree().lifetime_;
+    }
+    const SyntaxNode &SyntaxNode::get_required_node_slot(std::size_t index) const
+    {
+        return get_node_slot(index).value();
     }
 
     std::uint32_t SyntaxNode::get_child_position(std::size_t index) const
@@ -154,13 +158,13 @@ namespace prism
             node = parent;
         }
 
-        assert(tree != nullptr);
+        ASSUME(tree != nullptr);
 
         for (auto *n : nodes)
         {
             if (auto *existing_tree = n->tree_.load(std::memory_order_acquire); existing_tree != nullptr)
             {
-                assert(existing_tree == tree);
+                DEBUG_ASSERT(existing_tree == tree);
                 break;
             }
 

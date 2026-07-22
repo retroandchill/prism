@@ -6,28 +6,23 @@
  */
 module;
 
-#include <cassert>
+#include <libassert/assert-macros.hpp>
 
 module prism.core:syntax.green.list.impl;
 
 import :syntax.green.list;
+import libassert;
 
 namespace prism
 {
     GreenListNode::GreenListNode(GreenSyntaxVector children)
         : GreenNode{SyntaxKind::list}, children_{std::move(children)}
     {
-        assert(children_.size() <= std::numeric_limits<std::uint32_t>::max());
+        DEBUG_ASSERT(children_.size() <= std::numeric_limits<std::uint32_t>::max());
         set_child_count(static_cast<std::uint32_t>(children_.size()));
         for (auto &child : children_)
         {
-            assert(child != nullptr);
+            DEBUG_ASSERT(child != nullptr);
         }
-    }
-
-    const GreenPtr<GreenListNode> &GreenListNode::empty()
-    {
-        static auto instance = make_ref_counted<const GreenListNode>();
-        return instance;
     }
 } // namespace prism

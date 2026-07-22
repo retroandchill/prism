@@ -6,12 +6,13 @@
  */
 module;
 
-#include <cassert>
+#include <libassert/assert-macros.hpp>
 
 export module prism.core:memory.arena_allocator;
 
 import std;
 import :util.noncopyable;
+import libassert;
 
 namespace prism
 {
@@ -116,9 +117,9 @@ namespace prism
                                       const std::size_t max_blocks = std::numeric_limits<std::size_t>::max())
             : block_capacity_{block_capacity}, max_blocks_{max_blocks}
         {
-            assert(block_capacity > alignof(std::max_align_t));
-            assert(max_blocks_ > 0);
-            assert(initial_blocks <= max_blocks_);
+            DEBUG_ASSERT(block_capacity > alignof(std::max_align_t));
+            DEBUG_ASSERT(max_blocks_ > 0);
+            DEBUG_ASSERT(initial_blocks <= max_blocks_);
             blocks_.reserve(std::min(initial_blocks, max_blocks_));
             blocks_.emplace_back(block_capacity);
         }
@@ -313,7 +314,7 @@ namespace prism
             arena_.reset();
         }
 
-      protected:
+      private:
         void *do_allocate(size_t bytes, size_t align) override
         {
             return arena_.allocate(bytes, align);
@@ -330,7 +331,6 @@ namespace prism
             return false;
         }
 
-      private:
         T arena_;
     };
 

@@ -79,6 +79,8 @@ set(PRISM_PUBLIC_MODULES
         src/public/syntax/child_list.ixx
         src/private/syntax/child_list.cpp
         src/public/util/overload.ixx
+        src/public/syntax/node_or_token.ixx
+        src/private/syntax/node_or_token.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})
@@ -88,11 +90,10 @@ target_include_directories(prism_core PUBLIC include
                                       PRIVATE src/private/inline
                                               src/private)
 
-find_package(Boost CONFIG REQUIRED COMPONENTS preprocessor)
 target_link_libraries(prism_core
         PUBLIC Boost::cppm
-                uni_algo_cppm
-                Boost::preprocessor
+                uni-algo::cppm
+                libassert::cppm
         PRIVATE xxHash::cpp)
 
 target_sources(prism_core PUBLIC

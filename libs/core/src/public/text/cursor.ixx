@@ -6,11 +6,12 @@
  */
 module;
 
-#include <cassert>
+#include <libassert/assert-macros.hpp>
 
 export module prism.core:text.cursor;
 
 import std;
+import libassert;
 
 namespace prism
 {
@@ -21,7 +22,7 @@ namespace prism
             : buffer_{text.data()}, position_{0}, length_{static_cast<std::uint32_t>(text.size())}
         {
             // Check to ensure large text buffers don't get truncated
-            assert(text.size() == length_);
+            DEBUG_ASSERT(text.size() == length_);
         }
 
         [[nodiscard]] constexpr std::uint32_t position() const noexcept
@@ -68,7 +69,7 @@ namespace prism
 
         constexpr void advance(const std::uint32_t characters = 1)
         {
-            assert(characters != 0);
+            DEBUG_ASSERT(characters != 0);
             position_ += characters;
         }
 

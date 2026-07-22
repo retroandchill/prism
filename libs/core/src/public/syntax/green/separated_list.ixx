@@ -6,7 +6,7 @@
  */
 module;
 
-#include <cassert>
+#include <libassert/assert-macros.hpp>
 
 export module prism.core:syntax.green.separated_list;
 
@@ -53,7 +53,7 @@ namespace prism
             return list_;
         }
 
-        [[nodiscard]] constexpr const GreenListNode &node() const noexcept
+        [[nodiscard]] constexpr Optional<const GreenNode &> node() const noexcept
         {
             return list_.node();
         }

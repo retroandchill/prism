@@ -6,7 +6,7 @@
  */
 module;
 
-#include <cassert>
+#include <libassert/assert-macros.hpp>
 
 export module prism.core:syntax.green.node;
 
@@ -16,6 +16,7 @@ import :memory.ref_counted_ptr;
 import :diagnostics.diagnostic_info;
 import :util.optional;
 import :util.exceptions;
+import libassert;
 
 namespace prism
 {
@@ -27,11 +28,21 @@ namespace prism
     using GreenPtr = RefCountPtr<const T>;
 
     template <typename T>
-    concept GreenNodeWrapper = requires(const T &wrapper) {
+    concept GreenNodeNotNullWrapper = requires(const T &wrapper) {
         {
             wrapper.node()
         } -> std::convertible_to<const GreenNode &>;
     };
+
+    template <typename T>
+    concept GreenNodeNullableWrapper = requires(const T &wrapper) {
+        {
+            wrapper.node()
+        } -> std::convertible_to<Optional<const GreenNode &>>;
+    };
+
+    template <typename T>
+    concept GreenNodeWrapper = GreenNodeNotNullWrapper<T> || GreenNodeNullableWrapper<T>;
 
     template <typename T>
     concept GreenNodeLike =
@@ -181,11 +192,11 @@ namespace prism
             return static_cast<const T &>(*get_child(index));
         }
 
-        template <std::derived_from<GreenNode> T>
+        template <std::derived_from<GreenNode> T = GreenNode>
         const T &get_required_child(const std::size_t index) const
         {
             auto child = get_child<T>(index);
-            assert(child.has_value());
+            DEBUG_ASSERT(child.has_value());
             return *child;
         }
 
@@ -227,7 +238,18 @@ namespace prism
         template <GreenNodeWrapper T>
         void adjust_flags_and_width(const T &wrapper)
         {
-            adjust_flags_and_width(wrapper.node());
+            if constexpr (GreenNodeNotNullWrapper<T>)
+            {
+                adjust_flags_and_width(wrapper.node());
+            }
+            else
+            {
+                static_assert(GreenNodeNullableWrapper<T>);
+                if (const Optional<const GreenNode &> child = wrapper.node(); child.has_value())
+                {
+                    adjust_flags_and_width(*child);
+                }
+            }
         }
 
       private:

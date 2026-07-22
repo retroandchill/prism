@@ -8,7 +8,7 @@ module;
 
 #include "prism/core/syntax.hpp"
 
-#include <cassert>
+#include <libassert/assert-macros.hpp>
 
 module prism.core:syntax.green.token.impl;
 
@@ -35,7 +35,7 @@ namespace prism
         : GreenNode{kind, width}, leading_trivia_{std::move(leading_trivia)},
           trailing_trivia_{std::move(trailing_trivia)}
     {
-        assert(prism::is_token(kind));
+        DEBUG_ASSERT(prism::is_token(kind));
         set_child_count(2);
         adjust_flags_and_width(leading_trivia_);
         adjust_flags_and_width(trailing_trivia_);
@@ -73,12 +73,12 @@ namespace prism
 
     std::uint32_t GreenToken::leading_trivia_width() const
     {
-        return leading_trivia_.node().width();
+        return leading_trivia_.node().transform([](const GreenNode &trivia) { return trivia.width(); }).value_or(0);
     }
 
     std::uint32_t GreenToken::trailing_trivia_width() const
     {
-        return trailing_trivia_.node().width();
+        return trailing_trivia_.node().transform([](const GreenNode &trivia) { return trivia.width(); }).value_or(0);
     }
 
     Optional<const GreenNode &> GreenToken::get_child(std::size_t index) const

@@ -110,6 +110,9 @@ namespace prism
         friend class SyntaxTriviaList;
         friend class Lexer;
         friend class ChildSyntaxList;
+        friend class SyntaxNodeOrTokenList;
+        template <typename T>
+        friend class SyntaxSeparatedList;
 
         const SyntaxNode *parent_ = nullptr;
         const GreenToken *green_;

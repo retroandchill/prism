@@ -8,19 +8,17 @@ module;
 
 #include "prism/core/exports.h"
 
-#include <cassert>
+#include <libassert/assert-macros.hpp>
 
 export module prism.core:syntax.child_list;
 
 import :syntax.node;
 import :syntax.list_view;
 import :syntax.token;
+import :syntax.node_or_token;
 
 namespace prism
 {
-    using SyntaxNodeRef = std::reference_wrapper<const SyntaxNode>;
-    export using SyntaxNodeOrToken = std::variant<SyntaxNodeRef, SyntaxToken>;
-
     export class PRISM_CORE_API ChildSyntaxList : public SyntaxListView<SyntaxNodeOrToken>
     {
       public:

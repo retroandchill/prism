@@ -6,11 +6,12 @@
  */
 module;
 
-#include <cassert>
+#include <libassert/assert-macros.hpp>
 
 export module prism.core:syntax.token_stream;
 
 import :syntax.lexer;
+import libassert;
 
 namespace prism
 {
@@ -30,7 +31,7 @@ namespace prism
 
         [[nodiscard]] constexpr const GreenToken &previous() const
         {
-            assert(!tokens_.empty());
+            ASSUME(!tokens_.empty());
             return *tokens_.back();
         }
 
@@ -45,7 +46,7 @@ namespace prism
         void replace_next(Range &&range)
         {
             [[maybe_unused]] const auto &next = peek();
-            assert(next.kind() != SyntaxKind::eof_token);
+            DEBUG_ASSERT(next.kind() != SyntaxKind::eof_token);
 
             lookahead_.pop_front();
             lookahead_.append_range(std::forward<Range>(range));

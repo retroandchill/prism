@@ -19,17 +19,16 @@ namespace prism
     class GreenListNode final : public GreenNode
     {
       public:
-        constexpr GreenListNode() : GreenNode{SyntaxKind::list}
-        {
-        }
-
         explicit GreenListNode(GreenSyntaxVector children);
-
-        static const GreenPtr<GreenListNode> &empty();
 
         [[nodiscard]] constexpr Optional<const GreenNode &> get_child(const std::size_t index) const override
         {
             return children_[index].get();
+        }
+
+        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::list;
         }
 
       private:
@@ -53,18 +52,24 @@ namespace prism
             children_.reserve(capacity);
         }
 
-        GreenPtr<GreenListNode> build() const &
+        GreenPtr<GreenNode> build() const &
         {
             if (children_.empty())
-                return GreenListNode::empty();
+                return nullptr;
+
+            if (children_.size() == 1)
+                return children_[0];
 
             return make_ref_counted<const GreenListNode>(children_);
         }
 
-        GreenPtr<GreenListNode> build() &&
+        GreenPtr<GreenNode> build() &&
         {
             if (children_.empty())
-                return GreenListNode::empty();
+                return nullptr;
+
+            if (children_.size() == 1)
+                return children_[0];
 
             return make_ref_counted<GreenListNode>(std::move(children_));
         }
@@ -76,22 +81,12 @@ namespace prism
     template <typename T, bool Owning = true>
     class GreenSyntaxList : public SyntaxListView<T>
     {
-        using Ptr = std::conditional_t<Owning, GreenPtr<GreenListNode>, const GreenListNode *>;
+        using Ptr = std::conditional_t<Owning, GreenPtr<GreenNode>, const GreenNode *>;
 
       public:
         using value_type = T;
 
-        constexpr GreenSyntaxList()
-            requires(!Owning)
-            : children_{GreenListNode::empty().get()}
-        {
-        }
-
-        constexpr GreenSyntaxList()
-            requires(Owning)
-            : children_{GreenListNode::empty()}
-        {
-        }
+        constexpr GreenSyntaxList() = default;
 
         explicit(false) constexpr GreenSyntaxList(const GreenSyntaxList<T> &other)
             requires(!Owning)
@@ -99,13 +94,13 @@ namespace prism
         {
         }
 
-        explicit constexpr GreenSyntaxList(const GreenListNode &children)
+        explicit constexpr GreenSyntaxList(const GreenNode &children)
             requires(!Owning)
             : children_{&children}
         {
         }
 
-        explicit constexpr GreenSyntaxList(GreenPtr<GreenListNode> children)
+        explicit constexpr GreenSyntaxList(GreenPtr<GreenNode> children)
             requires(Owning)
             : children_{std::move(children)}
         {
@@ -119,24 +114,45 @@ namespace prism
         constexpr GreenSyntaxList &operator=(const GreenSyntaxList &) = default;
         constexpr GreenSyntaxList &operator=(GreenSyntaxList &&) noexcept = default;
 
-        [[nodiscard]] constexpr bool empty() const noexcept
-        {
-            return size() == 0;
-        }
-
         [[nodiscard]] constexpr std::size_t size() const noexcept
         {
-            return children_->child_count();
+            if (children_ == nullptr)
+                return 0;
+
+            return children_->template is<GreenListNode>() ? children_->child_count() : 1;
         }
 
         [[nodiscard]] const T &operator[](const std::size_t index) const
         {
-            return static_cast<const T &>(*children_->get_child(index));
+            if (children_ == nullptr)
+                throw std::out_of_range{"Index out of range"};
+
+            auto list = children_->template as<GreenListNode>();
+            if (!list.has_value())
+            {
+                if (index != 0)
+                    throw std::out_of_range{"Index out of range"};
+
+                return static_cast<const T &>(*children_);
+            }
+
+            auto child = list->get_child(index);
+            if (!child.has_value())
+                throw std::out_of_range{"Index out of range"};
+
+            return static_cast<const T &>(*child);
         }
 
-        [[nodiscard]] constexpr const GreenListNode &node() const noexcept
+        [[nodiscard]] constexpr Optional<const GreenNode &> node() const noexcept
         {
-            return *children_;
+            if constexpr (Owning)
+            {
+                return children_.get();
+            }
+            else
+            {
+                return children_;
+            }
         }
 
         constexpr friend bool operator==(const GreenSyntaxList &lhs, const GreenSyntaxList &rhs) noexcept
@@ -148,7 +164,7 @@ namespace prism
         template <typename U, bool OtherOwning>
         friend class GreenSyntaxList;
 
-        Ptr children_;
+        Ptr children_ = nullptr;
     };
 
     template <typename T>
@@ -160,7 +176,7 @@ namespace prism
             return static_cast<const T &>(inner_.add(std::move(child)));
         }
 
-        void reserve(std::uint32_t capacity)
+        void reserve(const std::uint32_t capacity)
         {
             inner_.reserve(capacity);
         }
