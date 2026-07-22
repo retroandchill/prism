@@ -13,6 +13,7 @@
       <PackageReference Include="Handlebars.Net" />
       <PackageReference Include="Humanizer" />
       <PackageReference Include="JetBrains.Annotations" />
+      <PackageReference Include="Riok.Mapperly" />
       <PackageReference Include="Utf8StringInterpolation" />
       <PackageReference Include="ZLinq" />
       <PackageReference Include="ZString" />

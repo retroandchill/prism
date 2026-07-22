@@ -10,13 +10,18 @@ public sealed class SyntaxModule
     private readonly List<SyntaxNode> _nodes = [];
     private readonly HashSet<SyntaxModule> _dependencies = [];
     private readonly HashSet<SyntaxNode> _forwardDeclarations = [];
-    public required string Name { get; init; }
+    public string Name { get; }
 
     public IReadOnlyList<SyntaxNode> Nodes => _nodes;
 
     public IReadOnlySet<SyntaxModule> Dependencies => _dependencies;
 
     public IReadOnlySet<SyntaxNode> ForwardDeclarations => _forwardDeclarations;
+
+    internal SyntaxModule(string name)
+    {
+        Name = name;
+    }
 
     internal void AddNode(SyntaxNode node)
     {

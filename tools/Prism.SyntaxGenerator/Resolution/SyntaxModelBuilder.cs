@@ -156,7 +156,7 @@ public sealed class SyntaxModelBuilder
         var nextStart = SyntaxNodeStart;
         foreach (var module in spec.Modules)
         {
-            var resolvedModule = new SyntaxModule { Name = module.Name };
+            var resolvedModule = new SyntaxModule(module.Name);
             _modules.Add(module.Name, resolvedModule);
             if (module.Nodes.IsEmpty)
                 continue;

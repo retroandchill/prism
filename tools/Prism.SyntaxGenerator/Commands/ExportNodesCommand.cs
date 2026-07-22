@@ -7,6 +7,7 @@ using System.Text.Json;
 using DotMake.CommandLine;
 using Humanizer;
 using Prism.SyntaxGenerator.Emitters;
+using Prism.SyntaxGenerator.Mappers;
 using Prism.SyntaxGenerator.Models.Spec;
 using Prism.SyntaxGenerator.Output;
 using Prism.SyntaxGenerator.Resolution;
@@ -48,9 +49,10 @@ public class ExportNodesCommand
 
         var builder = new SyntaxModelBuilder();
         var resolvedModel = builder.Build(syntax);
+        var cppModel = resolvedModel.ToCpp();
 
         using var writer = new CodeWriter();
-        var emitter = new CppEmitter(resolvedModel);
+        var emitter = new CppEmitter(cppModel);
 
         emitter.EmitSyntaxKinds(writer);
         await WriteCodeAsync(
@@ -66,7 +68,7 @@ public class ExportNodesCommand
             context.CancellationToken
         );
 
-        foreach (var module in resolvedModel.Modules)
+        foreach (var module in cppModel.Modules)
         {
             var moduleName = module.Name.Underscore();
             emitter.EmitGreenNodeInterface(writer, module);

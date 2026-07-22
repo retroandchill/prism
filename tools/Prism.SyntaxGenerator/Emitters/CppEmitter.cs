@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using Humanizer;
+using Prism.SyntaxGenerator.Metadata;
 using Prism.SyntaxGenerator.Models.Cpp;
 using Prism.SyntaxGenerator.Models.Resolved;
 using Prism.SyntaxGenerator.Models.Spec;
@@ -14,39 +15,24 @@ namespace Prism.SyntaxGenerator.Emitters;
 
 public sealed class CppEmitter
 {
-    private const string BaseModuleName = "prism.core";
-    private const string SyntaxKindClass = "SyntaxKind";
-    private const string GreenNodeClass = "GreenNode";
-    private const string GreenTokenClass = "GreenToken";
-    private const string PrismNamespace = "prism";
-    private const string GreenFragmentName = "syntax.green";
-    private const string RedFragmentName = "syntax";
+    private readonly CppSyntaxModel _model;
 
-    private readonly SyntaxModel _model;
-    private readonly Dictionary<SyntaxKind, string> _syntaxKindCppNames = new();
-    private readonly Dictionary<SyntaxGroup, string> _syntaxKindGroupCppNames = new();
-    private readonly Dictionary<SyntaxGroup, string> _syntaxKindGroupDisplayNames = new();
-    private readonly Dictionary<SyntaxModule, string> _syntaxModuleCppNames = new();
-    private readonly Dictionary<SyntaxNode, string> _syntaxGreenClassNames = new();
-    private readonly Dictionary<SyntaxProperty, CppPropertyInfo> _propertyInfos = new();
-
-    public CppEmitter(SyntaxModel model)
+    public CppEmitter(CppSyntaxModel model)
     {
         _model = model;
-        _syntaxKindCppNames.EnsureCapacity(model.Kinds.Length);
     }
 
     #region Syntax Kinds
     public void EmitSyntaxKinds(CodeWriter writer)
     {
-        writer.WriteLine($"export module {BaseModuleName}:syntax.kind;");
+        writer.WriteLine($"export module {CommonNames.BaseModuleName}:syntax.kind;");
         writer.WriteLine();
         writer.WriteLine("import std;");
         writer.WriteLine();
 
-        using var namespaceScope = writer.EnterNamespaceScope(PrismNamespace);
+        using var namespaceScope = writer.EnterNamespaceScope(CommonNames.PrismNamespace);
 
-        writer.WriteLine($"export enum class {SyntaxKindClass} : std::uint16_t");
+        writer.WriteLine($"export enum class {CommonNames.SyntaxKindClass} : std::uint16_t");
         using (writer.EnterBlockScope(true))
         {
             writer.WriteLine("none = 0,");
@@ -55,20 +41,20 @@ public sealed class CppEmitter
             foreach (var group in _model.KindGroups)
             {
                 writer.WriteLine();
-                writer.WriteLineUnindented($"#pragma region {GetDisplayName(group)}");
-                writer.WriteLine($"{GetCppName(group)}_start = {group.StartValue},");
+                writer.WriteLineUnindented($"#pragma region {group.CppName}");
+                writer.WriteLine($"{group.CppName}_start = {group.StartValue},");
                 foreach (var kind in group.SyntaxKinds)
                 {
-                    writer.WriteLine($"{GetCppName(kind)} = {kind.Value},");
+                    writer.WriteLine($"{group.Kind} = {kind.Value},");
                 }
-                writer.WriteLine($"{GetCppName(group)}_end = {group.EndValue},");
+                writer.WriteLine($"{group.CppName}_end = {group.EndValue},");
                 writer.WriteLineUnindented("#pragma endregion");
             }
         }
         writer.WriteLine();
 
         writer.WriteLine(
-            $"export constexpr std::string_view get_name(const {SyntaxKindClass} kind)"
+            $"export constexpr std::string_view get_name(const {CommonNames.SyntaxKindClass} kind)"
         );
         using (writer.EnterBlockScope())
         {
@@ -77,23 +63,25 @@ public sealed class CppEmitter
             foreach (var kind in _model.Kinds)
             {
                 writer.WriteLine(
-                    $"case {SyntaxKindClass}::{GetCppName(kind)}: return \"{GetDisplayName(kind)}\";"
+                    $"case {CommonNames.SyntaxKindClass}::{kind.CppName}: return \"{kind.DisplayName}\";"
                 );
             }
             writer.WriteLine(
-                $"default: throw std::invalid_argument{{\"Unknown {SyntaxKindClass}\"}};"
+                $"default: throw std::invalid_argument{{\"Unknown {CommonNames.SyntaxKindClass}\"}};"
             );
         }
 
         foreach (var group in _model.KindGroups)
         {
             writer.WriteLine();
-            var groupName = GetCppName(group);
-            writer.WriteLine($"export constexpr bool is_{groupName}(const {SyntaxKindClass} kind)");
+            var groupName = group.CppName;
+            writer.WriteLine(
+                $"export constexpr bool is_{groupName}(const {CommonNames.SyntaxKindClass} kind)"
+            );
             using var block = writer.EnterBlockScope();
             writer.WriteLine(
-                $"return std::to_underlying(kind) >= std::to_underlying({SyntaxKindClass}::{groupName}_start) "
-                    + $"&& std::to_underlying(kind) <= std::to_underlying({SyntaxKindClass}::{groupName}_end);"
+                $"return std::to_underlying(kind) >= std::to_underlying({CommonNames.SyntaxKindClass}::{groupName}_start) "
+                    + $"&& std::to_underlying(kind) <= std::to_underlying({CommonNames.SyntaxKindClass}::{groupName}_end);"
             );
         }
 
@@ -106,11 +94,13 @@ public sealed class CppEmitter
     private void EmitIsSyntaxCategory(
         CodeWriter writer,
         string groupName,
-        Func<SyntaxGroup, bool> predicate
+        Func<CppGroup, bool> predicate
     )
     {
         writer.WriteLine();
-        writer.WriteLine($"export constexpr bool is_{groupName}(const {SyntaxKindClass} kind)");
+        writer.WriteLine(
+            $"export constexpr bool is_{groupName}(const {CommonNames.SyntaxKindClass} kind)"
+        );
         using (writer.EnterBlockScope())
         {
             writer.Write("return ");
@@ -121,7 +111,7 @@ public sealed class CppEmitter
                 {
                     writer.Write(" || ");
                 }
-                writer.Write($"is_{GetCppName(kind)}(kind)");
+                writer.Write($"is_{kind.CppName}(kind)");
                 itemWritten = true;
             }
 
@@ -137,12 +127,12 @@ public sealed class CppEmitter
     #region Lexing Utils
     public void EmitLexingUtils(CodeWriter writer)
     {
-        writer.WriteLine($"export module {BaseModuleName}:syntax.lexing_utils;");
+        writer.WriteLine($"export module {CommonNames.BaseModuleName}:syntax.lexing_utils;");
         writer.WriteLine();
-        writer.WriteLine($"import :{GreenFragmentName}.token;");
+        writer.WriteLine($"import :{CommonNames.GreenFragmentName}.token;");
         writer.WriteLine("import :text.cursor;");
         writer.WriteLine();
-        using var scope = writer.EnterNamespaceScope(PrismNamespace);
+        using var scope = writer.EnterNamespaceScope(CommonNames.PrismNamespace);
         EmitStaticTokenLookup(writer);
 
         writer.WriteLine();
@@ -155,7 +145,7 @@ public sealed class CppEmitter
     private void EmitStaticTokenLookup(CodeWriter writer)
     {
         writer.WriteLine(
-            $"GreenPtr<{GreenTokenClass}> get_static_green_token(const {SyntaxKindClass} kind)"
+            $"GreenPtr<{CommonNames.GreenTokenClass}> get_static_green_token(const {CommonNames.SyntaxKindClass} kind)"
         );
         using var scope = writer.EnterBlockScope();
         EmitStaticGreenTokenBranch(writer, "keyword", t => t.Category == TokenCategory.Keyword);
@@ -174,7 +164,7 @@ public sealed class CppEmitter
     private void EmitStaticGreenTokenBranch(
         CodeWriter writer,
         string category,
-        Func<SyntaxToken, bool> predicate
+        Func<CppToken, bool> predicate
     )
     {
         writer.WriteLine("if (is_keyword(kind))");
@@ -186,14 +176,14 @@ public sealed class CppEmitter
                 foreach (var keyword in _model.Tokens.AsValueEnumerable().Where(predicate))
                 {
                     writer.WriteLine(
-                        $"make_ref_counted<{GreenTokenClass}>({SyntaxKindClass}::{GetCppName(keyword.Kind)}),"
+                        $"make_ref_counted<{CommonNames.GreenTokenClass}>({CommonNames.SyntaxKindClass}::{keyword.Kind.CppName}),"
                     );
                 }
             }
 
             writer.WriteLine();
             writer.WriteLine(
-                $"return {category}_list[std::to_underlying(kind) - std::to_underlying({SyntaxKindClass}::{category}_start)];"
+                $"return {category}_list[std::to_underlying(kind) - std::to_underlying({CommonNames.SyntaxKindClass}::{category}_start)];"
             );
         }
     }
@@ -201,7 +191,7 @@ public sealed class CppEmitter
     private void EmitKeywordLookup(CodeWriter writer)
     {
         writer.WriteLine(
-            $"constexpr Optional<{SyntaxKindClass}> match_keyword(const std::string_view text)"
+            $"constexpr Optional<{CommonNames.SyntaxKindClass}> match_keyword(const std::string_view text)"
         );
         using var scope = writer.EnterBlockScope();
         writer.WriteLine("switch (text.size())");
@@ -220,7 +210,7 @@ public sealed class CppEmitter
                 foreach (var keyword in sizeClass.AsValueEnumerable().OrderBy(k => k.Text))
                 {
                     writer.WriteLine(
-                        $"if (text == \"{keyword.Text!}\") return {SyntaxKindClass}::{GetCppName(keyword.Kind)};"
+                        $"if (text == \"{keyword.Text!}\") return {CommonNames.SyntaxKindClass}::{keyword.Kind.CppName};"
                     );
                 }
                 writer.WriteLine("break;");
@@ -235,7 +225,7 @@ public sealed class CppEmitter
     {
         var trie = ConstructPunctuationTrie();
         writer.WriteLine(
-            $"constexpr Optional<{SyntaxKindClass}> match_punctuation(TextCursor &cursor)"
+            $"constexpr Optional<{CommonNames.SyntaxKindClass}> match_punctuation(TextCursor &cursor)"
         );
         using var block = writer.EnterBlockScope();
         WriteTrie(writer, trie);
@@ -246,7 +236,7 @@ public sealed class CppEmitter
     private sealed class TrieNode
     {
         public Dictionary<char, TrieNode> Children { get; } = new();
-        public SyntaxToken? Value { get; set; }
+        public CppToken? Value { get; set; }
     }
 
     private TrieNode ConstructPunctuationTrie()
@@ -314,23 +304,23 @@ public sealed class CppEmitter
 
         if (node.Value is { } terminal)
         {
-            writer.WriteLine($"return SyntaxKind::{GetCppName(terminal.Kind)};");
+            writer.WriteLine($"return SyntaxKind::{terminal.Kind.CppName};");
         }
     }
     #endregion
 
     #region Green Node Interface
-    public void EmitGreenNodeInterface(CodeWriter writer, SyntaxModule module)
+    public void EmitGreenNodeInterface(CodeWriter writer, CppModule module)
     {
         writer.WriteLine(
-            $"export module {BaseModuleName}:{GreenFragmentName}.{GetCppName(module)};"
+            $"export module {CommonNames.BaseModuleName}:{CommonNames.GreenFragmentName}.{module.CppName};"
         );
         writer.WriteLine();
-        writer.WriteLine($"import :{GreenFragmentName}.node;");
-        writer.WriteLine($"import :{GreenFragmentName}.token;");
-        writer.WriteLine($"import :{GreenFragmentName}.separated_list;");
+        writer.WriteLine($"import :{CommonNames.GreenFragmentName}.node;");
+        writer.WriteLine($"import :{CommonNames.GreenFragmentName}.token;");
+        writer.WriteLine($"import :{CommonNames.GreenFragmentName}.separated_list;");
         writer.WriteLine();
-        using var scope = writer.EnterNamespaceScope(PrismNamespace);
+        using var scope = writer.EnterNamespaceScope(CommonNames.PrismNamespace);
         if (module.ForwardDeclarations.Count > 0)
         {
             foreach (
@@ -339,7 +329,7 @@ public sealed class CppEmitter
                     .OrderBy(x => x.Name)
             )
             {
-                writer.WriteLine($"class {GetGreenCppName(declaration)};");
+                writer.WriteLine($"class {declaration.GreenClassName};");
             }
             writer.WriteLine();
         }
@@ -353,11 +343,11 @@ public sealed class CppEmitter
         }
     }
 
-    private void EmitGreenNodeClassDeclaration(CodeWriter writer, SyntaxNode node)
+    private void EmitGreenNodeClassDeclaration(CodeWriter writer, CppNode node)
     {
         var final = !node.IsAbstract ? " final" : "";
-        var name = GetGreenCppName(node);
-        var baseName = GetGreenCppName(node.Base);
+        var name = node.GreenClassName;
+        var baseName = node.Base.GreenClassName;
         writer.WriteLine($"class {name}{final} : public {baseName}");
         using var scope = writer.EnterBlockScope(true);
         if (node.IsAbstract)
@@ -372,7 +362,7 @@ public sealed class CppEmitter
 
     private void EmitGreenNodeAbstractClassBody(
         CodeWriter writer,
-        SyntaxNode node,
+        CppNode node,
         string name,
         string baseName
     )
@@ -383,7 +373,7 @@ public sealed class CppEmitter
         }
 
         writer.WriteLine(
-            $"explicit constexpr {name}(const {SyntaxKindClass} kind, "
+            $"explicit constexpr {name}(const {CommonNames.SyntaxKindClass} kind, "
                 + $"DiagnosticInfoList diagnostics = {{}}) : "
                 + $"{baseName}{{kind, std::move(diagnostics)}} {{ }}"
         );
@@ -392,14 +382,13 @@ public sealed class CppEmitter
         writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
         foreach (var property in node.Properties)
         {
-            var info = GetInfo(property);
             writer.Write("[[nodiscard]] virtual ");
             EmitGreenGetterType(writer, property);
-            writer.WriteLine($" {info.GetterName}() const noexcept = 0;");
+            writer.WriteLine($" {property.GetterName}() const noexcept = 0;");
             writer.WriteLine();
         }
         writer.WriteLine(
-            $"[[nodiscard]] static constexpr bool instanceof(const {GreenNodeClass}& node) noexcept"
+            $"[[nodiscard]] static constexpr bool instanceof(const {CommonNames.GreenNodeClass}& node) noexcept"
         );
         using (writer.EnterBlockScope())
         {
@@ -414,29 +403,29 @@ public sealed class CppEmitter
                 if (i > 0)
                     writer.Write(" || ");
 
-                writer.Write($"node.kind() == {SyntaxKindClass}::{GetCppName(derived.Kind!)}");
+                writer.Write(
+                    $"node.kind() == {CommonNames.SyntaxKindClass}::{derived.Kind!.CppName}"
+                );
             }
             writer.WriteLine(";");
         }
 
-        if (node.Properties.Count == 0)
+        if (node.Properties.Length == 0)
             return;
 
         writer.WriteLine();
         foreach (var property in node.Properties)
         {
-            var info = GetInfo(property);
-
             writer.WriteLine("template <typename Self>");
             writer.Write(
-                $"[[nodiscard]] constexpr GreenPtr<std::decay_t<Self>> with_{info.GetterName}(const Self& self, "
+                $"[[nodiscard]] constexpr GreenPtr<std::decay_t<Self>> with_{property.GetterName}(const Self& self, "
             );
             EmitGreenFieldType(writer, property);
-            writer.WriteLine($"{info.ParameterName})");
+            writer.WriteLine($"{property.ParameterName})");
             using (writer.EnterBlockScope())
             {
                 writer.WriteLine(
-                    $"return static_pointer_cast<std::decay_t<Self>>(self.with_{info.GetterName}_core(std::move({info.ParameterName})));"
+                    $"return static_pointer_cast<std::decay_t<Self>>(self.with_{property.GetterName}_core(std::move({property.ParameterName})));"
                 );
             }
 
@@ -449,16 +438,17 @@ public sealed class CppEmitter
             if (i > 0)
                 writer.WriteLine();
 
-            var info = GetInfo(property);
-            writer.Write($"[[nodiscard]] virtual GreenPtr<{name}> with_{info.GetterName}_core(");
+            writer.Write(
+                $"[[nodiscard]] virtual GreenPtr<{name}> with_{property.GetterName}_core("
+            );
             EmitGreenFieldType(writer, property);
-            writer.WriteLine($"{info.ParameterName}) const = 0;");
+            writer.WriteLine($"{property.ParameterName}) const = 0;");
         }
     }
 
-    private static IEnumerable<SyntaxNode> GetAllDerivedTypes(SyntaxNode node)
+    private static IEnumerable<CppNode> GetAllDerivedTypes(CppNode node)
     {
-        var stack = new Stack<SyntaxNode>(node.DerivedTypes.AsEnumerable().Reverse());
+        var stack = new Stack<CppNode>(node.DerivedTypes.AsEnumerable().Reverse());
         while (stack.Count > 0)
         {
             var item = stack.Pop();
@@ -471,17 +461,16 @@ public sealed class CppEmitter
         }
     }
 
-    private void EmitGreenNodeConcreteClassBody(CodeWriter writer, SyntaxNode node, string name)
+    private void EmitGreenNodeConcreteClassBody(CodeWriter writer, CppNode node, string name)
     {
         writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
 
-        var explicitKeyword = node.Properties.Count <= 1 ? "explicit " : "";
+        var explicitKeyword = node.Properties.Length <= 1 ? "explicit " : "";
         writer.Write($"{explicitKeyword}{name}(");
         foreach (var property in node.Properties)
         {
-            var info = GetInfo(property);
             EmitGreenFieldType(writer, property);
-            writer.Write($" {info.ParameterName}, ");
+            writer.Write($" {property.ParameterName}, ");
         }
         writer.WriteLine("DiagnosticInfoList diagnostics = {});");
         writer.WriteLine();
@@ -491,23 +480,22 @@ public sealed class CppEmitter
         writer.WriteLine();
         foreach (var property in node.Properties)
         {
-            var info = GetInfo(property);
             writer.Write("[[nodiscard]] constexpr ");
             EmitGreenGetterType(writer, property);
             var @override = property.IsOverride ? " override" : "";
-            writer.WriteLine($" {info.GetterName}() const noexcept{@override}");
+            writer.WriteLine($" {property.GetterName}() const noexcept{@override}");
             using (writer.EnterBlockScope())
             {
                 switch (property.Shape)
                 {
                     case PropertyShape.Single:
-                        writer.WriteLine($"return *{info.FieldName};");
+                        writer.WriteLine($"return *{property.FieldName};");
                         break;
                     case PropertyShape.Optional:
-                        writer.WriteLine($"return {info.FieldName}.get();");
+                        writer.WriteLine($"return {property.FieldName}.get();");
                         break;
                     case PropertyShape.List or PropertyShape.SeparatedList:
-                        writer.WriteLine($"return {info.FieldName};");
+                        writer.WriteLine($"return {property.FieldName};");
                         break;
                     default:
                         throw new InvalidOperationException("Unknown property shape");
@@ -517,15 +505,17 @@ public sealed class CppEmitter
         }
 
         writer.WriteLine(
-            $"[[nodiscard]] static constexpr bool instanceof(const {GreenNodeClass}& node) noexcept"
+            $"[[nodiscard]] static constexpr bool instanceof(const {CommonNames.GreenNodeClass}& node) noexcept"
         );
         using (writer.EnterBlockScope())
         {
-            writer.WriteLine($"return node.kind() == {SyntaxKindClass}::{GetCppName(node.Kind!)};");
+            writer.WriteLine(
+                $"return node.kind() == {CommonNames.SyntaxKindClass}::{node.Kind!.CppName};"
+            );
         }
         writer.WriteLine();
         writer.WriteLine(
-            $"[[nodiscard]] Optional<const {GreenNodeClass}&> get_child(std::size_t index) const override;"
+            $"[[nodiscard]] Optional<const {CommonNames.GreenNodeClass}&> get_child(std::size_t index) const override;"
         );
 
         EmitGreenMutationDeclarations(writer, node, name);
@@ -535,19 +525,17 @@ public sealed class CppEmitter
 
         foreach (var property in node.Properties)
         {
-            var info = GetInfo(property);
             EmitGreenFieldType(writer, property);
-            writer.WriteLine($" {info.FieldName};");
+            writer.WriteLine($" {property.FieldName};");
         }
     }
 
-    private void EmitGreenMutationDeclarations(CodeWriter writer, SyntaxNode node, string name)
+    private void EmitGreenMutationDeclarations(CodeWriter writer, CppNode node, string name)
     {
         var lastWasPublic = true;
         foreach (var property in node.Properties.AsValueEnumerable())
         {
             writer.WriteLine();
-            var info = GetInfo(property);
             if (property.IsOverride)
             {
                 if (lastWasPublic)
@@ -565,12 +553,12 @@ public sealed class CppEmitter
                 }
             }
 
-            var paramName = property.IsOverride ? GetGreenCppName(property.OverrideOf.Owner) : name;
+            var paramName = property.IsOverride ? property.OverrideOf.Owner.GreenClassName : name;
             var core = property.IsOverride ? "_core" : "";
-            writer.Write($"[[nodiscard]] GreenPtr<{paramName}> with_{info.GetterName}{core}(");
+            writer.Write($"[[nodiscard]] GreenPtr<{paramName}> with_{property.GetterName}{core}(");
             EmitGreenFieldType(writer, property);
             var @override = property.IsOverride ? " override" : "";
-            writer.WriteLine($" {info.ParameterName}) const{@override};");
+            writer.WriteLine($" {property.ParameterName}) const{@override};");
         }
 
         if (!lastWasPublic)
@@ -583,9 +571,8 @@ public sealed class CppEmitter
             if (i > 0)
                 writer.Write(", ");
 
-            var info = GetInfo(property);
             EmitGreenFieldType(writer, property);
-            writer.Write($" {info.ParameterName}");
+            writer.Write($" {property.ParameterName}");
         }
         writer.WriteLine(") const;");
     }
@@ -593,18 +580,20 @@ public sealed class CppEmitter
     #endregion
 
     #region Green Node Implementation
-    public void EmitGreenNodeImplementation(CodeWriter writer, SyntaxModule module)
+    public void EmitGreenNodeImplementation(CodeWriter writer, CppModule module)
     {
-        var moduleName = GetCppName(module);
-        writer.WriteLine($"module {BaseModuleName}:{GreenFragmentName}.{moduleName}.impl;");
+        var moduleName = module.CppName;
+        writer.WriteLine(
+            $"module {CommonNames.BaseModuleName}:{CommonNames.GreenFragmentName}.{moduleName}.impl;"
+        );
         writer.WriteLine();
-        writer.WriteLine($"import :{GreenFragmentName}.{moduleName};");
+        writer.WriteLine($"import :{CommonNames.GreenFragmentName}.{moduleName};");
         foreach (var import in module.Dependencies.AsValueEnumerable().OrderBy(x => x.Name))
         {
-            writer.WriteLine($"import :{GreenFragmentName}.{GetCppName(import)};");
+            writer.WriteLine($"import :{CommonNames.GreenFragmentName}.{import.CppName};");
         }
         writer.WriteLine();
-        using var namespaceScope = writer.EnterNamespaceScope(PrismNamespace);
+        using var namespaceScope = writer.EnterNamespaceScope(CommonNames.PrismNamespace);
         foreach (
             var (i, node) in module.Nodes.AsValueEnumerable().Where(n => !n.IsAbstract).Index()
         )
@@ -612,7 +601,7 @@ public sealed class CppEmitter
             if (i > 0)
                 writer.WriteLine();
 
-            var nodeName = GetGreenCppName(node);
+            var nodeName = node.GreenClassName;
             EmitConcreteGreenNodeConstructor(writer, nodeName, node);
 
             writer.WriteLine();
@@ -626,44 +615,37 @@ public sealed class CppEmitter
         }
     }
 
-    private void EmitConcreteGreenNodeConstructor(
-        CodeWriter writer,
-        string nodeName,
-        SyntaxNode node
-    )
+    private void EmitConcreteGreenNodeConstructor(CodeWriter writer, string nodeName, CppNode node)
     {
         writer.Write($"{nodeName}::{nodeName}(");
         foreach (var property in node.Properties)
         {
-            var info = GetInfo(property);
             EmitGreenFieldType(writer, property);
-            writer.Write($" {info.ParameterName}, ");
+            writer.Write($" {property.ParameterName}, ");
         }
         writer.Write(
             $"DiagnosticInfoList diagnostics) : "
-                + $"{GetGreenCppName(node.Base)}{{{SyntaxKindClass}::{GetCppName(node.Kind!)}, std::move(diagnostics)}}"
+                + $"{node.Base.GreenClassName}{{{CommonNames.SyntaxKindClass}::{node.Kind!.CppName}, std::move(diagnostics)}}"
         );
         foreach (var property in node.Properties)
         {
-            var info = GetInfo(property);
-            writer.Write($", {info.FieldName}{{std::move({info.ParameterName})}}");
+            writer.Write($", {property.FieldName}{{std::move({property.ParameterName})}}");
         }
         writer.WriteLine();
         using var scope = writer.EnterBlockScope();
-        writer.WriteLine($"set_child_count({node.Properties.Count});");
+        writer.WriteLine($"set_child_count({node.Properties.Length});");
         foreach (var property in node.Properties)
         {
-            var info = GetInfo(property);
             if (property.Shape == PropertyShape.Optional)
-                writer.Write($"if ({info.FieldName} != nullptr) ");
+                writer.Write($"if ({property.FieldName} != nullptr) ");
             writer.Write("adjust_flags_and_width(");
             switch (property.Shape)
             {
                 case PropertyShape.Single or PropertyShape.Optional:
-                    writer.Write($"*{info.FieldName}");
+                    writer.Write($"*{property.FieldName}");
                     break;
                 case PropertyShape.List or PropertyShape.SeparatedList:
-                    writer.Write(info.FieldName);
+                    writer.Write(property.FieldName);
                     break;
                 default:
                     throw new InvalidOperationException();
@@ -673,10 +655,10 @@ public sealed class CppEmitter
         }
     }
 
-    private void EmitGreenGetChildMethod(CodeWriter writer, SyntaxNode node, string nodeName)
+    private void EmitGreenGetChildMethod(CodeWriter writer, CppNode node, string nodeName)
     {
         writer.WriteLine(
-            $"Optional<const {GreenNodeClass}&> {nodeName}::get_child(std::size_t index) const"
+            $"Optional<const {CommonNames.GreenNodeClass}&> {nodeName}::get_child(std::size_t index) const"
         );
         using var blockScope = writer.EnterBlockScope();
         writer.WriteLine("switch (index)");
@@ -685,17 +667,16 @@ public sealed class CppEmitter
         {
             writer.WriteLine($"case {i}:");
             using var caseScope = writer.EnterIndentationScope();
-            var info = GetInfo(property);
             switch (property.Shape)
             {
                 case PropertyShape.Single:
-                    writer.WriteLine($"return *{info.FieldName};");
+                    writer.WriteLine($"return *{property.FieldName};");
                     break;
                 case PropertyShape.Optional:
-                    writer.Write($"return {info.FieldName}.get();");
+                    writer.Write($"return {property.FieldName}.get();");
                     break;
                 case PropertyShape.List or PropertyShape.SeparatedList:
-                    writer.Write($"return {info.FieldName}.node();");
+                    writer.Write($"return {property.FieldName}.node();");
                     break;
                 default:
                     throw new InvalidOperationException();
@@ -705,20 +686,19 @@ public sealed class CppEmitter
         writer.WriteLine("return std::nullopt;");
     }
 
-    private void EmitGreenUpdateMethod(CodeWriter writer, SyntaxNode node, string nodeName)
+    private void EmitGreenUpdateMethod(CodeWriter writer, CppNode node, string nodeName)
     {
         foreach (var property in node.Properties.AsValueEnumerable())
         {
-            var info = GetInfo(property);
             var paramName = property.IsOverride
-                ? GetGreenCppName(property.OverrideOf.Owner)
+                ? property.OverrideOf.Owner.GreenClassName
                 : nodeName;
             var core = property.IsOverride ? "_core" : "";
             writer.Write(
-                $"[[nodiscard]] GreenPtr<{paramName}> {nodeName}::with_{info.GetterName}{core}("
+                $"[[nodiscard]] GreenPtr<{paramName}> {nodeName}::with_{property.GetterName}{core}("
             );
             EmitGreenFieldType(writer, property);
-            writer.WriteLine($" {info.ParameterName}) const");
+            writer.WriteLine($" {property.ParameterName}) const");
             using (writer.EnterBlockScope())
             {
                 writer.Write("return update(");
@@ -727,11 +707,10 @@ public sealed class CppEmitter
                     if (i > 0)
                         writer.Write(", ");
 
-                    var argInfo = GetInfo(arg);
                     if (ReferenceEquals(property, arg))
-                        writer.Write($"std::move({info.ParameterName})");
+                        writer.Write($"std::move({property.ParameterName})");
                     else
-                        writer.Write(argInfo.FieldName);
+                        writer.Write(arg.FieldName);
                 }
                 writer.WriteLine(");");
             }
@@ -745,9 +724,8 @@ public sealed class CppEmitter
             if (i > 0)
                 writer.Write(", ");
 
-            var info = GetInfo(property);
             EmitGreenFieldType(writer, property);
-            writer.Write($" {info.ParameterName}");
+            writer.Write($" {property.ParameterName}");
         }
         writer.WriteLine(") const");
         using var scope = writer.EnterBlockScope();
@@ -757,8 +735,7 @@ public sealed class CppEmitter
             if (i > 0)
                 writer.Write(" && ");
 
-            var info = GetInfo(property);
-            writer.Write($"{info.ParameterName} == {info.FieldName}");
+            writer.Write($"{property.ParameterName} == {property.FieldName}");
         }
         writer.WriteLine(')');
         using (writer.EnterIndentationScope())
@@ -771,111 +748,47 @@ public sealed class CppEmitter
             if (i > 0)
                 writer.Write(", ");
 
-            var info = GetInfo(property);
-            writer.Write($"std::move({info.ParameterName})");
+            writer.Write($"std::move({property.ParameterName})");
         }
 
         writer.WriteLine(");");
     }
     #endregion
 
-    private void EmitGreenGetterType(CodeWriter writer, SyntaxProperty property)
+    private void EmitGreenGetterType(CodeWriter writer, CppProperty property)
     {
         switch (property.Shape)
         {
             case PropertyShape.Single:
-                writer.Write($"const {GetGreenCppName(property.Type)}&");
+                writer.Write($"const {property.Type.GreenClassName}&");
                 break;
             case PropertyShape.Optional:
-                writer.Write($"Optional<const {GetGreenCppName(property.Type)}&>");
+                writer.Write($"Optional<const {property.Type.GreenClassName}&>");
                 break;
             case PropertyShape.List:
-                writer.Write($"GreenSyntaxList<{GetGreenCppName(property.Type)}>");
+                writer.Write($"GreenSyntaxList<{property.Type.GreenClassName}>");
                 break;
             case PropertyShape.SeparatedList:
-                writer.Write($"GreenSeparatedList<{GetGreenCppName(property.Type)}>");
+                writer.Write($"GreenSeparatedList<{property.Type.GreenClassName}>");
                 break;
             default:
                 throw new InvalidOperationException("Unknown shape");
         }
     }
 
-    private void EmitGreenFieldType(CodeWriter writer, SyntaxProperty property)
+    private void EmitGreenFieldType(CodeWriter writer, CppProperty property)
     {
         switch (property.Shape)
         {
             case PropertyShape.Single or PropertyShape.Optional:
-                writer.Write($"GreenPtr<{GetGreenCppName(property.Type)}>");
+                writer.Write($"GreenPtr<{property.Type.GreenClassName}>");
                 break;
             case PropertyShape.List:
-                writer.Write($"GreenSyntaxList<{GetGreenCppName(property.Type)}>");
+                writer.Write($"GreenSyntaxList<{property.Type.GreenClassName}>");
                 break;
             case PropertyShape.SeparatedList:
-                writer.Write($"GreenSeparatedList<{GetGreenCppName(property.Type)}>");
+                writer.Write($"GreenSeparatedList<{property.Type.GreenClassName}>");
                 break;
         }
-    }
-
-    private string GetCppName(SyntaxKind kind)
-    {
-        return _syntaxKindCppNames.GetOrAdd(kind, k => k.Name.Underscore());
-    }
-
-    private string GetCppName(SyntaxGroup group)
-    {
-        return _syntaxKindGroupCppNames.GetOrAdd(group, g => GetSingularName(g.Name));
-    }
-
-    private static string GetSingularName(string name)
-    {
-        if (name.Equals("Trivia", StringComparison.OrdinalIgnoreCase))
-            return "trivia";
-
-        return name.Singularize(false).Underscore();
-    }
-
-    private string GetCppName(SyntaxModule module)
-    {
-        return _syntaxModuleCppNames.GetOrAdd(module, m => m.Name.Underscore());
-    }
-
-    private CppPropertyInfo GetInfo(SyntaxProperty property)
-    {
-        return _propertyInfos.GetOrAdd(property, p => new CppPropertyInfo(p));
-    }
-
-    private string GetGreenCppName(SyntaxNode? node)
-    {
-        return node is not null
-            ? _syntaxGreenClassNames.GetOrAdd(node, n => $"Green{n.Name.Pascalize()}")
-            : GreenNodeClass;
-    }
-
-    private string GetGreenCppName(SyntaxTypeReference reference)
-    {
-        if (reference.Definition is not null)
-            return GetGreenCppName(reference.Definition);
-
-        return reference.Name switch
-        {
-            "Node" => GreenNodeClass,
-            "Token" => GreenTokenClass,
-            _ => throw new InvalidOperationException($"Unknown type reference: {reference.Name}"),
-        };
-    }
-
-    private static string GetDisplayName(SyntaxKind kind)
-    {
-        return kind.Data switch
-        {
-            SyntaxTrivia trivia => trivia.DisplayName ?? trivia.Name,
-            SyntaxToken token => token.DisplayName ?? token.Text ?? token.Name,
-            _ => kind.Name,
-        };
-    }
-
-    private string GetDisplayName(SyntaxGroup group)
-    {
-        return _syntaxKindGroupDisplayNames.GetOrAdd(group, g => g.Name.Humanize());
     }
 }
