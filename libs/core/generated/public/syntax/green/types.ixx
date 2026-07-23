@@ -15,7 +15,7 @@ namespace prism
         }
 
       public:
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::identifier_named_type;
         }
@@ -30,7 +30,7 @@ namespace prism
         }
 
       public:
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::identifier_named_type;
         }
@@ -45,7 +45,7 @@ namespace prism
         }
 
       public:
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::identifier_named_type;
         }
@@ -63,7 +63,7 @@ namespace prism
             return *identifier_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::identifier_named_type;
         }

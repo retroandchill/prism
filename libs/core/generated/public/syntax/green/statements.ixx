@@ -18,7 +18,7 @@ namespace prism
         }
 
       public:
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::variable_declaration_statement || node.kind() == SyntaxKind::block ||
                    node.kind() == SyntaxKind::return_statement || node.kind() == SyntaxKind::expression_statement ||
@@ -39,7 +39,7 @@ namespace prism
             return *declaration_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::variable_declaration_statement;
         }
@@ -81,7 +81,7 @@ namespace prism
             return *close_brace_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::block;
         }
@@ -129,7 +129,7 @@ namespace prism
             return *semicolon_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::return_statement;
         }
@@ -171,7 +171,7 @@ namespace prism
             return *semicolon_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::expression_statement;
         }
@@ -202,7 +202,7 @@ namespace prism
             return *semicolon_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::empty_statement;
         }

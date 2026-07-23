@@ -39,7 +39,7 @@ namespace prism
         {
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::list;
         }

@@ -27,7 +27,7 @@ namespace prism
         ~TypeSyntax() = default;
 
       public:
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::identifier_named_type;
         }
@@ -49,7 +49,7 @@ namespace prism
         ~NamedTypeSyntax() = default;
 
       public:
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::identifier_named_type;
         }
@@ -75,7 +75,7 @@ namespace prism
         ~SimpleNamedTypeSyntax() = default;
 
       public:
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::identifier_named_type;
         }
@@ -100,7 +100,7 @@ namespace prism
 
         [[nodiscard]] SyntaxToken identifier() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::identifier_named_type;
         }

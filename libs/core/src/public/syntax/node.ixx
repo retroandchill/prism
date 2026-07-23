@@ -33,7 +33,7 @@ namespace prism
     concept SyntaxNodeLike =
         std::same_as<T, SyntaxNode> || (std::derived_from<T, SyntaxNode> && requires(const SyntaxNode &node) {
             {
-                T:: instanceof (node)
+                T::instance_of(node)
             } -> std::convertible_to<bool>;
         });
 
@@ -193,7 +193,7 @@ namespace prism
             }
             else
             {
-                return T:: instanceof (*this);
+                return T::instance_of(*this);
             }
         }
 
@@ -206,7 +206,7 @@ namespace prism
             }
             else
             {
-                return T:: instanceof (*this) ? Optional<const T &>{static_cast<const T &>(*this)} : std::nullopt;
+                return T::instance_of(*this) ? Optional<const T &>{static_cast<const T &>(*this)} : std::nullopt;
             }
         }
 

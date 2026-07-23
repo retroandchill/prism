@@ -17,7 +17,7 @@ namespace prism
         }
 
       public:
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::literal_expression || node.kind() == SyntaxKind::identifier_expression ||
                    node.kind() == SyntaxKind::parenthesized_expression ||
@@ -39,7 +39,7 @@ namespace prism
             return *value_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::literal_expression;
         }
@@ -66,7 +66,7 @@ namespace prism
             return *value_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::identifier_expression;
         }
@@ -106,7 +106,7 @@ namespace prism
             return *close_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::parenthesized_expression;
         }
@@ -155,7 +155,7 @@ namespace prism
             return *right_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::binary_expression;
         }
@@ -203,7 +203,7 @@ namespace prism
             return *right_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::assignment_expression;
         }
@@ -245,7 +245,7 @@ namespace prism
             return *operand_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::prefix_expression;
         }
@@ -283,7 +283,7 @@ namespace prism
             return *op_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::postfix_expression;
         }
@@ -339,7 +339,7 @@ namespace prism
             return *when_false_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::ternary_expression;
         }
@@ -389,7 +389,7 @@ namespace prism
             return *arguments_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::invocation_expression;
         }

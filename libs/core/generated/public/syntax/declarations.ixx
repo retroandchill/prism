@@ -37,7 +37,7 @@ namespace prism
       public:
         [[nodiscard]] virtual SyntaxTokenList modifiers() const = 0;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::variable_declaration || node.kind() == SyntaxKind::function_declaration;
         }
@@ -68,7 +68,7 @@ namespace prism
         [[nodiscard]] const InitializerSyntax &initializer() const;
         [[nodiscard]] SyntaxToken semicolon() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::variable_declaration;
         }
@@ -108,7 +108,7 @@ namespace prism
         [[nodiscard]] Optional<const ExpressionBodySyntax &> expression_body() const;
         [[nodiscard]] Optional<SyntaxToken> semicolon() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::function_declaration;
         }

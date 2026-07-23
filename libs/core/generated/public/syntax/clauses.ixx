@@ -34,7 +34,7 @@ namespace prism
         [[nodiscard]] SyntaxToken equal_sign() const;
         [[nodiscard]] const ExpressionSyntax &value() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::initializer;
         }
@@ -67,7 +67,7 @@ namespace prism
         [[nodiscard]] SyntaxToken colon() const;
         [[nodiscard]] const TypeSyntax &type() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::type_specifier;
         }
@@ -100,7 +100,7 @@ namespace prism
         [[nodiscard]] SyntaxToken name() const;
         [[nodiscard]] SyntaxToken colon() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::named_parameter;
         }
@@ -131,7 +131,7 @@ namespace prism
         [[nodiscard]] SeparatedSyntaxList<ArgumentSyntax> arguments() const;
         [[nodiscard]] SyntaxToken close_paren() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::argument_list;
         }
@@ -160,7 +160,7 @@ namespace prism
         [[nodiscard]] Optional<const NamedParameterSyntax &> name() const;
         [[nodiscard]] const ExpressionSyntax &value() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::argument;
         }
@@ -195,7 +195,7 @@ namespace prism
         [[nodiscard]] SeparatedSyntaxList<ParameterSyntax> parameters() const;
         [[nodiscard]] SyntaxToken close_paren() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::parameter_list;
         }
@@ -226,7 +226,7 @@ namespace prism
         [[nodiscard]] const TypeSpecifierSyntax &type_specifier() const;
         [[nodiscard]] Optional<const InitializerSyntax &> default_value() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::parameter;
         }
@@ -260,7 +260,7 @@ namespace prism
         [[nodiscard]] SyntaxToken arrow() const;
         [[nodiscard]] const ExpressionSyntax &expression() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::expression_body;
         }

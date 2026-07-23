@@ -26,7 +26,7 @@ namespace prism
             return children_[index].get();
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::list;
         }

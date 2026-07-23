@@ -355,7 +355,7 @@ public static class CppEmitter
             }
 
             writer.WriteLine(
-                $"[[nodiscard]] static constexpr bool instanceof(const {GreenNodeClass}& node) noexcept"
+                $"[[nodiscard]] static constexpr bool instance_of(const {GreenNodeClass}& node) noexcept"
             );
             writer.EmitAbstractInstanceOfMethod(node);
 
@@ -441,7 +441,7 @@ public static class CppEmitter
             }
 
             writer.WriteLine(
-                $"[[nodiscard]] static constexpr bool instanceof(const {GreenNodeClass}& node) noexcept"
+                $"[[nodiscard]] static constexpr bool instance_of(const {GreenNodeClass}& node) noexcept"
             );
             writer.EmitConcreteInstanceOfMethod(node);
 
@@ -824,7 +824,7 @@ public static class CppEmitter
                 writer.WriteLine();
 
             writer.WriteLine(
-                $"[[nodiscard]] static constexpr bool instanceof(const {SyntaxNodeClass} &node) noexcept"
+                $"[[nodiscard]] static constexpr bool instance_of(const {SyntaxNodeClass} &node) noexcept"
             );
             if (node.IsAbstract)
                 writer.EmitAbstractInstanceOfMethod(node);

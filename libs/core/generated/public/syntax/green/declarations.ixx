@@ -23,7 +23,7 @@ namespace prism
       public:
         [[nodiscard]] virtual GreenSyntaxList<GreenToken> modifiers() const noexcept = 0;
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::variable_declaration || node.kind() == SyntaxKind::function_declaration;
         }
@@ -89,7 +89,7 @@ namespace prism
             return *semicolon_;
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::variable_declaration;
         }
@@ -186,7 +186,7 @@ namespace prism
             return semicolon_.get();
         }
 
-        [[nodiscard]] static constexpr bool instanceof (const GreenNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::function_declaration;
         }

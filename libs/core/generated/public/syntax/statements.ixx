@@ -30,7 +30,7 @@ namespace prism
         ~StatementSyntax() = default;
 
       public:
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::variable_declaration_statement || node.kind() == SyntaxKind::block ||
                    node.kind() == SyntaxKind::return_statement || node.kind() == SyntaxKind::expression_statement ||
@@ -57,7 +57,7 @@ namespace prism
 
         [[nodiscard]] const VariableDeclarationSyntax &declaration() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::variable_declaration_statement;
         }
@@ -87,7 +87,7 @@ namespace prism
         [[nodiscard]] SyntaxList<StatementSyntax> statements() const;
         [[nodiscard]] SyntaxToken close_brace() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::block;
         }
@@ -121,7 +121,7 @@ namespace prism
         [[nodiscard]] Optional<const ExpressionSyntax &> expression() const;
         [[nodiscard]] SyntaxToken semicolon() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::return_statement;
         }
@@ -154,7 +154,7 @@ namespace prism
         [[nodiscard]] const ExpressionSyntax &expression() const;
         [[nodiscard]] SyntaxToken semicolon() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::expression_statement;
         }
@@ -186,7 +186,7 @@ namespace prism
 
         [[nodiscard]] SyntaxToken semicolon() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::empty_statement;
         }

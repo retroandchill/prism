@@ -29,7 +29,7 @@ namespace prism
         ~ExpressionSyntax() = default;
 
       public:
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::literal_expression || node.kind() == SyntaxKind::identifier_expression ||
                    node.kind() == SyntaxKind::parenthesized_expression ||
@@ -58,7 +58,7 @@ namespace prism
 
         [[nodiscard]] SyntaxToken value() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::literal_expression;
         }
@@ -87,7 +87,7 @@ namespace prism
 
         [[nodiscard]] SyntaxToken value() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::identifier_expression;
         }
@@ -118,7 +118,7 @@ namespace prism
         [[nodiscard]] const ExpressionSyntax &expression() const;
         [[nodiscard]] SyntaxToken close() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::parenthesized_expression;
         }
@@ -152,7 +152,7 @@ namespace prism
         [[nodiscard]] SyntaxToken op() const;
         [[nodiscard]] const ExpressionSyntax &right() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::binary_expression;
         }
@@ -187,7 +187,7 @@ namespace prism
         [[nodiscard]] SyntaxToken op() const;
         [[nodiscard]] const ExpressionSyntax &right() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::assignment_expression;
         }
@@ -221,7 +221,7 @@ namespace prism
         [[nodiscard]] SyntaxToken op() const;
         [[nodiscard]] const ExpressionSyntax &operand() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::prefix_expression;
         }
@@ -254,7 +254,7 @@ namespace prism
         [[nodiscard]] const ExpressionSyntax &operand() const;
         [[nodiscard]] SyntaxToken op() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::postfix_expression;
         }
@@ -290,7 +290,7 @@ namespace prism
         [[nodiscard]] SyntaxToken colon() const;
         [[nodiscard]] const ExpressionSyntax &when_false() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::ternary_expression;
         }
@@ -325,7 +325,7 @@ namespace prism
         [[nodiscard]] const ExpressionSyntax &callee() const;
         [[nodiscard]] const ArgumentListSyntax &arguments() const;
 
-        [[nodiscard]] static constexpr bool instanceof (const SyntaxNode &node) noexcept
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::invocation_expression;
         }
