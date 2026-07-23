@@ -1,4 +1,5 @@
 ﻿using Humanizer;
+using Prism.SyntaxGenerator.Metadata;
 using Prism.SyntaxGenerator.Models.Cpp;
 using Prism.SyntaxGenerator.Models.Resolved;
 using Riok.Mapperly.Abstractions;
@@ -50,6 +51,11 @@ public static partial class CppModelMapper
         nameof(SyntaxNode.Name),
         nameof(CppNode.GreenClassName),
         Use = nameof(GetGreenCppName)
+    )]
+    [MapProperty(
+        nameof(SyntaxNode.Name),
+        nameof(CppNode.RedClassName),
+        Use = nameof(GetRedCppName)
     )]
     private static partial CppNode ToCpp(
         this SyntaxNode node,
@@ -129,5 +135,17 @@ public static partial class CppModelMapper
     private static string GetGreenCppName(string name)
     {
         return $"Green{name.Pascalize()}";
+    }
+
+    [UserMapping(Default = false)]
+    private static string GetRedCppName(string name)
+    {
+        return name switch
+        {
+            "Trivia" => CommonNames.SyntaxTriviaClass,
+            "Token" => CommonNames.SyntaxTokenClass,
+            "Node" => CommonNames.SyntaxNodeClass,
+            _ => $"{name.Pascalize()}Syntax",
+        };
     }
 }

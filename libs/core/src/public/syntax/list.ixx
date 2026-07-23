@@ -24,7 +24,7 @@ namespace prism
     class SyntaxList;
 
     export template <typename T>
-    class SyntaxSeparatedList;
+    class SeparatedSyntaxList;
 
     class PRISM_CORE_API SyntaxListImpl final : public SyntaxNode, public SyntaxListView<SyntaxNodeOrToken>
     {
@@ -62,6 +62,10 @@ namespace prism
     template <typename T>
     class SyntaxList final : public SyntaxListView<T>
     {
+        constexpr explicit SyntaxList(const SyntaxNode *list) : node_{list}
+        {
+        }
+
       public:
         constexpr SyntaxList() = default;
 
@@ -105,16 +109,18 @@ namespace prism
         }
 
       private:
+        friend class SyntaxNode;
+
         const SyntaxNode *node_ = nullptr;
     };
 
     template <typename T>
-    class SyntaxSeparatedList : public SyntaxListView<T>
+    class SeparatedSyntaxList : public SyntaxListView<T>
     {
       public:
-        constexpr SyntaxSeparatedList() = default;
+        constexpr SeparatedSyntaxList() = default;
 
-        constexpr explicit SyntaxSeparatedList(const SyntaxNodeOrTokenList list) : list_{list}
+        constexpr explicit SeparatedSyntaxList(const SyntaxNodeOrTokenList list) : list_{list}
         {
 #ifndef NDEBUG
             validate(list_);
@@ -177,6 +183,8 @@ namespace prism
         }
 
       private:
+        friend class SyntaxNode;
+
 #ifndef NDEBUG
         static void validate(const SyntaxNodeOrTokenList list)
         {

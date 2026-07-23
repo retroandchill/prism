@@ -22,6 +22,10 @@ namespace prism
 
     export class PRISM_CORE_API SyntaxNodeOrTokenList final : public SyntaxListView<SyntaxNodeOrToken>
     {
+        constexpr explicit SyntaxNodeOrTokenList(const SyntaxNode *node) : node_{node}
+        {
+        }
+
       public:
         constexpr SyntaxNodeOrTokenList() = default;
 
@@ -45,6 +49,8 @@ namespace prism
         }
 
       private:
+        friend class SyntaxNode;
+
         [[nodiscard]] constexpr Optional<const SyntaxNode &> parent() const
         {
             ASSUME(node_ != nullptr);

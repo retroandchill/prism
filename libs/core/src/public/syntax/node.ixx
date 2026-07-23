@@ -20,8 +20,14 @@ namespace prism
     class SyntaxLifetime;
     class ChildSyntaxList;
     class SyntaxToken;
+    class SyntaxTokenList;
     class SyntaxTriviaList;
     export class SyntaxNode;
+    template <typename T>
+    class SyntaxList;
+    template <typename T>
+    class SeparatedSyntaxList;
+    class SyntaxNodeOrTokenList;
 
     template <typename T>
     concept SyntaxNodeLike =
@@ -148,6 +154,19 @@ namespace prism
             }
 
             return result;
+        }
+
+        template <std::derived_from<SyntaxNode> T>
+        SyntaxList<T> make_syntax_list(const Optional<const SyntaxNode &> red) const
+        {
+            return SyntaxList<T>{red.value_ptr()};
+        }
+
+        template <std::derived_from<SyntaxNode> T>
+        SeparatedSyntaxList<T> make_separated_syntax_list(const Optional<const SyntaxNode &> red) const
+        {
+            // ReSharper disable once CppClassIsIncomplete
+            return SeparatedSyntaxList<T>{SyntaxNodeOrTokenList{red.value_ptr()}};
         }
 
         [[nodiscard]] virtual Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const = 0;

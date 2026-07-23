@@ -18,12 +18,14 @@ namespace prism
     class SyntaxNode;
     class SyntaxTriviaList;
     class SyntaxTree;
+    export class SyntaxTokenList;
 
     template <LiteralData T>
     using LiteralDataResult = decltype(LiteralDataTraits<T>::get_value(std::declval<const GreenToken>()));
 
     export class PRISM_CORE_API SyntaxToken final
     {
+      public:
         SyntaxToken(const GreenToken &token, const std::uint32_t position) : green_{&token}, position_{position}
         {
         }
@@ -33,7 +35,6 @@ namespace prism
         {
         }
 
-      public:
         [[nodiscard]] constexpr SyntaxKind kind() const noexcept
         {
             return green_->kind();
@@ -107,15 +108,41 @@ namespace prism
         }
 
       private:
+        friend class SyntaxTokenList;
         friend class SyntaxTriviaList;
         friend class Lexer;
         friend class ChildSyntaxList;
         friend class SyntaxNodeOrTokenList;
         template <typename T>
-        friend class SyntaxSeparatedList;
+        friend class SeparatedSyntaxList;
 
         const SyntaxNode *parent_ = nullptr;
         const GreenToken *green_;
+        std::uint32_t position_;
+    };
+
+    class SyntaxTokenList PRISM_CORE_API final : public SyntaxListView<SyntaxToken>
+    {
+      public:
+        constexpr explicit SyntaxTokenList(const SyntaxNode *parent,
+                                           const GreenTokenList &token_list,
+                                           const std::uint32_t position)
+            : parent_{parent}, green_{token_list}, position_{position}
+        {
+        }
+
+        [[nodiscard]] constexpr std::size_t size() const noexcept
+        {
+            return green_.size();
+        }
+
+        [[nodiscard]] SyntaxToken operator[](std::size_t index) const;
+
+      private:
+        friend class SyntaxToken;
+
+        const SyntaxNode *parent_;
+        GreenSyntaxList<GreenToken, false> green_;
         std::uint32_t position_;
     };
 } // namespace prism

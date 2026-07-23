@@ -8,6 +8,8 @@ public class CppNode : ICppSyntaxVariant
 
     public string GreenClassName { get; }
 
+    public string RedClassName { get; }
+
     public bool IsAbstract => DerivedTypes.Length > 0;
 
     public CppNode? Base { get; internal set; }
@@ -22,10 +24,11 @@ public class CppNode : ICppSyntaxVariant
 
     public ImmutableArray<CppProduction> Productions { get; internal set; }
 
-    internal CppNode(CppModule module, string name, string greenClassName)
+    internal CppNode(CppModule module, string name, string greenClassName, string redClassName)
     {
         Module = module;
         Name = name;
         GreenClassName = greenClassName;
+        RedClassName = redClassName;
     }
 }

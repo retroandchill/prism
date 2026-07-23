@@ -52,16 +52,14 @@ public class ExportNodesCommand
         var cppModel = resolvedModel.ToCpp();
 
         using var writer = new CodeWriter();
-        var emitter = new CppEmitter(cppModel);
-
-        emitter.EmitSyntaxKinds(writer);
+        writer.EmitSyntaxKinds(cppModel);
         await WriteCodeAsync(
             writer,
             Path.Join(publicSyntaxDir, "kind.ixx"),
             context.CancellationToken
         );
 
-        emitter.EmitLexingUtils(writer);
+        writer.EmitLexingUtils(cppModel);
         await WriteCodeAsync(
             writer,
             Path.Join(publicSyntaxDir, "lexing_utils.ixx"),
@@ -71,17 +69,31 @@ public class ExportNodesCommand
         foreach (var module in cppModel.Modules)
         {
             var moduleName = module.Name.Underscore();
-            emitter.EmitGreenNodeInterface(writer, module);
+            writer.EmitGreenNodeInterface(module);
             await WriteCodeAsync(
                 writer,
                 Path.Join(publicGreenDir, $"{moduleName}.ixx"),
                 context.CancellationToken
             );
 
-            emitter.EmitGreenNodeImplementation(writer, module);
+            writer.EmitGreenNodeImplementation(module);
             await WriteCodeAsync(
                 writer,
                 Path.Join(privateGreenDir, $"{moduleName}.cpp"),
+                context.CancellationToken
+            );
+
+            writer.EmitRedNodeInterface(module);
+            await WriteCodeAsync(
+                writer,
+                Path.Join(publicSyntaxDir, $"{moduleName}.ixx"),
+                context.CancellationToken
+            );
+
+            writer.EmitRedNodeImplementation(module);
+            await WriteCodeAsync(
+                writer,
+                Path.Join(privateSyntaxDir, $"{moduleName}.cpp"),
                 context.CancellationToken
             );
         }

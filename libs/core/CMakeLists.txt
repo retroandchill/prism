@@ -20,6 +20,11 @@ set(PRISM_SOURCES
         generated/private/syntax/green/clauses.cpp
         generated/private/syntax/green/statements.cpp
         src/private/syntax/green/list.cpp
+        generated/private/syntax/clauses.cpp
+        generated/private/syntax/declarations.cpp
+        generated/private/syntax/expressions.cpp
+        generated/private/syntax/statements.cpp
+        generated/private/syntax/types.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -81,6 +86,11 @@ set(PRISM_PUBLIC_MODULES
         src/public/util/overload.ixx
         src/public/syntax/node_or_token.ixx
         src/private/syntax/node_or_token.cpp
+        generated/public/syntax/clauses.ixx
+        generated/public/syntax/declarations.ixx
+        generated/public/syntax/expressions.ixx
+        generated/public/syntax/statements.ixx
+        generated/public/syntax/types.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

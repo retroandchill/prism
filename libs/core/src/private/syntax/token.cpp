@@ -29,4 +29,9 @@ namespace prism
         return SyntaxTriviaList{*this, trivia};
     }
 
+    SyntaxToken SyntaxTokenList::operator[](std::size_t index) const
+    {
+        return SyntaxToken{green_[index], parent_, position_};
+    }
+
 } // namespace prism
