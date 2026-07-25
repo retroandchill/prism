@@ -12,7 +12,7 @@ namespace prism
     template <>
     struct DiagnosticTraits<DiagnosticCode::unexpected_token>
     {
-        using Args = std::tuple<SyntaxKind>;
+        using Args = std::tuple<std::string>;
     };
 
     template <>

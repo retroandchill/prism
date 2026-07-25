@@ -7,7 +7,7 @@ namespace prism::diagnostics
 {
     export constexpr DiagnosticDescriptor unexpected_token{
         .code = DiagnosticCode::unexpected_token,
-        .category = DiagnosticCategory::lexer,
+        .category = DiagnosticCategory::syntax,
         .default_severity = DiagnosticSeverity::error,
         .id = "E10004",
         .symbol = "UnexpectedToken",
@@ -17,7 +17,7 @@ namespace prism::diagnostics
 
     export constexpr DiagnosticDescriptor unexpected_eof{
         .code = DiagnosticCode::unexpected_eof,
-        .category = DiagnosticCategory::lexer,
+        .category = DiagnosticCategory::syntax,
         .default_severity = DiagnosticSeverity::error,
         .id = "E10014",
         .symbol = "UnexpectedEOF",
@@ -27,7 +27,7 @@ namespace prism::diagnostics
 
     export constexpr DiagnosticDescriptor unexpected_escape{
         .code = DiagnosticCode::unexpected_escape,
-        .category = DiagnosticCategory::lexer,
+        .category = DiagnosticCategory::syntax,
         .default_severity = DiagnosticSeverity::error,
         .id = "E10024",
         .symbol = "UnexpectedEscape",
@@ -37,7 +37,7 @@ namespace prism::diagnostics
 
     export constexpr DiagnosticDescriptor unterminated_string_literal{
         .code = DiagnosticCode::unterminated_string_literal,
-        .category = DiagnosticCategory::lexer,
+        .category = DiagnosticCategory::syntax,
         .default_severity = DiagnosticSeverity::error,
         .id = "E10034",
         .symbol = "UnterminatedStringLiteral",
@@ -47,7 +47,7 @@ namespace prism::diagnostics
 
     export constexpr DiagnosticDescriptor unterminated_character_literal{
         .code = DiagnosticCode::unterminated_character_literal,
-        .category = DiagnosticCategory::lexer,
+        .category = DiagnosticCategory::syntax,
         .default_severity = DiagnosticSeverity::error,
         .id = "E10044",
         .symbol = "UnterminatedCharacterLiteral",
@@ -57,7 +57,7 @@ namespace prism::diagnostics
 
     export constexpr DiagnosticDescriptor unterminated_block_comment{
         .code = DiagnosticCode::unterminated_block_comment,
-        .category = DiagnosticCategory::lexer,
+        .category = DiagnosticCategory::syntax,
         .default_severity = DiagnosticSeverity::error,
         .id = "E10054",
         .symbol = "UnterminatedBlockComment",

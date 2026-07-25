@@ -15,12 +15,14 @@ namespace prism
     class GreenToken : public GreenNode
     {
       public:
-        explicit GreenToken(SyntaxKind kind, GreenTriviaList leading_trivia = {}, GreenTriviaList trailing_trivia = {});
+        explicit GreenToken(SyntaxKind kind,
+                            GreenPtr<GreenNode> leading_trivia = {},
+                            GreenPtr<GreenNode> trailing_trivia = {});
 
         GreenToken(SyntaxKind kind,
                    std::uint32_t width,
-                   GreenTriviaList leading_trivia = {},
-                   GreenTriviaList trailing_trivia = {});
+                   GreenPtr<GreenNode> leading_trivia = nullptr,
+                   GreenPtr<GreenNode> trailing_trivia = nullptr);
 
         static const GreenPtr<GreenToken> &eof();
         static const GreenPtr<GreenToken> &bad_token();
@@ -29,16 +31,16 @@ namespace prism
 
         [[nodiscard]] virtual std::string_view text() const;
 
-        [[nodiscard]] constexpr const GreenTriviaList &leading_trivia() const noexcept final
+        [[nodiscard]] constexpr Optional<const GreenNode &> leading_trivia() const noexcept final
         {
-            return leading_trivia_;
+            return leading_trivia_.get();
         }
 
         [[nodiscard]] std::uint32_t leading_trivia_width() const final;
 
-        [[nodiscard]] constexpr const GreenTriviaList &trailing_trivia() const noexcept final
+        [[nodiscard]] constexpr Optional<const GreenNode &> trailing_trivia() const noexcept final
         {
-            return trailing_trivia_;
+            return trailing_trivia_.get();
         }
 
         [[nodiscard]] std::uint32_t trailing_trivia_width() const final;
@@ -55,22 +57,24 @@ namespace prism
             throw UnsupportedOperationException{};
         }
 
-        [[nodiscard]] GreenPtr<GreenToken> with_leading_trivia(GreenTriviaList leading_trivia) const;
+        [[nodiscard]] GreenPtr<GreenToken> with_leading_trivia(GreenPtr<GreenNode> leading_trivia) const;
 
-        [[nodiscard]] GreenPtr<GreenToken> with_trailing_trivia(GreenTriviaList trailing_trivia) const;
+        [[nodiscard]] GreenPtr<GreenToken> with_trailing_trivia(GreenPtr<GreenNode> trailing_trivia) const;
 
-        [[nodiscard]] GreenPtr<GreenToken> update(GreenTriviaList leading_trivia,
-                                                  GreenTriviaList trailing_trivia) const;
+        [[nodiscard]] GreenPtr<GreenToken> update(GreenPtr<GreenNode> leading_trivia,
+                                                  GreenPtr<GreenNode> trailing_trivia) const;
+
+        void write_to(TextWriter &writer) const final;
 
       protected:
-        [[nodiscard]] virtual GreenPtr<GreenToken> clone_with_trivia(GreenTriviaList leading_trivia,
-                                                                     GreenTriviaList trailing_trivia) const;
+        [[nodiscard]] virtual GreenPtr<GreenToken> clone_with_trivia(GreenPtr<GreenNode> leading_trivia,
+                                                                     GreenPtr<GreenNode> trailing_trivia) const;
 
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
-        GreenTriviaList leading_trivia_;
-        GreenTriviaList trailing_trivia_;
+        GreenPtr<GreenNode> leading_trivia_;
+        GreenPtr<GreenNode> trailing_trivia_;
     };
 
     template <typename T>
@@ -133,7 +137,7 @@ namespace prism
         using RawData = GreenValueTokenData<T>;
         using Data = std::conditional_t<std::is_trivially_copy_constructible_v<T>, RawData, RefCountPtr<const RawData>>;
 
-        constexpr GreenValueToken(Data data, GreenTriviaList leading_trivia, GreenTriviaList trailing_trivia)
+        constexpr GreenValueToken(Data data, GreenPtr<GreenNode> leading_trivia, GreenPtr<GreenNode> trailing_trivia)
             : GreenToken{T::kind, get_width(data), std::move(leading_trivia), std::move(trailing_trivia)},
               data_{std::move(data)}
         {
@@ -142,8 +146,8 @@ namespace prism
       public:
         constexpr GreenValueToken(T value,
                                   std::string text,
-                                  GreenTriviaList leading_trivia = {},
-                                  GreenTriviaList trailing_trivia = {})
+                                  GreenPtr<GreenNode> leading_trivia = {},
+                                  GreenPtr<GreenNode> trailing_trivia = {})
             requires !CanGetStringView<T>
             : GreenValueToken{make_data(std::move(value), std::move(text)),
                               std::move(leading_trivia),
@@ -152,8 +156,8 @@ namespace prism
         }
 
         explicit constexpr GreenValueToken(T value,
-                                           GreenTriviaList leading_trivia = {},
-                                           GreenTriviaList trailing_trivia = {})
+                                           GreenPtr<GreenNode> leading_trivia = {},
+                                           GreenPtr<GreenNode> trailing_trivia = {})
             requires CanGetStringView<T>
             : GreenValueToken{make_data(std::move(value)), std::move(leading_trivia), std::move(trailing_trivia)}
         {
@@ -177,8 +181,8 @@ namespace prism
         }
 
       protected:
-        GreenPtr<GreenToken> clone_with_trivia(GreenTriviaList leading_trivia,
-                                               GreenTriviaList trailing_trivia) const override
+        GreenPtr<GreenToken> clone_with_trivia(GreenPtr<GreenNode> leading_trivia,
+                                               GreenPtr<GreenNode> trailing_trivia) const override
         {
             return GreenPtr<GreenToken>::no_ref(
                 new GreenValueToken{data_, std::move(leading_trivia), std::move(trailing_trivia)});
@@ -186,7 +190,16 @@ namespace prism
 
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override
         {
-            return RefCountPtr<GreenNode>::no_ref(new GreenValueToken{data_, leading_trivia(), trailing_trivia()});
+            constexpr auto get_ptr = [](const Optional<const GreenNode &> node) -> GreenPtr<GreenNode>
+            {
+                if (!node.has_value())
+                    return nullptr;
+
+                return node->shared_from_this();
+            };
+
+            return RefCountPtr<GreenNode>::no_ref(
+                new GreenValueToken{data_, get_ptr(leading_trivia()), get_ptr(trailing_trivia())});
         }
 
       private:
@@ -247,14 +260,14 @@ namespace prism
     {
       public:
         explicit GreenMissingToken(SyntaxKind kind,
-                                   GreenTriviaList leading_trivia = {},
-                                   GreenTriviaList trailing_trivia = {});
+                                   GreenPtr<GreenNode> leading_trivia = {},
+                                   GreenPtr<GreenNode> trailing_trivia = {});
 
         [[nodiscard]] std::string_view text() const override;
 
       protected:
-        [[nodiscard]] GreenPtr<GreenToken> clone_with_trivia(GreenTriviaList leading_trivia,
-                                                             GreenTriviaList trailing_trivia) const override;
+        [[nodiscard]] GreenPtr<GreenToken> clone_with_trivia(GreenPtr<GreenNode> leading_trivia,
+                                                             GreenPtr<GreenNode> trailing_trivia) const override;
 
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
     };
@@ -265,8 +278,8 @@ namespace prism
                  constexpr RefCountPtr<GreenValueToken<std::decay_t<T>>> make_green_value(
                      T && value,
                      std::string text,
-                     GreenTriviaList leading_trivia = {},
-                     GreenTriviaList trailing_trivia = {})
+                     GreenPtr<GreenNode> leading_trivia = {},
+                     GreenPtr<GreenNode> trailing_trivia = {})
     {
         return make_ref_counted<GreenValueToken<std::decay_t<T>>>(std::forward<T>(value),
                                                                   std::move(text),
@@ -277,8 +290,8 @@ namespace prism
     template <typename T>
         requires StandardLiteralData<std::decay_t<T>> && CanGetStringView<std::decay_t<T>>
     constexpr RefCountPtr<GreenValueToken<std::decay_t<T>>> make_green_value(T &&value,
-                                                                             GreenTriviaList leading_trivia = {},
-                                                                             GreenTriviaList trailing_trivia = {})
+                                                                             GreenPtr<GreenNode> leading_trivia = {},
+                                                                             GreenPtr<GreenNode> trailing_trivia = {})
     {
         return make_ref_counted<GreenValueToken<std::decay_t<T>>>(std::forward<T>(value),
                                                                   std::move(leading_trivia),

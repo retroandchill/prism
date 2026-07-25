@@ -103,6 +103,9 @@ set(PRISM_PUBLIC_MODULES
         src/public/diagnostics/syntax_info.ixx
         src/private/diagnostics/syntax_info.cpp
         generated/public/diagnostics/traits.ixx
+        src/public/text/writer.ixx
+        src/public/text/string_writer.ixx
+        src/public/syntax/green/helpers.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

@@ -18,11 +18,15 @@ namespace prism
         }
 
         template <std::derived_from<GreenNode> T>
-        GreenPtr<T> add_trailing_skipped_syntax(GreenPtr<T> node, GreenPtr<GreenNode> skipped_syntax);
+        GreenPtr<T> add_trailing_skipped_syntax(GreenPtr<T> node, GreenPtr<GreenNode> skipped_syntax)
+        {
+            auto mutable_copy = node->clone();
+            add_trailing_skipped_syntax(*mutable_copy, std::move(skipped_syntax));
+            return mutable_copy;
+        }
 
-        template <std::derived_from<GreenNode> T, typename... Args>
-            requires(sizeof...(Args) > 0 && (std::convertible_to<RefCountPtr<const DiagnosticInfo>, Args> && ...))
-        GreenPtr<T> add_diagnostics(GreenPtr<T> node, Args &&...args);
+        template <std::derived_from<GreenNode> T>
+        void add_trailing_skipped_syntax(T &node, GreenPtr<GreenNode> skipped_syntax);
 
         const GreenToken &current_token();
         const GreenToken &peek_token(int offset = 1);

@@ -64,6 +64,19 @@ namespace prism
             return lhs.list_ == rhs.list_;
         }
 
+        [[nodiscard]] std::string to_string() const
+        {
+            std::string result;
+            auto writer = StringWriter{result};
+            write_to(writer);
+            return result;
+        }
+
+        void write_to(TextWriter &writer) const
+        {
+            list_.write_to(writer);
+        }
+
       private:
 #ifndef NDEBUG
         static void validate(const GreenSyntaxList<T, Owning> &list)

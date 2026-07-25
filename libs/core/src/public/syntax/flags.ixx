@@ -16,8 +16,10 @@ namespace prism
         none = 0,
         not_missing = 1 << 0,
         contains_diagnostics = 1 << 1,
+        contains_skipped_text = 1 << 2,
+        contains_structured_trivia = 1 << 3,
 
-        inherit_mask = not_missing | contains_diagnostics,
+        inherit_mask = not_missing | contains_diagnostics | contains_skipped_text | contains_structured_trivia,
     };
 
     template <>

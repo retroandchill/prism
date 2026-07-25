@@ -33,14 +33,9 @@ namespace prism
         return instance;
     }
 
-    const GreenTriviaList &GreenTrivia::trailing_trivia() const noexcept
+    void GreenTrivia::write_to(TextWriter &writer) const
     {
-        return empty_trivia_list;
-    }
-
-    const GreenTriviaList &GreenTrivia::leading_trivia() const noexcept
-    {
-        return empty_trivia_list;
+        writer.write(text());
     }
 
     RefCountPtr<GreenNode> GreenTrivia::clone_internal() const

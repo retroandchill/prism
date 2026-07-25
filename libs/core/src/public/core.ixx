@@ -15,6 +15,7 @@ export import :memory.persistent_allocator;
 export import :text.name;
 export import :text.text_span;
 export import :text.source_file;
+export import :text.writer;
 
 export import :type_traits.basic;
 export import :type_traits.comparison;

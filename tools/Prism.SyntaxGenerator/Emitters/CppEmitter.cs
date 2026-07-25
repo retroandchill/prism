@@ -811,6 +811,16 @@ public static class CppEmitter
             }
         }
 
+        #region Green Node Vistor
+
+        public void EmitGreenVisitorFunctions(CppSyntaxModel model)
+        {
+            writer.WriteLine($"export module {BaseModuleName}:{GreenFragmentName}.visit;");
+            writer.WriteLine();
+            foreach (var module in model.Modules) { }
+        }
+        #endregion
+
         #region Red Node Interface
 
         public void EmitRedNodeInterface(CppModule module)

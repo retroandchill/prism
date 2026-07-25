@@ -1169,7 +1169,7 @@
   ],
   "diagnostics": [
     {
-      "name": "Lexer",
+      "name": "Syntax",
       "diagnostics": [
         {
           "name": "UnexpectedToken",
@@ -1178,7 +1178,7 @@
           "args": [
             {
               "name": "Token",
-              "type": "SyntaxKind"
+              "type": "String"
             }
           ]
         },

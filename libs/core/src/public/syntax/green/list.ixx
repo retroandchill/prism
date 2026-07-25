@@ -9,6 +9,7 @@ export module prism.core:syntax.green.list;
 import :syntax.green.node;
 import boost;
 import :syntax.list_view;
+import :text.string_writer;
 
 namespace prism
 {
@@ -101,6 +102,12 @@ namespace prism
         {
         }
 
+        explicit constexpr GreenSyntaxList(const GreenNode *children)
+            requires(!Owning)
+            : children_{children}
+        {
+        }
+
         explicit constexpr GreenSyntaxList(const GreenNode &children)
             requires(!Owning)
             : children_{&children}
@@ -162,9 +169,31 @@ namespace prism
             }
         }
 
+        [[nodiscard]] constexpr GreenPtr<const GreenNode> node() && noexcept
+            requires Owning
+        {
+            return std::move(children_);
+        }
+
         constexpr friend bool operator==(const GreenSyntaxList &lhs, const GreenSyntaxList &rhs) noexcept
         {
             return lhs.children_ == rhs.children_;
+        }
+
+        [[nodiscard]] std::string to_string() const
+        {
+            std::string result;
+            auto writer = StringWriter{result};
+            write_to(writer);
+            return result;
+        }
+
+        constexpr void write_to(TextWriter &writer) const
+        {
+            if (children_ != nullptr)
+            {
+                children_->write_to(writer);
+            }
         }
 
       private:

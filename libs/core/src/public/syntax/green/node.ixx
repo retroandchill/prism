@@ -17,6 +17,7 @@ import :diagnostics.info;
 import :util.optional;
 import :util.exceptions;
 import libassert;
+import :text.writer;
 
 namespace prism
 {
@@ -127,7 +128,7 @@ namespace prism
             return has_flag(flags_, SyntaxFlags::contains_diagnostics);
         }
 
-        [[nodiscard]] virtual const GreenTriviaList &leading_trivia() const;
+        [[nodiscard]] virtual Optional<const GreenNode &> leading_trivia() const;
 
         [[nodiscard]] virtual std::uint32_t leading_trivia_width() const;
 
@@ -136,7 +137,7 @@ namespace prism
             return leading_trivia_width() > 0;
         }
 
-        [[nodiscard]] virtual const GreenTriviaList &trailing_trivia() const;
+        [[nodiscard]] virtual Optional<const GreenNode &> trailing_trivia() const;
 
         [[nodiscard]] virtual std::uint32_t trailing_trivia_width() const;
 
@@ -243,6 +244,10 @@ namespace prism
         {
             return static_pointer_cast<Self>(self.clone_internal());
         }
+
+        [[nodiscard]] std::string to_string() const;
+
+        virtual void write_to(TextWriter &writer) const;
 
       protected:
         void adjust_flags_and_width(const GreenNode &node);

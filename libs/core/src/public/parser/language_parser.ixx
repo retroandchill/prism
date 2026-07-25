@@ -8,6 +8,7 @@ export module prism.core:parser.language_parser;
 
 import :parser.syntax_parser;
 import :syntax.green.top_level;
+import :diagnostics.syntax_info;
 
 namespace prism
 {
@@ -32,8 +33,11 @@ namespace prism
 
             const auto list = std::move(builder).build();
 
-            node = add_trailing_skipped_syntax(std::move(node), list.node()->shared_from_this());
-            return node;
+            auto mutable_copy = node->clone();
+            mutable_copy->add_diagnostic(
+                SyntaxDiagnosticInfo::create<DiagnosticCode::unexpected_token>(list[0].to_string()));
+            add_trailing_skipped_syntax(*mutable_copy, list.node()->shared_from_this());
+            return mutable_copy;
         }
 
         GreenPtr<GreenCompilationUnit> parse_compilation_unit();

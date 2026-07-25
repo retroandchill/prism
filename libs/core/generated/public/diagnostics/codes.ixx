@@ -7,7 +7,7 @@ namespace prism
     export enum class DiagnosticCategory : std::uint8_t
     {
         general = 0,
-        lexer,
+        syntax,
     };
 
     export [[nodiscard]] constexpr std::string_view get_display_name(const DiagnosticCategory category)
@@ -16,8 +16,8 @@ namespace prism
         {
             case DiagnosticCategory::general:
                 return "General";
-            case DiagnosticCategory::lexer:
-                return "Lexer";
+            case DiagnosticCategory::syntax:
+                return "Syntax";
             default:
                 throw std::invalid_argument("Unknown diagnostic category");
         }
@@ -27,7 +27,7 @@ namespace prism
     {
         unknown = 0,
 
-        // -- Lexer (1000-1999) ---
+        // -- Syntax (1000-1999) ---
         unexpected_token = 1000,
         unexpected_eof = 1001,
         unexpected_escape = 1002,

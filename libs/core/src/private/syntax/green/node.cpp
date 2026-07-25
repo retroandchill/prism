@@ -8,6 +8,7 @@ module prism.core:syntax.green.node.impl;
 
 import :syntax.green.node;
 import :syntax.green.trivia;
+import :text.string_writer;
 
 namespace prism
 {
@@ -21,9 +22,12 @@ namespace prism
         return full_width_ - leading_trivia_width() - trailing_trivia_width();
     }
 
-    const GreenTriviaList &GreenNode::leading_trivia() const
+    Optional<const GreenNode &> GreenNode::leading_trivia() const
     {
-        return full_width_ > 0 ? first_leaf()->leading_trivia() : empty_trivia_list;
+        if (full_width_ == 0)
+            return std::nullopt;
+
+        return first_leaf()->leading_trivia();
     }
 
     std::uint32_t GreenNode::leading_trivia_width() const
@@ -31,9 +35,12 @@ namespace prism
         return full_width_ > 0 ? first_leaf()->leading_trivia_width() : 0;
     }
 
-    const GreenTriviaList &GreenNode::trailing_trivia() const
+    Optional<const GreenNode &> GreenNode::trailing_trivia() const
     {
-        return full_width_ > 0 ? last_leaf()->trailing_trivia() : empty_trivia_list;
+        if (full_width_ == 0)
+            return std::nullopt;
+
+        return last_leaf()->trailing_trivia();
     }
 
     std::uint32_t GreenNode::trailing_trivia_width() const
@@ -110,6 +117,26 @@ namespace prism
         if (diagnostics_.size() > 1)
         {
             flags_ |= SyntaxFlags::contains_diagnostics;
+        }
+    }
+
+    std::string GreenNode::to_string() const
+    {
+        std::string result;
+        auto writer = StringWriter{result};
+        write_to(writer);
+        return result;
+    }
+
+    void GreenNode::write_to(TextWriter &writer) const
+    {
+        for (const std::size_t i : std::views::iota(0uz, child_count_))
+        {
+            auto child = get_child(i);
+            if (child.has_value())
+                continue;
+
+            child->write_to(writer);
         }
     }
 

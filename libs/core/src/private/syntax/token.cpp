@@ -19,17 +19,17 @@ namespace prism
 
     SyntaxTriviaList SyntaxToken::leading_trivia() const noexcept
     {
-        auto &trivia = green_->leading_trivia();
-        return SyntaxTriviaList{*this, trivia};
+        const auto trivia = green_->leading_trivia();
+        return SyntaxTriviaList{*this, trivia.value_ptr()};
     }
 
     SyntaxTriviaList SyntaxToken::trailing_trivia() const noexcept
     {
-        auto &trivia = green_->trailing_trivia();
-        return SyntaxTriviaList{*this, trivia};
+        const auto trivia = green_->trailing_trivia();
+        return SyntaxTriviaList{*this, trivia.value_ptr()};
     }
 
-    SyntaxToken SyntaxTokenList::operator[](std::size_t index) const
+    SyntaxToken SyntaxTokenList::operator[](const std::size_t index) const
     {
         return SyntaxToken{green_[index], parent_, position_};
     }

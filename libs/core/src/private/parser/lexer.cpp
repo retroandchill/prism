@@ -156,13 +156,13 @@ namespace prism
 
     GreenPtr<GreenToken> Lexer::make_eof(GreenTriviaList leading_trivia)
     {
-        return GreenToken::eof()->with_leading_trivia(std::move(leading_trivia));
+        return GreenToken::eof()->with_leading_trivia(std::move(leading_trivia).node());
     }
 
     GreenPtr<GreenToken> Lexer::make_bad_token(GreenTriviaList leading_trivia)
     {
         cursor_.advance();
-        return GreenToken::bad_token()->update(std::move(leading_trivia), collect_trivia());
+        return GreenToken::bad_token()->update(std::move(leading_trivia).node(), collect_trivia().node());
     }
 
     Optional<GreenPtr<GreenToken>> Lexer::match_number(GreenTriviaList leading_trivia)
@@ -208,8 +208,8 @@ namespace prism
                         .base = kind,
                     },
                     std::string{literal_text},
-                    std::move(leading_trivia),
-                    collect_trivia());
+                    std::move(leading_trivia).node(),
+                    collect_trivia().node());
             }
 
             if (!cursor_.at_end() && cursor_.current() == '.')
@@ -239,15 +239,15 @@ namespace prism
                 .suffix = suffix,
             },
             std::string{text},
-            std::move(leading_trivia),
-            collect_trivia());
+            std::move(leading_trivia).node(),
+            collect_trivia().node());
     }
 
     Optional<GreenPtr<GreenToken>> Lexer::match_punctuation(GreenTriviaList leading_trivia)
     {
         return prism::match_punctuation(cursor_).transform(
             [&](const SyntaxKind kind)
-            { return GreenToken::from(kind)->update(std::move(leading_trivia), collect_trivia()); });
+            { return GreenToken::from(kind)->update(std::move(leading_trivia).node(), collect_trivia().node()); });
     }
 
     Optional<GreenPtr<GreenToken>> Lexer::match_character_literal(GreenTriviaList leading_trivia)
@@ -331,8 +331,8 @@ namespace prism
 
         auto ptr = make_green_value(CharacterLiteralData{character, encoding},
                                     std::string{cursor_.since(start)},
-                                    std::move(leading_trivia),
-                                    collect_trivia());
+                                    std::move(leading_trivia).node(),
+                                    collect_trivia().node());
         ptr->set_diagnostics(std::move(diagnostics));
         return std::move(ptr);
     }
@@ -406,10 +406,10 @@ namespace prism
         }
 
         const auto slice = cursor_.since(start);
-        auto literal = make_green_value(StringLiteralData{std::move(str)},
+        auto literal = make_green_value(StringLiteralData{.value = std::move(str)},
                                         std::string{slice},
-                                        std::move(leading_trivia),
-                                        collect_trivia());
+                                        std::move(leading_trivia).node(),
+                                        collect_trivia().node());
         literal->set_diagnostics(std::move(diagnostics));
         return std::move(literal);
     }
@@ -449,10 +449,12 @@ namespace prism
         if (!identifier.starts_with('@'))
         {
             if (auto keyword = match_keyword(identifier); keyword.has_value())
-                return GreenToken::from(*keyword)->update(std::move(leading_trivia), collect_trivia());
+                return GreenToken::from(*keyword)->update(std::move(leading_trivia).node(), collect_trivia().node());
         }
 
-        return make_green_value(IdentifierData{identifier, is_escaped}, std::move(leading_trivia), collect_trivia());
+        return make_green_value(IdentifierData{.name = identifier, .is_escaped = is_escaped},
+                                std::move(leading_trivia).node(),
+                                collect_trivia().node());
     }
     bool Lexer::handle_hex_literal(BigDecimal &value)
     {

@@ -19,7 +19,7 @@ namespace prism
 
     export class PRISM_CORE_API SyntaxTrivia final
     {
-        constexpr SyntaxTrivia(SyntaxToken parent, const GreenTrivia &trivia, const std::uint32_t position)
+        constexpr SyntaxTrivia(SyntaxToken parent, const GreenNode &trivia, const std::uint32_t position)
             : token_{std::move(parent)}, green_{&trivia}, position_{position}
         {
         }
@@ -37,12 +37,12 @@ namespace prism
 
         [[nodiscard]] constexpr TextSpan full_span() const noexcept
         {
-            return {position_, green_->full_width()};
+            return {.start = position_, .length = green_->full_width()};
         }
 
         [[nodiscard]] constexpr TextSpan span() const
         {
-            return {position_ + green_->leading_trivia_width(), green_->width()};
+            return {.start = position_ + green_->leading_trivia_width(), .length = green_->width()};
         }
 
         [[nodiscard]] constexpr bool contains_diagnostics() const noexcept
@@ -54,19 +54,19 @@ namespace prism
         friend class SyntaxTriviaList;
 
         SyntaxToken token_;
-        const GreenTrivia *green_;
+        const GreenNode *green_;
         std::uint32_t position_;
     };
 
     class SyntaxTriviaList PRISM_CORE_API final : public SyntaxListView<SyntaxTrivia>
     {
-        constexpr explicit SyntaxTriviaList(SyntaxToken parent, const GreenTriviaList &trivia_list)
+        constexpr explicit SyntaxTriviaList(SyntaxToken parent, const GreenNode *trivia_list)
             : parent_{std::move(parent)}, green_{trivia_list}, position_{parent.position_}
         {
         }
 
         constexpr explicit SyntaxTriviaList(SyntaxToken parent,
-                                            const GreenTriviaList &trivia_list,
+                                            const GreenNode *trivia_list,
                                             const std::uint32_t position)
             : parent_{std::move(parent)}, green_{trivia_list}, position_{position}
         {
@@ -84,7 +84,7 @@ namespace prism
         friend class SyntaxToken;
 
         SyntaxToken parent_;
-        GreenSyntaxList<GreenTrivia, false> green_;
+        GreenSyntaxList<GreenNode, false> green_;
         std::uint32_t position_;
     };
 } // namespace prism

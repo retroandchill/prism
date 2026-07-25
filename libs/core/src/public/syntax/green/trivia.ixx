@@ -41,16 +41,22 @@ namespace prism
             return static_cast<std::uint32_t>(text_.size());
         }
 
-        [[nodiscard]] const GreenTriviaList &trailing_trivia() const noexcept override;
+        [[nodiscard]] constexpr Optional<const GreenNode &> leading_trivia() const noexcept override
+        {
+            return std::nullopt;
+        }
 
-        [[nodiscard]] constexpr std::uint32_t trailing_trivia_width() const override
+        [[nodiscard]] constexpr std::uint32_t leading_trivia_width() const override
         {
             return 0;
         }
 
-        [[nodiscard]] const GreenTriviaList &leading_trivia() const noexcept override;
+        [[nodiscard]] constexpr Optional<const GreenNode &> trailing_trivia() const noexcept override
+        {
+            return std::nullopt;
+        }
 
-        [[nodiscard]] constexpr std::uint32_t leading_trivia_width() const override
+        [[nodiscard]] constexpr std::uint32_t trailing_trivia_width() const override
         {
             return 0;
         }
@@ -66,10 +72,18 @@ namespace prism
             throw UnsupportedOperationException{};
         }
 
+        void write_to(TextWriter &writer) const override;
+
       protected:
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         std::string text_;
+    };
+
+    class GreenSkippedTokensTrivia final : public GreenNode
+    {
+
+      private:
     };
 } // namespace prism
