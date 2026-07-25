@@ -1,6 +1,8 @@
 module prism.core:syntax.green.types.impl;
 
+import :syntax.lifetime;
 import :syntax.green.types;
+import :syntax.types;
 
 namespace prism
 {
@@ -14,6 +16,11 @@ namespace prism
 
     GreenIdentifierNamedType::~GreenIdentifierNamedType() = default;
 
+    void GreenIdentifierNamedType::set_identifier(GreenPtr<GreenToken> value) noexcept
+    {
+        identifier_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenIdentifierNamedType::get_child(std::size_t index) const
     {
         switch (index)
@@ -23,6 +30,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenIdentifierNamedType::create_red(SyntaxLifetime &lifetime,
+                                                                         const SyntaxNode *parent,
+                                                                         std::uint32_t position) const
+    {
+        return lifetime.add<IdentifierNamedTypeSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenIdentifierNamedType> GreenIdentifierNamedType::with_identifier(
@@ -37,5 +51,10 @@ namespace prism
             return shared_from_this();
 
         return make_ref_counted<const GreenIdentifierNamedType>(std::move(identifier));
+    }
+
+    RefCountPtr<GreenNode> GreenIdentifierNamedType::clone_internal() const
+    {
+        return make_ref_counted<GreenIdentifierNamedType>(identifier_);
     }
 } // namespace prism

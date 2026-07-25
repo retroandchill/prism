@@ -8,9 +8,9 @@ module;
 
 #include <libassert/assert-macros.hpp>
 
-module prism.core:syntax.token_stream.impl;
+module prism.core:parser.token_stream.impl;
 
-import :syntax.token_stream;
+import :parser.token_stream;
 
 namespace prism
 {

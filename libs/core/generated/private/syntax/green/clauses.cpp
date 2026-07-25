@@ -1,6 +1,8 @@
 module prism.core:syntax.green.clauses.impl;
 
+import :syntax.lifetime;
 import :syntax.green.clauses;
+import :syntax.clauses;
 import :syntax.green.expressions;
 import :syntax.green.types;
 
@@ -19,6 +21,16 @@ namespace prism
 
     GreenInitializer::~GreenInitializer() = default;
 
+    void GreenInitializer::set_equal_sign(GreenPtr<GreenToken> value) noexcept
+    {
+        equal_sign_ = std::move(value);
+    }
+
+    void GreenInitializer::set_value(GreenPtr<GreenExpression> value) noexcept
+    {
+        value_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenInitializer::get_child(std::size_t index) const
     {
         switch (index)
@@ -30,6 +42,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenInitializer::create_red(SyntaxLifetime &lifetime,
+                                                                 const SyntaxNode *parent,
+                                                                 std::uint32_t position) const
+    {
+        return lifetime.add<InitializerSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenInitializer> GreenInitializer::with_equal_sign(GreenPtr<GreenToken> equal_sign) const
@@ -51,6 +70,11 @@ namespace prism
         return make_ref_counted<const GreenInitializer>(std::move(equal_sign), std::move(value));
     }
 
+    RefCountPtr<GreenNode> GreenInitializer::clone_internal() const
+    {
+        return make_ref_counted<GreenInitializer>(equal_sign_, value_);
+    }
+
     GreenTypeSpecifier::GreenTypeSpecifier(GreenPtr<GreenToken> colon,
                                            GreenPtr<GreenType> type,
                                            DiagnosticInfoList diagnostics)
@@ -64,6 +88,16 @@ namespace prism
 
     GreenTypeSpecifier::~GreenTypeSpecifier() = default;
 
+    void GreenTypeSpecifier::set_colon(GreenPtr<GreenToken> value) noexcept
+    {
+        colon_ = std::move(value);
+    }
+
+    void GreenTypeSpecifier::set_type(GreenPtr<GreenType> value) noexcept
+    {
+        type_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenTypeSpecifier::get_child(std::size_t index) const
     {
         switch (index)
@@ -75,6 +109,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenTypeSpecifier::create_red(SyntaxLifetime &lifetime,
+                                                                   const SyntaxNode *parent,
+                                                                   std::uint32_t position) const
+    {
+        return lifetime.add<TypeSpecifierSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenTypeSpecifier> GreenTypeSpecifier::with_colon(GreenPtr<GreenToken> colon) const
@@ -95,6 +136,11 @@ namespace prism
         return make_ref_counted<const GreenTypeSpecifier>(std::move(colon), std::move(type));
     }
 
+    RefCountPtr<GreenNode> GreenTypeSpecifier::clone_internal() const
+    {
+        return make_ref_counted<GreenTypeSpecifier>(colon_, type_);
+    }
+
     GreenNamedParameter::GreenNamedParameter(GreenPtr<GreenToken> name,
                                              GreenPtr<GreenToken> colon,
                                              DiagnosticInfoList diagnostics)
@@ -108,6 +154,16 @@ namespace prism
 
     GreenNamedParameter::~GreenNamedParameter() = default;
 
+    void GreenNamedParameter::set_name(GreenPtr<GreenToken> value) noexcept
+    {
+        name_ = std::move(value);
+    }
+
+    void GreenNamedParameter::set_colon(GreenPtr<GreenToken> value) noexcept
+    {
+        colon_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenNamedParameter::get_child(std::size_t index) const
     {
         switch (index)
@@ -119,6 +175,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenNamedParameter::create_red(SyntaxLifetime &lifetime,
+                                                                    const SyntaxNode *parent,
+                                                                    std::uint32_t position) const
+    {
+        return lifetime.add<NamedParameterSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenNamedParameter> GreenNamedParameter::with_name(GreenPtr<GreenToken> name) const
@@ -140,6 +203,11 @@ namespace prism
         return make_ref_counted<const GreenNamedParameter>(std::move(name), std::move(colon));
     }
 
+    RefCountPtr<GreenNode> GreenNamedParameter::clone_internal() const
+    {
+        return make_ref_counted<GreenNamedParameter>(name_, colon_);
+    }
+
     GreenArgumentList::GreenArgumentList(GreenPtr<GreenToken> open_paren,
                                          GreenSeparatedList<GreenArgument> arguments,
                                          GreenPtr<GreenToken> close_paren,
@@ -155,6 +223,21 @@ namespace prism
 
     GreenArgumentList::~GreenArgumentList() = default;
 
+    void GreenArgumentList::set_open_paren(GreenPtr<GreenToken> value) noexcept
+    {
+        open_paren_ = std::move(value);
+    }
+
+    void GreenArgumentList::set_arguments(GreenSeparatedList<GreenArgument> value) noexcept
+    {
+        arguments_ = std::move(value);
+    }
+
+    void GreenArgumentList::set_close_paren(GreenPtr<GreenToken> value) noexcept
+    {
+        close_paren_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenArgumentList::get_child(std::size_t index) const
     {
         switch (index)
@@ -168,6 +251,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenArgumentList::create_red(SyntaxLifetime &lifetime,
+                                                                  const SyntaxNode *parent,
+                                                                  std::uint32_t position) const
+    {
+        return lifetime.add<ArgumentListSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenArgumentList> GreenArgumentList::with_open_paren(GreenPtr<GreenToken> open_paren) const
@@ -199,6 +289,11 @@ namespace prism
                                                          std::move(close_paren));
     }
 
+    RefCountPtr<GreenNode> GreenArgumentList::clone_internal() const
+    {
+        return make_ref_counted<GreenArgumentList>(open_paren_, arguments_, close_paren_);
+    }
+
     GreenArgument::GreenArgument(GreenPtr<GreenNamedParameter> name,
                                  GreenPtr<GreenExpression> value,
                                  DiagnosticInfoList diagnostics)
@@ -212,6 +307,16 @@ namespace prism
 
     GreenArgument::~GreenArgument() = default;
 
+    void GreenArgument::set_name(GreenPtr<GreenNamedParameter> value) noexcept
+    {
+        name_ = std::move(value);
+    }
+
+    void GreenArgument::set_value(GreenPtr<GreenExpression> value) noexcept
+    {
+        value_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenArgument::get_child(std::size_t index) const
     {
         switch (index)
@@ -223,6 +328,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenArgument::create_red(SyntaxLifetime &lifetime,
+                                                              const SyntaxNode *parent,
+                                                              std::uint32_t position) const
+    {
+        return lifetime.add<ArgumentSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenArgument> GreenArgument::with_name(GreenPtr<GreenNamedParameter> name) const
@@ -244,6 +356,11 @@ namespace prism
         return make_ref_counted<const GreenArgument>(std::move(name), std::move(value));
     }
 
+    RefCountPtr<GreenNode> GreenArgument::clone_internal() const
+    {
+        return make_ref_counted<GreenArgument>(name_, value_);
+    }
+
     GreenParameterList::GreenParameterList(GreenPtr<GreenToken> open_paren,
                                            GreenSeparatedList<GreenParameter> parameters,
                                            GreenPtr<GreenToken> close_paren,
@@ -259,6 +376,21 @@ namespace prism
 
     GreenParameterList::~GreenParameterList() = default;
 
+    void GreenParameterList::set_open_paren(GreenPtr<GreenToken> value) noexcept
+    {
+        open_paren_ = std::move(value);
+    }
+
+    void GreenParameterList::set_parameters(GreenSeparatedList<GreenParameter> value) noexcept
+    {
+        parameters_ = std::move(value);
+    }
+
+    void GreenParameterList::set_close_paren(GreenPtr<GreenToken> value) noexcept
+    {
+        close_paren_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenParameterList::get_child(std::size_t index) const
     {
         switch (index)
@@ -272,6 +404,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenParameterList::create_red(SyntaxLifetime &lifetime,
+                                                                   const SyntaxNode *parent,
+                                                                   std::uint32_t position) const
+    {
+        return lifetime.add<ParameterListSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenParameterList> GreenParameterList::with_open_paren(
@@ -304,6 +443,11 @@ namespace prism
                                                           std::move(close_paren));
     }
 
+    RefCountPtr<GreenNode> GreenParameterList::clone_internal() const
+    {
+        return make_ref_counted<GreenParameterList>(open_paren_, parameters_, close_paren_);
+    }
+
     GreenParameter::GreenParameter(GreenPtr<GreenToken> mut_keyword,
                                    GreenPtr<GreenToken> name,
                                    GreenPtr<GreenTypeSpecifier> type_specifier,
@@ -323,6 +467,26 @@ namespace prism
 
     GreenParameter::~GreenParameter() = default;
 
+    void GreenParameter::set_mut_keyword(GreenPtr<GreenToken> value) noexcept
+    {
+        mut_keyword_ = std::move(value);
+    }
+
+    void GreenParameter::set_name(GreenPtr<GreenToken> value) noexcept
+    {
+        name_ = std::move(value);
+    }
+
+    void GreenParameter::set_type_specifier(GreenPtr<GreenTypeSpecifier> value) noexcept
+    {
+        type_specifier_ = std::move(value);
+    }
+
+    void GreenParameter::set_default_value(GreenPtr<GreenInitializer> value) noexcept
+    {
+        default_value_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenParameter::get_child(std::size_t index) const
     {
         switch (index)
@@ -338,6 +502,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenParameter::create_red(SyntaxLifetime &lifetime,
+                                                               const SyntaxNode *parent,
+                                                               std::uint32_t position) const
+    {
+        return lifetime.add<ParameterSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenParameter> GreenParameter::with_mut_keyword(GreenPtr<GreenToken> mut_keyword) const
@@ -377,6 +548,11 @@ namespace prism
                                                       std::move(default_value));
     }
 
+    RefCountPtr<GreenNode> GreenParameter::clone_internal() const
+    {
+        return make_ref_counted<GreenParameter>(mut_keyword_, name_, type_specifier_, default_value_);
+    }
+
     GreenExpressionBody::GreenExpressionBody(GreenPtr<GreenToken> arrow,
                                              GreenPtr<GreenExpression> expression,
                                              DiagnosticInfoList diagnostics)
@@ -390,6 +566,16 @@ namespace prism
 
     GreenExpressionBody::~GreenExpressionBody() = default;
 
+    void GreenExpressionBody::set_arrow(GreenPtr<GreenToken> value) noexcept
+    {
+        arrow_ = std::move(value);
+    }
+
+    void GreenExpressionBody::set_expression(GreenPtr<GreenExpression> value) noexcept
+    {
+        expression_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenExpressionBody::get_child(std::size_t index) const
     {
         switch (index)
@@ -401,6 +587,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenExpressionBody::create_red(SyntaxLifetime &lifetime,
+                                                                    const SyntaxNode *parent,
+                                                                    std::uint32_t position) const
+    {
+        return lifetime.add<ExpressionBodySyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenExpressionBody> GreenExpressionBody::with_arrow(GreenPtr<GreenToken> arrow) const
@@ -421,5 +614,10 @@ namespace prism
             return shared_from_this();
 
         return make_ref_counted<const GreenExpressionBody>(std::move(arrow), std::move(expression));
+    }
+
+    RefCountPtr<GreenNode> GreenExpressionBody::clone_internal() const
+    {
+        return make_ref_counted<GreenExpressionBody>(arrow_, expression_);
     }
 } // namespace prism

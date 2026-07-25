@@ -41,10 +41,14 @@ namespace prism
             return static_cast<std::uint32_t>(text_.size());
         }
 
+        [[nodiscard]] const GreenTriviaList &trailing_trivia() const noexcept override;
+
         [[nodiscard]] constexpr std::uint32_t trailing_trivia_width() const override
         {
             return 0;
         }
+
+        [[nodiscard]] const GreenTriviaList &leading_trivia() const noexcept override;
 
         [[nodiscard]] constexpr std::uint32_t leading_trivia_width() const override
         {
@@ -57,16 +61,15 @@ namespace prism
             throw UnsupportedOperationException{};
         }
 
-        [[nodiscard]] const SyntaxNode &create_red(const SyntaxLifetime &,
-                                                   const SyntaxNode *,
-                                                   std::uint32_t) const override
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &, const SyntaxNode *, std::uint32_t) const override
         {
             throw UnsupportedOperationException{};
         }
 
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
+
       private:
         std::string text_;
     };
-
-    using GreenTriviaList = GreenSyntaxList<GreenTrivia>;
 } // namespace prism

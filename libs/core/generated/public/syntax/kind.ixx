@@ -120,60 +120,66 @@ namespace prism
         other_token_end = 405,
 #pragma endregion
 
+#pragma region Top level
+        top_level_start = 1000,
+        compilation_unit = 1000,
+        top_level_end = 1000,
+#pragma endregion
+
 #pragma region Types
-        type_start = 1000,
-        type = 1000,
-        named_type = 1001,
-        simple_named_type = 1002,
-        identifier_named_type = 1003,
-        type_end = 1003,
+        type_start = 2000,
+        type = 2000,
+        named_type = 2001,
+        simple_named_type = 2002,
+        identifier_named_type = 2003,
+        type_end = 2003,
 #pragma endregion
 
 #pragma region Clauses
-        clause_start = 2000,
-        initializer = 2000,
-        type_specifier = 2001,
-        named_parameter = 2002,
-        argument_list = 2003,
-        argument = 2004,
-        parameter_list = 2005,
-        parameter = 2006,
-        expression_body = 2007,
-        clause_end = 2007,
+        clause_start = 3000,
+        initializer = 3000,
+        type_specifier = 3001,
+        named_parameter = 3002,
+        argument_list = 3003,
+        argument = 3004,
+        parameter_list = 3005,
+        parameter = 3006,
+        expression_body = 3007,
+        clause_end = 3007,
 #pragma endregion
 
 #pragma region Expressions
-        expression_start = 3000,
-        expression = 3000,
-        literal_expression = 3001,
-        identifier_expression = 3002,
-        parenthesized_expression = 3003,
-        binary_expression = 3004,
-        assignment_expression = 3005,
-        prefix_expression = 3006,
-        postfix_expression = 3007,
-        ternary_expression = 3008,
-        invocation_expression = 3009,
-        expression_end = 3009,
+        expression_start = 4000,
+        expression = 4000,
+        literal_expression = 4001,
+        identifier_expression = 4002,
+        parenthesized_expression = 4003,
+        binary_expression = 4004,
+        assignment_expression = 4005,
+        prefix_expression = 4006,
+        postfix_expression = 4007,
+        ternary_expression = 4008,
+        invocation_expression = 4009,
+        expression_end = 4009,
 #pragma endregion
 
 #pragma region Statements
-        statement_start = 4000,
-        statement = 4000,
-        variable_declaration_statement = 4001,
-        block = 4002,
-        return_statement = 4003,
-        expression_statement = 4004,
-        empty_statement = 4005,
-        statement_end = 4005,
+        statement_start = 5000,
+        statement = 5000,
+        variable_declaration_statement = 5001,
+        block = 5002,
+        return_statement = 5003,
+        expression_statement = 5004,
+        empty_statement = 5005,
+        statement_end = 5005,
 #pragma endregion
 
 #pragma region Declarations
-        declaration_start = 5000,
-        declaration = 5000,
-        variable_declaration = 5001,
-        function_declaration = 5002,
-        declaration_end = 5002,
+        declaration_start = 6000,
+        declaration = 6000,
+        variable_declaration = 6001,
+        function_declaration = 6002,
+        declaration_end = 6002,
 #pragma endregion
     };
 
@@ -363,6 +369,8 @@ namespace prism
                 return "CharacterLiteralToken";
             case SyntaxKind::string_literal_token:
                 return "StringLiteralToken";
+            case SyntaxKind::compilation_unit:
+                return "CompilationUnit";
             case SyntaxKind::type:
                 return "Type";
             case SyntaxKind::named_type:
@@ -454,6 +462,12 @@ namespace prism
                std::to_underlying(kind) <= std::to_underlying(SyntaxKind::other_token_end);
     }
 
+    export constexpr bool is_top_level(const SyntaxKind kind)
+    {
+        return std::to_underlying(kind) >= std::to_underlying(SyntaxKind::top_level_start) &&
+               std::to_underlying(kind) <= std::to_underlying(SyntaxKind::top_level_end);
+    }
+
     export constexpr bool is_type(const SyntaxKind kind)
     {
         return std::to_underlying(kind) >= std::to_underlying(SyntaxKind::type_start) &&
@@ -491,6 +505,7 @@ namespace prism
 
     export constexpr bool is_node(const SyntaxKind kind)
     {
-        return is_type(kind) || is_clause(kind) || is_expression(kind) || is_statement(kind) || is_declaration(kind);
+        return is_top_level(kind) || is_type(kind) || is_clause(kind) || is_expression(kind) || is_statement(kind) ||
+               is_declaration(kind);
     }
 } // namespace prism

@@ -16,13 +16,11 @@ namespace prism
     export class PRISM_CORE_API ExpressionSyntax : public SyntaxNode
     {
       protected:
-        constexpr ExpressionSyntax(const GreenExpression &node, const SyntaxTree &tree, const std::uint32_t position)
-            : SyntaxNode{node, tree, position}
-        {
-        }
-
-        constexpr ExpressionSyntax(const GreenExpression &node, const SyntaxNode &parent, const std::uint32_t position)
-            : SyntaxNode{node, parent, position}
+        constexpr ExpressionSyntax(SyntaxLifetime &lifetime,
+                                   const GreenExpression &node,
+                                   const SyntaxNode *parent,
+                                   const std::uint32_t position)
+            : SyntaxNode{lifetime, node, parent, position}
         {
         }
 
@@ -42,17 +40,11 @@ namespace prism
     export class PRISM_CORE_API LiteralExpressionSyntax final : public ExpressionSyntax
     {
       public:
-        constexpr LiteralExpressionSyntax(const GreenLiteralExpression &node,
-                                          const SyntaxTree &tree,
+        constexpr LiteralExpressionSyntax(SyntaxLifetime &lifetime,
+                                          const GreenLiteralExpression &node,
+                                          const SyntaxNode *parent,
                                           const std::uint32_t position)
-            : ExpressionSyntax{node, tree, position}
-        {
-        }
-
-        constexpr LiteralExpressionSyntax(const GreenLiteralExpression &node,
-                                          const SyntaxNode &parent,
-                                          const std::uint32_t position)
-            : ExpressionSyntax{node, parent, position}
+            : ExpressionSyntax{lifetime, node, parent, position}
         {
         }
 
@@ -71,17 +63,11 @@ namespace prism
     export class PRISM_CORE_API IdentifierExpressionSyntax final : public ExpressionSyntax
     {
       public:
-        constexpr IdentifierExpressionSyntax(const GreenIdentifierExpression &node,
-                                             const SyntaxTree &tree,
+        constexpr IdentifierExpressionSyntax(SyntaxLifetime &lifetime,
+                                             const GreenIdentifierExpression &node,
+                                             const SyntaxNode *parent,
                                              const std::uint32_t position)
-            : ExpressionSyntax{node, tree, position}
-        {
-        }
-
-        constexpr IdentifierExpressionSyntax(const GreenIdentifierExpression &node,
-                                             const SyntaxNode &parent,
-                                             const std::uint32_t position)
-            : ExpressionSyntax{node, parent, position}
+            : ExpressionSyntax{lifetime, node, parent, position}
         {
         }
 
@@ -100,17 +86,11 @@ namespace prism
     export class PRISM_CORE_API ParenthesizedExpressionSyntax final : public ExpressionSyntax
     {
       public:
-        constexpr ParenthesizedExpressionSyntax(const GreenParenthesizedExpression &node,
-                                                const SyntaxTree &tree,
+        constexpr ParenthesizedExpressionSyntax(SyntaxLifetime &lifetime,
+                                                const GreenParenthesizedExpression &node,
+                                                const SyntaxNode *parent,
                                                 const std::uint32_t position)
-            : ExpressionSyntax{node, tree, position}
-        {
-        }
-
-        constexpr ParenthesizedExpressionSyntax(const GreenParenthesizedExpression &node,
-                                                const SyntaxNode &parent,
-                                                const std::uint32_t position)
-            : ExpressionSyntax{node, parent, position}
+            : ExpressionSyntax{lifetime, node, parent, position}
         {
         }
 
@@ -134,17 +114,11 @@ namespace prism
     export class PRISM_CORE_API BinaryExpressionSyntax final : public ExpressionSyntax
     {
       public:
-        constexpr BinaryExpressionSyntax(const GreenBinaryExpression &node,
-                                         const SyntaxTree &tree,
+        constexpr BinaryExpressionSyntax(SyntaxLifetime &lifetime,
+                                         const GreenBinaryExpression &node,
+                                         const SyntaxNode *parent,
                                          const std::uint32_t position)
-            : ExpressionSyntax{node, tree, position}
-        {
-        }
-
-        constexpr BinaryExpressionSyntax(const GreenBinaryExpression &node,
-                                         const SyntaxNode &parent,
-                                         const std::uint32_t position)
-            : ExpressionSyntax{node, parent, position}
+            : ExpressionSyntax{lifetime, node, parent, position}
         {
         }
 
@@ -169,17 +143,11 @@ namespace prism
     export class PRISM_CORE_API AssignmentExpressionSyntax final : public ExpressionSyntax
     {
       public:
-        constexpr AssignmentExpressionSyntax(const GreenAssignmentExpression &node,
-                                             const SyntaxTree &tree,
+        constexpr AssignmentExpressionSyntax(SyntaxLifetime &lifetime,
+                                             const GreenAssignmentExpression &node,
+                                             const SyntaxNode *parent,
                                              const std::uint32_t position)
-            : ExpressionSyntax{node, tree, position}
-        {
-        }
-
-        constexpr AssignmentExpressionSyntax(const GreenAssignmentExpression &node,
-                                             const SyntaxNode &parent,
-                                             const std::uint32_t position)
-            : ExpressionSyntax{node, parent, position}
+            : ExpressionSyntax{lifetime, node, parent, position}
         {
         }
 
@@ -204,17 +172,11 @@ namespace prism
     export class PRISM_CORE_API PrefixExpressionSyntax final : public ExpressionSyntax
     {
       public:
-        constexpr PrefixExpressionSyntax(const GreenPrefixExpression &node,
-                                         const SyntaxTree &tree,
+        constexpr PrefixExpressionSyntax(SyntaxLifetime &lifetime,
+                                         const GreenPrefixExpression &node,
+                                         const SyntaxNode *parent,
                                          const std::uint32_t position)
-            : ExpressionSyntax{node, tree, position}
-        {
-        }
-
-        constexpr PrefixExpressionSyntax(const GreenPrefixExpression &node,
-                                         const SyntaxNode &parent,
-                                         const std::uint32_t position)
-            : ExpressionSyntax{node, parent, position}
+            : ExpressionSyntax{lifetime, node, parent, position}
         {
         }
 
@@ -237,17 +199,11 @@ namespace prism
     export class PRISM_CORE_API PostfixExpressionSyntax final : public ExpressionSyntax
     {
       public:
-        constexpr PostfixExpressionSyntax(const GreenPostfixExpression &node,
-                                          const SyntaxTree &tree,
+        constexpr PostfixExpressionSyntax(SyntaxLifetime &lifetime,
+                                          const GreenPostfixExpression &node,
+                                          const SyntaxNode *parent,
                                           const std::uint32_t position)
-            : ExpressionSyntax{node, tree, position}
-        {
-        }
-
-        constexpr PostfixExpressionSyntax(const GreenPostfixExpression &node,
-                                          const SyntaxNode &parent,
-                                          const std::uint32_t position)
-            : ExpressionSyntax{node, parent, position}
+            : ExpressionSyntax{lifetime, node, parent, position}
         {
         }
 
@@ -270,17 +226,11 @@ namespace prism
     export class PRISM_CORE_API TernaryExpressionSyntax final : public ExpressionSyntax
     {
       public:
-        constexpr TernaryExpressionSyntax(const GreenTernaryExpression &node,
-                                          const SyntaxTree &tree,
+        constexpr TernaryExpressionSyntax(SyntaxLifetime &lifetime,
+                                          const GreenTernaryExpression &node,
+                                          const SyntaxNode *parent,
                                           const std::uint32_t position)
-            : ExpressionSyntax{node, tree, position}
-        {
-        }
-
-        constexpr TernaryExpressionSyntax(const GreenTernaryExpression &node,
-                                          const SyntaxNode &parent,
-                                          const std::uint32_t position)
-            : ExpressionSyntax{node, parent, position}
+            : ExpressionSyntax{lifetime, node, parent, position}
         {
         }
 
@@ -308,17 +258,11 @@ namespace prism
     export class PRISM_CORE_API InvocationExpressionSyntax final : public ExpressionSyntax
     {
       public:
-        constexpr InvocationExpressionSyntax(const GreenInvocationExpression &node,
-                                             const SyntaxTree &tree,
+        constexpr InvocationExpressionSyntax(SyntaxLifetime &lifetime,
+                                             const GreenInvocationExpression &node,
+                                             const SyntaxNode *parent,
                                              const std::uint32_t position)
-            : ExpressionSyntax{node, tree, position}
-        {
-        }
-
-        constexpr InvocationExpressionSyntax(const GreenInvocationExpression &node,
-                                             const SyntaxNode &parent,
-                                             const std::uint32_t position)
-            : ExpressionSyntax{node, parent, position}
+            : ExpressionSyntax{lifetime, node, parent, position}
         {
         }
 

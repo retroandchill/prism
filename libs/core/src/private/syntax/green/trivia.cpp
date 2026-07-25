@@ -10,6 +10,11 @@ import :syntax.green.trivia;
 
 namespace prism
 {
+    namespace
+    {
+        GreenTriviaList empty_trivia_list{};
+    }
+
     const GreenPtr<GreenTrivia> &GreenTrivia::carriage_return_line_feed()
     {
         static auto instance = make_ref_counted<const GreenTrivia>(SyntaxKind::new_line_trivia, "\r\n");
@@ -26,5 +31,20 @@ namespace prism
     {
         static auto instance = make_ref_counted<const GreenTrivia>(SyntaxKind::new_line_trivia, "\n");
         return instance;
+    }
+
+    const GreenTriviaList &GreenTrivia::trailing_trivia() const noexcept
+    {
+        return empty_trivia_list;
+    }
+
+    const GreenTriviaList &GreenTrivia::leading_trivia() const noexcept
+    {
+        return empty_trivia_list;
+    }
+
+    RefCountPtr<GreenNode> GreenTrivia::clone_internal() const
+    {
+        return make_ref_counted<GreenTrivia>(kind(), text());
     }
 } // namespace prism

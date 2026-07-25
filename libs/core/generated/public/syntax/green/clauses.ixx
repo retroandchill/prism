@@ -25,10 +25,14 @@ namespace prism
             return *equal_sign_;
         }
 
+        void set_equal_sign(GreenPtr<GreenToken> value) noexcept;
+
         [[nodiscard]] constexpr const GreenExpression &value() const noexcept
         {
             return *value_;
         }
+
+        void set_value(GreenPtr<GreenExpression> value) noexcept;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
@@ -37,12 +41,19 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
+
         [[nodiscard]] GreenPtr<GreenInitializer> with_equal_sign(GreenPtr<GreenToken> equal_sign) const;
 
         [[nodiscard]] GreenPtr<GreenInitializer> with_value(GreenPtr<GreenExpression> value) const;
 
         [[nodiscard]] GreenPtr<GreenInitializer> update(GreenPtr<GreenToken> equal_sign,
                                                         GreenPtr<GreenExpression> value) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenToken> equal_sign_;
@@ -61,10 +72,14 @@ namespace prism
             return *colon_;
         }
 
+        void set_colon(GreenPtr<GreenToken> value) noexcept;
+
         [[nodiscard]] constexpr const GreenType &type() const noexcept
         {
             return *type_;
         }
+
+        void set_type(GreenPtr<GreenType> value) noexcept;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
@@ -73,11 +88,18 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
+
         [[nodiscard]] GreenPtr<GreenTypeSpecifier> with_colon(GreenPtr<GreenToken> colon) const;
 
         [[nodiscard]] GreenPtr<GreenTypeSpecifier> with_type(GreenPtr<GreenType> type) const;
 
         [[nodiscard]] GreenPtr<GreenTypeSpecifier> update(GreenPtr<GreenToken> colon, GreenPtr<GreenType> type) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenToken> colon_;
@@ -96,10 +118,14 @@ namespace prism
             return *name_;
         }
 
+        void set_name(GreenPtr<GreenToken> value) noexcept;
+
         [[nodiscard]] constexpr const GreenToken &colon() const noexcept
         {
             return *colon_;
         }
+
+        void set_colon(GreenPtr<GreenToken> value) noexcept;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
@@ -108,11 +134,18 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
+
         [[nodiscard]] GreenPtr<GreenNamedParameter> with_name(GreenPtr<GreenToken> name) const;
 
         [[nodiscard]] GreenPtr<GreenNamedParameter> with_colon(GreenPtr<GreenToken> colon) const;
 
         [[nodiscard]] GreenPtr<GreenNamedParameter> update(GreenPtr<GreenToken> name, GreenPtr<GreenToken> colon) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenToken> name_;
@@ -134,15 +167,21 @@ namespace prism
             return *open_paren_;
         }
 
+        void set_open_paren(GreenPtr<GreenToken> value) noexcept;
+
         [[nodiscard]] constexpr GreenSeparatedList<GreenArgument> arguments() const noexcept
         {
             return arguments_;
         }
 
+        void set_arguments(GreenSeparatedList<GreenArgument> value) noexcept;
+
         [[nodiscard]] constexpr const GreenToken &close_paren() const noexcept
         {
             return *close_paren_;
         }
+
+        void set_close_paren(GreenPtr<GreenToken> value) noexcept;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
@@ -150,6 +189,10 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
 
         [[nodiscard]] GreenPtr<GreenArgumentList> with_open_paren(GreenPtr<GreenToken> open_paren) const;
 
@@ -160,6 +203,9 @@ namespace prism
         [[nodiscard]] GreenPtr<GreenArgumentList> update(GreenPtr<GreenToken> open_paren,
                                                          GreenSeparatedList<GreenArgument> arguments,
                                                          GreenPtr<GreenToken> close_paren) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenToken> open_paren_;
@@ -181,10 +227,14 @@ namespace prism
             return name_.get();
         }
 
+        void set_name(GreenPtr<GreenNamedParameter> value) noexcept;
+
         [[nodiscard]] constexpr const GreenExpression &value() const noexcept
         {
             return *value_;
         }
+
+        void set_value(GreenPtr<GreenExpression> value) noexcept;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
@@ -193,12 +243,19 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
+
         [[nodiscard]] GreenPtr<GreenArgument> with_name(GreenPtr<GreenNamedParameter> name) const;
 
         [[nodiscard]] GreenPtr<GreenArgument> with_value(GreenPtr<GreenExpression> value) const;
 
         [[nodiscard]] GreenPtr<GreenArgument> update(GreenPtr<GreenNamedParameter> name,
                                                      GreenPtr<GreenExpression> value) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenNamedParameter> name_;
@@ -220,15 +277,21 @@ namespace prism
             return *open_paren_;
         }
 
+        void set_open_paren(GreenPtr<GreenToken> value) noexcept;
+
         [[nodiscard]] constexpr GreenSeparatedList<GreenParameter> parameters() const noexcept
         {
             return parameters_;
         }
 
+        void set_parameters(GreenSeparatedList<GreenParameter> value) noexcept;
+
         [[nodiscard]] constexpr const GreenToken &close_paren() const noexcept
         {
             return *close_paren_;
         }
+
+        void set_close_paren(GreenPtr<GreenToken> value) noexcept;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
@@ -236,6 +299,10 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
 
         [[nodiscard]] GreenPtr<GreenParameterList> with_open_paren(GreenPtr<GreenToken> open_paren) const;
 
@@ -246,6 +313,9 @@ namespace prism
         [[nodiscard]] GreenPtr<GreenParameterList> update(GreenPtr<GreenToken> open_paren,
                                                           GreenSeparatedList<GreenParameter> parameters,
                                                           GreenPtr<GreenToken> close_paren) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenToken> open_paren_;
@@ -269,20 +339,28 @@ namespace prism
             return mut_keyword_.get();
         }
 
+        void set_mut_keyword(GreenPtr<GreenToken> value) noexcept;
+
         [[nodiscard]] constexpr const GreenToken &name() const noexcept
         {
             return *name_;
         }
+
+        void set_name(GreenPtr<GreenToken> value) noexcept;
 
         [[nodiscard]] constexpr const GreenTypeSpecifier &type_specifier() const noexcept
         {
             return *type_specifier_;
         }
 
+        void set_type_specifier(GreenPtr<GreenTypeSpecifier> value) noexcept;
+
         [[nodiscard]] constexpr Optional<const GreenInitializer &> default_value() const noexcept
         {
             return default_value_.get();
         }
+
+        void set_default_value(GreenPtr<GreenInitializer> value) noexcept;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
@@ -290,6 +368,10 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
 
         [[nodiscard]] GreenPtr<GreenParameter> with_mut_keyword(GreenPtr<GreenToken> mut_keyword) const;
 
@@ -303,6 +385,9 @@ namespace prism
                                                       GreenPtr<GreenToken> name,
                                                       GreenPtr<GreenTypeSpecifier> type_specifier,
                                                       GreenPtr<GreenInitializer> default_value) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenToken> mut_keyword_;
@@ -325,10 +410,14 @@ namespace prism
             return *arrow_;
         }
 
+        void set_arrow(GreenPtr<GreenToken> value) noexcept;
+
         [[nodiscard]] constexpr const GreenExpression &expression() const noexcept
         {
             return *expression_;
         }
+
+        void set_expression(GreenPtr<GreenExpression> value) noexcept;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
@@ -337,12 +426,19 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
+
         [[nodiscard]] GreenPtr<GreenExpressionBody> with_arrow(GreenPtr<GreenToken> arrow) const;
 
         [[nodiscard]] GreenPtr<GreenExpressionBody> with_expression(GreenPtr<GreenExpression> expression) const;
 
         [[nodiscard]] GreenPtr<GreenExpressionBody> update(GreenPtr<GreenToken> arrow,
                                                            GreenPtr<GreenExpression> expression) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenToken> arrow_;

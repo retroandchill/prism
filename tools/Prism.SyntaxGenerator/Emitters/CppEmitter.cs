@@ -317,21 +317,20 @@ public static class CppEmitter
         private void EmitGreenNodeClassDeclaration(CppNode node)
         {
             var final = !node.IsAbstract ? " final" : "";
-            var name = node.GreenClassName;
             var baseName = node.Base?.GreenClassName ?? GreenNodeClass;
-            writer.WriteLine($"class {name}{final} : public {baseName}");
+            writer.WriteLine($"class {node.GreenClassName}{final} : public {baseName}");
             using var scope = writer.EnterBlockScope(true);
             if (node.IsAbstract)
             {
-                writer.EmitGreenNodeAbstractClassBody(node, name, baseName);
+                writer.EmitGreenNodeAbstractClassBody(node, baseName);
             }
             else
             {
-                writer.EmitGreenNodeConcreteClassBody(node, name);
+                writer.EmitGreenNodeConcreteClassBody(node);
             }
         }
 
-        private void EmitGreenNodeAbstractClassBody(CppNode node, string name, string baseName)
+        private void EmitGreenNodeAbstractClassBody(CppNode node, string baseName)
         {
             using (writer.EnterIndentationScope(-1))
             {
@@ -339,7 +338,7 @@ public static class CppEmitter
             }
 
             writer.WriteLine(
-                $"explicit constexpr {name}(const {SyntaxKindClass} kind, "
+                $"explicit constexpr {node.GreenClassName}(const {SyntaxKindClass} kind, "
                     + $"DiagnosticInfoList diagnostics = {{}}) : "
                     + $"{baseName}{{kind, std::move(diagnostics)}} {{ }}"
             );
@@ -351,8 +350,11 @@ public static class CppEmitter
                 writer.Write("[[nodiscard]] virtual ");
                 writer.EmitGreenGetterType(property);
                 writer.WriteLine($" {property.GetterName}() const noexcept = 0;");
-                writer.WriteLine();
+                writer.Write($"virtual void set_{property.GetterName}(");
+                writer.EmitGreenFieldType(property);
+                writer.WriteLine(" value) noexcept = 0;");
             }
+            writer.WriteLine();
 
             writer.WriteLine(
                 $"[[nodiscard]] static constexpr bool instance_of(const {GreenNodeClass}& node) noexcept"
@@ -388,19 +390,19 @@ public static class CppEmitter
                     writer.WriteLine();
 
                 writer.Write(
-                    $"[[nodiscard]] virtual GreenPtr<{name}> with_{property.GetterName}_core("
+                    $"[[nodiscard]] virtual GreenPtr<{node.GreenClassName}> with_{property.GetterName}_core("
                 );
                 writer.EmitGreenFieldType(property);
                 writer.WriteLine($"{property.ParameterName}) const = 0;");
             }
         }
 
-        private void EmitGreenNodeConcreteClassBody(CppNode node, string name)
+        private void EmitGreenNodeConcreteClassBody(CppNode node)
         {
             writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
 
             var explicitKeyword = node.Properties.Length <= 1 ? "explicit " : "";
-            writer.Write($"{explicitKeyword}{name}(");
+            writer.Write($"{explicitKeyword}{node.GreenClassName}(");
             foreach (var property in node.Properties)
             {
                 writer.EmitGreenFieldType(property);
@@ -410,7 +412,7 @@ public static class CppEmitter
             writer.WriteLine("DiagnosticInfoList diagnostics = {});");
             writer.WriteLine();
 
-            writer.WriteLine($"~{name}() override;");
+            writer.WriteLine($"~{node.GreenClassName}() override;");
 
             writer.WriteLine();
             foreach (var property in node.Properties)
@@ -438,6 +440,10 @@ public static class CppEmitter
                 }
 
                 writer.WriteLine();
+                writer.Write($"void set_{property.GetterName}(");
+                writer.EmitGreenFieldType(property);
+                writer.WriteLine($" value) noexcept{@override};");
+                writer.WriteLine();
             }
 
             writer.WriteLine(
@@ -450,7 +456,19 @@ public static class CppEmitter
                 $"[[nodiscard]] Optional<const {GreenNodeClass}&> get_child(std::size_t index) const override;"
             );
 
-            writer.EmitGreenMutationDeclarations(node, name);
+            writer.WriteLine();
+            writer.WriteLine(
+                $"[[nodiscard]] const {SyntaxNodeClass} &create_red({SyntaxLifetimeClass} &lifetime, "
+                    + $"const {SyntaxNodeClass} *parent, std::uint32_t position) const override;"
+            );
+
+            writer.EmitGreenMutationDeclarations(node);
+
+            writer.WriteLine();
+            writer.WriteAccessSpecifier(CppAccessSpecifier.Protected);
+            writer.WriteLine(
+                $"[[nodiscard]] RefCountPtr<{GreenNodeClass}> clone_internal() const override;"
+            );
 
             writer.WriteLine();
             writer.WriteAccessSpecifier(CppAccessSpecifier.Private);
@@ -462,7 +480,7 @@ public static class CppEmitter
             }
         }
 
-        private void EmitGreenMutationDeclarations(CppNode node, string name)
+        private void EmitGreenMutationDeclarations(CppNode node)
         {
             var lastWasPublic = true;
             foreach (var property in node.Properties.AsValueEnumerable())
@@ -487,7 +505,7 @@ public static class CppEmitter
 
                 var paramName = property.IsOverride
                     ? property.OverrideOf.Owner.GreenClassName
-                    : name;
+                    : node.GreenClassName;
                 var core = property.IsOverride ? "_core" : "";
                 writer.Write(
                     $"[[nodiscard]] GreenPtr<{paramName}> with_{property.GetterName}{core}("
@@ -501,7 +519,7 @@ public static class CppEmitter
                 writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
 
             writer.WriteLine();
-            writer.Write($"[[nodiscard]] GreenPtr<{name}> update(");
+            writer.Write($"[[nodiscard]] GreenPtr<{node.GreenClassName}> update(");
             foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
             {
                 if (i > 0)
@@ -523,7 +541,9 @@ public static class CppEmitter
             var moduleName = module.CppName;
             writer.WriteLine($"module {BaseModuleName}:{GreenFragmentName}.{moduleName}.impl;");
             writer.WriteLine();
+            writer.WriteLine("import :syntax.lifetime;");
             writer.WriteLine($"import :{GreenFragmentName}.{moduleName};");
+            writer.WriteLine($"import :{RedFragmentName}.{moduleName};");
             foreach (var import in module.Dependencies.AsValueEnumerable().OrderBy(x => x.CppName))
             {
                 writer.WriteLine($"import :{GreenFragmentName}.{import.CppName};");
@@ -538,23 +558,31 @@ public static class CppEmitter
                 if (i > 0)
                     writer.WriteLine();
 
-                var nodeName = node.GreenClassName;
-                writer.EmitConcreteGreenNodeConstructor(nodeName, node);
+                writer.EmitConcreteGreenNodeConstructor(node);
+                writer.WriteLine();
+
+                writer.WriteLine($"{node.GreenClassName}::~{node.GreenClassName}() = default;");
 
                 writer.WriteLine();
-                writer.WriteLine($"{nodeName}::~{nodeName}() = default;");
+                writer.EmitGreenSetters(node);
 
                 writer.WriteLine();
-                writer.EmitGreenGetChildMethod(node, nodeName);
+                writer.EmitGreenGetChildMethod(node);
 
                 writer.WriteLine();
-                writer.EmitGreenUpdateMethod(node, nodeName);
+                writer.EmitGreenCreateRedMethod(node);
+
+                writer.WriteLine();
+                writer.EmitGreenUpdateMethod(node);
+
+                writer.WriteLine();
+                writer.EmitGreenCloneMethod(node);
             }
         }
 
-        private void EmitConcreteGreenNodeConstructor(string nodeName, CppNode node)
+        private void EmitConcreteGreenNodeConstructor(CppNode node)
         {
-            writer.Write($"{nodeName}::{nodeName}(");
+            writer.Write($"{node.GreenClassName}::{node.GreenClassName}(");
             foreach (var property in node.Properties)
             {
                 writer.EmitGreenFieldType(property);
@@ -594,10 +622,25 @@ public static class CppEmitter
             }
         }
 
-        private void EmitGreenGetChildMethod(CppNode node, string nodeName)
+        private void EmitGreenSetters(CppNode node)
+        {
+            foreach (var property in node.Properties)
+            {
+                writer.Write($"void {node.GreenClassName}::set_{property.GetterName}(");
+                writer.EmitGreenFieldType(property);
+                writer.WriteLine(" value) noexcept");
+                using (writer.EnterBlockScope())
+                {
+                    writer.WriteLine($"{property.FieldName} = std::move(value);");
+                }
+                writer.WriteLine();
+            }
+        }
+
+        private void EmitGreenGetChildMethod(CppNode node)
         {
             writer.WriteLine(
-                $"Optional<const {GreenNodeClass}&> {nodeName}::get_child(std::size_t index) const"
+                $"Optional<const {GreenNodeClass}&> {node.GreenClassName}::get_child(std::size_t index) const"
             );
             using var blockScope = writer.EnterBlockScope();
             writer.WriteLine("switch (index)");
@@ -626,16 +669,26 @@ public static class CppEmitter
             writer.WriteLine("return std::nullopt;");
         }
 
-        private void EmitGreenUpdateMethod(CppNode node, string nodeName)
+        private void EmitGreenCreateRedMethod(CppNode node)
+        {
+            writer.Write(
+                $"[[nodiscard]] const {SyntaxNodeClass} &{node.GreenClassName}::create_red({SyntaxLifetimeClass} &lifetime, "
+                    + $"const {SyntaxNodeClass} *parent, std::uint32_t position) const"
+            );
+            using var scope = writer.EnterBlockScope();
+            writer.WriteLine($"return lifetime.add<{node.RedClassName}>(*this, parent, position);");
+        }
+
+        private void EmitGreenUpdateMethod(CppNode node)
         {
             foreach (var property in node.Properties.AsValueEnumerable())
             {
                 var paramName = property.IsOverride
                     ? property.OverrideOf.Owner.GreenClassName
-                    : nodeName;
+                    : node.GreenClassName;
                 var core = property.IsOverride ? "_core" : "";
                 writer.Write(
-                    $"[[nodiscard]] GreenPtr<{paramName}> {nodeName}::with_{property.GetterName}{core}("
+                    $"[[nodiscard]] GreenPtr<{paramName}> {node.GreenClassName}::with_{property.GetterName}{core}("
                 );
                 writer.EmitGreenFieldType(property);
                 writer.WriteLine($" {property.ParameterName}) const");
@@ -659,7 +712,7 @@ public static class CppEmitter
                 writer.WriteLine();
             }
 
-            writer.Write($"GreenPtr<{nodeName}> {nodeName}::update(");
+            writer.Write($"GreenPtr<{node.GreenClassName}> {node.GreenClassName}::update(");
             foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
             {
                 if (i > 0)
@@ -685,13 +738,31 @@ public static class CppEmitter
                 writer.WriteLine("return shared_from_this();");
 
             writer.WriteLine();
-            writer.Write($"return make_ref_counted<const {nodeName}>(");
+            writer.Write($"return make_ref_counted<const {node.GreenClassName}>(");
             foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
             {
                 if (i > 0)
                     writer.Write(", ");
 
                 writer.Write($"std::move({property.ParameterName})");
+            }
+
+            writer.WriteLine(");");
+        }
+
+        private void EmitGreenCloneMethod(CppNode node)
+        {
+            writer.WriteLine(
+                $"RefCountPtr<{GreenNodeClass}> {node.GreenClassName}::clone_internal() const"
+            );
+            using var scope = writer.EnterBlockScope();
+            writer.Write($"return make_ref_counted<{node.GreenClassName}>(");
+            foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
+            {
+                if (i > 0)
+                    writer.Write(", ");
+
+                writer.Write(property.FieldName);
             }
 
             writer.WriteLine(");");
@@ -789,14 +860,8 @@ public static class CppEmitter
             );
 
             writer.WriteLine(
-                $"constexpr {node.RedClassName}(const {node.GreenClassName}& node, const SyntaxTree& tree, const std::uint32_t position) : "
-                    + $"{baseName}{{node, tree, position}} {{ }}"
-            );
-            writer.WriteLine();
-
-            writer.WriteLine(
-                $"constexpr {node.RedClassName}(const {node.GreenClassName}& node, const {SyntaxNodeClass}& parent, const std::uint32_t position) : "
-                    + $"{baseName}{{node, parent, position}} {{ }}"
+                $"constexpr {node.RedClassName}({SyntaxLifetimeClass}& lifetime, const {node.GreenClassName}& node, const {SyntaxNodeClass}* parent, const std::uint32_t position) : "
+                    + $"{baseName}{{lifetime, node, parent, position}} {{ }}"
             );
 
             writer.WriteLine();

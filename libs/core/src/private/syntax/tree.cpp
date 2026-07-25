@@ -14,5 +14,6 @@ namespace prism
         : text_{std::move(text)}, root_{&root->create_red(*lifetime_)}
     {
         lifetime_->add_root(std::move(root));
+        root_->tree_.store(this);
     }
 } // namespace prism

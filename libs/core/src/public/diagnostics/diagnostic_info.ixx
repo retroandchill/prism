@@ -17,7 +17,9 @@ namespace prism
     {
       public:
         template <typename... Args>
-        explicit constexpr DiagnosticInfo(const DiagnosticDescriptor &descriptor, std::uint32_t offset, Args &&...args)
+        explicit constexpr DiagnosticInfo(const DiagnosticDescriptor &descriptor,
+                                          const std::uint32_t offset,
+                                          Args &&...args)
             : offset_{offset}, descriptor_{&descriptor},
               format_message_{[... args = std::forward<Args>(args)](const std::string_view message)
                               {

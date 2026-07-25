@@ -29,19 +29,19 @@ namespace prism
 
         [[nodiscard]] virtual std::string_view text() const;
 
-        [[nodiscard]] constexpr const GreenTriviaList &leading_trivia() const noexcept
+        [[nodiscard]] constexpr const GreenTriviaList &leading_trivia() const noexcept final
         {
             return leading_trivia_;
         }
 
-        [[nodiscard]] std::uint32_t leading_trivia_width() const override;
+        [[nodiscard]] std::uint32_t leading_trivia_width() const final;
 
-        [[nodiscard]] constexpr const GreenTriviaList &trailing_trivia() const noexcept
+        [[nodiscard]] constexpr const GreenTriviaList &trailing_trivia() const noexcept final
         {
             return trailing_trivia_;
         }
 
-        [[nodiscard]] std::uint32_t trailing_trivia_width() const override;
+        [[nodiscard]] std::uint32_t trailing_trivia_width() const final;
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const final;
 
@@ -50,23 +50,23 @@ namespace prism
             return prism::is_token(node.kind());
         }
 
-        [[nodiscard]] const SyntaxNode &create_red(const SyntaxLifetime &,
-                                                   const SyntaxNode *,
-                                                   std::uint32_t) const final
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &, const SyntaxNode *, std::uint32_t) const final
         {
             throw UnsupportedOperationException{};
         }
 
-        [[nodiscard]] virtual GreenPtr<GreenToken> with_leading_trivia(GreenTriviaList leading_trivia) const;
+        [[nodiscard]] GreenPtr<GreenToken> with_leading_trivia(GreenTriviaList leading_trivia) const;
 
-        [[nodiscard]] virtual GreenPtr<GreenToken> with_trailing_trivia(GreenTriviaList trailing_trivia) const;
+        [[nodiscard]] GreenPtr<GreenToken> with_trailing_trivia(GreenTriviaList trailing_trivia) const;
 
-        [[nodiscard]] virtual GreenPtr<GreenToken> update(GreenTriviaList leading_trivia,
-                                                          GreenTriviaList trailing_trivia) const;
+        [[nodiscard]] GreenPtr<GreenToken> update(GreenTriviaList leading_trivia,
+                                                  GreenTriviaList trailing_trivia) const;
 
       protected:
         [[nodiscard]] virtual GreenPtr<GreenToken> clone_with_trivia(GreenTriviaList leading_trivia,
                                                                      GreenTriviaList trailing_trivia) const;
+
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenTriviaList leading_trivia_;
@@ -184,6 +184,11 @@ namespace prism
                 new GreenValueToken{data_, std::move(leading_trivia), std::move(trailing_trivia)});
         }
 
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override
+        {
+            return RefCountPtr<GreenNode>::no_ref(new GreenValueToken{data_, leading_trivia(), trailing_trivia()});
+        }
+
       private:
         constexpr const RawData &data() const noexcept
         {
@@ -236,6 +241,22 @@ namespace prism
         }
 
         Data data_;
+    };
+
+    class GreenMissingToken final : public GreenToken
+    {
+      public:
+        explicit GreenMissingToken(SyntaxKind kind,
+                                   GreenTriviaList leading_trivia = {},
+                                   GreenTriviaList trailing_trivia = {});
+
+        [[nodiscard]] std::string_view text() const override;
+
+      protected:
+        [[nodiscard]] GreenPtr<GreenToken> clone_with_trivia(GreenTriviaList leading_trivia,
+                                                             GreenTriviaList trailing_trivia) const override;
+
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
     };
 
     template <typename T>

@@ -39,6 +39,8 @@ namespace prism
             return *declaration_;
         }
 
+        void set_declaration(GreenPtr<GreenVariableDeclaration> value) noexcept;
+
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::variable_declaration_statement;
@@ -46,11 +48,18 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
+
         [[nodiscard]] GreenPtr<GreenVariableDeclarationStatement> with_declaration(
             GreenPtr<GreenVariableDeclaration> declaration) const;
 
         [[nodiscard]] GreenPtr<GreenVariableDeclarationStatement> update(
             GreenPtr<GreenVariableDeclaration> declaration) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenVariableDeclaration> declaration_;
@@ -71,15 +80,21 @@ namespace prism
             return *open_brace_;
         }
 
+        void set_open_brace(GreenPtr<GreenToken> value) noexcept;
+
         [[nodiscard]] constexpr GreenSyntaxList<GreenStatement> statements() const noexcept
         {
             return statements_;
         }
 
+        void set_statements(GreenSyntaxList<GreenStatement> value) noexcept;
+
         [[nodiscard]] constexpr const GreenToken &close_brace() const noexcept
         {
             return *close_brace_;
         }
+
+        void set_close_brace(GreenPtr<GreenToken> value) noexcept;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
@@ -87,6 +102,10 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
 
         [[nodiscard]] GreenPtr<GreenBlock> with_open_brace(GreenPtr<GreenToken> open_brace) const;
 
@@ -97,6 +116,9 @@ namespace prism
         [[nodiscard]] GreenPtr<GreenBlock> update(GreenPtr<GreenToken> open_brace,
                                                   GreenSyntaxList<GreenStatement> statements,
                                                   GreenPtr<GreenToken> close_brace) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenToken> open_brace_;
@@ -119,15 +141,21 @@ namespace prism
             return *return_keyword_;
         }
 
+        void set_return_keyword(GreenPtr<GreenToken> value) noexcept;
+
         [[nodiscard]] constexpr Optional<const GreenExpression &> expression() const noexcept
         {
             return expression_.get();
         }
 
+        void set_expression(GreenPtr<GreenExpression> value) noexcept;
+
         [[nodiscard]] constexpr const GreenToken &semicolon() const noexcept
         {
             return *semicolon_;
         }
+
+        void set_semicolon(GreenPtr<GreenToken> value) noexcept;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
@@ -135,6 +163,10 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
 
         [[nodiscard]] GreenPtr<GreenReturnStatement> with_return_keyword(GreenPtr<GreenToken> return_keyword) const;
 
@@ -145,6 +177,9 @@ namespace prism
         [[nodiscard]] GreenPtr<GreenReturnStatement> update(GreenPtr<GreenToken> return_keyword,
                                                             GreenPtr<GreenExpression> expression,
                                                             GreenPtr<GreenToken> semicolon) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenToken> return_keyword_;
@@ -166,10 +201,14 @@ namespace prism
             return *expression_;
         }
 
+        void set_expression(GreenPtr<GreenExpression> value) noexcept;
+
         [[nodiscard]] constexpr const GreenToken &semicolon() const noexcept
         {
             return *semicolon_;
         }
+
+        void set_semicolon(GreenPtr<GreenToken> value) noexcept;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
@@ -178,12 +217,19 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
+
         [[nodiscard]] GreenPtr<GreenExpressionStatement> with_expression(GreenPtr<GreenExpression> expression) const;
 
         [[nodiscard]] GreenPtr<GreenExpressionStatement> with_semicolon(GreenPtr<GreenToken> semicolon) const;
 
         [[nodiscard]] GreenPtr<GreenExpressionStatement> update(GreenPtr<GreenExpression> expression,
                                                                 GreenPtr<GreenToken> semicolon) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenExpression> expression_;
@@ -202,6 +248,8 @@ namespace prism
             return *semicolon_;
         }
 
+        void set_semicolon(GreenPtr<GreenToken> value) noexcept;
+
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::empty_statement;
@@ -209,9 +257,16 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
+
         [[nodiscard]] GreenPtr<GreenEmptyStatement> with_semicolon(GreenPtr<GreenToken> semicolon) const;
 
         [[nodiscard]] GreenPtr<GreenEmptyStatement> update(GreenPtr<GreenToken> semicolon) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenToken> semicolon_;

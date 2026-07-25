@@ -23,6 +23,7 @@ namespace prism
                      std::move(leading_trivia),
                      std::move(trailing_trivia)}
     {
+        set_flags(SyntaxFlags::not_missing);
         set_child_count(2);
         adjust_flags_and_width(leading_trivia_);
         adjust_flags_and_width(trailing_trivia_);
@@ -35,6 +36,7 @@ namespace prism
         : GreenNode{kind, width}, leading_trivia_{std::move(leading_trivia)},
           trailing_trivia_{std::move(trailing_trivia)}
     {
+        set_flags(SyntaxFlags::not_missing);
         DEBUG_ASSERT(prism::is_token(kind));
         set_child_count(2);
         adjust_flags_and_width(leading_trivia_);
@@ -125,5 +127,33 @@ namespace prism
                                                   width(),
                                                   std::move(leading_trivia),
                                                   std::move(trailing_trivia));
+    }
+
+    RefCountPtr<GreenNode> GreenToken::clone_internal() const
+    {
+        return make_ref_counted<GreenToken>(kind(), width(), leading_trivia_, trailing_trivia_);
+    }
+
+    GreenMissingToken::GreenMissingToken(const SyntaxKind kind,
+                                         GreenTriviaList leading_trivia,
+                                         GreenTriviaList trailing_trivia)
+        : GreenToken{kind, 0, std::move(leading_trivia), std::move(trailing_trivia)}
+    {
+        clear_flags(SyntaxFlags::not_missing);
+    }
+
+    std::string_view GreenMissingToken::text() const
+    {
+        return "";
+    }
+
+    GreenPtr<GreenToken> GreenMissingToken::clone_with_trivia(GreenTriviaList leading_trivia,
+                                                              GreenTriviaList trailing_trivia) const
+    {
+        return make_ref_counted<GreenMissingToken>(kind(), std::move(leading_trivia), std::move(trailing_trivia));
+    }
+    RefCountPtr<GreenNode> GreenMissingToken::clone_internal() const
+    {
+        return make_ref_counted<GreenMissingToken>(kind(), leading_trivia(), trailing_trivia());
     }
 } // namespace prism

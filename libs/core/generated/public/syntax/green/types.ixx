@@ -63,6 +63,8 @@ namespace prism
             return *identifier_;
         }
 
+        void set_identifier(GreenPtr<GreenToken> value) noexcept;
+
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::identifier_named_type;
@@ -70,9 +72,16 @@ namespace prism
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
 
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
+
         [[nodiscard]] GreenPtr<GreenIdentifierNamedType> with_identifier(GreenPtr<GreenToken> identifier) const;
 
         [[nodiscard]] GreenPtr<GreenIdentifierNamedType> update(GreenPtr<GreenToken> identifier) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenToken> identifier_;

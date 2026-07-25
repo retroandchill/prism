@@ -22,6 +22,7 @@ namespace prism
 
       public:
         [[nodiscard]] virtual GreenSyntaxList<GreenToken> modifiers() const noexcept = 0;
+        virtual void set_modifiers(GreenSyntaxList<GreenToken> value) noexcept = 0;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
@@ -59,35 +60,49 @@ namespace prism
             return modifiers_;
         }
 
+        void set_modifiers(GreenSyntaxList<GreenToken> value) noexcept override;
+
         [[nodiscard]] constexpr const GreenToken &var_keyword() const noexcept
         {
             return *var_keyword_;
         }
+
+        void set_var_keyword(GreenPtr<GreenToken> value) noexcept;
 
         [[nodiscard]] constexpr Optional<const GreenToken &> mut_keyword() const noexcept
         {
             return mut_keyword_.get();
         }
 
+        void set_mut_keyword(GreenPtr<GreenToken> value) noexcept;
+
         [[nodiscard]] constexpr const GreenToken &identifier() const noexcept
         {
             return *identifier_;
         }
+
+        void set_identifier(GreenPtr<GreenToken> value) noexcept;
 
         [[nodiscard]] constexpr const GreenTypeSpecifier &type() const noexcept
         {
             return *type_;
         }
 
+        void set_type(GreenPtr<GreenTypeSpecifier> value) noexcept;
+
         [[nodiscard]] constexpr const GreenInitializer &initializer() const noexcept
         {
             return *initializer_;
         }
 
+        void set_initializer(GreenPtr<GreenInitializer> value) noexcept;
+
         [[nodiscard]] constexpr const GreenToken &semicolon() const noexcept
         {
             return *semicolon_;
         }
+
+        void set_semicolon(GreenPtr<GreenToken> value) noexcept;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
@@ -95,6 +110,10 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
 
       protected:
         [[nodiscard]] GreenPtr<GreenDeclaration> with_modifiers_core(
@@ -120,6 +139,9 @@ namespace prism
                                                                 GreenPtr<GreenTypeSpecifier> type,
                                                                 GreenPtr<GreenInitializer> initializer,
                                                                 GreenPtr<GreenToken> semicolon) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenSyntaxList<GreenToken> modifiers_;
@@ -151,40 +173,56 @@ namespace prism
             return modifiers_;
         }
 
+        void set_modifiers(GreenSyntaxList<GreenToken> value) noexcept override;
+
         [[nodiscard]] constexpr const GreenToken &func_keyword() const noexcept
         {
             return *func_keyword_;
         }
+
+        void set_func_keyword(GreenPtr<GreenToken> value) noexcept;
 
         [[nodiscard]] constexpr const GreenToken &identifier() const noexcept
         {
             return *identifier_;
         }
 
+        void set_identifier(GreenPtr<GreenToken> value) noexcept;
+
         [[nodiscard]] constexpr const GreenParameterList &parameters() const noexcept
         {
             return *parameters_;
         }
+
+        void set_parameters(GreenPtr<GreenParameterList> value) noexcept;
 
         [[nodiscard]] constexpr Optional<const GreenTypeSpecifier &> return_type() const noexcept
         {
             return return_type_.get();
         }
 
+        void set_return_type(GreenPtr<GreenTypeSpecifier> value) noexcept;
+
         [[nodiscard]] constexpr Optional<const GreenBlock &> body() const noexcept
         {
             return body_.get();
         }
+
+        void set_body(GreenPtr<GreenBlock> value) noexcept;
 
         [[nodiscard]] constexpr Optional<const GreenExpressionBody &> expression_body() const noexcept
         {
             return expression_body_.get();
         }
 
+        void set_expression_body(GreenPtr<GreenExpressionBody> value) noexcept;
+
         [[nodiscard]] constexpr Optional<const GreenToken &> semicolon() const noexcept
         {
             return semicolon_.get();
         }
+
+        void set_semicolon(GreenPtr<GreenToken> value) noexcept;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
@@ -192,6 +230,10 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
 
       protected:
         [[nodiscard]] GreenPtr<GreenDeclaration> with_modifiers_core(
@@ -222,6 +264,9 @@ namespace prism
                                                                 GreenPtr<GreenBlock> body,
                                                                 GreenPtr<GreenExpressionBody> expression_body,
                                                                 GreenPtr<GreenToken> semicolon) const;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenSyntaxList<GreenToken> modifiers_;

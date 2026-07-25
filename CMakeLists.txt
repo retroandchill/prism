@@ -41,6 +41,9 @@ else ()
     set(VCPKG_LIBRARY_LINKAGE static)
 endif ()
 
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+endif()
 set(VCPKG_DEPS_DIR ${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET})
 set(VCPKG_BIN_DIR ${VCPKG_DEPS_DIR}/bin)
 

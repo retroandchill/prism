@@ -1,6 +1,8 @@
 module prism.core:syntax.green.statements.impl;
 
+import :syntax.lifetime;
 import :syntax.green.statements;
+import :syntax.statements;
 import :syntax.green.declarations;
 import :syntax.green.expressions;
 
@@ -17,6 +19,11 @@ namespace prism
 
     GreenVariableDeclarationStatement::~GreenVariableDeclarationStatement() = default;
 
+    void GreenVariableDeclarationStatement::set_declaration(GreenPtr<GreenVariableDeclaration> value) noexcept
+    {
+        declaration_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenVariableDeclarationStatement::get_child(std::size_t index) const
     {
         switch (index)
@@ -26,6 +33,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenVariableDeclarationStatement::create_red(SyntaxLifetime &lifetime,
+                                                                                  const SyntaxNode *parent,
+                                                                                  std::uint32_t position) const
+    {
+        return lifetime.add<VariableDeclarationStatementSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenVariableDeclarationStatement> GreenVariableDeclarationStatement::with_declaration(
@@ -43,6 +57,11 @@ namespace prism
         return make_ref_counted<const GreenVariableDeclarationStatement>(std::move(declaration));
     }
 
+    RefCountPtr<GreenNode> GreenVariableDeclarationStatement::clone_internal() const
+    {
+        return make_ref_counted<GreenVariableDeclarationStatement>(declaration_);
+    }
+
     GreenBlock::GreenBlock(GreenPtr<GreenToken> open_brace,
                            GreenSyntaxList<GreenStatement> statements,
                            GreenPtr<GreenToken> close_brace,
@@ -58,6 +77,21 @@ namespace prism
 
     GreenBlock::~GreenBlock() = default;
 
+    void GreenBlock::set_open_brace(GreenPtr<GreenToken> value) noexcept
+    {
+        open_brace_ = std::move(value);
+    }
+
+    void GreenBlock::set_statements(GreenSyntaxList<GreenStatement> value) noexcept
+    {
+        statements_ = std::move(value);
+    }
+
+    void GreenBlock::set_close_brace(GreenPtr<GreenToken> value) noexcept
+    {
+        close_brace_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenBlock::get_child(std::size_t index) const
     {
         switch (index)
@@ -71,6 +105,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenBlock::create_red(SyntaxLifetime &lifetime,
+                                                           const SyntaxNode *parent,
+                                                           std::uint32_t position) const
+    {
+        return lifetime.add<BlockSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenBlock> GreenBlock::with_open_brace(GreenPtr<GreenToken> open_brace) const
@@ -98,6 +139,11 @@ namespace prism
         return make_ref_counted<const GreenBlock>(std::move(open_brace), std::move(statements), std::move(close_brace));
     }
 
+    RefCountPtr<GreenNode> GreenBlock::clone_internal() const
+    {
+        return make_ref_counted<GreenBlock>(open_brace_, statements_, close_brace_);
+    }
+
     GreenReturnStatement::GreenReturnStatement(GreenPtr<GreenToken> return_keyword,
                                                GreenPtr<GreenExpression> expression,
                                                GreenPtr<GreenToken> semicolon,
@@ -115,6 +161,21 @@ namespace prism
 
     GreenReturnStatement::~GreenReturnStatement() = default;
 
+    void GreenReturnStatement::set_return_keyword(GreenPtr<GreenToken> value) noexcept
+    {
+        return_keyword_ = std::move(value);
+    }
+
+    void GreenReturnStatement::set_expression(GreenPtr<GreenExpression> value) noexcept
+    {
+        expression_ = std::move(value);
+    }
+
+    void GreenReturnStatement::set_semicolon(GreenPtr<GreenToken> value) noexcept
+    {
+        semicolon_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenReturnStatement::get_child(std::size_t index) const
     {
         switch (index)
@@ -128,6 +189,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenReturnStatement::create_red(SyntaxLifetime &lifetime,
+                                                                     const SyntaxNode *parent,
+                                                                     std::uint32_t position) const
+    {
+        return lifetime.add<ReturnStatementSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenReturnStatement> GreenReturnStatement::with_return_keyword(
@@ -160,6 +228,11 @@ namespace prism
                                                             std::move(semicolon));
     }
 
+    RefCountPtr<GreenNode> GreenReturnStatement::clone_internal() const
+    {
+        return make_ref_counted<GreenReturnStatement>(return_keyword_, expression_, semicolon_);
+    }
+
     GreenExpressionStatement::GreenExpressionStatement(GreenPtr<GreenExpression> expression,
                                                        GreenPtr<GreenToken> semicolon,
                                                        DiagnosticInfoList diagnostics)
@@ -173,6 +246,16 @@ namespace prism
 
     GreenExpressionStatement::~GreenExpressionStatement() = default;
 
+    void GreenExpressionStatement::set_expression(GreenPtr<GreenExpression> value) noexcept
+    {
+        expression_ = std::move(value);
+    }
+
+    void GreenExpressionStatement::set_semicolon(GreenPtr<GreenToken> value) noexcept
+    {
+        semicolon_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenExpressionStatement::get_child(std::size_t index) const
     {
         switch (index)
@@ -184,6 +267,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenExpressionStatement::create_red(SyntaxLifetime &lifetime,
+                                                                         const SyntaxNode *parent,
+                                                                         std::uint32_t position) const
+    {
+        return lifetime.add<ExpressionStatementSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenExpressionStatement> GreenExpressionStatement::with_expression(
@@ -207,6 +297,11 @@ namespace prism
         return make_ref_counted<const GreenExpressionStatement>(std::move(expression), std::move(semicolon));
     }
 
+    RefCountPtr<GreenNode> GreenExpressionStatement::clone_internal() const
+    {
+        return make_ref_counted<GreenExpressionStatement>(expression_, semicolon_);
+    }
+
     GreenEmptyStatement::GreenEmptyStatement(GreenPtr<GreenToken> semicolon, DiagnosticInfoList diagnostics)
         : GreenStatement{SyntaxKind::empty_statement, std::move(diagnostics)}, semicolon_{std::move(semicolon)}
     {
@@ -215,6 +310,11 @@ namespace prism
     }
 
     GreenEmptyStatement::~GreenEmptyStatement() = default;
+
+    void GreenEmptyStatement::set_semicolon(GreenPtr<GreenToken> value) noexcept
+    {
+        semicolon_ = std::move(value);
+    }
 
     Optional<const GreenNode &> GreenEmptyStatement::get_child(std::size_t index) const
     {
@@ -225,6 +325,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenEmptyStatement::create_red(SyntaxLifetime &lifetime,
+                                                                    const SyntaxNode *parent,
+                                                                    std::uint32_t position) const
+    {
+        return lifetime.add<EmptyStatementSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenEmptyStatement> GreenEmptyStatement::with_semicolon(
@@ -239,5 +346,10 @@ namespace prism
             return shared_from_this();
 
         return make_ref_counted<const GreenEmptyStatement>(std::move(semicolon));
+    }
+
+    RefCountPtr<GreenNode> GreenEmptyStatement::clone_internal() const
+    {
+        return make_ref_counted<GreenEmptyStatement>(semicolon_);
     }
 } // namespace prism

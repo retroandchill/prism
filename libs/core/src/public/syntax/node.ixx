@@ -40,13 +40,11 @@ namespace prism
     class PRISM_CORE_API SyntaxNode : NonCopyable
     {
       protected:
-        constexpr SyntaxNode(const GreenNode &node, const SyntaxTree &tree, const std::uint32_t position)
-            : green_{&node}, tree_{&tree}, position_{position}
-        {
-        }
-
-        constexpr SyntaxNode(const GreenNode &node, const SyntaxNode &parent, const std::uint32_t position)
-            : green_{&node}, parent_{&parent}, position_{position}
+        constexpr SyntaxNode(SyntaxLifetime &lifetime,
+                             const GreenNode &node,
+                             const SyntaxNode *parent,
+                             const std::uint32_t position)
+            : green_{&node}, parent_{parent}, lifetime_{&lifetime}, position_{position}
         {
         }
 
@@ -110,7 +108,10 @@ namespace prism
         [[nodiscard]] const SyntaxTree &tree() const;
 
       protected:
-        [[nodiscard]] SyntaxLifetime &lifetime() const;
+        [[nodiscard]] constexpr SyntaxLifetime &lifetime() const noexcept
+        {
+            return *lifetime_;
+        }
 
         [[nodiscard]] virtual Optional<const SyntaxNode &> get_node_slot(std::size_t index) const = 0;
 
@@ -219,11 +220,13 @@ namespace prism
       private:
         friend class SyntaxNodeOrTokenList;
         friend class ChildSyntaxList;
+        friend class SyntaxTree;
 
         static const SyntaxTree *compute_tree(const SyntaxNode *node);
 
         const GreenNode *green_;
         const SyntaxNode *parent_ = nullptr;
+        SyntaxLifetime *lifetime_;
         mutable std::atomic<const SyntaxTree *> tree_ = nullptr;
         std::uint32_t position_;
     };

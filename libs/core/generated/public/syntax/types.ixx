@@ -14,13 +14,11 @@ namespace prism
     export class PRISM_CORE_API TypeSyntax : public SyntaxNode
     {
       protected:
-        constexpr TypeSyntax(const GreenType &node, const SyntaxTree &tree, const std::uint32_t position)
-            : SyntaxNode{node, tree, position}
-        {
-        }
-
-        constexpr TypeSyntax(const GreenType &node, const SyntaxNode &parent, const std::uint32_t position)
-            : SyntaxNode{node, parent, position}
+        constexpr TypeSyntax(SyntaxLifetime &lifetime,
+                             const GreenType &node,
+                             const SyntaxNode *parent,
+                             const std::uint32_t position)
+            : SyntaxNode{lifetime, node, parent, position}
         {
         }
 
@@ -36,13 +34,11 @@ namespace prism
     export class PRISM_CORE_API NamedTypeSyntax : public TypeSyntax
     {
       protected:
-        constexpr NamedTypeSyntax(const GreenNamedType &node, const SyntaxTree &tree, const std::uint32_t position)
-            : TypeSyntax{node, tree, position}
-        {
-        }
-
-        constexpr NamedTypeSyntax(const GreenNamedType &node, const SyntaxNode &parent, const std::uint32_t position)
-            : TypeSyntax{node, parent, position}
+        constexpr NamedTypeSyntax(SyntaxLifetime &lifetime,
+                                  const GreenNamedType &node,
+                                  const SyntaxNode *parent,
+                                  const std::uint32_t position)
+            : TypeSyntax{lifetime, node, parent, position}
         {
         }
 
@@ -58,17 +54,11 @@ namespace prism
     export class PRISM_CORE_API SimpleNamedTypeSyntax : public NamedTypeSyntax
     {
       protected:
-        constexpr SimpleNamedTypeSyntax(const GreenSimpleNamedType &node,
-                                        const SyntaxTree &tree,
+        constexpr SimpleNamedTypeSyntax(SyntaxLifetime &lifetime,
+                                        const GreenSimpleNamedType &node,
+                                        const SyntaxNode *parent,
                                         const std::uint32_t position)
-            : NamedTypeSyntax{node, tree, position}
-        {
-        }
-
-        constexpr SimpleNamedTypeSyntax(const GreenSimpleNamedType &node,
-                                        const SyntaxNode &parent,
-                                        const std::uint32_t position)
-            : NamedTypeSyntax{node, parent, position}
+            : NamedTypeSyntax{lifetime, node, parent, position}
         {
         }
 
@@ -84,17 +74,11 @@ namespace prism
     export class PRISM_CORE_API IdentifierNamedTypeSyntax final : public SimpleNamedTypeSyntax
     {
       public:
-        constexpr IdentifierNamedTypeSyntax(const GreenIdentifierNamedType &node,
-                                            const SyntaxTree &tree,
+        constexpr IdentifierNamedTypeSyntax(SyntaxLifetime &lifetime,
+                                            const GreenIdentifierNamedType &node,
+                                            const SyntaxNode *parent,
                                             const std::uint32_t position)
-            : SimpleNamedTypeSyntax{node, tree, position}
-        {
-        }
-
-        constexpr IdentifierNamedTypeSyntax(const GreenIdentifierNamedType &node,
-                                            const SyntaxNode &parent,
-                                            const std::uint32_t position)
-            : SimpleNamedTypeSyntax{node, parent, position}
+            : SimpleNamedTypeSyntax{lifetime, node, parent, position}
         {
         }
 

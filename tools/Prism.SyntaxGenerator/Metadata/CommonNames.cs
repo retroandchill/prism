@@ -9,6 +9,7 @@ public static class CommonNames
     public const string GreenNodeClass = "GreenNode";
     public const string GreenTokenClass = "GreenToken";
     public const string SyntaxNodeClass = "SyntaxNode";
+    public const string SyntaxLifetimeClass = "SyntaxLifetime";
     public const string SyntaxTokenClass = "SyntaxToken";
     public const string SyntaxTriviaClass = "SyntaxTrivia";
     public const string PrismNamespace = "prism";

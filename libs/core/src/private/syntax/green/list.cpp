@@ -25,4 +25,14 @@ namespace prism
             DEBUG_ASSERT(child != nullptr);
         }
     }
+
+    const SyntaxNode &GreenListNode::create_red(SyntaxLifetime &, const SyntaxNode *, std::uint32_t) const
+    {
+        throw UnsupportedOperationException{};
+    }
+
+    RefCountPtr<GreenNode> GreenListNode::clone_internal() const
+    {
+        return make_ref_counted<GreenListNode>(children_);
+    }
 } // namespace prism

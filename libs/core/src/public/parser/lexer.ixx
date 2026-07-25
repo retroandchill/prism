@@ -4,7 +4,7 @@
  * @date 7/11/2026
  * @brief
  */
-export module prism.core:syntax.lexer;
+export module prism.core:parser.lexer;
 
 import :text.cursor;
 import :syntax.token;

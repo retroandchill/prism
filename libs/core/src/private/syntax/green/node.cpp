@@ -7,18 +7,33 @@
 module prism.core:syntax.green.node.impl;
 
 import :syntax.green.node;
+import :syntax.green.trivia;
 
 namespace prism
 {
+    namespace
+    {
+        constinit const GreenTriviaList empty_trivia_list{};
+    }
 
     std::uint32_t GreenNode::width() const
     {
         return full_width_ - leading_trivia_width() - trailing_trivia_width();
     }
 
+    const GreenTriviaList &GreenNode::leading_trivia() const
+    {
+        return full_width_ > 0 ? first_leaf()->leading_trivia() : empty_trivia_list;
+    }
+
     std::uint32_t GreenNode::leading_trivia_width() const
     {
         return full_width_ > 0 ? first_leaf()->leading_trivia_width() : 0;
+    }
+
+    const GreenTriviaList &GreenNode::trailing_trivia() const
+    {
+        return full_width_ > 0 ? last_leaf()->trailing_trivia() : empty_trivia_list;
     }
 
     std::uint32_t GreenNode::trailing_trivia_width() const

@@ -369,6 +369,22 @@
   },
   "modules": [
     {
+      "name": "TopLevel",
+      "nodes": [
+        {
+          "name": "CompilationUnit",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "members",
+              "type": "Declaration",
+              "shape": "list"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Types",
       "nodes": [
         {

@@ -11,9 +11,9 @@ set(PRISM_SOURCES
         src/private/syntax/green/token.cpp
         src/private/diagnostics/diagnostic_info.cpp
         src/private/syntax/trivia.cpp
-        src/private/syntax/lexer.cpp
+        src/private/parser/lexer.cpp
         src/private/syntax/green/trivia.cpp
-        src/private/syntax/token_stream.cpp
+        src/private/parser/token_stream.cpp
         generated/private/syntax/green/types.cpp
         generated/private/syntax/green/declarations.cpp
         generated/private/syntax/green/expressions.cpp
@@ -25,6 +25,10 @@ set(PRISM_SOURCES
         generated/private/syntax/expressions.cpp
         generated/private/syntax/statements.cpp
         generated/private/syntax/types.cpp
+        generated/private/syntax/top_level.cpp
+        generated/private/syntax/green/top_level.cpp
+        src/private/parser/syntax_parser.cpp
+        src/private/parser/language_parser.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -58,10 +62,10 @@ set(PRISM_PUBLIC_MODULES
         src/public/text/text_span.ixx
         src/public/text/source_file.ixx
         src/public/syntax/list_view.ixx
-        src/public/syntax/lexer.ixx
+        src/public/parser/lexer.ixx
         src/public/text/cursor.ixx
         src/public/syntax/diagnostics.ixx
-        src/public/syntax/token_stream.ixx
+        src/public/parser/token_stream.ixx
         src/public/syntax/node.ixx
         src/public/syntax/tree.ixx
         generated/public/syntax/green/types.ixx
@@ -91,6 +95,10 @@ set(PRISM_PUBLIC_MODULES
         generated/public/syntax/expressions.ixx
         generated/public/syntax/statements.ixx
         generated/public/syntax/types.ixx
+        src/public/parser/language_parser.ixx
+        generated/public/syntax/top_level.ixx
+        generated/public/syntax/green/top_level.ixx
+        src/public/parser/syntax_parser.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

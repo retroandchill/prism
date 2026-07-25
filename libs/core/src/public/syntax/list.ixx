@@ -29,13 +29,11 @@ namespace prism
     class PRISM_CORE_API SyntaxListImpl final : public SyntaxNode, public SyntaxListView<SyntaxNodeOrToken>
     {
       public:
-        constexpr SyntaxListImpl(const GreenListNode &node, const SyntaxTree &tree, const std::uint32_t position)
-            : SyntaxNode{node, tree, position}
-        {
-        }
-
-        constexpr SyntaxListImpl(const GreenListNode &node, const SyntaxNode &parent, const std::uint32_t position)
-            : SyntaxNode{node, parent, position}
+        constexpr SyntaxListImpl(SyntaxLifetime &lifetime,
+                                 const GreenListNode &node,
+                                 const SyntaxNode *parent,
+                                 const std::uint32_t position)
+            : SyntaxNode{lifetime, node, parent, position}
         {
         }
 

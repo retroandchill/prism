@@ -24,6 +24,11 @@ namespace prism
     class SyntaxNode;
     class SyntaxLifetime;
 
+    class GreenTrivia;
+    template <typename T, bool Owning = true>
+    class GreenSyntaxList;
+    using GreenTriviaList = GreenSyntaxList<GreenTrivia>;
+
     template <typename T>
     using GreenPtr = RefCountPtr<const T>;
 
@@ -122,12 +127,16 @@ namespace prism
             return has_flag(flags_, SyntaxFlags::contains_diagnostics);
         }
 
+        [[nodiscard]] virtual const GreenTriviaList &leading_trivia() const;
+
         [[nodiscard]] virtual std::uint32_t leading_trivia_width() const;
 
         [[nodiscard]] inline bool has_leading_trivia() const
         {
             return leading_trivia_width() > 0;
         }
+
+        [[nodiscard]] virtual const GreenTriviaList &trailing_trivia() const;
 
         [[nodiscard]] virtual std::uint32_t trailing_trivia_width() const;
 
@@ -220,16 +229,19 @@ namespace prism
             }
         }
 
-        [[nodiscard]] const SyntaxNode &create_red(const SyntaxLifetime &lifetime) const
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime) const
         {
             return create_red(lifetime, nullptr, 0);
         }
 
-        [[nodiscard]] virtual const SyntaxNode &create_red(const SyntaxLifetime &lifetime,
+        [[nodiscard]] virtual const SyntaxNode &create_red(SyntaxLifetime &lifetime,
                                                            const SyntaxNode *parent,
-                                                           std::uint32_t position) const
+                                                           std::uint32_t position) const = 0;
+
+        template <typename Self>
+        [[nodiscard]] RefCountPtr<Self> clone(this const Self &self)
         {
-            throw UnsupportedOperationException{};
+            return static_pointer_cast<Self>(self.clone_internal());
         }
 
       protected:
@@ -251,6 +263,8 @@ namespace prism
                 }
             }
         }
+
+        [[nodiscard]] virtual RefCountPtr<GreenNode> clone_internal() const = 0;
 
       private:
         friend class Lexer;

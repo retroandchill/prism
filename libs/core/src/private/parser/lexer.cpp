@@ -4,9 +4,9 @@
  * @date 7/11/2026
  * @brief
  */
-module prism.core:syntax.lexer.impl;
+module prism.core:parser.lexer.impl;
 
-import :syntax.lexer;
+import :parser.lexer;
 import :syntax.diagnostics;
 import uni_algo;
 import :memory.buffer_pool;

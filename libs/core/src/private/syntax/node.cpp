@@ -42,10 +42,6 @@ namespace prism
         return *tree;
     }
 
-    SyntaxLifetime &SyntaxNode::lifetime() const
-    {
-        return *tree().lifetime_;
-    }
     const SyntaxNode &SyntaxNode::get_required_node_slot(std::size_t index) const
     {
         return get_node_slot(index).value();

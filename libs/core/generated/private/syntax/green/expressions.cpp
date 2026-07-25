@@ -1,6 +1,8 @@
 module prism.core:syntax.green.expressions.impl;
 
+import :syntax.lifetime;
 import :syntax.green.expressions;
+import :syntax.expressions;
 import :syntax.green.clauses;
 
 namespace prism
@@ -14,6 +16,11 @@ namespace prism
 
     GreenLiteralExpression::~GreenLiteralExpression() = default;
 
+    void GreenLiteralExpression::set_value(GreenPtr<GreenToken> value) noexcept
+    {
+        value_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenLiteralExpression::get_child(std::size_t index) const
     {
         switch (index)
@@ -23,6 +30,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenLiteralExpression::create_red(SyntaxLifetime &lifetime,
+                                                                       const SyntaxNode *parent,
+                                                                       std::uint32_t position) const
+    {
+        return lifetime.add<LiteralExpressionSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenLiteralExpression> GreenLiteralExpression::with_value(GreenPtr<GreenToken> value) const
@@ -38,6 +52,11 @@ namespace prism
         return make_ref_counted<const GreenLiteralExpression>(std::move(value));
     }
 
+    RefCountPtr<GreenNode> GreenLiteralExpression::clone_internal() const
+    {
+        return make_ref_counted<GreenLiteralExpression>(value_);
+    }
+
     GreenIdentifierExpression::GreenIdentifierExpression(GreenPtr<GreenToken> value, DiagnosticInfoList diagnostics)
         : GreenExpression{SyntaxKind::identifier_expression, std::move(diagnostics)}, value_{std::move(value)}
     {
@@ -46,6 +65,11 @@ namespace prism
     }
 
     GreenIdentifierExpression::~GreenIdentifierExpression() = default;
+
+    void GreenIdentifierExpression::set_value(GreenPtr<GreenToken> value) noexcept
+    {
+        value_ = std::move(value);
+    }
 
     Optional<const GreenNode &> GreenIdentifierExpression::get_child(std::size_t index) const
     {
@@ -56,6 +80,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenIdentifierExpression::create_red(SyntaxLifetime &lifetime,
+                                                                          const SyntaxNode *parent,
+                                                                          std::uint32_t position) const
+    {
+        return lifetime.add<IdentifierExpressionSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenIdentifierExpression> GreenIdentifierExpression::with_value(
@@ -70,6 +101,11 @@ namespace prism
             return shared_from_this();
 
         return make_ref_counted<const GreenIdentifierExpression>(std::move(value));
+    }
+
+    RefCountPtr<GreenNode> GreenIdentifierExpression::clone_internal() const
+    {
+        return make_ref_counted<GreenIdentifierExpression>(value_);
     }
 
     GreenParenthesizedExpression::GreenParenthesizedExpression(GreenPtr<GreenToken> open,
@@ -87,6 +123,21 @@ namespace prism
 
     GreenParenthesizedExpression::~GreenParenthesizedExpression() = default;
 
+    void GreenParenthesizedExpression::set_open(GreenPtr<GreenToken> value) noexcept
+    {
+        open_ = std::move(value);
+    }
+
+    void GreenParenthesizedExpression::set_expression(GreenPtr<GreenExpression> value) noexcept
+    {
+        expression_ = std::move(value);
+    }
+
+    void GreenParenthesizedExpression::set_close(GreenPtr<GreenToken> value) noexcept
+    {
+        close_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenParenthesizedExpression::get_child(std::size_t index) const
     {
         switch (index)
@@ -100,6 +151,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenParenthesizedExpression::create_red(SyntaxLifetime &lifetime,
+                                                                             const SyntaxNode *parent,
+                                                                             std::uint32_t position) const
+    {
+        return lifetime.add<ParenthesizedExpressionSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenParenthesizedExpression> GreenParenthesizedExpression::with_open(
@@ -132,6 +190,11 @@ namespace prism
                                                                     std::move(close));
     }
 
+    RefCountPtr<GreenNode> GreenParenthesizedExpression::clone_internal() const
+    {
+        return make_ref_counted<GreenParenthesizedExpression>(open_, expression_, close_);
+    }
+
     GreenBinaryExpression::GreenBinaryExpression(GreenPtr<GreenExpression> left,
                                                  GreenPtr<GreenToken> op,
                                                  GreenPtr<GreenExpression> right,
@@ -147,6 +210,21 @@ namespace prism
 
     GreenBinaryExpression::~GreenBinaryExpression() = default;
 
+    void GreenBinaryExpression::set_left(GreenPtr<GreenExpression> value) noexcept
+    {
+        left_ = std::move(value);
+    }
+
+    void GreenBinaryExpression::set_op(GreenPtr<GreenToken> value) noexcept
+    {
+        op_ = std::move(value);
+    }
+
+    void GreenBinaryExpression::set_right(GreenPtr<GreenExpression> value) noexcept
+    {
+        right_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenBinaryExpression::get_child(std::size_t index) const
     {
         switch (index)
@@ -160,6 +238,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenBinaryExpression::create_red(SyntaxLifetime &lifetime,
+                                                                      const SyntaxNode *parent,
+                                                                      std::uint32_t position) const
+    {
+        return lifetime.add<BinaryExpressionSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenBinaryExpression> GreenBinaryExpression::with_left(GreenPtr<GreenExpression> left) const
@@ -188,6 +273,11 @@ namespace prism
         return make_ref_counted<const GreenBinaryExpression>(std::move(left), std::move(op), std::move(right));
     }
 
+    RefCountPtr<GreenNode> GreenBinaryExpression::clone_internal() const
+    {
+        return make_ref_counted<GreenBinaryExpression>(left_, op_, right_);
+    }
+
     GreenAssignmentExpression::GreenAssignmentExpression(GreenPtr<GreenExpression> left,
                                                          GreenPtr<GreenToken> op,
                                                          GreenPtr<GreenExpression> right,
@@ -203,6 +293,21 @@ namespace prism
 
     GreenAssignmentExpression::~GreenAssignmentExpression() = default;
 
+    void GreenAssignmentExpression::set_left(GreenPtr<GreenExpression> value) noexcept
+    {
+        left_ = std::move(value);
+    }
+
+    void GreenAssignmentExpression::set_op(GreenPtr<GreenToken> value) noexcept
+    {
+        op_ = std::move(value);
+    }
+
+    void GreenAssignmentExpression::set_right(GreenPtr<GreenExpression> value) noexcept
+    {
+        right_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenAssignmentExpression::get_child(std::size_t index) const
     {
         switch (index)
@@ -216,6 +321,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenAssignmentExpression::create_red(SyntaxLifetime &lifetime,
+                                                                          const SyntaxNode *parent,
+                                                                          std::uint32_t position) const
+    {
+        return lifetime.add<AssignmentExpressionSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenAssignmentExpression> GreenAssignmentExpression::with_left(
@@ -245,6 +357,11 @@ namespace prism
         return make_ref_counted<const GreenAssignmentExpression>(std::move(left), std::move(op), std::move(right));
     }
 
+    RefCountPtr<GreenNode> GreenAssignmentExpression::clone_internal() const
+    {
+        return make_ref_counted<GreenAssignmentExpression>(left_, op_, right_);
+    }
+
     GreenPrefixExpression::GreenPrefixExpression(GreenPtr<GreenToken> op,
                                                  GreenPtr<GreenExpression> operand,
                                                  DiagnosticInfoList diagnostics)
@@ -258,6 +375,16 @@ namespace prism
 
     GreenPrefixExpression::~GreenPrefixExpression() = default;
 
+    void GreenPrefixExpression::set_op(GreenPtr<GreenToken> value) noexcept
+    {
+        op_ = std::move(value);
+    }
+
+    void GreenPrefixExpression::set_operand(GreenPtr<GreenExpression> value) noexcept
+    {
+        operand_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenPrefixExpression::get_child(std::size_t index) const
     {
         switch (index)
@@ -269,6 +396,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenPrefixExpression::create_red(SyntaxLifetime &lifetime,
+                                                                      const SyntaxNode *parent,
+                                                                      std::uint32_t position) const
+    {
+        return lifetime.add<PrefixExpressionSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenPrefixExpression> GreenPrefixExpression::with_op(GreenPtr<GreenToken> op) const
@@ -291,6 +425,11 @@ namespace prism
         return make_ref_counted<const GreenPrefixExpression>(std::move(op), std::move(operand));
     }
 
+    RefCountPtr<GreenNode> GreenPrefixExpression::clone_internal() const
+    {
+        return make_ref_counted<GreenPrefixExpression>(op_, operand_);
+    }
+
     GreenPostfixExpression::GreenPostfixExpression(GreenPtr<GreenExpression> operand,
                                                    GreenPtr<GreenToken> op,
                                                    DiagnosticInfoList diagnostics)
@@ -304,6 +443,16 @@ namespace prism
 
     GreenPostfixExpression::~GreenPostfixExpression() = default;
 
+    void GreenPostfixExpression::set_operand(GreenPtr<GreenExpression> value) noexcept
+    {
+        operand_ = std::move(value);
+    }
+
+    void GreenPostfixExpression::set_op(GreenPtr<GreenToken> value) noexcept
+    {
+        op_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenPostfixExpression::get_child(std::size_t index) const
     {
         switch (index)
@@ -315,6 +464,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenPostfixExpression::create_red(SyntaxLifetime &lifetime,
+                                                                       const SyntaxNode *parent,
+                                                                       std::uint32_t position) const
+    {
+        return lifetime.add<PostfixExpressionSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenPostfixExpression> GreenPostfixExpression::with_operand(
@@ -337,6 +493,11 @@ namespace prism
         return make_ref_counted<const GreenPostfixExpression>(std::move(operand), std::move(op));
     }
 
+    RefCountPtr<GreenNode> GreenPostfixExpression::clone_internal() const
+    {
+        return make_ref_counted<GreenPostfixExpression>(operand_, op_);
+    }
+
     GreenTernaryExpression::GreenTernaryExpression(GreenPtr<GreenExpression> condition,
                                                    GreenPtr<GreenToken> question_mark,
                                                    GreenPtr<GreenExpression> when_true,
@@ -357,6 +518,31 @@ namespace prism
 
     GreenTernaryExpression::~GreenTernaryExpression() = default;
 
+    void GreenTernaryExpression::set_condition(GreenPtr<GreenExpression> value) noexcept
+    {
+        condition_ = std::move(value);
+    }
+
+    void GreenTernaryExpression::set_question_mark(GreenPtr<GreenToken> value) noexcept
+    {
+        question_mark_ = std::move(value);
+    }
+
+    void GreenTernaryExpression::set_when_true(GreenPtr<GreenExpression> value) noexcept
+    {
+        when_true_ = std::move(value);
+    }
+
+    void GreenTernaryExpression::set_colon(GreenPtr<GreenToken> value) noexcept
+    {
+        colon_ = std::move(value);
+    }
+
+    void GreenTernaryExpression::set_when_false(GreenPtr<GreenExpression> value) noexcept
+    {
+        when_false_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenTernaryExpression::get_child(std::size_t index) const
     {
         switch (index)
@@ -374,6 +560,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenTernaryExpression::create_red(SyntaxLifetime &lifetime,
+                                                                       const SyntaxNode *parent,
+                                                                       std::uint32_t position) const
+    {
+        return lifetime.add<TernaryExpressionSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenTernaryExpression> GreenTernaryExpression::with_condition(
@@ -422,6 +615,11 @@ namespace prism
                                                               std::move(when_false));
     }
 
+    RefCountPtr<GreenNode> GreenTernaryExpression::clone_internal() const
+    {
+        return make_ref_counted<GreenTernaryExpression>(condition_, question_mark_, when_true_, colon_, when_false_);
+    }
+
     GreenInvocationExpression::GreenInvocationExpression(GreenPtr<GreenExpression> callee,
                                                          GreenPtr<GreenArgumentList> arguments,
                                                          DiagnosticInfoList diagnostics)
@@ -435,6 +633,16 @@ namespace prism
 
     GreenInvocationExpression::~GreenInvocationExpression() = default;
 
+    void GreenInvocationExpression::set_callee(GreenPtr<GreenExpression> value) noexcept
+    {
+        callee_ = std::move(value);
+    }
+
+    void GreenInvocationExpression::set_arguments(GreenPtr<GreenArgumentList> value) noexcept
+    {
+        arguments_ = std::move(value);
+    }
+
     Optional<const GreenNode &> GreenInvocationExpression::get_child(std::size_t index) const
     {
         switch (index)
@@ -446,6 +654,13 @@ namespace prism
             default:
                 return std::nullopt;
         }
+    }
+
+    [[nodiscard]] const SyntaxNode &GreenInvocationExpression::create_red(SyntaxLifetime &lifetime,
+                                                                          const SyntaxNode *parent,
+                                                                          std::uint32_t position) const
+    {
+        return lifetime.add<InvocationExpressionSyntax>(*this, parent, position);
     }
 
     [[nodiscard]] GreenPtr<GreenInvocationExpression> GreenInvocationExpression::with_callee(
@@ -467,5 +682,10 @@ namespace prism
             return shared_from_this();
 
         return make_ref_counted<const GreenInvocationExpression>(std::move(callee), std::move(arguments));
+    }
+
+    RefCountPtr<GreenNode> GreenInvocationExpression::clone_internal() const
+    {
+        return make_ref_counted<GreenInvocationExpression>(callee_, arguments_);
     }
 } // namespace prism

@@ -31,6 +31,13 @@ namespace prism
             return node.kind() == SyntaxKind::list;
         }
 
+        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                   const SyntaxNode *parent,
+                                                   std::uint32_t position) const override;
+
+      protected:
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
+
       private:
         friend class GreenListNodeBuilder;
 
@@ -78,7 +85,7 @@ namespace prism
         GreenSyntaxVector children_;
     };
 
-    template <typename T, bool Owning = true>
+    template <typename T, bool Owning>
     class GreenSyntaxList : public SyntaxListView<T>
     {
         using Ptr = std::conditional_t<Owning, GreenPtr<GreenNode>, const GreenNode *>;

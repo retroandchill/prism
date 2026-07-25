@@ -20,15 +20,11 @@ namespace prism
     export class PRISM_CORE_API DeclarationSyntax : public SyntaxNode
     {
       protected:
-        constexpr DeclarationSyntax(const GreenDeclaration &node, const SyntaxTree &tree, const std::uint32_t position)
-            : SyntaxNode{node, tree, position}
-        {
-        }
-
-        constexpr DeclarationSyntax(const GreenDeclaration &node,
-                                    const SyntaxNode &parent,
+        constexpr DeclarationSyntax(SyntaxLifetime &lifetime,
+                                    const GreenDeclaration &node,
+                                    const SyntaxNode *parent,
                                     const std::uint32_t position)
-            : SyntaxNode{node, parent, position}
+            : SyntaxNode{lifetime, node, parent, position}
         {
         }
 
@@ -46,17 +42,11 @@ namespace prism
     export class PRISM_CORE_API VariableDeclarationSyntax final : public DeclarationSyntax
     {
       public:
-        constexpr VariableDeclarationSyntax(const GreenVariableDeclaration &node,
-                                            const SyntaxTree &tree,
+        constexpr VariableDeclarationSyntax(SyntaxLifetime &lifetime,
+                                            const GreenVariableDeclaration &node,
+                                            const SyntaxNode *parent,
                                             const std::uint32_t position)
-            : DeclarationSyntax{node, tree, position}
-        {
-        }
-
-        constexpr VariableDeclarationSyntax(const GreenVariableDeclaration &node,
-                                            const SyntaxNode &parent,
-                                            const std::uint32_t position)
-            : DeclarationSyntax{node, parent, position}
+            : DeclarationSyntax{lifetime, node, parent, position}
         {
         }
 
@@ -85,17 +75,11 @@ namespace prism
     export class PRISM_CORE_API FunctionDeclarationSyntax final : public DeclarationSyntax
     {
       public:
-        constexpr FunctionDeclarationSyntax(const GreenFunctionDeclaration &node,
-                                            const SyntaxTree &tree,
+        constexpr FunctionDeclarationSyntax(SyntaxLifetime &lifetime,
+                                            const GreenFunctionDeclaration &node,
+                                            const SyntaxNode *parent,
                                             const std::uint32_t position)
-            : DeclarationSyntax{node, tree, position}
-        {
-        }
-
-        constexpr FunctionDeclarationSyntax(const GreenFunctionDeclaration &node,
-                                            const SyntaxNode &parent,
-                                            const std::uint32_t position)
-            : DeclarationSyntax{node, parent, position}
+            : DeclarationSyntax{lifetime, node, parent, position}
         {
         }
 

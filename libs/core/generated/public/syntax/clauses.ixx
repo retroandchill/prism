@@ -19,15 +19,11 @@ namespace prism
     export class PRISM_CORE_API InitializerSyntax final : public SyntaxNode
     {
       public:
-        constexpr InitializerSyntax(const GreenInitializer &node, const SyntaxTree &tree, const std::uint32_t position)
-            : SyntaxNode{node, tree, position}
-        {
-        }
-
-        constexpr InitializerSyntax(const GreenInitializer &node,
-                                    const SyntaxNode &parent,
+        constexpr InitializerSyntax(SyntaxLifetime &lifetime,
+                                    const GreenInitializer &node,
+                                    const SyntaxNode *parent,
                                     const std::uint32_t position)
-            : SyntaxNode{node, parent, position}
+            : SyntaxNode{lifetime, node, parent, position}
         {
         }
 
@@ -50,17 +46,11 @@ namespace prism
     export class PRISM_CORE_API TypeSpecifierSyntax final : public SyntaxNode
     {
       public:
-        constexpr TypeSpecifierSyntax(const GreenTypeSpecifier &node,
-                                      const SyntaxTree &tree,
+        constexpr TypeSpecifierSyntax(SyntaxLifetime &lifetime,
+                                      const GreenTypeSpecifier &node,
+                                      const SyntaxNode *parent,
                                       const std::uint32_t position)
-            : SyntaxNode{node, tree, position}
-        {
-        }
-
-        constexpr TypeSpecifierSyntax(const GreenTypeSpecifier &node,
-                                      const SyntaxNode &parent,
-                                      const std::uint32_t position)
-            : SyntaxNode{node, parent, position}
+            : SyntaxNode{lifetime, node, parent, position}
         {
         }
 
@@ -83,17 +73,11 @@ namespace prism
     export class PRISM_CORE_API NamedParameterSyntax final : public SyntaxNode
     {
       public:
-        constexpr NamedParameterSyntax(const GreenNamedParameter &node,
-                                       const SyntaxTree &tree,
+        constexpr NamedParameterSyntax(SyntaxLifetime &lifetime,
+                                       const GreenNamedParameter &node,
+                                       const SyntaxNode *parent,
                                        const std::uint32_t position)
-            : SyntaxNode{node, tree, position}
-        {
-        }
-
-        constexpr NamedParameterSyntax(const GreenNamedParameter &node,
-                                       const SyntaxNode &parent,
-                                       const std::uint32_t position)
-            : SyntaxNode{node, parent, position}
+            : SyntaxNode{lifetime, node, parent, position}
         {
         }
 
@@ -113,17 +97,11 @@ namespace prism
     export class PRISM_CORE_API ArgumentListSyntax final : public SyntaxNode
     {
       public:
-        constexpr ArgumentListSyntax(const GreenArgumentList &node,
-                                     const SyntaxTree &tree,
+        constexpr ArgumentListSyntax(SyntaxLifetime &lifetime,
+                                     const GreenArgumentList &node,
+                                     const SyntaxNode *parent,
                                      const std::uint32_t position)
-            : SyntaxNode{node, tree, position}
-        {
-        }
-
-        constexpr ArgumentListSyntax(const GreenArgumentList &node,
-                                     const SyntaxNode &parent,
-                                     const std::uint32_t position)
-            : SyntaxNode{node, parent, position}
+            : SyntaxNode{lifetime, node, parent, position}
         {
         }
 
@@ -147,13 +125,11 @@ namespace prism
     class PRISM_CORE_API ArgumentSyntax final : public SyntaxNode
     {
       public:
-        constexpr ArgumentSyntax(const GreenArgument &node, const SyntaxTree &tree, const std::uint32_t position)
-            : SyntaxNode{node, tree, position}
-        {
-        }
-
-        constexpr ArgumentSyntax(const GreenArgument &node, const SyntaxNode &parent, const std::uint32_t position)
-            : SyntaxNode{node, parent, position}
+        constexpr ArgumentSyntax(SyntaxLifetime &lifetime,
+                                 const GreenArgument &node,
+                                 const SyntaxNode *parent,
+                                 const std::uint32_t position)
+            : SyntaxNode{lifetime, node, parent, position}
         {
         }
 
@@ -177,17 +153,11 @@ namespace prism
     export class PRISM_CORE_API ParameterListSyntax final : public SyntaxNode
     {
       public:
-        constexpr ParameterListSyntax(const GreenParameterList &node,
-                                      const SyntaxTree &tree,
+        constexpr ParameterListSyntax(SyntaxLifetime &lifetime,
+                                      const GreenParameterList &node,
+                                      const SyntaxNode *parent,
                                       const std::uint32_t position)
-            : SyntaxNode{node, tree, position}
-        {
-        }
-
-        constexpr ParameterListSyntax(const GreenParameterList &node,
-                                      const SyntaxNode &parent,
-                                      const std::uint32_t position)
-            : SyntaxNode{node, parent, position}
+            : SyntaxNode{lifetime, node, parent, position}
         {
         }
 
@@ -211,13 +181,11 @@ namespace prism
     class PRISM_CORE_API ParameterSyntax final : public SyntaxNode
     {
       public:
-        constexpr ParameterSyntax(const GreenParameter &node, const SyntaxTree &tree, const std::uint32_t position)
-            : SyntaxNode{node, tree, position}
-        {
-        }
-
-        constexpr ParameterSyntax(const GreenParameter &node, const SyntaxNode &parent, const std::uint32_t position)
-            : SyntaxNode{node, parent, position}
+        constexpr ParameterSyntax(SyntaxLifetime &lifetime,
+                                  const GreenParameter &node,
+                                  const SyntaxNode *parent,
+                                  const std::uint32_t position)
+            : SyntaxNode{lifetime, node, parent, position}
         {
         }
 
@@ -243,17 +211,11 @@ namespace prism
     export class PRISM_CORE_API ExpressionBodySyntax final : public SyntaxNode
     {
       public:
-        constexpr ExpressionBodySyntax(const GreenExpressionBody &node,
-                                       const SyntaxTree &tree,
+        constexpr ExpressionBodySyntax(SyntaxLifetime &lifetime,
+                                       const GreenExpressionBody &node,
+                                       const SyntaxNode *parent,
                                        const std::uint32_t position)
-            : SyntaxNode{node, tree, position}
-        {
-        }
-
-        constexpr ExpressionBodySyntax(const GreenExpressionBody &node,
-                                       const SyntaxNode &parent,
-                                       const std::uint32_t position)
-            : SyntaxNode{node, parent, position}
+            : SyntaxNode{lifetime, node, parent, position}
         {
         }
 

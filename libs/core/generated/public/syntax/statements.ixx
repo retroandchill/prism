@@ -17,13 +17,11 @@ namespace prism
     export class PRISM_CORE_API StatementSyntax : public SyntaxNode
     {
       protected:
-        constexpr StatementSyntax(const GreenStatement &node, const SyntaxTree &tree, const std::uint32_t position)
-            : SyntaxNode{node, tree, position}
-        {
-        }
-
-        constexpr StatementSyntax(const GreenStatement &node, const SyntaxNode &parent, const std::uint32_t position)
-            : SyntaxNode{node, parent, position}
+        constexpr StatementSyntax(SyntaxLifetime &lifetime,
+                                  const GreenStatement &node,
+                                  const SyntaxNode *parent,
+                                  const std::uint32_t position)
+            : SyntaxNode{lifetime, node, parent, position}
         {
         }
 
@@ -41,17 +39,11 @@ namespace prism
     export class PRISM_CORE_API VariableDeclarationStatementSyntax final : public StatementSyntax
     {
       public:
-        constexpr VariableDeclarationStatementSyntax(const GreenVariableDeclarationStatement &node,
-                                                     const SyntaxTree &tree,
+        constexpr VariableDeclarationStatementSyntax(SyntaxLifetime &lifetime,
+                                                     const GreenVariableDeclarationStatement &node,
+                                                     const SyntaxNode *parent,
                                                      const std::uint32_t position)
-            : StatementSyntax{node, tree, position}
-        {
-        }
-
-        constexpr VariableDeclarationStatementSyntax(const GreenVariableDeclarationStatement &node,
-                                                     const SyntaxNode &parent,
-                                                     const std::uint32_t position)
-            : StatementSyntax{node, parent, position}
+            : StatementSyntax{lifetime, node, parent, position}
         {
         }
 
@@ -73,13 +65,11 @@ namespace prism
     export class PRISM_CORE_API BlockSyntax final : public StatementSyntax
     {
       public:
-        constexpr BlockSyntax(const GreenBlock &node, const SyntaxTree &tree, const std::uint32_t position)
-            : StatementSyntax{node, tree, position}
-        {
-        }
-
-        constexpr BlockSyntax(const GreenBlock &node, const SyntaxNode &parent, const std::uint32_t position)
-            : StatementSyntax{node, parent, position}
+        constexpr BlockSyntax(SyntaxLifetime &lifetime,
+                              const GreenBlock &node,
+                              const SyntaxNode *parent,
+                              const std::uint32_t position)
+            : StatementSyntax{lifetime, node, parent, position}
         {
         }
 
@@ -103,17 +93,11 @@ namespace prism
     export class PRISM_CORE_API ReturnStatementSyntax final : public StatementSyntax
     {
       public:
-        constexpr ReturnStatementSyntax(const GreenReturnStatement &node,
-                                        const SyntaxTree &tree,
+        constexpr ReturnStatementSyntax(SyntaxLifetime &lifetime,
+                                        const GreenReturnStatement &node,
+                                        const SyntaxNode *parent,
                                         const std::uint32_t position)
-            : StatementSyntax{node, tree, position}
-        {
-        }
-
-        constexpr ReturnStatementSyntax(const GreenReturnStatement &node,
-                                        const SyntaxNode &parent,
-                                        const std::uint32_t position)
-            : StatementSyntax{node, parent, position}
+            : StatementSyntax{lifetime, node, parent, position}
         {
         }
 
@@ -137,17 +121,11 @@ namespace prism
     export class PRISM_CORE_API ExpressionStatementSyntax final : public StatementSyntax
     {
       public:
-        constexpr ExpressionStatementSyntax(const GreenExpressionStatement &node,
-                                            const SyntaxTree &tree,
+        constexpr ExpressionStatementSyntax(SyntaxLifetime &lifetime,
+                                            const GreenExpressionStatement &node,
+                                            const SyntaxNode *parent,
                                             const std::uint32_t position)
-            : StatementSyntax{node, tree, position}
-        {
-        }
-
-        constexpr ExpressionStatementSyntax(const GreenExpressionStatement &node,
-                                            const SyntaxNode &parent,
-                                            const std::uint32_t position)
-            : StatementSyntax{node, parent, position}
+            : StatementSyntax{lifetime, node, parent, position}
         {
         }
 
@@ -170,17 +148,11 @@ namespace prism
     export class PRISM_CORE_API EmptyStatementSyntax final : public StatementSyntax
     {
       public:
-        constexpr EmptyStatementSyntax(const GreenEmptyStatement &node,
-                                       const SyntaxTree &tree,
+        constexpr EmptyStatementSyntax(SyntaxLifetime &lifetime,
+                                       const GreenEmptyStatement &node,
+                                       const SyntaxNode *parent,
                                        const std::uint32_t position)
-            : StatementSyntax{node, tree, position}
-        {
-        }
-
-        constexpr EmptyStatementSyntax(const GreenEmptyStatement &node,
-                                       const SyntaxNode &parent,
-                                       const std::uint32_t position)
-            : StatementSyntax{node, parent, position}
+            : StatementSyntax{lifetime, node, parent, position}
         {
         }
 

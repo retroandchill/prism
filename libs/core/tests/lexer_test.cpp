@@ -11,7 +11,7 @@ module;
 #include <catch2/matchers/catch_matchers_all.hpp>
 module prism.core:tests.lexer;
 
-import :syntax.lexer;
+import :parser.lexer;
 
 import std;
 
