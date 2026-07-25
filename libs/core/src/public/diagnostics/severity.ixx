@@ -1,5 +1,5 @@
 /**
- * @file diagnostic_severity.ixx
+ * @file severity.ixx
  * @author Francesco Corso
  * @date 7/9/2026
  * @brief

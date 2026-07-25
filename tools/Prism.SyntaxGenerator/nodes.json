@@ -1166,5 +1166,54 @@
         }
       ]
     }
+  ],
+  "diagnostics": [
+    {
+      "name": "Lexer",
+      "diagnostics": [
+        {
+          "name": "UnexpectedToken",
+          "severity": "Error",
+          "format": "Unexpected token {Token}",
+          "args": [
+            {
+              "name": "Token",
+              "type": "SyntaxKind"
+            }
+          ]
+        },
+        {
+          "name": "UnexpectedEOF",
+          "severity": "Error",
+          "format": "Unexpected end of file"
+        },
+        {
+          "name": "UnexpectedEscape",
+          "severity": "Error",
+          "format": "Unexpected escape sequence: '{Sequence}'",
+          "args": [
+            {
+              "name": "Sequence",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "UnterminatedStringLiteral",
+          "severity": "Error",
+          "format": "Unterminated string literal"
+        },
+        {
+          "name": "UnterminatedCharacterLiteral",
+          "severity": "Error",
+          "format": "Unterminated character literal"
+        },
+        {
+          "name": "UnterminatedBlockComment",
+          "severity": "Error",
+          "format": "Unterminated block comment"
+        }
+      ]
+    }
   ]
 }

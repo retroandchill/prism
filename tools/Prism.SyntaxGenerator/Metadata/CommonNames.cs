@@ -13,6 +13,7 @@ public static class CommonNames
     public const string SyntaxTokenClass = "SyntaxToken";
     public const string SyntaxTriviaClass = "SyntaxTrivia";
     public const string PrismNamespace = "prism";
+    public const string DiagnosticsNamespace = $"{PrismNamespace}::diagnostics";
     public const string GreenFragmentName = "syntax.green";
     public const string RedFragmentName = "syntax";
 }

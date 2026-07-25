@@ -42,10 +42,12 @@ public class ExportNodesCommand
                 );
         }
 
-        var publicSyntaxDir = Path.Combine(OutputPath, "public", "syntax");
+        var publicDir = Path.Combine(OutputPath, "public");
+        var publicSyntaxDir = Path.Combine(publicDir, "syntax");
         var publicGreenDir = Path.Combine(publicSyntaxDir, "green");
         var privateSyntaxDir = Path.Combine(OutputPath, "private", "syntax");
         var privateGreenDir = Path.Combine(privateSyntaxDir, "green");
+        var publicDiagnosticDir = Path.Combine(publicDir, "diagnostics");
 
         var builder = new SyntaxModelBuilder();
         var resolvedModel = builder.Build(syntax);
@@ -97,6 +99,27 @@ public class ExportNodesCommand
                 context.CancellationToken
             );
         }
+
+        writer.EmitDiagnosticCodes(cppModel);
+        await WriteCodeAsync(
+            writer,
+            Path.Join(publicDiagnosticDir, "codes.ixx"),
+            context.CancellationToken
+        );
+
+        writer.EmitDiagnosticDescriptors(cppModel);
+        await WriteCodeAsync(
+            writer,
+            Path.Join(publicDiagnosticDir, "registry.ixx"),
+            context.CancellationToken
+        );
+
+        writer.EmitDiagnosticTraits(cppModel);
+        await WriteCodeAsync(
+            writer,
+            Path.Join(publicDiagnosticDir, "traits.ixx"),
+            context.CancellationToken
+        );
     }
 
     private static async ValueTask WriteCodeAsync(
@@ -105,7 +128,9 @@ public class ExportNodesCommand
         CancellationToken cancellationToken = default
     )
     {
-        await using var fileStream = File.Open(filePath, FileMode.Create, FileAccess.Write);
+        var fileInfo = new FileInfo(filePath);
+        fileInfo.Directory?.Create();
+        await using var fileStream = fileInfo.Open(FileMode.Create, FileAccess.Write);
         await writer.WriteToStreamAsync(fileStream, cancellationToken);
         writer.Clear();
     }

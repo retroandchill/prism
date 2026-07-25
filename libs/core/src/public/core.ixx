@@ -27,7 +27,8 @@ export import :util.hashing;
 export import :util.numerics;
 export import :util.overload;
 
-export import :diagnostics.diagnostic_descriptor;
+export import :diagnostics.descriptor;
+export import :diagnostics.registry;
 
 export import :syntax.kind;
 export import :syntax.literals;

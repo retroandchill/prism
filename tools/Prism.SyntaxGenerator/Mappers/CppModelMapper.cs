@@ -105,6 +105,63 @@ public static partial class CppModelMapper
         [ReferenceHandler] IReferenceHandler refHandler
     );
 
+    [MapProperty(
+        nameof(DiagnosticCategory.Name),
+        nameof(CppDiagnosticCategory.CppName),
+        Use = nameof(GetPublicCppMemberName)
+    )]
+    [MapProperty(
+        nameof(DiagnosticCategory.Name),
+        nameof(CppDiagnosticCategory.DisplayName),
+        Use = nameof(GetHumanReadableName)
+    )]
+    private static partial CppDiagnosticCategory ToCpp(
+        this DiagnosticCategory category,
+        [ReferenceHandler] IReferenceHandler refHandler
+    );
+
+    [MapProperty(
+        nameof(Diagnostic.Name),
+        nameof(CppDiagnostic.CppName),
+        Use = nameof(GetPublicCppMemberName)
+    )]
+    [MapProperty(
+        nameof(Diagnostic.Name),
+        nameof(CppDiagnostic.Title),
+        Use = nameof(GetHumanReadableName)
+    )]
+    [MapProperty(
+        nameof(Diagnostic.Name),
+        nameof(CppDiagnostic.SymbolName),
+        Use = nameof(GetPascalizedName)
+    )]
+    private static partial CppDiagnostic ToCpp(
+        this Diagnostic category,
+        [ReferenceHandler] IReferenceHandler refHandler
+    );
+
+    [MapProperty(
+        nameof(DiagnosticArgument.Name),
+        nameof(CppDiagnosticArgument.CppName),
+        Use = nameof(GetPublicCppMemberName)
+    )]
+    [MapProperty(
+        nameof(DiagnosticArgument.Type),
+        nameof(CppDiagnosticArgument.CppType),
+        Use = nameof(GetCppFormatArgType)
+    )]
+    private static partial CppDiagnosticArgument ToCpp(
+        this DiagnosticArgument category,
+        [ReferenceHandler] IReferenceHandler refHandler
+    );
+
+    [MapDerivedType<DiagnosticMessageTextPart, CppDiagnosticMessageTextPart>]
+    [MapDerivedType<DiagnosticMessageArgumentPart, CppDiagnosticMessageArgumentPart>]
+    private static partial CppDiagnosticMessagePart ToCpp(
+        this DiagnosticMessagePart category,
+        [ReferenceHandler] IReferenceHandler refHandler
+    );
+
     [UserMapping(Default = false)]
     private static string GetPublicCppMemberName(string source)
     {
@@ -146,6 +203,23 @@ public static partial class CppModelMapper
             "Token" => CommonNames.SyntaxTokenClass,
             "Node" => CommonNames.SyntaxNodeClass,
             _ => $"{name.Pascalize()}Syntax",
+        };
+    }
+
+    [UserMapping(Default = false)]
+    private static string GetPascalizedName(string name)
+    {
+        return name.Pascalize();
+    }
+
+    [UserMapping(Default = false)]
+    private static string GetCppFormatArgType(string name)
+    {
+        return name switch
+        {
+            "Int32" => "std::int32_t",
+            "String" => "std::string",
+            _ => name.Pascalize(),
         };
     }
 }

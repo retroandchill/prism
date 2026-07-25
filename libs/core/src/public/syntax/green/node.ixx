@@ -13,7 +13,7 @@ export module prism.core:syntax.green.node;
 import :syntax.kind;
 import :syntax.flags;
 import :memory.ref_counted_ptr;
-import :diagnostics.diagnostic_info;
+import :diagnostics.info;
 import :util.optional;
 import :util.exceptions;
 import libassert;

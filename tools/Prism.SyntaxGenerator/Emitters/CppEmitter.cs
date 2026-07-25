@@ -417,27 +417,8 @@ public static class CppEmitter
             writer.WriteLine();
             foreach (var property in node.Properties)
             {
-                writer.Write("[[nodiscard]] constexpr ");
-                writer.EmitGreenGetterType(property);
                 var @override = property.IsOverride ? " override" : "";
-                writer.WriteLine($" {property.GetterName}() const noexcept{@override}");
-                using (writer.EnterBlockScope())
-                {
-                    switch (property.Shape)
-                    {
-                        case PropertyShape.Single:
-                            writer.WriteLine($"return *{property.FieldName};");
-                            break;
-                        case PropertyShape.Optional:
-                            writer.WriteLine($"return {property.FieldName}.get();");
-                            break;
-                        case PropertyShape.List or PropertyShape.SeparatedList:
-                            writer.WriteLine($"return {property.FieldName};");
-                            break;
-                        default:
-                            throw new InvalidOperationException("Unknown property shape");
-                    }
-                }
+                writer.EmitInlineGetter(property);
 
                 writer.WriteLine();
                 writer.Write($"void set_{property.GetterName}(");
@@ -477,6 +458,29 @@ public static class CppEmitter
             {
                 writer.EmitGreenFieldType(property);
                 writer.WriteLine($" {property.FieldName};");
+            }
+        }
+
+        private void EmitInlineGetter(CppProperty property)
+        {
+            writer.Write("[[nodiscard]] constexpr ");
+            writer.EmitGreenGetterType(property);
+            var @override = property.IsOverride ? " override" : "";
+            writer.WriteLine($" {property.GetterName}() const noexcept{@override}");
+            using var scope = writer.EnterBlockScope();
+            switch (property.Shape)
+            {
+                case PropertyShape.Single:
+                    writer.WriteLine($"return *{property.FieldName};");
+                    break;
+                case PropertyShape.Optional:
+                    writer.WriteLine($"return {property.FieldName}.get();");
+                    break;
+                case PropertyShape.List or PropertyShape.SeparatedList:
+                    writer.WriteLine($"return {property.FieldName};");
+                    break;
+                default:
+                    throw new InvalidOperationException("Unknown property shape");
             }
         }
 
@@ -1248,6 +1252,207 @@ public static class CppEmitter
             using var scope = writer.EnterBlockScope();
             writer.WriteLine($"return node.kind() == {SyntaxKindClass}::{node.Kind!.CppName};");
         }
+
+        #region Diagnostic Codes
+
+        public void EmitDiagnosticCodes(CppSyntaxModel model)
+        {
+            writer.WriteLine($"export module {BaseModuleName}:diagnostics.code;");
+            writer.WriteLine();
+            writer.WriteLine("import std;");
+            writer.WriteLine();
+            using var namespaceScope = writer.EnterNamespaceScope(PrismNamespace);
+            writer.EmitDiagnosticCategoryEnum(model);
+            writer.WriteLine();
+            writer.EmitDiagnosticCategoryGetDisplayName(model);
+
+            writer.WriteLine();
+            writer.EmitDiagnosticCodeEnum(model);
+        }
+
+        private void EmitDiagnosticCategoryEnum(CppSyntaxModel model)
+        {
+            writer.WriteLine("export enum class DiagnosticCategory : std::uint8_t");
+            using var scope = writer.EnterBlockScope(true);
+            writer.WriteLine("general = 0,");
+            foreach (var category in model.Diagnostics)
+            {
+                writer.WriteLine($"{category.CppName},");
+            }
+        }
+
+        private void EmitDiagnosticCategoryGetDisplayName(CppSyntaxModel model)
+        {
+            writer.WriteLine(
+                "export [[nodiscard]] constexpr std::string_view "
+                    + "get_display_name(const DiagnosticCategory category)"
+            );
+            using var scope = writer.EnterBlockScope();
+            writer.WriteLine("switch (category)");
+            using var switchScope = writer.EnterBlockScope();
+            writer.WriteLine("case DiagnosticCategory::general:");
+            using (writer.EnterIndentationScope())
+            {
+                writer.WriteLine("return \"General\";");
+            }
+            foreach (var category in model.Diagnostics)
+            {
+                writer.WriteLine($"case DiagnosticCategory::{category.CppName}:");
+                using (writer.EnterIndentationScope())
+                {
+                    writer.WriteLine($"return \"{category.DisplayName}\";");
+                }
+            }
+            writer.WriteLine("default:");
+            using (writer.EnterIndentationScope())
+            {
+                writer.WriteLine("throw std::invalid_argument(\"Unknown diagnostic category\");");
+            }
+        }
+
+        private void EmitDiagnosticCodeEnum(CppSyntaxModel model)
+        {
+            writer.WriteLine("export enum class DiagnosticCode : std::uint32_t");
+            using var scope = writer.EnterBlockScope(true);
+            writer.WriteLine("unknown = 0,");
+            foreach (var category in model.Diagnostics)
+            {
+                writer.WriteLine();
+                writer.WriteLine(
+                    $"// -- {category.DisplayName} ({category.Start}-{category.End}) ---"
+                );
+                foreach (var diagnostic in category.Diagnostics)
+                {
+                    writer.WriteLine($"{diagnostic.CppName} = {diagnostic.Value},");
+                }
+            }
+        }
+
+        #endregion
+
+        #region DiagnosticDescriptors
+
+        public void EmitDiagnosticDescriptors(CppSyntaxModel model)
+        {
+            writer.WriteLine($"export module {BaseModuleName}:diagnostics.registry;");
+            writer.WriteLine();
+            writer.WriteLine("import :diagnostics.descriptor;");
+            writer.WriteLine("import :util.optional;");
+            writer.WriteLine();
+            using var namespaceScope = writer.EnterNamespaceScope(DiagnosticsNamespace);
+            foreach (
+                var diagnostic in model
+                    .Diagnostics.AsValueEnumerable()
+                    .SelectMany(x => x.Diagnostics)
+            )
+            {
+                writer.EmitDiagnosticDescriptorConstant(diagnostic);
+                writer.WriteLine();
+            }
+            writer.EmitDescriptorLookupFunction(model);
+        }
+
+        private void EmitDiagnosticDescriptorConstant(CppDiagnostic diagnostic)
+        {
+            writer.Write($"export constexpr DiagnosticDescriptor {diagnostic.CppName}");
+            using var scope = writer.EnterBlockScope(true);
+            writer.WriteLine($".code = DiagnosticCode::{diagnostic.CppName},");
+            writer.WriteLine($".category = DiagnosticCategory::{diagnostic.Category.CppName},");
+            writer.WriteLine(
+                $".default_severity = DiagnosticSeverity::{GetCppSeverity(diagnostic.Severity)},"
+            );
+            writer.WriteLine($".id = \"E{diagnostic.Value:04}\",");
+            writer.WriteLine($".symbol = \"{diagnostic.SymbolName}\",");
+            writer.WriteLine($".title = \"{diagnostic.Title}\",");
+            writer.Write(".format_message = \"");
+            writer.EmitCppFormatMessage(diagnostic);
+            writer.WriteLine("\",");
+            if (!string.IsNullOrEmpty(diagnostic.Explanation))
+            {
+                writer.WriteLine($".explanation = \"{diagnostic.Explanation}\"");
+            }
+        }
+
+        private void EmitCppFormatMessage(CppDiagnostic diagnostic)
+        {
+            foreach (var part in diagnostic.MessageParts)
+            {
+                switch (part)
+                {
+                    case CppDiagnosticMessageTextPart text:
+                        // TODO: We need to re-escape the string
+                        writer.Write(text.Text);
+                        break;
+                    case CppDiagnosticMessageArgumentPart:
+                        writer.Write("{}");
+                        break;
+                }
+            }
+        }
+
+        private void EmitDescriptorLookupFunction(CppSyntaxModel model)
+        {
+            writer.WriteLine(
+                "export [[nodiscard]] constexpr Optional<const DiagnosticDescriptor&> "
+                    + "get_descriptor(const DiagnosticCode code)"
+            );
+            using var scope = writer.EnterBlockScope();
+            writer.WriteLine("switch (code)");
+            using var switchScope = writer.EnterBlockScope();
+            foreach (
+                var diagnostic in model
+                    .Diagnostics.AsValueEnumerable()
+                    .SelectMany(x => x.Diagnostics)
+            )
+            {
+                writer.WriteLine($"case DiagnosticCode::{diagnostic.CppName}:");
+                using var caseScope = writer.EnterIndentationScope();
+                writer.WriteLine($"return {diagnostic.CppName};");
+            }
+            writer.WriteLine("default:");
+            using var defaultScope = writer.EnterIndentationScope();
+            writer.WriteLine("return std::nullopt;");
+        }
+
+        #endregion
+
+        #region Diagnostic Traits
+
+        public void EmitDiagnosticTraits(CppSyntaxModel model)
+        {
+            writer.WriteLine($"export module {BaseModuleName}:diagnostics.traits;");
+            writer.WriteLine();
+            writer.WriteLine("import :diagnostics.code;");
+            writer.WriteLine("import :syntax.kind;");
+            writer.WriteLine("import :text.name;");
+            writer.WriteLine();
+            using var namespaceScope = writer.EnterNamespaceScope(PrismNamespace);
+            writer.WriteLine("template <DiagnosticCode Code>");
+            writer.WriteLine("struct DiagnosticTraits;");
+
+            foreach (
+                var diagnostic in model
+                    .Diagnostics.AsValueEnumerable()
+                    .SelectMany(x => x.Diagnostics)
+            )
+            {
+                writer.WriteLine();
+
+                writer.WriteLine("template <>");
+                writer.WriteLine($"struct DiagnosticTraits<DiagnosticCode::{diagnostic.CppName}>");
+                using var scope = writer.EnterBlockScope(true);
+                writer.Write("using Args = std::tuple<");
+                foreach (var (i, arg) in diagnostic.Arguments.AsValueEnumerable().Index())
+                {
+                    if (i > 0)
+                        writer.Write(", ");
+
+                    writer.Write(arg.CppType);
+                }
+                writer.WriteLine(">;");
+            }
+        }
+        #endregion
     }
 
     private static IEnumerable<CppNode> GetAllDerivedTypes(CppNode node)
@@ -1300,5 +1505,17 @@ public static class CppEmitter
         }
 
         return node;
+    }
+
+    private static string GetCppSeverity(DiagnosticSeverity severity)
+    {
+        return severity switch
+        {
+            DiagnosticSeverity.Error => "error",
+            DiagnosticSeverity.Warning => "warning",
+            DiagnosticSeverity.Info => "info",
+            DiagnosticSeverity.Hint => "hint",
+            _ => throw new ArgumentOutOfRangeException(nameof(severity), severity, null),
+        };
     }
 }

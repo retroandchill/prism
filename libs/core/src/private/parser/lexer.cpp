@@ -7,10 +7,10 @@
 module prism.core:parser.lexer.impl;
 
 import :parser.lexer;
-import :syntax.diagnostics;
 import uni_algo;
 import :memory.buffer_pool;
 import :syntax.lexing_utils;
+import :diagnostics.syntax_info;
 
 namespace prism
 {
@@ -149,7 +149,8 @@ namespace prism
         }
 
         auto ptr = make_ref_counted<GreenTrivia>(SyntaxKind::block_comment_trivia, std::move(str));
-        ptr->add_diagnostic(DiagnosticInfo::create(unterminated_block_comment, cursor_.position() - start));
+        ptr->add_diagnostic(
+            SyntaxDiagnosticInfo::create<DiagnosticCode::unterminated_block_comment>(cursor_.position() - start, 0));
         return std::move(ptr);
     }
 
@@ -297,14 +298,19 @@ namespace prism
                 character = cursor_.peek();
                 if (character != '\0')
                 {
-                    diagnostics.push_back(
-                        DiagnosticInfo::create(unexpected_escape, advance, static_cast<std::uint32_t>(character)));
+                    diagnostics.push_back(SyntaxDiagnosticInfo::create<DiagnosticCode::unexpected_escape>(
+                        cursor_.position() - start,
+                        1,
+                        una::utf32to8(std::u32string_view{&character, 1})));
                     cursor_.advance();
                 }
                 else
                 {
                     using namespace std::string_view_literals;
-                    diagnostics.push_back(DiagnosticInfo::create(unexpected_escape, advance, ""sv));
+                    diagnostics.push_back(
+                        SyntaxDiagnosticInfo::create<DiagnosticCode::unexpected_escape>(cursor_.position() - start,
+                                                                                        1,
+                                                                                        ""));
                     cursor_.advance(2);
                 }
             }
@@ -318,7 +324,9 @@ namespace prism
 
         if (!terminated)
         {
-            diagnostics.push_back(DiagnosticInfo::create(unterminated_character_literal, cursor_.position() - start));
+            diagnostics.push_back(
+                SyntaxDiagnosticInfo::create<DiagnosticCode::unterminated_character_literal>(cursor_.position() - start,
+                                                                                             0));
         }
 
         auto ptr = make_green_value(CharacterLiteralData{character, encoding},
@@ -374,19 +382,27 @@ namespace prism
                 if (next != '\0')
                 {
                     str.push_back(next);
-                    diagnostics.push_back(DiagnosticInfo::create(unexpected_escape, cursor_.position() - start, next));
+                    diagnostics.push_back(
+                        SyntaxDiagnosticInfo::create<DiagnosticCode::unexpected_escape>(cursor_.position() - start,
+                                                                                        1,
+                                                                                        std::string{next}));
                 }
                 else
                 {
                     using namespace std::string_view_literals;
-                    diagnostics.push_back(DiagnosticInfo::create(unexpected_escape, cursor_.position() - start, ""sv));
+                    diagnostics.push_back(
+                        SyntaxDiagnosticInfo::create<DiagnosticCode::unexpected_escape>(cursor_.position() - start,
+                                                                                        1,
+                                                                                        ""));
                 }
             }
         }
 
         if (!terminated)
         {
-            diagnostics.push_back(DiagnosticInfo::create(unterminated_string_literal, cursor_.position() - start));
+            diagnostics.push_back(
+                SyntaxDiagnosticInfo::create<DiagnosticCode::unterminated_string_literal>(cursor_.position() - start,
+                                                                                          0));
         }
 
         const auto slice = cursor_.since(start);

@@ -20,12 +20,15 @@ public sealed class SyntaxModel
 
     public ImmutableArray<SyntaxModule> Modules { get; }
 
+    public ImmutableArray<DiagnosticCategory> Diagnostics { get; }
+
     internal SyntaxModel(
         ImmutableArray<SyntaxKind> kinds,
         ImmutableArray<SyntaxGroup> kindGroups,
         ImmutableArray<SyntaxTrivia> trivia,
         ImmutableArray<SyntaxToken> tokens,
-        ImmutableArray<SyntaxModule> modules
+        ImmutableArray<SyntaxModule> modules,
+        ImmutableArray<DiagnosticCategory> diagnostics
     )
     {
         Kinds = kinds;
@@ -33,5 +36,6 @@ public sealed class SyntaxModel
         Trivia = trivia;
         Tokens = tokens;
         Modules = modules;
+        Diagnostics = diagnostics;
     }
 }

@@ -15,12 +15,15 @@ public class CppSyntaxModel
 
     public ImmutableArray<CppModule> Modules { get; }
 
+    public ImmutableArray<CppDiagnosticCategory> Diagnostics { get; }
+
     internal CppSyntaxModel(
         ImmutableArray<CppKind> kinds,
         ImmutableArray<CppGroup> kindGroups,
         ImmutableArray<CppTrivia> trivia,
         ImmutableArray<CppToken> tokens,
-        ImmutableArray<CppModule> modules
+        ImmutableArray<CppModule> modules,
+        ImmutableArray<CppDiagnosticCategory> diagnostics
     )
     {
         Kinds = kinds;
@@ -28,5 +31,6 @@ public class CppSyntaxModel
         Trivia = trivia;
         Tokens = tokens;
         Modules = modules;
+        Diagnostics = diagnostics;
     }
 }

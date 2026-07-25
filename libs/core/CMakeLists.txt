@@ -9,7 +9,7 @@ set(PRISM_SOURCES
         src/private/memory/buffer_pool.cpp
         src/private/syntax/green/node.cpp
         src/private/syntax/green/token.cpp
-        src/private/diagnostics/diagnostic_info.cpp
+        src/private/diagnostics/info.cpp
         src/private/syntax/trivia.cpp
         src/private/parser/lexer.cpp
         src/private/syntax/green/trivia.cpp
@@ -47,9 +47,9 @@ set(PRISM_PUBLIC_MODULES
         src/public/memory/ref_counted_ptr.ixx
         src/public/type_traits/basic.ixx
         src/public/core.ixx
-        src/public/diagnostics/diagnostic_descriptor.ixx
-        src/public/diagnostics/diagnostic_severity.ixx
-        src/public/diagnostics/diagnostic_info.ixx
+        src/public/diagnostics/descriptor.ixx
+        src/public/diagnostics/severity.ixx
+        src/public/diagnostics/info.ixx
         src/public/syntax/token.ixx
         src/public/syntax/green/token.ixx
         src/public/syntax/green/trivia.ixx
@@ -64,7 +64,6 @@ set(PRISM_PUBLIC_MODULES
         src/public/syntax/list_view.ixx
         src/public/parser/lexer.ixx
         src/public/text/cursor.ixx
-        src/public/syntax/diagnostics.ixx
         src/public/parser/token_stream.ixx
         src/public/syntax/node.ixx
         src/public/syntax/tree.ixx
@@ -99,6 +98,11 @@ set(PRISM_PUBLIC_MODULES
         generated/public/syntax/top_level.ixx
         generated/public/syntax/green/top_level.ixx
         src/public/parser/syntax_parser.ixx
+        generated/public/diagnostics/codes.ixx
+        generated/public/diagnostics/registry.ixx
+        src/public/diagnostics/syntax_info.ixx
+        src/private/diagnostics/syntax_info.cpp
+        generated/public/diagnostics/traits.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

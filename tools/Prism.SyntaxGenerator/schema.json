@@ -248,12 +248,85 @@
           "nodes"
         ]
       }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "severity": {
+                  "enum": [
+                    "Error",
+                    "Warning",
+                    "Info",
+                    "Hint"
+                  ]
+                },
+                "format": {
+                  "type": "string"
+                },
+                "args": {
+                  "type": "array",
+                  "items": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "type"
+                    ]
+                  }
+                },
+                "explanation": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "severity",
+                "format"
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "diagnostics"
+        ]
+      }
     }
   },
   "required": [
     "version",
     "trivia",
     "tokens",
-    "modules"
+    "modules",
+    "diagnostics"
   ]
 }
