@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Prism.SyntaxGenerator.Models.Spec;
 
 namespace Prism.SyntaxGenerator.Models.Cpp;
 
@@ -8,6 +9,8 @@ public class CppModule
 
     public string CppName { get; internal set; }
 
+    public ModuleKind Kind { get; }
+
     public ImmutableArray<CppNode> Nodes { get; internal set; } = [];
 
     public IReadOnlySet<CppModule> Dependencies { get; internal set; } =
@@ -16,9 +19,10 @@ public class CppModule
     public IReadOnlySet<CppNode> ForwardDeclarations { get; internal set; } =
         ImmutableHashSet<CppNode>.Empty;
 
-    internal CppModule(string name, string cppName)
+    internal CppModule(string name, string cppName, ModuleKind kind)
     {
         Name = name;
         CppName = cppName;
+        Kind = kind;
     }
 }

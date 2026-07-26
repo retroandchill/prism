@@ -24,12 +24,12 @@ namespace prism
             return *node_;
         }
 
-        if (index >= node_->green().child_count())
+        if (index >= node_->green().slot_count())
             throw std::out_of_range{"Index out of range"};
 
-        if (auto &green = node_->green().get_required_child<GreenToken>(index); green.is_token())
+        if (auto &green = node_->green().get_required_slot<GreenToken>(index); green.is_token())
         {
-            return SyntaxToken{green, parent().value_ptr(), node_->get_child_position(index)};
+            return SyntaxToken{green, parent().value_ptr(), node_->get_slot_position(index)};
         }
 
         return node_->get_required_node_slot(index);

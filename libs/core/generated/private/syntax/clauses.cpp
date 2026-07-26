@@ -53,7 +53,7 @@ namespace prism
 
     SyntaxToken NamedParameterSyntax::colon() const
     {
-        return SyntaxToken{static_cast<const GreenNamedParameter &>(green()).colon(), this, get_child_position(1)};
+        return SyntaxToken{static_cast<const GreenNamedParameter &>(green()).colon(), this, get_slot_position(1)};
     }
 
     Optional<const SyntaxNode &> NamedParameterSyntax::get_node_slot(const std::size_t) const
@@ -79,7 +79,7 @@ namespace prism
 
     SyntaxToken ArgumentListSyntax::close_paren() const
     {
-        return SyntaxToken{static_cast<const GreenArgumentList &>(green()).close_paren(), this, get_child_position(2)};
+        return SyntaxToken{static_cast<const GreenArgumentList &>(green()).close_paren(), this, get_slot_position(2)};
     }
 
     Optional<const SyntaxNode &> ArgumentListSyntax::get_node_slot(const std::size_t index) const
@@ -141,7 +141,7 @@ namespace prism
 
     SyntaxToken ParameterListSyntax::close_paren() const
     {
-        return SyntaxToken{static_cast<const GreenParameterList &>(green()).close_paren(), this, get_child_position(2)};
+        return SyntaxToken{static_cast<const GreenParameterList &>(green()).close_paren(), this, get_slot_position(2)};
     }
 
     Optional<const SyntaxNode &> ParameterListSyntax::get_node_slot(const std::size_t index) const
@@ -164,7 +164,7 @@ namespace prism
 
     SyntaxToken ParameterSyntax::name() const
     {
-        return SyntaxToken{static_cast<const GreenParameter &>(green()).name(), this, get_child_position(1)};
+        return SyntaxToken{static_cast<const GreenParameter &>(green()).name(), this, get_slot_position(1)};
     }
 
     const TypeSpecifierSyntax &ParameterSyntax::type_specifier() const

@@ -18,10 +18,12 @@ namespace Prism.SyntaxGenerator.Resolution;
 public sealed class SyntaxModelBuilder
 {
     private const int TriviaStart = 100;
-    private const int KeywordsStart = 200;
-    private const int PunctuationsStart = 300;
-    private const int OtherTokensStart = 400;
-    private const int SyntaxNodeStart = 1000;
+    private const int StructuredTriviaStart = 200;
+    private const int StructuredTriviaStep = 100;
+    private const int KeywordsStart = 1000;
+    private const int PunctuationsStart = 1200;
+    private const int OtherTokensStart = 1300;
+    private const int SyntaxNodeStart = 2000;
     private const int SyntaxNodeStep = 1000;
 
     private readonly OrderedDictionary<string, SyntaxKind> _syntaxKinds = new();
@@ -49,7 +51,7 @@ public sealed class SyntaxModelBuilder
         ResolveDependencies();
         return new SyntaxModel(
             [.. _syntaxKinds.Values],
-            [.. _syntaxKindGroups],
+            [.. _syntaxKindGroups.OrderBy(g => g.StartValue)],
             [.. _trivia.Values],
             [.. _tokens.Values],
             [.. _modules.Values],
@@ -160,16 +162,22 @@ public sealed class SyntaxModelBuilder
 
     private void LoadNodes(SyntaxSpecification spec)
     {
-        var nextStart = SyntaxNodeStart;
+        var nextNodeStart = SyntaxNodeStart;
+        var nextTriviaStart = StructuredTriviaStart;
         foreach (var module in spec.Modules)
         {
-            var resolvedModule = new SyntaxModule(module.Name);
+            var resolvedModule = new SyntaxModule(module.Name, module.Kind);
             _modules.Add(module.Name, resolvedModule);
             if (module.Nodes.IsEmpty)
                 continue;
 
             resolvedModule.EnsureCapacity(module.Nodes.Length);
-            var nextValue = nextStart;
+            var nextValue = module.Kind switch
+            {
+                ModuleKind.Node => nextNodeStart,
+                ModuleKind.StructuredTrivia => nextTriviaStart,
+                _ => throw new InvalidOperationException("Invalid module kind"),
+            };
             var kinds = new SyntaxKind[module.Nodes.Length];
             foreach (var (i, definition) in module.Nodes.AsValueEnumerable().Index())
             {
@@ -184,11 +192,26 @@ public sealed class SyntaxModelBuilder
 
             var group = new SyntaxGroup(
                 module.Name,
-                SyntaxGroupKind.Node,
+                module.Kind switch
+                {
+                    ModuleKind.Node => SyntaxGroupKind.Node,
+                    ModuleKind.StructuredTrivia => SyntaxGroupKind.StructuredTrivia,
+                    _ => throw new InvalidOperationException("Invalid module kind"),
+                },
                 ImmutableCollectionsMarshal.AsImmutableArray(kinds)
             );
             _syntaxKindGroups.Add(group);
-            nextStart += SyntaxNodeStep;
+            switch (module.Kind)
+            {
+                case ModuleKind.Node:
+                    nextNodeStart += SyntaxNodeStep;
+                    break;
+                case ModuleKind.StructuredTrivia:
+                    nextTriviaStart += StructuredTriviaStep;
+                    break;
+                default:
+                    throw new InvalidOperationException("Invalid module kind");
+            }
         }
     }
 

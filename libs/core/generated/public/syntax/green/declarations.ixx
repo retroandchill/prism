@@ -2,6 +2,7 @@ export module prism.core:syntax.green.declarations;
 
 import :syntax.green.node;
 import :syntax.green.token;
+import :syntax.green.trivia;
 import :syntax.green.separated_list;
 
 namespace prism
@@ -109,11 +110,11 @@ namespace prism
             return node.kind() == SyntaxKind::variable_declaration;
         }
 
-        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
-                                                   const SyntaxNode *parent,
-                                                   std::uint32_t position) const override;
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
 
       protected:
         [[nodiscard]] GreenPtr<GreenDeclaration> with_modifiers_core(
@@ -229,11 +230,11 @@ namespace prism
             return node.kind() == SyntaxKind::function_declaration;
         }
 
-        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
-                                                   const SyntaxNode *parent,
-                                                   std::uint32_t position) const override;
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
 
       protected:
         [[nodiscard]] GreenPtr<GreenDeclaration> with_modifiers_core(

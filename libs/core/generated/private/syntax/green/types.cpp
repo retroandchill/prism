@@ -10,7 +10,7 @@ namespace prism
         : GreenSimpleNamedType{SyntaxKind::identifier_named_type, std::move(diagnostics)},
           identifier_{std::move(identifier)}
     {
-        set_child_count(1);
+        set_slot_count(1);
         adjust_flags_and_width(*identifier_);
     }
 
@@ -21,7 +21,7 @@ namespace prism
         identifier_ = std::move(value);
     }
 
-    Optional<const GreenNode &> GreenIdentifierNamedType::get_child(std::size_t index) const
+    Optional<const GreenNode &> GreenIdentifierNamedType::get_slot(std::size_t index) const
     {
         switch (index)
         {
@@ -32,9 +32,9 @@ namespace prism
         }
     }
 
-    [[nodiscard]] const SyntaxNode &GreenIdentifierNamedType::create_red(SyntaxLifetime &lifetime,
-                                                                         const SyntaxNode *parent,
-                                                                         std::uint32_t position) const
+    [[nodiscard]] SyntaxNode &GreenIdentifierNamedType::create_red(SyntaxLifetime &lifetime,
+                                                                   const SyntaxNode *parent,
+                                                                   std::uint32_t position) const
     {
         return lifetime.add<IdentifierNamedTypeSyntax>(*this, parent, position);
     }

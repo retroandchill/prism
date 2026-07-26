@@ -84,6 +84,12 @@ public static class CppEmitter
             }
 
             writer.WriteLine();
+            writer.EmitIsSyntaxCategory(
+                model,
+                "structured_trivia",
+                k => k.Kind == SyntaxGroupKind.StructuredTrivia
+            );
+            writer.WriteLine();
             writer.EmitIsSyntaxCategory(model, "token", k => k.Kind == SyntaxGroupKind.Token);
             writer.WriteLine();
             writer.EmitIsSyntaxCategory(model, "node", k => k.Kind == SyntaxGroupKind.Node);
@@ -95,7 +101,6 @@ public static class CppEmitter
             Func<CppGroup, bool> predicate
         )
         {
-            writer.WriteLine();
             writer.WriteLine($"export constexpr bool is_{groupName}(const {SyntaxKindClass} kind)");
             using (writer.EnterBlockScope())
             {
@@ -288,6 +293,7 @@ public static class CppEmitter
             writer.WriteLine();
             writer.WriteLine($"import :{GreenFragmentName}.node;");
             writer.WriteLine($"import :{GreenFragmentName}.token;");
+            writer.WriteLine($"import :{GreenFragmentName}.trivia;");
             writer.WriteLine($"import :{GreenFragmentName}.separated_list;");
             writer.WriteLine();
             using var scope = writer.EnterNamespaceScope(PrismNamespace);
@@ -317,7 +323,14 @@ public static class CppEmitter
         private void EmitGreenNodeClassDeclaration(CppNode node)
         {
             var final = !node.IsAbstract ? " final" : "";
-            var baseName = node.Base?.GreenClassName ?? GreenNodeClass;
+            var baseName =
+                node.Base?.GreenClassName
+                ?? node.Module.Kind switch
+                {
+                    ModuleKind.Node => GreenNodeClass,
+                    ModuleKind.StructuredTrivia => GreenStructuredTriviaClass,
+                    _ => throw new InvalidOperationException("Invalid module kind"),
+                };
             writer.WriteLine($"class {node.GreenClassName}{final} : public {baseName}");
             using var scope = writer.EnterBlockScope(true);
             if (node.IsAbstract)
@@ -434,12 +447,12 @@ public static class CppEmitter
 
             writer.WriteLine();
             writer.WriteLine(
-                $"[[nodiscard]] Optional<const {GreenNodeClass}&> get_child(std::size_t index) const override;"
+                $"[[nodiscard]] Optional<const {GreenNodeClass}&> get_slot(std::size_t index) const override;"
             );
 
             writer.WriteLine();
             writer.WriteLine(
-                $"[[nodiscard]] const {SyntaxNodeClass} &create_red({SyntaxLifetimeClass} &lifetime, "
+                $"[[nodiscard]] {SyntaxNodeClass} &create_red({SyntaxLifetimeClass} &lifetime, "
                     + $"const {SyntaxNodeClass} *parent, std::uint32_t position) const override;"
             );
 
@@ -593,9 +606,18 @@ public static class CppEmitter
                 writer.Write($" {property.ParameterName}, ");
             }
 
+            var baseName =
+                node.Base?.GreenClassName
+                ?? node.Module.Kind switch
+                {
+                    ModuleKind.Node => GreenNodeClass,
+                    ModuleKind.StructuredTrivia => GreenStructuredTriviaClass,
+                    _ => throw new InvalidOperationException("Invalid module kind"),
+                };
+
             writer.Write(
                 $"DiagnosticInfoList diagnostics) : "
-                    + $"{node.Base?.GreenClassName ?? GreenNodeClass}{{{SyntaxKindClass}::{node.Kind!.CppName}, std::move(diagnostics)}}"
+                    + $"{baseName}{{{SyntaxKindClass}::{node.Kind!.CppName}, std::move(diagnostics)}}"
             );
             foreach (var property in node.Properties)
             {
@@ -604,7 +626,7 @@ public static class CppEmitter
 
             writer.WriteLine();
             using var scope = writer.EnterBlockScope();
-            writer.WriteLine($"set_child_count({node.Properties.Length});");
+            writer.WriteLine($"set_slot_count({node.Properties.Length});");
             foreach (var property in node.Properties)
             {
                 if (property.Shape == PropertyShape.Optional)
@@ -644,7 +666,7 @@ public static class CppEmitter
         private void EmitGreenGetChildMethod(CppNode node)
         {
             writer.WriteLine(
-                $"Optional<const {GreenNodeClass}&> {node.GreenClassName}::get_child(std::size_t index) const"
+                $"Optional<const {GreenNodeClass}&> {node.GreenClassName}::get_slot(std::size_t index) const"
             );
             using var blockScope = writer.EnterBlockScope();
             writer.WriteLine("switch (index)");
@@ -676,7 +698,7 @@ public static class CppEmitter
         private void EmitGreenCreateRedMethod(CppNode node)
         {
             writer.Write(
-                $"[[nodiscard]] const {SyntaxNodeClass} &{node.GreenClassName}::create_red({SyntaxLifetimeClass} &lifetime, "
+                $"[[nodiscard]] {SyntaxNodeClass} &{node.GreenClassName}::create_red({SyntaxLifetimeClass} &lifetime, "
                     + $"const {SyntaxNodeClass} *parent, std::uint32_t position) const"
             );
             using var scope = writer.EnterBlockScope();
@@ -833,6 +855,7 @@ public static class CppEmitter
             writer.WriteLine();
             writer.WriteLine($"import :{RedFragmentName}.node;");
             writer.WriteLine($"import :{RedFragmentName}.token;");
+            writer.WriteLine($"import :{RedFragmentName}.trivia;");
             writer.WriteLine($"import :{RedFragmentName}.list;");
             writer.WriteLine($"import :{GreenFragmentName}.{module.CppName};");
             writer.WriteLine("");
@@ -864,7 +887,14 @@ public static class CppEmitter
         {
             var export = node.Module.ForwardDeclarations.Contains(node) ? "" : "export ";
             var final = node.IsAbstract ? "" : " final";
-            var baseName = node.Base?.RedClassName ?? SyntaxNodeClass;
+            var baseName =
+                node.Base?.RedClassName
+                ?? node.Module.Kind switch
+                {
+                    ModuleKind.Node => SyntaxNodeClass,
+                    ModuleKind.StructuredTrivia => StructuredTriviaSyntaxClass,
+                    _ => throw new InvalidOperationException("Invalid module kind"),
+                };
             writer.WriteLine(
                 $"{export}class {PrismCoreExport} {node.RedClassName}{final} : public {baseName}"
             );
@@ -994,7 +1024,7 @@ public static class CppEmitter
                         if (index == 0)
                             writer.WriteLine("position()};");
                         else
-                            writer.WriteLine($"get_child_position({index})}};");
+                            writer.WriteLine($"get_slot_position({index})}};");
                         break;
                     case PropertyShape.Optional:
                         writer.Write("return ");
@@ -1006,7 +1036,7 @@ public static class CppEmitter
                         if (index == 0)
                             writer.WriteLine("position()}; });");
                         else
-                            writer.WriteLine($"get_child_position({index})}}; }});");
+                            writer.WriteLine($"get_slot_position({index})}}; }});");
                         break;
                     case PropertyShape.List:
                         writer.Write("return SyntaxTokenList{this, ");
@@ -1014,7 +1044,7 @@ public static class CppEmitter
                         if (index == 0)
                             writer.WriteLine(", position()};");
                         else
-                            writer.WriteLine($", get_child_position({index})}};");
+                            writer.WriteLine($", get_slot_position({index})}};");
                         break;
                     case PropertyShape.SeparatedList:
                         throw new InvalidOperationException(

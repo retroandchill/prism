@@ -12,10 +12,12 @@ export module prism.core:syntax.trivia;
 
 import :syntax.token;
 import :syntax.list_view;
+import :syntax.node;
 
 namespace prism
 {
     export class SyntaxTriviaList;
+    export class StructuredTriviaSyntax;
 
     export class PRISM_CORE_API SyntaxTrivia final
     {
@@ -52,6 +54,7 @@ namespace prism
 
       private:
         friend class SyntaxTriviaList;
+        friend class StructuredTriviaSyntax;
 
         SyntaxToken token_;
         const GreenNode *green_;
@@ -86,5 +89,29 @@ namespace prism
         SyntaxToken parent_;
         GreenSyntaxList<GreenNode, false> green_;
         std::uint32_t position_;
+    };
+
+    class PRISM_CORE_API StructuredTriviaSyntax : public SyntaxNode
+    {
+      protected:
+        constexpr StructuredTriviaSyntax(SyntaxLifetime &lifetime,
+                                         const GreenNode &node,
+                                         const SyntaxNode *parent,
+                                         const std::uint32_t position)
+            : SyntaxNode(lifetime, node, parent, position)
+        {
+        }
+
+        ~StructuredTriviaSyntax() = default;
+
+        [[nodiscard]] constexpr Optional<const SyntaxTrivia &> parent_trivia() const noexcept
+        {
+            return parent_trivia_;
+        }
+
+        static StructuredTriviaSyntax &create(SyntaxLifetime &lifetime, const SyntaxTrivia &trivia);
+
+      private:
+        Optional<SyntaxTrivia> parent_trivia_;
     };
 } // namespace prism

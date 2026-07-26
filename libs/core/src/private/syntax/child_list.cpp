@@ -26,11 +26,11 @@ namespace prism
     {
         std::size_t n = 0;
 
-        for (std::size_t i = 0, s = node.child_count(); i < s; ++i)
+        for (std::size_t i = 0, s = node.slot_count(); i < s; ++i)
         {
-            if (auto &child = *node.get_child(i); !child.is_list())
+            if (auto &child = *node.get_slot(i); !child.is_list())
             {
-                n += child.child_count();
+                n += child.slot_count();
             }
             else
             {
@@ -60,7 +60,7 @@ namespace prism
 
         while (true)
         {
-            green_child = green.get_child(slot_index);
+            green_child = green.get_slot(slot_index);
             if (green_child.has_value())
             {
                 auto current_occupancy = occupancy(*green_child);
@@ -93,13 +93,13 @@ namespace prism
             if (red_child.has_value())
                 return *red_child;
 
-            green_child = green.get_child(idx);
-            position = red->get_child_position(idx);
+            green_child = green.get_slot(idx);
+            position = red->get_slot_position(idx);
         }
         else
         {
-            position += green_child->get_child_offset(idx);
-            green_child = green_child->get_child(idx);
+            position += green_child->get_slot_offset(idx);
+            green_child = green_child->get_slot(idx);
         }
 
         ASSUME(green_child->is<GreenToken>(), "The child must be a token");
@@ -109,6 +109,6 @@ namespace prism
 
     std::size_t ChildSyntaxList::occupancy(const GreenNode &node)
     {
-        return node.is_list() ? node.child_count() : 1;
+        return node.is_list() ? node.slot_count() : 1;
     }
 } // namespace prism

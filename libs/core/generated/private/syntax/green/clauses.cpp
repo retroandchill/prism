@@ -14,7 +14,7 @@ namespace prism
         : GreenNode{SyntaxKind::initializer, std::move(diagnostics)}, equal_sign_{std::move(equal_sign)},
           value_{std::move(value)}
     {
-        set_child_count(2);
+        set_slot_count(2);
         adjust_flags_and_width(*equal_sign_);
         adjust_flags_and_width(*value_);
     }
@@ -31,7 +31,7 @@ namespace prism
         value_ = std::move(value);
     }
 
-    Optional<const GreenNode &> GreenInitializer::get_child(std::size_t index) const
+    Optional<const GreenNode &> GreenInitializer::get_slot(std::size_t index) const
     {
         switch (index)
         {
@@ -44,9 +44,9 @@ namespace prism
         }
     }
 
-    [[nodiscard]] const SyntaxNode &GreenInitializer::create_red(SyntaxLifetime &lifetime,
-                                                                 const SyntaxNode *parent,
-                                                                 std::uint32_t position) const
+    [[nodiscard]] SyntaxNode &GreenInitializer::create_red(SyntaxLifetime &lifetime,
+                                                           const SyntaxNode *parent,
+                                                           std::uint32_t position) const
     {
         return lifetime.add<InitializerSyntax>(*this, parent, position);
     }
@@ -81,7 +81,7 @@ namespace prism
         : GreenNode{SyntaxKind::type_specifier, std::move(diagnostics)}, colon_{std::move(colon)},
           type_{std::move(type)}
     {
-        set_child_count(2);
+        set_slot_count(2);
         adjust_flags_and_width(*colon_);
         adjust_flags_and_width(*type_);
     }
@@ -98,7 +98,7 @@ namespace prism
         type_ = std::move(value);
     }
 
-    Optional<const GreenNode &> GreenTypeSpecifier::get_child(std::size_t index) const
+    Optional<const GreenNode &> GreenTypeSpecifier::get_slot(std::size_t index) const
     {
         switch (index)
         {
@@ -111,9 +111,9 @@ namespace prism
         }
     }
 
-    [[nodiscard]] const SyntaxNode &GreenTypeSpecifier::create_red(SyntaxLifetime &lifetime,
-                                                                   const SyntaxNode *parent,
-                                                                   std::uint32_t position) const
+    [[nodiscard]] SyntaxNode &GreenTypeSpecifier::create_red(SyntaxLifetime &lifetime,
+                                                             const SyntaxNode *parent,
+                                                             std::uint32_t position) const
     {
         return lifetime.add<TypeSpecifierSyntax>(*this, parent, position);
     }
@@ -147,7 +147,7 @@ namespace prism
         : GreenNode{SyntaxKind::named_parameter, std::move(diagnostics)}, name_{std::move(name)},
           colon_{std::move(colon)}
     {
-        set_child_count(2);
+        set_slot_count(2);
         adjust_flags_and_width(*name_);
         adjust_flags_and_width(*colon_);
     }
@@ -164,7 +164,7 @@ namespace prism
         colon_ = std::move(value);
     }
 
-    Optional<const GreenNode &> GreenNamedParameter::get_child(std::size_t index) const
+    Optional<const GreenNode &> GreenNamedParameter::get_slot(std::size_t index) const
     {
         switch (index)
         {
@@ -177,9 +177,9 @@ namespace prism
         }
     }
 
-    [[nodiscard]] const SyntaxNode &GreenNamedParameter::create_red(SyntaxLifetime &lifetime,
-                                                                    const SyntaxNode *parent,
-                                                                    std::uint32_t position) const
+    [[nodiscard]] SyntaxNode &GreenNamedParameter::create_red(SyntaxLifetime &lifetime,
+                                                              const SyntaxNode *parent,
+                                                              std::uint32_t position) const
     {
         return lifetime.add<NamedParameterSyntax>(*this, parent, position);
     }
@@ -215,7 +215,7 @@ namespace prism
         : GreenNode{SyntaxKind::argument_list, std::move(diagnostics)}, open_paren_{std::move(open_paren)},
           arguments_{std::move(arguments)}, close_paren_{std::move(close_paren)}
     {
-        set_child_count(3);
+        set_slot_count(3);
         adjust_flags_and_width(*open_paren_);
         adjust_flags_and_width(arguments_);
         adjust_flags_and_width(*close_paren_);
@@ -238,7 +238,7 @@ namespace prism
         close_paren_ = std::move(value);
     }
 
-    Optional<const GreenNode &> GreenArgumentList::get_child(std::size_t index) const
+    Optional<const GreenNode &> GreenArgumentList::get_slot(std::size_t index) const
     {
         switch (index)
         {
@@ -253,9 +253,9 @@ namespace prism
         }
     }
 
-    [[nodiscard]] const SyntaxNode &GreenArgumentList::create_red(SyntaxLifetime &lifetime,
-                                                                  const SyntaxNode *parent,
-                                                                  std::uint32_t position) const
+    [[nodiscard]] SyntaxNode &GreenArgumentList::create_red(SyntaxLifetime &lifetime,
+                                                            const SyntaxNode *parent,
+                                                            std::uint32_t position) const
     {
         return lifetime.add<ArgumentListSyntax>(*this, parent, position);
     }
@@ -299,7 +299,7 @@ namespace prism
                                  DiagnosticInfoList diagnostics)
         : GreenNode{SyntaxKind::argument, std::move(diagnostics)}, name_{std::move(name)}, value_{std::move(value)}
     {
-        set_child_count(2);
+        set_slot_count(2);
         if (name_ != nullptr)
             adjust_flags_and_width(*name_);
         adjust_flags_and_width(*value_);
@@ -317,7 +317,7 @@ namespace prism
         value_ = std::move(value);
     }
 
-    Optional<const GreenNode &> GreenArgument::get_child(std::size_t index) const
+    Optional<const GreenNode &> GreenArgument::get_slot(std::size_t index) const
     {
         switch (index)
         {
@@ -330,9 +330,9 @@ namespace prism
         }
     }
 
-    [[nodiscard]] const SyntaxNode &GreenArgument::create_red(SyntaxLifetime &lifetime,
-                                                              const SyntaxNode *parent,
-                                                              std::uint32_t position) const
+    [[nodiscard]] SyntaxNode &GreenArgument::create_red(SyntaxLifetime &lifetime,
+                                                        const SyntaxNode *parent,
+                                                        std::uint32_t position) const
     {
         return lifetime.add<ArgumentSyntax>(*this, parent, position);
     }
@@ -368,7 +368,7 @@ namespace prism
         : GreenNode{SyntaxKind::parameter_list, std::move(diagnostics)}, open_paren_{std::move(open_paren)},
           parameters_{std::move(parameters)}, close_paren_{std::move(close_paren)}
     {
-        set_child_count(3);
+        set_slot_count(3);
         adjust_flags_and_width(*open_paren_);
         adjust_flags_and_width(parameters_);
         adjust_flags_and_width(*close_paren_);
@@ -391,7 +391,7 @@ namespace prism
         close_paren_ = std::move(value);
     }
 
-    Optional<const GreenNode &> GreenParameterList::get_child(std::size_t index) const
+    Optional<const GreenNode &> GreenParameterList::get_slot(std::size_t index) const
     {
         switch (index)
         {
@@ -406,9 +406,9 @@ namespace prism
         }
     }
 
-    [[nodiscard]] const SyntaxNode &GreenParameterList::create_red(SyntaxLifetime &lifetime,
-                                                                   const SyntaxNode *parent,
-                                                                   std::uint32_t position) const
+    [[nodiscard]] SyntaxNode &GreenParameterList::create_red(SyntaxLifetime &lifetime,
+                                                             const SyntaxNode *parent,
+                                                             std::uint32_t position) const
     {
         return lifetime.add<ParameterListSyntax>(*this, parent, position);
     }
@@ -456,7 +456,7 @@ namespace prism
         : GreenNode{SyntaxKind::parameter, std::move(diagnostics)}, mut_keyword_{std::move(mut_keyword)},
           name_{std::move(name)}, type_specifier_{std::move(type_specifier)}, default_value_{std::move(default_value)}
     {
-        set_child_count(4);
+        set_slot_count(4);
         if (mut_keyword_ != nullptr)
             adjust_flags_and_width(*mut_keyword_);
         adjust_flags_and_width(*name_);
@@ -487,7 +487,7 @@ namespace prism
         default_value_ = std::move(value);
     }
 
-    Optional<const GreenNode &> GreenParameter::get_child(std::size_t index) const
+    Optional<const GreenNode &> GreenParameter::get_slot(std::size_t index) const
     {
         switch (index)
         {
@@ -504,9 +504,9 @@ namespace prism
         }
     }
 
-    [[nodiscard]] const SyntaxNode &GreenParameter::create_red(SyntaxLifetime &lifetime,
-                                                               const SyntaxNode *parent,
-                                                               std::uint32_t position) const
+    [[nodiscard]] SyntaxNode &GreenParameter::create_red(SyntaxLifetime &lifetime,
+                                                         const SyntaxNode *parent,
+                                                         std::uint32_t position) const
     {
         return lifetime.add<ParameterSyntax>(*this, parent, position);
     }
@@ -559,7 +559,7 @@ namespace prism
         : GreenNode{SyntaxKind::expression_body, std::move(diagnostics)}, arrow_{std::move(arrow)},
           expression_{std::move(expression)}
     {
-        set_child_count(2);
+        set_slot_count(2);
         adjust_flags_and_width(*arrow_);
         adjust_flags_and_width(*expression_);
     }
@@ -576,7 +576,7 @@ namespace prism
         expression_ = std::move(value);
     }
 
-    Optional<const GreenNode &> GreenExpressionBody::get_child(std::size_t index) const
+    Optional<const GreenNode &> GreenExpressionBody::get_slot(std::size_t index) const
     {
         switch (index)
         {
@@ -589,9 +589,9 @@ namespace prism
         }
     }
 
-    [[nodiscard]] const SyntaxNode &GreenExpressionBody::create_red(SyntaxLifetime &lifetime,
-                                                                    const SyntaxNode *parent,
-                                                                    std::uint32_t position) const
+    [[nodiscard]] SyntaxNode &GreenExpressionBody::create_red(SyntaxLifetime &lifetime,
+                                                              const SyntaxNode *parent,
+                                                              std::uint32_t position) const
     {
         return lifetime.add<ExpressionBodySyntax>(*this, parent, position);
     }

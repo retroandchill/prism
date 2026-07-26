@@ -38,7 +38,7 @@ namespace prism
             if (node_ == nullptr)
                 return 0;
 
-            return node_->green().is_list() ? node_->green().child_count() : 1;
+            return node_->green().is_list() ? node_->green().slot_count() : 1;
         }
 
         [[nodiscard]] SyntaxNodeOrToken operator[](std::size_t index) const;

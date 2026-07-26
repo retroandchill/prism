@@ -10,6 +10,7 @@ namespace Prism.SyntaxGenerator.Models.Resolved;
 public enum SyntaxGroupKind
 {
     Trivia,
+    StructuredTrivia,
     Token,
     Node,
 }

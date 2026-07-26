@@ -24,7 +24,7 @@ namespace prism
                      std::move(trailing_trivia)}
     {
         set_flags(SyntaxFlags::not_missing);
-        set_child_count(2);
+        set_slot_count(2);
         if (leading_trivia_ != nullptr)
             adjust_flags_and_width(*leading_trivia_);
         if (trailing_trivia_ != nullptr)
@@ -40,7 +40,7 @@ namespace prism
     {
         set_flags(SyntaxFlags::not_missing);
         DEBUG_ASSERT(prism::is_token(kind));
-        set_child_count(2);
+        set_slot_count(2);
         if (leading_trivia_ != nullptr)
             adjust_flags_and_width(*leading_trivia_);
         if (trailing_trivia_ != nullptr)
@@ -87,7 +87,7 @@ namespace prism
         return trailing_trivia().transform([](const GreenNode &trivia) { return trivia.width(); }).value_or(0);
     }
 
-    Optional<const GreenNode &> GreenToken::get_child(std::size_t index) const
+    Optional<const GreenNode &> GreenToken::get_slot(std::size_t index) const
     {
         switch (index)
         {

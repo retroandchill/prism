@@ -29,6 +29,10 @@ set(PRISM_SOURCES
         generated/private/syntax/green/top_level.cpp
         src/private/parser/syntax_parser.cpp
         src/private/parser/language_parser.cpp
+        src/private/syntax/green/child_list.cpp
+        src/private/syntax/green/view.cpp
+        generated/private/syntax/green/structured_trivia.cpp
+        generated/private/syntax/structured_trivia.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -106,6 +110,10 @@ set(PRISM_PUBLIC_MODULES
         src/public/text/writer.ixx
         src/public/text/string_writer.ixx
         src/public/syntax/green/helpers.ixx
+        src/public/syntax/green/view.ixx
+        src/public/syntax/green/child_list.ixx
+        generated/public/syntax/green/structured_trivia.ixx
+        generated/public/syntax/structured_trivia.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

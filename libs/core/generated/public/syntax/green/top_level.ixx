@@ -2,6 +2,7 @@ export module prism.core:syntax.green.top_level;
 
 import :syntax.green.node;
 import :syntax.green.token;
+import :syntax.green.trivia;
 import :syntax.green.separated_list;
 
 namespace prism
@@ -27,11 +28,11 @@ namespace prism
             return node.kind() == SyntaxKind::compilation_unit;
         }
 
-        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
-                                                   const SyntaxNode *parent,
-                                                   std::uint32_t position) const override;
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
 
         [[nodiscard]] GreenPtr<GreenCompilationUnit> with_members(GreenSyntaxList<GreenDeclaration> members) const;
 

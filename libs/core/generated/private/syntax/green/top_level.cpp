@@ -11,7 +11,7 @@ namespace prism
                                                DiagnosticInfoList diagnostics)
         : GreenNode{SyntaxKind::compilation_unit, std::move(diagnostics)}, members_{std::move(members)}
     {
-        set_child_count(1);
+        set_slot_count(1);
         adjust_flags_and_width(members_);
     }
 
@@ -22,7 +22,7 @@ namespace prism
         members_ = std::move(value);
     }
 
-    Optional<const GreenNode &> GreenCompilationUnit::get_child(std::size_t index) const
+    Optional<const GreenNode &> GreenCompilationUnit::get_slot(std::size_t index) const
     {
         switch (index)
         {
@@ -33,9 +33,9 @@ namespace prism
         }
     }
 
-    [[nodiscard]] const SyntaxNode &GreenCompilationUnit::create_red(SyntaxLifetime &lifetime,
-                                                                     const SyntaxNode *parent,
-                                                                     std::uint32_t position) const
+    [[nodiscard]] SyntaxNode &GreenCompilationUnit::create_red(SyntaxLifetime &lifetime,
+                                                               const SyntaxNode *parent,
+                                                               std::uint32_t position) const
     {
         return lifetime.add<CompilationUnitSyntax>(*this, parent, position);
     }

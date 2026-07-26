@@ -24,6 +24,9 @@ namespace prism
     class GreenNode;
     class SyntaxNode;
     class SyntaxLifetime;
+    class GreenChildList;
+    class GreenNodeView;
+    class GreenToken;
 
     class GreenTrivia;
     template <typename T, bool Owning = true>
@@ -146,17 +149,21 @@ namespace prism
             return trailing_trivia_width() > 0;
         }
 
-        [[nodiscard]] Optional<const GreenNode &> first_leaf() const;
+        [[nodiscard]] Optional<const GreenNode &> first_terminal() const;
 
-        [[nodiscard]] Optional<const GreenNode &> last_leaf() const;
+        [[nodiscard]] Optional<const GreenToken &> first_token() const;
 
-        [[nodiscard]] constexpr std::size_t child_count() const noexcept
+        [[nodiscard]] Optional<const GreenNode &> last_terminal() const;
+
+        [[nodiscard]] Optional<const GreenToken &> last_token() const;
+
+        [[nodiscard]] constexpr std::size_t slot_count() const noexcept
         {
             return child_count_;
         }
 
       protected:
-        constexpr void set_child_count(const std::size_t count) noexcept
+        constexpr void set_slot_count(const std::size_t count) noexcept
         {
             child_count_ = count;
         }
@@ -188,29 +195,33 @@ namespace prism
             }
         }
 
-        [[nodiscard]] virtual Optional<const GreenNode &> get_child(std::size_t index) const = 0;
+        [[nodiscard]] virtual Optional<const GreenNode &> get_slot(std::size_t index) const = 0;
 
         template <std::derived_from<GreenNode> T>
-        Optional<const T &> get_child(const std::size_t index) const
+        Optional<const T &> get_slot(const std::size_t index) const
         {
-            return get_child(index).and_then([](const GreenNode &child) { return child.as<T>(); });
+            return get_slot(index).and_then([](const GreenNode &child) { return child.as<T>(); });
         }
 
         template <std::derived_from<GreenNode> T = GreenNode>
-        const T &get_child_unchecked(const std::size_t index) const
+        const T &get_slot_unchecked(const std::size_t index) const
         {
-            return static_cast<const T &>(*get_child(index));
+            return static_cast<const T &>(*get_slot(index));
         }
 
         template <std::derived_from<GreenNode> T = GreenNode>
-        const T &get_required_child(const std::size_t index) const
+        const T &get_required_slot(const std::size_t index) const
         {
-            auto child = get_child<T>(index);
+            auto child = get_slot<T>(index);
             DEBUG_ASSERT(child.has_value());
             return *child;
         }
 
-        [[nodiscard]] std::uint32_t get_child_offset(std::size_t index) const;
+        [[nodiscard]] std::uint32_t get_slot_offset(std::size_t index) const;
+
+        [[nodiscard]] GreenChildList child_nodes_and_tokens() const;
+
+        [[nodiscard]] GreenNodeView enumerate_nodes() const;
 
         [[nodiscard]] constexpr const DiagnosticInfoList &diagnostics() const noexcept
         {
@@ -235,9 +246,9 @@ namespace prism
             return create_red(lifetime, nullptr, 0);
         }
 
-        [[nodiscard]] virtual const SyntaxNode &create_red(SyntaxLifetime &lifetime,
-                                                           const SyntaxNode *parent,
-                                                           std::uint32_t position) const = 0;
+        [[nodiscard]] virtual SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                                     const SyntaxNode *parent,
+                                                     std::uint32_t position) const = 0;
 
         template <typename Self>
         [[nodiscard]] RefCountPtr<Self> clone(this const Self &self)

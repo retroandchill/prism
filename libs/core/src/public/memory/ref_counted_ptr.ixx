@@ -8,6 +8,7 @@ export module prism.core:memory.ref_counted_ptr;
 
 import :type_traits.basic;
 import std;
+import :util.optional;
 
 namespace prism
 {
@@ -662,6 +663,15 @@ namespace prism
       private:
         RefCountedControlBlock *control_block_ = new RefCountedControlBlock{};
     };
+
+    template <RefCounted T>
+    [[nodiscard]] constexpr RefCountPtr<T> from_optional_ref(Optional<T &> ref) noexcept
+    {
+        if (ref.has_value())
+            return ref->shared_from_this();
+
+        return nullptr;
+    }
 } // namespace prism
 
 template <prism::RefCounted T>

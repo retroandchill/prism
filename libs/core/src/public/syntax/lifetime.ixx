@@ -18,7 +18,7 @@ namespace prism
       public:
         template <std::derived_from<SyntaxNode> Red, std::derived_from<GreenNode> Green>
             requires std::constructible_from<Red, SyntaxLifetime &, const Green &, const SyntaxNode *, std::uint32_t>
-        constexpr const Red &add(const Green &green, const SyntaxNode *parent = nullptr, std::uint32_t position = 0)
+        constexpr Red &add(const Green &green, const SyntaxNode *parent = nullptr, std::uint32_t position = 0)
         {
             std::scoped_lock lock{mutex_};
             return allocator_.create<Red>(*this, green, parent, position);

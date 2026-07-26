@@ -22,7 +22,7 @@ namespace prism
       public:
         explicit GreenListNode(GreenSyntaxVector children);
 
-        [[nodiscard]] constexpr Optional<const GreenNode &> get_child(const std::size_t index) const override
+        [[nodiscard]] constexpr Optional<const GreenNode &> get_slot(const std::size_t index) const override
         {
             return children_[index].get();
         }
@@ -32,9 +32,9 @@ namespace prism
             return node.kind() == SyntaxKind::list;
         }
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
-                                                   const SyntaxNode *parent,
-                                                   std::uint32_t position) const override;
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
 
       protected:
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
@@ -53,6 +53,13 @@ namespace prism
         constexpr const GreenNode &add(GreenPtr<GreenNode> child)
         {
             return *children_.emplace_back(std::move(child));
+        }
+
+        template <std::ranges::input_range Range>
+            requires std::convertible_to<std::ranges::range_reference_t<Range>, GreenPtr<GreenNode>>
+        constexpr void add_range(Range &&range)
+        {
+            children_.insert(children_.end(), std::ranges::begin(range), std::ranges::end(range));
         }
 
         constexpr void reserve(const std::uint32_t capacity)
@@ -115,6 +122,12 @@ namespace prism
         }
 
         explicit constexpr GreenSyntaxList(GreenPtr<GreenNode> children)
+            requires(Owning && !std::is_same_v<T, GreenNode>)
+            : children_{std::move(children)}
+        {
+        }
+
+        explicit(false) constexpr GreenSyntaxList(GreenPtr<T> children)
             requires(Owning)
             : children_{std::move(children)}
         {
@@ -133,7 +146,7 @@ namespace prism
             if (children_ == nullptr)
                 return 0;
 
-            return children_->template is<GreenListNode>() ? children_->child_count() : 1;
+            return children_->template is<GreenListNode>() ? children_->slot_count() : 1;
         }
 
         [[nodiscard]] const T &operator[](const std::size_t index) const
@@ -150,7 +163,7 @@ namespace prism
                 return static_cast<const T &>(*children_);
             }
 
-            auto child = list->get_child(index);
+            auto child = list->get_slot(index);
             if (!child.has_value())
                 throw std::out_of_range{"Index out of range"};
 
@@ -202,6 +215,12 @@ namespace prism
 
         Ptr children_ = nullptr;
     };
+
+    template <typename T>
+    GreenSyntaxList(GreenPtr<T>) -> GreenSyntaxList<T>;
+
+    template <typename T>
+    GreenSyntaxList(const T *) -> GreenSyntaxList<T, false>;
 
     template <typename T>
     class GreenListBuilder

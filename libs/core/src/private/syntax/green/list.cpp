@@ -19,14 +19,14 @@ namespace prism
         : GreenNode{SyntaxKind::list}, children_{std::move(children)}
     {
         DEBUG_ASSERT(children_.size() <= std::numeric_limits<std::uint32_t>::max());
-        set_child_count(static_cast<std::uint32_t>(children_.size()));
+        set_slot_count(static_cast<std::uint32_t>(children_.size()));
         for (auto &child : children_)
         {
             DEBUG_ASSERT(child != nullptr);
         }
     }
 
-    const SyntaxNode &GreenListNode::create_red(SyntaxLifetime &, const SyntaxNode *, std::uint32_t) const
+    SyntaxNode &GreenListNode::create_red(SyntaxLifetime &, const SyntaxNode *, std::uint32_t) const
     {
         throw UnsupportedOperationException{};
     }

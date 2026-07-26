@@ -61,13 +61,13 @@ namespace prism
             return 0;
         }
 
-        Optional<const GreenNode &> get_child(std::size_t index) const override
+        Optional<const GreenNode &> get_slot(std::size_t index) const override
         {
             // This should never get called because it has no slots
             throw UnsupportedOperationException{};
         }
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &, const SyntaxNode *, std::uint32_t) const override
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &, const SyntaxNode *, std::uint32_t) const override
         {
             throw UnsupportedOperationException{};
         }
@@ -81,9 +81,9 @@ namespace prism
         std::string text_;
     };
 
-    class GreenSkippedTokensTrivia final : public GreenNode
+    class GreenStructuredTrivia : public GreenNode
     {
-
-      private:
+      public:
+        GreenStructuredTrivia(SyntaxKind kind, DiagnosticInfoList diagnostics);
     };
 } // namespace prism

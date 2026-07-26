@@ -1,5 +1,5 @@
 /**
- * @file green_node.cpp
+ * @file node.cpp
  * @author Francesco Corso
  * @date 7/9/2026
  * @brief
@@ -7,8 +7,11 @@
 module prism.core:syntax.green.node.impl;
 
 import :syntax.green.node;
+import :syntax.green.token;
 import :syntax.green.trivia;
 import :text.string_writer;
+import :syntax.green.child_list;
+import :syntax.green.view;
 
 namespace prism
 {
@@ -27,12 +30,12 @@ namespace prism
         if (full_width_ == 0)
             return std::nullopt;
 
-        return first_leaf()->leading_trivia();
+        return first_terminal()->leading_trivia();
     }
 
     std::uint32_t GreenNode::leading_trivia_width() const
     {
-        return full_width_ > 0 ? first_leaf()->leading_trivia_width() : 0;
+        return full_width_ > 0 ? first_terminal()->leading_trivia_width() : 0;
     }
 
     Optional<const GreenNode &> GreenNode::trailing_trivia() const
@@ -40,24 +43,24 @@ namespace prism
         if (full_width_ == 0)
             return std::nullopt;
 
-        return last_leaf()->trailing_trivia();
+        return last_terminal()->trailing_trivia();
     }
 
     std::uint32_t GreenNode::trailing_trivia_width() const
     {
-        return full_width_ > 0 ? last_leaf()->trailing_trivia_width() : 0;
+        return full_width_ > 0 ? last_terminal()->trailing_trivia_width() : 0;
     }
 
-    Optional<const GreenNode &> GreenNode::first_leaf() const
+    Optional<const GreenNode &> GreenNode::first_terminal() const
     {
         auto *node = this;
 
         do
         {
             const GreenNode *first_child = nullptr;
-            for (const std::size_t i : std::views::iota(0uz, node->child_count()))
+            for (const std::size_t i : std::views::iota(0uz, node->slot_count()))
             {
-                auto child = node->get_child(i);
+                auto child = node->get_slot(i);
                 if (child.has_value())
                     continue;
 
@@ -66,12 +69,17 @@ namespace prism
             }
 
             node = first_child;
-        } while (node != nullptr && node->child_count() > 0);
+        } while (node != nullptr && node->slot_count() > 0);
 
         return node;
     }
 
-    Optional<const GreenNode &> GreenNode::last_leaf() const
+    Optional<const GreenToken &> GreenNode::first_token() const
+    {
+        return first_terminal().and_then([](const GreenNode &node) { return node.as<GreenToken>(); });
+    }
+
+    Optional<const GreenNode &> GreenNode::last_terminal() const
     {
         auto *node = this;
 
@@ -79,9 +87,9 @@ namespace prism
         {
             const GreenNode *last_child = nullptr;
 
-            for (std::size_t i = node->child_count() - 1; i != std::numeric_limits<std::size_t>::max(); --i)
+            for (std::size_t i = node->slot_count() - 1; i != std::numeric_limits<std::size_t>::max(); --i)
             {
-                auto child = get_child(i);
+                auto child = get_slot(i);
                 if (child.has_value())
                     continue;
 
@@ -91,17 +99,22 @@ namespace prism
 
             node = last_child;
 
-        } while (node != nullptr && node->child_count() > 0);
+        } while (node != nullptr && node->slot_count() > 0);
 
         return node;
     }
 
-    std::uint32_t GreenNode::get_child_offset(const std::size_t index) const
+    Optional<const GreenToken &> GreenNode::last_token() const
+    {
+        return last_terminal().and_then([](const GreenNode &node) { return node.as<GreenToken>(); });
+    }
+
+    std::uint32_t GreenNode::get_slot_offset(const std::size_t index) const
     {
         std::uint32_t offset = 0;
         for (std::size_t i = 0; i < index; ++i)
         {
-            auto child = get_child(i);
+            auto child = get_slot(i);
             if (!child.has_value())
                 continue;
 
@@ -109,6 +122,16 @@ namespace prism
         }
 
         return offset;
+    }
+
+    GreenChildList GreenNode::child_nodes_and_tokens() const
+    {
+        return GreenChildList{*this};
+    }
+
+    GreenNodeView GreenNode::enumerate_nodes() const
+    {
+        return GreenNodeView{*this};
     }
 
     void GreenNode::add_diagnostic(RefCountPtr<const DiagnosticInfo> diagnostic)
@@ -132,7 +155,7 @@ namespace prism
     {
         for (const std::size_t i : std::views::iota(0uz, child_count_))
         {
-            auto child = get_child(i);
+            auto child = get_slot(i);
             if (child.has_value())
                 continue;
 

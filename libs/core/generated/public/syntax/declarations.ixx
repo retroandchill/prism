@@ -6,6 +6,7 @@ export module prism.core:syntax.declarations;
 
 import :syntax.node;
 import :syntax.token;
+import :syntax.trivia;
 import :syntax.list;
 import :syntax.green.declarations;
 

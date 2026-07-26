@@ -116,6 +116,12 @@
           "name": {
             "type": "string"
           },
+          "kind": {
+            "enum": [
+              "Node",
+              "StructuredTrivia"
+            ]
+          },
           "nodes": {
             "type": "array",
             "items": {

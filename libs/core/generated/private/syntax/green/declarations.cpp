@@ -21,7 +21,7 @@ namespace prism
           identifier_{std::move(identifier)}, type_{std::move(type)}, initializer_{std::move(initializer)},
           semicolon_{std::move(semicolon)}
     {
-        set_child_count(7);
+        set_slot_count(7);
         adjust_flags_and_width(modifiers_);
         adjust_flags_and_width(*var_keyword_);
         if (mut_keyword_ != nullptr)
@@ -69,7 +69,7 @@ namespace prism
         semicolon_ = std::move(value);
     }
 
-    Optional<const GreenNode &> GreenVariableDeclaration::get_child(std::size_t index) const
+    Optional<const GreenNode &> GreenVariableDeclaration::get_slot(std::size_t index) const
     {
         switch (index)
         {
@@ -92,9 +92,9 @@ namespace prism
         }
     }
 
-    [[nodiscard]] const SyntaxNode &GreenVariableDeclaration::create_red(SyntaxLifetime &lifetime,
-                                                                         const SyntaxNode *parent,
-                                                                         std::uint32_t position) const
+    [[nodiscard]] SyntaxNode &GreenVariableDeclaration::create_red(SyntaxLifetime &lifetime,
+                                                                   const SyntaxNode *parent,
+                                                                   std::uint32_t position) const
     {
         return lifetime.add<VariableDeclarationSyntax>(*this, parent, position);
     }
@@ -187,7 +187,7 @@ namespace prism
           parameters_{std::move(parameters)}, return_type_{std::move(return_type)}, body_{std::move(body)},
           expression_body_{std::move(expression_body)}, semicolon_{std::move(semicolon)}
     {
-        set_child_count(8);
+        set_slot_count(8);
         adjust_flags_and_width(modifiers_);
         adjust_flags_and_width(*func_keyword_);
         adjust_flags_and_width(*identifier_);
@@ -244,7 +244,7 @@ namespace prism
         semicolon_ = std::move(value);
     }
 
-    Optional<const GreenNode &> GreenFunctionDeclaration::get_child(std::size_t index) const
+    Optional<const GreenNode &> GreenFunctionDeclaration::get_slot(std::size_t index) const
     {
         switch (index)
         {
@@ -269,9 +269,9 @@ namespace prism
         }
     }
 
-    [[nodiscard]] const SyntaxNode &GreenFunctionDeclaration::create_red(SyntaxLifetime &lifetime,
-                                                                         const SyntaxNode *parent,
-                                                                         std::uint32_t position) const
+    [[nodiscard]] SyntaxNode &GreenFunctionDeclaration::create_red(SyntaxLifetime &lifetime,
+                                                                   const SyntaxNode *parent,
+                                                                   std::uint32_t position) const
     {
         return lifetime.add<FunctionDeclarationSyntax>(*this, parent, position);
     }

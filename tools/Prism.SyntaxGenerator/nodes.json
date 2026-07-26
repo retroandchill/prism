@@ -369,6 +369,23 @@
   },
   "modules": [
     {
+      "name": "StructuredTrivia",
+      "kind": "StructuredTrivia",
+      "nodes": [
+        {
+          "name": "SkippedTokensTrivia",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "tokens",
+              "type": "Token",
+              "shape": "list"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "TopLevel",
       "nodes": [
         {

@@ -29,7 +29,7 @@ namespace prism
 
         [[nodiscard]] constexpr std::size_t size() const noexcept
         {
-            return node_ != nullptr ? node_->green().child_count() : 0;
+            return node_ != nullptr ? node_->green().slot_count() : 0;
         }
 
         [[nodiscard]] SyntaxNodeOrToken operator[](std::size_t index) const;

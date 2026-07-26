@@ -124,7 +124,7 @@ namespace prism
 
             if (result == nullptr)
             {
-                if (const auto green = green_->get_child(0); green.has_value())
+                if (const auto green = green_->get_slot(0); green.has_value())
                 {
                     slot.compare_exchange_strong(
                         result,
@@ -144,11 +144,11 @@ namespace prism
 
             if (result == nullptr)
             {
-                if (const auto green = green_->get_child(index); green.has_value())
+                if (const auto green = green_->get_slot(index); green.has_value())
                 {
                     slot.compare_exchange_strong(result,
                                                  static_cast<const T *>(std::addressof(
-                                                     green->create_red(lifetime(), this, get_child_position(index)))),
+                                                     green->create_red(lifetime(), this, get_slot_position(index)))),
                                                  std::memory_order_acq_rel,
                                                  std::memory_order_relaxed);
                 }
@@ -172,7 +172,7 @@ namespace prism
 
         [[nodiscard]] virtual Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const = 0;
 
-        [[nodiscard]] virtual std::uint32_t get_child_position(std::size_t index) const;
+        [[nodiscard]] virtual std::uint32_t get_slot_position(std::size_t index) const;
 
       public:
         [[nodiscard]] ChildSyntaxList child_nodes_and_tokens() const;

@@ -47,7 +47,7 @@ namespace prism
         return get_node_slot(index).value();
     }
 
-    std::uint32_t SyntaxNode::get_child_position(std::size_t index) const
+    std::uint32_t SyntaxNode::get_slot_position(std::size_t index) const
     {
         if (const auto cached = get_cached_slot(index); cached.has_value())
         {
@@ -64,7 +64,7 @@ namespace prism
                 return prev_sibling->end_position() + offset;
             }
 
-            if (const auto green_child = green->get_child(index); green_child.has_value())
+            if (const auto green_child = green->get_slot(index); green_child.has_value())
             {
                 offset += green_child->full_width();
             }

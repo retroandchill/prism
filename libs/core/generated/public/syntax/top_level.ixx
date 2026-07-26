@@ -6,6 +6,7 @@ export module prism.core:syntax.top_level;
 
 import :syntax.node;
 import :syntax.token;
+import :syntax.trivia;
 import :syntax.list;
 import :syntax.green.top_level;
 

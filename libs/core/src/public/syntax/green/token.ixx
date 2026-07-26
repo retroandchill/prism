@@ -36,6 +36,11 @@ namespace prism
             return leading_trivia_.get();
         }
 
+        constexpr void set_leading_trivia(GreenPtr<GreenNode> leading_trivia) noexcept
+        {
+            leading_trivia_ = std::move(leading_trivia);
+        }
+
         [[nodiscard]] std::uint32_t leading_trivia_width() const final;
 
         [[nodiscard]] constexpr Optional<const GreenNode &> trailing_trivia() const noexcept final
@@ -43,16 +48,21 @@ namespace prism
             return trailing_trivia_.get();
         }
 
+        constexpr void set_trailing_trivia(GreenPtr<GreenNode> trailing_trivia) noexcept
+        {
+            trailing_trivia_ = std::move(trailing_trivia);
+        }
+
         [[nodiscard]] std::uint32_t trailing_trivia_width() const final;
 
-        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const final;
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const final;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return prism::is_token(node.kind());
         }
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &, const SyntaxNode *, std::uint32_t) const final
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &, const SyntaxNode *, std::uint32_t) const final
         {
             throw UnsupportedOperationException{};
         }

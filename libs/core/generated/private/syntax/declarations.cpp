@@ -15,14 +15,14 @@ namespace prism
     {
         return SyntaxToken{static_cast<const GreenVariableDeclaration &>(green()).var_keyword(),
                            this,
-                           get_child_position(1)};
+                           get_slot_position(1)};
     }
 
     Optional<SyntaxToken> VariableDeclarationSyntax::mut_keyword() const
     {
         return static_cast<const GreenVariableDeclaration &>(green()).mut_keyword().transform(
             [this](const GreenToken &g) {
-                return SyntaxToken{g, this, get_child_position(2)};
+                return SyntaxToken{g, this, get_slot_position(2)};
             });
     }
 
@@ -30,7 +30,7 @@ namespace prism
     {
         return SyntaxToken{static_cast<const GreenVariableDeclaration &>(green()).identifier(),
                            this,
-                           get_child_position(3)};
+                           get_slot_position(3)};
     }
 
     const TypeSpecifierSyntax &VariableDeclarationSyntax::type() const
@@ -47,7 +47,7 @@ namespace prism
     {
         return SyntaxToken{static_cast<const GreenVariableDeclaration &>(green()).semicolon(),
                            this,
-                           get_child_position(6)};
+                           get_slot_position(6)};
     }
 
     Optional<const SyntaxNode &> VariableDeclarationSyntax::get_node_slot(const std::size_t index) const
@@ -85,14 +85,14 @@ namespace prism
     {
         return SyntaxToken{static_cast<const GreenFunctionDeclaration &>(green()).func_keyword(),
                            this,
-                           get_child_position(1)};
+                           get_slot_position(1)};
     }
 
     SyntaxToken FunctionDeclarationSyntax::identifier() const
     {
         return SyntaxToken{static_cast<const GreenFunctionDeclaration &>(green()).identifier(),
                            this,
-                           get_child_position(2)};
+                           get_slot_position(2)};
     }
 
     const ParameterListSyntax &FunctionDeclarationSyntax::parameters() const
@@ -119,7 +119,7 @@ namespace prism
     {
         return static_cast<const GreenFunctionDeclaration &>(green()).semicolon().transform(
             [this](const GreenToken &g) {
-                return SyntaxToken{g, this, get_child_position(7)};
+                return SyntaxToken{g, this, get_slot_position(7)};
             });
     }
 

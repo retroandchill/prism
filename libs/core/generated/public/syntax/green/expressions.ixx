@@ -2,6 +2,7 @@ export module prism.core:syntax.green.expressions;
 
 import :syntax.green.node;
 import :syntax.green.token;
+import :syntax.green.trivia;
 import :syntax.green.separated_list;
 
 namespace prism
@@ -46,11 +47,11 @@ namespace prism
             return node.kind() == SyntaxKind::literal_expression;
         }
 
-        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
-                                                   const SyntaxNode *parent,
-                                                   std::uint32_t position) const override;
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
 
         [[nodiscard]] GreenPtr<GreenLiteralExpression> with_value(GreenPtr<GreenToken> value) const;
 
@@ -82,11 +83,11 @@ namespace prism
             return node.kind() == SyntaxKind::identifier_expression;
         }
 
-        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
-                                                   const SyntaxNode *parent,
-                                                   std::uint32_t position) const override;
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
 
         [[nodiscard]] GreenPtr<GreenIdentifierExpression> with_value(GreenPtr<GreenToken> value) const;
 
@@ -135,11 +136,11 @@ namespace prism
             return node.kind() == SyntaxKind::parenthesized_expression;
         }
 
-        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
-                                                   const SyntaxNode *parent,
-                                                   std::uint32_t position) const override;
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
 
         [[nodiscard]] GreenPtr<GreenParenthesizedExpression> with_open(GreenPtr<GreenToken> open) const;
 
@@ -197,11 +198,11 @@ namespace prism
             return node.kind() == SyntaxKind::binary_expression;
         }
 
-        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
-                                                   const SyntaxNode *parent,
-                                                   std::uint32_t position) const override;
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
 
         [[nodiscard]] GreenPtr<GreenBinaryExpression> with_left(GreenPtr<GreenExpression> left) const;
 
@@ -258,11 +259,11 @@ namespace prism
             return node.kind() == SyntaxKind::assignment_expression;
         }
 
-        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
-                                                   const SyntaxNode *parent,
-                                                   std::uint32_t position) const override;
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
 
         [[nodiscard]] GreenPtr<GreenAssignmentExpression> with_left(GreenPtr<GreenExpression> left) const;
 
@@ -311,11 +312,11 @@ namespace prism
             return node.kind() == SyntaxKind::prefix_expression;
         }
 
-        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
-                                                   const SyntaxNode *parent,
-                                                   std::uint32_t position) const override;
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
 
         [[nodiscard]] GreenPtr<GreenPrefixExpression> with_op(GreenPtr<GreenToken> op) const;
 
@@ -360,11 +361,11 @@ namespace prism
             return node.kind() == SyntaxKind::postfix_expression;
         }
 
-        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
-                                                   const SyntaxNode *parent,
-                                                   std::uint32_t position) const override;
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
 
         [[nodiscard]] GreenPtr<GreenPostfixExpression> with_operand(GreenPtr<GreenExpression> operand) const;
 
@@ -433,11 +434,11 @@ namespace prism
             return node.kind() == SyntaxKind::ternary_expression;
         }
 
-        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
-                                                   const SyntaxNode *parent,
-                                                   std::uint32_t position) const override;
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
 
         [[nodiscard]] GreenPtr<GreenTernaryExpression> with_condition(GreenPtr<GreenExpression> condition) const;
 
@@ -494,11 +495,11 @@ namespace prism
             return node.kind() == SyntaxKind::invocation_expression;
         }
 
-        [[nodiscard]] Optional<const GreenNode &> get_child(std::size_t index) const override;
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime,
-                                                   const SyntaxNode *parent,
-                                                   std::uint32_t position) const override;
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
 
         [[nodiscard]] GreenPtr<GreenInvocationExpression> with_callee(GreenPtr<GreenExpression> callee) const;
 

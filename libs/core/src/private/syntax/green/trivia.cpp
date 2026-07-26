@@ -1,5 +1,5 @@
 /**
- * @file green_trivia.cpp
+ * @file trivia.cpp
  * @author Francesco Corso
  * @date 7/11/2026
  * @brief
@@ -10,11 +10,6 @@ import :syntax.green.trivia;
 
 namespace prism
 {
-    namespace
-    {
-        GreenTriviaList empty_trivia_list{};
-    }
-
     const GreenPtr<GreenTrivia> &GreenTrivia::carriage_return_line_feed()
     {
         static auto instance = make_ref_counted<const GreenTrivia>(SyntaxKind::new_line_trivia, "\r\n");
@@ -41,5 +36,16 @@ namespace prism
     RefCountPtr<GreenNode> GreenTrivia::clone_internal() const
     {
         return make_ref_counted<GreenTrivia>(kind(), text());
+    }
+
+    GreenStructuredTrivia::GreenStructuredTrivia(const SyntaxKind kind, DiagnosticInfoList diagnostics)
+        : GreenNode(kind, std::move(diagnostics))
+    {
+        set_flags(SyntaxFlags::contains_structured_trivia);
+
+        if (kind == SyntaxKind::skipped_tokens_trivia)
+        {
+            set_flags(SyntaxFlags::contains_skipped_text);
+        }
     }
 } // namespace prism

@@ -3,6 +3,8 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using Prism.SyntaxGenerator.Models.Spec;
+
 namespace Prism.SyntaxGenerator.Models.Resolved;
 
 public sealed class SyntaxModule
@@ -12,15 +14,18 @@ public sealed class SyntaxModule
     private readonly HashSet<SyntaxNode> _forwardDeclarations = [];
     public string Name { get; }
 
+    public ModuleKind Kind { get; }
+
     public IReadOnlyList<SyntaxNode> Nodes => _nodes;
 
     public IReadOnlySet<SyntaxModule> Dependencies => _dependencies;
 
     public IReadOnlySet<SyntaxNode> ForwardDeclarations => _forwardDeclarations;
 
-    internal SyntaxModule(string name)
+    internal SyntaxModule(string name, ModuleKind kind)
     {
         Name = name;
+        Kind = kind;
     }
 
     internal void AddNode(SyntaxNode node)
