@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using Prism.SyntaxGenerator.Models.Cpp;
 using Prism.SyntaxGenerator.Models.Resolved;
 using Prism.SyntaxGenerator.Models.Spec;
@@ -839,7 +840,33 @@ public static class CppEmitter
         {
             writer.WriteLine($"export module {BaseModuleName}:{GreenFragmentName}.visit;");
             writer.WriteLine();
-            foreach (var module in model.Modules) { }
+            foreach (var module in model.Modules)
+            {
+                writer.WriteLine($"import :{GreenFragmentName}.{module.CppName};");
+            }
+            writer.WriteLine();
+            using var namespaceScope = writer.EnterNamespaceScope(PrismNamespace);
+            writer.EmitTopLevelGreenVisitor(model);
+        }
+
+        private void EmitTopLevelGreenVisitor(CppSyntaxModel model)
+        {
+            writer.WriteLine("template <typename Functor>");
+            writer.WriteLine($"concept VisitorFor{GreenNodeClass} = ");
+            foreach (
+                var (i, node) in model
+                    .Modules.AsValueEnumerable()
+                    .SelectMany(m => m.Nodes)
+                    .Where(n => !n.IsAbstract)
+                    .Index()
+            )
+            {
+                if (i > 0)
+                    writer.WriteLine(" &&");
+
+                writer.Write($"std::invocable<Functor, const {node.GreenClassName}&>");
+            }
+            writer.WriteLine(";");
         }
         #endregion
 

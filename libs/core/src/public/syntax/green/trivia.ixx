@@ -74,6 +74,11 @@ namespace prism
 
         void write_to(TextWriter &writer) const override;
 
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
+        {
+            return prism::is_trivia(node.kind());
+        }
+
       protected:
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
