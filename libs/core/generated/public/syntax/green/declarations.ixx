@@ -22,7 +22,7 @@ namespace prism
         }
 
       public:
-        [[nodiscard]] virtual GreenSyntaxList<GreenToken> modifiers() const noexcept = 0;
+        [[nodiscard]] virtual const GreenSyntaxList<GreenToken> &modifiers() const noexcept = 0;
         virtual void set_modifiers(GreenSyntaxList<GreenToken> value) noexcept = 0;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
@@ -31,13 +31,12 @@ namespace prism
         }
 
         template <typename Self>
-        [[nodiscard]] constexpr GreenPtr<std::decay_t<Self>> with_modifiers(const Self &self,
+        [[nodiscard]] constexpr GreenPtr<std::decay_t<Self>> with_modifiers(this const Self &self,
                                                                             GreenSyntaxList<GreenToken> modifiers)
         {
-            return static_pointer_cast<std::decay_t<Self>>(self.with_modifiers_core(std::move(modifiers)));
+            return static_pointer_cast<const std::decay_t<Self>>(self.with_modifiers_core(std::move(modifiers)));
         }
 
-      protected:
         [[nodiscard]] virtual GreenPtr<GreenDeclaration> with_modifiers_core(
             GreenSyntaxList<GreenToken> modifiers) const = 0;
     };
@@ -56,7 +55,7 @@ namespace prism
 
         ~GreenVariableDeclaration() override;
 
-        [[nodiscard]] constexpr GreenSyntaxList<GreenToken> modifiers() const noexcept override
+        [[nodiscard]] constexpr const GreenSyntaxList<GreenToken> &modifiers() const noexcept override
         {
             return modifiers_;
         }
@@ -116,11 +115,9 @@ namespace prism
                                              const SyntaxNode *parent,
                                              std::uint32_t position) const override;
 
-      protected:
         [[nodiscard]] GreenPtr<GreenDeclaration> with_modifiers_core(
             GreenSyntaxList<GreenToken> modifiers) const override;
 
-      public:
         [[nodiscard]] GreenPtr<GreenVariableDeclaration> with_var_keyword(GreenPtr<GreenToken> var_keyword) const;
 
         [[nodiscard]] GreenPtr<GreenVariableDeclaration> with_mut_keyword(GreenPtr<GreenToken> mut_keyword) const;
@@ -140,8 +137,6 @@ namespace prism
                                                                 GreenPtr<GreenTypeSpecifier> type,
                                                                 GreenPtr<GreenInitializer> initializer,
                                                                 GreenPtr<GreenToken> semicolon) const;
-
-      protected:
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
@@ -152,6 +147,125 @@ namespace prism
         GreenPtr<GreenTypeSpecifier> type_;
         GreenPtr<GreenInitializer> initializer_;
         GreenPtr<GreenToken> semicolon_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenVariableDeclaration>
+    {
+        static constexpr std::size_t slot_count = 7;
+
+        using ChildTypes = std::tuple<GreenSyntaxList<GreenToken>,
+                                      GreenToken,
+                                      GreenToken,
+                                      GreenToken,
+                                      GreenTypeSpecifier,
+                                      GreenInitializer,
+                                      GreenToken>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenVariableDeclaration &node)
+        {
+            if constexpr (N == 0)
+            {
+                return node.modifiers();
+            }
+            else if constexpr (N == 1)
+            {
+                return node.var_keyword();
+            }
+            else if constexpr (N == 2)
+            {
+                return node.mut_keyword();
+            }
+            else if constexpr (N == 3)
+            {
+                return node.identifier();
+            }
+            else if constexpr (N == 4)
+            {
+                return node.type();
+            }
+            else if constexpr (N == 5)
+            {
+                return node.initializer();
+            }
+            else
+            {
+                static_assert(N == 6);
+                return node.semicolon();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenVariableDeclaration>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenVariableDeclaration &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                node.set_modifiers(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                node.set_var_keyword(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 2)
+            {
+                node.set_mut_keyword(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 3)
+            {
+                node.set_identifier(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 4)
+            {
+                node.set_type(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 5)
+            {
+                node.set_initializer(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 6);
+                node.set_semicolon(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenVariableDeclaration>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenVariableDeclaration> with(const GreenVariableDeclaration &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                return node.with_modifiers(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                return node.with_var_keyword(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 2)
+            {
+                return node.with_mut_keyword(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 3)
+            {
+                return node.with_identifier(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 4)
+            {
+                return node.with_type(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 5)
+            {
+                return node.with_initializer(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 6);
+                return node.with_semicolon(std::forward<Arg>(value));
+            }
+        }
     };
 
     class GreenFunctionDeclaration final : public GreenDeclaration
@@ -169,7 +283,7 @@ namespace prism
 
         ~GreenFunctionDeclaration() override;
 
-        [[nodiscard]] constexpr GreenSyntaxList<GreenToken> modifiers() const noexcept override
+        [[nodiscard]] constexpr const GreenSyntaxList<GreenToken> &modifiers() const noexcept override
         {
             return modifiers_;
         }
@@ -236,11 +350,9 @@ namespace prism
                                              const SyntaxNode *parent,
                                              std::uint32_t position) const override;
 
-      protected:
         [[nodiscard]] GreenPtr<GreenDeclaration> with_modifiers_core(
             GreenSyntaxList<GreenToken> modifiers) const override;
 
-      public:
         [[nodiscard]] GreenPtr<GreenFunctionDeclaration> with_func_keyword(GreenPtr<GreenToken> func_keyword) const;
 
         [[nodiscard]] GreenPtr<GreenFunctionDeclaration> with_identifier(GreenPtr<GreenToken> identifier) const;
@@ -265,8 +377,6 @@ namespace prism
                                                                 GreenPtr<GreenBlock> body,
                                                                 GreenPtr<GreenExpressionBody> expression_body,
                                                                 GreenPtr<GreenToken> semicolon) const;
-
-      protected:
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
@@ -278,5 +388,137 @@ namespace prism
         GreenPtr<GreenBlock> body_;
         GreenPtr<GreenExpressionBody> expression_body_;
         GreenPtr<GreenToken> semicolon_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenFunctionDeclaration>
+    {
+        static constexpr std::size_t slot_count = 8;
+
+        using ChildTypes = std::tuple<GreenSyntaxList<GreenToken>,
+                                      GreenToken,
+                                      GreenToken,
+                                      GreenParameterList,
+                                      GreenTypeSpecifier,
+                                      GreenBlock,
+                                      GreenExpressionBody,
+                                      GreenToken>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenFunctionDeclaration &node)
+        {
+            if constexpr (N == 0)
+            {
+                return node.modifiers();
+            }
+            else if constexpr (N == 1)
+            {
+                return node.func_keyword();
+            }
+            else if constexpr (N == 2)
+            {
+                return node.identifier();
+            }
+            else if constexpr (N == 3)
+            {
+                return node.parameters();
+            }
+            else if constexpr (N == 4)
+            {
+                return node.return_type();
+            }
+            else if constexpr (N == 5)
+            {
+                return node.body();
+            }
+            else if constexpr (N == 6)
+            {
+                return node.expression_body();
+            }
+            else
+            {
+                static_assert(N == 7);
+                return node.semicolon();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenFunctionDeclaration>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenFunctionDeclaration &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                node.set_modifiers(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                node.set_func_keyword(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 2)
+            {
+                node.set_identifier(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 3)
+            {
+                node.set_parameters(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 4)
+            {
+                node.set_return_type(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 5)
+            {
+                node.set_body(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 6)
+            {
+                node.set_expression_body(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 7);
+                node.set_semicolon(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenFunctionDeclaration>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenFunctionDeclaration> with(const GreenFunctionDeclaration &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                return node.with_modifiers(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                return node.with_func_keyword(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 2)
+            {
+                return node.with_identifier(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 3)
+            {
+                return node.with_parameters(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 4)
+            {
+                return node.with_return_type(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 5)
+            {
+                return node.with_body(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 6)
+            {
+                return node.with_expression_body(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 7);
+                return node.with_semicolon(std::forward<Arg>(value));
+            }
+        }
     };
 } // namespace prism

@@ -76,7 +76,7 @@ namespace prism
         }
 
         template <std::derived_from<T> U>
-            requires std::constructible_from<T *, U *>
+            requires std::convertible_to<U *, T *>
         explicit(false) constexpr RefCountPtr(const RefCountPtr<U> &other) noexcept : ptr_(other.get())
         {
             if (ptr_ != nullptr)
@@ -501,7 +501,7 @@ namespace prism
 
     export template <RefCounted T, RefCounted U>
         requires CanStaticCast<U *, T *>
-    constexpr RefCountPtr<U> static_pointer_cast(RefCountPtr<T> &&ptr) noexcept
+    constexpr RefCountPtr<T> static_pointer_cast(RefCountPtr<U> &&ptr) noexcept
     {
         auto *p = static_cast<T *>(ptr.release());
         return RefCountPtr<T>::no_ref(p);

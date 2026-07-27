@@ -61,6 +61,44 @@ namespace prism
             } -> std::convertible_to<bool>;
         });
 
+    template <std::derived_from<GreenNode>>
+    struct GreenNodeTraits;
+
+    template <typename T>
+    concept ConcreteGreenNode = requires {
+        {
+            GreenNodeTraits<T>::slot_count
+        } -> std::convertible_to<std::size_t>;
+    };
+
+    template <ConcreteGreenNode T>
+    constexpr std::size_t green_slot_count = GreenNodeTraits<T>::slot_count;
+
+    template <std::size_t N, std::derived_from<GreenNode> T>
+    using GreenChildType = std::tuple_element_t<N, typename GreenNodeTraits<T>::ChildTypes>;
+
+    template <std::size_t N, std::derived_from<GreenNode> T>
+    using GreenSetterParam = std::
+        conditional_t<GreenNodeWrapper<GreenChildType<N, T>>, GreenChildType<N, T>, GreenPtr<GreenChildType<N, T>>>;
+
+    template <typename T, std::size_t N>
+    concept CanGetChild = std::derived_from<T, GreenNode> && requires(const T &node) {
+        {
+            GreenNodeTraits<T>::template get<N>(node)
+        };
+    };
+
+    template <typename T, std::size_t N, typename Arg>
+    concept CanSetChild = std::derived_from<T, GreenNode> && requires(T &node, Arg &&arg) {
+        {
+            GreenNodeTraits<T>::template set<N>(node, std::forward<Arg>(arg))
+        };
+    } && requires(const T &node, Arg &&arg) {
+        {
+            GreenNodeTraits<T>::template with<N>(node, std::forward<Arg>(arg))
+        } -> std::convertible_to<GreenPtr<T>>;
+    };
+
     class GreenNode : public IntrusiveRefCounted
     {
       protected:
@@ -256,6 +294,8 @@ namespace prism
             return static_pointer_cast<Self>(self.clone_internal());
         }
 
+        [[nodiscard]] virtual RefCountPtr<GreenNode> clone_internal() const = 0;
+
         [[nodiscard]] std::string to_string() const;
 
         virtual void write_to(TextWriter &writer) const;
@@ -280,8 +320,6 @@ namespace prism
             }
         }
 
-        [[nodiscard]] virtual RefCountPtr<GreenNode> clone_internal() const = 0;
-
       private:
         friend class Lexer;
 
@@ -296,4 +334,22 @@ namespace prism
         std::size_t child_count_ = 0;
         DiagnosticInfoList diagnostics_;
     };
+
+    template <std::size_t N, CanGetChild<N> Node>
+    constexpr decltype(auto) get_slot(const Node &node)
+    {
+        return GreenNodeTraits<Node>::template get<N>(node);
+    }
+
+    template <std::size_t N, typename Arg, CanSetChild<N, Arg> Node>
+    constexpr void set_slot(const Node &node, Arg &&arg)
+    {
+        GreenNodeTraits<Node>::template set<N>(node, std::forward<Arg>(arg));
+    }
+
+    template <std::size_t N, typename Arg, CanSetChild<N, Arg> Node>
+    constexpr GreenPtr<Node> with_slot(const Node &node, Arg &&arg)
+    {
+        return GreenNodeTraits<Node>::template with<N>(node, std::forward<Arg>(arg));
+    }
 } // namespace prism

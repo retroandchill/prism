@@ -58,12 +58,49 @@ namespace prism
 
         [[nodiscard]] GreenPtr<GreenVariableDeclarationStatement> update(
             GreenPtr<GreenVariableDeclaration> declaration) const;
-
-      protected:
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenVariableDeclaration> declaration_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenVariableDeclarationStatement>
+    {
+        static constexpr std::size_t slot_count = 1;
+
+        using ChildTypes = std::tuple<GreenVariableDeclaration>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenVariableDeclarationStatement &node)
+        {
+            {
+                static_assert(N == 0);
+                return node.declaration();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenVariableDeclarationStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenVariableDeclarationStatement &node, Arg &&value)
+        {
+            {
+                static_assert(N == 0);
+                node.set_declaration(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenVariableDeclarationStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenVariableDeclarationStatement> with(const GreenVariableDeclarationStatement &node,
+                                                                          Arg &&value)
+        {
+            {
+                static_assert(N == 0);
+                return node.with_declaration(std::forward<Arg>(value));
+            }
+        }
     };
 
     class GreenBlock final : public GreenStatement
@@ -83,7 +120,7 @@ namespace prism
 
         void set_open_brace(GreenPtr<GreenToken> value) noexcept;
 
-        [[nodiscard]] constexpr GreenSyntaxList<GreenStatement> statements() const noexcept
+        [[nodiscard]] constexpr const GreenSyntaxList<GreenStatement> &statements() const noexcept
         {
             return statements_;
         }
@@ -117,14 +154,77 @@ namespace prism
         [[nodiscard]] GreenPtr<GreenBlock> update(GreenPtr<GreenToken> open_brace,
                                                   GreenSyntaxList<GreenStatement> statements,
                                                   GreenPtr<GreenToken> close_brace) const;
-
-      protected:
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenToken> open_brace_;
         GreenSyntaxList<GreenStatement> statements_;
         GreenPtr<GreenToken> close_brace_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenBlock>
+    {
+        static constexpr std::size_t slot_count = 3;
+
+        using ChildTypes = std::tuple<GreenToken, GreenSyntaxList<GreenStatement>, GreenToken>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenBlock &node)
+        {
+            if constexpr (N == 0)
+            {
+                return node.open_brace();
+            }
+            else if constexpr (N == 1)
+            {
+                return node.statements();
+            }
+            else
+            {
+                static_assert(N == 2);
+                return node.close_brace();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenBlock>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenBlock &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                node.set_open_brace(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                node.set_statements(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 2);
+                node.set_close_brace(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenBlock>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenBlock> with(const GreenBlock &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                return node.with_open_brace(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                return node.with_statements(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 2);
+                return node.with_close_brace(std::forward<Arg>(value));
+            }
+        }
     };
 
     class GreenReturnStatement final : public GreenStatement
@@ -178,14 +278,77 @@ namespace prism
         [[nodiscard]] GreenPtr<GreenReturnStatement> update(GreenPtr<GreenToken> return_keyword,
                                                             GreenPtr<GreenExpression> expression,
                                                             GreenPtr<GreenToken> semicolon) const;
-
-      protected:
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenToken> return_keyword_;
         GreenPtr<GreenExpression> expression_;
         GreenPtr<GreenToken> semicolon_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenReturnStatement>
+    {
+        static constexpr std::size_t slot_count = 3;
+
+        using ChildTypes = std::tuple<GreenToken, GreenExpression, GreenToken>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenReturnStatement &node)
+        {
+            if constexpr (N == 0)
+            {
+                return node.return_keyword();
+            }
+            else if constexpr (N == 1)
+            {
+                return node.expression();
+            }
+            else
+            {
+                static_assert(N == 2);
+                return node.semicolon();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenReturnStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenReturnStatement &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                node.set_return_keyword(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                node.set_expression(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 2);
+                node.set_semicolon(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenReturnStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenReturnStatement> with(const GreenReturnStatement &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                return node.with_return_keyword(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                return node.with_expression(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 2);
+                return node.with_semicolon(std::forward<Arg>(value));
+            }
+        }
     };
 
     class GreenExpressionStatement final : public GreenStatement
@@ -228,13 +391,64 @@ namespace prism
 
         [[nodiscard]] GreenPtr<GreenExpressionStatement> update(GreenPtr<GreenExpression> expression,
                                                                 GreenPtr<GreenToken> semicolon) const;
-
-      protected:
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenExpression> expression_;
         GreenPtr<GreenToken> semicolon_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenExpressionStatement>
+    {
+        static constexpr std::size_t slot_count = 2;
+
+        using ChildTypes = std::tuple<GreenExpression, GreenToken>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenExpressionStatement &node)
+        {
+            if constexpr (N == 0)
+            {
+                return node.expression();
+            }
+            else
+            {
+                static_assert(N == 1);
+                return node.semicolon();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenExpressionStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenExpressionStatement &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                node.set_expression(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 1);
+                node.set_semicolon(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenExpressionStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenExpressionStatement> with(const GreenExpressionStatement &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                return node.with_expression(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 1);
+                return node.with_semicolon(std::forward<Arg>(value));
+            }
+        }
     };
 
     class GreenEmptyStatement final : public GreenStatement
@@ -265,11 +479,47 @@ namespace prism
         [[nodiscard]] GreenPtr<GreenEmptyStatement> with_semicolon(GreenPtr<GreenToken> semicolon) const;
 
         [[nodiscard]] GreenPtr<GreenEmptyStatement> update(GreenPtr<GreenToken> semicolon) const;
-
-      protected:
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenToken> semicolon_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenEmptyStatement>
+    {
+        static constexpr std::size_t slot_count = 1;
+
+        using ChildTypes = std::tuple<GreenToken>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenEmptyStatement &node)
+        {
+            {
+                static_assert(N == 0);
+                return node.semicolon();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenEmptyStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenEmptyStatement &node, Arg &&value)
+        {
+            {
+                static_assert(N == 0);
+                node.set_semicolon(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenEmptyStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenEmptyStatement> with(const GreenEmptyStatement &node, Arg &&value)
+        {
+            {
+                static_assert(N == 0);
+                return node.with_semicolon(std::forward<Arg>(value));
+            }
+        }
     };
 } // namespace prism

@@ -114,6 +114,8 @@ set(PRISM_PUBLIC_MODULES
         src/public/syntax/green/child_list.ixx
         generated/public/syntax/green/structured_trivia.ixx
         generated/public/syntax/structured_trivia.ixx
+        src/public/type_traits/visitor.ixx
+        generated/public/syntax/green/visit.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

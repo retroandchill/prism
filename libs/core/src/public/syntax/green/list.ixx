@@ -4,6 +4,10 @@
  * @date 7/12/2026
  * @brief
  */
+module;
+
+#include <libassert/assert-macros.hpp>
+
 export module prism.core:syntax.green.list;
 
 import :syntax.green.node;
@@ -27,6 +31,14 @@ namespace prism
             return children_[index].get();
         }
 
+        constexpr void set_slot(const std::size_t index, GreenPtr<GreenNode> slot)
+        {
+            ASSUME(index < children_.size());
+            children_[index] = std::move(slot);
+        }
+
+        [[nodiscard]] GreenPtr<GreenListNode> with_slot(size_t index, GreenPtr<GreenNode> slot) const;
+
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
             return node.kind() == SyntaxKind::list;
@@ -36,7 +48,6 @@ namespace prism
                                              const SyntaxNode *parent,
                                              std::uint32_t position) const override;
 
-      protected:
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:

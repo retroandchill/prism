@@ -80,11 +80,47 @@ namespace prism
         [[nodiscard]] GreenPtr<GreenIdentifierNamedType> with_identifier(GreenPtr<GreenToken> identifier) const;
 
         [[nodiscard]] GreenPtr<GreenIdentifierNamedType> update(GreenPtr<GreenToken> identifier) const;
-
-      protected:
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenToken> identifier_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenIdentifierNamedType>
+    {
+        static constexpr std::size_t slot_count = 1;
+
+        using ChildTypes = std::tuple<GreenToken>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenIdentifierNamedType &node)
+        {
+            {
+                static_assert(N == 0);
+                return node.identifier();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenIdentifierNamedType>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenIdentifierNamedType &node, Arg &&value)
+        {
+            {
+                static_assert(N == 0);
+                node.set_identifier(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenIdentifierNamedType>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenIdentifierNamedType> with(const GreenIdentifierNamedType &node, Arg &&value)
+        {
+            {
+                static_assert(N == 0);
+                return node.with_identifier(std::forward<Arg>(value));
+            }
+        }
     };
 } // namespace prism

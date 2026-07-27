@@ -12,6 +12,7 @@ export module prism.core:syntax.green.separated_list;
 
 import :syntax.green.token;
 import boost;
+import libassert;
 
 namespace prism
 {
@@ -79,17 +80,17 @@ namespace prism
 
       private:
 #ifndef NDEBUG
-        static void validate(const GreenSyntaxList<T, Owning> &list)
+        static void validate(const GreenSyntaxList<GreenNode, Owning> &list)
         {
             for (auto [i, item] : list | std::views::enumerate)
             {
                 if (i % 2 == 0)
                 {
-                    assert(!item->is_token());
+                    DEBUG_ASSERT(!item.is_token());
                 }
                 else
                 {
-                    assert(item->is_token());
+                    DEBUG_ASSERT(item.is_token());
                 }
             }
         }

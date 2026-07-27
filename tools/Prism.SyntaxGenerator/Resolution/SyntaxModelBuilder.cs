@@ -31,6 +31,9 @@ public sealed class SyntaxModelBuilder
     private readonly OrderedDictionary<string, SyntaxTrivia> _trivia = new();
     private readonly OrderedDictionary<string, SyntaxToken> _tokens = new();
     private readonly OrderedDictionary<string, SyntaxModule> _modules = new();
+    private readonly SyntaxDispatchGroup _topLevelDispatchGroup = new("Node", true);
+    private readonly SyntaxDispatchGroup _structuredTriviaDispatchGroup = new("StructuredTrivia");
+    private readonly OrderedDictionary<SyntaxNode, SyntaxDispatchGroup> _dispatchGroups = new();
     private readonly Dictionary<string, SyntaxNode> _nodes = new();
     private readonly Dictionary<SyntaxNode, NodeDefinition> _nodeDefinitions = new();
     private readonly Dictionary<SyntaxNode, Dictionary<string, SyntaxProperty>> _nodeProperties =
@@ -49,12 +52,14 @@ public sealed class SyntaxModelBuilder
         ResolveProductions();
         ResolveOverrides();
         ResolveDependencies();
+        ResolveDispatchGroups();
         return new SyntaxModel(
             [.. _syntaxKinds.Values],
             [.. _syntaxKindGroups.OrderBy(g => g.StartValue)],
             [.. _trivia.Values],
             [.. _tokens.Values],
             [.. _modules.Values],
+            [_topLevelDispatchGroup, _structuredTriviaDispatchGroup, .. _dispatchGroups.Values],
             [.. _diagnostics]
         );
     }
@@ -68,7 +73,7 @@ public sealed class SyntaxModelBuilder
         _trivia.EnsureCapacity(spec.Trivia.Length);
         _tokens.EnsureCapacity(spec.Tokens.Length);
         _modules.EnsureCapacity(spec.Modules.Length);
-        _nodes.EnsureCapacity(nodeCount);
+        _nodes.EnsureCapacity(nodeCount + 2);
         _diagnostics.EnsureCapacity(spec.Diagnostics.Length);
     }
 
@@ -581,6 +586,35 @@ public sealed class SyntaxModelBuilder
                     }
                 }
             }
+        }
+    }
+
+    private void ResolveDispatchGroups()
+    {
+        foreach (var node in _modules.Values.AsValueEnumerable().SelectMany(x => x.Nodes))
+        {
+            if (!node.IsAbstract)
+            {
+                AddToDispatchGroups(node);
+            }
+            else
+            {
+                _dispatchGroups.Add(node, new SyntaxDispatchGroup(node.Name));
+            }
+        }
+    }
+
+    private void AddToDispatchGroups(SyntaxNode node)
+    {
+        _topLevelDispatchGroup.AddNode(node);
+        if (node.Module.Kind == ModuleKind.StructuredTrivia)
+            _structuredTriviaDispatchGroup.AddNode(node);
+
+        // We're assuming because of C++'s declaration order requirements that parent classes are already defined.
+        while (node.Base is not null)
+        {
+            _dispatchGroups[node.Base].AddNode(node);
+            node = node.Base;
         }
     }
 }

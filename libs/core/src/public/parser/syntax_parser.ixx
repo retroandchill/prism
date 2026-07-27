@@ -11,6 +11,7 @@ module;
 export module prism.core:parser.syntax_parser;
 
 import :parser.token_stream;
+import :syntax.green.helpers;
 
 namespace prism
 {
@@ -37,7 +38,9 @@ namespace prism
             {
                 auto last_token = node.last_token();
                 DEBUG_ASSERT(last_token.has_value());
-                add_skipped_syntax(*last_token, skipped_syntax, true);
+                auto copy = last_token->clone();
+                add_skipped_syntax(*copy, skipped_syntax, true);
+                replace_last_token(node, std::move(copy));
             }
         }
 

@@ -10,6 +10,7 @@ import :parser.syntax_parser;
 import :diagnostics.syntax_info;
 import :syntax.green.view;
 import :syntax.green.structured_trivia;
+import :syntax.green.helpers;
 
 namespace prism
 {

@@ -100,6 +100,13 @@ public class ExportNodesCommand
             );
         }
 
+        writer.EmitGreenVisitorFunctions(cppModel);
+        await WriteCodeAsync(
+            writer,
+            Path.Join(publicGreenDir, "visit.ixx"),
+            context.CancellationToken
+        );
+
         writer.EmitDiagnosticCodes(cppModel);
         await WriteCodeAsync(
             writer,

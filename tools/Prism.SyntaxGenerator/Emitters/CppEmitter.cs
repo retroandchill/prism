@@ -3,7 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Collections.Immutable;
+using System.Diagnostics;
 using Prism.SyntaxGenerator.Models.Cpp;
 using Prism.SyntaxGenerator.Models.Resolved;
 using Prism.SyntaxGenerator.Models.Spec;
@@ -318,6 +318,10 @@ public static class CppEmitter
                     writer.WriteLine();
 
                 writer.EmitGreenNodeClassDeclaration(node);
+                if (node.IsAbstract)
+                    continue;
+                writer.WriteLine();
+                writer.EmitGreenNodeTraits(node);
             }
         }
 
@@ -383,21 +387,20 @@ public static class CppEmitter
             {
                 writer.WriteLine("template <typename Self>");
                 writer.Write(
-                    $"[[nodiscard]] constexpr GreenPtr<std::decay_t<Self>> with_{property.GetterName}(const Self& self, "
+                    $"[[nodiscard]] constexpr GreenPtr<std::decay_t<Self>> with_{property.GetterName}(this const Self& self, "
                 );
                 writer.EmitGreenFieldType(property);
                 writer.WriteLine($"{property.ParameterName})");
                 using (writer.EnterBlockScope())
                 {
                     writer.WriteLine(
-                        $"return static_pointer_cast<std::decay_t<Self>>(self.with_{property.GetterName}_core(std::move({property.ParameterName})));"
+                        $"return static_pointer_cast<const std::decay_t<Self>>(self.with_{property.GetterName}_core(std::move({property.ParameterName})));"
                     );
                 }
 
                 writer.WriteLine();
             }
 
-            writer.WriteAccessSpecifier(CppAccessSpecifier.Protected);
             foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
             {
                 if (i > 0)
@@ -458,9 +461,6 @@ public static class CppEmitter
             );
 
             writer.EmitGreenMutationDeclarations(node);
-
-            writer.WriteLine();
-            writer.WriteAccessSpecifier(CppAccessSpecifier.Protected);
             writer.WriteLine(
                 $"[[nodiscard]] RefCountPtr<{GreenNodeClass}> clone_internal() const override;"
             );
@@ -472,6 +472,106 @@ public static class CppEmitter
             {
                 writer.EmitGreenFieldType(property);
                 writer.WriteLine($" {property.FieldName};");
+            }
+        }
+
+        private void EmitGreenNodeTraits(CppNode node)
+        {
+            writer.WriteLine("template <>");
+            writer.WriteLine($"struct GreenNodeTraits<{node.GreenClassName}>");
+            using var scope = writer.EnterBlockScope(true);
+            writer.WriteLine(
+                $"static constexpr std::size_t slot_count = {node.Properties.Length};"
+            );
+            writer.WriteLine();
+            writer.Write("using ChildTypes = std::tuple<");
+            foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
+            {
+                if (i > 0)
+                    writer.Write(", ");
+
+                writer.EmitGreenRawType(property);
+            }
+            writer.WriteLine(">;");
+            writer.WriteLine();
+            writer.WriteLine("template <std::size_t N>");
+            using (writer.EnterIndentationScope())
+            {
+                writer.WriteLine("requires (N < slot_count)");
+            }
+            writer.WriteLine(
+                $"static constexpr decltype(auto) get(const {node.GreenClassName}& node)"
+            );
+            using (writer.EnterBlockScope())
+            {
+                foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
+                {
+                    if (i > 0)
+                        writer.Write("else ");
+
+                    if (i < node.Properties.Length - 1)
+                        writer.WriteLine($"if constexpr (N == {i})");
+                    using var blockScope = writer.EnterBlockScope();
+                    if (i == node.Properties.Length - 1)
+                        writer.WriteLine($"static_assert(N == {i});");
+                    writer.WriteLine($"return node.{property.GetterName}();");
+                }
+            }
+
+            writer.WriteLine();
+            writer.WriteLine(
+                $"template <std::size_t N, std::convertible_to<GreenSetterParam<N, {node.GreenClassName}>> Arg>"
+            );
+            using (writer.EnterIndentationScope())
+            {
+                writer.WriteLine("requires (N < slot_count)");
+            }
+            writer.WriteLine(
+                $"static constexpr void set({node.GreenClassName}& node, Arg&& value)"
+            );
+            using (writer.EnterBlockScope())
+            {
+                foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
+                {
+                    if (i > 0)
+                        writer.Write("else ");
+
+                    if (i < node.Properties.Length - 1)
+                        writer.WriteLine($"if constexpr (N == {i})");
+                    using var blockScope = writer.EnterBlockScope();
+                    if (i == node.Properties.Length - 1)
+                        writer.WriteLine($"static_assert(N == {i});");
+                    writer.WriteLine($"node.set_{property.GetterName}(std::forward<Arg>(value));");
+                }
+            }
+
+            writer.WriteLine();
+            writer.WriteLine(
+                $"template <std::size_t N, std::convertible_to<GreenSetterParam<N, {node.GreenClassName}>> Arg>"
+            );
+            using (writer.EnterIndentationScope())
+            {
+                writer.WriteLine("requires (N < slot_count)");
+            }
+            writer.WriteLine(
+                $"static constexpr GreenPtr<{node.GreenClassName}> with(const {node.GreenClassName}& node, Arg&& value)"
+            );
+            using (writer.EnterBlockScope())
+            {
+                foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
+                {
+                    if (i > 0)
+                        writer.Write("else ");
+
+                    if (i < node.Properties.Length - 1)
+                        writer.WriteLine($"if constexpr (N == {i})");
+                    using var blockScope = writer.EnterBlockScope();
+                    if (i == node.Properties.Length - 1)
+                        writer.WriteLine($"static_assert(N == {i});");
+                    writer.WriteLine(
+                        $"return node.with_{property.GetterName}(std::forward<Arg>(value));"
+                    );
+                }
             }
         }
 
@@ -500,27 +600,9 @@ public static class CppEmitter
 
         private void EmitGreenMutationDeclarations(CppNode node)
         {
-            var lastWasPublic = true;
             foreach (var property in node.Properties.AsValueEnumerable())
             {
                 writer.WriteLine();
-                if (property.IsOverride)
-                {
-                    if (lastWasPublic)
-                    {
-                        writer.WriteAccessSpecifier(CppAccessSpecifier.Protected);
-                        lastWasPublic = false;
-                    }
-                }
-                else
-                {
-                    if (!lastWasPublic)
-                    {
-                        writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
-                        lastWasPublic = true;
-                    }
-                }
-
                 var paramName = property.IsOverride
                     ? property.OverrideOf.Owner.GreenClassName
                     : node.GreenClassName;
@@ -532,9 +614,6 @@ public static class CppEmitter
                 var @override = property.IsOverride ? " override" : "";
                 writer.WriteLine($" {property.ParameterName}) const{@override};");
             }
-
-            if (!lastWasPublic)
-                writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
 
             writer.WriteLine();
             writer.Write($"[[nodiscard]] GreenPtr<{node.GreenClassName}> update(");
@@ -808,6 +887,24 @@ public static class CppEmitter
                     writer.Write($"Optional<const {property.Type.GreenClassName}&>");
                     break;
                 case PropertyShape.List:
+                    writer.Write($"const GreenSyntaxList<{property.Type.GreenClassName}>&");
+                    break;
+                case PropertyShape.SeparatedList:
+                    writer.Write($"const GreenSeparatedList<{property.Type.GreenClassName}>&");
+                    break;
+                default:
+                    throw new InvalidOperationException("Unknown shape");
+            }
+        }
+
+        private void EmitGreenRawType(CppProperty property)
+        {
+            switch (property.Shape)
+            {
+                case PropertyShape.Single or PropertyShape.Optional:
+                    writer.Write($"{property.Type.GreenClassName}");
+                    break;
+                case PropertyShape.List:
                     writer.Write($"GreenSyntaxList<{property.Type.GreenClassName}>");
                     break;
                 case PropertyShape.SeparatedList:
@@ -838,37 +935,270 @@ public static class CppEmitter
 
         public void EmitGreenVisitorFunctions(CppSyntaxModel model)
         {
+            writer.WriteLine("module;");
+            writer.WriteLine();
+            writer.WriteLine("#include <libassert/assert-macros.hpp>");
+            writer.WriteLine();
             writer.WriteLine($"export module {BaseModuleName}:{GreenFragmentName}.visit;");
             writer.WriteLine();
+            writer.WriteLine("import libassert;");
+            writer.WriteLine("import :type_traits.visitor;");
             foreach (var module in model.Modules)
             {
                 writer.WriteLine($"import :{GreenFragmentName}.{module.CppName};");
             }
             writer.WriteLine();
             using var namespaceScope = writer.EnterNamespaceScope(PrismNamespace);
-            writer.EmitTopLevelGreenVisitor(model);
-        }
+            foreach (var group in model.DispatchGroups)
+            {
+                writer.EmitGreenVisitorGroup(group);
+                writer.WriteLine();
+            }
 
-        private void EmitTopLevelGreenVisitor(CppSyntaxModel model)
-        {
-            writer.WriteLine("template <typename Functor>");
-            writer.WriteLine($"concept VisitorFor{GreenNodeClass} = ");
             foreach (
-                var (i, node) in model
+                var node in model
                     .Modules.AsValueEnumerable()
                     .SelectMany(m => m.Nodes)
                     .Where(n => !n.IsAbstract)
-                    .Index()
             )
             {
-                if (i > 0)
-                    writer.WriteLine(" &&");
+                writer.WriteLine(
+                    $"template <std::invocable<const {node.GreenClassName}&> Functor>"
+                );
+                writer.WriteLine(
+                    $"constexpr decltype(auto) visit(const {node.GreenClassName}& node, Functor&& functor)"
+                );
+                using (writer.EnterBlockScope())
+                {
+                    writer.WriteLine("return std::invoke(std::forward<Functor>(functor), node);");
+                }
+                writer.WriteLine();
 
-                writer.Write($"std::invocable<Functor, const {node.GreenClassName}&>");
+                writer.WriteLine($"template <std::invocable<{node.GreenClassName}&> Functor>");
+                writer.WriteLine(
+                    $"constexpr decltype(auto) visit({node.GreenClassName}& node, Functor&& functor)"
+                );
+                using (writer.EnterBlockScope())
+                {
+                    writer.WriteLine("return std::invoke(std::forward<Functor>(functor), node);");
+                }
+                writer.WriteLine();
             }
-            writer.WriteLine(";");
+
+            writer.EmitSyntaxVisitorClass(model, isGreen: true);
+            writer.WriteLine();
+            writer.EmitSyntaxVisitorClass(model, isGreen: true, isConst: false);
+        }
+
+        private void EmitGreenVisitorGroup(CppDispatchGroup group)
+        {
+            writer.EmitSyntaxVisitor(group, isGreen: true, isReturning: false);
+            writer.WriteLine();
+            writer.EmitSyntaxVisitor(group, isGreen: true, isReturning: false, isConst: false);
+            writer.WriteLine();
+            writer.EmitSyntaxVisitor(group, isGreen: true, isReturning: true);
+            writer.WriteLine();
+            writer.EmitSyntaxVisitor(group, isGreen: true, isReturning: true, isConst: false);
         }
         #endregion
+
+        private void EmitSyntaxVisitor(
+            CppDispatchGroup group,
+            bool isGreen,
+            bool isReturning,
+            bool isConst = true
+        )
+        {
+            var mutablePrefix = isConst ? "" : "Mutable";
+            var constQualifier = isConst ? "const " : "";
+            var export = isGreen ? "" : "export ";
+            var baseName = isGreen ? group.GreenClassName : group.RedClassName;
+            var conceptName = isReturning ? "ConvertibleVisitor" : "ExhaustiveVisitor";
+            var returnValueParam = isReturning ? ", typename R" : "";
+            var returnValueArg = isReturning ? ", R" : "";
+            var returningSuffix = isReturning ? "Returning" : "";
+
+            writer.WriteLine($"{export}template <typename Functor{returnValueParam}>");
+            writer.Write(
+                $"concept {mutablePrefix}VisitorFor{baseName}{returningSuffix} = {conceptName}<Functor{returnValueArg}"
+            );
+            if (group.IncludesListNode && isGreen)
+            {
+                writer.Write($", {constQualifier}{GreenListNodeClass}&");
+            }
+            foreach (
+                var className in group
+                    .Nodes.AsValueEnumerable()
+                    .Select(node => isGreen ? node.GreenClassName : node.RedClassName)
+            )
+            {
+                writer.Write($", {constQualifier}{className}&");
+            }
+            writer.WriteLine(">;");
+            writer.WriteLine();
+
+            returnValueParam = isReturning ? "typename R, " : "";
+            writer.WriteLine(
+                $"{export}template <{returnValueParam}{mutablePrefix}VisitorFor{baseName}{returningSuffix} Functor>"
+            );
+
+            var returnValueType = isReturning ? "R" : "decltype(auto)";
+            writer.WriteLine(
+                $"constexpr {returnValueType} visit({constQualifier}{baseName}& node, Functor&& functor)"
+            );
+            using var functionScope = writer.EnterBlockScope();
+            writer.WriteLine("switch (node.kind())");
+            using var switchScope = writer.EnterBlockScope();
+            if (group.IncludesListNode && isGreen)
+            {
+                writer.WriteLine("case SyntaxKind::list:");
+                using var caseScope = writer.EnterIndentationScope();
+                writer.WriteLine(
+                    $"return std::invoke(std::forward<Functor>(functor), static_cast<{constQualifier}GreenListNode&>(node));"
+                );
+            }
+
+            foreach (var node in group.Nodes)
+            {
+                Debug.Assert(node.Kind is not null);
+                writer.WriteLine($"case SyntaxKind::{node.Kind.CppName}:");
+                using var caseScope = writer.EnterIndentationScope();
+                var className = isGreen ? node.GreenClassName : node.RedClassName;
+                writer.WriteLine(
+                    $"return std::invoke(std::forward<Functor>(functor), static_cast<{constQualifier}{className}&>(node));"
+                );
+            }
+            writer.WriteLine("default:");
+            using var defaultScope = writer.EnterIndentationScope();
+            if (isGreen && group.IncludesListNode)
+            {
+                writer.WriteLine("if (node.is_token())");
+                using (writer.EnterBlockScope())
+                {
+                    writer.WriteLine(
+                        $"return std::invoke(std::forward<Functor>(functor), static_cast<{constQualifier}{GreenTokenClass}&>(node));"
+                    );
+                }
+                writer.WriteLine();
+
+                writer.WriteLine("if (node.is_trivia())");
+                using (writer.EnterBlockScope())
+                {
+                    writer.WriteLine(
+                        $"return std::invoke(std::forward<Functor>(functor), static_cast<{constQualifier}{GreenTriviaClass}&>(node));"
+                    );
+                }
+                writer.WriteLine();
+            }
+            writer.WriteLine("UNREACHABLE(\"Invalid node type passed into visit\");");
+        }
+
+        private void EmitSyntaxVisitorClass(CppSyntaxModel model, bool isGreen, bool isConst = true)
+        {
+            var nodeClassName = isGreen ? GreenNodeClass : SyntaxNodeClass;
+            var export = isGreen ? "" : "export ";
+            var interfaceName = isGreen ? "GreenSyntaxVisitor" : "SyntaxVisitor";
+            var mutablePrefix = isConst ? "" : "Mutable";
+            var constQualifier = isConst ? "const " : "";
+            writer.WriteLine($"{export}template <typename R = void>");
+            writer.WriteLine($"class {mutablePrefix}{interfaceName}");
+            using (writer.EnterBlockScope(true))
+            {
+                writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
+                writer.WriteLine($"virtual ~{mutablePrefix}{interfaceName}() = default;");
+                writer.WriteLine();
+                writer.WriteLine($"template <std::derived_from<{nodeClassName}> T, typename Self>");
+                writer.WriteLine($"constexpr R visit(this Self&& self, {constQualifier}T& node)");
+                using (writer.EnterBlockScope())
+                {
+                    writer.WriteLine("return prism::visit(node, std::forward<Self>(self));");
+                }
+                writer.WriteLine();
+                writer.EmitVisitorMethodList(model, isGreen, constQualifier, "virtual ", " = 0;");
+            }
+            writer.WriteLine();
+            writer.WriteLine($"{export} template <typename R = void>");
+            using (writer.EnterIndentationScope())
+            {
+                writer.WriteLine(
+                    "requires (std::same_as<R, void> || std::is_default_constructible_v<R>)"
+                );
+            }
+            writer.WriteLine(
+                $"class {mutablePrefix}{interfaceName}Base : public {mutablePrefix}{interfaceName}<R>"
+            );
+            using (writer.EnterBlockScope(true))
+            {
+                writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
+                writer.EmitVisitorMethodList(
+                    model,
+                    isGreen,
+                    constQualifier,
+                    "constexpr ",
+                    " override",
+                    static w =>
+                    {
+                        using var scope = w.EnterBlockScope();
+                        w.WriteLine("if constexpr (!std::same_as<R, void>)");
+                        using (w.EnterBlockScope())
+                        {
+                            w.WriteLine("return R{};");
+                        }
+                        w.WriteLine("else");
+                        using (w.EnterBlockScope())
+                        {
+                            // This extra return is just to shut up IntelliSense
+                            w.WriteLine("return;");
+                        }
+                    },
+                    static w => w.WriteLine()
+                );
+            }
+        }
+
+        private void EmitVisitorMethodList(
+            CppSyntaxModel model,
+            bool isGreen,
+            string constQualifier,
+            string prefix,
+            string suffix,
+            Action<CodeWriter>? emitBody = null,
+            Action<CodeWriter>? optionalLineBreak = null
+        )
+        {
+            if (isGreen)
+            {
+                writer.WriteLine(
+                    $"{prefix}R operator()({constQualifier}{GreenListNodeClass}& node) const{suffix}"
+                );
+                emitBody?.Invoke(writer);
+                optionalLineBreak?.Invoke(writer);
+                writer.WriteLine(
+                    $"{prefix}R operator()({constQualifier}{GreenTokenClass}& node) const{suffix}"
+                );
+                emitBody?.Invoke(writer);
+                optionalLineBreak?.Invoke(writer);
+                writer.WriteLine(
+                    $"{prefix}R operator()({constQualifier}{GreenTriviaClass}& node) const{suffix}"
+                );
+                emitBody?.Invoke(writer);
+            }
+
+            foreach (
+                var node in model
+                    .Modules.AsValueEnumerable()
+                    .SelectMany(m => m.Nodes)
+                    .Where(n => !n.IsAbstract)
+            )
+            {
+                optionalLineBreak?.Invoke(writer);
+                var className = isGreen ? node.GreenClassName : node.RedClassName;
+                writer.WriteLine(
+                    $"{prefix}R operator()({constQualifier}{className}& node) const{suffix}"
+                );
+                emitBody?.Invoke(writer);
+            }
+        }
 
         #region Red Node Interface
 

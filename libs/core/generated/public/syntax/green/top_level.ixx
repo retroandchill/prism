@@ -16,7 +16,7 @@ namespace prism
 
         ~GreenCompilationUnit() override;
 
-        [[nodiscard]] constexpr GreenSyntaxList<GreenDeclaration> members() const noexcept
+        [[nodiscard]] constexpr const GreenSyntaxList<GreenDeclaration> &members() const noexcept
         {
             return members_;
         }
@@ -37,11 +37,47 @@ namespace prism
         [[nodiscard]] GreenPtr<GreenCompilationUnit> with_members(GreenSyntaxList<GreenDeclaration> members) const;
 
         [[nodiscard]] GreenPtr<GreenCompilationUnit> update(GreenSyntaxList<GreenDeclaration> members) const;
-
-      protected:
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenSyntaxList<GreenDeclaration> members_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenCompilationUnit>
+    {
+        static constexpr std::size_t slot_count = 1;
+
+        using ChildTypes = std::tuple<GreenSyntaxList<GreenDeclaration>>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenCompilationUnit &node)
+        {
+            {
+                static_assert(N == 0);
+                return node.members();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenCompilationUnit>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenCompilationUnit &node, Arg &&value)
+        {
+            {
+                static_assert(N == 0);
+                node.set_members(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenCompilationUnit>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenCompilationUnit> with(const GreenCompilationUnit &node, Arg &&value)
+        {
+            {
+                static_assert(N == 0);
+                return node.with_members(std::forward<Arg>(value));
+            }
+        }
     };
 } // namespace prism

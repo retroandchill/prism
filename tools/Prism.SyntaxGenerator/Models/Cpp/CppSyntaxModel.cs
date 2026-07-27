@@ -15,6 +15,8 @@ public class CppSyntaxModel
 
     public ImmutableArray<CppModule> Modules { get; }
 
+    public ImmutableArray<CppDispatchGroup> DispatchGroups { get; }
+
     public ImmutableArray<CppDiagnosticCategory> Diagnostics { get; }
 
     internal CppSyntaxModel(
@@ -23,6 +25,7 @@ public class CppSyntaxModel
         ImmutableArray<CppTrivia> trivia,
         ImmutableArray<CppToken> tokens,
         ImmutableArray<CppModule> modules,
+        ImmutableArray<CppDispatchGroup> dispatchGroups,
         ImmutableArray<CppDiagnosticCategory> diagnostics
     )
     {
@@ -31,6 +34,7 @@ public class CppSyntaxModel
         Trivia = trivia;
         Tokens = tokens;
         Modules = modules;
+        DispatchGroups = dispatchGroups;
         Diagnostics = diagnostics;
     }
 }

@@ -309,4 +309,57 @@ namespace prism
     }
 
     using GreenTokenList = GreenSyntaxList<GreenToken>;
+
+    template <>
+    struct GreenNodeTraits<GreenToken>
+    {
+        static constexpr std::size_t slot_count = 2;
+
+        using ChildTypes = std::tuple<GreenNode, GreenNode>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenToken &token)
+        {
+            if constexpr (N == 0)
+            {
+                return token.leading_trivia();
+            }
+            else
+            {
+                static_assert(N == 1);
+                return token.trailing_trivia();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenToken>> T>
+            requires(N < slot_count)
+        static constexpr void set(GreenToken &token, T &&value)
+        {
+            if constexpr (N == 0)
+            {
+                token.set_leading_trivia(std::forward<T>(value));
+            }
+            else
+            {
+                static_assert(N == 1);
+                token.set_trailing_trivia(std::forward<T>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenToken>> T>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenToken> with(const GreenToken &token, T &&value)
+        {
+            if constexpr (N == 0)
+            {
+                return token.with_leading_trivia(std::forward<T>(value));
+            }
+            else
+            {
+                static_assert(N == 1);
+                return token.with_trailing_trivia(std::forward<T>(value));
+            }
+        }
+    };
 } // namespace prism

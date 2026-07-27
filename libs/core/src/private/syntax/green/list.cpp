@@ -11,7 +11,6 @@ module;
 module prism.core:syntax.green.list.impl;
 
 import :syntax.green.list;
-import libassert;
 
 namespace prism
 {
@@ -24,6 +23,19 @@ namespace prism
         {
             DEBUG_ASSERT(child != nullptr);
         }
+    }
+
+    GreenPtr<GreenListNode> GreenListNode::with_slot(size_t index, GreenPtr<GreenNode> slot) const
+    {
+        ASSUME(index < children_.size());
+        if (children_[index] == slot)
+        {
+            return shared_from_this();
+        }
+
+        auto copy = clone();
+        copy->set_slot(index, std::move(slot));
+        return std::move(copy);
     }
 
     SyntaxNode &GreenListNode::create_red(SyntaxLifetime &, const SyntaxNode *, std::uint32_t) const

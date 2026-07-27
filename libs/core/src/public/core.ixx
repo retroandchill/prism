@@ -19,6 +19,7 @@ export import :text.writer;
 
 export import :type_traits.basic;
 export import :type_traits.comparison;
+export import :type_traits.visitor;
 
 export import :util.enum_class_flags;
 export import :util.make_array;

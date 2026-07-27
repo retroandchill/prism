@@ -20,6 +20,8 @@ public sealed class SyntaxModel
 
     public ImmutableArray<SyntaxModule> Modules { get; }
 
+    public ImmutableArray<SyntaxDispatchGroup> DispatchGroups { get; }
+
     public ImmutableArray<DiagnosticCategory> Diagnostics { get; }
 
     internal SyntaxModel(
@@ -28,6 +30,7 @@ public sealed class SyntaxModel
         ImmutableArray<SyntaxTrivia> trivia,
         ImmutableArray<SyntaxToken> tokens,
         ImmutableArray<SyntaxModule> modules,
+        ImmutableArray<SyntaxDispatchGroup> dispatchGroups,
         ImmutableArray<DiagnosticCategory> diagnostics
     )
     {
@@ -36,6 +39,7 @@ public sealed class SyntaxModel
         Trivia = trivia;
         Tokens = tokens;
         Modules = modules;
+        DispatchGroups = dispatchGroups;
         Diagnostics = diagnostics;
     }
 }

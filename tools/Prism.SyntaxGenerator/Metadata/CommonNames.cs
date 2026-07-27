@@ -8,7 +8,9 @@ public static class CommonNames
     public const string SyntaxKindClass = "SyntaxKind";
     public const string GreenNodeClass = "GreenNode";
     public const string GreenTokenClass = "GreenToken";
+    public const string GreenTriviaClass = "GreenTrivia";
     public const string GreenStructuredTriviaClass = "GreenStructuredTrivia";
+    public const string GreenListNodeClass = "GreenListNode";
     public const string SyntaxNodeClass = "SyntaxNode";
     public const string StructuredTriviaSyntaxClass = "StructuredTriviaSyntax";
     public const string SyntaxLifetimeClass = "SyntaxLifetime";

@@ -106,6 +106,21 @@ public static partial class CppModelMapper
     );
 
     [MapProperty(
+        nameof(SyntaxDispatchGroup.Name),
+        nameof(CppDispatchGroup.GreenClassName),
+        Use = nameof(GetGreenCppName)
+    )]
+    [MapProperty(
+        nameof(SyntaxDispatchGroup.Name),
+        nameof(CppDispatchGroup.RedClassName),
+        Use = nameof(GetRedCppName)
+    )]
+    private static partial CppDispatchGroup ToCpp(
+        this SyntaxDispatchGroup dispatchGroup,
+        [ReferenceHandler] IReferenceHandler refHandler
+    );
+
+    [MapProperty(
         nameof(DiagnosticCategory.Name),
         nameof(CppDiagnosticCategory.CppName),
         Use = nameof(GetPublicCppMemberName)
