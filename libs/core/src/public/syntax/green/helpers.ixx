@@ -17,7 +17,7 @@ import :syntax.green.visit;
 namespace prism
 {
     template <ConcreteGreenNode T, std::size_t N>
-    constexpr bool replace_last_token(GreenPtr<T> &node, GreenPtr<GreenToken> &&token)
+    constexpr bool replace_last_token_core(GreenPtr<T> &node, GreenPtr<GreenToken> &&token)
     {
         using ParamType = std::remove_cvref_t<decltype(get_slot<N>(*node))>;
         if constexpr (is_optional_specialization<ParamType>)
@@ -29,7 +29,7 @@ namespace prism
             }
 
             auto copy = value->shared_from_this();
-            if (!replace_last_token(copy, std::move(token)))
+            if (!replace_last_token_core(copy, std::move(token)))
             {
                 return false;
             }
@@ -47,7 +47,7 @@ namespace prism
             }
 
             auto copy = underlying->shared_from_this();
-            if (!replace_last_token(copy, std::move(token)))
+            if (!replace_last_token_core(copy, std::move(token)))
             {
                 return false;
             }
@@ -58,7 +58,7 @@ namespace prism
         else
         {
             auto copy = get_slot<N>(*node).shared_from_this();
-            if (!replace_last_token(copy, std::move(token)))
+            if (!replace_last_token_core(copy, std::move(token)))
             {
                 return false;
             }
@@ -69,14 +69,14 @@ namespace prism
     }
 
     template <ConcreteGreenNode T, std::size_t... Is>
-    constexpr bool replace_last_token(GreenPtr<T> &node, GreenPtr<GreenToken> &&token, std::index_sequence<Is...>)
+    constexpr bool replace_last_token_core(GreenPtr<T> &node, GreenPtr<GreenToken> &&token, std::index_sequence<Is...>)
     {
         static constexpr std::size_t N = sizeof...(Is);
-        return (replace_last_token<T, N - 1 - Is>(node, std::move(token)) || ...);
+        return (replace_last_token_core<T, N - 1 - Is>(node, std::move(token)) || ...);
     }
 
     template <std::derived_from<GreenNode> T>
-    constexpr bool replace_last_token(GreenPtr<T> &node, GreenPtr<GreenToken> &&token)
+    constexpr bool replace_last_token_core(GreenPtr<T> &node, GreenPtr<GreenToken> &&token)
     {
         if constexpr (std::same_as<T, GreenToken>)
         {
@@ -92,7 +92,7 @@ namespace prism
             for (auto i : std::views::iota(0uz, node->slot_count()) | std::views::reverse)
             {
                 if (auto copy = node->get_slot_unchecked(i).shared_from_this();
-                    replace_last_token(copy, std::move(token)))
+                    replace_last_token_core(copy, std::move(token)))
                 {
                     node = node->with_slot(i, std::move(copy));
                     return true;
@@ -103,7 +103,7 @@ namespace prism
         }
         else if constexpr (ConcreteGreenNode<T>)
         {
-            return replace_last_token(node, std::move(token), std::make_index_sequence<green_slot_count<T>>{});
+            return replace_last_token_core(node, std::move(token), std::make_index_sequence<green_slot_count<T>>{});
         }
         else
         {
@@ -111,7 +111,7 @@ namespace prism
                          [&]<std::derived_from<T> Derived>(const Derived &n)
                          {
                              auto copy = n.shared_from_this();
-                             if (!replace_last_token(copy, std::move(token)))
+                             if (!replace_last_token_core(copy, std::move(token)))
                              {
                                  return false;
                              }
@@ -123,7 +123,7 @@ namespace prism
     }
 
     template <ConcreteGreenNode T, std::size_t N>
-    constexpr bool replace_last_token(T &node, GreenPtr<GreenToken> &&token)
+    constexpr bool replace_last_token_core(T &node, GreenPtr<GreenToken> &&token)
     {
         using ParamType = std::remove_cvref_t<decltype(get_slot<N>(node))>;
         if constexpr (is_optional_specialization<ParamType>)
@@ -135,7 +135,7 @@ namespace prism
             }
 
             auto copy = value->shared_from_this();
-            if (!replace_last_token(copy, std::move(token)))
+            if (!replace_last_token_core(copy, std::move(token)))
             {
                 return false;
             }
@@ -153,7 +153,7 @@ namespace prism
             }
 
             auto copy = underlying->shared_from_this();
-            if (!replace_last_token(copy, std::move(token)))
+            if (!replace_last_token_core(copy, std::move(token)))
             {
                 return false;
             }
@@ -164,7 +164,7 @@ namespace prism
         else
         {
             auto copy = get_slot<N>(*node).shared_from_this();
-            if (!replace_last_token(copy, std::move(token)))
+            if (!replace_last_token_core(copy, std::move(token)))
             {
                 return false;
             }
@@ -175,14 +175,14 @@ namespace prism
     }
 
     template <ConcreteGreenNode T, std::size_t... Is>
-    constexpr bool replace_last_token(T &node, GreenPtr<GreenToken> &&token, std::index_sequence<Is...>)
+    constexpr bool replace_last_token_core(T &node, GreenPtr<GreenToken> &&token, std::index_sequence<Is...>)
     {
         static constexpr std::size_t N = sizeof...(Is);
-        return (replace_last_token<T, N - 1 - Is>(node, std::move(token)) || ...);
+        return (replace_last_token_core<T, N - 1 - Is>(node, std::move(token)) || ...);
     }
 
     template <std::derived_from<GreenNode> T>
-    constexpr bool replace_last_token(T &node, GreenPtr<GreenToken> &&token)
+    constexpr bool replace_last_token_core(T &node, GreenPtr<GreenToken> &&token)
     {
         if constexpr (std::same_as<T, GreenToken>)
         {
@@ -197,7 +197,7 @@ namespace prism
             for (auto i : std::views::iota(0uz, node->slot_count()) | std::views::reverse)
             {
                 if (auto copy = node->get_slot_unchecked(i).shared_from_this();
-                    replace_last_token(copy, std::move(token)))
+                    replace_last_token_core(copy, std::move(token)))
                 {
                     node.set_slot(i, std::move(copy));
                     return true;
@@ -208,7 +208,7 @@ namespace prism
         }
         else if constexpr (ConcreteGreenNode<T>)
         {
-            return replace_last_token(node, std::move(token), std::make_index_sequence<green_slot_count<T>>{});
+            return replace_last_token_core(node, std::move(token), std::make_index_sequence<green_slot_count<T>>{});
         }
         else
         {
@@ -216,8 +216,24 @@ namespace prism
                          [&]<std::derived_from<T> Derived>(const Derived &n)
                          {
                              auto copy = n.shared_from_this();
-                             return replace_last_token(copy, std::move(token));
+                             return replace_last_token_core(copy, std::move(token));
                          });
         }
+    }
+
+    template <std::derived_from<GreenNode> T>
+        requires(!std::same_as<T, GreenToken> && !std::same_as<T, GreenTrivia>)
+    constexpr void replace_last_token(T &node, GreenPtr<GreenToken> token)
+    {
+        replace_last_token_core(node, std::move(token));
+    }
+
+    template <std::derived_from<GreenNode> T>
+        requires(!std::same_as<T, GreenToken> && !std::same_as<T, GreenTrivia>)
+    constexpr GreenPtr<T> replace_last_token(const T &node, GreenPtr<GreenToken> token)
+    {
+        auto result = node.shared_from_this();
+        replace_last_token_core(result, std::move(token));
+        return result;
     }
 } // namespace prism
