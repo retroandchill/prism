@@ -11,6 +11,7 @@ module;
 export module prism.core:parser.syntax_parser;
 
 import :parser.token_stream;
+import :syntax.green.first_token_replacer;
 import :syntax.green.last_token_replacer;
 
 namespace prism
@@ -28,11 +29,29 @@ namespace prism
 
         template <std::derived_from<GreenNode> T>
             requires(!std::is_const_v<T>)
+        static void add_leading_skipped_syntax(T &node, const GreenNode &skipped_syntax)
+        {
+            if constexpr (std::derived_from<T, GreenToken>)
+            {
+                add_skipped_syntax(node, skipped_syntax, false);
+            }
+            else
+            {
+                auto first_token = node.first_token();
+                DEBUG_ASSERT(first_token.has_value());
+                auto copy = first_token->clone();
+                add_skipped_syntax(*copy, skipped_syntax, false);
+                replace_first_token(node, std::move(copy));
+            }
+        }
+
+        template <std::derived_from<GreenNode> T>
+            requires(!std::is_const_v<T>)
         static void add_trailing_skipped_syntax(T &node, const GreenNode &skipped_syntax)
         {
             if constexpr (std::derived_from<T, GreenToken>)
             {
-                add_skipped_syntax(static_cast<GreenToken &>(node), skipped_syntax, true);
+                add_skipped_syntax(node, skipped_syntax, true);
             }
             else
             {

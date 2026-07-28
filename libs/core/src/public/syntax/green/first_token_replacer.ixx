@@ -77,7 +77,7 @@ namespace prism
     template <std::derived_from<GreenNode> T>
     constexpr bool replace_first_token_core(GreenPtr<T> &node, GreenPtr<GreenToken> &&token)
     {
-        if constexpr (std::same_as<T, GreenToken>)
+        if constexpr (std::derived_from<T, GreenToken>)
         {
             node = std::move(token);
             return true;
@@ -183,7 +183,7 @@ namespace prism
     template <std::derived_from<GreenNode> T>
     constexpr bool replace_first_token_core(T &node, GreenPtr<GreenToken> &&token)
     {
-        if constexpr (std::same_as<T, GreenToken>)
+        if constexpr (std::derived_from<T, GreenToken>)
         {
             throw InvalidStateException{"Cannot mutably replace a token with itself"};
         }
