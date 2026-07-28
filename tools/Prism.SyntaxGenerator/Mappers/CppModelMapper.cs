@@ -1,4 +1,6 @@
-﻿using Humanizer;
+﻿using System.Text.Encodings.Web;
+using System.Text.Json;
+using Humanizer;
 using Prism.SyntaxGenerator.Metadata;
 using Prism.SyntaxGenerator.Models.Cpp;
 using Prism.SyntaxGenerator.Models.Resolved;
@@ -150,6 +152,11 @@ public static partial class CppModelMapper
         nameof(CppDiagnostic.SymbolName),
         Use = nameof(GetPascalizedName)
     )]
+    [MapProperty(
+        nameof(Diagnostic.Explanation),
+        nameof(CppDiagnostic.Explanation),
+        Use = nameof(GetEscapedCppText)
+    )]
     private static partial CppDiagnostic ToCpp(
         this Diagnostic category,
         [ReferenceHandler] IReferenceHandler refHandler
@@ -167,6 +174,16 @@ public static partial class CppModelMapper
     )]
     private static partial CppDiagnosticArgument ToCpp(
         this DiagnosticArgument category,
+        [ReferenceHandler] IReferenceHandler refHandler
+    );
+
+    [MapProperty(
+        nameof(DiagnosticMessageTextPart.Text),
+        nameof(CppDiagnosticMessageTextPart.Text),
+        Use = nameof(GetEscapedCppText)
+    )]
+    private static partial CppDiagnosticMessageTextPart ToCpp(
+        this DiagnosticMessageTextPart argument,
         [ReferenceHandler] IReferenceHandler refHandler
     );
 
@@ -236,5 +253,11 @@ public static partial class CppModelMapper
             "String" => "std::string",
             _ => name.Pascalize(),
         };
+    }
+
+    [UserMapping(Default = false)]
+    private static string GetEscapedCppText(string name)
+    {
+        return JsonEncodedText.Encode(name, JavaScriptEncoder.UnsafeRelaxedJsonEscaping).Value;
     }
 }

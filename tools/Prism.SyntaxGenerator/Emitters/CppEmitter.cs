@@ -1777,7 +1777,6 @@ public static class CppEmitter
                 switch (part)
                 {
                     case CppDiagnosticMessageTextPart text:
-                        // TODO: We need to re-escape the string
                         writer.Write(text.Text);
                         break;
                     case CppDiagnosticMessageArgumentPart:
