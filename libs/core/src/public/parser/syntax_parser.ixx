@@ -11,7 +11,7 @@ module;
 export module prism.core:parser.syntax_parser;
 
 import :parser.token_stream;
-import :syntax.green.helpers;
+import :syntax.green.last_token_replacer;
 
 namespace prism
 {

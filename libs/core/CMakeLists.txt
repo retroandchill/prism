@@ -109,7 +109,8 @@ set(PRISM_PUBLIC_MODULES
         generated/public/diagnostics/traits.ixx
         src/public/text/writer.ixx
         src/public/text/string_writer.ixx
-        src/public/syntax/green/helpers.ixx
+        src/public/syntax/green/last_token_replacer.ixx
+        src/public/syntax/green/first_token_replacer.ixx
         src/public/syntax/green/view.ixx
         src/public/syntax/green/child_list.ixx
         generated/public/syntax/green/structured_trivia.ixx
