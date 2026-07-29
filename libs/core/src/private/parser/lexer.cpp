@@ -569,7 +569,6 @@ namespace prism
             }
         };
 
-        cursor_.advance();
         while (!cursor_.at_end())
         {
             auto current = cursor_.current();
@@ -579,6 +578,7 @@ namespace prism
                 if (underscores.has_value())
                 {
                     cursor_.advance(*underscores);
+                    current = cursor_.current();
                 }
                 else
                 {

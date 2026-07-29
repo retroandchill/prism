@@ -409,6 +409,41 @@
           "properties": []
         },
         {
+          "name": "PredefinedType",
+          "base": "Type",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "VoidKeyword",
+                "BoolKeyword",
+                "I8Keyword",
+                "I16Keyword",
+                "I32Keyword",
+                "I64Keyword",
+                "I128Keyword",
+                "IsizeKeyword",
+                "U8Keyword",
+                "U16Keyword",
+                "U32Keyword",
+                "U64Keyword",
+                "U128Keyword",
+                "UsizeKeyword",
+                "F16Keyword",
+                "F32Keyword",
+                "F64Keyword",
+                "CharKeyword",
+                "Char16Keyword",
+                "RuneKeyword",
+                "StrKeyword"
+              ]
+            }
+          ]
+        },
+        {
           "name": "NamedType",
           "base": "Type",
           "properties": []
@@ -607,7 +642,7 @@
               "$type": "item",
               "name": "type_specifier",
               "type": "TypeSpecifier",
-              "shape": "single"
+              "shape": "optional"
             },
             {
               "$type": "item",
@@ -1037,6 +1072,18 @@
           ]
         },
         {
+          "name": "IncompleteDeclaration",
+          "base": "Declaration",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "modifiers",
+              "type": "Token",
+              "shape": "list"
+            }
+          ]
+        },
+        {
           "name": "VariableDeclaration",
           "base": "Declaration",
           "properties": [
@@ -1080,15 +1127,13 @@
               "$type": "item",
               "name": "type",
               "type": "TypeSpecifier",
-              "isOptional": true,
-              "shape": "single"
+              "shape": "optional"
             },
             {
               "$type": "item",
               "name": "initializer",
               "type": "Initializer",
-              "isOptional": true,
-              "shape": "single"
+              "shape": "optional"
             },
             {
               "$type": "item",

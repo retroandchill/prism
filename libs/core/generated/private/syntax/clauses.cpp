@@ -167,9 +167,9 @@ namespace prism
         return SyntaxToken{static_cast<const GreenParameter &>(green()).name(), this, get_slot_position(1)};
     }
 
-    const TypeSpecifierSyntax &ParameterSyntax::type_specifier() const
+    Optional<const TypeSpecifierSyntax &> ParameterSyntax::type_specifier() const
     {
-        return *get_red(type_specifier_, 2);
+        return get_red(type_specifier_, 2);
     }
 
     Optional<const InitializerSyntax &> ParameterSyntax::default_value() const

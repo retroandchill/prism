@@ -11,25 +11,48 @@ import :diagnostics.syntax_info;
 import :syntax.green.view;
 import :syntax.green.structured_trivia;
 import :syntax.green.last_token_replacer;
+import :diagnostics.syntax_info;
 
 namespace prism
 {
-
-    const GreenToken &SyntaxParser::current_token()
+    bool SyntaxParser::at_end()
     {
-        return stream_.peek();
+        return stream_.at_end();
     }
 
     const GreenToken &SyntaxParser::peek_token(const int offset)
     {
-        return stream_.peek(offset + 1);
+        return stream_.peek(offset);
     }
 
-    GreenPtr<GreenToken> SyntaxParser::eat_token()
+    GreenPtr<GreenToken> SyntaxParser::consume_token()
     {
-        auto token = current_token().shared_from_this();
-        stream_.advance();
-        return token;
+        return stream_.consume().shared_from_this();
+    }
+
+    Optional<GreenPtr<GreenToken>> SyntaxParser::match_token(const SyntaxKind kind)
+    {
+        if (auto &token = peek_token(); token.kind() == kind)
+        {
+            stream_.advance();
+            return token.shared_from_this();
+        }
+
+        return std::nullopt;
+    }
+
+    GreenPtr<GreenToken> SyntaxParser::expect_token(const SyntaxKind kind)
+    {
+        auto &next = peek_token();
+        if (next.kind() == kind)
+        {
+            stream_.advance();
+            return next.shared_from_this();
+        }
+
+        auto token = GreenToken::get_missing(kind)->clone();
+        token->add_diagnostic(SyntaxDiagnosticInfo::create<DiagnosticCode::unexpected_token>(next.to_string()));
+        return std::move(token);
     }
 
     void SyntaxParser::add_skipped_syntax(GreenToken &target, const GreenNode &skipped_syntax, const bool trailing)

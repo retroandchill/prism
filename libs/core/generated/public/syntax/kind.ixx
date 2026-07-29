@@ -135,10 +135,11 @@ namespace prism
 #pragma region Types
         type_start = 3000,
         type = 3000,
-        named_type = 3001,
-        simple_named_type = 3002,
-        identifier_named_type = 3003,
-        type_end = 3003,
+        predefined_type = 3001,
+        named_type = 3002,
+        simple_named_type = 3003,
+        identifier_named_type = 3004,
+        type_end = 3004,
 #pragma endregion
 
 #pragma region Clauses
@@ -183,9 +184,10 @@ namespace prism
 #pragma region Declarations
         declaration_start = 7000,
         declaration = 7000,
-        variable_declaration = 7001,
-        function_declaration = 7002,
-        declaration_end = 7002,
+        incomplete_declaration = 7001,
+        variable_declaration = 7002,
+        function_declaration = 7003,
+        declaration_end = 7003,
 #pragma endregion
     };
 
@@ -381,6 +383,8 @@ namespace prism
                 return "CompilationUnit";
             case SyntaxKind::type:
                 return "Type";
+            case SyntaxKind::predefined_type:
+                return "PredefinedType";
             case SyntaxKind::named_type:
                 return "NamedType";
             case SyntaxKind::simple_named_type:
@@ -437,6 +441,8 @@ namespace prism
                 return "EmptyStatement";
             case SyntaxKind::declaration:
                 return "Declaration";
+            case SyntaxKind::incomplete_declaration:
+                return "IncompleteDeclaration";
             case SyntaxKind::variable_declaration:
                 return "VariableDeclaration";
             case SyntaxKind::function_declaration:

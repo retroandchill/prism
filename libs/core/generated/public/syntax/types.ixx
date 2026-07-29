@@ -28,8 +28,31 @@ namespace prism
       public:
         [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
-            return node.kind() == SyntaxKind::identifier_named_type;
+            return node.kind() == SyntaxKind::predefined_type || node.kind() == SyntaxKind::identifier_named_type;
         }
+    };
+
+    export class PRISM_CORE_API PredefinedTypeSyntax final : public TypeSyntax
+    {
+      public:
+        constexpr PredefinedTypeSyntax(SyntaxLifetime &lifetime,
+                                       const GreenPredefinedType &node,
+                                       const SyntaxNode *parent,
+                                       const std::uint32_t position)
+            : TypeSyntax{lifetime, node, parent, position}
+        {
+        }
+
+        [[nodiscard]] SyntaxToken keyword() const;
+
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::predefined_type;
+        }
+
+      protected:
+        [[nodiscard]] Optional<const SyntaxNode &> get_node_slot(std::size_t index) const override;
+        [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
     };
 
     export class PRISM_CORE_API NamedTypeSyntax : public TypeSyntax

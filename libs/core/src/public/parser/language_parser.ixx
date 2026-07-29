@@ -4,6 +4,10 @@
  * @date 7/24/2026
  * @brief
  */
+module;
+
+#include <libassert/assert-macros.hpp>
+
 export module prism.core:parser.language_parser;
 
 import :parser.syntax_parser;
@@ -22,13 +26,14 @@ namespace prism
         template <std::derived_from<GreenNode> T>
         GreenPtr<T> consume_unexpected_tokens(GreenPtr<T> node)
         {
-            if (current_token().kind() == SyntaxKind::eof_token)
+            auto &current_token = peek_token();
+            if (current_token.kind() == SyntaxKind::eof_token)
                 return std::move(node);
 
             GreenListBuilder<GreenToken> builder;
-            while (current_token().kind() != SyntaxKind::eof_token)
+            while (current_token.kind() != SyntaxKind::eof_token)
             {
-                builder.add(eat_token());
+                builder.add(consume_token());
             }
 
             const auto list = std::move(builder).build();
@@ -40,6 +45,42 @@ namespace prism
             return mutable_copy;
         }
 
-        GreenPtr<GreenCompilationUnit> parse_compilation_unit();
+        [[nodiscard]] GreenPtr<GreenCompilationUnit> parse_compilation_unit();
+        [[nodiscard]] GreenPtr<GreenDeclaration> parse_declaration();
+        [[nodiscard]] GreenPtr<GreenStatement> parse_statement();
+        [[nodiscard]] GreenPtr<GreenExpression> parse_expression();
+
+      private:
+        [[nodiscard]] GreenSyntaxList<GreenToken> parse_modifiers();
+        [[nodiscard]] GreenPtr<GreenVariableDeclaration> parse_variable_declaration(
+            GreenSyntaxList<GreenToken> modifiers = {});
+        [[nodiscard]] GreenPtr<GreenFunctionDeclaration> parse_function_declaration(
+            GreenSyntaxList<GreenToken> modifiers);
+
+        [[nodiscard]] Optional<GreenPtr<GreenTypeSpecifier>> parse_type_specifier();
+        [[nodiscard]] GreenPtr<GreenTypeSpecifier> parse_required_type_specifier();
+        [[nodiscard]] GreenPtr<GreenType> parse_type();
+        [[nodiscard]] Optional<GreenPtr<GreenInitializer>> parse_initializer();
+        [[nodiscard]] GreenPtr<GreenParameterList> parse_parameter_list();
+
+        [[nodiscard]] GreenSeparatedList<GreenParameter> parse_parameters();
+        [[nodiscard]] GreenPtr<GreenExpressionBody> parse_expression_body();
+
+        [[nodiscard]] GreenPtr<GreenReturnStatement> parse_return_statement();
+        [[nodiscard]] GreenPtr<GreenExpressionStatement> parse_expression_statement();
+        [[nodiscard]] GreenPtr<GreenBlock> parse_block();
+
+        [[nodiscard]] GreenPtr<GreenExpression> parse_expression(GreenPtr<GreenExpression> left,
+                                                                 std::int32_t min_precedence);
+        [[nodiscard]] GreenPtr<GreenTernaryExpression> parse_ternary_expression(GreenPtr<GreenExpression> condition);
+        [[nodiscard]] GreenPtr<GreenExpression> parse_primary_expression();
+        [[nodiscard]] GreenPtr<GreenExpression> parse_prefix_expression();
+        [[nodiscard]] GreenPtr<GreenExpression> parse_postfix_expression();
+        [[nodiscard]] GreenPtr<GreenExpression> parse_parenthesized_expression();
+
+        [[nodiscard]] GreenPtr<GreenArgumentList> parse_argument_list();
+
+        [[nodiscard]] GreenPtr<GreenArgument> parse_argument();
+        [[nodiscard]] Optional<GreenPtr<GreenNamedParameter>> parse_named_parameter();
     };
 } // namespace prism

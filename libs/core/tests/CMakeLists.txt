@@ -1,6 +1,7 @@
 set(PRISM_CORE_TESTS name_test.cpp
         source_file_test.cpp
-        lexer_test.cpp)
+        lexer_test.cpp
+        parser_test.cpp)
 
 add_executable(prism_core_tests ${PRISM_CORE_TESTS})
 prism_add_boilerplate(prism_core_tests)

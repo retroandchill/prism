@@ -15,6 +15,22 @@ import :syntax.lexing_utils;
 
 namespace prism
 {
+    namespace
+    {
+        template <SyntaxKind Start, SyntaxKind End>
+            requires(std::to_underlying(End) > std::to_underlying(Start))
+        constexpr auto get_missing_token_list()
+        {
+            static constexpr std::size_t size = std::to_underlying(End) - std::to_underlying(Start);
+            std::array<GreenPtr<GreenToken>, size> result;
+            for (std::size_t i = 0; i < size; ++i)
+            {
+                result[i] = make_ref_counted<GreenMissingToken>(static_cast<SyntaxKind>(std::to_underlying(Start) + i));
+            }
+            return result;
+        }
+    } // namespace
+
     GreenToken::GreenToken(const SyntaxKind kind,
                            GreenPtr<GreenNode> leading_trivia,
                            GreenPtr<GreenNode> trailing_trivia)
@@ -70,6 +86,26 @@ namespace prism
             default:
                 return get_static_green_token(kind);
         }
+    }
+
+    const GreenPtr<GreenToken> &GreenToken::get_missing(const SyntaxKind kind)
+    {
+        using enum SyntaxKind;
+        if (is_keyword(kind))
+        {
+            static const auto keywords = get_missing_token_list<keyword_start, keyword_end>();
+            return keywords[std::to_underlying(kind) - std::to_underlying(keyword_start)];
+        }
+
+        if (is_punctuation(kind))
+        {
+            static const auto punctuations = get_missing_token_list<punctuation_start, punctuation_end>();
+            return punctuations[std::to_underlying(kind) - std::to_underlying(punctuation_start)];
+        }
+
+        ASSUME(is_other_token(kind));
+        static const auto other_tokens = get_missing_token_list<other_token_start, other_token_end>();
+        return other_tokens[std::to_underlying(kind) - std::to_underlying(other_token_start)];
     }
 
     std::string_view GreenToken::text() const

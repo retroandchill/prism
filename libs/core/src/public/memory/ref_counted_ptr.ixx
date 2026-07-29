@@ -672,6 +672,19 @@ namespace prism
 
         return nullptr;
     }
+
+    template <typename>
+    struct IsRefCountPtrInstance : std::false_type
+    {
+    };
+
+    template <RefCounted T>
+    struct IsRefCountPtrInstance<RefCountPtr<T>> : std::true_type
+    {
+    };
+
+    export template <typename T>
+    concept RefCountPtrInstance = IsRefCountPtrInstance<std::decay_t<T>>::value;
 } // namespace prism
 
 template <prism::RefCounted T>

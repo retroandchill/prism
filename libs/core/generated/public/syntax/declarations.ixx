@@ -36,8 +36,32 @@ namespace prism
 
         [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
-            return node.kind() == SyntaxKind::variable_declaration || node.kind() == SyntaxKind::function_declaration;
+            return node.kind() == SyntaxKind::incomplete_declaration ||
+                   node.kind() == SyntaxKind::variable_declaration || node.kind() == SyntaxKind::function_declaration;
         }
+    };
+
+    export class PRISM_CORE_API IncompleteDeclarationSyntax final : public DeclarationSyntax
+    {
+      public:
+        constexpr IncompleteDeclarationSyntax(SyntaxLifetime &lifetime,
+                                              const GreenIncompleteDeclaration &node,
+                                              const SyntaxNode *parent,
+                                              const std::uint32_t position)
+            : DeclarationSyntax{lifetime, node, parent, position}
+        {
+        }
+
+        [[nodiscard]] SyntaxTokenList modifiers() const override;
+
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::incomplete_declaration;
+        }
+
+      protected:
+        [[nodiscard]] Optional<const SyntaxNode &> get_node_slot(std::size_t index) const override;
+        [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
     };
 
     export class PRISM_CORE_API VariableDeclarationSyntax final : public DeclarationSyntax
@@ -55,8 +79,8 @@ namespace prism
         [[nodiscard]] SyntaxToken var_keyword() const;
         [[nodiscard]] Optional<SyntaxToken> mut_keyword() const;
         [[nodiscard]] SyntaxToken identifier() const;
-        [[nodiscard]] const TypeSpecifierSyntax &type() const;
-        [[nodiscard]] const InitializerSyntax &initializer() const;
+        [[nodiscard]] Optional<const TypeSpecifierSyntax &> type() const;
+        [[nodiscard]] Optional<const InitializerSyntax &> initializer() const;
         [[nodiscard]] SyntaxToken semicolon() const;
 
         [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept

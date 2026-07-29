@@ -43,7 +43,7 @@ namespace prism
             return keyword_list[std::to_underlying(kind) - std::to_underlying(SyntaxKind::keyword_start)];
         }
 
-        if (is_keyword(kind))
+        if (is_punctuation(kind))
         {
             static std::array punctuation_list = {
                 make_ref_counted<GreenToken>(SyntaxKind::open_bracket_token),

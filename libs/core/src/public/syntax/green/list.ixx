@@ -78,6 +78,11 @@ namespace prism
             children_.reserve(capacity);
         }
 
+        [[nodiscard]] constexpr std::size_t size() const noexcept
+        {
+            return children_.size();
+        }
+
         GreenPtr<GreenNode> build() const &
         {
             if (children_.empty())
@@ -245,6 +250,11 @@ namespace prism
         void reserve(const std::uint32_t capacity)
         {
             inner_.reserve(capacity);
+        }
+
+        [[nodiscard]] constexpr std::size_t size() const noexcept
+        {
+            return inner_.size();
         }
 
         GreenSyntaxList<T> build() const &

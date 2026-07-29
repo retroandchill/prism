@@ -460,7 +460,8 @@ namespace prism
         if (mut_keyword_ != nullptr)
             adjust_flags_and_width(*mut_keyword_);
         adjust_flags_and_width(*name_);
-        adjust_flags_and_width(*type_specifier_);
+        if (type_specifier_ != nullptr)
+            adjust_flags_and_width(*type_specifier_);
         if (default_value_ != nullptr)
             adjust_flags_and_width(*default_value_);
     }
@@ -496,7 +497,7 @@ namespace prism
             case 1:
                 return *name_;
             case 2:
-                return *type_specifier_;
+                return type_specifier_.get();
             case 3:
                 return default_value_.get();
             default:

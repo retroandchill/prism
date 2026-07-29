@@ -41,12 +41,12 @@ namespace prism
 
         [[nodiscard]] constexpr const T &operator[](const std::size_t index) const noexcept
         {
-            return static_cast<const T &>(*list_[index * 2]);
+            return static_cast<const T &>(list_[index * 2]);
         }
 
         [[nodiscard]] constexpr const GreenToken &separator(const std::size_t index) const noexcept
         {
-            return static_cast<const GreenToken &>(*list_[index * 2 + 1]);
+            return static_cast<const GreenToken &>(list_[index * 2 + 1]);
         }
 
         [[nodiscard]] constexpr const GreenSyntaxList<GreenNode, Owning> &with_separators() const noexcept
@@ -108,7 +108,7 @@ namespace prism
             return static_cast<const T &>(children_.add(std::move(item)));
         }
 
-        const T &add_separator(GreenPtr<GreenToken> item)
+        const GreenToken &add_separator(GreenPtr<GreenToken> item)
         {
             return static_cast<const GreenToken &>(children_.add(std::move(item)));
         }
@@ -118,13 +118,23 @@ namespace prism
             children_.reserve(capacity);
         }
 
-        GreenPtr<GreenSeparatedList<T>> build() const &
+        [[nodiscard]] constexpr std::size_t size() const noexcept
+        {
+            return (children_.size() + 1) / 2;
+        }
+
+        [[nodiscard]] constexpr std::size_t separator_count() const noexcept
+        {
+            return children_.size() / 2;
+        }
+
+        GreenSeparatedList<T> build() const &
         {
 
             return GreenSeparatedList<T>{children_.build()};
         }
 
-        GreenPtr<GreenSeparatedList<T>> build() &&
+        GreenSeparatedList<T> build() &&
         {
             return GreenSeparatedList<T>{std::move(children_).build()};
         }

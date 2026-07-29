@@ -21,6 +21,7 @@ namespace prism
                                                     const GreenListNode &,
                                                     const GreenSkippedTokensTrivia &,
                                                     const GreenCompilationUnit &,
+                                                    const GreenPredefinedType &,
                                                     const GreenIdentifierNamedType &,
                                                     const GreenInitializer &,
                                                     const GreenTypeSpecifier &,
@@ -44,6 +45,7 @@ namespace prism
                                                     const GreenReturnStatement &,
                                                     const GreenExpressionStatement &,
                                                     const GreenEmptyStatement &,
+                                                    const GreenIncompleteDeclaration &,
                                                     const GreenVariableDeclaration &,
                                                     const GreenFunctionDeclaration &>;
 
@@ -58,6 +60,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenSkippedTokensTrivia &>(node));
             case SyntaxKind::compilation_unit:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenCompilationUnit &>(node));
+            case SyntaxKind::predefined_type:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenPredefinedType &>(node));
             case SyntaxKind::identifier_named_type:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenIdentifierNamedType &>(node));
             case SyntaxKind::initializer:
@@ -109,6 +113,9 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenExpressionStatement &>(node));
             case SyntaxKind::empty_statement:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenEmptyStatement &>(node));
+            case SyntaxKind::incomplete_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenIncompleteDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
@@ -133,6 +140,7 @@ namespace prism
                                                            GreenListNode &,
                                                            GreenSkippedTokensTrivia &,
                                                            GreenCompilationUnit &,
+                                                           GreenPredefinedType &,
                                                            GreenIdentifierNamedType &,
                                                            GreenInitializer &,
                                                            GreenTypeSpecifier &,
@@ -156,6 +164,7 @@ namespace prism
                                                            GreenReturnStatement &,
                                                            GreenExpressionStatement &,
                                                            GreenEmptyStatement &,
+                                                           GreenIncompleteDeclaration &,
                                                            GreenVariableDeclaration &,
                                                            GreenFunctionDeclaration &>;
 
@@ -170,6 +179,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenSkippedTokensTrivia &>(node));
             case SyntaxKind::compilation_unit:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenCompilationUnit &>(node));
+            case SyntaxKind::predefined_type:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenPredefinedType &>(node));
             case SyntaxKind::identifier_named_type:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenIdentifierNamedType &>(node));
             case SyntaxKind::initializer:
@@ -217,6 +228,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenExpressionStatement &>(node));
             case SyntaxKind::empty_statement:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenEmptyStatement &>(node));
+            case SyntaxKind::incomplete_declaration:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenIncompleteDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
@@ -242,6 +255,7 @@ namespace prism
                                                               const GreenListNode &,
                                                               const GreenSkippedTokensTrivia &,
                                                               const GreenCompilationUnit &,
+                                                              const GreenPredefinedType &,
                                                               const GreenIdentifierNamedType &,
                                                               const GreenInitializer &,
                                                               const GreenTypeSpecifier &,
@@ -265,6 +279,7 @@ namespace prism
                                                               const GreenReturnStatement &,
                                                               const GreenExpressionStatement &,
                                                               const GreenEmptyStatement &,
+                                                              const GreenIncompleteDeclaration &,
                                                               const GreenVariableDeclaration &,
                                                               const GreenFunctionDeclaration &>;
 
@@ -279,6 +294,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenSkippedTokensTrivia &>(node));
             case SyntaxKind::compilation_unit:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenCompilationUnit &>(node));
+            case SyntaxKind::predefined_type:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenPredefinedType &>(node));
             case SyntaxKind::identifier_named_type:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenIdentifierNamedType &>(node));
             case SyntaxKind::initializer:
@@ -330,6 +347,9 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenExpressionStatement &>(node));
             case SyntaxKind::empty_statement:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenEmptyStatement &>(node));
+            case SyntaxKind::incomplete_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenIncompleteDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
@@ -355,6 +375,7 @@ namespace prism
                                                                      GreenListNode &,
                                                                      GreenSkippedTokensTrivia &,
                                                                      GreenCompilationUnit &,
+                                                                     GreenPredefinedType &,
                                                                      GreenIdentifierNamedType &,
                                                                      GreenInitializer &,
                                                                      GreenTypeSpecifier &,
@@ -378,6 +399,7 @@ namespace prism
                                                                      GreenReturnStatement &,
                                                                      GreenExpressionStatement &,
                                                                      GreenEmptyStatement &,
+                                                                     GreenIncompleteDeclaration &,
                                                                      GreenVariableDeclaration &,
                                                                      GreenFunctionDeclaration &>;
 
@@ -392,6 +414,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenSkippedTokensTrivia &>(node));
             case SyntaxKind::compilation_unit:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenCompilationUnit &>(node));
+            case SyntaxKind::predefined_type:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenPredefinedType &>(node));
             case SyntaxKind::identifier_named_type:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenIdentifierNamedType &>(node));
             case SyntaxKind::initializer:
@@ -439,6 +463,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenExpressionStatement &>(node));
             case SyntaxKind::empty_statement:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenEmptyStatement &>(node));
+            case SyntaxKind::incomplete_declaration:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenIncompleteDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
@@ -520,13 +546,15 @@ namespace prism
     }
 
     template <typename Functor>
-    concept VisitorForGreenType = ExhaustiveVisitor<Functor, const GreenNamedType &>;
+    concept VisitorForGreenType = ExhaustiveVisitor<Functor, const GreenPredefinedType &, const GreenNamedType &>;
 
     template <VisitorForGreenType Functor>
     constexpr decltype(auto) visit(const GreenType &node, Functor &&functor)
     {
         switch (node.kind())
         {
+            case SyntaxKind::predefined_type:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenPredefinedType &>(node));
             case SyntaxKind::named_type:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenNamedType &>(node));
             default:
@@ -535,13 +563,15 @@ namespace prism
     }
 
     template <typename Functor>
-    concept MutableVisitorForGreenType = ExhaustiveVisitor<Functor, GreenNamedType &>;
+    concept MutableVisitorForGreenType = ExhaustiveVisitor<Functor, GreenPredefinedType &, GreenNamedType &>;
 
     template <MutableVisitorForGreenType Functor>
     constexpr decltype(auto) visit(GreenType &node, Functor &&functor)
     {
         switch (node.kind())
         {
+            case SyntaxKind::predefined_type:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenPredefinedType &>(node));
             case SyntaxKind::named_type:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenNamedType &>(node));
             default:
@@ -550,13 +580,16 @@ namespace prism
     }
 
     template <typename Functor, typename R>
-    concept VisitorForGreenTypeReturning = ConvertibleVisitor<Functor, R, const GreenNamedType &>;
+    concept VisitorForGreenTypeReturning =
+        ConvertibleVisitor<Functor, R, const GreenPredefinedType &, const GreenNamedType &>;
 
     template <typename R, VisitorForGreenTypeReturning Functor>
     constexpr R visit(const GreenType &node, Functor &&functor)
     {
         switch (node.kind())
         {
+            case SyntaxKind::predefined_type:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenPredefinedType &>(node));
             case SyntaxKind::named_type:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenNamedType &>(node));
             default:
@@ -565,13 +598,16 @@ namespace prism
     }
 
     template <typename Functor, typename R>
-    concept MutableVisitorForGreenTypeReturning = ConvertibleVisitor<Functor, R, GreenNamedType &>;
+    concept MutableVisitorForGreenTypeReturning =
+        ConvertibleVisitor<Functor, R, GreenPredefinedType &, GreenNamedType &>;
 
     template <typename R, MutableVisitorForGreenTypeReturning Functor>
     constexpr R visit(GreenType &node, Functor &&functor)
     {
         switch (node.kind())
         {
+            case SyntaxKind::predefined_type:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenPredefinedType &>(node));
             case SyntaxKind::named_type:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenNamedType &>(node));
             default:
@@ -988,14 +1024,19 @@ namespace prism
     }
 
     template <typename Functor>
-    concept VisitorForGreenDeclaration =
-        ExhaustiveVisitor<Functor, const GreenVariableDeclaration &, const GreenFunctionDeclaration &>;
+    concept VisitorForGreenDeclaration = ExhaustiveVisitor<Functor,
+                                                           const GreenIncompleteDeclaration &,
+                                                           const GreenVariableDeclaration &,
+                                                           const GreenFunctionDeclaration &>;
 
     template <VisitorForGreenDeclaration Functor>
     constexpr decltype(auto) visit(const GreenDeclaration &node, Functor &&functor)
     {
         switch (node.kind())
         {
+            case SyntaxKind::incomplete_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenIncompleteDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
@@ -1006,14 +1047,18 @@ namespace prism
     }
 
     template <typename Functor>
-    concept MutableVisitorForGreenDeclaration =
-        ExhaustiveVisitor<Functor, GreenVariableDeclaration &, GreenFunctionDeclaration &>;
+    concept MutableVisitorForGreenDeclaration = ExhaustiveVisitor<Functor,
+                                                                  GreenIncompleteDeclaration &,
+                                                                  GreenVariableDeclaration &,
+                                                                  GreenFunctionDeclaration &>;
 
     template <MutableVisitorForGreenDeclaration Functor>
     constexpr decltype(auto) visit(GreenDeclaration &node, Functor &&functor)
     {
         switch (node.kind())
         {
+            case SyntaxKind::incomplete_declaration:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenIncompleteDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
@@ -1024,14 +1069,20 @@ namespace prism
     }
 
     template <typename Functor, typename R>
-    concept VisitorForGreenDeclarationReturning =
-        ConvertibleVisitor<Functor, R, const GreenVariableDeclaration &, const GreenFunctionDeclaration &>;
+    concept VisitorForGreenDeclarationReturning = ConvertibleVisitor<Functor,
+                                                                     R,
+                                                                     const GreenIncompleteDeclaration &,
+                                                                     const GreenVariableDeclaration &,
+                                                                     const GreenFunctionDeclaration &>;
 
     template <typename R, VisitorForGreenDeclarationReturning Functor>
     constexpr R visit(const GreenDeclaration &node, Functor &&functor)
     {
         switch (node.kind())
         {
+            case SyntaxKind::incomplete_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenIncompleteDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
@@ -1042,14 +1093,19 @@ namespace prism
     }
 
     template <typename Functor, typename R>
-    concept MutableVisitorForGreenDeclarationReturning =
-        ConvertibleVisitor<Functor, R, GreenVariableDeclaration &, GreenFunctionDeclaration &>;
+    concept MutableVisitorForGreenDeclarationReturning = ConvertibleVisitor<Functor,
+                                                                            R,
+                                                                            GreenIncompleteDeclaration &,
+                                                                            GreenVariableDeclaration &,
+                                                                            GreenFunctionDeclaration &>;
 
     template <typename R, MutableVisitorForGreenDeclarationReturning Functor>
     constexpr R visit(GreenDeclaration &node, Functor &&functor)
     {
         switch (node.kind())
         {
+            case SyntaxKind::incomplete_declaration:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenIncompleteDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
@@ -1079,6 +1135,18 @@ namespace prism
 
     template <std::invocable<GreenCompilationUnit &> Functor>
     constexpr decltype(auto) visit(GreenCompilationUnit &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<const GreenPredefinedType &> Functor>
+    constexpr decltype(auto) visit(const GreenPredefinedType &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<GreenPredefinedType &> Functor>
+    constexpr decltype(auto) visit(GreenPredefinedType &node, Functor &&functor)
     {
         return std::invoke(std::forward<Functor>(functor), node);
     }
@@ -1359,6 +1427,18 @@ namespace prism
         return std::invoke(std::forward<Functor>(functor), node);
     }
 
+    template <std::invocable<const GreenIncompleteDeclaration &> Functor>
+    constexpr decltype(auto) visit(const GreenIncompleteDeclaration &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<GreenIncompleteDeclaration &> Functor>
+    constexpr decltype(auto) visit(GreenIncompleteDeclaration &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
     template <std::invocable<const GreenVariableDeclaration &> Functor>
     constexpr decltype(auto) visit(const GreenVariableDeclaration &node, Functor &&functor)
     {
@@ -1400,6 +1480,7 @@ namespace prism
         virtual R operator()(const GreenTrivia &node) const = 0;
         virtual R operator()(const GreenSkippedTokensTrivia &node) const = 0;
         virtual R operator()(const GreenCompilationUnit &node) const = 0;
+        virtual R operator()(const GreenPredefinedType &node) const = 0;
         virtual R operator()(const GreenIdentifierNamedType &node) const = 0;
         virtual R operator()(const GreenInitializer &node) const = 0;
         virtual R operator()(const GreenTypeSpecifier &node) const = 0;
@@ -1423,6 +1504,7 @@ namespace prism
         virtual R operator()(const GreenReturnStatement &node) const = 0;
         virtual R operator()(const GreenExpressionStatement &node) const = 0;
         virtual R operator()(const GreenEmptyStatement &node) const = 0;
+        virtual R operator()(const GreenIncompleteDeclaration &node) const = 0;
         virtual R operator()(const GreenVariableDeclaration &node) const = 0;
         virtual R operator()(const GreenFunctionDeclaration &node) const = 0;
     };
@@ -1481,6 +1563,18 @@ namespace prism
         }
 
         constexpr R operator()(const GreenCompilationUnit &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(const GreenPredefinedType &node) const override
         {
             if constexpr (!std::same_as<R, void>)
             {
@@ -1768,6 +1862,18 @@ namespace prism
             }
         }
 
+        constexpr R operator()(const GreenIncompleteDeclaration &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
         constexpr R operator()(const GreenVariableDeclaration &node) const override
         {
             if constexpr (!std::same_as<R, void>)
@@ -1810,6 +1916,7 @@ namespace prism
         virtual R operator()(GreenTrivia &node) const = 0;
         virtual R operator()(GreenSkippedTokensTrivia &node) const = 0;
         virtual R operator()(GreenCompilationUnit &node) const = 0;
+        virtual R operator()(GreenPredefinedType &node) const = 0;
         virtual R operator()(GreenIdentifierNamedType &node) const = 0;
         virtual R operator()(GreenInitializer &node) const = 0;
         virtual R operator()(GreenTypeSpecifier &node) const = 0;
@@ -1833,6 +1940,7 @@ namespace prism
         virtual R operator()(GreenReturnStatement &node) const = 0;
         virtual R operator()(GreenExpressionStatement &node) const = 0;
         virtual R operator()(GreenEmptyStatement &node) const = 0;
+        virtual R operator()(GreenIncompleteDeclaration &node) const = 0;
         virtual R operator()(GreenVariableDeclaration &node) const = 0;
         virtual R operator()(GreenFunctionDeclaration &node) const = 0;
     };
@@ -1891,6 +1999,18 @@ namespace prism
         }
 
         constexpr R operator()(GreenCompilationUnit &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(GreenPredefinedType &node) const override
         {
             if constexpr (!std::same_as<R, void>)
             {
@@ -2167,6 +2287,18 @@ namespace prism
         }
 
         constexpr R operator()(GreenEmptyStatement &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(GreenIncompleteDeclaration &node) const override
         {
             if constexpr (!std::same_as<R, void>)
             {

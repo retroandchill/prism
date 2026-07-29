@@ -207,8 +207,9 @@ namespace prism
         }
 
       public:
-        template <GreenNodeLike T>
-        [[nodiscard]] bool is() const
+        template <GreenNodeLike T, typename Self>
+            requires std::derived_from<T, Self>
+        [[nodiscard]] bool is(this const Self &self)
         {
             if constexpr (std::is_same_v<T, GreenNode>)
             {
@@ -216,20 +217,21 @@ namespace prism
             }
             else
             {
-                return T::instance_of(*this);
+                return T::instance_of(self);
             }
         }
 
-        template <GreenNodeLike T>
-        [[nodiscard]] Optional<const T &> as() const
+        template <GreenNodeLike T, typename Self>
+            requires std::derived_from<T, Self>
+        [[nodiscard]] Optional<const T &> as(this const Self &self)
         {
             if constexpr (std::is_same_v<T, GreenNode>)
             {
-                return *this;
+                return self;
             }
             else
             {
-                return T::instance_of(*this) ? Optional<const T &>{static_cast<const T &>(*this)} : std::nullopt;
+                return T::instance_of(self) ? Optional<const T &>{static_cast<const T &>(self)} : std::nullopt;
             }
         }
 

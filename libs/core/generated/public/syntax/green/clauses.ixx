@@ -679,9 +679,9 @@ namespace prism
 
         void set_name(GreenPtr<GreenToken> value) noexcept;
 
-        [[nodiscard]] constexpr const GreenTypeSpecifier &type_specifier() const noexcept
+        [[nodiscard]] constexpr Optional<const GreenTypeSpecifier &> type_specifier() const noexcept
         {
-            return *type_specifier_;
+            return type_specifier_.get();
         }
 
         void set_type_specifier(GreenPtr<GreenTypeSpecifier> value) noexcept;

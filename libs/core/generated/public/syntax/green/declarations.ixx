@@ -27,7 +27,8 @@ namespace prism
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
-            return node.kind() == SyntaxKind::variable_declaration || node.kind() == SyntaxKind::function_declaration;
+            return node.kind() == SyntaxKind::incomplete_declaration ||
+                   node.kind() == SyntaxKind::variable_declaration || node.kind() == SyntaxKind::function_declaration;
         }
 
         template <typename Self>
@@ -39,6 +40,79 @@ namespace prism
 
         [[nodiscard]] virtual GreenPtr<GreenDeclaration> with_modifiers_core(
             GreenSyntaxList<GreenToken> modifiers) const = 0;
+    };
+
+    class GreenIncompleteDeclaration final : public GreenDeclaration
+    {
+      public:
+        explicit GreenIncompleteDeclaration(GreenSyntaxList<GreenToken> modifiers, DiagnosticInfoList diagnostics = {});
+
+        ~GreenIncompleteDeclaration() override;
+
+        [[nodiscard]] constexpr const GreenSyntaxList<GreenToken> &modifiers() const noexcept override
+        {
+            return modifiers_;
+        }
+
+        void set_modifiers(GreenSyntaxList<GreenToken> value) noexcept override;
+
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::incomplete_declaration;
+        }
+
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
+
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
+
+        [[nodiscard]] GreenPtr<GreenDeclaration> with_modifiers_core(
+            GreenSyntaxList<GreenToken> modifiers) const override;
+
+        [[nodiscard]] GreenPtr<GreenIncompleteDeclaration> update(GreenSyntaxList<GreenToken> modifiers) const;
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
+
+      private:
+        GreenSyntaxList<GreenToken> modifiers_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenIncompleteDeclaration>
+    {
+        static constexpr std::size_t slot_count = 1;
+
+        using ChildTypes = std::tuple<GreenSyntaxList<GreenToken>>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenIncompleteDeclaration &node)
+        {
+            {
+                static_assert(N == 0);
+                return node.modifiers();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenIncompleteDeclaration>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenIncompleteDeclaration &node, Arg &&value)
+        {
+            {
+                static_assert(N == 0);
+                node.set_modifiers(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenIncompleteDeclaration>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenIncompleteDeclaration> with(const GreenIncompleteDeclaration &node, Arg &&value)
+        {
+            {
+                static_assert(N == 0);
+                return node.with_modifiers(std::forward<Arg>(value));
+            }
+        }
     };
 
     class GreenVariableDeclaration final : public GreenDeclaration
@@ -83,16 +157,16 @@ namespace prism
 
         void set_identifier(GreenPtr<GreenToken> value) noexcept;
 
-        [[nodiscard]] constexpr const GreenTypeSpecifier &type() const noexcept
+        [[nodiscard]] constexpr Optional<const GreenTypeSpecifier &> type() const noexcept
         {
-            return *type_;
+            return type_.get();
         }
 
         void set_type(GreenPtr<GreenTypeSpecifier> value) noexcept;
 
-        [[nodiscard]] constexpr const GreenInitializer &initializer() const noexcept
+        [[nodiscard]] constexpr Optional<const GreenInitializer &> initializer() const noexcept
         {
-            return *initializer_;
+            return initializer_.get();
         }
 
         void set_initializer(GreenPtr<GreenInitializer> value) noexcept;

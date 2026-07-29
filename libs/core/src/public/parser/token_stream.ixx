@@ -37,6 +37,8 @@ namespace prism
 
         [[nodiscard]] const GreenToken &peek(std::size_t count = 1);
 
+        [[nodiscard]] const GreenToken &consume();
+
         void advance();
 
         void replace_next(GreenPtr<GreenToken> token);

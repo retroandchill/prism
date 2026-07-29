@@ -177,7 +177,7 @@ public static class CppEmitter
             Func<CppToken, bool> predicate
         )
         {
-            writer.WriteLine("if (is_keyword(kind))");
+            writer.WriteLine($"if (is_{category}(kind))");
             using (writer.EnterBlockScope())
             {
                 writer.Write($"static std::array {category}_list = ");

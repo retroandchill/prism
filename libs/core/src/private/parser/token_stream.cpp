@@ -28,6 +28,14 @@ namespace prism
         return !lookahead_.empty() ? *lookahead_[count - 1] : previous();
     }
 
+    const GreenToken &TokenStream::consume()
+    {
+        auto &token = peek();
+        tokens_.push_back(token.shared_from_this());
+        lookahead_.pop_front();
+        return token;
+    }
+
     void TokenStream::advance()
     {
         auto &token = peek();

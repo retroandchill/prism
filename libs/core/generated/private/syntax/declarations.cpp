@@ -6,6 +6,21 @@ import :syntax.statements;
 
 namespace prism
 {
+    SyntaxTokenList IncompleteDeclarationSyntax::modifiers() const
+    {
+        return SyntaxTokenList{this, static_cast<const GreenIncompleteDeclaration &>(green()).modifiers(), position()};
+    }
+
+    Optional<const SyntaxNode &> IncompleteDeclarationSyntax::get_node_slot(const std::size_t) const
+    {
+        return std::nullopt;
+    }
+
+    Optional<const SyntaxNode &> IncompleteDeclarationSyntax::get_cached_slot(const std::size_t) const
+    {
+        return std::nullopt;
+    }
+
     SyntaxTokenList VariableDeclarationSyntax::modifiers() const
     {
         return SyntaxTokenList{this, static_cast<const GreenVariableDeclaration &>(green()).modifiers(), position()};
@@ -33,14 +48,14 @@ namespace prism
                            get_slot_position(3)};
     }
 
-    const TypeSpecifierSyntax &VariableDeclarationSyntax::type() const
+    Optional<const TypeSpecifierSyntax &> VariableDeclarationSyntax::type() const
     {
-        return *get_red(type_, 4);
+        return get_red(type_, 4);
     }
 
-    const InitializerSyntax &VariableDeclarationSyntax::initializer() const
+    Optional<const InitializerSyntax &> VariableDeclarationSyntax::initializer() const
     {
-        return *get_red(initializer_, 5);
+        return get_red(initializer_, 5);
     }
 
     SyntaxToken VariableDeclarationSyntax::semicolon() const

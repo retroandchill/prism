@@ -192,7 +192,7 @@ namespace prism
 
         [[nodiscard]] Optional<SyntaxToken> mut_keyword() const;
         [[nodiscard]] SyntaxToken name() const;
-        [[nodiscard]] const TypeSpecifierSyntax &type_specifier() const;
+        [[nodiscard]] Optional<const TypeSpecifierSyntax &> type_specifier() const;
         [[nodiscard]] Optional<const InitializerSyntax &> default_value() const;
 
         [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept

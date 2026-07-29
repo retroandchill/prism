@@ -23,9 +23,11 @@ namespace prism
         {
         }
 
-        const GreenToken &current_token();
+        [[nodiscard]] bool at_end();
         const GreenToken &peek_token(int offset = 1);
-        GreenPtr<GreenToken> eat_token();
+        GreenPtr<GreenToken> consume_token();
+        Optional<GreenPtr<GreenToken>> match_token(SyntaxKind kind);
+        GreenPtr<GreenToken> expect_token(SyntaxKind kind);
 
         template <std::derived_from<GreenNode> T>
             requires(!std::is_const_v<T>)

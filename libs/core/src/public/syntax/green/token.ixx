@@ -29,6 +29,8 @@ namespace prism
 
         static GreenPtr<GreenToken> from(SyntaxKind kind);
 
+        static const GreenPtr<GreenToken> &get_missing(SyntaxKind kind);
+
         [[nodiscard]] virtual std::string_view text() const;
 
         [[nodiscard]] constexpr Optional<const GreenNode &> leading_trivia() const noexcept final
@@ -76,11 +78,11 @@ namespace prism
 
         void write_to(TextWriter &writer) const final;
 
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
+
       protected:
         [[nodiscard]] virtual GreenPtr<GreenToken> clone_with_trivia(GreenPtr<GreenNode> leading_trivia,
                                                                      GreenPtr<GreenNode> trailing_trivia) const;
-
-        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
         GreenPtr<GreenNode> leading_trivia_;

@@ -8,6 +8,58 @@ import :syntax.green.statements;
 
 namespace prism
 {
+    GreenIncompleteDeclaration::GreenIncompleteDeclaration(GreenSyntaxList<GreenToken> modifiers,
+                                                           DiagnosticInfoList diagnostics)
+        : GreenDeclaration{SyntaxKind::incomplete_declaration, std::move(diagnostics)}, modifiers_{std::move(modifiers)}
+    {
+        set_slot_count(1);
+        adjust_flags_and_width(modifiers_);
+    }
+
+    GreenIncompleteDeclaration::~GreenIncompleteDeclaration() = default;
+
+    void GreenIncompleteDeclaration::set_modifiers(GreenSyntaxList<GreenToken> value) noexcept
+    {
+        modifiers_ = std::move(value);
+    }
+
+    Optional<const GreenNode &> GreenIncompleteDeclaration::get_slot(std::size_t index) const
+    {
+        switch (index)
+        {
+            case 0:
+                return modifiers_.node();
+            default:
+                return std::nullopt;
+        }
+    }
+
+    [[nodiscard]] SyntaxNode &GreenIncompleteDeclaration::create_red(SyntaxLifetime &lifetime,
+                                                                     const SyntaxNode *parent,
+                                                                     std::uint32_t position) const
+    {
+        return lifetime.add<IncompleteDeclarationSyntax>(*this, parent, position);
+    }
+
+    [[nodiscard]] GreenPtr<GreenDeclaration> GreenIncompleteDeclaration::with_modifiers_core(
+        GreenSyntaxList<GreenToken> modifiers) const
+    {
+        return update(std::move(modifiers));
+    }
+
+    GreenPtr<GreenIncompleteDeclaration> GreenIncompleteDeclaration::update(GreenSyntaxList<GreenToken> modifiers) const
+    {
+        if (modifiers == modifiers_)
+            return shared_from_this();
+
+        return make_ref_counted<const GreenIncompleteDeclaration>(std::move(modifiers));
+    }
+
+    RefCountPtr<GreenNode> GreenIncompleteDeclaration::clone_internal() const
+    {
+        return make_ref_counted<GreenIncompleteDeclaration>(modifiers_);
+    }
+
     GreenVariableDeclaration::GreenVariableDeclaration(GreenSyntaxList<GreenToken> modifiers,
                                                        GreenPtr<GreenToken> var_keyword,
                                                        GreenPtr<GreenToken> mut_keyword,
@@ -27,8 +79,10 @@ namespace prism
         if (mut_keyword_ != nullptr)
             adjust_flags_and_width(*mut_keyword_);
         adjust_flags_and_width(*identifier_);
-        adjust_flags_and_width(*type_);
-        adjust_flags_and_width(*initializer_);
+        if (type_ != nullptr)
+            adjust_flags_and_width(*type_);
+        if (initializer_ != nullptr)
+            adjust_flags_and_width(*initializer_);
         adjust_flags_and_width(*semicolon_);
     }
 
@@ -82,9 +136,9 @@ namespace prism
             case 3:
                 return *identifier_;
             case 4:
-                return *type_;
+                return type_.get();
             case 5:
-                return *initializer_;
+                return initializer_.get();
             case 6:
                 return *semicolon_;
             default:
