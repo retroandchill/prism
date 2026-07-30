@@ -7,7 +7,6 @@
 export module prism.core:symbols.function_symbol;
 
 import :symbols.symbol;
-import :util.ref_span;
 
 namespace prism
 {
@@ -22,6 +21,6 @@ namespace prism
 
         virtual const TypeSymbol &returnType() const noexcept = 0;
 
-        virtual RefSpan<const ParameterSymbol> parameters() const noexcept = 0;
+        virtual std::span<const ParameterSymbol *> parameters() const noexcept = 0;
     };
 } // namespace prism

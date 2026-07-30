@@ -682,8 +682,9 @@ namespace prism
         }
 
         template <typename Arg>
-            requires(std::is_constructible_v<T &, Arg> && !ReferenceConvertsFromTemporary<T &, Arg>)
-        constexpr explicit Optional(std::in_place_t, Arg &&arg) : value_{get_ref_from_value(arg)}
+            requires(std::constructible_from<T &, Arg> && !ReferenceConvertsFromTemporary<T &, Arg>)
+        constexpr explicit(!std::convertible_to<Arg, T &>) Optional(std::in_place_t, Arg &&arg)
+            : value_{Optional::get_ref_from_value(arg)}
         {
         }
 
@@ -692,7 +693,7 @@ namespace prism
                      !std::is_same_v<std::remove_cvref_t<U>, Optional> && !ReferenceConvertsFromTemporary<T &, U>)
         constexpr explicit(!std::is_convertible_v<U, T &>)
             Optional(U &&value) noexcept(std::is_nothrow_constructible_v<T &, U>)
-            : value_{get_ref_from_value(value)}
+            : value_{Optional::get_ref_from_value(value)}
         {
         }
 
