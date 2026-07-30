@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/compiler/">
+    <Project Path="compiler/Prism.Core/Prism.Core.csproj" />
+  </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/Prism.SyntaxGenerator/Prism.SyntaxGenerator.csproj" />
   </Folder>
