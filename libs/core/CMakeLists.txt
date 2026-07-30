@@ -118,6 +118,12 @@ set(PRISM_PUBLIC_MODULES
         src/public/type_traits/visitor.ixx
         generated/public/syntax/green/visit.ixx
         src/public/util/enum_set.ixx
+        src/public/symbols/symbol.ixx
+        src/public/symbols/type_symbol.ixx
+        src/public/symbols/function_symbol.ixx
+        src/public/util/ref_span.ixx
+        src/public/symbols/parameter_symbol.ixx
+        src/public/symbols/variable_symbol.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

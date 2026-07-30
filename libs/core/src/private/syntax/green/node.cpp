@@ -61,7 +61,7 @@ namespace prism
             for (const std::size_t i : std::views::iota(0uz, node->slot_count()))
             {
                 auto child = node->get_slot(i);
-                if (child.has_value())
+                if (!child.has_value())
                     continue;
 
                 first_child = child.value_ptr();
@@ -90,7 +90,7 @@ namespace prism
             for (std::size_t i = node->slot_count() - 1; i != std::numeric_limits<std::size_t>::max(); --i)
             {
                 auto child = get_slot(i);
-                if (child.has_value())
+                if (!child.has_value())
                     continue;
 
                 last_child = child.value_ptr();

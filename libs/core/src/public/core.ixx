@@ -37,3 +37,12 @@ export import :syntax.kind;
 export import :syntax.literals;
 export import :syntax.token;
 export import :syntax.trivia;
+export import :syntax.list;
+export import :syntax.node_or_token;
+export import :syntax.child_list;
+
+export import :symbols.symbol;
+export import :symbols.variable_symbol;
+export import :symbols.type_symbol;
+export import :symbols.function_symbol;
+export import :symbols.parameter_symbol;

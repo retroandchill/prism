@@ -16,8 +16,8 @@ namespace prism
     {
       public:
         explicit GreenToken(SyntaxKind kind,
-                            GreenPtr<GreenNode> leading_trivia = {},
-                            GreenPtr<GreenNode> trailing_trivia = {});
+                            GreenPtr<GreenNode> leading_trivia = nullptr,
+                            GreenPtr<GreenNode> trailing_trivia = nullptr);
 
         GreenToken(SyntaxKind kind,
                    std::uint32_t width,
