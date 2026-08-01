@@ -549,7 +549,7 @@ namespace prism
                 return parse_parenthesized_expression();
             default:
                 {
-                    auto identifier = expect_token(SyntaxKind::identifier_token);
+                    auto identifier = parse_name();
                     return make_ref_counted<GreenIdentifierExpression>(std::move(identifier));
                 }
         }

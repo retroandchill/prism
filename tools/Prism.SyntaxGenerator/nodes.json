@@ -759,11 +759,8 @@
             {
               "$type": "item",
               "name": "value",
-              "type": "Token",
-              "shape": "single",
-              "kinds": [
-                "IdentifierToken"
-              ]
+              "type": "Name",
+              "shape": "single"
             }
           ]
         },

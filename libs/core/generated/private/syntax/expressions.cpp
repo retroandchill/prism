@@ -2,6 +2,7 @@ module prism.core:syntax.expressions.impl;
 
 import :syntax.expressions;
 import :syntax.clauses;
+import :syntax.names;
 
 namespace prism
 {
@@ -20,19 +21,19 @@ namespace prism
         return std::nullopt;
     }
 
-    SyntaxToken IdentifierExpressionSyntax::value() const
+    const NameSyntax &IdentifierExpressionSyntax::value() const
     {
-        return SyntaxToken{static_cast<const GreenIdentifierExpression &>(green()).value(), this, position()};
+        return *get_red(value_);
     }
 
-    Optional<const SyntaxNode &> IdentifierExpressionSyntax::get_node_slot(const std::size_t) const
+    Optional<const SyntaxNode &> IdentifierExpressionSyntax::get_node_slot(const std::size_t index) const
     {
-        return std::nullopt;
+        return index == 0 ? get_red(value_) : std::nullopt;
     }
 
-    Optional<const SyntaxNode &> IdentifierExpressionSyntax::get_cached_slot(const std::size_t) const
+    Optional<const SyntaxNode &> IdentifierExpressionSyntax::get_cached_slot(const std::size_t index) const
     {
-        return std::nullopt;
+        return index == 0 ? Optional<const SyntaxNode &>{value_.load(std::memory_order_acquire)} : std::nullopt;
     }
 
     SyntaxToken ParenthesizedExpressionSyntax::open() const

@@ -4,6 +4,7 @@ import :syntax.lifetime;
 import :syntax.green.expressions;
 import :syntax.expressions;
 import :syntax.green.clauses;
+import :syntax.green.names;
 
 namespace prism
 {
@@ -57,7 +58,7 @@ namespace prism
         return make_ref_counted<GreenLiteralExpression>(value_);
     }
 
-    GreenIdentifierExpression::GreenIdentifierExpression(GreenPtr<GreenToken> value, DiagnosticInfoList diagnostics)
+    GreenIdentifierExpression::GreenIdentifierExpression(GreenPtr<GreenName> value, DiagnosticInfoList diagnostics)
         : GreenExpression{SyntaxKind::identifier_expression, std::move(diagnostics)}, value_{std::move(value)}
     {
         set_slot_count(1);
@@ -66,7 +67,7 @@ namespace prism
 
     GreenIdentifierExpression::~GreenIdentifierExpression() = default;
 
-    void GreenIdentifierExpression::set_value(GreenPtr<GreenToken> value) noexcept
+    void GreenIdentifierExpression::set_value(GreenPtr<GreenName> value) noexcept
     {
         value_ = std::move(value);
     }
@@ -90,12 +91,12 @@ namespace prism
     }
 
     [[nodiscard]] GreenPtr<GreenIdentifierExpression> GreenIdentifierExpression::with_value(
-        GreenPtr<GreenToken> value) const
+        GreenPtr<GreenName> value) const
     {
         return update(std::move(value));
     }
 
-    GreenPtr<GreenIdentifierExpression> GreenIdentifierExpression::update(GreenPtr<GreenToken> value) const
+    GreenPtr<GreenIdentifierExpression> GreenIdentifierExpression::update(GreenPtr<GreenName> value) const
     {
         if (value == value_)
             return shared_from_this();

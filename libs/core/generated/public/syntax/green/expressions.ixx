@@ -8,6 +8,7 @@ import :syntax.green.separated_list;
 namespace prism
 {
     class GreenArgumentList;
+    class GreenName;
 
     class GreenExpression : public GreenNode
     {
@@ -103,16 +104,16 @@ namespace prism
     class GreenIdentifierExpression final : public GreenExpression
     {
       public:
-        explicit GreenIdentifierExpression(GreenPtr<GreenToken> value, DiagnosticInfoList diagnostics = {});
+        explicit GreenIdentifierExpression(GreenPtr<GreenName> value, DiagnosticInfoList diagnostics = {});
 
         ~GreenIdentifierExpression() override;
 
-        [[nodiscard]] constexpr const GreenToken &value() const noexcept
+        [[nodiscard]] constexpr const GreenName &value() const noexcept
         {
             return *value_;
         }
 
-        void set_value(GreenPtr<GreenToken> value) noexcept;
+        void set_value(GreenPtr<GreenName> value) noexcept;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
@@ -125,13 +126,13 @@ namespace prism
                                              const SyntaxNode *parent,
                                              std::uint32_t position) const override;
 
-        [[nodiscard]] GreenPtr<GreenIdentifierExpression> with_value(GreenPtr<GreenToken> value) const;
+        [[nodiscard]] GreenPtr<GreenIdentifierExpression> with_value(GreenPtr<GreenName> value) const;
 
-        [[nodiscard]] GreenPtr<GreenIdentifierExpression> update(GreenPtr<GreenToken> value) const;
+        [[nodiscard]] GreenPtr<GreenIdentifierExpression> update(GreenPtr<GreenName> value) const;
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
-        GreenPtr<GreenToken> value_;
+        GreenPtr<GreenName> value_;
     };
 
     template <>
@@ -139,7 +140,7 @@ namespace prism
     {
         static constexpr std::size_t slot_count = 1;
 
-        using ChildTypes = std::tuple<GreenToken>;
+        using ChildTypes = std::tuple<GreenName>;
 
         template <std::size_t N>
             requires(N < slot_count)

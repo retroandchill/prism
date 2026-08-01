@@ -13,6 +13,7 @@ import :syntax.green.expressions;
 namespace prism
 {
     class ArgumentListSyntax;
+    class NameSyntax;
 
     export class PRISM_CORE_API ExpressionSyntax : public SyntaxNode
     {
@@ -72,7 +73,7 @@ namespace prism
         {
         }
 
-        [[nodiscard]] SyntaxToken value() const;
+        [[nodiscard]] const NameSyntax &value() const;
 
         [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
@@ -82,6 +83,9 @@ namespace prism
       protected:
         [[nodiscard]] Optional<const SyntaxNode &> get_node_slot(std::size_t index) const override;
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
+
+      private:
+        mutable std::atomic<const NameSyntax *> value_;
     };
 
     export class PRISM_CORE_API ParenthesizedExpressionSyntax final : public ExpressionSyntax
