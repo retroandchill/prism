@@ -1,6 +1,7 @@
 module prism.core:syntax.types.impl;
 
 import :syntax.types;
+import :syntax.names;
 
 namespace prism
 {
@@ -19,18 +20,18 @@ namespace prism
         return std::nullopt;
     }
 
-    SyntaxToken IdentifierNamedTypeSyntax::identifier() const
+    const NameSyntax &NamedTypeSyntax::identifier() const
     {
-        return SyntaxToken{static_cast<const GreenIdentifierNamedType &>(green()).identifier(), this, position()};
+        return *get_red(identifier_);
     }
 
-    Optional<const SyntaxNode &> IdentifierNamedTypeSyntax::get_node_slot(const std::size_t) const
+    Optional<const SyntaxNode &> NamedTypeSyntax::get_node_slot(const std::size_t index) const
     {
-        return std::nullopt;
+        return index == 0 ? get_red(identifier_) : std::nullopt;
     }
 
-    Optional<const SyntaxNode &> IdentifierNamedTypeSyntax::get_cached_slot(const std::size_t) const
+    Optional<const SyntaxNode &> NamedTypeSyntax::get_cached_slot(const std::size_t index) const
     {
-        return std::nullopt;
+        return index == 0 ? Optional<const SyntaxNode &>{identifier_.load(std::memory_order_acquire)} : std::nullopt;
     }
 } // namespace prism

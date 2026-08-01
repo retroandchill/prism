@@ -7,6 +7,8 @@ import :syntax.green.separated_list;
 
 namespace prism
 {
+    class GreenName;
+
     class GreenType : public GreenNode
     {
       protected:
@@ -18,7 +20,7 @@ namespace prism
       public:
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
-            return node.kind() == SyntaxKind::predefined_type || node.kind() == SyntaxKind::identifier_named_type;
+            return node.kind() == SyntaxKind::predefined_type || node.kind() == SyntaxKind::named_type;
         }
     };
 
@@ -94,53 +96,23 @@ namespace prism
         }
     };
 
-    class GreenNamedType : public GreenType
-    {
-      protected:
-        explicit constexpr GreenNamedType(const SyntaxKind kind, DiagnosticInfoList diagnostics = {})
-            : GreenType{kind, std::move(diagnostics)}
-        {
-        }
-
-      public:
-        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
-        {
-            return node.kind() == SyntaxKind::identifier_named_type;
-        }
-    };
-
-    class GreenSimpleNamedType : public GreenNamedType
-    {
-      protected:
-        explicit constexpr GreenSimpleNamedType(const SyntaxKind kind, DiagnosticInfoList diagnostics = {})
-            : GreenNamedType{kind, std::move(diagnostics)}
-        {
-        }
-
-      public:
-        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
-        {
-            return node.kind() == SyntaxKind::identifier_named_type;
-        }
-    };
-
-    class GreenIdentifierNamedType final : public GreenSimpleNamedType
+    class GreenNamedType final : public GreenType
     {
       public:
-        explicit GreenIdentifierNamedType(GreenPtr<GreenToken> identifier, DiagnosticInfoList diagnostics = {});
+        explicit GreenNamedType(GreenPtr<GreenName> identifier, DiagnosticInfoList diagnostics = {});
 
-        ~GreenIdentifierNamedType() override;
+        ~GreenNamedType() override;
 
-        [[nodiscard]] constexpr const GreenToken &identifier() const noexcept
+        [[nodiscard]] constexpr const GreenName &identifier() const noexcept
         {
             return *identifier_;
         }
 
-        void set_identifier(GreenPtr<GreenToken> value) noexcept;
+        void set_identifier(GreenPtr<GreenName> value) noexcept;
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
-            return node.kind() == SyntaxKind::identifier_named_type;
+            return node.kind() == SyntaxKind::named_type;
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
@@ -149,25 +121,25 @@ namespace prism
                                              const SyntaxNode *parent,
                                              std::uint32_t position) const override;
 
-        [[nodiscard]] GreenPtr<GreenIdentifierNamedType> with_identifier(GreenPtr<GreenToken> identifier) const;
+        [[nodiscard]] GreenPtr<GreenNamedType> with_identifier(GreenPtr<GreenName> identifier) const;
 
-        [[nodiscard]] GreenPtr<GreenIdentifierNamedType> update(GreenPtr<GreenToken> identifier) const;
+        [[nodiscard]] GreenPtr<GreenNamedType> update(GreenPtr<GreenName> identifier) const;
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
-        GreenPtr<GreenToken> identifier_;
+        GreenPtr<GreenName> identifier_;
     };
 
     template <>
-    struct GreenNodeTraits<GreenIdentifierNamedType>
+    struct GreenNodeTraits<GreenNamedType>
     {
         static constexpr std::size_t slot_count = 1;
 
-        using ChildTypes = std::tuple<GreenToken>;
+        using ChildTypes = std::tuple<GreenName>;
 
         template <std::size_t N>
             requires(N < slot_count)
-        static constexpr decltype(auto) get(const GreenIdentifierNamedType &node)
+        static constexpr decltype(auto) get(const GreenNamedType &node)
         {
             {
                 static_assert(N == 0);
@@ -175,9 +147,9 @@ namespace prism
             }
         }
 
-        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenIdentifierNamedType>> Arg>
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenNamedType>> Arg>
             requires(N < slot_count)
-        static constexpr void set(GreenIdentifierNamedType &node, Arg &&value)
+        static constexpr void set(GreenNamedType &node, Arg &&value)
         {
             {
                 static_assert(N == 0);
@@ -185,9 +157,9 @@ namespace prism
             }
         }
 
-        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenIdentifierNamedType>> Arg>
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenNamedType>> Arg>
             requires(N < slot_count)
-        static constexpr GreenPtr<GreenIdentifierNamedType> with(const GreenIdentifierNamedType &node, Arg &&value)
+        static constexpr GreenPtr<GreenNamedType> with(const GreenNamedType &node, Arg &&value)
         {
             {
                 static_assert(N == 0);

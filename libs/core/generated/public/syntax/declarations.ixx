@@ -15,8 +15,10 @@ namespace prism
     class BlockSyntax;
     class ExpressionBodySyntax;
     class InitializerSyntax;
+    class NameSyntax;
     class ParameterListSyntax;
     class TypeSpecifierSyntax;
+    class UsingDirectiveSyntax;
 
     export class PRISM_CORE_API DeclarationSyntax : public SyntaxNode
     {
@@ -37,6 +39,8 @@ namespace prism
         [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
             return node.kind() == SyntaxKind::incomplete_declaration ||
+                   node.kind() == SyntaxKind::block_namespace_declaration ||
+                   node.kind() == SyntaxKind::file_scoped_namespace_declaration ||
                    node.kind() == SyntaxKind::variable_declaration || node.kind() == SyntaxKind::function_declaration;
         }
     };
@@ -62,6 +66,99 @@ namespace prism
       protected:
         [[nodiscard]] Optional<const SyntaxNode &> get_node_slot(std::size_t index) const override;
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
+    };
+
+    export class PRISM_CORE_API NamespaceDeclarationSyntax : public DeclarationSyntax
+    {
+      protected:
+        constexpr NamespaceDeclarationSyntax(SyntaxLifetime &lifetime,
+                                             const GreenNamespaceDeclaration &node,
+                                             const SyntaxNode *parent,
+                                             const std::uint32_t position)
+            : DeclarationSyntax{lifetime, node, parent, position}
+        {
+        }
+
+        ~NamespaceDeclarationSyntax() = default;
+
+      public:
+        [[nodiscard]] virtual SyntaxToken namespace_token() const = 0;
+        [[nodiscard]] virtual const NameSyntax &name() const = 0;
+        [[nodiscard]] virtual SyntaxList<UsingDirectiveSyntax> usings() const = 0;
+        [[nodiscard]] virtual SyntaxList<DeclarationSyntax> members() const = 0;
+
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::block_namespace_declaration ||
+                   node.kind() == SyntaxKind::file_scoped_namespace_declaration;
+        }
+    };
+
+    export class PRISM_CORE_API BlockNamespaceDeclarationSyntax final : public NamespaceDeclarationSyntax
+    {
+      public:
+        constexpr BlockNamespaceDeclarationSyntax(SyntaxLifetime &lifetime,
+                                                  const GreenBlockNamespaceDeclaration &node,
+                                                  const SyntaxNode *parent,
+                                                  const std::uint32_t position)
+            : NamespaceDeclarationSyntax{lifetime, node, parent, position}
+        {
+        }
+
+        [[nodiscard]] SyntaxTokenList modifiers() const override;
+        [[nodiscard]] SyntaxToken namespace_token() const override;
+        [[nodiscard]] const NameSyntax &name() const override;
+        [[nodiscard]] SyntaxToken open_brace() const;
+        [[nodiscard]] SyntaxList<UsingDirectiveSyntax> usings() const override;
+        [[nodiscard]] SyntaxList<DeclarationSyntax> members() const override;
+        [[nodiscard]] SyntaxToken close_brace() const;
+
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::block_namespace_declaration;
+        }
+
+      protected:
+        [[nodiscard]] Optional<const SyntaxNode &> get_node_slot(std::size_t index) const override;
+        [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
+
+      private:
+        mutable std::atomic<const NameSyntax *> name_;
+        mutable std::atomic<const SyntaxNode *> usings_;
+        mutable std::atomic<const SyntaxNode *> members_;
+    };
+
+    export class PRISM_CORE_API FileScopedNamespaceDeclarationSyntax final : public NamespaceDeclarationSyntax
+    {
+      public:
+        constexpr FileScopedNamespaceDeclarationSyntax(SyntaxLifetime &lifetime,
+                                                       const GreenFileScopedNamespaceDeclaration &node,
+                                                       const SyntaxNode *parent,
+                                                       const std::uint32_t position)
+            : NamespaceDeclarationSyntax{lifetime, node, parent, position}
+        {
+        }
+
+        [[nodiscard]] SyntaxTokenList modifiers() const override;
+        [[nodiscard]] SyntaxToken namespace_token() const override;
+        [[nodiscard]] const NameSyntax &name() const override;
+        [[nodiscard]] SyntaxToken semicolon() const;
+        [[nodiscard]] SyntaxList<UsingDirectiveSyntax> usings() const override;
+        [[nodiscard]] SyntaxList<DeclarationSyntax> members() const override;
+
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::file_scoped_namespace_declaration;
+        }
+
+      protected:
+        [[nodiscard]] Optional<const SyntaxNode &> get_node_slot(std::size_t index) const override;
+        [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
+
+      private:
+        mutable std::atomic<const NameSyntax *> name_;
+        mutable std::atomic<const SyntaxNode *> usings_;
+        mutable std::atomic<const SyntaxNode *> members_;
     };
 
     export class PRISM_CORE_API VariableDeclarationSyntax final : public DeclarationSyntax

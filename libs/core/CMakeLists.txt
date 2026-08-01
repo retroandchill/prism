@@ -33,6 +33,10 @@ set(PRISM_SOURCES
         src/private/syntax/green/view.cpp
         generated/private/syntax/green/structured_trivia.cpp
         generated/private/syntax/structured_trivia.cpp
+        generated/private/syntax/names.cpp
+        generated/private/syntax/green/names.cpp
+        generated/private/syntax/directives.cpp
+        generated/private/syntax/green/directives.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -124,6 +128,14 @@ set(PRISM_PUBLIC_MODULES
         src/public/symbols/parameter_symbol.ixx
         src/public/symbols/variable_symbol.ixx
         src/public/util/ref.ixx
+        src/public/symbols/kind.ixx
+        src/public/symbols/assembly_symbol.ixx
+        src/public/symbols/namespace_symbol.ixx
+        src/public/symbols/named_type_symbol.ixx
+        generated/public/syntax/green/names.ixx
+        generated/public/syntax/names.ixx
+        generated/public/syntax/directives.ixx
+        generated/public/syntax/green/directives.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

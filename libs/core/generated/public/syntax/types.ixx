@@ -12,6 +12,8 @@ import :syntax.green.types;
 
 namespace prism
 {
+    class NameSyntax;
+
     export class PRISM_CORE_API TypeSyntax : public SyntaxNode
     {
       protected:
@@ -28,7 +30,7 @@ namespace prism
       public:
         [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
-            return node.kind() == SyntaxKind::predefined_type || node.kind() == SyntaxKind::identifier_named_type;
+            return node.kind() == SyntaxKind::predefined_type || node.kind() == SyntaxKind::named_type;
         }
     };
 
@@ -55,9 +57,9 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
     };
 
-    export class PRISM_CORE_API NamedTypeSyntax : public TypeSyntax
+    export class PRISM_CORE_API NamedTypeSyntax final : public TypeSyntax
     {
-      protected:
+      public:
         constexpr NamedTypeSyntax(SyntaxLifetime &lifetime,
                                   const GreenNamedType &node,
                                   const SyntaxNode *parent,
@@ -66,55 +68,18 @@ namespace prism
         {
         }
 
-        ~NamedTypeSyntax() = default;
-
-      public:
-        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
-        {
-            return node.kind() == SyntaxKind::identifier_named_type;
-        }
-    };
-
-    export class PRISM_CORE_API SimpleNamedTypeSyntax : public NamedTypeSyntax
-    {
-      protected:
-        constexpr SimpleNamedTypeSyntax(SyntaxLifetime &lifetime,
-                                        const GreenSimpleNamedType &node,
-                                        const SyntaxNode *parent,
-                                        const std::uint32_t position)
-            : NamedTypeSyntax{lifetime, node, parent, position}
-        {
-        }
-
-        ~SimpleNamedTypeSyntax() = default;
-
-      public:
-        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
-        {
-            return node.kind() == SyntaxKind::identifier_named_type;
-        }
-    };
-
-    export class PRISM_CORE_API IdentifierNamedTypeSyntax final : public SimpleNamedTypeSyntax
-    {
-      public:
-        constexpr IdentifierNamedTypeSyntax(SyntaxLifetime &lifetime,
-                                            const GreenIdentifierNamedType &node,
-                                            const SyntaxNode *parent,
-                                            const std::uint32_t position)
-            : SimpleNamedTypeSyntax{lifetime, node, parent, position}
-        {
-        }
-
-        [[nodiscard]] SyntaxToken identifier() const;
+        [[nodiscard]] const NameSyntax &identifier() const;
 
         [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
         {
-            return node.kind() == SyntaxKind::identifier_named_type;
+            return node.kind() == SyntaxKind::named_type;
         }
 
       protected:
         [[nodiscard]] Optional<const SyntaxNode &> get_node_slot(std::size_t index) const override;
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
+
+      private:
+        mutable std::atomic<const NameSyntax *> identifier_;
     };
 } // namespace prism

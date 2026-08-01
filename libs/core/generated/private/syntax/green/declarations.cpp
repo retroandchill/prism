@@ -4,6 +4,8 @@ import :syntax.lifetime;
 import :syntax.green.declarations;
 import :syntax.declarations;
 import :syntax.green.clauses;
+import :syntax.green.directives;
+import :syntax.green.names;
 import :syntax.green.statements;
 
 namespace prism
@@ -58,6 +60,318 @@ namespace prism
     RefCountPtr<GreenNode> GreenIncompleteDeclaration::clone_internal() const
     {
         return make_ref_counted<GreenIncompleteDeclaration>(modifiers_);
+    }
+
+    GreenBlockNamespaceDeclaration::GreenBlockNamespaceDeclaration(GreenSyntaxList<GreenToken> modifiers,
+                                                                   GreenPtr<GreenToken> namespace_token,
+                                                                   GreenPtr<GreenName> name,
+                                                                   GreenPtr<GreenToken> open_brace,
+                                                                   GreenSyntaxList<GreenUsingDirective> usings,
+                                                                   GreenSyntaxList<GreenDeclaration> members,
+                                                                   GreenPtr<GreenToken> close_brace,
+                                                                   DiagnosticInfoList diagnostics)
+        : GreenNamespaceDeclaration{SyntaxKind::block_namespace_declaration, std::move(diagnostics)},
+          modifiers_{std::move(modifiers)}, namespace_token_{std::move(namespace_token)}, name_{std::move(name)},
+          open_brace_{std::move(open_brace)}, usings_{std::move(usings)}, members_{std::move(members)},
+          close_brace_{std::move(close_brace)}
+    {
+        set_slot_count(7);
+        adjust_flags_and_width(modifiers_);
+        adjust_flags_and_width(*namespace_token_);
+        adjust_flags_and_width(*name_);
+        adjust_flags_and_width(*open_brace_);
+        adjust_flags_and_width(usings_);
+        adjust_flags_and_width(members_);
+        adjust_flags_and_width(*close_brace_);
+    }
+
+    GreenBlockNamespaceDeclaration::~GreenBlockNamespaceDeclaration() = default;
+
+    void GreenBlockNamespaceDeclaration::set_modifiers(GreenSyntaxList<GreenToken> value) noexcept
+    {
+        modifiers_ = std::move(value);
+    }
+
+    void GreenBlockNamespaceDeclaration::set_namespace_token(GreenPtr<GreenToken> value) noexcept
+    {
+        namespace_token_ = std::move(value);
+    }
+
+    void GreenBlockNamespaceDeclaration::set_name(GreenPtr<GreenName> value) noexcept
+    {
+        name_ = std::move(value);
+    }
+
+    void GreenBlockNamespaceDeclaration::set_open_brace(GreenPtr<GreenToken> value) noexcept
+    {
+        open_brace_ = std::move(value);
+    }
+
+    void GreenBlockNamespaceDeclaration::set_usings(GreenSyntaxList<GreenUsingDirective> value) noexcept
+    {
+        usings_ = std::move(value);
+    }
+
+    void GreenBlockNamespaceDeclaration::set_members(GreenSyntaxList<GreenDeclaration> value) noexcept
+    {
+        members_ = std::move(value);
+    }
+
+    void GreenBlockNamespaceDeclaration::set_close_brace(GreenPtr<GreenToken> value) noexcept
+    {
+        close_brace_ = std::move(value);
+    }
+
+    Optional<const GreenNode &> GreenBlockNamespaceDeclaration::get_slot(std::size_t index) const
+    {
+        switch (index)
+        {
+            case 0:
+                return modifiers_.node();
+            case 1:
+                return *namespace_token_;
+            case 2:
+                return *name_;
+            case 3:
+                return *open_brace_;
+            case 4:
+                return usings_.node();
+            case 5:
+                return members_.node();
+            case 6:
+                return *close_brace_;
+            default:
+                return std::nullopt;
+        }
+    }
+
+    [[nodiscard]] SyntaxNode &GreenBlockNamespaceDeclaration::create_red(SyntaxLifetime &lifetime,
+                                                                         const SyntaxNode *parent,
+                                                                         std::uint32_t position) const
+    {
+        return lifetime.add<BlockNamespaceDeclarationSyntax>(*this, parent, position);
+    }
+
+    [[nodiscard]] GreenPtr<GreenDeclaration> GreenBlockNamespaceDeclaration::with_modifiers_core(
+        GreenSyntaxList<GreenToken> modifiers) const
+    {
+        return update(std::move(modifiers), namespace_token_, name_, open_brace_, usings_, members_, close_brace_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenNamespaceDeclaration> GreenBlockNamespaceDeclaration::with_namespace_token_core(
+        GreenPtr<GreenToken> namespace_token) const
+    {
+        return update(modifiers_, std::move(namespace_token), name_, open_brace_, usings_, members_, close_brace_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenNamespaceDeclaration> GreenBlockNamespaceDeclaration::with_name_core(
+        GreenPtr<GreenName> name) const
+    {
+        return update(modifiers_, namespace_token_, std::move(name), open_brace_, usings_, members_, close_brace_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenBlockNamespaceDeclaration> GreenBlockNamespaceDeclaration::with_open_brace(
+        GreenPtr<GreenToken> open_brace) const
+    {
+        return update(modifiers_, namespace_token_, name_, std::move(open_brace), usings_, members_, close_brace_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenNamespaceDeclaration> GreenBlockNamespaceDeclaration::with_usings_core(
+        GreenSyntaxList<GreenUsingDirective> usings) const
+    {
+        return update(modifiers_, namespace_token_, name_, open_brace_, std::move(usings), members_, close_brace_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenNamespaceDeclaration> GreenBlockNamespaceDeclaration::with_members_core(
+        GreenSyntaxList<GreenDeclaration> members) const
+    {
+        return update(modifiers_, namespace_token_, name_, open_brace_, usings_, std::move(members), close_brace_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenBlockNamespaceDeclaration> GreenBlockNamespaceDeclaration::with_close_brace(
+        GreenPtr<GreenToken> close_brace) const
+    {
+        return update(modifiers_, namespace_token_, name_, open_brace_, usings_, members_, std::move(close_brace));
+    }
+
+    GreenPtr<GreenBlockNamespaceDeclaration> GreenBlockNamespaceDeclaration::update(
+        GreenSyntaxList<GreenToken> modifiers,
+        GreenPtr<GreenToken> namespace_token,
+        GreenPtr<GreenName> name,
+        GreenPtr<GreenToken> open_brace,
+        GreenSyntaxList<GreenUsingDirective> usings,
+        GreenSyntaxList<GreenDeclaration> members,
+        GreenPtr<GreenToken> close_brace) const
+    {
+        if (modifiers == modifiers_ && namespace_token == namespace_token_ && name == name_ &&
+            open_brace == open_brace_ && usings == usings_ && members == members_ && close_brace == close_brace_)
+            return shared_from_this();
+
+        return make_ref_counted<const GreenBlockNamespaceDeclaration>(std::move(modifiers),
+                                                                      std::move(namespace_token),
+                                                                      std::move(name),
+                                                                      std::move(open_brace),
+                                                                      std::move(usings),
+                                                                      std::move(members),
+                                                                      std::move(close_brace));
+    }
+
+    RefCountPtr<GreenNode> GreenBlockNamespaceDeclaration::clone_internal() const
+    {
+        return make_ref_counted<GreenBlockNamespaceDeclaration>(modifiers_,
+                                                                namespace_token_,
+                                                                name_,
+                                                                open_brace_,
+                                                                usings_,
+                                                                members_,
+                                                                close_brace_);
+    }
+
+    GreenFileScopedNamespaceDeclaration::GreenFileScopedNamespaceDeclaration(
+        GreenSyntaxList<GreenToken> modifiers,
+        GreenPtr<GreenToken> namespace_token,
+        GreenPtr<GreenName> name,
+        GreenPtr<GreenToken> semicolon,
+        GreenSyntaxList<GreenUsingDirective> usings,
+        GreenSyntaxList<GreenDeclaration> members,
+        DiagnosticInfoList diagnostics)
+        : GreenNamespaceDeclaration{SyntaxKind::file_scoped_namespace_declaration, std::move(diagnostics)},
+          modifiers_{std::move(modifiers)}, namespace_token_{std::move(namespace_token)}, name_{std::move(name)},
+          semicolon_{std::move(semicolon)}, usings_{std::move(usings)}, members_{std::move(members)}
+    {
+        set_slot_count(6);
+        adjust_flags_and_width(modifiers_);
+        adjust_flags_and_width(*namespace_token_);
+        adjust_flags_and_width(*name_);
+        adjust_flags_and_width(*semicolon_);
+        adjust_flags_and_width(usings_);
+        adjust_flags_and_width(members_);
+    }
+
+    GreenFileScopedNamespaceDeclaration::~GreenFileScopedNamespaceDeclaration() = default;
+
+    void GreenFileScopedNamespaceDeclaration::set_modifiers(GreenSyntaxList<GreenToken> value) noexcept
+    {
+        modifiers_ = std::move(value);
+    }
+
+    void GreenFileScopedNamespaceDeclaration::set_namespace_token(GreenPtr<GreenToken> value) noexcept
+    {
+        namespace_token_ = std::move(value);
+    }
+
+    void GreenFileScopedNamespaceDeclaration::set_name(GreenPtr<GreenName> value) noexcept
+    {
+        name_ = std::move(value);
+    }
+
+    void GreenFileScopedNamespaceDeclaration::set_semicolon(GreenPtr<GreenToken> value) noexcept
+    {
+        semicolon_ = std::move(value);
+    }
+
+    void GreenFileScopedNamespaceDeclaration::set_usings(GreenSyntaxList<GreenUsingDirective> value) noexcept
+    {
+        usings_ = std::move(value);
+    }
+
+    void GreenFileScopedNamespaceDeclaration::set_members(GreenSyntaxList<GreenDeclaration> value) noexcept
+    {
+        members_ = std::move(value);
+    }
+
+    Optional<const GreenNode &> GreenFileScopedNamespaceDeclaration::get_slot(std::size_t index) const
+    {
+        switch (index)
+        {
+            case 0:
+                return modifiers_.node();
+            case 1:
+                return *namespace_token_;
+            case 2:
+                return *name_;
+            case 3:
+                return *semicolon_;
+            case 4:
+                return usings_.node();
+            case 5:
+                return members_.node();
+            default:
+                return std::nullopt;
+        }
+    }
+
+    [[nodiscard]] SyntaxNode &GreenFileScopedNamespaceDeclaration::create_red(SyntaxLifetime &lifetime,
+                                                                              const SyntaxNode *parent,
+                                                                              std::uint32_t position) const
+    {
+        return lifetime.add<FileScopedNamespaceDeclarationSyntax>(*this, parent, position);
+    }
+
+    [[nodiscard]] GreenPtr<GreenDeclaration> GreenFileScopedNamespaceDeclaration::with_modifiers_core(
+        GreenSyntaxList<GreenToken> modifiers) const
+    {
+        return update(std::move(modifiers), namespace_token_, name_, semicolon_, usings_, members_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenNamespaceDeclaration> GreenFileScopedNamespaceDeclaration::with_namespace_token_core(
+        GreenPtr<GreenToken> namespace_token) const
+    {
+        return update(modifiers_, std::move(namespace_token), name_, semicolon_, usings_, members_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenNamespaceDeclaration> GreenFileScopedNamespaceDeclaration::with_name_core(
+        GreenPtr<GreenName> name) const
+    {
+        return update(modifiers_, namespace_token_, std::move(name), semicolon_, usings_, members_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenFileScopedNamespaceDeclaration> GreenFileScopedNamespaceDeclaration::with_semicolon(
+        GreenPtr<GreenToken> semicolon) const
+    {
+        return update(modifiers_, namespace_token_, name_, std::move(semicolon), usings_, members_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenNamespaceDeclaration> GreenFileScopedNamespaceDeclaration::with_usings_core(
+        GreenSyntaxList<GreenUsingDirective> usings) const
+    {
+        return update(modifiers_, namespace_token_, name_, semicolon_, std::move(usings), members_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenNamespaceDeclaration> GreenFileScopedNamespaceDeclaration::with_members_core(
+        GreenSyntaxList<GreenDeclaration> members) const
+    {
+        return update(modifiers_, namespace_token_, name_, semicolon_, usings_, std::move(members));
+    }
+
+    GreenPtr<GreenFileScopedNamespaceDeclaration> GreenFileScopedNamespaceDeclaration::update(
+        GreenSyntaxList<GreenToken> modifiers,
+        GreenPtr<GreenToken> namespace_token,
+        GreenPtr<GreenName> name,
+        GreenPtr<GreenToken> semicolon,
+        GreenSyntaxList<GreenUsingDirective> usings,
+        GreenSyntaxList<GreenDeclaration> members) const
+    {
+        if (modifiers == modifiers_ && namespace_token == namespace_token_ && name == name_ &&
+            semicolon == semicolon_ && usings == usings_ && members == members_)
+            return shared_from_this();
+
+        return make_ref_counted<const GreenFileScopedNamespaceDeclaration>(std::move(modifiers),
+                                                                           std::move(namespace_token),
+                                                                           std::move(name),
+                                                                           std::move(semicolon),
+                                                                           std::move(usings),
+                                                                           std::move(members));
+    }
+
+    RefCountPtr<GreenNode> GreenFileScopedNamespaceDeclaration::clone_internal() const
+    {
+        return make_ref_counted<GreenFileScopedNamespaceDeclaration>(modifiers_,
+                                                                     namespace_token_,
+                                                                     name_,
+                                                                     semicolon_,
+                                                                     usings_,
+                                                                     members_);
     }
 
     GreenVariableDeclaration::GreenVariableDeclaration(GreenSyntaxList<GreenToken> modifiers,

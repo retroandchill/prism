@@ -2,6 +2,8 @@ module prism.core:syntax.declarations.impl;
 
 import :syntax.declarations;
 import :syntax.clauses;
+import :syntax.directives;
+import :syntax.names;
 import :syntax.statements;
 
 namespace prism
@@ -19,6 +21,149 @@ namespace prism
     Optional<const SyntaxNode &> IncompleteDeclarationSyntax::get_cached_slot(const std::size_t) const
     {
         return std::nullopt;
+    }
+
+    SyntaxTokenList BlockNamespaceDeclarationSyntax::modifiers() const
+    {
+        return SyntaxTokenList{this,
+                               static_cast<const GreenBlockNamespaceDeclaration &>(green()).modifiers(),
+                               position()};
+    }
+
+    SyntaxToken BlockNamespaceDeclarationSyntax::namespace_token() const
+    {
+        return SyntaxToken{static_cast<const GreenBlockNamespaceDeclaration &>(green()).namespace_token(),
+                           this,
+                           get_slot_position(1)};
+    }
+
+    const NameSyntax &BlockNamespaceDeclarationSyntax::name() const
+    {
+        return *get_red(name_, 2);
+    }
+
+    SyntaxToken BlockNamespaceDeclarationSyntax::open_brace() const
+    {
+        return SyntaxToken{static_cast<const GreenBlockNamespaceDeclaration &>(green()).open_brace(),
+                           this,
+                           get_slot_position(3)};
+    }
+
+    SyntaxList<UsingDirectiveSyntax> BlockNamespaceDeclarationSyntax::usings() const
+    {
+        const auto red = get_red(usings_, 4);
+        return make_syntax_list<UsingDirectiveSyntax>(red);
+    }
+
+    SyntaxList<DeclarationSyntax> BlockNamespaceDeclarationSyntax::members() const
+    {
+        const auto red = get_red(members_, 5);
+        return make_syntax_list<DeclarationSyntax>(red);
+    }
+
+    SyntaxToken BlockNamespaceDeclarationSyntax::close_brace() const
+    {
+        return SyntaxToken{static_cast<const GreenBlockNamespaceDeclaration &>(green()).close_brace(),
+                           this,
+                           get_slot_position(6)};
+    }
+
+    Optional<const SyntaxNode &> BlockNamespaceDeclarationSyntax::get_node_slot(const std::size_t index) const
+    {
+        switch (index)
+        {
+            case 2:
+                return get_red(name_, 2);
+            case 4:
+                return get_red(usings_, 4);
+            case 5:
+                return get_red(members_, 5);
+            default:
+                return std::nullopt;
+        }
+    }
+
+    Optional<const SyntaxNode &> BlockNamespaceDeclarationSyntax::get_cached_slot(const std::size_t index) const
+    {
+        switch (index)
+        {
+            case 2:
+                return name_.load(std::memory_order_acquire);
+            case 4:
+                return usings_.load(std::memory_order_acquire);
+            case 5:
+                return members_.load(std::memory_order_acquire);
+            default:
+                return std::nullopt;
+        }
+    }
+
+    SyntaxTokenList FileScopedNamespaceDeclarationSyntax::modifiers() const
+    {
+        return SyntaxTokenList{this,
+                               static_cast<const GreenFileScopedNamespaceDeclaration &>(green()).modifiers(),
+                               position()};
+    }
+
+    SyntaxToken FileScopedNamespaceDeclarationSyntax::namespace_token() const
+    {
+        return SyntaxToken{static_cast<const GreenFileScopedNamespaceDeclaration &>(green()).namespace_token(),
+                           this,
+                           get_slot_position(1)};
+    }
+
+    const NameSyntax &FileScopedNamespaceDeclarationSyntax::name() const
+    {
+        return *get_red(name_, 2);
+    }
+
+    SyntaxToken FileScopedNamespaceDeclarationSyntax::semicolon() const
+    {
+        return SyntaxToken{static_cast<const GreenFileScopedNamespaceDeclaration &>(green()).semicolon(),
+                           this,
+                           get_slot_position(3)};
+    }
+
+    SyntaxList<UsingDirectiveSyntax> FileScopedNamespaceDeclarationSyntax::usings() const
+    {
+        const auto red = get_red(usings_, 4);
+        return make_syntax_list<UsingDirectiveSyntax>(red);
+    }
+
+    SyntaxList<DeclarationSyntax> FileScopedNamespaceDeclarationSyntax::members() const
+    {
+        const auto red = get_red(members_, 5);
+        return make_syntax_list<DeclarationSyntax>(red);
+    }
+
+    Optional<const SyntaxNode &> FileScopedNamespaceDeclarationSyntax::get_node_slot(const std::size_t index) const
+    {
+        switch (index)
+        {
+            case 2:
+                return get_red(name_, 2);
+            case 4:
+                return get_red(usings_, 4);
+            case 5:
+                return get_red(members_, 5);
+            default:
+                return std::nullopt;
+        }
+    }
+
+    Optional<const SyntaxNode &> FileScopedNamespaceDeclarationSyntax::get_cached_slot(const std::size_t index) const
+    {
+        switch (index)
+        {
+            case 2:
+                return name_.load(std::memory_order_acquire);
+            case 4:
+                return usings_.load(std::memory_order_acquire);
+            case 5:
+                return members_.load(std::memory_order_acquire);
+            default:
+                return std::nullopt;
+        }
     }
 
     SyntaxTokenList VariableDeclarationSyntax::modifiers() const

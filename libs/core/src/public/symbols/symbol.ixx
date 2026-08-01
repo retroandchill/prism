@@ -6,18 +6,71 @@
  */
 export module prism.core:symbols.symbol;
 
+import :symbols.kind;
 import :text.name;
 import :util.noncopyable;
 
 namespace prism
 {
-    export class Symbol : NonCopyable
+    export class Symbol;
+
+    template <typename T>
+    concept SymbolLike = std::same_as<T, Symbol> || (std::derived_from<T, Symbol> && requires(const Symbol &symbol) {
+                             {
+                                 T::instance_of(symbol)
+                             } -> std::convertible_to<bool>;
+                         });
+
+    class Symbol : NonCopyable
     {
       protected:
-        Symbol() = default;
+        constexpr Symbol(const SymbolKind kind, const Name name, const Symbol *containing = nullptr)
+            : kind_{kind}, name_{name}, containing_symbol_{containing}
+        {
+        }
+
         ~Symbol() = default;
 
       public:
-        virtual Name name() const noexcept = 0;
+        [[nodiscard]] constexpr SymbolKind kind() const noexcept
+        {
+            return kind_;
+        }
+
+        [[nodiscard]] constexpr Name name() const noexcept
+        {
+            return name_;
+        }
+
+        [[nodiscard]] constexpr Optional<const Symbol &> containing_symbol() const noexcept
+        {
+            return containing_symbol_;
+        }
+
+        template <SymbolLike T, typename Self>
+            requires std::derived_from<T, Self>
+        [[nodiscard]] constexpr bool is(this const Self &self) noexcept
+        {
+            if constexpr (std::same_as<T, Symbol>)
+            {
+                return true;
+            }
+            else
+            {
+                return T::instance_of(self);
+            }
+        }
+
+        template <SymbolLike T, typename Self>
+            requires std::derived_from<T, Self>
+        [[nodiscard]] constexpr Optional<const T &> as(this const Self &self) noexcept
+        {
+            return T::instance_of(self) ? Optional<const T &>{static_cast<const T &>(self)} : std::nullopt;
+        }
+
+      private:
+        SymbolKind kind_;
+        Name name_;
+        const Symbol *containing_symbol_ = nullptr;
     };
 } // namespace prism

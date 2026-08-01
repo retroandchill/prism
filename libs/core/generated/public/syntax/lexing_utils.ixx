@@ -10,6 +10,8 @@ namespace prism
         if (is_keyword(kind))
         {
             static std::array keyword_list = {
+                make_ref_counted<GreenToken>(SyntaxKind::namespace_keyword),
+                make_ref_counted<GreenToken>(SyntaxKind::using_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::var_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::func_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::extern_keyword),
@@ -166,6 +168,8 @@ namespace prism
                     return SyntaxKind::false_keyword;
                 if (text == "isize")
                     return SyntaxKind::isize_keyword;
+                if (text == "using")
+                    return SyntaxKind::using_keyword;
                 if (text == "usize")
                     return SyntaxKind::usize_keyword;
                 break;
@@ -176,6 +180,10 @@ namespace prism
                     return SyntaxKind::extern_keyword;
                 if (text == "return")
                     return SyntaxKind::return_keyword;
+                break;
+            case 9:
+                if (text == "namespace")
+                    return SyntaxKind::namespace_keyword;
                 break;
         }
 

@@ -119,10 +119,14 @@ namespace prism
         }
 
         template <std::derived_from<T> U>
-            requires std::assignable_from<T *, U *>
+            requires std::assignable_from<T *&, U *>
         constexpr RefCountPtr &operator=(const RefCountPtr<U> &other) noexcept
         {
-            reset(other.get());
+            if (ptr_ != nullptr)
+                ptr_->sub_ref();
+
+            other->add_ref();
+            ptr_ = other.get();
             return *this;
         }
 
@@ -142,7 +146,7 @@ namespace prism
         }
 
         template <std::derived_from<T> U>
-            requires std::assignable_from<T *, U *>
+            requires std::assignable_from<T *&, U *>
         constexpr RefCountPtr &operator=(RefCountPtr<U> &&other) noexcept
         {
             if (ptr_)

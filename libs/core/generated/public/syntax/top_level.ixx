@@ -13,6 +13,7 @@ import :syntax.green.top_level;
 namespace prism
 {
     class DeclarationSyntax;
+    class UsingDirectiveSyntax;
 
     export class PRISM_CORE_API CompilationUnitSyntax final : public SyntaxNode
     {
@@ -25,6 +26,7 @@ namespace prism
         {
         }
 
+        [[nodiscard]] SyntaxList<UsingDirectiveSyntax> usings() const;
         [[nodiscard]] SyntaxList<DeclarationSyntax> members() const;
 
         [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
@@ -37,6 +39,7 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
+        mutable std::atomic<const SyntaxNode *> usings_;
         mutable std::atomic<const SyntaxNode *> members_;
     };
 } // namespace prism

@@ -15,12 +15,20 @@ namespace prism
     export class ParameterSymbol : public Symbol
     {
       protected:
-        ParameterSymbol() = default;
+        ParameterSymbol(const Name name, const Symbol *containing) : Symbol{SymbolKind::parameter, name, containing}
+        {
+        }
+
         ~ParameterSymbol() = default;
 
       public:
         virtual const TypeSymbol &type() const noexcept = 0;
 
         virtual bool is_mutable() const noexcept = 0;
+
+        [[nodiscard]] static bool instance_of(const Symbol &symbol) noexcept
+        {
+            return symbol.kind() == SymbolKind::parameter;
+        }
     };
 } // namespace prism

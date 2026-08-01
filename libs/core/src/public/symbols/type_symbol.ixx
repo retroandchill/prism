@@ -14,7 +14,16 @@ namespace prism
     export class TypeSymbol : public Symbol
     {
       protected:
-        TypeSymbol() = default;
+        TypeSymbol(const SymbolKind kind, const Name name, const Symbol *containing) : Symbol{kind, name, containing}
+        {
+        }
+
         ~TypeSymbol() = default;
+
+      public:
+        static constexpr bool instance_of(const Symbol &symbol) noexcept
+        {
+            return symbol.kind() == SymbolKind::named_type;
+        }
     };
 } // namespace prism

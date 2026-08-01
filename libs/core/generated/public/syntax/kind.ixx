@@ -26,35 +26,37 @@ namespace prism
 
 #pragma region Keywords
         keyword_start = 1000,
-        var_keyword = 1000,
-        func_keyword = 1001,
-        extern_keyword = 1002,
-        return_keyword = 1003,
-        mut_keyword = 1004,
-        true_keyword = 1005,
-        false_keyword = 1006,
-        void_keyword = 1007,
-        bool_keyword = 1008,
-        i8_keyword = 1009,
-        i16_keyword = 1010,
-        i32_keyword = 1011,
-        i64_keyword = 1012,
-        i128_keyword = 1013,
-        u8_keyword = 1014,
-        u16_keyword = 1015,
-        u32_keyword = 1016,
-        u64_keyword = 1017,
-        u128_keyword = 1018,
-        isize_keyword = 1019,
-        usize_keyword = 1020,
-        f16_keyword = 1021,
-        f32_keyword = 1022,
-        f64_keyword = 1023,
-        char_keyword = 1024,
-        char16_keyword = 1025,
-        rune_keyword = 1026,
-        str_keyword = 1027,
-        keyword_end = 1027,
+        namespace_keyword = 1000,
+        using_keyword = 1001,
+        var_keyword = 1002,
+        func_keyword = 1003,
+        extern_keyword = 1004,
+        return_keyword = 1005,
+        mut_keyword = 1006,
+        true_keyword = 1007,
+        false_keyword = 1008,
+        void_keyword = 1009,
+        bool_keyword = 1010,
+        i8_keyword = 1011,
+        i16_keyword = 1012,
+        i32_keyword = 1013,
+        i64_keyword = 1014,
+        i128_keyword = 1015,
+        u8_keyword = 1016,
+        u16_keyword = 1017,
+        u32_keyword = 1018,
+        u64_keyword = 1019,
+        u128_keyword = 1020,
+        isize_keyword = 1021,
+        usize_keyword = 1022,
+        f16_keyword = 1023,
+        f32_keyword = 1024,
+        f64_keyword = 1025,
+        char_keyword = 1026,
+        char16_keyword = 1027,
+        rune_keyword = 1028,
+        str_keyword = 1029,
+        keyword_end = 1029,
 #pragma endregion
 
 #pragma region Punctuations
@@ -137,57 +139,72 @@ namespace prism
         type = 3000,
         predefined_type = 3001,
         named_type = 3002,
-        simple_named_type = 3003,
-        identifier_named_type = 3004,
-        type_end = 3004,
+        type_end = 3002,
+#pragma endregion
+
+#pragma region Names
+        name_start = 4000,
+        name = 4000,
+        simple_name = 4001,
+        qualified_name = 4002,
+        name_end = 4002,
 #pragma endregion
 
 #pragma region Clauses
-        clause_start = 4000,
-        initializer = 4000,
-        type_specifier = 4001,
-        named_parameter = 4002,
-        argument_list = 4003,
-        argument = 4004,
-        parameter_list = 4005,
-        parameter = 4006,
-        expression_body = 4007,
-        clause_end = 4007,
+        clause_start = 5000,
+        initializer = 5000,
+        type_specifier = 5001,
+        named_parameter = 5002,
+        argument_list = 5003,
+        argument = 5004,
+        parameter_list = 5005,
+        parameter = 5006,
+        expression_body = 5007,
+        clause_end = 5007,
 #pragma endregion
 
 #pragma region Expressions
-        expression_start = 5000,
-        expression = 5000,
-        literal_expression = 5001,
-        identifier_expression = 5002,
-        parenthesized_expression = 5003,
-        binary_expression = 5004,
-        assignment_expression = 5005,
-        prefix_expression = 5006,
-        postfix_expression = 5007,
-        ternary_expression = 5008,
-        invocation_expression = 5009,
-        expression_end = 5009,
+        expression_start = 6000,
+        expression = 6000,
+        literal_expression = 6001,
+        identifier_expression = 6002,
+        parenthesized_expression = 6003,
+        binary_expression = 6004,
+        assignment_expression = 6005,
+        prefix_expression = 6006,
+        postfix_expression = 6007,
+        ternary_expression = 6008,
+        invocation_expression = 6009,
+        expression_end = 6009,
 #pragma endregion
 
 #pragma region Statements
-        statement_start = 6000,
-        statement = 6000,
-        variable_declaration_statement = 6001,
-        block = 6002,
-        return_statement = 6003,
-        expression_statement = 6004,
-        empty_statement = 6005,
-        statement_end = 6005,
+        statement_start = 7000,
+        statement = 7000,
+        variable_declaration_statement = 7001,
+        block = 7002,
+        return_statement = 7003,
+        expression_statement = 7004,
+        empty_statement = 7005,
+        statement_end = 7005,
 #pragma endregion
 
 #pragma region Declarations
-        declaration_start = 7000,
-        declaration = 7000,
-        incomplete_declaration = 7001,
-        variable_declaration = 7002,
-        function_declaration = 7003,
-        declaration_end = 7003,
+        declaration_start = 8000,
+        declaration = 8000,
+        incomplete_declaration = 8001,
+        namespace_declaration = 8002,
+        block_namespace_declaration = 8003,
+        file_scoped_namespace_declaration = 8004,
+        variable_declaration = 8005,
+        function_declaration = 8006,
+        declaration_end = 8006,
+#pragma endregion
+
+#pragma region Directives
+        directive_start = 9000,
+        using_directive = 9000,
+        directive_end = 9000,
 #pragma endregion
     };
 
@@ -203,6 +220,10 @@ namespace prism
                 return "LineCommentTrivia";
             case SyntaxKind::block_comment_trivia:
                 return "BlockCommentTrivia";
+            case SyntaxKind::namespace_keyword:
+                return "namespace";
+            case SyntaxKind::using_keyword:
+                return "using";
             case SyntaxKind::var_keyword:
                 return "var";
             case SyntaxKind::func_keyword:
@@ -387,10 +408,12 @@ namespace prism
                 return "PredefinedType";
             case SyntaxKind::named_type:
                 return "NamedType";
-            case SyntaxKind::simple_named_type:
-                return "SimpleNamedType";
-            case SyntaxKind::identifier_named_type:
-                return "IdentifierNamedType";
+            case SyntaxKind::name:
+                return "Name";
+            case SyntaxKind::simple_name:
+                return "SimpleName";
+            case SyntaxKind::qualified_name:
+                return "QualifiedName";
             case SyntaxKind::initializer:
                 return "Initializer";
             case SyntaxKind::type_specifier:
@@ -443,10 +466,18 @@ namespace prism
                 return "Declaration";
             case SyntaxKind::incomplete_declaration:
                 return "IncompleteDeclaration";
+            case SyntaxKind::namespace_declaration:
+                return "NamespaceDeclaration";
+            case SyntaxKind::block_namespace_declaration:
+                return "BlockNamespaceDeclaration";
+            case SyntaxKind::file_scoped_namespace_declaration:
+                return "FileScopedNamespaceDeclaration";
             case SyntaxKind::variable_declaration:
                 return "VariableDeclaration";
             case SyntaxKind::function_declaration:
                 return "FunctionDeclaration";
+            case SyntaxKind::using_directive:
+                return "UsingDirective";
             default:
                 throw std::invalid_argument{"Unknown SyntaxKind"};
         }
@@ -494,6 +525,12 @@ namespace prism
                std::to_underlying(kind) <= std::to_underlying(SyntaxKind::type_end);
     }
 
+    export constexpr bool is_name(const SyntaxKind kind)
+    {
+        return std::to_underlying(kind) >= std::to_underlying(SyntaxKind::name_start) &&
+               std::to_underlying(kind) <= std::to_underlying(SyntaxKind::name_end);
+    }
+
     export constexpr bool is_clause(const SyntaxKind kind)
     {
         return std::to_underlying(kind) >= std::to_underlying(SyntaxKind::clause_start) &&
@@ -518,6 +555,12 @@ namespace prism
                std::to_underlying(kind) <= std::to_underlying(SyntaxKind::declaration_end);
     }
 
+    export constexpr bool is_directive(const SyntaxKind kind)
+    {
+        return std::to_underlying(kind) >= std::to_underlying(SyntaxKind::directive_start) &&
+               std::to_underlying(kind) <= std::to_underlying(SyntaxKind::directive_end);
+    }
+
     export constexpr bool is_structured_trivia(const SyntaxKind kind)
     {
         return is_structured_trivium(kind);
@@ -530,7 +573,7 @@ namespace prism
 
     export constexpr bool is_node(const SyntaxKind kind)
     {
-        return is_top_level(kind) || is_type(kind) || is_clause(kind) || is_expression(kind) || is_statement(kind) ||
-               is_declaration(kind);
+        return is_top_level(kind) || is_type(kind) || is_name(kind) || is_clause(kind) || is_expression(kind) ||
+               is_statement(kind) || is_declaration(kind) || is_directive(kind);
     }
 } // namespace prism

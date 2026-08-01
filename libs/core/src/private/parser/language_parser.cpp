@@ -152,20 +152,19 @@ namespace prism
 
     GreenPtr<GreenCompilationUnit> LanguageParser::parse_compilation_unit()
     {
-        GreenListBuilder<GreenDeclaration> builder;
-        while (!at_end())
-        {
-            builder.add(parse_declaration());
-        }
-
-        return make_ref_counted<const GreenCompilationUnit>(std::move(builder).build());
+        auto [usings, members] = parse_namespace_body();
+        return make_ref_counted<const GreenCompilationUnit>(std::move(usings), std::move(members));
     }
 
     GreenPtr<GreenDeclaration> LanguageParser::parse_declaration()
     {
+        if (peek_token().kind() == SyntaxKind::namespace_keyword)
+        {
+            return parse_namespace_declaration();
+        }
+
         auto modifiers = parse_modifiers();
-        auto &next = peek_token();
-        switch (next.kind())
+        switch (auto &next = peek_token(); next.kind())
         {
             case SyntaxKind::var_keyword:
                 return parse_variable_declaration(std::move(modifiers));
@@ -178,6 +177,7 @@ namespace prism
                 }
         }
     }
+
     GreenPtr<GreenStatement> LanguageParser::parse_statement()
     {
         switch (auto &next = peek_token(); next.kind())
@@ -206,6 +206,40 @@ namespace prism
         return parse_expression(parse_prefix_expression(), 0);
     }
 
+    NamespaceBody LanguageParser::parse_namespace_body()
+    {
+        return parse_namespace_body([](auto &&) { return true; });
+    }
+
+    template <std::predicate<const GreenToken &> Predicate>
+    NamespaceBody LanguageParser::parse_namespace_body(Predicate &&predicate)
+    {
+        GreenListBuilder<GreenUsingDirective> using_directives;
+        while (!at_end() && peek_token().kind() == SyntaxKind::using_keyword)
+        {
+            using_directives.add(parse_using_directive());
+        }
+
+        GreenListBuilder<GreenDeclaration> members;
+        while (!at_end() && std::invoke(predicate, peek_token()))
+        {
+            members.add(parse_declaration());
+        }
+
+        return NamespaceBody{.using_directives = std::move(using_directives).build(),
+                             .members = std::move(members).build()};
+    }
+
+    GreenPtr<GreenUsingDirective> LanguageParser::parse_using_directive()
+    {
+        auto using_keyword = expect_token(SyntaxKind::using_keyword);
+        auto name = parse_name();
+        auto semicolon = expect_token(SyntaxKind::semicolon_token);
+        return make_ref_counted<const GreenUsingDirective>(std::move(using_keyword),
+                                                           std::move(name),
+                                                           std::move(semicolon));
+    }
+
     GreenSyntaxList<GreenToken> LanguageParser::parse_modifiers()
     {
         GreenListBuilder<GreenToken> builder;
@@ -224,9 +258,40 @@ namespace prism
         return std::move(builder).build();
     }
 
+    GreenPtr<GreenNamespaceDeclaration> LanguageParser::parse_namespace_declaration()
+    {
+        auto namespace_keyword = expect_token(SyntaxKind::namespace_keyword);
+        auto identifier = parse_name();
+
+        if (auto semicolon = match_token(SyntaxKind::semicolon_token); semicolon.has_value())
+        {
+            auto [usings, members] = parse_namespace_body();
+            return make_ref_counted<GreenFileScopedNamespaceDeclaration>(GreenSyntaxList<GreenToken>{},
+                                                                         std::move(namespace_keyword),
+                                                                         std::move(identifier),
+                                                                         *std::move(semicolon),
+                                                                         std::move(usings),
+                                                                         std::move(members));
+        }
+        else
+        {
+            auto open_brace = expect_token(SyntaxKind::open_brace_token);
+            auto [usings, members] = parse_namespace_body([](const GreenToken &token)
+                                                          { return token.kind() != SyntaxKind::close_brace_token; });
+            auto close_brace = expect_token(SyntaxKind::close_brace_token);
+            return make_ref_counted<GreenBlockNamespaceDeclaration>(GreenSyntaxList<GreenToken>{},
+                                                                    std::move(namespace_keyword),
+                                                                    std::move(identifier),
+                                                                    std::move(open_brace),
+                                                                    std::move(usings),
+                                                                    std::move(members),
+                                                                    std::move(close_brace));
+        }
+    }
+
     GreenPtr<GreenVariableDeclaration> LanguageParser::parse_variable_declaration(GreenSyntaxList<GreenToken> modifiers)
     {
-        auto varKeyword = expect_token(SyntaxKind::var_keyword);
+        auto var_keyword = expect_token(SyntaxKind::var_keyword);
 
         auto mut_keyword = match_token(SyntaxKind::mut_keyword);
         auto identifier = expect_token(SyntaxKind::identifier_token);
@@ -235,7 +300,7 @@ namespace prism
         auto semicolon = expect_token(SyntaxKind::semicolon_token);
 
         return make_ref_counted<const GreenVariableDeclaration>(std::move(modifiers),
-                                                                std::move(varKeyword),
+                                                                std::move(var_keyword),
                                                                 std::move(mut_keyword).value_or_default(),
                                                                 std::move(identifier),
                                                                 std::move(type_specifier).value_or_default(),
@@ -302,8 +367,30 @@ namespace prism
             return make_ref_counted<GreenPredefinedType>(consume_token());
         }
 
+        return make_ref_counted<GreenNamedType>(parse_name());
+    }
+
+    GreenPtr<GreenName> LanguageParser::parse_name()
+    {
+        GreenPtr<GreenName> name = parse_simple_name();
+
+        while (!at_end())
+        {
+            auto semicolon = match_token(SyntaxKind::semicolon_token);
+            if (!semicolon.has_value())
+                break;
+
+            auto right = parse_simple_name();
+            name = make_ref_counted<GreenQualifiedName>(std::move(name), *std::move(semicolon), std::move(right));
+        }
+
+        return name;
+    }
+
+    GreenPtr<GreenSimpleName> LanguageParser::parse_simple_name()
+    {
         auto identifier = expect_token(SyntaxKind::identifier_token);
-        return make_ref_counted<GreenIdentifierNamedType>(std::move(identifier));
+        return make_ref_counted<GreenSimpleName>(std::move(identifier));
     }
 
     Optional<GreenPtr<GreenInitializer>> LanguageParser::parse_initializer()

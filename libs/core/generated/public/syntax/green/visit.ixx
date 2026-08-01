@@ -9,10 +9,12 @@ import :type_traits.visitor;
 import :syntax.green.structured_trivia;
 import :syntax.green.top_level;
 import :syntax.green.types;
+import :syntax.green.names;
 import :syntax.green.clauses;
 import :syntax.green.expressions;
 import :syntax.green.statements;
 import :syntax.green.declarations;
+import :syntax.green.directives;
 
 namespace prism
 {
@@ -22,7 +24,9 @@ namespace prism
                                                     const GreenSkippedTokensTrivia &,
                                                     const GreenCompilationUnit &,
                                                     const GreenPredefinedType &,
-                                                    const GreenIdentifierNamedType &,
+                                                    const GreenNamedType &,
+                                                    const GreenSimpleName &,
+                                                    const GreenQualifiedName &,
                                                     const GreenInitializer &,
                                                     const GreenTypeSpecifier &,
                                                     const GreenNamedParameter &,
@@ -46,8 +50,11 @@ namespace prism
                                                     const GreenExpressionStatement &,
                                                     const GreenEmptyStatement &,
                                                     const GreenIncompleteDeclaration &,
+                                                    const GreenBlockNamespaceDeclaration &,
+                                                    const GreenFileScopedNamespaceDeclaration &,
                                                     const GreenVariableDeclaration &,
-                                                    const GreenFunctionDeclaration &>;
+                                                    const GreenFunctionDeclaration &,
+                                                    const GreenUsingDirective &>;
 
     template <VisitorForGreenNode Functor>
     constexpr decltype(auto) visit(const GreenNode &node, Functor &&functor)
@@ -62,8 +69,12 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenCompilationUnit &>(node));
             case SyntaxKind::predefined_type:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenPredefinedType &>(node));
-            case SyntaxKind::identifier_named_type:
-                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenIdentifierNamedType &>(node));
+            case SyntaxKind::named_type:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenNamedType &>(node));
+            case SyntaxKind::simple_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenSimpleName &>(node));
+            case SyntaxKind::qualified_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenQualifiedName &>(node));
             case SyntaxKind::initializer:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenInitializer &>(node));
             case SyntaxKind::type_specifier:
@@ -116,10 +127,18 @@ namespace prism
             case SyntaxKind::incomplete_declaration:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const GreenIncompleteDeclaration &>(node));
+            case SyntaxKind::block_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenBlockNamespaceDeclaration &>(node));
+            case SyntaxKind::file_scoped_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenFileScopedNamespaceDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenFunctionDeclaration &>(node));
+            case SyntaxKind::using_directive:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenUsingDirective &>(node));
             default:
                 if (node.is_token())
                 {
@@ -141,7 +160,9 @@ namespace prism
                                                            GreenSkippedTokensTrivia &,
                                                            GreenCompilationUnit &,
                                                            GreenPredefinedType &,
-                                                           GreenIdentifierNamedType &,
+                                                           GreenNamedType &,
+                                                           GreenSimpleName &,
+                                                           GreenQualifiedName &,
                                                            GreenInitializer &,
                                                            GreenTypeSpecifier &,
                                                            GreenNamedParameter &,
@@ -165,8 +186,11 @@ namespace prism
                                                            GreenExpressionStatement &,
                                                            GreenEmptyStatement &,
                                                            GreenIncompleteDeclaration &,
+                                                           GreenBlockNamespaceDeclaration &,
+                                                           GreenFileScopedNamespaceDeclaration &,
                                                            GreenVariableDeclaration &,
-                                                           GreenFunctionDeclaration &>;
+                                                           GreenFunctionDeclaration &,
+                                                           GreenUsingDirective &>;
 
     template <MutableVisitorForGreenNode Functor>
     constexpr decltype(auto) visit(GreenNode &node, Functor &&functor)
@@ -181,8 +205,12 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenCompilationUnit &>(node));
             case SyntaxKind::predefined_type:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenPredefinedType &>(node));
-            case SyntaxKind::identifier_named_type:
-                return std::invoke(std::forward<Functor>(functor), static_cast<GreenIdentifierNamedType &>(node));
+            case SyntaxKind::named_type:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenNamedType &>(node));
+            case SyntaxKind::simple_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenSimpleName &>(node));
+            case SyntaxKind::qualified_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenQualifiedName &>(node));
             case SyntaxKind::initializer:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenInitializer &>(node));
             case SyntaxKind::type_specifier:
@@ -230,10 +258,17 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenEmptyStatement &>(node));
             case SyntaxKind::incomplete_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenIncompleteDeclaration &>(node));
+            case SyntaxKind::block_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenBlockNamespaceDeclaration &>(node));
+            case SyntaxKind::file_scoped_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<GreenFileScopedNamespaceDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenFunctionDeclaration &>(node));
+            case SyntaxKind::using_directive:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenUsingDirective &>(node));
             default:
                 if (node.is_token())
                 {
@@ -256,7 +291,9 @@ namespace prism
                                                               const GreenSkippedTokensTrivia &,
                                                               const GreenCompilationUnit &,
                                                               const GreenPredefinedType &,
-                                                              const GreenIdentifierNamedType &,
+                                                              const GreenNamedType &,
+                                                              const GreenSimpleName &,
+                                                              const GreenQualifiedName &,
                                                               const GreenInitializer &,
                                                               const GreenTypeSpecifier &,
                                                               const GreenNamedParameter &,
@@ -280,8 +317,11 @@ namespace prism
                                                               const GreenExpressionStatement &,
                                                               const GreenEmptyStatement &,
                                                               const GreenIncompleteDeclaration &,
+                                                              const GreenBlockNamespaceDeclaration &,
+                                                              const GreenFileScopedNamespaceDeclaration &,
                                                               const GreenVariableDeclaration &,
-                                                              const GreenFunctionDeclaration &>;
+                                                              const GreenFunctionDeclaration &,
+                                                              const GreenUsingDirective &>;
 
     template <typename R, VisitorForGreenNodeReturning Functor>
     constexpr R visit(const GreenNode &node, Functor &&functor)
@@ -296,8 +336,12 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenCompilationUnit &>(node));
             case SyntaxKind::predefined_type:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenPredefinedType &>(node));
-            case SyntaxKind::identifier_named_type:
-                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenIdentifierNamedType &>(node));
+            case SyntaxKind::named_type:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenNamedType &>(node));
+            case SyntaxKind::simple_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenSimpleName &>(node));
+            case SyntaxKind::qualified_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenQualifiedName &>(node));
             case SyntaxKind::initializer:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenInitializer &>(node));
             case SyntaxKind::type_specifier:
@@ -350,10 +394,18 @@ namespace prism
             case SyntaxKind::incomplete_declaration:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const GreenIncompleteDeclaration &>(node));
+            case SyntaxKind::block_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenBlockNamespaceDeclaration &>(node));
+            case SyntaxKind::file_scoped_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenFileScopedNamespaceDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenFunctionDeclaration &>(node));
+            case SyntaxKind::using_directive:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenUsingDirective &>(node));
             default:
                 if (node.is_token())
                 {
@@ -376,7 +428,9 @@ namespace prism
                                                                      GreenSkippedTokensTrivia &,
                                                                      GreenCompilationUnit &,
                                                                      GreenPredefinedType &,
-                                                                     GreenIdentifierNamedType &,
+                                                                     GreenNamedType &,
+                                                                     GreenSimpleName &,
+                                                                     GreenQualifiedName &,
                                                                      GreenInitializer &,
                                                                      GreenTypeSpecifier &,
                                                                      GreenNamedParameter &,
@@ -400,8 +454,11 @@ namespace prism
                                                                      GreenExpressionStatement &,
                                                                      GreenEmptyStatement &,
                                                                      GreenIncompleteDeclaration &,
+                                                                     GreenBlockNamespaceDeclaration &,
+                                                                     GreenFileScopedNamespaceDeclaration &,
                                                                      GreenVariableDeclaration &,
-                                                                     GreenFunctionDeclaration &>;
+                                                                     GreenFunctionDeclaration &,
+                                                                     GreenUsingDirective &>;
 
     template <typename R, MutableVisitorForGreenNodeReturning Functor>
     constexpr R visit(GreenNode &node, Functor &&functor)
@@ -416,8 +473,12 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenCompilationUnit &>(node));
             case SyntaxKind::predefined_type:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenPredefinedType &>(node));
-            case SyntaxKind::identifier_named_type:
-                return std::invoke(std::forward<Functor>(functor), static_cast<GreenIdentifierNamedType &>(node));
+            case SyntaxKind::named_type:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenNamedType &>(node));
+            case SyntaxKind::simple_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenSimpleName &>(node));
+            case SyntaxKind::qualified_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenQualifiedName &>(node));
             case SyntaxKind::initializer:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenInitializer &>(node));
             case SyntaxKind::type_specifier:
@@ -465,10 +526,17 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenEmptyStatement &>(node));
             case SyntaxKind::incomplete_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenIncompleteDeclaration &>(node));
+            case SyntaxKind::block_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenBlockNamespaceDeclaration &>(node));
+            case SyntaxKind::file_scoped_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<GreenFileScopedNamespaceDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenFunctionDeclaration &>(node));
+            case SyntaxKind::using_directive:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenUsingDirective &>(node));
             default:
                 if (node.is_token())
                 {
@@ -616,120 +684,70 @@ namespace prism
     }
 
     template <typename Functor>
-    concept VisitorForGreenNamedType = ExhaustiveVisitor<Functor, const GreenSimpleNamedType &>;
+    concept VisitorForGreenName = ExhaustiveVisitor<Functor, const GreenSimpleName &, const GreenQualifiedName &>;
 
-    template <VisitorForGreenNamedType Functor>
-    constexpr decltype(auto) visit(const GreenNamedType &node, Functor &&functor)
+    template <VisitorForGreenName Functor>
+    constexpr decltype(auto) visit(const GreenName &node, Functor &&functor)
     {
         switch (node.kind())
         {
-            case SyntaxKind::simple_named_type:
-                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenSimpleNamedType &>(node));
+            case SyntaxKind::simple_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenSimpleName &>(node));
+            case SyntaxKind::qualified_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenQualifiedName &>(node));
             default:
                 UNREACHABLE("Invalid node type passed into visit");
         }
     }
 
     template <typename Functor>
-    concept MutableVisitorForGreenNamedType = ExhaustiveVisitor<Functor, GreenSimpleNamedType &>;
+    concept MutableVisitorForGreenName = ExhaustiveVisitor<Functor, GreenSimpleName &, GreenQualifiedName &>;
 
-    template <MutableVisitorForGreenNamedType Functor>
-    constexpr decltype(auto) visit(GreenNamedType &node, Functor &&functor)
+    template <MutableVisitorForGreenName Functor>
+    constexpr decltype(auto) visit(GreenName &node, Functor &&functor)
     {
         switch (node.kind())
         {
-            case SyntaxKind::simple_named_type:
-                return std::invoke(std::forward<Functor>(functor), static_cast<GreenSimpleNamedType &>(node));
+            case SyntaxKind::simple_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenSimpleName &>(node));
+            case SyntaxKind::qualified_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenQualifiedName &>(node));
             default:
                 UNREACHABLE("Invalid node type passed into visit");
         }
     }
 
     template <typename Functor, typename R>
-    concept VisitorForGreenNamedTypeReturning = ConvertibleVisitor<Functor, R, const GreenSimpleNamedType &>;
+    concept VisitorForGreenNameReturning =
+        ConvertibleVisitor<Functor, R, const GreenSimpleName &, const GreenQualifiedName &>;
 
-    template <typename R, VisitorForGreenNamedTypeReturning Functor>
-    constexpr R visit(const GreenNamedType &node, Functor &&functor)
+    template <typename R, VisitorForGreenNameReturning Functor>
+    constexpr R visit(const GreenName &node, Functor &&functor)
     {
         switch (node.kind())
         {
-            case SyntaxKind::simple_named_type:
-                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenSimpleNamedType &>(node));
+            case SyntaxKind::simple_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenSimpleName &>(node));
+            case SyntaxKind::qualified_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenQualifiedName &>(node));
             default:
                 UNREACHABLE("Invalid node type passed into visit");
         }
     }
 
     template <typename Functor, typename R>
-    concept MutableVisitorForGreenNamedTypeReturning = ConvertibleVisitor<Functor, R, GreenSimpleNamedType &>;
+    concept MutableVisitorForGreenNameReturning =
+        ConvertibleVisitor<Functor, R, GreenSimpleName &, GreenQualifiedName &>;
 
-    template <typename R, MutableVisitorForGreenNamedTypeReturning Functor>
-    constexpr R visit(GreenNamedType &node, Functor &&functor)
+    template <typename R, MutableVisitorForGreenNameReturning Functor>
+    constexpr R visit(GreenName &node, Functor &&functor)
     {
         switch (node.kind())
         {
-            case SyntaxKind::simple_named_type:
-                return std::invoke(std::forward<Functor>(functor), static_cast<GreenSimpleNamedType &>(node));
-            default:
-                UNREACHABLE("Invalid node type passed into visit");
-        }
-    }
-
-    template <typename Functor>
-    concept VisitorForGreenSimpleNamedType = ExhaustiveVisitor<Functor, const GreenIdentifierNamedType &>;
-
-    template <VisitorForGreenSimpleNamedType Functor>
-    constexpr decltype(auto) visit(const GreenSimpleNamedType &node, Functor &&functor)
-    {
-        switch (node.kind())
-        {
-            case SyntaxKind::identifier_named_type:
-                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenIdentifierNamedType &>(node));
-            default:
-                UNREACHABLE("Invalid node type passed into visit");
-        }
-    }
-
-    template <typename Functor>
-    concept MutableVisitorForGreenSimpleNamedType = ExhaustiveVisitor<Functor, GreenIdentifierNamedType &>;
-
-    template <MutableVisitorForGreenSimpleNamedType Functor>
-    constexpr decltype(auto) visit(GreenSimpleNamedType &node, Functor &&functor)
-    {
-        switch (node.kind())
-        {
-            case SyntaxKind::identifier_named_type:
-                return std::invoke(std::forward<Functor>(functor), static_cast<GreenIdentifierNamedType &>(node));
-            default:
-                UNREACHABLE("Invalid node type passed into visit");
-        }
-    }
-
-    template <typename Functor, typename R>
-    concept VisitorForGreenSimpleNamedTypeReturning = ConvertibleVisitor<Functor, R, const GreenIdentifierNamedType &>;
-
-    template <typename R, VisitorForGreenSimpleNamedTypeReturning Functor>
-    constexpr R visit(const GreenSimpleNamedType &node, Functor &&functor)
-    {
-        switch (node.kind())
-        {
-            case SyntaxKind::identifier_named_type:
-                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenIdentifierNamedType &>(node));
-            default:
-                UNREACHABLE("Invalid node type passed into visit");
-        }
-    }
-
-    template <typename Functor, typename R>
-    concept MutableVisitorForGreenSimpleNamedTypeReturning = ConvertibleVisitor<Functor, R, GreenIdentifierNamedType &>;
-
-    template <typename R, MutableVisitorForGreenSimpleNamedTypeReturning Functor>
-    constexpr R visit(GreenSimpleNamedType &node, Functor &&functor)
-    {
-        switch (node.kind())
-        {
-            case SyntaxKind::identifier_named_type:
-                return std::invoke(std::forward<Functor>(functor), static_cast<GreenIdentifierNamedType &>(node));
+            case SyntaxKind::simple_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenSimpleName &>(node));
+            case SyntaxKind::qualified_name:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenQualifiedName &>(node));
             default:
                 UNREACHABLE("Invalid node type passed into visit");
         }
@@ -1026,6 +1044,8 @@ namespace prism
     template <typename Functor>
     concept VisitorForGreenDeclaration = ExhaustiveVisitor<Functor,
                                                            const GreenIncompleteDeclaration &,
+                                                           const GreenNamespaceDeclaration &,
+                                                           const GreenNamespaceDeclaration &,
                                                            const GreenVariableDeclaration &,
                                                            const GreenFunctionDeclaration &>;
 
@@ -1037,6 +1057,12 @@ namespace prism
             case SyntaxKind::incomplete_declaration:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const GreenIncompleteDeclaration &>(node));
+            case SyntaxKind::namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenNamespaceDeclaration &>(node));
+            case SyntaxKind::namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenNamespaceDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
@@ -1049,6 +1075,8 @@ namespace prism
     template <typename Functor>
     concept MutableVisitorForGreenDeclaration = ExhaustiveVisitor<Functor,
                                                                   GreenIncompleteDeclaration &,
+                                                                  GreenNamespaceDeclaration &,
+                                                                  GreenNamespaceDeclaration &,
                                                                   GreenVariableDeclaration &,
                                                                   GreenFunctionDeclaration &>;
 
@@ -1059,6 +1087,10 @@ namespace prism
         {
             case SyntaxKind::incomplete_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenIncompleteDeclaration &>(node));
+            case SyntaxKind::namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenNamespaceDeclaration &>(node));
+            case SyntaxKind::namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenNamespaceDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
@@ -1072,6 +1104,8 @@ namespace prism
     concept VisitorForGreenDeclarationReturning = ConvertibleVisitor<Functor,
                                                                      R,
                                                                      const GreenIncompleteDeclaration &,
+                                                                     const GreenNamespaceDeclaration &,
+                                                                     const GreenNamespaceDeclaration &,
                                                                      const GreenVariableDeclaration &,
                                                                      const GreenFunctionDeclaration &>;
 
@@ -1083,6 +1117,12 @@ namespace prism
             case SyntaxKind::incomplete_declaration:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const GreenIncompleteDeclaration &>(node));
+            case SyntaxKind::namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenNamespaceDeclaration &>(node));
+            case SyntaxKind::namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenNamespaceDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
@@ -1096,6 +1136,8 @@ namespace prism
     concept MutableVisitorForGreenDeclarationReturning = ConvertibleVisitor<Functor,
                                                                             R,
                                                                             GreenIncompleteDeclaration &,
+                                                                            GreenNamespaceDeclaration &,
+                                                                            GreenNamespaceDeclaration &,
                                                                             GreenVariableDeclaration &,
                                                                             GreenFunctionDeclaration &>;
 
@@ -1106,10 +1148,95 @@ namespace prism
         {
             case SyntaxKind::incomplete_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenIncompleteDeclaration &>(node));
+            case SyntaxKind::namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenNamespaceDeclaration &>(node));
+            case SyntaxKind::namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenNamespaceDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenFunctionDeclaration &>(node));
+            default:
+                UNREACHABLE("Invalid node type passed into visit");
+        }
+    }
+
+    template <typename Functor>
+    concept VisitorForGreenNamespaceDeclaration =
+        ExhaustiveVisitor<Functor, const GreenBlockNamespaceDeclaration &, const GreenFileScopedNamespaceDeclaration &>;
+
+    template <VisitorForGreenNamespaceDeclaration Functor>
+    constexpr decltype(auto) visit(const GreenNamespaceDeclaration &node, Functor &&functor)
+    {
+        switch (node.kind())
+        {
+            case SyntaxKind::block_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenBlockNamespaceDeclaration &>(node));
+            case SyntaxKind::file_scoped_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenFileScopedNamespaceDeclaration &>(node));
+            default:
+                UNREACHABLE("Invalid node type passed into visit");
+        }
+    }
+
+    template <typename Functor>
+    concept MutableVisitorForGreenNamespaceDeclaration =
+        ExhaustiveVisitor<Functor, GreenBlockNamespaceDeclaration &, GreenFileScopedNamespaceDeclaration &>;
+
+    template <MutableVisitorForGreenNamespaceDeclaration Functor>
+    constexpr decltype(auto) visit(GreenNamespaceDeclaration &node, Functor &&functor)
+    {
+        switch (node.kind())
+        {
+            case SyntaxKind::block_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenBlockNamespaceDeclaration &>(node));
+            case SyntaxKind::file_scoped_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<GreenFileScopedNamespaceDeclaration &>(node));
+            default:
+                UNREACHABLE("Invalid node type passed into visit");
+        }
+    }
+
+    template <typename Functor, typename R>
+    concept VisitorForGreenNamespaceDeclarationReturning =
+        ConvertibleVisitor<Functor,
+                           R,
+                           const GreenBlockNamespaceDeclaration &,
+                           const GreenFileScopedNamespaceDeclaration &>;
+
+    template <typename R, VisitorForGreenNamespaceDeclarationReturning Functor>
+    constexpr R visit(const GreenNamespaceDeclaration &node, Functor &&functor)
+    {
+        switch (node.kind())
+        {
+            case SyntaxKind::block_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenBlockNamespaceDeclaration &>(node));
+            case SyntaxKind::file_scoped_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<const GreenFileScopedNamespaceDeclaration &>(node));
+            default:
+                UNREACHABLE("Invalid node type passed into visit");
+        }
+    }
+
+    template <typename Functor, typename R>
+    concept MutableVisitorForGreenNamespaceDeclarationReturning =
+        ConvertibleVisitor<Functor, R, GreenBlockNamespaceDeclaration &, GreenFileScopedNamespaceDeclaration &>;
+
+    template <typename R, MutableVisitorForGreenNamespaceDeclarationReturning Functor>
+    constexpr R visit(GreenNamespaceDeclaration &node, Functor &&functor)
+    {
+        switch (node.kind())
+        {
+            case SyntaxKind::block_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenBlockNamespaceDeclaration &>(node));
+            case SyntaxKind::file_scoped_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<GreenFileScopedNamespaceDeclaration &>(node));
             default:
                 UNREACHABLE("Invalid node type passed into visit");
         }
@@ -1151,14 +1278,38 @@ namespace prism
         return std::invoke(std::forward<Functor>(functor), node);
     }
 
-    template <std::invocable<const GreenIdentifierNamedType &> Functor>
-    constexpr decltype(auto) visit(const GreenIdentifierNamedType &node, Functor &&functor)
+    template <std::invocable<const GreenNamedType &> Functor>
+    constexpr decltype(auto) visit(const GreenNamedType &node, Functor &&functor)
     {
         return std::invoke(std::forward<Functor>(functor), node);
     }
 
-    template <std::invocable<GreenIdentifierNamedType &> Functor>
-    constexpr decltype(auto) visit(GreenIdentifierNamedType &node, Functor &&functor)
+    template <std::invocable<GreenNamedType &> Functor>
+    constexpr decltype(auto) visit(GreenNamedType &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<const GreenSimpleName &> Functor>
+    constexpr decltype(auto) visit(const GreenSimpleName &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<GreenSimpleName &> Functor>
+    constexpr decltype(auto) visit(GreenSimpleName &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<const GreenQualifiedName &> Functor>
+    constexpr decltype(auto) visit(const GreenQualifiedName &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<GreenQualifiedName &> Functor>
+    constexpr decltype(auto) visit(GreenQualifiedName &node, Functor &&functor)
     {
         return std::invoke(std::forward<Functor>(functor), node);
     }
@@ -1439,6 +1590,30 @@ namespace prism
         return std::invoke(std::forward<Functor>(functor), node);
     }
 
+    template <std::invocable<const GreenBlockNamespaceDeclaration &> Functor>
+    constexpr decltype(auto) visit(const GreenBlockNamespaceDeclaration &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<GreenBlockNamespaceDeclaration &> Functor>
+    constexpr decltype(auto) visit(GreenBlockNamespaceDeclaration &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<const GreenFileScopedNamespaceDeclaration &> Functor>
+    constexpr decltype(auto) visit(const GreenFileScopedNamespaceDeclaration &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<GreenFileScopedNamespaceDeclaration &> Functor>
+    constexpr decltype(auto) visit(GreenFileScopedNamespaceDeclaration &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
     template <std::invocable<const GreenVariableDeclaration &> Functor>
     constexpr decltype(auto) visit(const GreenVariableDeclaration &node, Functor &&functor)
     {
@@ -1463,6 +1638,18 @@ namespace prism
         return std::invoke(std::forward<Functor>(functor), node);
     }
 
+    template <std::invocable<const GreenUsingDirective &> Functor>
+    constexpr decltype(auto) visit(const GreenUsingDirective &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<GreenUsingDirective &> Functor>
+    constexpr decltype(auto) visit(GreenUsingDirective &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
     template <typename R = void>
     class GreenSyntaxVisitor
     {
@@ -1481,7 +1668,9 @@ namespace prism
         virtual R operator()(const GreenSkippedTokensTrivia &node) const = 0;
         virtual R operator()(const GreenCompilationUnit &node) const = 0;
         virtual R operator()(const GreenPredefinedType &node) const = 0;
-        virtual R operator()(const GreenIdentifierNamedType &node) const = 0;
+        virtual R operator()(const GreenNamedType &node) const = 0;
+        virtual R operator()(const GreenSimpleName &node) const = 0;
+        virtual R operator()(const GreenQualifiedName &node) const = 0;
         virtual R operator()(const GreenInitializer &node) const = 0;
         virtual R operator()(const GreenTypeSpecifier &node) const = 0;
         virtual R operator()(const GreenNamedParameter &node) const = 0;
@@ -1505,8 +1694,11 @@ namespace prism
         virtual R operator()(const GreenExpressionStatement &node) const = 0;
         virtual R operator()(const GreenEmptyStatement &node) const = 0;
         virtual R operator()(const GreenIncompleteDeclaration &node) const = 0;
+        virtual R operator()(const GreenBlockNamespaceDeclaration &node) const = 0;
+        virtual R operator()(const GreenFileScopedNamespaceDeclaration &node) const = 0;
         virtual R operator()(const GreenVariableDeclaration &node) const = 0;
         virtual R operator()(const GreenFunctionDeclaration &node) const = 0;
+        virtual R operator()(const GreenUsingDirective &node) const = 0;
     };
 
     template <typename R = void>
@@ -1586,7 +1778,31 @@ namespace prism
             }
         }
 
-        constexpr R operator()(const GreenIdentifierNamedType &node) const override
+        constexpr R operator()(const GreenNamedType &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(const GreenSimpleName &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(const GreenQualifiedName &node) const override
         {
             if constexpr (!std::same_as<R, void>)
             {
@@ -1874,6 +2090,30 @@ namespace prism
             }
         }
 
+        constexpr R operator()(const GreenBlockNamespaceDeclaration &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(const GreenFileScopedNamespaceDeclaration &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
         constexpr R operator()(const GreenVariableDeclaration &node) const override
         {
             if constexpr (!std::same_as<R, void>)
@@ -1887,6 +2127,18 @@ namespace prism
         }
 
         constexpr R operator()(const GreenFunctionDeclaration &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(const GreenUsingDirective &node) const override
         {
             if constexpr (!std::same_as<R, void>)
             {
@@ -1917,7 +2169,9 @@ namespace prism
         virtual R operator()(GreenSkippedTokensTrivia &node) const = 0;
         virtual R operator()(GreenCompilationUnit &node) const = 0;
         virtual R operator()(GreenPredefinedType &node) const = 0;
-        virtual R operator()(GreenIdentifierNamedType &node) const = 0;
+        virtual R operator()(GreenNamedType &node) const = 0;
+        virtual R operator()(GreenSimpleName &node) const = 0;
+        virtual R operator()(GreenQualifiedName &node) const = 0;
         virtual R operator()(GreenInitializer &node) const = 0;
         virtual R operator()(GreenTypeSpecifier &node) const = 0;
         virtual R operator()(GreenNamedParameter &node) const = 0;
@@ -1941,8 +2195,11 @@ namespace prism
         virtual R operator()(GreenExpressionStatement &node) const = 0;
         virtual R operator()(GreenEmptyStatement &node) const = 0;
         virtual R operator()(GreenIncompleteDeclaration &node) const = 0;
+        virtual R operator()(GreenBlockNamespaceDeclaration &node) const = 0;
+        virtual R operator()(GreenFileScopedNamespaceDeclaration &node) const = 0;
         virtual R operator()(GreenVariableDeclaration &node) const = 0;
         virtual R operator()(GreenFunctionDeclaration &node) const = 0;
+        virtual R operator()(GreenUsingDirective &node) const = 0;
     };
 
     template <typename R = void>
@@ -2022,7 +2279,31 @@ namespace prism
             }
         }
 
-        constexpr R operator()(GreenIdentifierNamedType &node) const override
+        constexpr R operator()(GreenNamedType &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(GreenSimpleName &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(GreenQualifiedName &node) const override
         {
             if constexpr (!std::same_as<R, void>)
             {
@@ -2310,6 +2591,30 @@ namespace prism
             }
         }
 
+        constexpr R operator()(GreenBlockNamespaceDeclaration &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(GreenFileScopedNamespaceDeclaration &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
         constexpr R operator()(GreenVariableDeclaration &node) const override
         {
             if constexpr (!std::same_as<R, void>)
@@ -2323,6 +2628,18 @@ namespace prism
         }
 
         constexpr R operator()(GreenFunctionDeclaration &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(GreenUsingDirective &node) const override
         {
             if constexpr (!std::same_as<R, void>)
             {

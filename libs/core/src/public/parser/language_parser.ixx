@@ -16,6 +16,12 @@ import :diagnostics.syntax_info;
 
 namespace prism
 {
+    struct NamespaceBody
+    {
+        GreenSyntaxList<GreenUsingDirective> using_directives;
+        GreenSyntaxList<GreenDeclaration> members;
+    };
+
     class LanguageParser final : public SyntaxParser
     {
       public:
@@ -51,7 +57,12 @@ namespace prism
         [[nodiscard]] GreenPtr<GreenExpression> parse_expression();
 
       private:
+        [[nodiscard]] NamespaceBody parse_namespace_body();
+        template <std::predicate<const GreenToken &> Predicate>
+        [[nodiscard]] NamespaceBody parse_namespace_body(Predicate &&predicate);
+        [[nodiscard]] GreenPtr<GreenUsingDirective> parse_using_directive();
         [[nodiscard]] GreenSyntaxList<GreenToken> parse_modifiers();
+        [[nodiscard]] GreenPtr<GreenNamespaceDeclaration> parse_namespace_declaration();
         [[nodiscard]] GreenPtr<GreenVariableDeclaration> parse_variable_declaration(
             GreenSyntaxList<GreenToken> modifiers = {});
         [[nodiscard]] GreenPtr<GreenFunctionDeclaration> parse_function_declaration(
@@ -60,6 +71,8 @@ namespace prism
         [[nodiscard]] Optional<GreenPtr<GreenTypeSpecifier>> parse_type_specifier();
         [[nodiscard]] GreenPtr<GreenTypeSpecifier> parse_required_type_specifier();
         [[nodiscard]] GreenPtr<GreenType> parse_type();
+        [[nodiscard]] GreenPtr<GreenName> parse_name();
+        [[nodiscard]] GreenPtr<GreenSimpleName> parse_simple_name();
         [[nodiscard]] Optional<GreenPtr<GreenInitializer>> parse_initializer();
         [[nodiscard]] GreenPtr<GreenParameterList> parse_parameter_list();
 

@@ -15,12 +15,20 @@ namespace prism
     export class VariableSymbol : public Symbol
     {
       protected:
-        VariableSymbol() = default;
+        VariableSymbol(const Name name, const Symbol *containing) : Symbol{SymbolKind::variable, name, containing}
+        {
+        }
+
         ~VariableSymbol() = default;
 
       public:
         virtual const TypeSymbol &type() const noexcept = 0;
 
         virtual bool is_mutable() const noexcept = 0;
+
+        [[nodiscard]] static bool instance_of(const Symbol &symbol) noexcept
+        {
+            return symbol.kind() == SymbolKind::variable;
+        }
     };
 } // namespace prism
