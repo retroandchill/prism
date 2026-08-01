@@ -6,4 +6,6 @@
  */
 #pragma once
 
-#define PRISM_KNOWN_NAMES(X) X(none, "<none>")
+#define PRISM_KNOWN_NAMES(X)                                                                                           \
+    X(none, "<none>")                                                                                                  \
+    X(global, "<global>")

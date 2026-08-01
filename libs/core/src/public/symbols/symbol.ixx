@@ -9,10 +9,14 @@ export module prism.core:symbols.symbol;
 import :symbols.kind;
 import :text.name;
 import :util.noncopyable;
+import :util.ref;
 
 namespace prism
 {
     export class Symbol;
+
+    export template <typename T>
+    using SymbolSpan = std::span<const Ref<const T>>;
 
     template <typename T>
     concept SymbolLike = std::same_as<T, Symbol> || (std::derived_from<T, Symbol> && requires(const Symbol &symbol) {

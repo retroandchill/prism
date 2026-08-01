@@ -1,7 +1,6 @@
 set(PRISM_HEADERS include/prism/core/exports.h
         include/prism/core/per_project_boilerplate.hpp
         include/prism/core/names.hpp
-        include/prism/core/syntax.hpp
 )
 
 set(PRISM_SOURCES
@@ -136,6 +135,8 @@ set(PRISM_PUBLIC_MODULES
         generated/public/syntax/names.ixx
         generated/public/syntax/directives.ixx
         generated/public/syntax/green/directives.ixx
+        src/public/binder/symbol_lifetime.ixx
+        src/private/symbols/namespace_symbol.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

@@ -23,6 +23,7 @@ namespace prism
 #define REGISTER_NAME(name, str) name,
         PRISM_KNOWN_NAMES(REGISTER_NAME)
 #undef REGISTER_NAME
+
         count
     };
 
@@ -148,7 +149,7 @@ namespace prism
       public:
         constexpr Name() = default;
 
-        explicit inline Name(const KnownName name) : id_{NameEntryId::from_known_name(name)}
+        explicit(false) inline Name(const KnownName name) : id_{NameEntryId::from_known_name(name)}
         {
         }
 
