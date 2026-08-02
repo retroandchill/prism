@@ -146,6 +146,10 @@ set(PRISM_PUBLIC_MODULES
         src/private/symbols/source.cpp
         src/public/binder/semantic_facts.ixx
         src/private/binder/semantic_facts.cpp
+        src/public/semantic/compilation.ixx
+        src/private/semantic/compilation.cpp
+        src/public/binder/declaration_merger.ixx
+        src/private/binder/declaration_merger.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

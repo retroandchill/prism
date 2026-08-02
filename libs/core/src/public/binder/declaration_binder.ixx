@@ -8,31 +8,65 @@ export module prism.core:binder.declaration_binder;
 
 import :util.noncopyable;
 import :text.name;
+import :syntax.list;
 
 namespace prism
 {
-    class SymbolLifetime;
+    class FunctionDeclarationSyntax;
+    class ParameterSyntax;
+    class VariableDeclarationSyntax;
+    class NamespaceDeclarationSyntax;
     class SyntaxTree;
-    class Symbol;
     class DeclarationSyntax;
-    class AssemblySymbol;
-    class SourceAssemblySymbol;
-    class SourceNamespaceSymbol;
+
+    struct NamespaceRecord;
+    struct VariableRecord;
+    struct FunctionRecord;
+
+    using DeclarationRecord = std::variant<NamespaceRecord, VariableRecord, FunctionRecord>;
+
+    struct NamespaceRecord
+    {
+        std::vector<Name> names;
+        const NamespaceDeclarationSyntax *syntax = nullptr;
+        std::vector<DeclarationRecord> declarations;
+    };
+
+    struct VariableRecord
+    {
+        Name name;
+        const VariableDeclarationSyntax *syntax = nullptr;
+    };
+
+    struct ParameterRecord
+    {
+        Name name;
+        const ParameterSyntax *syntax = nullptr;
+    };
+
+    struct FunctionRecord
+    {
+        Name name;
+        const FunctionDeclarationSyntax *syntax = nullptr;
+        std::vector<ParameterRecord> parameters;
+    };
+
+    std::vector<DeclarationRecord> scan_declarations(const SyntaxTree &tree);
 
     class DeclarationBinder final : NonCopyable
     {
       public:
-        DeclarationBinder(Name assembly_name, const SyntaxTree &tree, SymbolLifetime &lifetime) noexcept;
+        constexpr explicit DeclarationBinder(const SyntaxTree &tree) noexcept : tree_{tree}
+        {
+        }
 
-        [[nodiscard]] const AssemblySymbol &bind() const;
+        [[nodiscard]] std::vector<DeclarationRecord> bind() const;
 
       private:
-        [[nodiscard]] Optional<const Symbol &> bind_declaration(const DeclarationSyntax &syntax,
-                                                                const Symbol &containing_symbol) const;
+        [[nodiscard]] std::vector<DeclarationRecord> bind_declarations(
+            SyntaxList<DeclarationSyntax> declarations) const;
+        [[nodiscard]] Optional<DeclarationRecord> bind_declaration(const DeclarationSyntax &syntax) const;
 
         const SyntaxTree &tree_;
-        SymbolLifetime &lifetime_;
-        SourceAssemblySymbol &assembly_symbol_;
-        SourceNamespaceSymbol &global_namespace_;
     };
 } // namespace prism

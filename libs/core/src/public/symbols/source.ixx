@@ -4,8 +4,13 @@
  * @date 8/1/2026
  * @brief
  */
+module;
+
+#include <libassert/assert-macros.hpp>
+
 export module prism.core:symbols.source;
 
+import libassert;
 import :symbols.namespace_symbol;
 import :symbols.assembly_symbol;
 import :symbols.variable_symbol;
@@ -24,6 +29,17 @@ namespace prism
         constexpr explicit SourceAssemblySymbol(const Name name) : AssemblySymbol{name}
         {
         }
+
+        [[nodiscard]] constexpr const NamespaceSymbol &global_namespace() const noexcept override
+        {
+            ASSUME(global_namespace_ != nullptr);
+            return *global_namespace_;
+        }
+
+      private:
+        friend class DeclarationMerger;
+
+        const NamespaceSymbol *global_namespace_ = nullptr;
     };
 
     class SourceNamespaceSymbol final : public NamespaceSymbol
@@ -51,7 +67,7 @@ namespace prism
             members_.append_range(std::forward<Range>(range));
         }
 
-        friend class DeclarationBinder;
+        friend class DeclarationMerger;
 
         std::vector<Ref<const Symbol>> members_;
     };
@@ -103,7 +119,7 @@ namespace prism
             parameters_.append_range(std::forward<Range>(range));
         }
 
-        friend class DeclarationBinder;
+        friend class DeclarationMerger;
 
         const FunctionDeclarationSyntax &syntax_;
         std::vector<Ref<const ParameterSymbol>> parameters_;

@@ -10,6 +10,8 @@ import :symbols.symbol;
 
 namespace prism
 {
+    class NamespaceSymbol;
+
     export class AssemblySymbol : public Symbol
     {
       protected:
@@ -19,6 +21,8 @@ namespace prism
         ~AssemblySymbol() = default;
 
       public:
+        [[nodiscard]] virtual const NamespaceSymbol &global_namespace() const noexcept = 0;
+
         [[nodiscard]] static constexpr bool instance_of(const Symbol &symbol) noexcept
         {
             return symbol.kind() == SymbolKind::assembly;
