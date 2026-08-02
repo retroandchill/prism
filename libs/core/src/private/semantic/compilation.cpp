@@ -20,7 +20,8 @@ namespace prism
     {
     }
 
-    std::unique_ptr<Compilation> Compilation::create(Name assembly_name, std::vector<std::unique_ptr<SyntaxTree>> trees)
+    std::unique_ptr<Compilation> Compilation::create(const Name assembly_name,
+                                                     std::vector<std::unique_ptr<SyntaxTree>> trees)
     {
         if (trees.empty())
             throw std::invalid_argument{"Cannot create a compilation with 0 syntax trees"};

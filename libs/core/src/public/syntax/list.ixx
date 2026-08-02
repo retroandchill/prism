@@ -96,7 +96,9 @@ namespace prism
                 if (index >= list->children_.size())
                     throw std::out_of_range{"index out of range"};
 
-                return static_cast<const T &>(*list->children_[index]);
+                auto &target = list->get_required_node_slot(index);
+                DEBUG_ASSERT(target.is<T>());
+                return static_cast<const T &>(target);
             }
 
             if (index != 0)
@@ -135,7 +137,7 @@ namespace prism
             return list_.size() / 2;
         }
 
-        [[nodiscard]] constexpr const T &operator[](const std::size_t index) const noexcept
+        [[nodiscard]] constexpr const T &operator[](const std::size_t index) const
         {
             auto node = list_.node();
             if (!node.has_value())
@@ -158,7 +160,7 @@ namespace prism
             return static_cast<const T &>(target);
         }
 
-        [[nodiscard]] constexpr SyntaxToken separator(const std::size_t index) const noexcept
+        [[nodiscard]] constexpr SyntaxToken separator(const std::size_t index) const
         {
             const auto node = list_.node();
             if (!node.has_value())

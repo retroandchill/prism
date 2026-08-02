@@ -20,6 +20,9 @@ namespace prism
       public:
         SyntaxTree(std::shared_ptr<SourceText> text, GreenPtr<GreenNode> root);
 
+        static std::unique_ptr<SyntaxTree> parse(std::string text);
+        static std::unique_ptr<SyntaxTree> parse(std::shared_ptr<SourceText> text);
+
         constexpr const SourceText &text() const noexcept
         {
             return *text_;

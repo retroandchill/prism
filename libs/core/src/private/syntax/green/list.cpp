@@ -11,6 +11,8 @@ module;
 module prism.core:syntax.green.list.impl;
 
 import :syntax.green.list;
+import :syntax.list;
+import :syntax.lifetime;
 
 namespace prism
 {
@@ -38,9 +40,11 @@ namespace prism
         return std::move(copy);
     }
 
-    SyntaxNode &GreenListNode::create_red(SyntaxLifetime &, const SyntaxNode *, std::uint32_t) const
+    SyntaxNode &GreenListNode::create_red(SyntaxLifetime &lifetime,
+                                          const SyntaxNode *parent,
+                                          const std::uint32_t position) const
     {
-        throw UnsupportedOperationException{};
+        return lifetime.add<SyntaxListImpl>(*this, parent, position);
     }
 
     RefCountPtr<GreenNode> GreenListNode::clone_internal() const

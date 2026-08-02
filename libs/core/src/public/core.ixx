@@ -47,3 +47,5 @@ export import :symbols.variable_symbol;
 export import :symbols.type_symbol;
 export import :symbols.function_symbol;
 export import :symbols.parameter_symbol;
+
+export import :semantic.compilation;

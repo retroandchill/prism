@@ -50,6 +50,6 @@ namespace prism
 
         boost::container::small_vector<GreenPtr<GreenNode>, small_buffer_size> roots_;
         PersistentAllocator allocator_;
-        std::mutex mutex_;
+        std::recursive_mutex mutex_;
     };
 } // namespace prism

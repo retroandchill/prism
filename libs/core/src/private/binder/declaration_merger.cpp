@@ -14,7 +14,7 @@ import :util.overload;
 namespace prism
 {
 
-    const AssemblySymbol &DeclarationMerger::merge(std::span<const DeclarationRecord> records)
+    const AssemblySymbol &DeclarationMerger::merge(const std::span<const DeclarationRecord> records)
     {
         assembly_ = &lifetime_.create<SourceAssemblySymbol>(assembly_name_);
         global_namespace_ = &lifetime_.create<SourceNamespaceSymbol>(KnownName::global, assembly_);

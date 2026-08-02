@@ -27,6 +27,16 @@ namespace prism
       public:
         static std::unique_ptr<Compilation> create(Name assembly_name, std::vector<std::unique_ptr<SyntaxTree>> trees);
 
+        [[nodiscard]] constexpr const AssemblySymbol &assembly() const noexcept
+        {
+            return assembly_;
+        }
+
+        [[nodiscard]] constexpr const std::vector<std::unique_ptr<SyntaxTree>> &trees() const noexcept
+        {
+            return trees_;
+        }
+
       private:
         std::unique_ptr<SymbolLifetime> lifetime_;
         const AssemblySymbol &assembly_;

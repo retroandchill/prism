@@ -376,12 +376,12 @@ namespace prism
 
         while (!at_end())
         {
-            auto semicolon = match_token(SyntaxKind::semicolon_token);
-            if (!semicolon.has_value())
+            auto separator = match_token(SyntaxKind::double_colon_token);
+            if (!separator.has_value())
                 break;
 
             auto right = parse_simple_name();
-            name = make_ref_counted<GreenQualifiedName>(std::move(name), *std::move(semicolon), std::move(right));
+            name = make_ref_counted<GreenQualifiedName>(std::move(name), *std::move(separator), std::move(right));
         }
 
         return name;

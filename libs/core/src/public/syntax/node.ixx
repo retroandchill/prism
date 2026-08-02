@@ -126,11 +126,16 @@ namespace prism
             {
                 if (const auto green = green_->get_slot(0); green.has_value())
                 {
-                    slot.compare_exchange_strong(
-                        result,
-                        static_cast<const T *>(std::addressof(green->create_red(lifetime(), this, position_))),
-                        std::memory_order_acq_rel,
-                        std::memory_order_relaxed);
+                    auto *created =
+                        static_cast<const T *>(std::addressof(green->create_red(lifetime(), this, position_)));
+                    ;
+                    if (slot.compare_exchange_strong(result,
+                                                     created,
+                                                     std::memory_order_acq_rel,
+                                                     std::memory_order_relaxed))
+                    {
+                        return created;
+                    }
                 }
             }
 
@@ -146,11 +151,16 @@ namespace prism
             {
                 if (const auto green = green_->get_slot(index); green.has_value())
                 {
-                    slot.compare_exchange_strong(result,
-                                                 static_cast<const T *>(std::addressof(
-                                                     green->create_red(lifetime(), this, get_slot_position(index)))),
-                                                 std::memory_order_acq_rel,
-                                                 std::memory_order_relaxed);
+                    auto *created = static_cast<const T *>(
+                        std::addressof(green->create_red(lifetime(), this, get_slot_position(index))));
+                    ;
+                    if (slot.compare_exchange_strong(result,
+                                                     created,
+                                                     std::memory_order_acq_rel,
+                                                     std::memory_order_relaxed))
+                    {
+                        return created;
+                    }
                 }
             }
 
