@@ -140,6 +140,8 @@ set(PRISM_PUBLIC_MODULES
         generated/public/syntax/visit.ixx
         src/public/symbols/source.ixx
         src/private/binder/declaration_binder.cpp
+        src/private/symbols/symbol.cpp
+        src/public/symbols/visit.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

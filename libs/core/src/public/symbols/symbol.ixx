@@ -15,6 +15,9 @@ import :text.string_writer;
 namespace prism
 {
     export class Symbol;
+    class AssemblySymbol;
+    class NamespaceSymbol;
+    class TypeSymbol;
 
     export template <typename T>
     using SymbolSpan = std::span<const Ref<const T>>;
@@ -51,6 +54,10 @@ namespace prism
         {
             return containing_symbol_;
         }
+
+        [[nodiscard]] Optional<const AssemblySymbol &> containing_assembly() const noexcept;
+        [[nodiscard]] Optional<const NamespaceSymbol &> containing_namespace() const noexcept;
+        [[nodiscard]] Optional<const TypeSymbol &> containing_type() const noexcept;
 
         template <SymbolLike T, typename Self>
             requires std::derived_from<T, Self>
