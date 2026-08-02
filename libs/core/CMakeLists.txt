@@ -142,6 +142,10 @@ set(PRISM_PUBLIC_MODULES
         src/private/binder/declaration_binder.cpp
         src/private/symbols/symbol.cpp
         src/public/symbols/visit.ixx
+        src/public/util/lazy.ixx
+        src/private/symbols/source.cpp
+        src/public/binder/semantic_facts.ixx
+        src/private/binder/semantic_facts.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

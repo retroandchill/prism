@@ -13,6 +13,7 @@ target_sources(boost_cppm PUBLIC
 
 find_package(boost_container CONFIG REQUIRED)
 find_package(boost_multiprecision CONFIG REQUIRED)
-target_link_libraries(boost_cppm PUBLIC Boost::container Boost::multiprecision)
+find_package(boost_unordered CONFIG REQUIRED)
+target_link_libraries(boost_cppm PUBLIC Boost::container Boost::multiprecision  Boost::unordered)
 
 add_library(Boost::cppm ALIAS boost_cppm)

@@ -323,7 +323,7 @@ namespace prism
                                                               const GreenFunctionDeclaration &,
                                                               const GreenUsingDirective &>;
 
-    template <typename R, VisitorForGreenNodeReturning Functor>
+    template <typename R, VisitorForGreenNodeReturning<R> Functor>
     constexpr R visit(const GreenNode &node, Functor &&functor)
     {
         switch (node.kind())
@@ -460,7 +460,7 @@ namespace prism
                                                                      GreenFunctionDeclaration &,
                                                                      GreenUsingDirective &>;
 
-    template <typename R, MutableVisitorForGreenNodeReturning Functor>
+    template <typename R, MutableVisitorForGreenNodeReturning<R> Functor>
     constexpr R visit(GreenNode &node, Functor &&functor)
     {
         switch (node.kind())
@@ -585,7 +585,7 @@ namespace prism
     template <typename Functor, typename R>
     concept VisitorForGreenStructuredTriviaReturning = ConvertibleVisitor<Functor, R, const GreenSkippedTokensTrivia &>;
 
-    template <typename R, VisitorForGreenStructuredTriviaReturning Functor>
+    template <typename R, VisitorForGreenStructuredTriviaReturning<R> Functor>
     constexpr R visit(const GreenStructuredTrivia &node, Functor &&functor)
     {
         switch (node.kind())
@@ -601,7 +601,7 @@ namespace prism
     concept MutableVisitorForGreenStructuredTriviaReturning =
         ConvertibleVisitor<Functor, R, GreenSkippedTokensTrivia &>;
 
-    template <typename R, MutableVisitorForGreenStructuredTriviaReturning Functor>
+    template <typename R, MutableVisitorForGreenStructuredTriviaReturning<R> Functor>
     constexpr R visit(GreenStructuredTrivia &node, Functor &&functor)
     {
         switch (node.kind())
@@ -651,7 +651,7 @@ namespace prism
     concept VisitorForGreenTypeReturning =
         ConvertibleVisitor<Functor, R, const GreenPredefinedType &, const GreenNamedType &>;
 
-    template <typename R, VisitorForGreenTypeReturning Functor>
+    template <typename R, VisitorForGreenTypeReturning<R> Functor>
     constexpr R visit(const GreenType &node, Functor &&functor)
     {
         switch (node.kind())
@@ -669,7 +669,7 @@ namespace prism
     concept MutableVisitorForGreenTypeReturning =
         ConvertibleVisitor<Functor, R, GreenPredefinedType &, GreenNamedType &>;
 
-    template <typename R, MutableVisitorForGreenTypeReturning Functor>
+    template <typename R, MutableVisitorForGreenTypeReturning<R> Functor>
     constexpr R visit(GreenType &node, Functor &&functor)
     {
         switch (node.kind())
@@ -721,7 +721,7 @@ namespace prism
     concept VisitorForGreenNameReturning =
         ConvertibleVisitor<Functor, R, const GreenSimpleName &, const GreenQualifiedName &>;
 
-    template <typename R, VisitorForGreenNameReturning Functor>
+    template <typename R, VisitorForGreenNameReturning<R> Functor>
     constexpr R visit(const GreenName &node, Functor &&functor)
     {
         switch (node.kind())
@@ -739,7 +739,7 @@ namespace prism
     concept MutableVisitorForGreenNameReturning =
         ConvertibleVisitor<Functor, R, GreenSimpleName &, GreenQualifiedName &>;
 
-    template <typename R, MutableVisitorForGreenNameReturning Functor>
+    template <typename R, MutableVisitorForGreenNameReturning<R> Functor>
     constexpr R visit(GreenName &node, Functor &&functor)
     {
         switch (node.kind())
@@ -850,7 +850,7 @@ namespace prism
                                                                     const GreenTernaryExpression &,
                                                                     const GreenInvocationExpression &>;
 
-    template <typename R, VisitorForGreenExpressionReturning Functor>
+    template <typename R, VisitorForGreenExpressionReturning<R> Functor>
     constexpr R visit(const GreenExpression &node, Functor &&functor)
     {
         switch (node.kind())
@@ -895,7 +895,7 @@ namespace prism
                                                                            GreenTernaryExpression &,
                                                                            GreenInvocationExpression &>;
 
-    template <typename R, MutableVisitorForGreenExpressionReturning Functor>
+    template <typename R, MutableVisitorForGreenExpressionReturning<R> Functor>
     constexpr R visit(GreenExpression &node, Functor &&functor)
     {
         switch (node.kind())
@@ -990,7 +990,7 @@ namespace prism
                                                                    const GreenExpressionStatement &,
                                                                    const GreenEmptyStatement &>;
 
-    template <typename R, VisitorForGreenStatementReturning Functor>
+    template <typename R, VisitorForGreenStatementReturning<R> Functor>
     constexpr R visit(const GreenStatement &node, Functor &&functor)
     {
         switch (node.kind())
@@ -1020,7 +1020,7 @@ namespace prism
                                                                           GreenExpressionStatement &,
                                                                           GreenEmptyStatement &>;
 
-    template <typename R, MutableVisitorForGreenStatementReturning Functor>
+    template <typename R, MutableVisitorForGreenStatementReturning<R> Functor>
     constexpr R visit(GreenStatement &node, Functor &&functor)
     {
         switch (node.kind())
@@ -1110,7 +1110,7 @@ namespace prism
                                                                      const GreenVariableDeclaration &,
                                                                      const GreenFunctionDeclaration &>;
 
-    template <typename R, VisitorForGreenDeclarationReturning Functor>
+    template <typename R, VisitorForGreenDeclarationReturning<R> Functor>
     constexpr R visit(const GreenDeclaration &node, Functor &&functor)
     {
         switch (node.kind())
@@ -1142,7 +1142,7 @@ namespace prism
                                                                             GreenVariableDeclaration &,
                                                                             GreenFunctionDeclaration &>;
 
-    template <typename R, MutableVisitorForGreenDeclarationReturning Functor>
+    template <typename R, MutableVisitorForGreenDeclarationReturning<R> Functor>
     constexpr R visit(GreenDeclaration &node, Functor &&functor)
     {
         switch (node.kind())
@@ -1209,7 +1209,7 @@ namespace prism
                            const GreenBlockNamespaceDeclaration &,
                            const GreenFileScopedNamespaceDeclaration &>;
 
-    template <typename R, VisitorForGreenNamespaceDeclarationReturning Functor>
+    template <typename R, VisitorForGreenNamespaceDeclarationReturning<R> Functor>
     constexpr R visit(const GreenNamespaceDeclaration &node, Functor &&functor)
     {
         switch (node.kind())
@@ -1229,7 +1229,7 @@ namespace prism
     concept MutableVisitorForGreenNamespaceDeclarationReturning =
         ConvertibleVisitor<Functor, R, GreenBlockNamespaceDeclaration &, GreenFileScopedNamespaceDeclaration &>;
 
-    template <typename R, MutableVisitorForGreenNamespaceDeclarationReturning Functor>
+    template <typename R, MutableVisitorForGreenNamespaceDeclarationReturning<R> Functor>
     constexpr R visit(GreenNamespaceDeclaration &node, Functor &&functor)
     {
         switch (node.kind())

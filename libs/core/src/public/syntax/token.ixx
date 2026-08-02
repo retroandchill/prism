@@ -95,7 +95,7 @@ namespace prism
         template <LiteralData T>
         LiteralDataResult<T> get_value() const
         {
-            if (!LiteralDataResult<T>::valid_kind(kind()))
+            if (!LiteralDataTraits<T>::valid_kind(kind()))
                 throw std::invalid_argument{"Invalid token kind"};
 
             return get_value_unchecked<T>();
@@ -104,7 +104,7 @@ namespace prism
         template <LiteralData T>
         LiteralDataResult<T> get_value_unchecked() const
         {
-            return LiteralDataResult<T>::get_value(*green_);
+            return LiteralDataTraits<T>::get_value(*green_);
         }
 
       private:

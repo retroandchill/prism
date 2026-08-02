@@ -400,4 +400,19 @@ namespace boost
         export using container::vector;
         export using container::small_vector;
     } // namespace container
+
+    export using boost::unordered_map;
+    export using boost::unordered_set;
+    export using boost::unordered_multimap;
+    export using boost::unordered_multiset;
+
+    export using boost::unordered_node_map;
+    export using boost::unordered_node_set;
+    export using boost::unordered_flat_map;
+    export using boost::unordered_flat_set;
+
+    export using boost::concurrent_node_map;
+    export using boost::concurrent_node_set;
+    export using boost::concurrent_flat_map;
+    export using boost::concurrent_flat_set;
 } // namespace boost

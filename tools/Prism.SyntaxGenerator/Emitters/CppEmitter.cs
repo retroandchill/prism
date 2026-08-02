@@ -1017,6 +1017,7 @@ public static class CppEmitter
             var returnValueParam = isReturning ? ", typename R" : "";
             var returnValueArg = isReturning ? ", R" : "";
             var returningSuffix = isReturning ? "Returning" : "";
+            var returningParam = isReturning ? "<R>" : "";
 
             writer.WriteLine($"{export}template <typename Functor{returnValueParam}>");
             writer.Write(
@@ -1039,7 +1040,7 @@ public static class CppEmitter
 
             returnValueParam = isReturning ? "typename R, " : "";
             writer.WriteLine(
-                $"{export}template <{returnValueParam}{mutablePrefix}VisitorFor{baseName}{returningSuffix} Functor>"
+                $"{export}template <{returnValueParam}{mutablePrefix}VisitorFor{baseName}{returningSuffix}{returningParam} Functor>"
             );
 
             var returnValueType = isReturning ? "R" : "decltype(auto)";

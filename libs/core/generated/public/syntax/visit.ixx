@@ -183,7 +183,7 @@ namespace prism
                                                                const FunctionDeclarationSyntax &,
                                                                const UsingDirectiveSyntax &>;
 
-    export template <typename R, VisitorForSyntaxNodeReturning Functor>
+    export template <typename R, VisitorForSyntaxNodeReturning<R> Functor>
     constexpr R visit(const SyntaxNode &node, Functor &&functor)
     {
         switch (node.kind())
@@ -293,7 +293,7 @@ namespace prism
     concept VisitorForStructuredTriviaSyntaxReturning =
         ConvertibleVisitor<Functor, R, const SkippedTokensTriviaSyntax &>;
 
-    export template <typename R, VisitorForStructuredTriviaSyntaxReturning Functor>
+    export template <typename R, VisitorForStructuredTriviaSyntaxReturning<R> Functor>
     constexpr R visit(const StructuredTriviaSyntax &node, Functor &&functor)
     {
         switch (node.kind())
@@ -327,7 +327,7 @@ namespace prism
     concept VisitorForTypeSyntaxReturning =
         ConvertibleVisitor<Functor, R, const PredefinedTypeSyntax &, const NamedTypeSyntax &>;
 
-    export template <typename R, VisitorForTypeSyntaxReturning Functor>
+    export template <typename R, VisitorForTypeSyntaxReturning<R> Functor>
     constexpr R visit(const TypeSyntax &node, Functor &&functor)
     {
         switch (node.kind())
@@ -362,7 +362,7 @@ namespace prism
     concept VisitorForNameSyntaxReturning =
         ConvertibleVisitor<Functor, R, const SimpleNameSyntax &, const QualifiedNameSyntax &>;
 
-    export template <typename R, VisitorForNameSyntaxReturning Functor>
+    export template <typename R, VisitorForNameSyntaxReturning<R> Functor>
     constexpr R visit(const NameSyntax &node, Functor &&functor)
     {
         switch (node.kind())
@@ -433,7 +433,7 @@ namespace prism
                                                                      const TernaryExpressionSyntax &,
                                                                      const InvocationExpressionSyntax &>;
 
-    export template <typename R, VisitorForExpressionSyntaxReturning Functor>
+    export template <typename R, VisitorForExpressionSyntaxReturning<R> Functor>
     constexpr R visit(const ExpressionSyntax &node, Functor &&functor)
     {
         switch (node.kind())
@@ -504,7 +504,7 @@ namespace prism
                                                                     const ExpressionStatementSyntax &,
                                                                     const EmptyStatementSyntax &>;
 
-    export template <typename R, VisitorForStatementSyntaxReturning Functor>
+    export template <typename R, VisitorForStatementSyntaxReturning<R> Functor>
     constexpr R visit(const StatementSyntax &node, Functor &&functor)
     {
         switch (node.kind())
@@ -568,7 +568,7 @@ namespace prism
                                                                       const VariableDeclarationSyntax &,
                                                                       const FunctionDeclarationSyntax &>;
 
-    export template <typename R, VisitorForDeclarationSyntaxReturning Functor>
+    export template <typename R, VisitorForDeclarationSyntaxReturning<R> Functor>
     constexpr R visit(const DeclarationSyntax &node, Functor &&functor)
     {
         switch (node.kind())
@@ -621,7 +621,7 @@ namespace prism
                            const BlockNamespaceDeclarationSyntax &,
                            const FileScopedNamespaceDeclarationSyntax &>;
 
-    export template <typename R, VisitorForNamespaceDeclarationSyntaxReturning Functor>
+    export template <typename R, VisitorForNamespaceDeclarationSyntaxReturning<R> Functor>
     constexpr R visit(const NamespaceDeclarationSyntax &node, Functor &&functor)
     {
         switch (node.kind())

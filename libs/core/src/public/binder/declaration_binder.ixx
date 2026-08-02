@@ -24,10 +24,11 @@ namespace prism
       public:
         DeclarationBinder(Name assembly_name, const SyntaxTree &tree, SymbolLifetime &lifetime) noexcept;
 
-        [[nodiscard]] const AssemblySymbol &bind();
+        [[nodiscard]] const AssemblySymbol &bind() const;
 
       private:
-        [[nodiscard]] Optional<const Symbol &> bind_declaration(const DeclarationSyntax &syntax);
+        [[nodiscard]] Optional<const Symbol &> bind_declaration(const DeclarationSyntax &syntax,
+                                                                const Symbol &containing_symbol) const;
 
         const SyntaxTree &tree_;
         SymbolLifetime &lifetime_;

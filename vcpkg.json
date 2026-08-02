@@ -28,5 +28,8 @@
   }, {
     "name" : "libassert",
     "version>=" : "2.2.1"
+  }, {
+    "name" : "boost-unordered",
+    "version>=" : "1.91.0"
   } ]
 }

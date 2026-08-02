@@ -26,7 +26,7 @@ namespace prism
       public:
         virtual const TypeSymbol &returnType() const noexcept = 0;
 
-        virtual std::span<const ParameterSymbol *> parameters() const noexcept = 0;
+        virtual SymbolSpan<ParameterSymbol> parameters() const noexcept = 0;
 
         [[nodiscard]] static bool instance_of(const Symbol &symbol) noexcept
         {

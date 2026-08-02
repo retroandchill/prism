@@ -221,6 +221,8 @@ namespace prism
         friend class SyntaxNodeOrTokenList;
         friend class ChildSyntaxList;
         friend class SyntaxTree;
+        template <typename T>
+        friend class SeparatedSyntaxList;
 
         static const SyntaxTree *compute_tree(const SyntaxNode *node);
 
