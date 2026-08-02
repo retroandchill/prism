@@ -10,6 +10,7 @@ import :symbols.kind;
 import :text.name;
 import :util.noncopyable;
 import :util.ref;
+import :text.string_writer;
 
 namespace prism
 {

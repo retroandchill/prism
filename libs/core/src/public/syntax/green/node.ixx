@@ -17,7 +17,7 @@ import :diagnostics.info;
 import :util.optional;
 import :util.exceptions;
 import libassert;
-import :text.writer;
+import :text.string_writer;
 
 namespace prism
 {
@@ -298,7 +298,14 @@ namespace prism
 
         [[nodiscard]] virtual RefCountPtr<GreenNode> clone_internal() const = 0;
 
-        [[nodiscard]] std::string to_string() const;
+        template <typename Self>
+        [[nodiscard]] constexpr std::string to_string(this const Self &self)
+        {
+            std::string result;
+            auto writer = StringWriter{result};
+            self.write_to(writer);
+            return result;
+        }
 
         virtual void write_to(TextWriter &writer) const;
 

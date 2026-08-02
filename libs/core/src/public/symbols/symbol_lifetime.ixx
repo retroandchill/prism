@@ -4,7 +4,7 @@
  * @date 8/1/2026
  * @brief
  */
-export module prism.core:binder.symbol_lifetime;
+export module prism.core:symbols.symbol_lifetime;
 
 import :symbols.symbol;
 import :memory.persistent_allocator;

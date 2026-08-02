@@ -1650,6 +1650,59 @@ public static class CppEmitter
             writer.WriteLine($"return node.kind() == {SyntaxKindClass}::{node.Kind!.CppName};");
         }
 
+        #region Red Node Vistor
+
+        public void EmitRedVisitorFunctions(CppSyntaxModel model)
+        {
+            writer.WriteLine("module;");
+            writer.WriteLine();
+            writer.WriteLine("#include <libassert/assert-macros.hpp>");
+            writer.WriteLine();
+            writer.WriteLine($"export module {BaseModuleName}:{RedFragmentName}.visit;");
+            writer.WriteLine();
+            writer.WriteLine("import libassert;");
+            writer.WriteLine("import :type_traits.visitor;");
+            foreach (var module in model.Modules)
+            {
+                writer.WriteLine($"import :{RedFragmentName}.{module.CppName};");
+            }
+            writer.WriteLine();
+            using var namespaceScope = writer.EnterNamespaceScope(PrismNamespace);
+            foreach (var group in model.DispatchGroups)
+            {
+                writer.EmitRedVisitorGroup(group);
+                writer.WriteLine();
+            }
+
+            foreach (
+                var node in model
+                    .Modules.AsValueEnumerable()
+                    .SelectMany(m => m.Nodes)
+                    .Where(n => !n.IsAbstract)
+            )
+            {
+                writer.WriteLine($"template <std::invocable<const {node.RedClassName}&> Functor>");
+                writer.WriteLine(
+                    $"constexpr decltype(auto) visit(const {node.RedClassName}& node, Functor&& functor)"
+                );
+                using (writer.EnterBlockScope())
+                {
+                    writer.WriteLine("return std::invoke(std::forward<Functor>(functor), node);");
+                }
+                writer.WriteLine();
+            }
+
+            writer.EmitSyntaxVisitorClass(model, isGreen: false);
+        }
+
+        private void EmitRedVisitorGroup(CppDispatchGroup group)
+        {
+            writer.EmitSyntaxVisitor(group, isGreen: false, isReturning: false);
+            writer.WriteLine();
+            writer.EmitSyntaxVisitor(group, isGreen: false, isReturning: true);
+        }
+        #endregion
+
         #region Diagnostic Codes
 
         public void EmitDiagnosticCodes(CppSyntaxModel model)

@@ -1044,8 +1044,8 @@ namespace prism
     template <typename Functor>
     concept VisitorForGreenDeclaration = ExhaustiveVisitor<Functor,
                                                            const GreenIncompleteDeclaration &,
-                                                           const GreenNamespaceDeclaration &,
-                                                           const GreenNamespaceDeclaration &,
+                                                           const GreenBlockNamespaceDeclaration &,
+                                                           const GreenFileScopedNamespaceDeclaration &,
                                                            const GreenVariableDeclaration &,
                                                            const GreenFunctionDeclaration &>;
 
@@ -1057,12 +1057,12 @@ namespace prism
             case SyntaxKind::incomplete_declaration:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const GreenIncompleteDeclaration &>(node));
-            case SyntaxKind::namespace_declaration:
+            case SyntaxKind::block_namespace_declaration:
                 return std::invoke(std::forward<Functor>(functor),
-                                   static_cast<const GreenNamespaceDeclaration &>(node));
-            case SyntaxKind::namespace_declaration:
+                                   static_cast<const GreenBlockNamespaceDeclaration &>(node));
+            case SyntaxKind::file_scoped_namespace_declaration:
                 return std::invoke(std::forward<Functor>(functor),
-                                   static_cast<const GreenNamespaceDeclaration &>(node));
+                                   static_cast<const GreenFileScopedNamespaceDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
@@ -1075,8 +1075,8 @@ namespace prism
     template <typename Functor>
     concept MutableVisitorForGreenDeclaration = ExhaustiveVisitor<Functor,
                                                                   GreenIncompleteDeclaration &,
-                                                                  GreenNamespaceDeclaration &,
-                                                                  GreenNamespaceDeclaration &,
+                                                                  GreenBlockNamespaceDeclaration &,
+                                                                  GreenFileScopedNamespaceDeclaration &,
                                                                   GreenVariableDeclaration &,
                                                                   GreenFunctionDeclaration &>;
 
@@ -1087,10 +1087,11 @@ namespace prism
         {
             case SyntaxKind::incomplete_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenIncompleteDeclaration &>(node));
-            case SyntaxKind::namespace_declaration:
-                return std::invoke(std::forward<Functor>(functor), static_cast<GreenNamespaceDeclaration &>(node));
-            case SyntaxKind::namespace_declaration:
-                return std::invoke(std::forward<Functor>(functor), static_cast<GreenNamespaceDeclaration &>(node));
+            case SyntaxKind::block_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenBlockNamespaceDeclaration &>(node));
+            case SyntaxKind::file_scoped_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<GreenFileScopedNamespaceDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
@@ -1104,8 +1105,8 @@ namespace prism
     concept VisitorForGreenDeclarationReturning = ConvertibleVisitor<Functor,
                                                                      R,
                                                                      const GreenIncompleteDeclaration &,
-                                                                     const GreenNamespaceDeclaration &,
-                                                                     const GreenNamespaceDeclaration &,
+                                                                     const GreenBlockNamespaceDeclaration &,
+                                                                     const GreenFileScopedNamespaceDeclaration &,
                                                                      const GreenVariableDeclaration &,
                                                                      const GreenFunctionDeclaration &>;
 
@@ -1117,12 +1118,12 @@ namespace prism
             case SyntaxKind::incomplete_declaration:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const GreenIncompleteDeclaration &>(node));
-            case SyntaxKind::namespace_declaration:
+            case SyntaxKind::block_namespace_declaration:
                 return std::invoke(std::forward<Functor>(functor),
-                                   static_cast<const GreenNamespaceDeclaration &>(node));
-            case SyntaxKind::namespace_declaration:
+                                   static_cast<const GreenBlockNamespaceDeclaration &>(node));
+            case SyntaxKind::file_scoped_namespace_declaration:
                 return std::invoke(std::forward<Functor>(functor),
-                                   static_cast<const GreenNamespaceDeclaration &>(node));
+                                   static_cast<const GreenFileScopedNamespaceDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:
@@ -1136,8 +1137,8 @@ namespace prism
     concept MutableVisitorForGreenDeclarationReturning = ConvertibleVisitor<Functor,
                                                                             R,
                                                                             GreenIncompleteDeclaration &,
-                                                                            GreenNamespaceDeclaration &,
-                                                                            GreenNamespaceDeclaration &,
+                                                                            GreenBlockNamespaceDeclaration &,
+                                                                            GreenFileScopedNamespaceDeclaration &,
                                                                             GreenVariableDeclaration &,
                                                                             GreenFunctionDeclaration &>;
 
@@ -1148,10 +1149,11 @@ namespace prism
         {
             case SyntaxKind::incomplete_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenIncompleteDeclaration &>(node));
-            case SyntaxKind::namespace_declaration:
-                return std::invoke(std::forward<Functor>(functor), static_cast<GreenNamespaceDeclaration &>(node));
-            case SyntaxKind::namespace_declaration:
-                return std::invoke(std::forward<Functor>(functor), static_cast<GreenNamespaceDeclaration &>(node));
+            case SyntaxKind::block_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenBlockNamespaceDeclaration &>(node));
+            case SyntaxKind::file_scoped_namespace_declaration:
+                return std::invoke(std::forward<Functor>(functor),
+                                   static_cast<GreenFileScopedNamespaceDeclaration &>(node));
             case SyntaxKind::variable_declaration:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenVariableDeclaration &>(node));
             case SyntaxKind::function_declaration:

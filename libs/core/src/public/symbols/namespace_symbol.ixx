@@ -11,35 +11,26 @@ import :util.ref;
 
 namespace prism
 {
-    export class NamespaceSymbol final : public Symbol
+    export class NamespaceSymbol : public Symbol
     {
-      public:
+      protected:
         constexpr NamespaceSymbol(const Name name, const Symbol *containing)
             : Symbol{SymbolKind::namespace_, name, containing}
         {
         }
+        ~NamespaceSymbol() = default;
 
+      public:
         [[nodiscard]] constexpr bool is_global() const noexcept
         {
             return name() == KnownName::global;
         }
 
-        [[nodiscard]] constexpr SymbolSpan<Symbol> members() const noexcept
-        {
-            return members_;
-        }
+        [[nodiscard]] virtual SymbolSpan<Symbol> members() const = 0;
 
         [[nodiscard]] static constexpr bool instance_of(const Symbol &symbol) noexcept
         {
             return symbol.kind() == SymbolKind::namespace_;
         }
-
-      private:
-        void add_member(const Symbol &member);
-
-        friend class DeclarationBinder;
-        friend class SymbolMerger;
-
-        std::vector<Ref<const Symbol>> members_;
     };
 } // namespace prism

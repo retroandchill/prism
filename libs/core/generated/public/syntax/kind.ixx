@@ -136,18 +136,16 @@ namespace prism
 
 #pragma region Types
         type_start = 3000,
-        type = 3000,
-        predefined_type = 3001,
-        named_type = 3002,
-        type_end = 3002,
+        predefined_type = 3000,
+        named_type = 3001,
+        type_end = 3001,
 #pragma endregion
 
 #pragma region Names
         name_start = 4000,
-        name = 4000,
-        simple_name = 4001,
-        qualified_name = 4002,
-        name_end = 4002,
+        simple_name = 4000,
+        qualified_name = 4001,
+        name_end = 4001,
 #pragma endregion
 
 #pragma region Clauses
@@ -165,40 +163,36 @@ namespace prism
 
 #pragma region Expressions
         expression_start = 6000,
-        expression = 6000,
-        literal_expression = 6001,
-        identifier_expression = 6002,
-        parenthesized_expression = 6003,
-        binary_expression = 6004,
-        assignment_expression = 6005,
-        prefix_expression = 6006,
-        postfix_expression = 6007,
-        ternary_expression = 6008,
-        invocation_expression = 6009,
-        expression_end = 6009,
+        literal_expression = 6000,
+        identifier_expression = 6001,
+        parenthesized_expression = 6002,
+        binary_expression = 6003,
+        assignment_expression = 6004,
+        prefix_expression = 6005,
+        postfix_expression = 6006,
+        ternary_expression = 6007,
+        invocation_expression = 6008,
+        expression_end = 6008,
 #pragma endregion
 
 #pragma region Statements
         statement_start = 7000,
-        statement = 7000,
-        variable_declaration_statement = 7001,
-        block = 7002,
-        return_statement = 7003,
-        expression_statement = 7004,
-        empty_statement = 7005,
-        statement_end = 7005,
+        variable_declaration_statement = 7000,
+        block = 7001,
+        return_statement = 7002,
+        expression_statement = 7003,
+        empty_statement = 7004,
+        statement_end = 7004,
 #pragma endregion
 
 #pragma region Declarations
         declaration_start = 8000,
-        declaration = 8000,
-        incomplete_declaration = 8001,
-        namespace_declaration = 8002,
-        block_namespace_declaration = 8003,
-        file_scoped_namespace_declaration = 8004,
-        variable_declaration = 8005,
-        function_declaration = 8006,
-        declaration_end = 8006,
+        incomplete_declaration = 8000,
+        block_namespace_declaration = 8001,
+        file_scoped_namespace_declaration = 8002,
+        variable_declaration = 8003,
+        function_declaration = 8004,
+        declaration_end = 8004,
 #pragma endregion
 
 #pragma region Directives
@@ -402,14 +396,10 @@ namespace prism
                 return "SkippedTokensTrivia";
             case SyntaxKind::compilation_unit:
                 return "CompilationUnit";
-            case SyntaxKind::type:
-                return "Type";
             case SyntaxKind::predefined_type:
                 return "PredefinedType";
             case SyntaxKind::named_type:
                 return "NamedType";
-            case SyntaxKind::name:
-                return "Name";
             case SyntaxKind::simple_name:
                 return "SimpleName";
             case SyntaxKind::qualified_name:
@@ -430,8 +420,6 @@ namespace prism
                 return "Parameter";
             case SyntaxKind::expression_body:
                 return "ExpressionBody";
-            case SyntaxKind::expression:
-                return "Expression";
             case SyntaxKind::literal_expression:
                 return "LiteralExpression";
             case SyntaxKind::identifier_expression:
@@ -450,8 +438,6 @@ namespace prism
                 return "TernaryExpression";
             case SyntaxKind::invocation_expression:
                 return "InvocationExpression";
-            case SyntaxKind::statement:
-                return "Statement";
             case SyntaxKind::variable_declaration_statement:
                 return "VariableDeclarationStatement";
             case SyntaxKind::block:
@@ -462,12 +448,8 @@ namespace prism
                 return "ExpressionStatement";
             case SyntaxKind::empty_statement:
                 return "EmptyStatement";
-            case SyntaxKind::declaration:
-                return "Declaration";
             case SyntaxKind::incomplete_declaration:
                 return "IncompleteDeclaration";
-            case SyntaxKind::namespace_declaration:
-                return "NamespaceDeclaration";
             case SyntaxKind::block_namespace_declaration:
                 return "BlockNamespaceDeclaration";
             case SyntaxKind::file_scoped_namespace_declaration:

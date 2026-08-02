@@ -52,6 +52,7 @@ public sealed class SyntaxModelBuilder
         ResolveProductions();
         ResolveOverrides();
         ResolveDependencies();
+        ResolveNodeKinds();
         ResolveDispatchGroups();
         return new SyntaxModel(
             [.. _syntaxKinds.Values],
@@ -167,8 +168,6 @@ public sealed class SyntaxModelBuilder
 
     private void LoadNodes(SyntaxSpecification spec)
     {
-        var nextNodeStart = SyntaxNodeStart;
-        var nextTriviaStart = StructuredTriviaStart;
         foreach (var module in spec.Modules)
         {
             var resolvedModule = new SyntaxModule(module.Name, module.Kind);
@@ -177,45 +176,12 @@ public sealed class SyntaxModelBuilder
                 continue;
 
             resolvedModule.EnsureCapacity(module.Nodes.Length);
-            var nextValue = module.Kind switch
-            {
-                ModuleKind.Node => nextNodeStart,
-                ModuleKind.StructuredTrivia => nextTriviaStart,
-                _ => throw new InvalidOperationException("Invalid module kind"),
-            };
-            var kinds = new SyntaxKind[module.Nodes.Length];
-            foreach (var (i, definition) in module.Nodes.AsValueEnumerable().Index())
+            foreach (var definition in module.Nodes)
             {
                 var node = new SyntaxNode(resolvedModule, definition.Name);
                 _nodeDefinitions.Add(node, definition);
                 resolvedModule.AddNode(node);
-                node.Kind = new SyntaxKind(node.Name, nextValue++, node);
-                _syntaxKinds.Add(node.Kind.Name, node.Kind);
-                kinds[i] = node.Kind;
                 _nodes.Add(definition.Name, node);
-            }
-
-            var group = new SyntaxGroup(
-                module.Name,
-                module.Kind switch
-                {
-                    ModuleKind.Node => SyntaxGroupKind.Node,
-                    ModuleKind.StructuredTrivia => SyntaxGroupKind.StructuredTrivia,
-                    _ => throw new InvalidOperationException("Invalid module kind"),
-                },
-                ImmutableCollectionsMarshal.AsImmutableArray(kinds)
-            );
-            _syntaxKindGroups.Add(group);
-            switch (module.Kind)
-            {
-                case ModuleKind.Node:
-                    nextNodeStart += SyntaxNodeStep;
-                    break;
-                case ModuleKind.StructuredTrivia:
-                    nextTriviaStart += StructuredTriviaStep;
-                    break;
-                default:
-                    throw new InvalidOperationException("Invalid module kind");
             }
         }
     }
@@ -589,6 +555,51 @@ public sealed class SyntaxModelBuilder
         }
     }
 
+    private void ResolveNodeKinds()
+    {
+        var nextNodeStart = SyntaxNodeStart;
+        var nextTriviaStart = StructuredTriviaStart;
+        foreach (var module in _modules.Values)
+        {
+            var nextValue = module.Kind switch
+            {
+                ModuleKind.Node => nextNodeStart,
+                ModuleKind.StructuredTrivia => nextTriviaStart,
+                _ => throw new InvalidOperationException("Invalid module kind"),
+            };
+            var builder = ImmutableArray.CreateBuilder<SyntaxKind>(module.Nodes.Count);
+            foreach (var node in module.Nodes.AsValueEnumerable().Where(n => !n.IsAbstract))
+            {
+                node.Kind = new SyntaxKind(node.Name, nextValue++, node);
+                _syntaxKinds.Add(node.Kind.Name, node.Kind);
+                builder.Add(node.Kind);
+            }
+
+            var group = new SyntaxGroup(
+                module.Name,
+                module.Kind switch
+                {
+                    ModuleKind.Node => SyntaxGroupKind.Node,
+                    ModuleKind.StructuredTrivia => SyntaxGroupKind.StructuredTrivia,
+                    _ => throw new InvalidOperationException("Invalid module kind"),
+                },
+                builder.DrainToImmutable()
+            );
+            _syntaxKindGroups.Add(group);
+            switch (module.Kind)
+            {
+                case ModuleKind.Node:
+                    nextNodeStart += SyntaxNodeStep;
+                    break;
+                case ModuleKind.StructuredTrivia:
+                    nextTriviaStart += StructuredTriviaStep;
+                    break;
+                default:
+                    throw new InvalidOperationException("Invalid module kind");
+            }
+        }
+    }
+
     private void ResolveDispatchGroups()
     {
         foreach (var node in _modules.Values.AsValueEnumerable().SelectMany(x => x.Nodes))
@@ -611,10 +622,11 @@ public sealed class SyntaxModelBuilder
             _structuredTriviaDispatchGroup.AddNode(node);
 
         // We're assuming because of C++'s declaration order requirements that parent classes are already defined.
-        while (node.Base is not null)
+        var baseClass = node.Base;
+        while (baseClass is not null)
         {
-            _dispatchGroups[node.Base].AddNode(node);
-            node = node.Base;
+            _dispatchGroups[baseClass].AddNode(node);
+            baseClass = baseClass.Base;
         }
     }
 }

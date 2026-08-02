@@ -9,17 +9,11 @@ module prism.core:syntax.green.node.impl;
 import :syntax.green.node;
 import :syntax.green.token;
 import :syntax.green.trivia;
-import :text.string_writer;
 import :syntax.green.child_list;
 import :syntax.green.view;
 
 namespace prism
 {
-    namespace
-    {
-        constinit const GreenTriviaList empty_trivia_list{};
-    }
-
     std::uint32_t GreenNode::width() const
     {
         return full_width_ - leading_trivia_width() - trailing_trivia_width();
@@ -141,14 +135,6 @@ namespace prism
         {
             flags_ |= SyntaxFlags::contains_diagnostics;
         }
-    }
-
-    std::string GreenNode::to_string() const
-    {
-        std::string result;
-        auto writer = StringWriter{result};
-        write_to(writer);
-        return result;
     }
 
     void GreenNode::write_to(TextWriter &writer) const

@@ -107,6 +107,13 @@ public class ExportNodesCommand
             context.CancellationToken
         );
 
+        writer.EmitRedVisitorFunctions(cppModel);
+        await WriteCodeAsync(
+            writer,
+            Path.Join(publicSyntaxDir, "visit.ixx"),
+            context.CancellationToken
+        );
+
         writer.EmitDiagnosticCodes(cppModel);
         await WriteCodeAsync(
             writer,
