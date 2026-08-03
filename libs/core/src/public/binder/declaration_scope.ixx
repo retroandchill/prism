@@ -34,6 +34,18 @@ namespace prism
             return symbols_.size() > 1;
         }
 
+        [[nodiscard]] constexpr const Symbol &symbol() const
+        {
+            // We'll mark this unlikely since the expectation is that you already
+            // checked that found() is true and ambiguous() is false, that way if
+            // we get a good branch prediction. (Assuming that this part doesn't
+            // get completely optimized out that is)
+            if (symbols_.size() != 1) [[unlikely]]
+                throw InvalidStateException{"Can only call symbol() if ambiguous() is false and found() is true"};
+
+            return symbols_[0];
+        }
+
         [[nodiscard]] constexpr SymbolSpan<Symbol> symbols() const noexcept
         {
             return symbols_;
