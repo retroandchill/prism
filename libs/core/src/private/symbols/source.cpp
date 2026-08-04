@@ -12,6 +12,18 @@ import :syntax.clauses;
 
 namespace prism
 {
+    std::span<const SyntaxReference> SourceAssemblySymbol::declaring_syntax_references() const
+    {
+        return {};
+    }
+
+    SourceVariableSymbol::SourceVariableSymbol(const Name &name,
+                                               const Symbol *containing,
+                                               const VariableDeclarationSyntax &syntax)
+        : VariableSymbol(name, containing), syntax_{syntax}, syntax_reference_{syntax}
+    {
+    }
+
     const TypeSymbol &SourceVariableSymbol::type() const noexcept
     {
         throw NotImplementedException{};
@@ -22,9 +34,33 @@ namespace prism
         return syntax_.mut_keyword().has_value();
     }
 
+    std::span<const SyntaxReference> SourceVariableSymbol::declaring_syntax_references() const
+    {
+        return {&syntax_reference_, 1};
+    }
+
+    SourceFunctionSymbol::SourceFunctionSymbol(const Name &name,
+                                               const Symbol *containing,
+                                               const FunctionDeclarationSyntax &syntax)
+        : FunctionSymbol(name, containing), syntax_{syntax}, syntax_reference_{syntax}
+    {
+    }
+
     const TypeSymbol &SourceFunctionSymbol::returnType() const noexcept
     {
         throw NotImplementedException{};
+    }
+
+    std::span<const SyntaxReference> SourceFunctionSymbol::declaring_syntax_references() const
+    {
+        return {&syntax_reference_, 1};
+    }
+
+    SourceParameterSymbol::SourceParameterSymbol(const Name &name,
+                                                 const Symbol *containing,
+                                                 const ParameterSyntax &syntax)
+        : ParameterSymbol(name, containing), syntax_{syntax}, syntax_reference_{syntax}
+    {
     }
 
     const TypeSymbol &SourceParameterSymbol::type() const noexcept
@@ -35,5 +71,10 @@ namespace prism
     bool SourceParameterSymbol::is_mutable() const noexcept
     {
         return syntax_.mut_keyword().has_value();
+    }
+
+    std::span<const SyntaxReference> SourceParameterSymbol::declaring_syntax_references() const
+    {
+        return {&syntax_reference_, 1};
     }
 } // namespace prism

@@ -7,6 +7,7 @@
 export module prism.core:binder.declaration_merger;
 
 import :binder.declaration_binder;
+import :diagnostics.diagnostic_bag;
 
 namespace prism
 {
@@ -19,7 +20,7 @@ namespace prism
     class DeclarationMerger final
     {
       public:
-        constexpr DeclarationMerger(Name assembly_name, SymbolLifetime &lifetime) noexcept
+        constexpr DeclarationMerger(const Name assembly_name, SymbolLifetime &lifetime) noexcept
             : assembly_name_{assembly_name}, lifetime_{lifetime}
         {
         }

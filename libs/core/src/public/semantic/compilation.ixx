@@ -13,6 +13,7 @@ export module prism.core:semantic.compilation;
 import :util.noncopyable;
 import :syntax.tree;
 import :symbols.symbol_lifetime;
+import :semantic.semantic_model;
 
 namespace prism
 {
@@ -22,7 +23,8 @@ namespace prism
     {
         Compilation(std::unique_ptr<SymbolLifetime> lifetime,
                     const AssemblySymbol &assembly,
-                    std::vector<std::unique_ptr<SyntaxTree>> trees) noexcept;
+                    std::vector<std::unique_ptr<SyntaxTree>> trees,
+                    std::vector<Diagnostic> diagnostics) noexcept;
 
       public:
         static std::unique_ptr<Compilation> create(Name assembly_name, std::vector<std::unique_ptr<SyntaxTree>> trees);
@@ -37,9 +39,20 @@ namespace prism
             return trees_;
         }
 
+        [[nodiscard]] SemanticModel get_semantic_model(const SyntaxTree &tree) const noexcept
+        {
+            return SemanticModel{*this, tree};
+        }
+
+        [[nodiscard]] constexpr const std::vector<Diagnostic> &diagnostics() const noexcept
+        {
+            return diagnostics_;
+        }
+
       private:
         std::unique_ptr<SymbolLifetime> lifetime_;
         const AssemblySymbol &assembly_;
         std::vector<std::unique_ptr<SyntaxTree>> trees_;
+        std::vector<Diagnostic> diagnostics_;
     };
 } // namespace prism

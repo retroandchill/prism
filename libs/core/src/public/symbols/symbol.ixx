@@ -11,6 +11,7 @@ import :text.name;
 import :util.noncopyable;
 import :util.ref;
 import :text.string_writer;
+import :syntax.reference;
 
 namespace prism
 {
@@ -58,6 +59,8 @@ namespace prism
         [[nodiscard]] Optional<const AssemblySymbol &> containing_assembly() const noexcept;
         [[nodiscard]] Optional<const NamespaceSymbol &> containing_namespace() const noexcept;
         [[nodiscard]] Optional<const TypeSymbol &> containing_type() const noexcept;
+
+        [[nodiscard]] virtual std::span<const SyntaxReference> declaring_syntax_references() const = 0;
 
         template <SymbolLike T, typename Self>
             requires std::derived_from<T, Self>

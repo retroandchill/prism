@@ -10,6 +10,7 @@ module;
 
 export module prism.core:symbols.source;
 
+import std;
 import libassert;
 import :symbols.namespace_symbol;
 import :symbols.assembly_symbol;
@@ -23,6 +24,7 @@ namespace prism
     class ParameterSyntax;
     class FunctionDeclarationSyntax;
     class VariableDeclarationSyntax;
+
     class SourceAssemblySymbol final : public AssemblySymbol
     {
       public:
@@ -35,6 +37,8 @@ namespace prism
             ASSUME(global_namespace_ != nullptr);
             return *global_namespace_;
         }
+
+        [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
 
       private:
         friend class DeclarationMerger;
@@ -54,10 +58,20 @@ namespace prism
             return members_;
         }
 
+        [[nodiscard]] constexpr std::span<const SyntaxReference> declaring_syntax_references() const override
+        {
+            return syntax_references_;
+        }
+
       private:
         constexpr void add_member(const Symbol &member)
         {
             members_.emplace_back(member);
+        }
+
+        constexpr void add_syntax_reference(const SyntaxReference syntax_reference)
+        {
+            syntax_references_.push_back(syntax_reference);
         }
 
         template <std::ranges::input_range Range>
@@ -70,38 +84,32 @@ namespace prism
         friend class DeclarationMerger;
 
         std::vector<Ref<const Symbol>> members_;
+        std::vector<SyntaxReference> syntax_references_;
     };
 
     class SourceVariableSymbol final : public VariableSymbol
     {
       public:
-        constexpr SourceVariableSymbol(const Name &name,
-                                       const Symbol *containing,
-                                       const VariableDeclarationSyntax &syntax)
-            : VariableSymbol(name, containing), syntax_{syntax}
-        {
-        }
+        SourceVariableSymbol(const Name &name, const Symbol *containing, const VariableDeclarationSyntax &syntax);
 
-        const TypeSymbol &type() const noexcept override;
-        bool is_mutable() const noexcept override;
+        [[nodiscard]] const TypeSymbol &type() const noexcept override;
+        [[nodiscard]] bool is_mutable() const noexcept override;
+
+        [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
 
       private:
         const VariableDeclarationSyntax &syntax_;
+        SyntaxReference syntax_reference_;
     };
 
     class SourceFunctionSymbol final : public FunctionSymbol
     {
       public:
-        constexpr SourceFunctionSymbol(const Name &name,
-                                       const Symbol *containing,
-                                       const FunctionDeclarationSyntax &syntax)
-            : FunctionSymbol(name, containing), syntax_{syntax}
-        {
-        }
+        SourceFunctionSymbol(const Name &name, const Symbol *containing, const FunctionDeclarationSyntax &syntax);
 
-        const TypeSymbol &returnType() const noexcept override;
+        [[nodiscard]] const TypeSymbol &returnType() const noexcept override;
 
-        constexpr SymbolSpan<ParameterSymbol> parameters() const noexcept override
+        [[nodiscard]] constexpr SymbolSpan<ParameterSymbol> parameters() const noexcept override
         {
             return parameters_;
         }
@@ -119,24 +127,28 @@ namespace prism
             parameters_.append_range(std::forward<Range>(range));
         }
 
+      public:
+        [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
+
+      private:
         friend class DeclarationMerger;
 
         const FunctionDeclarationSyntax &syntax_;
+        SyntaxReference syntax_reference_;
         std::vector<Ref<const ParameterSymbol>> parameters_;
     };
 
     class SourceParameterSymbol final : public ParameterSymbol
     {
       public:
-        constexpr SourceParameterSymbol(const Name &name, const Symbol *containing, const ParameterSyntax &syntax)
-            : ParameterSymbol(name, containing), syntax_{syntax}
-        {
-        }
+        SourceParameterSymbol(const Name &name, const Symbol *containing, const ParameterSyntax &syntax);
 
-        const TypeSymbol &type() const noexcept override;
-        bool is_mutable() const noexcept override;
+        [[nodiscard]] const TypeSymbol &type() const noexcept override;
+        [[nodiscard]] bool is_mutable() const noexcept override;
+        [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
 
       private:
         const ParameterSyntax &syntax_;
+        SyntaxReference syntax_reference_;
     };
 } // namespace prism

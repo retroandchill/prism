@@ -9,14 +9,17 @@ module prism.core:semantic.compilation.impl;
 import :semantic.compilation;
 import :binder.declaration_binder;
 import :binder.declaration_merger;
+import :diagnostics.diagnostic_bag;
 
 namespace prism
 {
 
     Compilation::Compilation(std::unique_ptr<SymbolLifetime> lifetime,
                              const AssemblySymbol &assembly,
-                             std::vector<std::unique_ptr<SyntaxTree>> trees) noexcept
-        : lifetime_{std::move(lifetime)}, assembly_{assembly}, trees_{std::move(trees)}
+                             std::vector<std::unique_ptr<SyntaxTree>> trees,
+                             std::vector<Diagnostic> diagnostics) noexcept
+        : lifetime_{std::move(lifetime)}, assembly_{assembly}, trees_{std::move(trees)},
+          diagnostics_{std::move(diagnostics)}
     {
     }
 
@@ -30,8 +33,10 @@ namespace prism
             trees | std::views::transform([](const auto &tree) { return DeclarationBinder{*tree}.bind(); }) |
             std::views::join | std::ranges::to<std::vector>();
 
+        DiagnosticBag diagnostics{16};
         auto lifetime = std::make_unique<SymbolLifetime>();
         auto &assembly = DeclarationMerger{assembly_name, *lifetime}.merge(declaration_records);
-        return std::unique_ptr<Compilation>{new Compilation{std::move(lifetime), assembly, std::move(trees)}};
+        return std::unique_ptr<Compilation>{
+            new Compilation{std::move(lifetime), assembly, std::move(trees), diagnostics.drain()}};
     }
 } // namespace prism

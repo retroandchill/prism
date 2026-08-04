@@ -10,6 +10,7 @@ import :binder.declaration_merger;
 import :symbols.symbol_lifetime;
 import :symbols.source;
 import :util.overload;
+import :syntax.declarations;
 
 namespace prism
 {
@@ -45,6 +46,7 @@ namespace prism
 
         for (const auto name : record.names)
             namespace_symbol = &get_or_create_namespace(*namespace_symbol, name);
+        namespace_symbol->add_syntax_reference(*record.syntax);
 
         for (const auto &declaration : record.declarations)
             merge_declaration(declaration, *namespace_symbol);
