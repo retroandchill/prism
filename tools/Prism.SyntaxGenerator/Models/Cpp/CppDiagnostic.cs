@@ -28,6 +28,10 @@ public sealed class CppDiagnostic
 
     public string Explanation { get; internal set; } = "";
 
+    public string HelpLink { get; internal set; } = "";
+
+    public ImmutableArray<string> Tags { get; internal set; } = [];
+
     public ImmutableArray<CppDiagnosticArgument> Arguments { get; internal set; } = [];
 
     public ImmutableArray<CppDiagnosticMessagePart> MessageParts { get; internal set; } = [];

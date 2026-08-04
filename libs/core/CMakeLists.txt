@@ -152,6 +152,10 @@ set(PRISM_PUBLIC_MODULES
         src/private/binder/declaration_merger.cpp
         src/public/binder/declaration_scope.ixx
         src/private/binder/declaration_scope.cpp
+        src/public/diagnostics/diagnostic.ixx
+        src/private/diagnostics/diagnostic.cpp
+        src/public/diagnostics/location.ixx
+        src/private/diagnostics/location.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

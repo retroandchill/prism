@@ -1,69 +1,74 @@
 export module prism.core:diagnostics.registry;
 
+import :diagnostics.code;
 import :diagnostics.descriptor;
 import :util.optional;
 
 namespace prism::diagnostics
 {
-    export constexpr DiagnosticDescriptor unexpected_token{
-        .code = DiagnosticCode::unexpected_token,
-        .category = DiagnosticCategory::syntax,
-        .default_severity = DiagnosticSeverity::error,
-        .id = "E10004",
-        .symbol = "UnexpectedToken",
-        .title = "Unexpected token",
-        .format_message = "Unexpected token {}",
-    };
+    using namespace std::string_view_literals;
+    export constexpr DiagnosticDescriptor unexpected_token{to_string(DiagnosticCode::unexpected_token),
+                                                           "Unexpected token"sv,
+                                                           "Unexpected token {}",
+                                                           "Syntax"sv,
+                                                           DiagnosticSeverity::error,
+                                                           true,
+                                                           ""sv,
+                                                           ""sv,
+                                                           {}};
 
-    export constexpr DiagnosticDescriptor unexpected_eof{
-        .code = DiagnosticCode::unexpected_eof,
-        .category = DiagnosticCategory::syntax,
-        .default_severity = DiagnosticSeverity::error,
-        .id = "E10014",
-        .symbol = "UnexpectedEOF",
-        .title = "Unexpected EOF",
-        .format_message = "Unexpected end of file",
-    };
+    export constexpr DiagnosticDescriptor unexpected_eof{to_string(DiagnosticCode::unexpected_eof),
+                                                         "Unexpected EOF"sv,
+                                                         "Unexpected end of file",
+                                                         "Syntax"sv,
+                                                         DiagnosticSeverity::error,
+                                                         true,
+                                                         ""sv,
+                                                         ""sv,
+                                                         {}};
 
-    export constexpr DiagnosticDescriptor unexpected_escape{
-        .code = DiagnosticCode::unexpected_escape,
-        .category = DiagnosticCategory::syntax,
-        .default_severity = DiagnosticSeverity::error,
-        .id = "E10024",
-        .symbol = "UnexpectedEscape",
-        .title = "Unexpected escape",
-        .format_message = "Unexpected escape sequence: '{}'",
-    };
+    export constexpr DiagnosticDescriptor unexpected_escape{to_string(DiagnosticCode::unexpected_escape),
+                                                            "Unexpected escape"sv,
+                                                            "Unexpected escape sequence: '{}'",
+                                                            "Syntax"sv,
+                                                            DiagnosticSeverity::error,
+                                                            true,
+                                                            ""sv,
+                                                            ""sv,
+                                                            {}};
 
     export constexpr DiagnosticDescriptor unterminated_string_literal{
-        .code = DiagnosticCode::unterminated_string_literal,
-        .category = DiagnosticCategory::syntax,
-        .default_severity = DiagnosticSeverity::error,
-        .id = "E10034",
-        .symbol = "UnterminatedStringLiteral",
-        .title = "Unterminated string literal",
-        .format_message = "Unterminated string literal",
-    };
+        to_string(DiagnosticCode::unterminated_string_literal),
+        "Unterminated string literal"sv,
+        "Unterminated string literal",
+        "Syntax"sv,
+        DiagnosticSeverity::error,
+        true,
+        ""sv,
+        ""sv,
+        {}};
 
     export constexpr DiagnosticDescriptor unterminated_character_literal{
-        .code = DiagnosticCode::unterminated_character_literal,
-        .category = DiagnosticCategory::syntax,
-        .default_severity = DiagnosticSeverity::error,
-        .id = "E10044",
-        .symbol = "UnterminatedCharacterLiteral",
-        .title = "Unterminated character literal",
-        .format_message = "Unterminated character literal",
-    };
+        to_string(DiagnosticCode::unterminated_character_literal),
+        "Unterminated character literal"sv,
+        "Unterminated character literal",
+        "Syntax"sv,
+        DiagnosticSeverity::error,
+        true,
+        ""sv,
+        ""sv,
+        {}};
 
     export constexpr DiagnosticDescriptor unterminated_block_comment{
-        .code = DiagnosticCode::unterminated_block_comment,
-        .category = DiagnosticCategory::syntax,
-        .default_severity = DiagnosticSeverity::error,
-        .id = "E10054",
-        .symbol = "UnterminatedBlockComment",
-        .title = "Unterminated block comment",
-        .format_message = "Unterminated block comment",
-    };
+        to_string(DiagnosticCode::unterminated_block_comment),
+        "Unterminated block comment"sv,
+        "Unterminated block comment",
+        "Syntax"sv,
+        DiagnosticSeverity::error,
+        true,
+        ""sv,
+        ""sv,
+        {}};
 
     export [[nodiscard]] constexpr Optional<const DiagnosticDescriptor &> get_descriptor(const DiagnosticCode code)
     {

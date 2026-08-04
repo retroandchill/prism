@@ -208,7 +208,9 @@ public sealed class SyntaxModelBuilder
                     resolvedCategory,
                     diagnostic.Severity,
                     diagnostic.Format,
-                    diagnostic.Explanation
+                    diagnostic.Explanation,
+                    diagnostic.HelpLink,
+                    diagnostic.Tags
                 );
                 var arguments = ResolveArguments(diagnostic, resolvedDiagnostic);
                 ResolveMessageParts(resolvedDiagnostic, arguments);

@@ -16,30 +16,31 @@ namespace prism
     {
       public:
         template <std::formattable<char>... Args>
-        explicit constexpr SyntaxDiagnosticInfo(const DiagnosticCode code, Args &&...args)
-            : DiagnosticInfo{code, std::forward<Args>(args)...}
+        explicit constexpr SyntaxDiagnosticInfo(const DiagnosticDescriptor &descriptor, Args &&...args)
+            : DiagnosticInfo{descriptor, std::forward<Args>(args)...}
         {
         }
 
         template <std::formattable<char>... Args>
         constexpr SyntaxDiagnosticInfo(const std::uint32_t offset,
                                        const std::uint32_t width,
-                                       const DiagnosticCode code,
+                                       const DiagnosticDescriptor &descriptor,
                                        Args &&...args)
-            : DiagnosticInfo{code, std::forward<Args>(args)...}, offset_{offset}, width_{width}
+            : DiagnosticInfo{descriptor, std::forward<Args>(args)...}, offset_{offset}, width_{width}
         {
         }
 
         constexpr SyntaxDiagnosticInfo(const std::uint32_t offset,
                                        const std::uint32_t width,
-                                       const DiagnosticCode code,
+                                       const DiagnosticDescriptor &descriptor,
                                        std::shared_ptr<DiagnosticArguments> arguments)
-            : DiagnosticInfo{code, std::move(arguments)}, offset_{offset}, width_{width}
+            : DiagnosticInfo{descriptor, std::move(arguments)}, offset_{offset}, width_{width}
         {
         }
 
-        constexpr SyntaxDiagnosticInfo(const DiagnosticCode code, std::shared_ptr<DiagnosticArguments> arguments)
-            : DiagnosticInfo{code, std::move(arguments)}
+        constexpr SyntaxDiagnosticInfo(const DiagnosticDescriptor &descriptor,
+                                       std::shared_ptr<DiagnosticArguments> arguments)
+            : DiagnosticInfo{descriptor, std::move(arguments)}
         {
         }
 
@@ -50,18 +51,22 @@ namespace prism
 
         template <DiagnosticCode Code, typename... Args>
             requires CanCreateDiagnostic<Code, Args...>
-        constexpr static RefCountPtr<SyntaxDiagnosticInfo> create(std::uint32_t offset,
-                                                                  std::uint32_t width,
-                                                                  Args &&...args)
+        constexpr static std::shared_ptr<SyntaxDiagnosticInfo> create(std::uint32_t offset,
+                                                                      std::uint32_t width,
+                                                                      Args &&...args)
         {
-            return make_ref_counted<SyntaxDiagnosticInfo>(offset, width, Code, std::forward<Args>(args)...);
+            return std::make_shared<SyntaxDiagnosticInfo>(offset,
+                                                          width,
+                                                          diagnostics::get_descriptor(Code).value(),
+                                                          std::forward<Args>(args)...);
         }
 
         template <DiagnosticCode Code, typename... Args>
             requires CanCreateDiagnostic<Code, Args...>
-        constexpr static RefCountPtr<SyntaxDiagnosticInfo> create(Args &&...args)
+        constexpr static std::shared_ptr<SyntaxDiagnosticInfo> create(Args &&...args)
         {
-            return make_ref_counted<SyntaxDiagnosticInfo>(Code, std::forward<Args>(args)...);
+            return std::make_shared<SyntaxDiagnosticInfo>(diagnostics::get_descriptor(Code).value(),
+                                                          std::forward<Args>(args)...);
         }
 
         [[nodiscard]] constexpr std::uint32_t offset() const noexcept
@@ -73,10 +78,10 @@ namespace prism
             return width_;
         }
 
-        [[nodiscard]] RefCountPtr<const SyntaxDiagnosticInfo> with_offset(uint32_t offset) const;
+        [[nodiscard]] std::shared_ptr<const SyntaxDiagnosticInfo> with_offset(uint32_t offset) const;
 
-      protected:
-        [[nodiscard]] RefCountPtr<const DiagnosticInfo> clone_with_severity(DiagnosticSeverity severity) const override;
+        [[nodiscard]] std::shared_ptr<const DiagnosticInfo> clone_with_severity(
+            DiagnosticSeverity severity) const override;
 
       private:
         std::uint32_t offset_ = 0;

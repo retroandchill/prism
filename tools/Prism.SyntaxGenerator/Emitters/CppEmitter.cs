@@ -1713,52 +1713,9 @@ public static class CppEmitter
             writer.WriteLine("import std;");
             writer.WriteLine();
             using var namespaceScope = writer.EnterNamespaceScope(PrismNamespace);
-            writer.EmitDiagnosticCategoryEnum(model);
-            writer.WriteLine();
-            writer.EmitDiagnosticCategoryGetDisplayName(model);
-
-            writer.WriteLine();
             writer.EmitDiagnosticCodeEnum(model);
-        }
-
-        private void EmitDiagnosticCategoryEnum(CppSyntaxModel model)
-        {
-            writer.WriteLine("export enum class DiagnosticCategory : std::uint8_t");
-            using var scope = writer.EnterBlockScope(true);
-            writer.WriteLine("general = 0,");
-            foreach (var category in model.Diagnostics)
-            {
-                writer.WriteLine($"{category.CppName},");
-            }
-        }
-
-        private void EmitDiagnosticCategoryGetDisplayName(CppSyntaxModel model)
-        {
-            writer.WriteLine(
-                "export [[nodiscard]] constexpr std::string_view "
-                    + "get_display_name(const DiagnosticCategory category)"
-            );
-            using var scope = writer.EnterBlockScope();
-            writer.WriteLine("switch (category)");
-            using var switchScope = writer.EnterBlockScope();
-            writer.WriteLine("case DiagnosticCategory::general:");
-            using (writer.EnterIndentationScope())
-            {
-                writer.WriteLine("return \"General\";");
-            }
-            foreach (var category in model.Diagnostics)
-            {
-                writer.WriteLine($"case DiagnosticCategory::{category.CppName}:");
-                using (writer.EnterIndentationScope())
-                {
-                    writer.WriteLine($"return \"{category.DisplayName}\";");
-                }
-            }
-            writer.WriteLine("default:");
-            using (writer.EnterIndentationScope())
-            {
-                writer.WriteLine("throw std::invalid_argument(\"Unknown diagnostic category\");");
-            }
+            writer.WriteLine();
+            writer.EmitDiagnosticCodeToString(model);
         }
 
         private void EmitDiagnosticCodeEnum(CppSyntaxModel model)
@@ -1779,6 +1736,31 @@ public static class CppEmitter
             }
         }
 
+        private void EmitDiagnosticCodeToString(CppSyntaxModel model)
+        {
+            writer.WriteLine(
+                "export constexpr std::string_view to_string(const DiagnosticCode code)"
+            );
+            using var functionScope = writer.EnterBlockScope();
+            writer.WriteLine("switch (code)");
+            using var switchCope = writer.EnterBlockScope();
+            foreach (
+                var diagnostic in model
+                    .Diagnostics.AsValueEnumerable()
+                    .SelectMany(c => c.Diagnostics)
+            )
+            {
+                writer.WriteLine($"case DiagnosticCode::{diagnostic.CppName}: ");
+                using var caseScope = writer.EnterIndentationScope();
+                writer.WriteLine($"return \"E{diagnostic.Value:04}\";");
+            }
+            writer.WriteLine("default:");
+            using (writer.EnterIndentationScope())
+            {
+                writer.WriteLine("throw std::invalid_argument{\"Invalid diagnostic code\"};");
+            }
+        }
+
         #endregion
 
         #region DiagnosticDescriptors
@@ -1787,10 +1769,14 @@ public static class CppEmitter
         {
             writer.WriteLine($"export module {BaseModuleName}:diagnostics.registry;");
             writer.WriteLine();
+            writer.WriteLine("import :diagnostics.code;");
             writer.WriteLine("import :diagnostics.descriptor;");
             writer.WriteLine("import :util.optional;");
             writer.WriteLine();
             using var namespaceScope = writer.EnterNamespaceScope(DiagnosticsNamespace);
+
+            writer.WriteLine("using namespace std::string_view_literals;");
+
             foreach (
                 var diagnostic in model
                     .Diagnostics.AsValueEnumerable()
@@ -1805,22 +1791,39 @@ public static class CppEmitter
 
         private void EmitDiagnosticDescriptorConstant(CppDiagnostic diagnostic)
         {
+            if (!diagnostic.Tags.IsEmpty)
+            {
+                writer.Write($"constexpr std::array {diagnostic.CppName}_tags = ");
+                using (writer.EnterBlockScope(true))
+                {
+                    foreach (var tag in diagnostic.Tags)
+                    {
+                        writer.WriteLine($"\"{tag}\"sv,");
+                    }
+                }
+
+                writer.WriteLine();
+            }
+
             writer.Write($"export constexpr DiagnosticDescriptor {diagnostic.CppName}");
             using var scope = writer.EnterBlockScope(true);
-            writer.WriteLine($".code = DiagnosticCode::{diagnostic.CppName},");
-            writer.WriteLine($".category = DiagnosticCategory::{diagnostic.Category.CppName},");
-            writer.WriteLine(
-                $".default_severity = DiagnosticSeverity::{GetCppSeverity(diagnostic.Severity)},"
-            );
-            writer.WriteLine($".id = \"E{diagnostic.Value:04}\",");
-            writer.WriteLine($".symbol = \"{diagnostic.SymbolName}\",");
-            writer.WriteLine($".title = \"{diagnostic.Title}\",");
-            writer.Write(".format_message = \"");
+            writer.WriteLine($"to_string(DiagnosticCode::{diagnostic.CppName}),");
+            writer.WriteLine($"\"{diagnostic.Title}\"sv,");
+            writer.Write("\"");
             writer.EmitCppFormatMessage(diagnostic);
             writer.WriteLine("\",");
-            if (!string.IsNullOrEmpty(diagnostic.Explanation))
+            writer.WriteLine($"\"{diagnostic.Category.Name}\"sv,");
+            writer.WriteLine($"DiagnosticSeverity::{GetCppSeverity(diagnostic.Severity)},");
+            writer.WriteLine("true,");
+            writer.WriteLine($"\"{diagnostic.Explanation}\"sv,");
+            writer.WriteLine($"\"{diagnostic.HelpLink}\"sv,");
+            if (!diagnostic.Tags.IsEmpty)
             {
-                writer.WriteLine($".explanation = \"{diagnostic.Explanation}\"");
+                writer.WriteLine($"{diagnostic.CppName}_tags");
+            }
+            else
+            {
+                writer.WriteLine("{}");
             }
         }
 
@@ -1863,7 +1866,6 @@ public static class CppEmitter
             using var defaultScope = writer.EnterIndentationScope();
             writer.WriteLine("return std::nullopt;");
         }
-
         #endregion
 
         #region Diagnostic Traits

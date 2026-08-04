@@ -7,6 +7,7 @@
 module prism.core:syntax.green.trivia.impl;
 
 import :syntax.green.trivia;
+import :diagnostics.info;
 
 namespace prism
 {

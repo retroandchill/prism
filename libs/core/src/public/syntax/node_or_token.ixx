@@ -14,11 +14,33 @@ export module prism.core:syntax.node_or_token;
 
 import :syntax.node;
 import :syntax.token;
+import :util.overload;
+import :util.ref;
 
 namespace prism
 {
-    export using SyntaxNodeRef = std::reference_wrapper<const SyntaxNode>;
+    export using SyntaxNodeRef = Ref<const SyntaxNode>;
     export using SyntaxNodeOrToken = std::variant<SyntaxNodeRef, SyntaxToken>;
+
+    export constexpr Optional<const SyntaxTree &> get_tree(const SyntaxNodeOrToken &node_or_token) noexcept
+    {
+        return std::visit(Overload{[](const SyntaxNode &node) -> Optional<const SyntaxTree &> { return node.tree(); },
+                                   [](const SyntaxToken &token)
+                                   {
+                                       return token.tree();
+                                   }},
+                          node_or_token);
+    }
+
+    export constexpr TextSpan get_span(const SyntaxNodeOrToken &node_or_token) noexcept
+    {
+        return std::visit(Overload{[](const SyntaxNode &node) { return node.span(); },
+                                   [](const SyntaxToken &token)
+                                   {
+                                       return token.span();
+                                   }},
+                          node_or_token);
+    }
 
     export class PRISM_CORE_API SyntaxNodeOrTokenList final : public SyntaxListView<SyntaxNodeOrToken>
     {

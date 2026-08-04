@@ -115,6 +115,7 @@ namespace prism
         friend class SyntaxNodeOrTokenList;
         template <typename T>
         friend class SeparatedSyntaxList;
+        friend class SyntaxTree;
 
         const SyntaxNode *parent_ = nullptr;
         const GreenToken *green_;

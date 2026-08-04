@@ -72,7 +72,7 @@ namespace prism
             current_offset = -target.leading_trivia_width() - skipped_syntax.full_width();
         }
 
-        RefCountPtr<const SyntaxDiagnosticInfo> diagnostic;
+        std::shared_ptr<const SyntaxDiagnosticInfo> diagnostic;
         std::uint32_t final_diagnostic_offset;
 
         for (auto &node : skipped_syntax.enumerate_nodes())
@@ -115,9 +115,9 @@ namespace prism
 
         if (diagnostic != nullptr)
         {
-            target.add_diagnostic(make_ref_counted<SyntaxDiagnosticInfo>(final_diagnostic_offset,
+            target.add_diagnostic(std::make_shared<SyntaxDiagnosticInfo>(final_diagnostic_offset,
                                                                          diagnostic->width(),
-                                                                         diagnostic->code(),
+                                                                         diagnostic->descriptor(),
                                                                          diagnostic->arguments()));
         }
 

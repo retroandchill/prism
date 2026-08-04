@@ -55,6 +55,7 @@ namespace prism
       private:
         friend class SyntaxTriviaList;
         friend class StructuredTriviaSyntax;
+        friend class SyntaxTree;
 
         SyntaxToken token_;
         const GreenNode *green_;

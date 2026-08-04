@@ -11,6 +11,7 @@ import :syntax.green.token;
 import :syntax.green.trivia;
 import :syntax.green.child_list;
 import :syntax.green.view;
+import :diagnostics.info;
 
 namespace prism
 {
@@ -128,7 +129,7 @@ namespace prism
         return GreenNodeView{*this};
     }
 
-    void GreenNode::add_diagnostic(RefCountPtr<const DiagnosticInfo> diagnostic)
+    void GreenNode::add_diagnostic(std::shared_ptr<const DiagnosticInfo> diagnostic)
     {
         diagnostics_.push_back(std::move(diagnostic));
         if (diagnostics_.size() > 1)

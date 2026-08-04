@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using Prism.SyntaxGenerator.Models.Spec;
 
 namespace Prism.SyntaxGenerator.Models.Resolved;
@@ -21,11 +22,15 @@ public sealed class Diagnostic
 
     public string Explanation { get; }
 
+    public string HelpLink { get; }
+
     private readonly List<DiagnosticArgument> _arguments = [];
     public IReadOnlyList<DiagnosticArgument> Arguments => _arguments;
 
     private readonly List<DiagnosticMessagePart> _messageParts = [];
     public IReadOnlyList<DiagnosticMessagePart> MessageParts => _messageParts;
+
+    public ImmutableArray<string> Tags { get; }
 
     internal Diagnostic(
         string name,
@@ -33,7 +38,9 @@ public sealed class Diagnostic
         DiagnosticCategory category,
         DiagnosticSeverity severity,
         string format,
-        string explanation
+        string explanation,
+        string helpLink,
+        ImmutableArray<string> tags
     )
     {
         Name = name;
@@ -42,6 +49,8 @@ public sealed class Diagnostic
         Severity = severity;
         Format = format;
         Explanation = explanation;
+        HelpLink = helpLink;
+        Tags = tags;
     }
 
     internal void EnsureCapacity(int capacity)

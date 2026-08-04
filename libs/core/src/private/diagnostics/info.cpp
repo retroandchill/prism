@@ -7,13 +7,19 @@
 module prism.core:diagnostics.diagnostic_info.impl;
 
 import :diagnostics.info;
+import :diagnostics.diagnostic;
 
 namespace prism
 {
 
+    bool DiagnosticInfo::is_warning_as_error() const noexcept
+    {
+        return default_severity() == DiagnosticSeverity::warning && severity() == DiagnosticSeverity::error;
+    }
+
     std::string DiagnosticInfo::get_message() const
     {
-        const auto message = get_message(code_);
+        const auto message = descriptor_.format_message();
         if (message.empty())
             return "";
 
@@ -23,8 +29,26 @@ namespace prism
         return arguments_->format(message);
     }
 
-    RefCountPtr<const DiagnosticInfo> DiagnosticInfo::clone_with_severity(DiagnosticSeverity severity) const
+    std::string DiagnosticInfo::to_string() const
     {
-        return make_ref_counted<const DiagnosticInfo>(clone_tag, *this, severity);
+        std::string result;
+        StringWriter writer{result};
+        write_message(writer);
+        return result;
+    }
+
+    std::span<const Location> DiagnosticInfo::additional_locations() const
+    {
+        return {};
+    }
+
+    std::span<const std::string_view> DiagnosticInfo::custom_tags() const
+    {
+        return descriptor().tags();
+    }
+
+    std::shared_ptr<const DiagnosticInfo> DiagnosticInfo::clone_with_severity(DiagnosticSeverity severity) const
+    {
+        return std::make_shared<const DiagnosticInfo>(clone_tag, *this, severity);
     }
 } // namespace prism

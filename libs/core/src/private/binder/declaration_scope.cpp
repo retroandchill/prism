@@ -47,7 +47,7 @@ namespace prism
             .value_or_default();
     }
 
-    DeclarationLookupResult DeclarationScope::lookup_all_visible(Name name) const
+    DeclarationLookupResult DeclarationScope::lookup_all_visible(const Name name) const
     {
         SymbolList symbols;
         auto *current = this;

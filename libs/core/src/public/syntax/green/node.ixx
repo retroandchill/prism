@@ -13,7 +13,6 @@ export module prism.core:syntax.green.node;
 import :syntax.kind;
 import :syntax.flags;
 import :memory.ref_counted_ptr;
-import :diagnostics.info;
 import :util.optional;
 import :util.exceptions;
 import libassert;
@@ -27,6 +26,9 @@ namespace prism
     class GreenChildList;
     class GreenNodeView;
     class GreenToken;
+    class DiagnosticInfo;
+
+    using DiagnosticInfoList = std::vector<std::shared_ptr<const DiagnosticInfo>>;
 
     class GreenTrivia;
     template <typename T, bool Owning = true>
@@ -268,7 +270,7 @@ namespace prism
             return diagnostics_;
         }
 
-        void add_diagnostic(RefCountPtr<const DiagnosticInfo> diagnostic);
+        void add_diagnostic(std::shared_ptr<const DiagnosticInfo> diagnostic);
 
         template <std::ranges::input_range Range>
             requires std::convertible_to<std::ranges::range_reference_t<Range>, RefCountPtr<const DiagnosticInfo>>

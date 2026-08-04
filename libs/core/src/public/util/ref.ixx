@@ -19,10 +19,14 @@ namespace prism
         using element_type = T;
 
         template <typename U>
-            requires(std::constructible_from<T &, U> && !ReferenceConvertsFromTemporary<T &, U>)
+            requires(std::constructible_from<T &, U> && !ReferenceConvertsFromTemporary<T &, U> &&
+                     !std::same_as<std::remove_cvref_t<U>, Ref>)
         constexpr explicit(false) Ref(U &&value) : ptr_{&Ref::get_value(std::forward<U>(value))}
         {
         }
+
+        constexpr Ref(const Ref &) = default;
+        constexpr Ref(Ref &&) noexcept = default;
 
         ~Ref() = default;
 

@@ -11,16 +11,16 @@ import :diagnostics.syntax_info;
 namespace prism
 {
 
-    RefCountPtr<const SyntaxDiagnosticInfo> SyntaxDiagnosticInfo::with_offset(uint32_t offset) const
+    std::shared_ptr<const SyntaxDiagnosticInfo> SyntaxDiagnosticInfo::with_offset(uint32_t offset) const
     {
         if (offset == offset_)
-            return shared_from_this();
+            return std::static_pointer_cast<const SyntaxDiagnosticInfo>(shared_from_this());
 
-        return make_ref_counted<const SyntaxDiagnosticInfo>(offset, width_, code(), arguments());
+        return std::make_shared<const SyntaxDiagnosticInfo>(offset, width_, descriptor(), arguments());
     }
 
-    RefCountPtr<const DiagnosticInfo> SyntaxDiagnosticInfo::clone_with_severity(DiagnosticSeverity severity) const
+    std::shared_ptr<const DiagnosticInfo> SyntaxDiagnosticInfo::clone_with_severity(DiagnosticSeverity severity) const
     {
-        return make_ref_counted<SyntaxDiagnosticInfo>(clone_tag, *this, severity);
+        return std::make_shared<SyntaxDiagnosticInfo>(clone_tag, *this, severity);
     }
 } // namespace prism

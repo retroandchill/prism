@@ -31,6 +31,88 @@ namespace prism
         }
     };
 
+    export class SourcePositionSpan final
+    {
+      public:
+        constexpr SourcePositionSpan(const SourcePosition start, const SourcePosition end) : start_{start}, end_{end}
+        {
+            if (end < start)
+            {
+                throw std::invalid_argument{"end position must be greater than start position"};
+            }
+        }
+
+        [[nodiscard]] constexpr SourcePosition start() const noexcept
+        {
+            return start_;
+        }
+
+        [[nodiscard]] constexpr SourcePosition end() const noexcept
+        {
+            return end_;
+        }
+
+        constexpr friend bool operator==(const SourcePositionSpan &lhs,
+                                         const SourcePositionSpan &rhs) noexcept = default;
+
+        friend constexpr std::ostream &operator<<(std::ostream &os, const SourcePositionSpan span)
+        {
+            return os << '(' << span.start_ << ")-(" << span.end_ << ')';
+        }
+
+      private:
+        SourcePosition start_;
+        SourcePosition end_;
+    };
+
+    export class FileSourcePositionSpan final
+    {
+      public:
+        constexpr FileSourcePositionSpan(std::string_view path, const SourcePosition start, const SourcePosition end)
+            : FileSourcePositionSpan{path, SourcePositionSpan{start, end}}
+        {
+        }
+
+        constexpr FileSourcePositionSpan(std::string_view path, const SourcePositionSpan span)
+            : path_{path}, span_{span}
+        {
+        }
+
+        [[nodiscard]] constexpr std::string_view path() const noexcept
+        {
+            return path_;
+        }
+
+        [[nodiscard]] constexpr const SourcePositionSpan &span() const noexcept
+        {
+            return span_;
+        }
+
+        [[nodiscard]] constexpr SourcePosition start_line_position() const noexcept
+        {
+            return span_.start();
+        }
+
+        [[nodiscard]] constexpr SourcePosition end_line_position() const noexcept
+        {
+            return span_.end();
+        }
+
+        constexpr friend bool operator==(const FileSourcePositionSpan &lhs, const FileSourcePositionSpan &rhs) noexcept
+        {
+            return lhs.span_ == rhs.span_ && lhs.path_ == rhs.path_;
+        }
+
+        constexpr friend std::ostream &operator<<(std::ostream &os, const FileSourcePositionSpan span)
+        {
+            return os << span.path_ << ":" << span.span_;
+        }
+
+      private:
+        std::string_view path_;
+        SourcePositionSpan span_;
+    };
+
     export class SourceText final
     {
       public:
@@ -57,7 +139,7 @@ namespace prism
             return text_;
         }
 
-        [[nodiscard]] constexpr SourcePosition position_of(std::uint32_t index) const
+        [[nodiscard]] constexpr SourcePosition position_of(const std::uint32_t index) const
         {
             if (index >= text_.size())
                 throw std::out_of_range{"index out of range"};
@@ -87,5 +169,66 @@ struct std::hash<prism::SourcePosition>
     constexpr std::size_t operator()(const prism::SourcePosition &pos) const noexcept
     {
         return prism::hash_combine(pos.line, pos.column);
+    }
+};
+
+template <>
+struct std::formatter<prism::SourcePosition>
+{
+
+    static constexpr auto parse(std::format_parse_context &ctx)
+    {
+        return ctx.begin();
+    }
+
+    static constexpr auto format(const prism::SourcePosition pos, std::format_context &ctx)
+    {
+        return std::format_to(ctx.out(), "{:d}:{:d}", pos.line, pos.column);
+    }
+};
+
+template <>
+struct std::hash<prism::SourcePositionSpan>
+{
+    constexpr std::size_t operator()(const prism::SourcePositionSpan &span) const noexcept
+    {
+        return prism::hash_combine(span.start(), span.end());
+    }
+};
+
+template <>
+struct std::formatter<prism::SourcePositionSpan>
+{
+    static constexpr auto parse(std::format_parse_context &ctx)
+    {
+        return ctx.begin();
+    }
+
+    static constexpr auto format(const prism::SourcePositionSpan span, std::format_context &ctx)
+    {
+        return std::format_to(ctx.out(), "({})-({})", span.start(), span.end());
+    }
+};
+
+template <>
+struct std::hash<prism::FileSourcePositionSpan>
+{
+    constexpr std::size_t operator()(const prism::FileSourcePositionSpan &span) const noexcept
+    {
+        return prism::hash_combine(span.path(), span.span());
+    }
+};
+
+template <>
+struct std::formatter<prism::FileSourcePositionSpan>
+{
+    static constexpr auto parse(std::format_parse_context &ctx)
+    {
+        return ctx.begin();
+    }
+
+    static constexpr auto format(const prism::FileSourcePositionSpan &span, std::format_context &ctx)
+    {
+        return std::format_to(ctx.out(), "{}:{}", span.path(), span.span());
     }
 };

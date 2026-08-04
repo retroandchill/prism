@@ -31,4 +31,10 @@ public sealed record DiagnosticDefinition
 
     [UsedImplicitly]
     public string Explanation { get; init; } = "";
+
+    [UsedImplicitly]
+    public string HelpLink { get; init; } = "";
+
+    [UsedImplicitly]
+    public ImmutableArray<string> Tags { get; init; } = [];
 }
