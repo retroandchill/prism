@@ -1,5 +1,4 @@
 add_subdirectory(boost)
-add_subdirectory(concurrentqueue)
 add_subdirectory(fmt)
 add_subdirectory(libassert)
 add_subdirectory(uni_algo)

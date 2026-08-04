@@ -156,6 +156,8 @@ set(PRISM_PUBLIC_MODULES
         src/private/diagnostics/diagnostic.cpp
         src/public/diagnostics/location.ixx
         src/private/diagnostics/location.cpp
+        src/public/diagnostics/diagnostic_bag.ixx
+        src/private/diagnostics/diagnostic_bag.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

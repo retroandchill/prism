@@ -31,8 +31,5 @@
   }, {
     "name" : "boost-unordered",
     "version>=" : "1.91.0"
-  }, {
-    "name" : "concurrentqueue",
-    "version>=" : "1.0.5"
   } ]
 }
