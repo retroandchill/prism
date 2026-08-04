@@ -11,7 +11,7 @@ module;
 module prism.core:binder.declaration_binder.impl;
 
 import :binder.declaration_binder;
-import :symbols.symbol_lifetime;
+import :semantic.semantic_lifetime;
 import :symbols.source;
 import :syntax.tree;
 import :syntax.visit;

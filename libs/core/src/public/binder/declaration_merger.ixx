@@ -13,14 +13,14 @@ namespace prism
 {
     class SourceAssemblySymbol;
     class Symbol;
-    class SymbolLifetime;
+    class SemanticLifetime;
     class SourceNamespaceSymbol;
     class AssemblySymbol;
 
     class DeclarationMerger final
     {
       public:
-        constexpr DeclarationMerger(const Name assembly_name, SymbolLifetime &lifetime) noexcept
+        constexpr DeclarationMerger(const Name assembly_name, SemanticLifetime &lifetime) noexcept
             : assembly_name_{assembly_name}, lifetime_{lifetime}
         {
         }
@@ -37,7 +37,7 @@ namespace prism
                                                                      Name name);
 
         Name assembly_name_;
-        SymbolLifetime &lifetime_;
+        SemanticLifetime &lifetime_;
 
         SourceAssemblySymbol *assembly_ = nullptr;
         SourceNamespaceSymbol *global_namespace_ = nullptr;

@@ -135,7 +135,7 @@ set(PRISM_PUBLIC_MODULES
         generated/public/syntax/names.ixx
         generated/public/syntax/directives.ixx
         generated/public/syntax/green/directives.ixx
-        src/public/symbols/symbol_lifetime.ixx
+        src/public/semantic/semantic_lifetime.ixx
         src/public/binder/declaration_binder.ixx
         generated/public/syntax/visit.ixx
         src/public/symbols/source.ixx
@@ -161,6 +161,8 @@ set(PRISM_PUBLIC_MODULES
         src/public/semantic/semantic_model.ixx
         src/private/semantic/semantic_model.cpp
         src/public/syntax/reference.ixx
+        src/public/binder/declaration_scope_builder.ixx
+        src/private/binder/declaration_scope_builder.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

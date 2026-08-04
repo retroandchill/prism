@@ -4,6 +4,10 @@
  * @date 8/2/2026
  * @brief
  */
+module;
+
+#include "prism/core/exports.h"
+
 export module prism.core:binder.declaration_scope;
 
 import :syntax.node;
@@ -15,7 +19,7 @@ namespace prism
 {
     using SymbolList = PooledVector<Ref<const Symbol>>;
 
-    class DeclarationLookupResult final
+    export class DeclarationLookupResult final
     {
       public:
         constexpr DeclarationLookupResult() = default;
@@ -55,7 +59,7 @@ namespace prism
         SymbolList symbols_;
     };
 
-    class DeclarationScope final
+    export class PRISM_CORE_API DeclarationScope final
     {
       public:
         constexpr explicit DeclarationScope(const SyntaxNode &owner, DeclarationScope *parent = nullptr)
@@ -90,4 +94,6 @@ namespace prism
         std::unordered_map<Name, std::vector<Ref<const Symbol>>> symbols_;
         std::vector<Ref<const NamespaceSymbol>> using_namespaces_;
     };
+
+    using DeclarationScopeMap = std::unordered_map<const SyntaxNode *, const DeclarationScope *>;
 } // namespace prism

@@ -7,7 +7,7 @@
 module prism.core:binder.declaration_merger.impl;
 
 import :binder.declaration_merger;
-import :symbols.symbol_lifetime;
+import :semantic.semantic_lifetime;
 import :symbols.source;
 import :util.overload;
 import :syntax.declarations;
