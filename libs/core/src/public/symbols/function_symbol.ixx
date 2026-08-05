@@ -24,9 +24,9 @@ namespace prism
         ~FunctionSymbol() = default;
 
       public:
-        virtual const TypeSymbol &returnType() const noexcept = 0;
+        [[nodiscard]] virtual const TypeSymbol &return_type() const = 0;
 
-        virtual SymbolSpan<ParameterSymbol> parameters() const noexcept = 0;
+        [[nodiscard]] virtual SymbolSpan<ParameterSymbol> parameters() const noexcept = 0;
 
         [[nodiscard]] static bool instance_of(const Symbol &symbol) noexcept
         {

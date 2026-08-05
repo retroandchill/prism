@@ -16,12 +16,15 @@ namespace prism
     class SemanticLifetime;
     class SourceNamespaceSymbol;
     class AssemblySymbol;
+    class SemanticMappings;
 
-    class DeclarationMerger final
+    class DeclarationMerger final : NonCopyable
     {
       public:
-        constexpr DeclarationMerger(const Name assembly_name, SemanticLifetime &lifetime) noexcept
-            : assembly_name_{assembly_name}, lifetime_{lifetime}
+        constexpr DeclarationMerger(const Name assembly_name,
+                                    SemanticLifetime &lifetime,
+                                    SemanticMappings &mappings) noexcept
+            : assembly_name_{assembly_name}, lifetime_{lifetime}, mappings_{mappings}
         {
         }
 
@@ -38,6 +41,7 @@ namespace prism
 
         Name assembly_name_;
         SemanticLifetime &lifetime_;
+        SemanticMappings &mappings_;
 
         SourceAssemblySymbol *assembly_ = nullptr;
         SourceNamespaceSymbol *global_namespace_ = nullptr;

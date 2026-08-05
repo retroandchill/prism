@@ -42,6 +42,11 @@ namespace prism
         return *tree;
     }
 
+    Location SyntaxNode::location() const
+    {
+        return Location{std::in_place_type<SourceLocation>, *this};
+    }
+
     const SyntaxNode &SyntaxNode::get_required_node_slot(std::size_t index) const
     {
         return get_node_slot(index).value();

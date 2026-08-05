@@ -22,7 +22,7 @@ namespace prism
         ~VariableSymbol() = default;
 
       public:
-        virtual const TypeSymbol &type() const noexcept = 0;
+        virtual const TypeSymbol &type() const = 0;
 
         virtual bool is_mutable() const noexcept = 0;
 

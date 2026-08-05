@@ -11,7 +11,6 @@ module;
 export module prism.core:diagnostics.location;
 
 import :text.text_span;
-import :syntax.node;
 import :syntax.node_or_token;
 import :text.source_file;
 
@@ -27,20 +26,11 @@ namespace prism
         {
         }
 
-        constexpr explicit SourceLocation(const SyntaxNode &node) noexcept
-            : syntax_tree_{&node.tree()}, span_{node.span()}
-        {
-        }
+        explicit SourceLocation(const SyntaxNode &node) noexcept;
 
-        constexpr explicit SourceLocation(const SyntaxToken &token) noexcept
-            : syntax_tree_{token.tree().value_ptr()}, span_{token.span()}
-        {
-        }
+        explicit SourceLocation(const SyntaxToken &token) noexcept;
 
-        constexpr explicit SourceLocation(const SyntaxNodeOrToken &token) noexcept
-            : syntax_tree_{get_tree(token).value_ptr()}, span_{get_span(token)}
-        {
-        }
+        explicit SourceLocation(const SyntaxNodeOrToken &token) noexcept;
 
         [[nodiscard]] constexpr TextSpan source_span() const noexcept
         {

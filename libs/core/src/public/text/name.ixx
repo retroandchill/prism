@@ -266,3 +266,17 @@ struct std::hash<prism::Name>
         return std::hash<prism::NameEntryId>{}(name.id());
     }
 };
+
+template <>
+struct std::formatter<prism::Name>
+{
+    static constexpr auto parse(std::format_parse_context &ctx)
+    {
+        return ctx.begin();
+    }
+
+    static inline auto format(const prism::Name name, auto &ctx)
+    {
+        return std::format_to(ctx.out(), "{}", name.as_string_view());
+    }
+};

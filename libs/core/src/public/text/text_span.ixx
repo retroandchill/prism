@@ -96,7 +96,7 @@ struct std::hash<prism::TextSpan>
 template <>
 struct std::formatter<prism::TextSpan>
 {
-    static constexpr auto format(const prism::TextSpan span, std::format_context &ctx)
+    static constexpr auto format(const prism::TextSpan span, auto &ctx)
     {
         return std::format_to(ctx.out(), "[{:d}..{:d})", span.start, span.end());
     }

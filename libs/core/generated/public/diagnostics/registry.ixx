@@ -70,6 +70,26 @@ namespace prism::diagnostics
         ""sv,
         {}};
 
+    export constexpr DiagnosticDescriptor unresolved_symbol{to_string(DiagnosticCode::unresolved_symbol),
+                                                            "Unresolved symbol"sv,
+                                                            "Unresolved symbol {}",
+                                                            "Semantic"sv,
+                                                            DiagnosticSeverity::error,
+                                                            true,
+                                                            ""sv,
+                                                            ""sv,
+                                                            {}};
+
+    export constexpr DiagnosticDescriptor invalid_symbol{to_string(DiagnosticCode::invalid_symbol),
+                                                         "Invalid symbol"sv,
+                                                         "Unexpected symbol {}, expected a {}",
+                                                         "Semantic"sv,
+                                                         DiagnosticSeverity::error,
+                                                         true,
+                                                         ""sv,
+                                                         ""sv,
+                                                         {}};
+
     export [[nodiscard]] constexpr Optional<const DiagnosticDescriptor &> get_descriptor(const DiagnosticCode code)
     {
         switch (code)
@@ -86,6 +106,10 @@ namespace prism::diagnostics
                 return unterminated_character_literal;
             case DiagnosticCode::unterminated_block_comment:
                 return unterminated_block_comment;
+            case DiagnosticCode::unresolved_symbol:
+                return unresolved_symbol;
+            case DiagnosticCode::invalid_symbol:
+                return invalid_symbol;
             default:
                 return std::nullopt;
         }

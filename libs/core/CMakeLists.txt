@@ -36,6 +36,7 @@ set(PRISM_SOURCES
         generated/private/syntax/green/names.cpp
         generated/private/syntax/directives.cpp
         generated/private/syntax/green/directives.cpp
+        src/private/syntax/node_or_token.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -95,7 +96,6 @@ set(PRISM_PUBLIC_MODULES
         src/private/syntax/child_list.cpp
         src/public/util/overload.ixx
         src/public/syntax/node_or_token.ixx
-        src/private/syntax/node_or_token.cpp
         generated/public/syntax/clauses.ixx
         generated/public/syntax/declarations.ixx
         generated/public/syntax/expressions.ixx
@@ -144,8 +144,6 @@ set(PRISM_PUBLIC_MODULES
         src/public/symbols/visit.ixx
         src/public/util/lazy.ixx
         src/private/symbols/source.cpp
-        src/public/binder/semantic_facts.ixx
-        src/private/binder/semantic_facts.cpp
         src/public/semantic/compilation.ixx
         src/private/semantic/compilation.cpp
         src/public/binder/declaration_merger.ixx
@@ -163,6 +161,8 @@ set(PRISM_PUBLIC_MODULES
         src/public/syntax/reference.ixx
         src/public/binder/declaration_scope_builder.ixx
         src/private/binder/declaration_scope_builder.cpp
+        src/public/binder/semantic_mappings.ixx
+        src/private/binder/semantic_mappings.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

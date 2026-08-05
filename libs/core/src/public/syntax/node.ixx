@@ -13,6 +13,7 @@ export module prism.core:syntax.node;
 import :syntax.green.node;
 import :util.noncopyable;
 import :text.text_span;
+import :diagnostics.location;
 
 namespace prism
 {
@@ -106,6 +107,8 @@ namespace prism
         }
 
         [[nodiscard]] const SyntaxTree &tree() const;
+
+        [[nodiscard]] Location location() const;
 
       protected:
         [[nodiscard]] constexpr SyntaxLifetime &lifetime() const noexcept

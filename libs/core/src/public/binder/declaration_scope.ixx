@@ -56,7 +56,7 @@ namespace prism
         }
 
       private:
-        SymbolList symbols_;
+        SymbolList symbols_{};
     };
 
     export class PRISM_CORE_API DeclarationScope final
@@ -91,8 +91,8 @@ namespace prism
         const SyntaxNode &owner_;
         DeclarationScope *parent_ = nullptr;
 
-        std::unordered_map<Name, std::vector<Ref<const Symbol>>> symbols_;
-        std::vector<Ref<const NamespaceSymbol>> using_namespaces_;
+        std::unordered_map<Name, std::vector<Ref<const Symbol>>> symbols_{};
+        std::vector<Ref<const NamespaceSymbol>> using_namespaces_{};
     };
 
     using DeclarationScopeMap = std::unordered_map<const SyntaxNode *, const DeclarationScope *>;

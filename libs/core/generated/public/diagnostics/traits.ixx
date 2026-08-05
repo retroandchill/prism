@@ -44,4 +44,16 @@ namespace prism
     {
         using Args = std::tuple<>;
     };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::unresolved_symbol>
+    {
+        using Args = std::tuple<Name>;
+    };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::invalid_symbol>
+    {
+        using Args = std::tuple<Name, std::string>;
+    };
 } // namespace prism

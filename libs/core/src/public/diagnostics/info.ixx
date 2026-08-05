@@ -26,7 +26,8 @@ namespace prism
 {
     template <DiagnosticCode Code, typename... Args>
     concept CanCreateDiagnostic = std::constructible_from<typename DiagnosticTraits<Code>::Args, Args...> &&
-                                  sizeof...(Args) == std::tuple_size_v<typename DiagnosticTraits<Code>::Args>;
+                                  sizeof...(Args) == std::tuple_size_v<typename DiagnosticTraits<Code>::Args> &&
+                                  (std::formattable<Args, char> && ...);
 
     class DiagnosticArguments : NonCopyable
     {
@@ -92,9 +93,10 @@ namespace prism
 
         template <DiagnosticCode Code, typename... Args>
             requires CanCreateDiagnostic<Code, Args...>
-        constexpr static RefCountPtr<DiagnosticInfo> create(Args &&...args)
+        constexpr static std::shared_ptr<DiagnosticInfo> create(Args &&...args)
         {
-            return make_ref_counted<DiagnosticInfo>(Code, std::forward<Args>(args)...);
+            return std::make_shared<DiagnosticInfo>(diagnostics::get_descriptor(Code).value(),
+                                                    std::forward<Args>(args)...);
         }
 
         [[nodiscard]] constexpr std::string_view id() const noexcept

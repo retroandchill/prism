@@ -15,6 +15,7 @@ import :syntax.tree;
 import :semantic.semantic_lifetime;
 import :semantic.semantic_model;
 import :binder.declaration_scope;
+import :binder.semantic_mappings;
 
 namespace prism
 {
@@ -26,7 +27,7 @@ namespace prism
                     const AssemblySymbol &assembly,
                     std::vector<std::unique_ptr<SyntaxTree>> trees,
                     std::vector<Diagnostic> diagnostics,
-                    DeclarationScopeMap declaration_scopes) noexcept;
+                    SemanticMappings semantic_mappings) noexcept;
 
       public:
         static std::unique_ptr<Compilation> create(Name assembly_name, std::vector<std::unique_ptr<SyntaxTree>> trees);
@@ -58,6 +59,6 @@ namespace prism
         const AssemblySymbol &assembly_;
         std::vector<std::unique_ptr<SyntaxTree>> trees_;
         std::vector<Diagnostic> diagnostics_;
-        DeclarationScopeMap declaration_scopes_;
+        SemanticMappings semantic_mappings_;
     };
 } // namespace prism

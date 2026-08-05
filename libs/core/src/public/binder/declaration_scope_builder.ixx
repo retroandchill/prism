@@ -11,6 +11,9 @@ import :binder.declaration_scope;
 
 namespace prism
 {
+    class SemanticMappings;
+    class FunctionDeclarationSyntax;
+    class NamespaceDeclarationSyntax;
     class QualifiedNameSyntax;
     class SimpleNameSyntax;
     class NameSyntax;
@@ -26,32 +29,29 @@ namespace prism
     {
       public:
         constexpr explicit DeclarationScopeBuilder(SemanticLifetime &lifetime,
-                                                   NamespaceSymbol &global_namespace,
-                                                   DiagnosticBag &diagnostics) noexcept
-            : lifetime_{lifetime}, global_namespace_{global_namespace}, diagnostics_{diagnostics}
+                                                   const NamespaceSymbol &global_namespace,
+                                                   DiagnosticBag &diagnostics,
+                                                   SemanticMappings &mappings) noexcept
+            : lifetime_{lifetime}, global_namespace_{global_namespace}, diagnostics_{diagnostics}, mappings_{mappings}
         {
         }
 
-        void add(const SyntaxTree &tree);
-
-        [[nodiscard]] constexpr DeclarationScopeMap build() && noexcept
-        {
-            return std::move(scopes_);
-        }
+        void add(const SyntaxTree &tree) const;
 
       private:
-        DeclarationScope &create_scope(const SyntaxNode &owner, DeclarationScope *parent);
+        DeclarationScope &create_scope(const SyntaxNode &owner, DeclarationScope *parent) const;
 
-        void bind_compilation_unit(const CompilationUnitSyntax &syntax);
-        void bind_declaration(const DeclarationSyntax &syntax, DeclarationScope &current);
-        void bind_statement(const StatementSyntax &syntax, DeclarationScope &current);
+        void bind_compilation_unit(const CompilationUnitSyntax &syntax) const;
 
-        Optional<const Symbol &> resolve_symbol(const NameSyntax &syntax);
-        Optional<const Symbol &> resolve_symbol(Name syntax, const Symbol &ns);
+        void bind_declaration(const DeclarationSyntax &syntax, DeclarationScope &current) const;
+        void bind_namespace_declaration(const NamespaceDeclarationSyntax &syntax, DeclarationScope &current) const;
+        void bind_function_declaration(const FunctionDeclarationSyntax &syntax, DeclarationScope &current) const;
+
+        [[nodiscard]] Optional<const NamespaceSymbol &> resolve_namespace(const NameSyntax &syntax) const;
 
         SemanticLifetime &lifetime_;
-        NamespaceSymbol &global_namespace_;
+        const NamespaceSymbol &global_namespace_;
         DiagnosticBag &diagnostics_;
-        DeclarationScopeMap scopes_;
+        SemanticMappings &mappings_;
     };
 } // namespace prism

@@ -11,6 +11,8 @@ import :semantic.semantic_lifetime;
 import :symbols.source;
 import :util.overload;
 import :syntax.declarations;
+import :syntax.clauses;
+import :binder.semantic_mappings;
 
 namespace prism
 {
@@ -46,6 +48,8 @@ namespace prism
 
         for (const auto name : record.names)
             namespace_symbol = &get_or_create_namespace(*namespace_symbol, name);
+
+        mappings_.add_symbol_mapping(*record.syntax, *namespace_symbol);
         namespace_symbol->add_syntax_reference(*record.syntax);
 
         for (const auto &declaration : record.declarations)
@@ -56,6 +60,7 @@ namespace prism
                                            SourceNamespaceSymbol &containing_namespace) const
     {
         const auto &symbol = lifetime_.create<SourceVariableSymbol>(record.name, &containing_namespace, *record.syntax);
+        mappings_.add_symbol_mapping(*record.syntax, symbol);
         containing_namespace.add_member(symbol);
     }
 
@@ -63,11 +68,16 @@ namespace prism
                                            SourceNamespaceSymbol &containing_namespace) const
     {
         auto &symbol = lifetime_.create<SourceFunctionSymbol>(record.name, &containing_namespace, *record.syntax);
+        mappings_.add_symbol_mapping(*record.syntax, symbol);
         symbol.add_parameters(
             record.parameters |
             std::views::transform(
                 [&](const ParameterRecord &parameter) -> auto &
-                { return lifetime_.create<SourceParameterSymbol>(parameter.name, &symbol, *parameter.syntax); }));
+                {
+                    auto &s = lifetime_.create<SourceParameterSymbol>(parameter.name, &symbol, *parameter.syntax);
+                    mappings_.add_symbol_mapping(*parameter.syntax, s);
+                    return s;
+                }));
         containing_namespace.add_member(symbol);
     }
 

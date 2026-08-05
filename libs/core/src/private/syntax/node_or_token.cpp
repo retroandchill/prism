@@ -4,12 +4,44 @@
  * @date 7/22/2026
  * @brief
  */
+module;
+
+#include <libassert/assert-macros.hpp>
+
 module prism.core:syntax.node_or_token.impl;
 
 import :syntax.node_or_token;
+import :syntax.node;
 
 namespace prism
 {
+    Optional<const SyntaxTree &> get_tree(const SyntaxNodeOrToken &node_or_token) noexcept
+    {
+        return std::visit(Overload{[](const SyntaxNode &node) -> Optional<const SyntaxTree &> { return node.tree(); },
+                                   [](const SyntaxToken &token)
+                                   {
+                                       return token.tree();
+                                   }},
+                          node_or_token);
+    }
+
+    TextSpan get_span(const SyntaxNodeOrToken &node_or_token) noexcept
+    {
+        return std::visit(Overload{[](const SyntaxNode &node) { return node.span(); },
+                                   [](const SyntaxToken &token)
+                                   {
+                                       return token.span();
+                                   }},
+                          node_or_token);
+    }
+
+    std::size_t SyntaxNodeOrTokenList::size() const noexcept
+    {
+        if (node_ == nullptr)
+            return 0;
+
+        return node_->green().is_list() ? node_->green().slot_count() : 1;
+    }
 
     SyntaxNodeOrToken SyntaxNodeOrTokenList::operator[](const std::size_t index) const
     {
@@ -33,5 +65,11 @@ namespace prism
         }
 
         return node_->get_required_node_slot(index);
+    }
+
+    Optional<const SyntaxNode &> SyntaxNodeOrTokenList::parent() const
+    {
+        ASSUME(node_ != nullptr);
+        return node_->parent();
     }
 } // namespace prism

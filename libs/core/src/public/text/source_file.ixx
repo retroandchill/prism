@@ -181,7 +181,7 @@ struct std::formatter<prism::SourcePosition>
         return ctx.begin();
     }
 
-    static constexpr auto format(const prism::SourcePosition pos, std::format_context &ctx)
+    static constexpr auto format(const prism::SourcePosition pos, auto &ctx)
     {
         return std::format_to(ctx.out(), "{:d}:{:d}", pos.line, pos.column);
     }
@@ -204,7 +204,7 @@ struct std::formatter<prism::SourcePositionSpan>
         return ctx.begin();
     }
 
-    static constexpr auto format(const prism::SourcePositionSpan span, std::format_context &ctx)
+    static constexpr auto format(const prism::SourcePositionSpan span, auto &ctx)
     {
         return std::format_to(ctx.out(), "({})-({})", span.start(), span.end());
     }
@@ -227,7 +227,7 @@ struct std::formatter<prism::FileSourcePositionSpan>
         return ctx.begin();
     }
 
-    static constexpr auto format(const prism::FileSourcePositionSpan &span, std::format_context &ctx)
+    static constexpr auto format(const prism::FileSourcePositionSpan &span, auto &ctx)
     {
         return std::format_to(ctx.out(), "{}:{}", span.path(), span.span());
     }

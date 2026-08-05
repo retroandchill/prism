@@ -24,7 +24,7 @@ namespace prism
     {
     }
 
-    const TypeSymbol &SourceVariableSymbol::type() const noexcept
+    const TypeSymbol &SourceVariableSymbol::type() const
     {
         throw NotImplementedException{};
     }
@@ -46,7 +46,7 @@ namespace prism
     {
     }
 
-    const TypeSymbol &SourceFunctionSymbol::returnType() const noexcept
+    const TypeSymbol &SourceFunctionSymbol::return_type() const
     {
         throw NotImplementedException{};
     }
@@ -63,7 +63,7 @@ namespace prism
     {
     }
 
-    const TypeSymbol &SourceParameterSymbol::type() const noexcept
+    const TypeSymbol &SourceParameterSymbol::type() const
     {
         throw NotImplementedException{};
     }

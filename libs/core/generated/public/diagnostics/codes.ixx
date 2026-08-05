@@ -15,6 +15,10 @@ namespace prism
         unterminated_string_literal = 1003,
         unterminated_character_literal = 1004,
         unterminated_block_comment = 1005,
+
+        // -- Semantic (2000-2999) ---
+        unresolved_symbol = 2000,
+        invalid_symbol = 2001,
     };
 
     export constexpr std::string_view to_string(const DiagnosticCode code)
@@ -33,6 +37,10 @@ namespace prism
                 return "E10044";
             case DiagnosticCode::unterminated_block_comment:
                 return "E10054";
+            case DiagnosticCode::unresolved_symbol:
+                return "E20004";
+            case DiagnosticCode::invalid_symbol:
+                return "E20014";
             default:
                 throw std::invalid_argument{"Invalid diagnostic code"};
         }

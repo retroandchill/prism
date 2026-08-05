@@ -92,7 +92,7 @@ namespace prism
       public:
         SourceVariableSymbol(const Name &name, const Symbol *containing, const VariableDeclarationSyntax &syntax);
 
-        [[nodiscard]] const TypeSymbol &type() const noexcept override;
+        [[nodiscard]] const TypeSymbol &type() const override;
         [[nodiscard]] bool is_mutable() const noexcept override;
 
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
@@ -107,7 +107,7 @@ namespace prism
       public:
         SourceFunctionSymbol(const Name &name, const Symbol *containing, const FunctionDeclarationSyntax &syntax);
 
-        [[nodiscard]] const TypeSymbol &returnType() const noexcept override;
+        [[nodiscard]] const TypeSymbol &return_type() const override;
 
         [[nodiscard]] constexpr SymbolSpan<ParameterSymbol> parameters() const noexcept override
         {
@@ -143,7 +143,7 @@ namespace prism
       public:
         SourceParameterSymbol(const Name &name, const Symbol *containing, const ParameterSyntax &syntax);
 
-        [[nodiscard]] const TypeSymbol &type() const noexcept override;
+        [[nodiscard]] const TypeSymbol &type() const override;
         [[nodiscard]] bool is_mutable() const noexcept override;
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
 

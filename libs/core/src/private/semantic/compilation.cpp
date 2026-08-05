@@ -12,6 +12,7 @@ import :binder.declaration_merger;
 import :diagnostics.diagnostic_bag;
 import :binder.declaration_scope;
 import :binder.declaration_scope_builder;
+import :symbols.assembly_symbol;
 
 namespace prism
 {
@@ -20,9 +21,9 @@ namespace prism
                              const AssemblySymbol &assembly,
                              std::vector<std::unique_ptr<SyntaxTree>> trees,
                              std::vector<Diagnostic> diagnostics,
-                             DeclarationScopeMap declaration_scopes) noexcept
+                             SemanticMappings semantic_mappings) noexcept
         : lifetime_{std::move(lifetime)}, assembly_{assembly}, trees_{std::move(trees)},
-          diagnostics_{std::move(diagnostics)}, declaration_scopes_{std::move(declaration_scopes)}
+          diagnostics_{std::move(diagnostics)}, semantic_mappings_{std::move(semantic_mappings)}
     {
     }
 
@@ -37,26 +38,25 @@ namespace prism
             std::views::join | std::ranges::to<std::vector>();
 
         DiagnosticBag diagnostics{16};
+        SemanticMappings mappings;
         auto lifetime = std::make_unique<SemanticLifetime>();
-        auto &assembly = DeclarationMerger{assembly_name, *lifetime}.merge(declaration_records);
-        DeclarationScopeBuilder declaration_scopes{*lifetime};
+        auto &assembly = DeclarationMerger{assembly_name, *lifetime, mappings}.merge(declaration_records);
+        DeclarationScopeBuilder declaration_scopes{*lifetime, assembly.global_namespace(), diagnostics, mappings};
         for (const auto &tree : trees)
         {
             declaration_scopes.add(*tree);
         }
 
-        return std::unique_ptr<Compilation>{new Compilation{std::move(lifetime),
-                                                            assembly,
-                                                            std::move(trees),
-                                                            diagnostics.drain(),
-                                                            std::move(declaration_scopes).build()}};
+        return std::unique_ptr<Compilation>{
+            new Compilation{std::move(lifetime), assembly, std::move(trees), diagnostics.drain(), std::move(mappings)}};
     }
 
     const DeclarationScope &Compilation::get_declaration_scope(const SyntaxNode &node) const
     {
-        if (const auto it = declaration_scopes_.find(&node); it != declaration_scopes_.end())
-            return *it->second;
+        const auto scope = semantic_mappings_.get_scope(node);
+        if (!scope.has_value())
+            throw std::invalid_argument{"No declaration scope found for node"};
 
-        throw std::invalid_argument{"Declaration scope not found"};
+        return *scope;
     }
 } // namespace prism
