@@ -53,6 +53,8 @@ namespace prism
         {
         }
 
+        [[nodiscard]] Optional<const Compilation &> containing_compilation() const noexcept override;
+
         [[nodiscard]] constexpr SymbolSpan<Symbol> members() const override
         {
             return members_;
@@ -81,10 +83,11 @@ namespace prism
             members_.append_range(std::forward<Range>(range));
         }
 
+      private:
         friend class DeclarationMerger;
 
-        std::vector<Ref<const Symbol>> members_;
-        std::vector<SyntaxReference> syntax_references_;
+        std::vector<Ref<const Symbol>> members_{};
+        std::vector<SyntaxReference> syntax_references_{};
     };
 
     class SourceVariableSymbol final : public VariableSymbol

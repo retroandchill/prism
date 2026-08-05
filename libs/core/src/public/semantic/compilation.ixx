@@ -8,6 +8,8 @@ module;
 
 #include "prism/core/exports.h"
 
+#include <libassert/assert-macros.hpp>
+
 export module prism.core:semantic.compilation;
 
 import :util.noncopyable;
@@ -23,18 +25,25 @@ namespace prism
 
     export class PRISM_CORE_API Compilation : NonCopyable
     {
-        Compilation(std::unique_ptr<SemanticLifetime> lifetime,
-                    const AssemblySymbol &assembly,
-                    std::vector<std::unique_ptr<SyntaxTree>> trees,
-                    std::vector<Diagnostic> diagnostics,
-                    SemanticMappings semantic_mappings) noexcept;
+        struct CreateTag
+        {
+        };
 
       public:
+        Compilation(CreateTag, std::vector<std::unique_ptr<SyntaxTree>> trees) noexcept;
+
         static std::unique_ptr<Compilation> create(Name assembly_name, std::vector<std::unique_ptr<SyntaxTree>> trees);
 
         [[nodiscard]] constexpr const AssemblySymbol &assembly() const noexcept
         {
-            return assembly_;
+            ASSUME(assembly_ != nullptr);
+            return *assembly_;
+        }
+
+        [[nodiscard]] constexpr const NamespaceSymbol &common_global_namespace() const noexcept
+        {
+            ASSUME(global_namespace_ != nullptr);
+            return *global_namespace_;
         }
 
         [[nodiscard]] constexpr const std::vector<std::unique_ptr<SyntaxTree>> &trees() const noexcept
@@ -55,8 +64,11 @@ namespace prism
         [[nodiscard]] const DeclarationScope &get_declaration_scope(const SyntaxNode &node) const;
 
       private:
-        std::unique_ptr<SemanticLifetime> lifetime_;
-        const AssemblySymbol &assembly_;
+        friend class MergedNamespaceSymbol;
+
+        std::unique_ptr<SemanticLifetime> lifetime_ = std::make_unique<SemanticLifetime>();
+        const AssemblySymbol *assembly_ = nullptr;
+        const NamespaceSymbol *global_namespace_ = nullptr;
         std::vector<std::unique_ptr<SyntaxTree>> trees_;
         std::vector<Diagnostic> diagnostics_;
         SemanticMappings semantic_mappings_;

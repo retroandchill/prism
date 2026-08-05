@@ -6,6 +6,7 @@
  */
 export module prism.core:symbols.symbol;
 
+import std;
 import :symbols.kind;
 import :text.name;
 import :util.noncopyable;

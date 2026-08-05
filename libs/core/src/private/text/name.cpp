@@ -737,8 +737,3 @@ struct std::hash<prism::NameEntryHandle>
                (handle.offset << (name_block_offset_bits - 1)) + handle.offset + (handle.offset >> 4);
     }
 };
-
-std::size_t std::hash<prism::NameEntryId>::operator()(const prism::NameEntryId &id) const noexcept
-{
-    return std::hash<prism::NameEntryHandle>{}(id);
-}

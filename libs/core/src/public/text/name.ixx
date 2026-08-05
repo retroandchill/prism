@@ -255,13 +255,16 @@ namespace prism
 template <>
 struct std::hash<prism::NameEntryId>
 {
-    PRISM_CORE_API std::size_t operator()(const prism::NameEntryId &id) const noexcept;
+    constexpr std::size_t operator()(const prism::NameEntryId &id) const noexcept
+    {
+        return id.to_unstable_int();
+    }
 };
 
 template <>
 struct std::hash<prism::Name>
 {
-    inline std::size_t operator()(const prism::Name &name) const noexcept
+    constexpr std::size_t operator()(const prism::Name &name) const noexcept
     {
         return std::hash<prism::NameEntryId>{}(name.id());
     }

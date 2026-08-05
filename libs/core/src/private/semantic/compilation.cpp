@@ -13,17 +13,13 @@ import :diagnostics.diagnostic_bag;
 import :binder.declaration_scope;
 import :binder.declaration_scope_builder;
 import :symbols.assembly_symbol;
+import :symbols.merged_namespace_symbol;
 
 namespace prism
 {
 
-    Compilation::Compilation(std::unique_ptr<SemanticLifetime> lifetime,
-                             const AssemblySymbol &assembly,
-                             std::vector<std::unique_ptr<SyntaxTree>> trees,
-                             std::vector<Diagnostic> diagnostics,
-                             SemanticMappings semantic_mappings) noexcept
-        : lifetime_{std::move(lifetime)}, assembly_{assembly}, trees_{std::move(trees)},
-          diagnostics_{std::move(diagnostics)}, semantic_mappings_{std::move(semantic_mappings)}
+    Compilation::Compilation(CreateTag, std::vector<std::unique_ptr<SyntaxTree>> trees) noexcept
+        : trees_{std::move(trees)}
     {
     }
 
@@ -33,22 +29,35 @@ namespace prism
         if (trees.empty())
             throw std::invalid_argument{"Cannot create a compilation with 0 syntax trees"};
 
+        auto compilation = std::make_unique<Compilation>(CreateTag{}, std::move(trees));
+
         auto declaration_records =
-            trees | std::views::transform([](const auto &tree) { return DeclarationBinder{*tree}.bind(); }) |
-            std::views::join | std::ranges::to<std::vector>();
+            compilation->trees_ |
+            std::views::transform([](const auto &tree) { return DeclarationBinder{*tree}.bind(); }) | std::views::join |
+            std::ranges::to<std::vector>();
 
         DiagnosticBag diagnostics{16};
-        SemanticMappings mappings;
-        auto lifetime = std::make_unique<SemanticLifetime>();
-        auto &assembly = DeclarationMerger{assembly_name, *lifetime, mappings}.merge(declaration_records);
-        DeclarationScopeBuilder declaration_scopes{*lifetime, assembly.global_namespace(), diagnostics, mappings};
+        auto &lifetime = *compilation->lifetime_;
+        auto &mappings = compilation->semantic_mappings_;
+        compilation->assembly_ = &DeclarationMerger{assembly_name, lifetime, mappings}.merge(declaration_records);
+
+        std::vector<Ref<const NamespaceSymbol>> global_namespaces;
+        global_namespaces.emplace_back(compilation->assembly().global_namespace());
+        compilation->global_namespace_ =
+            &MergedNamespaceSymbol::create(*compilation, nullptr, std::move(global_namespaces));
+
+        const DeclarationScopeBuilder declaration_scopes{lifetime,
+                                                         compilation->assembly().global_namespace(),
+                                                         diagnostics,
+                                                         mappings};
         for (const auto &tree : trees)
         {
             declaration_scopes.add(*tree);
         }
 
-        return std::unique_ptr<Compilation>{
-            new Compilation{std::move(lifetime), assembly, std::move(trees), diagnostics.drain(), std::move(mappings)}};
+        diagnostics.move_to(compilation->diagnostics_);
+
+        return compilation;
     }
 
     const DeclarationScope &Compilation::get_declaration_scope(const SyntaxNode &node) const

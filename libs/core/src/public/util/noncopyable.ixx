@@ -22,7 +22,7 @@ namespace prism
         /**
          * Default no-op destructor, marked protected to discourage managing a pointer to this type.
          */
-        ~NonCopyable() = default;
+        ~NonCopyable() noexcept = default;
 
       public:
         NonCopyable(const NonCopyable &) = delete;

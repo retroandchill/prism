@@ -37,6 +37,7 @@ set(PRISM_SOURCES
         generated/private/syntax/directives.cpp
         generated/private/syntax/green/directives.cpp
         src/private/syntax/node_or_token.cpp
+        src/private/symbols/merged_namespace_symbol.cpp
 )
 
 set(PRISM_PRIVATE_MODULES )
@@ -163,6 +164,7 @@ set(PRISM_PUBLIC_MODULES
         src/private/binder/declaration_scope_builder.cpp
         src/public/binder/semantic_mappings.ixx
         src/private/binder/semantic_mappings.cpp
+        src/public/symbols/merged_namespace_symbol.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

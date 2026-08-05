@@ -17,6 +17,11 @@ namespace prism
         return {};
     }
 
+    Optional<const Compilation &> SourceNamespaceSymbol::containing_compilation() const noexcept
+    {
+        return std::nullopt;
+    }
+
     SourceVariableSymbol::SourceVariableSymbol(const Name &name,
                                                const Symbol *containing,
                                                const VariableDeclarationSyntax &syntax)

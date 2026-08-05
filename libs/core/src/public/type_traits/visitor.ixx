@@ -11,6 +11,25 @@ import std;
 
 namespace prism
 {
+    template <typename T, typename Variant>
+    struct VariantIndex;
+
+    template <typename T, typename... Types>
+    struct VariantIndex<T, std::variant<Types...>>
+    {
+        static constexpr std::size_t value = []
+        {
+            std::size_t idx = 0;
+            // Fold expression iterating through the alternatives to find the target type
+            const bool found = ((std::is_same_v<T, Types> ? true : (++idx, false)) || ...);
+            return found ? idx : throw "Type not found in variant";
+        }();
+    };
+
+    // Convenient helper variable template
+    export template <typename T, typename Variant>
+    inline constexpr std::size_t variant_index_v = VariantIndex<T, Variant>::value;
+
     template <typename Functor, typename... Options>
     concept InvocableOnEach = (std::invocable<Functor, Options> && ...);
 
