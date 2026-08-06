@@ -39,7 +39,7 @@ namespace prism
         {
         }
 
-        ~Symbol() = default;
+        ~Symbol() noexcept = default;
 
       public:
         [[nodiscard]] constexpr SymbolKind kind() const noexcept

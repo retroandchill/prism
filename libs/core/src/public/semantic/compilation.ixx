@@ -18,9 +18,11 @@ import :semantic.semantic_lifetime;
 import :semantic.semantic_model;
 import :binder.declaration_scope;
 import :binder.semantic_mappings;
+import :symbols.type_symbol;
 
 namespace prism
 {
+    class NamedTypeSymbol;
     class AssemblySymbol;
 
     export class PRISM_CORE_API Compilation : NonCopyable
@@ -62,6 +64,8 @@ namespace prism
         }
 
         [[nodiscard]] const DeclarationScope &get_declaration_scope(const SyntaxNode &node) const;
+
+        [[nodiscard]] const NamedTypeSymbol &get_special_type(SpecialType type) const;
 
       private:
         friend class MergedNamespaceSymbol;

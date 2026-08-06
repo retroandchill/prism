@@ -20,14 +20,6 @@ import libassert;
 
 namespace prism
 {
-    namespace
-    {
-        constexpr std::uint32_t name_max_block_bits = 13;
-        constexpr std::uint32_t name_block_offset_bits = 16;
-        constexpr std::uint32_t name_max_blocks = 1 << name_max_block_bits;
-        constexpr std::uint32_t name_block_offsets = 1 << name_block_offset_bits;
-    } // namespace
-
     struct DefaultNameStore
     {
         static std::uint32_t try_place(std::byte *, const std::uint32_t size, const std::string_view name)
@@ -61,29 +53,6 @@ namespace prism
 #else
     using NameStore = DefaultNameStore;
 #endif
-
-    struct NameEntryHandle
-    {
-        std::uint32_t block = 0;
-        std::uint32_t offset = 0;
-
-        constexpr NameEntryHandle(const std::uint32_t block, const std::uint32_t offset) : block(block), offset(offset)
-        {
-            DEBUG_ASSERT(block < name_max_blocks);
-            DEBUG_ASSERT(offset < name_block_offsets);
-        }
-
-        constexpr explicit(false) NameEntryHandle(const NameEntryId id)
-            : block{id.to_unstable_int() >> name_block_offset_bits},
-              offset{id.to_unstable_int() & name_block_offset_bits - 1}
-        {
-        }
-
-        constexpr explicit(false) operator NameEntryId() const
-        {
-            return NameEntryId::from_unstable_int(block << name_block_offset_bits | offset);
-        }
-    };
 
     struct NameEntryMemoryDeleter
     {
@@ -188,16 +157,16 @@ namespace prism
             return allocate(bytes);
         }
 
-        NameEntryHandle create(std::string_view name, NameEntryHeader header)
+        NameEntryHandle create(const std::string_view name, const NameEntryHeader header)
         {
-            NameEntryHandle handle = allocate_regular(name);
+            const NameEntryHandle handle = allocate_regular(name);
             auto &entry = resolve(handle);
             entry.header_ = header;
             NameStore::finalize(entry.data_, name);
             return handle;
         }
 
-        NameEntry &resolve(const NameEntryHandle handle) const
+        [[nodiscard]] NameEntry &resolve(const NameEntryHandle handle) const
         {
             return *reinterpret_cast<NameEntry *>(std::next(blocks_[handle.block].get(), stride * handle.offset));
         }
@@ -514,32 +483,33 @@ namespace prism
                 }
             }
         }
+
         NameEntryId store(const std::string_view name)
         {
             const NameValue value{name};
             return shards_[value.hash.shard_index].insert(value);
         }
 
-        NameEntryId find(const std::string_view name) const
+        [[nodiscard]] NameEntryId find(const std::string_view name) const
         {
             const NameValue value{name};
             return shards_[value.hash.shard_index].find(value);
         }
 
-        NameEntryId find(const KnownName name) const
+        [[nodiscard]] NameEntryId find(const KnownName name) const
         {
             DEBUG_ASSERT(std::to_underlying(name) < std::to_underlying(KnownName::count));
             return known_names_[std::to_underlying(name)];
         }
 
-        Optional<KnownName> find_known(const NameEntryId id) const
+        [[nodiscard]] Optional<KnownName> find_known(const NameEntryId id) const
         {
-            return id.to_unstable_int() <= std::to_underlying(KnownName::count)
+            return id.to_unstable_int() <= largest_known_name_unstable_id_
                        ? make_optional(entry_to_known_name_.find(id)->second)
                        : std::nullopt;
         }
 
-        NameEntry &resolve(const NameEntryHandle handle) const
+        [[nodiscard]] NameEntry &resolve(const NameEntryHandle handle) const
         {
             return entries_.resolve(handle);
         }
@@ -726,14 +696,3 @@ namespace prism
         return reinterpret_cast<const std::byte *const *>(NamePool::get().debug_memory().data());
     }
 } // namespace prism
-
-template <>
-struct std::hash<prism::NameEntryHandle>
-{
-    constexpr std::size_t operator()(const prism::NameEntryHandle handle) const noexcept
-    {
-        using namespace prism;
-        return (handle.block << (32 - name_max_block_bits)) + handle.block +
-               (handle.offset << (name_block_offset_bits - 1)) + handle.offset + (handle.offset >> 4);
-    }
-};

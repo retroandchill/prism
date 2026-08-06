@@ -14,6 +14,7 @@ import :binder.declaration_scope;
 import :binder.declaration_scope_builder;
 import :symbols.assembly_symbol;
 import :symbols.merged_namespace_symbol;
+import :symbols.intrinsic;
 
 namespace prism
 {
@@ -42,12 +43,14 @@ namespace prism
         compilation->assembly_ = &DeclarationMerger{assembly_name, lifetime, mappings}.merge(declaration_records);
 
         std::vector<Ref<const NamespaceSymbol>> global_namespaces;
+        global_namespaces.reserve(2);
         global_namespaces.emplace_back(compilation->assembly().global_namespace());
+        global_namespaces.emplace_back(IntrinsicSymbols::instance().global_namespace());
         compilation->global_namespace_ =
             &MergedNamespaceSymbol::create(*compilation, nullptr, std::move(global_namespaces));
 
         const DeclarationScopeBuilder declaration_scopes{lifetime,
-                                                         compilation->assembly().global_namespace(),
+                                                         *compilation->global_namespace_,
                                                          diagnostics,
                                                          mappings};
         for (const auto &tree : trees)
@@ -67,5 +70,11 @@ namespace prism
             throw std::invalid_argument{"No declaration scope found for node"};
 
         return *scope;
+    }
+
+    // ReSharper disable once CppMemberFunctionMayBeStatic
+    const NamedTypeSymbol &Compilation::get_special_type(const SpecialType type) const
+    {
+        return IntrinsicSymbols::instance().get_type(type);
     }
 } // namespace prism

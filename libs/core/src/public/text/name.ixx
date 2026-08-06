@@ -10,14 +10,21 @@ module;
 #include "prism/core/names.hpp"
 
 #include <cstddef>
+#include <libassert/assert-macros.hpp>
 
 export module prism.core:text.name;
 
 import std;
+import libassert;
 import :util.optional;
 
 namespace prism
 {
+    constexpr std::uint32_t name_max_block_bits = 13;
+    constexpr std::uint32_t name_block_offset_bits = 16;
+    constexpr std::uint32_t name_max_blocks = 1 << name_max_block_bits;
+    constexpr std::uint32_t name_block_offsets = 1 << name_block_offset_bits;
+
     export enum class KnownName : std::uint32_t
     {
 #define REGISTER_NAME(name, str) name,
@@ -93,6 +100,29 @@ namespace prism
         friend std::hash<NameEntryId>;
 
         std::uint32_t value_ = 0;
+    };
+
+    struct NameEntryHandle
+    {
+        std::uint32_t block = 0;
+        std::uint32_t offset = 0;
+
+        constexpr NameEntryHandle(const std::uint32_t block, const std::uint32_t offset) : block(block), offset(offset)
+        {
+            DEBUG_ASSERT(block < name_max_blocks);
+            DEBUG_ASSERT(offset < name_block_offsets);
+        }
+
+        constexpr explicit(false) NameEntryHandle(const NameEntryId id)
+            : block{id.to_unstable_int() >> name_block_offset_bits},
+              offset{id.to_unstable_int() & name_block_offsets - 1}
+        {
+        }
+
+        constexpr explicit(false) operator NameEntryId() const
+        {
+            return NameEntryId::from_unstable_int(block << name_block_offset_bits | offset);
+        }
     };
 
     export enum class FindName : std::uint8_t
@@ -253,11 +283,22 @@ namespace prism
 } // namespace prism
 
 template <>
+struct std::hash<prism::NameEntryHandle>
+{
+    constexpr std::size_t operator()(const prism::NameEntryHandle handle) const noexcept
+    {
+        using namespace prism;
+        return (handle.block << (32 - name_max_block_bits)) + handle.block +
+               (handle.offset << (name_block_offset_bits - 1)) + handle.offset + (handle.offset >> 4);
+    }
+};
+
+template <>
 struct std::hash<prism::NameEntryId>
 {
     constexpr std::size_t operator()(const prism::NameEntryId &id) const noexcept
     {
-        return id.to_unstable_int();
+        return std::hash<prism::NameEntryHandle>{}(id);
     }
 };
 

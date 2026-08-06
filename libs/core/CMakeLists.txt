@@ -40,7 +40,8 @@ set(PRISM_SOURCES
         src/private/symbols/merged_namespace_symbol.cpp
 )
 
-set(PRISM_PRIVATE_MODULES )
+set(PRISM_PRIVATE_MODULES
+        src/private/symbols/intrinsic.cpp)
 
 set(PRISM_PUBLIC_MODULES
         src/public/text/name.ixx
@@ -165,6 +166,7 @@ set(PRISM_PUBLIC_MODULES
         src/public/binder/semantic_mappings.ixx
         src/private/binder/semantic_mappings.cpp
         src/public/symbols/merged_namespace_symbol.ixx
+        src/public/symbols/intrinsic.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

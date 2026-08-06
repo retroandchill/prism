@@ -13,12 +13,12 @@ namespace prism
     export class NamedTypeSymbol : public TypeSymbol
     {
       protected:
-        NamedTypeSymbol(const Name name, const Symbol *containing)
-            : TypeSymbol{SymbolKind::named_type, name, containing}
+        NamedTypeSymbol(const Name name, const Symbol *containing, const SpecialType special_type = SpecialType::none)
+            : TypeSymbol{SymbolKind::named_type, name, containing, special_type}
         {
         }
 
-        ~NamedTypeSymbol() = default;
+        ~NamedTypeSymbol() noexcept = default;
 
       public:
         static constexpr bool instance_of(const Symbol &symbol) noexcept

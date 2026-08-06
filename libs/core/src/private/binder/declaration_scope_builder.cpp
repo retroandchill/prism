@@ -111,7 +111,7 @@ namespace prism
         auto *current = &syntax;
         while (current != nullptr)
         {
-            visit(syntax,
+            visit(*current,
                   Overload{[&](const SimpleNameSyntax &simple)
                            {
                                stack.push_back(simple.identifier().get_value<IdentifierData>().name);
