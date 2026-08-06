@@ -11,6 +11,9 @@ import :diagnostics.diagnostic_bag;
 
 namespace prism
 {
+    class SourceParameterSymbol;
+    class SourceFunctionSymbol;
+    class SourceVariableSymbol;
     class SourceAssemblySymbol;
     class Symbol;
     class SemanticLifetime;
@@ -18,13 +21,17 @@ namespace prism
     class AssemblySymbol;
     class SemanticMappings;
 
+    using PartiallyBoundSymbol =
+        std::variant<Ref<SourceVariableSymbol>, Ref<SourceFunctionSymbol>, Ref<SourceParameterSymbol>>;
+
     class DeclarationMerger final : NonCopyable
     {
       public:
         constexpr DeclarationMerger(const Name assembly_name,
                                     SemanticLifetime &lifetime,
-                                    SemanticMappings &mappings) noexcept
-            : assembly_name_{assembly_name}, lifetime_{lifetime}, mappings_{mappings}
+                                    SemanticMappings &mappings,
+                                    std::vector<PartiallyBoundSymbol> &partially_bound) noexcept
+            : assembly_name_{assembly_name}, lifetime_{lifetime}, mappings_{mappings}, partially_bound_{partially_bound}
         {
         }
 
@@ -42,6 +49,7 @@ namespace prism
         Name assembly_name_;
         SemanticLifetime &lifetime_;
         SemanticMappings &mappings_;
+        std::vector<PartiallyBoundSymbol> &partially_bound_;
 
         SourceAssemblySymbol *assembly_ = nullptr;
         SourceNamespaceSymbol *global_namespace_ = nullptr;

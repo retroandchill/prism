@@ -4,6 +4,10 @@
  * @date 8/2/2026
  * @brief
  */
+module;
+
+#include <libassert/assert-macros.hpp>
+
 module prism.core:symbols.source.impl;
 
 import :symbols.source;
@@ -31,7 +35,8 @@ namespace prism
 
     const TypeSymbol &SourceVariableSymbol::type() const
     {
-        throw NotImplementedException{};
+        ASSUME(type_ == nullptr);
+        return *type_;
     }
 
     bool SourceVariableSymbol::is_mutable() const noexcept
@@ -53,7 +58,8 @@ namespace prism
 
     const TypeSymbol &SourceFunctionSymbol::return_type() const
     {
-        throw NotImplementedException{};
+        ASSUME(return_type_ == nullptr);
+        return *return_type_;
     }
 
     std::span<const SyntaxReference> SourceFunctionSymbol::declaring_syntax_references() const
@@ -70,7 +76,8 @@ namespace prism
 
     const TypeSymbol &SourceParameterSymbol::type() const
     {
-        throw NotImplementedException{};
+        ASSUME(type_ == nullptr);
+        return *type_;
     }
 
     bool SourceParameterSymbol::is_mutable() const noexcept

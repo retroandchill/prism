@@ -15,6 +15,7 @@ import :binder.declaration_scope_builder;
 import :symbols.assembly_symbol;
 import :symbols.merged_namespace_symbol;
 import :symbols.intrinsic;
+import :binder.signature_binder;
 
 namespace prism
 {
@@ -40,7 +41,9 @@ namespace prism
         DiagnosticBag diagnostics{16};
         auto &lifetime = *compilation->lifetime_;
         auto &mappings = compilation->semantic_mappings_;
-        compilation->assembly_ = &DeclarationMerger{assembly_name, lifetime, mappings}.merge(declaration_records);
+        std::vector<PartiallyBoundSymbol> partially_bound;
+        compilation->assembly_ =
+            &DeclarationMerger{assembly_name, lifetime, mappings, partially_bound}.merge(declaration_records);
 
         std::vector<Ref<const NamespaceSymbol>> global_namespaces;
         global_namespaces.reserve(2);
@@ -58,6 +61,7 @@ namespace prism
             declaration_scopes.add(*tree);
         }
 
+        SignatureBinder{*compilation, diagnostics}.bind(partially_bound);
         diagnostics.move_to(compilation->diagnostics_);
 
         return compilation;

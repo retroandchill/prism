@@ -31,6 +31,9 @@ namespace prism
                              } -> std::convertible_to<bool>;
                          });
 
+    /**
+     * @brief Base class for all symbols.
+     */
     class Symbol : NonCopyable
     {
       protected:
@@ -42,27 +45,62 @@ namespace prism
         ~Symbol() noexcept = default;
 
       public:
+        /**
+         * @brief Get the kind of symbol.
+         * @return The kind of symbol
+         */
         [[nodiscard]] constexpr SymbolKind kind() const noexcept
         {
             return kind_;
         }
 
+        /**
+         * @brief Get the name of the symbol.
+         * @return The name of the symbol
+         */
         [[nodiscard]] constexpr Name name() const noexcept
         {
             return name_;
         }
 
+        /**
+         * @brief Get the containing symbol.
+         * @return The containing symbol
+         */
         [[nodiscard]] constexpr Optional<const Symbol &> containing_symbol() const noexcept
         {
             return containing_symbol_;
         }
 
+        /**
+         * @brief Get the containing assembly.
+         * @return The containing assembly
+         */
         [[nodiscard]] Optional<const AssemblySymbol &> containing_assembly() const noexcept;
+
+        /**
+         * @brief Get the containing namespace.
+         * @return The containing namespace
+         */
         [[nodiscard]] Optional<const NamespaceSymbol &> containing_namespace() const noexcept;
+
+        /**
+         * @brief Get the containing type.
+         * @return The containing type
+         */
         [[nodiscard]] Optional<const TypeSymbol &> containing_type() const noexcept;
 
+        /**
+         * Get the syntax references that declare this symbol.
+         * @return The span of references to this symbol.
+         */
         [[nodiscard]] virtual std::span<const SyntaxReference> declaring_syntax_references() const = 0;
 
+        /**
+         * @brief Checks if this object is an instance of the target type.
+         * @tparam T The target type
+         * @return If this object is of the target type
+         */
         template <SymbolLike T, typename Self>
             requires std::derived_from<T, Self>
         [[nodiscard]] constexpr bool is(this const Self &self) noexcept
@@ -77,6 +115,11 @@ namespace prism
             }
         }
 
+        /**
+         * @brief Casts this object to the target type if it is an instance of the target type.
+         * @tparam T The target type
+         * @return The casted object if it is of the target type, otherwise `nullopt`.
+         */
         template <SymbolLike T, typename Self>
             requires std::derived_from<T, Self>
         [[nodiscard]] constexpr Optional<const T &> as(this const Self &self) noexcept

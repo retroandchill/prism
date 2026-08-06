@@ -101,8 +101,16 @@ namespace prism
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
 
       private:
+        friend class SignatureBinder;
+
+        constexpr void set_type(const TypeSymbol &type) noexcept
+        {
+            type_ = &type;
+        }
+
         const VariableDeclarationSyntax &syntax_;
         SyntaxReference syntax_reference_;
+        const TypeSymbol *type_ = nullptr;
     };
 
     class SourceFunctionSymbol final : public FunctionSymbol
@@ -117,7 +125,12 @@ namespace prism
             return parameters_;
         }
 
+        [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
+
       private:
+        friend class DeclarationMerger;
+        friend class SignatureBinder;
+
         constexpr void add_parameter(const ParameterSymbol &parameter)
         {
             parameters_.emplace_back(parameter);
@@ -130,15 +143,15 @@ namespace prism
             parameters_.append_range(std::forward<Range>(range));
         }
 
-      public:
-        [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
-
-      private:
-        friend class DeclarationMerger;
+        constexpr void set_return_type(const TypeSymbol &type) noexcept
+        {
+            return_type_ = &type;
+        }
 
         const FunctionDeclarationSyntax &syntax_;
         SyntaxReference syntax_reference_;
         std::vector<Ref<const ParameterSymbol>> parameters_;
+        const TypeSymbol *return_type_ = nullptr;
     };
 
     class SourceParameterSymbol final : public ParameterSymbol
@@ -151,7 +164,15 @@ namespace prism
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
 
       private:
+        friend class SignatureBinder;
+
+        constexpr void set_type(const TypeSymbol &type) noexcept
+        {
+            type_ = &type;
+        }
+
         const ParameterSyntax &syntax_;
         SyntaxReference syntax_reference_;
+        const TypeSymbol *type_ = nullptr;
     };
 } // namespace prism

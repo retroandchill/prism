@@ -22,10 +22,23 @@ namespace prism
         ~VariableSymbol() = default;
 
       public:
+        /**
+         * @brief Get the type of the variable.
+         * @return The type of the variable
+         */
         virtual const TypeSymbol &type() const = 0;
 
+        /**
+         * @brief Check if the variable is mutable.
+         * @return True if the variable is mutable, false otherwise
+         */
         virtual bool is_mutable() const noexcept = 0;
 
+        /**
+         * @brief Check if the target symbol is a variable.
+         * @param symbol The target symbol
+         * @return If the target symbol is a variable
+         */
         [[nodiscard]] static bool instance_of(const Symbol &symbol) noexcept
         {
             return symbol.kind() == SymbolKind::variable;

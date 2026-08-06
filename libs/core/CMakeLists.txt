@@ -38,6 +38,8 @@ set(PRISM_SOURCES
         generated/private/syntax/green/directives.cpp
         src/private/syntax/node_or_token.cpp
         src/private/symbols/merged_namespace_symbol.cpp
+        src/private/binder/signature_binder.cpp
+        src/private/binder/binder_helpers.cpp
 )
 
 set(PRISM_PRIVATE_MODULES
@@ -167,6 +169,9 @@ set(PRISM_PUBLIC_MODULES
         src/private/binder/semantic_mappings.cpp
         src/public/symbols/merged_namespace_symbol.ixx
         src/public/symbols/intrinsic.ixx
+        src/public/binder/signature_binder.ixx
+        src/public/binder/binding_helpers.ixx
+        src/public/symbols/error_type_symbol.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

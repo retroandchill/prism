@@ -56,4 +56,10 @@ namespace prism
     {
         using Args = std::tuple<Name, std::string>;
     };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::expected_type_specifier>
+    {
+        using Args = std::tuple<>;
+    };
 } // namespace prism

@@ -1526,6 +1526,11 @@
               "type": "String"
             }
           ]
+        },
+        {
+          "name": "ExpectedTypeSpecifier",
+          "severity": "Error",
+          "format": "Type specifier expected"
         }
       ]
     }

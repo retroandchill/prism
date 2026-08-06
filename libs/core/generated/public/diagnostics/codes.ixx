@@ -19,6 +19,7 @@ namespace prism
         // -- Semantic (2000-2999) ---
         unresolved_symbol = 2000,
         invalid_symbol = 2001,
+        expected_type_specifier = 2002,
     };
 
     export constexpr std::string_view to_string(const DiagnosticCode code)
@@ -41,6 +42,8 @@ namespace prism
                 return "E20004";
             case DiagnosticCode::invalid_symbol:
                 return "E20014";
+            case DiagnosticCode::expected_type_specifier:
+                return "E20024";
             default:
                 throw std::invalid_argument{"Invalid diagnostic code"};
         }

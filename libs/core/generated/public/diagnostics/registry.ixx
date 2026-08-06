@@ -90,6 +90,16 @@ namespace prism::diagnostics
                                                          ""sv,
                                                          {}};
 
+    export constexpr DiagnosticDescriptor expected_type_specifier{to_string(DiagnosticCode::expected_type_specifier),
+                                                                  "Expected type specifier"sv,
+                                                                  "Type specifier expected",
+                                                                  "Semantic"sv,
+                                                                  DiagnosticSeverity::error,
+                                                                  true,
+                                                                  ""sv,
+                                                                  ""sv,
+                                                                  {}};
+
     export [[nodiscard]] constexpr Optional<const DiagnosticDescriptor &> get_descriptor(const DiagnosticCode code)
     {
         switch (code)
@@ -110,6 +120,8 @@ namespace prism::diagnostics
                 return unresolved_symbol;
             case DiagnosticCode::invalid_symbol:
                 return invalid_symbol;
+            case DiagnosticCode::expected_type_specifier:
+                return expected_type_specifier;
             default:
                 return std::nullopt;
         }

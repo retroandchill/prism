@@ -13,7 +13,9 @@ namespace prism
     export class NamedTypeSymbol : public TypeSymbol
     {
       protected:
-        NamedTypeSymbol(const Name name, const Symbol *containing, const SpecialType special_type = SpecialType::none)
+        constexpr NamedTypeSymbol(const Name name,
+                                  const Symbol *containing,
+                                  const SpecialType special_type = SpecialType::none)
             : TypeSymbol{SymbolKind::named_type, name, containing, special_type}
         {
         }

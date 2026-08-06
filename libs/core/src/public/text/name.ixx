@@ -179,7 +179,7 @@ namespace prism
       public:
         constexpr Name() = default;
 
-        explicit(false) inline Name(const KnownName name) : id_{NameEntryId::from_known_name(name)}
+        explicit(false) constexpr Name(const KnownName name) : id_{NameEntryId::from_known_name(name)}
         {
         }
 

@@ -59,8 +59,9 @@ namespace prism
     void DeclarationMerger::merge_variable(const VariableRecord &record,
                                            SourceNamespaceSymbol &containing_namespace) const
     {
-        const auto &symbol = lifetime_.create<SourceVariableSymbol>(record.name, &containing_namespace, *record.syntax);
+        auto &symbol = lifetime_.create<SourceVariableSymbol>(record.name, &containing_namespace, *record.syntax);
         mappings_.add_symbol_mapping(*record.syntax, symbol);
+        partially_bound_.emplace_back(symbol);
         containing_namespace.add_member(symbol);
     }
 
@@ -76,8 +77,10 @@ namespace prism
                 {
                     auto &s = lifetime_.create<SourceParameterSymbol>(parameter.name, &symbol, *parameter.syntax);
                     mappings_.add_symbol_mapping(*parameter.syntax, s);
+                    partially_bound_.emplace_back(s);
                     return s;
                 }));
+        partially_bound_.emplace_back(symbol);
         containing_namespace.add_member(symbol);
     }
 
