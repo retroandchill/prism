@@ -145,6 +145,17 @@ namespace prism
             return static_cast<const T &>(self);
         }
 
+        virtual void write_display_string(TextWriter &writer) const = 0;
+
+        template <typename Self>
+        [[nodiscard]] std::string to_display_string(this const Self &self)
+        {
+            std::string result;
+            StringWriter writer{result};
+            self.write_display_string(writer);
+            return result;
+        }
+
       private:
         SymbolKind kind_;
         Name name_;

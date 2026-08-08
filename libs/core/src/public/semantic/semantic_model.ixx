@@ -12,6 +12,7 @@ export module prism.core:semantic.semantic_model;
 
 import :util.optional;
 import :diagnostics.diagnostic;
+import :semantic.conversion;
 
 namespace prism
 {
@@ -30,12 +31,12 @@ namespace prism
     export class PRISM_CORE_API SemanticModel final
     {
       public:
-        SemanticModel(const Compilation &compilation, const SyntaxTree &tree) noexcept
+        SemanticModel(Compilation &compilation, const SyntaxTree &tree) noexcept
             : compilation_{&compilation}, tree_{&tree}
         {
         }
 
-        [[nodiscard]] constexpr const Compilation &compilation() const noexcept
+        [[nodiscard]] constexpr Compilation &compilation() const noexcept
         {
             return *compilation_;
         }
@@ -61,7 +62,7 @@ namespace prism
       private:
         void validate_is_part_of_compilation(const SyntaxNode &node) const;
 
-        const Compilation *compilation_;
+        Compilation *compilation_;
         const SyntaxTree *tree_ = nullptr;
     };
 } // namespace prism

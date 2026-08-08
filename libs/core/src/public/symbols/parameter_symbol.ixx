@@ -22,13 +22,15 @@ namespace prism
         ~ParameterSymbol() = default;
 
       public:
-        virtual const TypeSymbol &type() const = 0;
+        [[nodiscard]] virtual const TypeSymbol &type() const = 0;
 
-        virtual bool is_mutable() const noexcept = 0;
+        [[nodiscard]] virtual bool is_mutable() const noexcept = 0;
 
         [[nodiscard]] static bool instance_of(const Symbol &symbol) noexcept
         {
             return symbol.kind() == SymbolKind::parameter;
         }
+
+        void write_display_string(TextWriter &writer) const final;
     };
 } // namespace prism

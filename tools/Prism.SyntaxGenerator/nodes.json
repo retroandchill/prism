@@ -1542,6 +1542,36 @@
               "type": "Name"
             }
           ]
+        },
+        {
+          "name": "NoConversion",
+          "severity": "Error",
+          "format": "No conversion exists between type {FromType} and type {ToType}",
+          "args": [
+            {
+              "name": "FromType",
+              "type": "String"
+            },
+            {
+              "name": "ToType",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "ConversionIsExplicit",
+          "severity": "Error",
+          "format": "Conversion from {FromType} to type {ToType} is explicit",
+          "args": [
+            {
+              "name": "FromType",
+              "type": "String"
+            },
+            {
+              "name": "ToType",
+              "type": "String"
+            }
+          ]
         }
       ]
     }

@@ -48,5 +48,7 @@ namespace prism
         {
             return symbol.kind() == SymbolKind::namespace_;
         }
+
+        void write_display_string(TextWriter &writer) const final;
     };
 } // namespace prism

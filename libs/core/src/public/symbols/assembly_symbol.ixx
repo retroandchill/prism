@@ -27,5 +27,7 @@ namespace prism
         {
             return symbol.kind() == SymbolKind::assembly;
         }
+
+        void write_display_string(TextWriter &writer) const final;
     };
 } // namespace prism

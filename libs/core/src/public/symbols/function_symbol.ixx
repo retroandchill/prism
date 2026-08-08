@@ -28,9 +28,13 @@ namespace prism
 
         [[nodiscard]] virtual SymbolSpan<ParameterSymbol> parameters() const noexcept = 0;
 
+        [[nodiscard]] bool returns_void() const;
+
         [[nodiscard]] static bool instance_of(const Symbol &symbol) noexcept
         {
             return symbol.kind() == SymbolKind::function;
         }
+
+        void write_display_string(TextWriter &writer) const final;
     };
 } // namespace prism

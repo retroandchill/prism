@@ -107,4 +107,10 @@ namespace prism
         error_namespaces_.emplace(lookup_key, &error_namespace);
         return error_namespace;
     }
+
+    Conversion Compilation::classify_conversion(const TypeSymbol &source, const TypeSymbol &destination) const
+    {
+        // TODO: Implement me
+        return no_conversion;
+    }
 } // namespace prism

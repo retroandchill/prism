@@ -55,6 +55,11 @@ namespace prism
             return special_type_;
         }
 
+        [[nodiscard]] constexpr bool is_void() const noexcept
+        {
+            return special_type_ == SpecialType::void_;
+        }
+
         static constexpr bool instance_of(const Symbol &symbol) noexcept
         {
             return symbol.kind() == SymbolKind::named_type;

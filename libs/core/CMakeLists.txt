@@ -41,6 +41,8 @@ set(PRISM_SOURCES
         src/private/binder/signature_binder.cpp
         src/private/binder/binder_helpers.cpp
         src/private/symbols/namespace_symbol.cpp
+        src/private/binder/expression_binder.cpp
+        src/private/symbols/function_symbol.cpp
 )
 
 set(PRISM_PRIVATE_MODULES
@@ -179,6 +181,14 @@ set(PRISM_PUBLIC_MODULES
         src/public/semantic/bound/bound_expression.ixx
         src/public/semantic/constant_value.ixx
         src/public/semantic/operations.ixx
+        src/public/binder/expression_binder.ixx
+        src/public/semantic/bound_node_lookup.ixx
+        src/public/semantic/conversion.ixx
+        src/private/semantic/bound_node_lookup.cpp
+        src/private/symbols/assembly_symbol.cpp
+        src/private/symbols/parameter_symbol.cpp
+        src/private/symbols/variable_symbol.cpp
+        src/private/symbols/named_type_symbol.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

@@ -41,7 +41,7 @@ namespace prism
         {
         }
 
-        ~BoundNode() noexcept = default;
+        ~BoundNode() = default;
 
       public:
         [[nodiscard]] constexpr BoundNodeKind kind() const noexcept

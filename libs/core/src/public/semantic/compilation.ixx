@@ -19,9 +19,12 @@ import :semantic.semantic_model;
 import :binder.declaration_scope;
 import :binder.semantic_mappings;
 import :symbols.type_symbol;
+import :semantic.bound_node_lookup;
 
 namespace prism
 {
+    class BoundStatement;
+    class BoundExpression;
     class NamedTypeSymbol;
     class AssemblySymbol;
 
@@ -74,7 +77,7 @@ namespace prism
             return trees_;
         }
 
-        [[nodiscard]] SemanticModel get_semantic_model(const SyntaxTree &tree) const noexcept
+        [[nodiscard]] SemanticModel get_semantic_model(const SyntaxTree &tree) noexcept
         {
             return SemanticModel{*this, tree};
         }
@@ -93,6 +96,8 @@ namespace prism
         [[nodiscard]] const NamespaceSymbol &create_error_namespace_symbol(Optional<const NamespaceSymbol &> container,
                                                                            Name name);
 
+        [[nodiscard]] Conversion classify_conversion(const TypeSymbol &source, const TypeSymbol &destination) const;
+
       private:
         friend class MergedNamespaceSymbol;
         friend class SemanticModel;
@@ -103,11 +108,18 @@ namespace prism
         std::vector<std::unique_ptr<SyntaxTree>> trees_;
         std::vector<Diagnostic> diagnostics_;
         SemanticMappings semantic_mappings_;
+        BoundNodeLookup bound_node_lookup_;
 
         std::mutex error_type_mutex_;
         std::unordered_map<SymbolLookupKey, const NamedTypeSymbol *> error_types_;
 
         std::mutex error_namespace_mutex_;
         std::unordered_map<SymbolLookupKey, const NamespaceSymbol *> error_namespaces_;
+
+        std::mutex variable_initializer_mutex_;
+        std::unordered_map<const VariableSymbol *, const BoundExpression *> variable_initializers_;
+
+        std::mutex function_body_mutex_;
+        std::unordered_map<const FunctionSymbol *, const BoundStatement *> function_bodies_;
     };
 } // namespace prism

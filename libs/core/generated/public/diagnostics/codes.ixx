@@ -21,6 +21,8 @@ namespace prism
         invalid_symbol = 2001,
         expected_type_specifier = 2002,
         ambiguous_symbol = 2003,
+        no_conversion = 2004,
+        conversion_is_explicit = 2005,
     };
 
     export constexpr std::string_view to_string(const DiagnosticCode code)
@@ -47,6 +49,10 @@ namespace prism
                 return "E2002";
             case DiagnosticCode::ambiguous_symbol:
                 return "E2003";
+            case DiagnosticCode::no_conversion:
+                return "E2004";
+            case DiagnosticCode::conversion_is_explicit:
+                return "E2005";
             default:
                 throw std::invalid_argument{"Invalid diagnostic code"};
         }

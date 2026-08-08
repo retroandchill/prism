@@ -1,0 +1,102 @@
+/**
+ * @file expression_binder.cpp
+ * @author Francesco Corso
+ * @date 8/8/2026
+ * @brief
+ */
+module prism.core:binder.expression_binder.impl;
+
+import :binder.expression_binder;
+import :syntax.tree;
+import :syntax.visit;
+import :semantic.compilation;
+import :symbols.function_symbol;
+import :semantic.bound.bound_expression;
+import :semantic.bound.bound_statement;
+import :diagnostics.diagnostic_bag;
+
+namespace prism
+{
+    void ExpressionBinder::bind()
+    {
+        auto &root = semantic_model_.tree().root();
+        visit(root,
+              Overload{[&](const CompilationUnitSyntax &syntax) { bind_declarations(syntax.members()); },
+                       [](const SyntaxNode &)
+                       {
+                           throw InvalidStateException{"Unexpected root syntax kind. Can only bind a Compilation Unit"};
+                       }});
+    }
+
+    void ExpressionBinder::bind_declarations(SyntaxList<DeclarationSyntax> syntax)
+    {
+        for (auto &declaration : syntax)
+        {
+            visit(declaration,
+                  Overload{[&](const IncompleteDeclarationSyntax &)
+                           {
+                               // Do nothing
+                           },
+                           [&](const NamespaceDeclarationSyntax &ns) { bind_declarations(ns.members()); },
+                           [&](const VariableDeclarationSyntax &variable) { bind_variable_declaration(variable); },
+                           [&](const FunctionDeclarationSyntax &function)
+                           {
+                               bind_function_declaration(function);
+                           }});
+        }
+    }
+
+    void ExpressionBinder::bind_variable_declaration(const VariableDeclarationSyntax &syntax)
+    {
+        if (!syntax.initializer().has_value())
+            return;
+
+        auto &symbol = semantic_model_.get_declared_symbol(syntax).value();
+        auto &initializer = bind_expression(syntax.initializer()->value());
+        lookup_.add_variable_initializer(symbol, initializer);
+    }
+
+    void ExpressionBinder::bind_function_declaration(const FunctionDeclarationSyntax &syntax)
+    {
+        auto &symbol = semantic_model_.get_declared_symbol(syntax).value();
+        if (syntax.expression_body().has_value())
+        {
+            auto *expression = &bind_expression(syntax.expression_body()->expression());
+            if (symbol.returns_void())
+            {
+                const auto &body = lifetime_.create<BoundExpressionStatement>(*syntax.expression_body(), *expression);
+                lookup_.add_function_body(symbol, body);
+            }
+            else
+            {
+                auto conversion =
+                    semantic_model_.compilation().classify_conversion(expression->type(), symbol.return_type());
+                if (!conversion.exists())
+                {
+                    diagnostics_.add(Diagnostic{
+                        DiagnosticInfo::create<DiagnosticCode::no_conversion>(expression->type().to_display_string(),
+                                                                              symbol.return_type().to_display_string()),
+                        syntax.expression_body()->expression().location()});
+                }
+                else if (!conversion.is_identity())
+                {
+                    if (!conversion.is_implicit())
+                    {
+                        diagnostics_.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::conversion_is_explicit>(
+                                                        expression->type().to_display_string(),
+                                                        symbol.return_type().to_display_string()),
+                                                    syntax.expression_body()->expression().location()});
+                    }
+
+                    expression = &lifetime_.create<BoundConversionExpression>(syntax.expression_body()->expression(),
+                                                                              *expression,
+                                                                              symbol.return_type(),
+                                                                              conversion);
+                }
+
+                const auto &body = lifetime_.create<BoundReturnStatement>(*syntax.expression_body(), *expression);
+                lookup_.add_function_body(symbol, body);
+            }
+        }
+    }
+} // namespace prism

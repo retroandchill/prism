@@ -110,6 +110,26 @@ namespace prism::diagnostics
                                                            ""sv,
                                                            {}};
 
+    export constexpr DiagnosticDescriptor no_conversion{to_string(DiagnosticCode::no_conversion),
+                                                        "No conversion"sv,
+                                                        "No conversion exists between type {} and type {}",
+                                                        "Semantic"sv,
+                                                        DiagnosticSeverity::error,
+                                                        true,
+                                                        ""sv,
+                                                        ""sv,
+                                                        {}};
+
+    export constexpr DiagnosticDescriptor conversion_is_explicit{to_string(DiagnosticCode::conversion_is_explicit),
+                                                                 "Conversion is explicit"sv,
+                                                                 "Conversion from {} to type {} is explicit",
+                                                                 "Semantic"sv,
+                                                                 DiagnosticSeverity::error,
+                                                                 true,
+                                                                 ""sv,
+                                                                 ""sv,
+                                                                 {}};
+
     export [[nodiscard]] constexpr Optional<const DiagnosticDescriptor &> get_descriptor(const DiagnosticCode code)
     {
         switch (code)
@@ -134,6 +154,10 @@ namespace prism::diagnostics
                 return expected_type_specifier;
             case DiagnosticCode::ambiguous_symbol:
                 return ambiguous_symbol;
+            case DiagnosticCode::no_conversion:
+                return no_conversion;
+            case DiagnosticCode::conversion_is_explicit:
+                return conversion_is_explicit;
             default:
                 return std::nullopt;
         }

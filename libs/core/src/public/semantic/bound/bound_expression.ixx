@@ -12,6 +12,7 @@ import :semantic.constant_value;
 import :symbols.variable_symbol;
 import :semantic.operations;
 import :symbols.function_symbol;
+import :semantic.conversion;
 
 namespace prism
 {
@@ -240,5 +241,32 @@ namespace prism
       private:
         const FunctionSymbol &symbol_;
         BoundSpan<BoundExpression> arguments_;
+    };
+
+    class BoundConversionExpression final : public BoundExpression
+    {
+      public:
+        constexpr BoundConversionExpression(const ExpressionSyntax &syntax,
+                                            const BoundExpression &operand,
+                                            const TypeSymbol &type,
+                                            const Conversion conversion)
+            : BoundExpression{BoundNodeKind::conversion_expression, syntax, type}, operand_{operand},
+              conversion_{conversion}
+        {
+        }
+
+        [[nodiscard]] constexpr const BoundExpression &operand() const noexcept
+        {
+            return operand_;
+        }
+
+        [[nodiscard]] constexpr Conversion conversion() const noexcept
+        {
+            return conversion_;
+        }
+
+      private:
+        const BoundExpression &operand_;
+        Conversion conversion_{};
     };
 } // namespace prism

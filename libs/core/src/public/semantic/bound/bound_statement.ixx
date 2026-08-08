@@ -8,6 +8,7 @@ export module prism.core:semantic.bound.bound_statement;
 
 import :semantic.bound.bound_node;
 import :syntax.statements;
+import :syntax.clauses;
 
 namespace prism
 {
@@ -21,7 +22,11 @@ namespace prism
         {
         }
 
-        ~BoundStatement() noexcept = default;
+        constexpr BoundStatement(const BoundNodeKind kind, const ExpressionBodySyntax &syntax) : BoundNode{kind, syntax}
+        {
+        }
+
+        ~BoundStatement() = default;
     };
 
     class BoundBlock : public BoundStatement
@@ -74,6 +79,11 @@ namespace prism
         {
         }
 
+        constexpr BoundExpressionStatement(const ExpressionBodySyntax &syntax, const BoundExpression &expression)
+            : BoundStatement{BoundNodeKind::expression_statement, syntax}, expression_{expression}
+        {
+        }
+
         [[nodiscard]] constexpr const BoundExpression &expression() const noexcept
         {
             return expression_;
@@ -88,6 +98,11 @@ namespace prism
       public:
         constexpr BoundReturnStatement(const ExpressionStatementSyntax &syntax, const BoundExpression &expression)
             : BoundStatement{BoundNodeKind::return_statement, syntax}, expression_{expression}
+        {
+        }
+
+        constexpr BoundReturnStatement(const ExpressionBodySyntax &syntax, const BoundExpression &expression)
+            : BoundStatement{BoundNodeKind::expression_statement, syntax}, expression_{expression}
         {
         }
 

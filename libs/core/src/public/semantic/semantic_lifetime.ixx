@@ -22,6 +22,16 @@ namespace prism
             return allocator_.create<T>(std::forward<Args>(args)...);
         }
 
+        template <std::ranges::input_range Range>
+            requires std::ranges::sized_range<Range> &&
+                     std::is_lvalue_reference_v<std::ranges::range_reference_t<Range>>
+        auto copy_refs(Range &&range)
+        {
+            std::scoped_lock lock{mutex_};
+            return allocator_.copy(std::forward<Range>(range) |
+                                   std::views::transform([](const auto &item) { return Ref{item}; }));
+        }
+
       private:
         std::mutex mutex_;
         PersistentAllocator allocator_;

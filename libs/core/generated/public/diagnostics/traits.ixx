@@ -68,4 +68,16 @@ namespace prism
     {
         using Args = std::tuple<Name>;
     };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::no_conversion>
+    {
+        using Args = std::tuple<std::string, std::string>;
+    };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::conversion_is_explicit>
+    {
+        using Args = std::tuple<std::string, std::string>;
+    };
 } // namespace prism
