@@ -11,6 +11,14 @@ import :semantic.semantic_model;
 
 namespace prism
 {
+    class BlockSyntax;
+    class ReturnStatementSyntax;
+    class ExpressionStatementSyntax;
+    class VariableDeclarationStatementSyntax;
+    class BoundReturnStatement;
+    class BoundExpressionStatement;
+    class BoundVariableDeclaration;
+    class BoundBlock;
     class SemanticLifetime;
     class BoundNodeLookup;
     class BoundStatement;
@@ -43,6 +51,11 @@ namespace prism
         void bind_function_declaration(const FunctionDeclarationSyntax &syntax);
 
         const BoundStatement &bind_statement(const StatementSyntax &syntax);
+        const BoundBlock &bind_block(const BlockSyntax &syntax);
+        const BoundVariableDeclaration &bind_variable_declaration_statement(
+            const VariableDeclarationStatementSyntax &syntax);
+        const BoundExpressionStatement &bind_expression_statement(const ExpressionStatementSyntax &syntax);
+        const BoundReturnStatement &bind_return_statement(const ReturnStatementSyntax &syntax);
 
         const BoundExpression &bind_expression(const ExpressionSyntax &syntax);
 

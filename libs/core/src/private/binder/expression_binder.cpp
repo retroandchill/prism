@@ -4,6 +4,10 @@
  * @date 8/8/2026
  * @brief
  */
+module;
+
+#include <libassert/assert-macros.hpp>
+
 module prism.core:binder.expression_binder.impl;
 
 import :binder.expression_binder;
@@ -94,9 +98,46 @@ namespace prism
                                                                               conversion);
                 }
 
-                const auto &body = lifetime_.create<BoundReturnStatement>(*syntax.expression_body(), *expression);
+                const auto &body = lifetime_.create<BoundReturnStatement>(*syntax.expression_body(), expression);
                 lookup_.add_function_body(symbol, body);
             }
         }
+        else if (syntax.body().has_value())
+        {
+            auto &body = bind_block(*syntax.body());
+            // TODO: Control-flow analysis for the return statement
+            lookup_.add_function_body(symbol, body);
+        }
+    }
+
+    const BoundStatement &ExpressionBinder::bind_statement(const StatementSyntax &syntax)
+    {
+        return visit(syntax,
+                     Overload{[&](const BlockSyntax &block) -> const BoundStatement & { return bind_block(block); },
+                              [&](const ExpressionStatementSyntax &expression) -> const BoundStatement &
+                              { return bind_expression_statement(expression); },
+                              [&](const ReturnStatementSyntax &statement) -> const BoundStatement &
+                              { return bind_return_statement(statement); },
+                              [&](const VariableDeclarationStatementSyntax &variable) -> const BoundStatement &
+                              { return bind_variable_declaration_statement(variable); },
+                              [&](const EmptyStatementSyntax &) -> const BoundStatement &
+                              {
+                                  UNREACHABLE("We should guard against entering into this context");
+                              }});
+    }
+
+    const BoundBlock &ExpressionBinder::bind_block(const BlockSyntax &syntax)
+    {
+        PooledVector<Ref<const BoundStatement>> statements;
+        for (auto &statement : syntax.statements())
+        {
+            if (statement.is<EmptyStatementSyntax>())
+                continue;
+
+            statements.emplace_back(bind_statement(statement));
+        }
+
+        auto interned = lifetime_.copy_refs(statements);
+        return lifetime_.create<BoundBlock>(syntax, interned);
     }
 } // namespace prism

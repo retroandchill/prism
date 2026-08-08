@@ -96,22 +96,22 @@ namespace prism
     class BoundReturnStatement : public BoundStatement
     {
       public:
-        constexpr BoundReturnStatement(const ExpressionStatementSyntax &syntax, const BoundExpression &expression)
+        constexpr BoundReturnStatement(const ExpressionStatementSyntax &syntax, const BoundExpression *expression)
             : BoundStatement{BoundNodeKind::return_statement, syntax}, expression_{expression}
         {
         }
 
-        constexpr BoundReturnStatement(const ExpressionBodySyntax &syntax, const BoundExpression &expression)
+        constexpr BoundReturnStatement(const ExpressionBodySyntax &syntax, const BoundExpression *expression)
             : BoundStatement{BoundNodeKind::expression_statement, syntax}, expression_{expression}
         {
         }
 
-        [[nodiscard]] constexpr const BoundExpression &expression() const noexcept
+        [[nodiscard]] constexpr Optional<const BoundExpression &> expression() const noexcept
         {
             return expression_;
         }
 
       private:
-        const BoundExpression &expression_;
+        const BoundExpression *expression_;
     };
 } // namespace prism

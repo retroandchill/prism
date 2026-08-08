@@ -63,4 +63,17 @@ namespace prism
 
     export template <typename T>
     Ref(T &) -> Ref<T>;
+
+    template <typename>
+    struct IsRefInstance : std::false_type
+    {
+    };
+
+    template <typename T>
+    struct IsRefInstance<Ref<T>> : std::true_type
+    {
+    };
+
+    export template <typename T>
+    concept RefInstance = IsRefInstance<std::decay_t<T>>::value;
 } // namespace prism
