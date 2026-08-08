@@ -83,7 +83,7 @@ namespace prism
         return IntrinsicSymbols::instance().get_type(type);
     }
 
-    const NamedTypeSymbol &Compilation::create_error_type_symbol(Optional<const Symbol &> container, Name name) const
+    const NamedTypeSymbol &Compilation::create_error_type_symbol(Optional<const Symbol &> container, Name name)
     {
         SymbolLookupKey lookup_key{.symbol = container.value_ptr(), .name = name};
         std::scoped_lock lock{error_type_mutex_};
@@ -96,7 +96,7 @@ namespace prism
     }
 
     const NamespaceSymbol &Compilation::create_error_namespace_symbol(Optional<const NamespaceSymbol &> container,
-                                                                      Name name) const
+                                                                      Name name)
     {
         SymbolLookupKey lookup_key{.symbol = container.value_ptr(), .name = name};
         std::scoped_lock lock{error_namespace_mutex_};

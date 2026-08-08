@@ -18,19 +18,19 @@ namespace prism
     class SignatureBinder final : NonCopyable
     {
       public:
-        constexpr SignatureBinder(const Compilation &compilation, DiagnosticBag &diagnostics)
+        constexpr SignatureBinder(Compilation &compilation, DiagnosticBag &diagnostics)
             : compilation_{compilation}, diagnostics_{diagnostics}
         {
         }
 
-        void bind(std::span<PartiallyBoundSymbol> partially_bound);
+        void bind(std::span<PartiallyBoundSymbol> partially_bound) const;
 
       private:
         void bind_variable_type(SourceVariableSymbol &variable) const;
         void bind_function_return_type(SourceFunctionSymbol &function) const;
         void bind_function_parameter_type(SourceParameterSymbol &parameter) const;
 
-        const Compilation &compilation_;
+        Compilation &compilation_;
         DiagnosticBag &diagnostics_;
     };
 } // namespace prism

@@ -22,12 +22,10 @@ namespace prism
     class TypeSyntax;
     class TypeSymbol;
 
-    const TypeSymbol &resolve_type(const TypeSyntax &syntax,
-                                   const Compilation &compilation,
-                                   DiagnosticBag &diagnostics);
+    const TypeSymbol &resolve_type(const TypeSyntax &syntax, Compilation &compilation, DiagnosticBag &diagnostics);
 
     const NamedTypeSymbol &create_error_type_symbol(Optional<const Symbol &> owning_symbol,
-                                                    const Compilation &compilation,
+                                                    Compilation &compilation,
                                                     std::span<const Ref<const SimpleNameSyntax>> names);
 
     PooledVector<Ref<const SimpleNameSyntax>> collect_names(const NameSyntax &syntax);

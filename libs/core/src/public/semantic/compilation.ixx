@@ -88,11 +88,10 @@ namespace prism
 
         [[nodiscard]] const NamedTypeSymbol &get_special_type(SpecialType type) const;
 
-        [[nodiscard]] const NamedTypeSymbol &create_error_type_symbol(Optional<const Symbol &> container,
-                                                                      Name name) const;
+        [[nodiscard]] const NamedTypeSymbol &create_error_type_symbol(Optional<const Symbol &> container, Name name);
 
         [[nodiscard]] const NamespaceSymbol &create_error_namespace_symbol(Optional<const NamespaceSymbol &> container,
-                                                                           Name name) const;
+                                                                           Name name);
 
       private:
         friend class MergedNamespaceSymbol;
@@ -105,10 +104,10 @@ namespace prism
         std::vector<Diagnostic> diagnostics_;
         SemanticMappings semantic_mappings_;
 
-        mutable std::mutex error_type_mutex_;
-        mutable std::unordered_map<SymbolLookupKey, const NamedTypeSymbol *> error_types_;
+        std::mutex error_type_mutex_;
+        std::unordered_map<SymbolLookupKey, const NamedTypeSymbol *> error_types_;
 
-        mutable std::mutex error_namespace_mutex_;
-        mutable std::unordered_map<SymbolLookupKey, const NamespaceSymbol *> error_namespaces_;
+        std::mutex error_namespace_mutex_;
+        std::unordered_map<SymbolLookupKey, const NamespaceSymbol *> error_namespaces_;
     };
 } // namespace prism

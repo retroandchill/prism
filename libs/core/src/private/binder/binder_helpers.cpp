@@ -73,7 +73,7 @@ namespace prism
             }
         }
 
-        const TypeSymbol &resolve_symbol_chain(const Compilation &compilation,
+        const TypeSymbol &resolve_symbol_chain(Compilation &compilation,
                                                DiagnosticBag &diagnostics,
                                                const NamedTypeSyntax &named)
         {
@@ -118,7 +118,7 @@ namespace prism
         }
     } // namespace
 
-    const TypeSymbol &resolve_type(const TypeSyntax &syntax, const Compilation &compilation, DiagnosticBag &diagnostics)
+    const TypeSymbol &resolve_type(const TypeSyntax &syntax, Compilation &compilation, DiagnosticBag &diagnostics)
     {
         return visit(syntax,
                      Overload{[&](const PredefinedTypeSyntax &predefined) -> const TypeSymbol &
@@ -130,7 +130,7 @@ namespace prism
     }
 
     const NamedTypeSymbol &create_error_type_symbol(Optional<const Symbol &> owning_symbol,
-                                                    const Compilation &compilation,
+                                                    Compilation &compilation,
                                                     const std::span<const Ref<const SimpleNameSyntax>> names)
     {
         ASSUME(!names.empty());

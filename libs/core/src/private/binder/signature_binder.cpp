@@ -17,7 +17,7 @@ import :semantic.compilation;
 namespace prism
 {
 
-    void SignatureBinder::bind(std::span<PartiallyBoundSymbol> partially_bound)
+    void SignatureBinder::bind(std::span<PartiallyBoundSymbol> partially_bound) const
     {
         for (auto &symbol : partially_bound)
         {
