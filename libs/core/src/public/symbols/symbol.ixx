@@ -4,6 +4,10 @@
  * @date 7/30/2026
  * @brief
  */
+module;
+
+#include <libassert/assert-macros.hpp>
+
 export module prism.core:symbols.symbol;
 
 import std;
@@ -125,6 +129,20 @@ namespace prism
         [[nodiscard]] constexpr Optional<const T &> as(this const Self &self) noexcept
         {
             return T::instance_of(self) ? Optional<const T &>{static_cast<const T &>(self)} : std::nullopt;
+        }
+
+        /**
+         * @brief Casts this object to the target type if it is an instance of the target type, performing an assertion
+         *        in a debug build.
+         * @tparam T The target type
+         * @return The casted object if it is of the target type, otherwise `nullopt`.
+         */
+        template <SymbolLike T, typename Self>
+            requires std::derived_from<T, Self>
+        [[nodiscard]] constexpr const T &as_checked(this const Self &self) noexcept
+        {
+            DEBUG_ASSERT(T::instance_of(self));
+            return static_cast<const T &>(self);
         }
 
       private:

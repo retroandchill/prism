@@ -14,51 +14,10 @@ import :syntax.node;
 import :util.ref;
 import :symbols.symbol;
 import :memory.buffer_pool;
+import :semantic.lookup_result;
 
 namespace prism
 {
-    using SymbolList = PooledVector<Ref<const Symbol>>;
-
-    export class DeclarationLookupResult final
-    {
-      public:
-        constexpr DeclarationLookupResult() = default;
-
-        constexpr explicit DeclarationLookupResult(SymbolList symbols) : symbols_{std::move(symbols)}
-        {
-        }
-
-        [[nodiscard]] constexpr bool found() const noexcept
-        {
-            return !symbols_.empty();
-        }
-
-        [[nodiscard]] constexpr bool ambiguous() const noexcept
-        {
-            return symbols_.size() > 1;
-        }
-
-        [[nodiscard]] constexpr const Symbol &symbol() const
-        {
-            // We'll mark this unlikely since the expectation is that you already
-            // checked that found() is true and ambiguous() is false, that way if
-            // we get a good branch prediction. (Assuming that this part doesn't
-            // get completely optimized out that is)
-            if (symbols_.size() != 1) [[unlikely]]
-                throw InvalidStateException{"Can only call symbol() if ambiguous() is false and found() is true"};
-
-            return symbols_[0];
-        }
-
-        [[nodiscard]] constexpr SymbolSpan<Symbol> symbols() const noexcept
-        {
-            return symbols_;
-        }
-
-      private:
-        SymbolList symbols_{};
-    };
-
     export class PRISM_CORE_API DeclarationScope final
     {
       public:
@@ -81,9 +40,9 @@ namespace prism
 
         void add_using_declaration(const NamespaceSymbol &symbol);
 
-        [[nodiscard]] DeclarationLookupResult lookup_nearest(Name name) const;
+        [[nodiscard]] LookupResult lookup_nearest(Name name) const;
 
-        [[nodiscard]] DeclarationLookupResult lookup_all_visible(Name name) const;
+        [[nodiscard]] LookupResult lookup_all_visible(Name name) const;
 
       private:
         void append_namespace_members(Name name, SymbolList &symbols) const;

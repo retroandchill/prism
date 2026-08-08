@@ -40,6 +40,7 @@ set(PRISM_SOURCES
         src/private/symbols/merged_namespace_symbol.cpp
         src/private/binder/signature_binder.cpp
         src/private/binder/binder_helpers.cpp
+        src/private/symbols/namespace_symbol.cpp
 )
 
 set(PRISM_PRIVATE_MODULES
@@ -172,6 +173,7 @@ set(PRISM_PUBLIC_MODULES
         src/public/binder/signature_binder.ixx
         src/public/binder/binding_helpers.ixx
         src/public/symbols/error_type_symbol.ixx
+        src/public/semantic/lookup_result.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

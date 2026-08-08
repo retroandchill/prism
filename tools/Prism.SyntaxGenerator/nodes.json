@@ -1531,6 +1531,17 @@
           "name": "ExpectedTypeSpecifier",
           "severity": "Error",
           "format": "Type specifier expected"
+        },
+        {
+          "name": "AmbiguousSymbol",
+          "severity": "Error",
+          "format": "Ambiguous symbol reference {Symbol}",
+          "args": [
+            {
+              "name": "Symbol",
+              "type": "Name"
+            }
+          ]
         }
       ]
     }

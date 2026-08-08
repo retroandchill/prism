@@ -1752,7 +1752,7 @@ public static class CppEmitter
             {
                 writer.WriteLine($"case DiagnosticCode::{diagnostic.CppName}: ");
                 using var caseScope = writer.EnterIndentationScope();
-                writer.WriteLine($"return \"E{diagnostic.Value:04}\";");
+                writer.WriteLine($"return \"E{diagnostic.Value:D4}\";");
             }
             writer.WriteLine("default:");
             using (writer.EnterIndentationScope())

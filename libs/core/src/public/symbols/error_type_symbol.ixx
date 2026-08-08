@@ -5,17 +5,18 @@
  * @brief
  */
 
-export module prism.core:symbols.error_type_symbol;
+export module prism.core:symbols.error;
 
 import :symbols.named_type_symbol;
+import :symbols.namespace_symbol;
 
 namespace prism
 {
     class ErrorTypeSymbol final : public NamedTypeSymbol
     {
       public:
-        explicit constexpr ErrorTypeSymbol(const Name name = KnownName::none)
-            : NamedTypeSymbol{name, nullptr, SpecialType::none}
+        explicit constexpr ErrorTypeSymbol(const Name name = KnownName::none, const Symbol *containing = nullptr)
+            : NamedTypeSymbol{name, containing, SpecialType::none}
         {
         }
 
@@ -26,4 +27,27 @@ namespace prism
     };
 
     constexpr ErrorTypeSymbol unnamed_error_type;
+
+    class ErrorNamespaceSymbol final : public NamespaceSymbol
+    {
+      public:
+        ErrorNamespaceSymbol(const Name &name, const NamespaceSymbol *containing) : NamespaceSymbol(name, containing)
+        {
+        }
+
+        [[nodiscard]] constexpr std::span<const SyntaxReference> declaring_syntax_references() const override
+        {
+            return {};
+        }
+
+        [[nodiscard]] constexpr Optional<const Compilation &> containing_compilation() const noexcept override
+        {
+            return std::nullopt;
+        }
+
+        [[nodiscard]] constexpr SymbolSpan<Symbol> members() const override
+        {
+            return {};
+        }
+    };
 } // namespace prism

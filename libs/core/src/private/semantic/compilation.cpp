@@ -16,6 +16,7 @@ import :symbols.assembly_symbol;
 import :symbols.merged_namespace_symbol;
 import :symbols.intrinsic;
 import :binder.signature_binder;
+import :symbols.error;
 
 namespace prism
 {
@@ -80,5 +81,30 @@ namespace prism
     const NamedTypeSymbol &Compilation::get_special_type(const SpecialType type) const
     {
         return IntrinsicSymbols::instance().get_type(type);
+    }
+
+    const NamedTypeSymbol &Compilation::create_error_type_symbol(Optional<const Symbol &> container, Name name) const
+    {
+        SymbolLookupKey lookup_key{.symbol = container.value_ptr(), .name = name};
+        std::scoped_lock lock{error_type_mutex_};
+        if (const auto it = error_types_.find(lookup_key); it != error_types_.end())
+            return *it->second;
+
+        auto &error_type = lifetime_->create<ErrorTypeSymbol>(name, container.value_ptr());
+        error_types_.emplace(lookup_key, &error_type);
+        return error_type;
+    }
+
+    const NamespaceSymbol &Compilation::create_error_namespace_symbol(Optional<const NamespaceSymbol &> container,
+                                                                      Name name) const
+    {
+        SymbolLookupKey lookup_key{.symbol = container.value_ptr(), .name = name};
+        std::scoped_lock lock{error_namespace_mutex_};
+        if (const auto it = error_namespaces_.find(lookup_key); it != error_namespaces_.end())
+            return *it->second;
+
+        auto &error_namespace = lifetime_->create<ErrorNamespaceSymbol>(name, container.value_ptr());
+        error_namespaces_.emplace(lookup_key, &error_namespace);
+        return error_namespace;
     }
 } // namespace prism

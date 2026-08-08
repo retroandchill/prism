@@ -7,6 +7,7 @@
 module prism.core:binder.semantic_mappings.impl;
 
 import :binder.semantic_mappings;
+import :syntax.node;
 
 namespace prism
 {
@@ -31,9 +32,15 @@ namespace prism
 
     Optional<const DeclarationScope &> SemanticMappings::get_scope(const SyntaxNode &node) const
     {
-        const auto it = scope_mappings_.find(&node);
-        if (it == scope_mappings_.end())
-            return std::nullopt;
+        auto it = scope_mappings_.find(&node);
+        while (it == scope_mappings_.end())
+        {
+            auto parent = node.parent();
+            if (!parent.has_value())
+                return std::nullopt;
+
+            it = scope_mappings_.find(&*parent);
+        }
 
         return it->second;
     }

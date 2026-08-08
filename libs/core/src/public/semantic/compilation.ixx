@@ -25,6 +25,27 @@ namespace prism
     class NamedTypeSymbol;
     class AssemblySymbol;
 
+    struct SymbolLookupKey
+    {
+        const Symbol *symbol = nullptr;
+        Name name{};
+
+        [[nodiscard]] constexpr friend bool operator==(const SymbolLookupKey &lhs,
+                                                       const SymbolLookupKey &rhs) noexcept = default;
+    };
+} // namespace prism
+
+template <>
+struct std::hash<prism::SymbolLookupKey>
+{
+    constexpr std::size_t operator()(const prism::SymbolLookupKey &key) const noexcept
+    {
+        return prism::hash_combine(key.symbol, key.name);
+    }
+};
+
+namespace prism
+{
     export class PRISM_CORE_API Compilation : NonCopyable
     {
         struct CreateTag
@@ -67,8 +88,15 @@ namespace prism
 
         [[nodiscard]] const NamedTypeSymbol &get_special_type(SpecialType type) const;
 
+        [[nodiscard]] const NamedTypeSymbol &create_error_type_symbol(Optional<const Symbol &> container,
+                                                                      Name name) const;
+
+        [[nodiscard]] const NamespaceSymbol &create_error_namespace_symbol(Optional<const NamespaceSymbol &> container,
+                                                                           Name name) const;
+
       private:
         friend class MergedNamespaceSymbol;
+        friend class SemanticModel;
 
         std::unique_ptr<SemanticLifetime> lifetime_ = std::make_unique<SemanticLifetime>();
         const AssemblySymbol *assembly_ = nullptr;
@@ -76,5 +104,11 @@ namespace prism
         std::vector<std::unique_ptr<SyntaxTree>> trees_;
         std::vector<Diagnostic> diagnostics_;
         SemanticMappings semantic_mappings_;
+
+        mutable std::mutex error_type_mutex_;
+        mutable std::unordered_map<SymbolLookupKey, const NamedTypeSymbol *> error_types_;
+
+        mutable std::mutex error_namespace_mutex_;
+        mutable std::unordered_map<SymbolLookupKey, const NamespaceSymbol *> error_namespaces_;
     };
 } // namespace prism

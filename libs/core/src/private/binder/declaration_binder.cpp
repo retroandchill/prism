@@ -17,6 +17,7 @@ import :syntax.tree;
 import :syntax.visit;
 import :util.overload;
 import :memory.buffer_pool;
+import :binder.binding_helpers;
 
 namespace prism
 {
@@ -60,27 +61,12 @@ namespace prism
                 [](const IncompleteDeclarationSyntax &) { return std::nullopt; },
                 [&](const NamespaceDeclarationSyntax &ns)
                 {
-                    const NameSyntax *name = &ns.name();
-                    PooledVector<const SimpleNameSyntax *> stack;
-                    do
-                    {
-                        visit(*name,
-                              Overload{[&](const QualifiedNameSyntax &q)
-                                       {
-                                           stack.push_back(&q.right());
-                                           name = &q.left();
-                                       },
-                                       [&](const SimpleNameSyntax &s)
-                                       {
-                                           stack.push_back(&s);
-                                           name = nullptr;
-                                       }});
-                    } while (name != nullptr);
+                    auto names = collect_names(ns.name());
 
                     return NamespaceRecord{
-                        .names = stack | std::views::reverse |
-                                 std::views::transform([](const SimpleNameSyntax *s)
-                                                       { return s->identifier().get_value<IdentifierData>().name; }) |
+                        .names = names |
+                                 std::views::transform([](const SimpleNameSyntax &s)
+                                                       { return s.identifier().get_value<IdentifierData>().name; }) |
                                  std::ranges::to<std::vector>(),
                         .syntax = &ns,
                         .declarations = bind_declarations(ns.members()),

@@ -20,6 +20,7 @@ namespace prism
         unresolved_symbol = 2000,
         invalid_symbol = 2001,
         expected_type_specifier = 2002,
+        ambiguous_symbol = 2003,
     };
 
     export constexpr std::string_view to_string(const DiagnosticCode code)
@@ -27,23 +28,25 @@ namespace prism
         switch (code)
         {
             case DiagnosticCode::unexpected_token:
-                return "E10004";
+                return "E1000";
             case DiagnosticCode::unexpected_eof:
-                return "E10014";
+                return "E1001";
             case DiagnosticCode::unexpected_escape:
-                return "E10024";
+                return "E1002";
             case DiagnosticCode::unterminated_string_literal:
-                return "E10034";
+                return "E1003";
             case DiagnosticCode::unterminated_character_literal:
-                return "E10044";
+                return "E1004";
             case DiagnosticCode::unterminated_block_comment:
-                return "E10054";
+                return "E1005";
             case DiagnosticCode::unresolved_symbol:
-                return "E20004";
+                return "E2000";
             case DiagnosticCode::invalid_symbol:
-                return "E20014";
+                return "E2001";
             case DiagnosticCode::expected_type_specifier:
-                return "E20024";
+                return "E2002";
+            case DiagnosticCode::ambiguous_symbol:
+                return "E2003";
             default:
                 throw std::invalid_argument{"Invalid diagnostic code"};
         }

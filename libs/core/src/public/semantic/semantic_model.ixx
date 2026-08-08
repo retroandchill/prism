@@ -15,6 +15,10 @@ import :diagnostics.diagnostic;
 
 namespace prism
 {
+    class NamespaceDeclarationSyntax;
+    class NamespaceSymbol;
+    class VariableDeclarationSyntax;
+    class FunctionDeclarationSyntax;
     class Symbol;
     class FunctionSymbol;
     class ParameterSymbol;
@@ -26,10 +30,6 @@ namespace prism
     export class PRISM_CORE_API SemanticModel final
     {
       public:
-        explicit constexpr SemanticModel(const Compilation &compilation) noexcept : compilation_{&compilation}
-        {
-        }
-
         SemanticModel(const Compilation &compilation, const SyntaxTree &tree) noexcept
             : compilation_{&compilation}, tree_{&tree}
         {
@@ -40,16 +40,27 @@ namespace prism
             return *compilation_;
         }
 
-        [[nodiscard]] constexpr Optional<const SyntaxTree &> tree() const noexcept
+        [[nodiscard]] constexpr const SyntaxTree &tree() const noexcept
         {
-            return tree_;
+            return *tree_;
         }
 
         [[nodiscard]] std::generator<Diagnostic> get_diagnostics() const;
 
         [[nodiscard]] std::generator<Diagnostic> get_diagnostics(TextSpan span) const;
 
+        [[nodiscard]] Optional<const Symbol &> get_declared_symbol(const SyntaxNode &node) const;
+
+        [[nodiscard]] Optional<const VariableSymbol &> get_declared_symbol(const VariableDeclarationSyntax &node) const;
+
+        [[nodiscard]] Optional<const FunctionSymbol &> get_declared_symbol(const FunctionDeclarationSyntax &node) const;
+
+        [[nodiscard]] Optional<const NamespaceSymbol &> get_declared_symbol(
+            const NamespaceDeclarationSyntax &node) const;
+
       private:
+        void validate_is_part_of_compilation(const SyntaxNode &node) const;
+
         const Compilation *compilation_;
         const SyntaxTree *tree_ = nullptr;
     };

@@ -10,6 +10,10 @@ import :semantic.semantic_model;
 import :syntax.tree;
 import :semantic.compilation;
 import :diagnostics.diagnostic;
+import :syntax.declarations;
+import :symbols.variable_symbol;
+import :symbols.function_symbol;
+import :symbols.namespace_symbol;
 
 namespace prism
 {
@@ -34,5 +38,35 @@ namespace prism
 
             co_yield std::move(diagnostic);
         }
+    }
+
+    Optional<const Symbol &> SemanticModel::get_declared_symbol(const SyntaxNode &node) const
+    {
+        validate_is_part_of_compilation(node);
+        return compilation_->semantic_mappings_.get_symbol(node);
+    }
+
+    Optional<const VariableSymbol &> SemanticModel::get_declared_symbol(const VariableDeclarationSyntax &node) const
+    {
+        return get_declared_symbol(static_cast<const SyntaxNode &>(node))
+            .transform([](const Symbol &symbol) -> auto & { return symbol.as_checked<VariableSymbol>(); });
+    }
+
+    Optional<const FunctionSymbol &> SemanticModel::get_declared_symbol(const FunctionDeclarationSyntax &node) const
+    {
+        return get_declared_symbol(static_cast<const SyntaxNode &>(node))
+            .transform([](const Symbol &symbol) -> auto & { return symbol.as_checked<FunctionSymbol>(); });
+    }
+
+    Optional<const NamespaceSymbol &> SemanticModel::get_declared_symbol(const NamespaceDeclarationSyntax &node) const
+    {
+        return get_declared_symbol(static_cast<const SyntaxNode &>(node))
+            .transform([](const Symbol &symbol) -> auto & { return symbol.as_checked<NamespaceSymbol>(); });
+    }
+
+    void SemanticModel::validate_is_part_of_compilation(const SyntaxNode &node) const
+    {
+        if (&node.tree() != tree_)
+            throw std::invalid_argument{"node is not part of this compilation"};
     }
 } // namespace prism

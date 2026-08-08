@@ -9,6 +9,7 @@ export module prism.core:symbols.namespace_symbol;
 import :symbols.symbol;
 import :util.ref;
 import :type_traits.visitor;
+import :semantic.lookup_result;
 
 namespace prism
 {
@@ -40,6 +41,8 @@ namespace prism
         [[nodiscard]] virtual Optional<const Compilation &> containing_compilation() const noexcept = 0;
 
         [[nodiscard]] virtual SymbolSpan<Symbol> members() const = 0;
+
+        [[nodiscard]] LookupResult members(Name name) const;
 
         [[nodiscard]] static constexpr bool instance_of(const Symbol &symbol) noexcept
         {

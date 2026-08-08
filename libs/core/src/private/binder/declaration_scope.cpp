@@ -23,7 +23,7 @@ namespace prism
         using_namespaces_.emplace_back(symbol);
     }
 
-    DeclarationLookupResult DeclarationScope::lookup_nearest(const Name name) const
+    LookupResult DeclarationScope::lookup_nearest(const Name name) const
     {
         SymbolList symbols;
 
@@ -38,7 +38,7 @@ namespace prism
 
         if (!symbols.empty())
         {
-            return DeclarationLookupResult{std::move(symbols)};
+            return LookupResult{std::move(symbols)};
         }
 
         return parent()
@@ -46,7 +46,7 @@ namespace prism
             .value_or_default();
     }
 
-    DeclarationLookupResult DeclarationScope::lookup_all_visible(const Name name) const
+    LookupResult DeclarationScope::lookup_all_visible(const Name name) const
     {
         SymbolList symbols;
         auto *current = this;
@@ -63,7 +63,7 @@ namespace prism
             current = current->parent_;
         }
 
-        return DeclarationLookupResult{std::move(symbols)};
+        return LookupResult{std::move(symbols)};
     }
 
     void DeclarationScope::append_namespace_members(const Name name, SymbolList &symbols) const

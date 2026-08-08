@@ -18,6 +18,7 @@ import :memory.buffer_pool;
 import :symbols.namespace_symbol;
 import :diagnostics.diagnostic_bag;
 import :binder.semantic_mappings;
+import :binder.binding_helpers;
 
 namespace prism
 {
@@ -106,26 +107,11 @@ namespace prism
 
     Optional<const NamespaceSymbol &> DeclarationScopeBuilder::resolve_namespace(const NameSyntax &syntax) const
     {
-        PooledVector<Name> stack;
-
-        auto *current = &syntax;
-        while (current != nullptr)
-        {
-            visit(*current,
-                  Overload{[&](const SimpleNameSyntax &simple)
-                           {
-                               stack.push_back(simple.identifier().get_value<IdentifierData>().name);
-                               current = nullptr;
-                           },
-                           [&](const QualifiedNameSyntax &qualified)
-                           {
-                               stack.push_back(qualified.right().identifier().get_value<IdentifierData>().name);
-                               current = &qualified.left();
-                           }});
-        }
+        const auto names = collect_names(syntax);
 
         const auto *current_namespace = &global_namespace_;
-        for (auto name : stack | std::views::reverse)
+        for (auto name : names | std::views::transform([](const SimpleNameSyntax &s)
+                                                       { return s.identifier().get_value<IdentifierData>().name; }))
         {
             auto members = current_namespace->members();
             auto it = std::ranges::find_if(members, [&](const Symbol &member) { return member.name() == name; });

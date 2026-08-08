@@ -100,6 +100,16 @@ namespace prism::diagnostics
                                                                   ""sv,
                                                                   {}};
 
+    export constexpr DiagnosticDescriptor ambiguous_symbol{to_string(DiagnosticCode::ambiguous_symbol),
+                                                           "Ambiguous symbol"sv,
+                                                           "Ambiguous symbol reference {}",
+                                                           "Semantic"sv,
+                                                           DiagnosticSeverity::error,
+                                                           true,
+                                                           ""sv,
+                                                           ""sv,
+                                                           {}};
+
     export [[nodiscard]] constexpr Optional<const DiagnosticDescriptor &> get_descriptor(const DiagnosticCode code)
     {
         switch (code)
@@ -122,6 +132,8 @@ namespace prism::diagnostics
                 return invalid_symbol;
             case DiagnosticCode::expected_type_specifier:
                 return expected_type_specifier;
+            case DiagnosticCode::ambiguous_symbol:
+                return ambiguous_symbol;
             default:
                 return std::nullopt;
         }

@@ -62,4 +62,10 @@ namespace prism
     {
         using Args = std::tuple<>;
     };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::ambiguous_symbol>
+    {
+        using Args = std::tuple<Name>;
+    };
 } // namespace prism

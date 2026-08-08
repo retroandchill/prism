@@ -11,7 +11,7 @@ import :symbols.source;
 import :syntax.declarations;
 import :syntax.clauses;
 import :binder.binding_helpers;
-import :symbols.error_type_symbol;
+import :symbols.error;
 import :semantic.compilation;
 
 namespace prism
@@ -35,7 +35,7 @@ namespace prism
     {
         if (const auto type = variable.syntax_.type(); type.has_value())
         {
-            variable.set_type(resolve_type(type->type(), compilation_));
+            variable.set_type(resolve_type(type->type(), compilation_, diagnostics_));
             return;
         }
 
@@ -48,7 +48,7 @@ namespace prism
     {
         if (const auto return_type = function.syntax_.return_type(); return_type.has_value())
         {
-            function.set_return_type(resolve_type(return_type->type(), compilation_));
+            function.set_return_type(resolve_type(return_type->type(), compilation_, diagnostics_));
         }
         else
         {
@@ -60,7 +60,7 @@ namespace prism
     {
         if (const auto type = parameter.syntax_.type_specifier(); type.has_value())
         {
-            parameter.set_type(resolve_type(type->type(), compilation_));
+            parameter.set_type(resolve_type(type->type(), compilation_, diagnostics_));
             return;
         }
 
