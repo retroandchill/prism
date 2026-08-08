@@ -124,7 +124,13 @@ namespace prism
     {
         static constexpr auto kind = SyntaxKind::string_literal_token;
 
-        std::string value;
+        std::string value{};
+        CharacterEncoding encoding = CharacterEncoding::utf8;
+    };
+
+    export struct StringLiteralView
+    {
+        std::string_view value{};
         CharacterEncoding encoding = CharacterEncoding::utf8;
     };
 } // namespace prism

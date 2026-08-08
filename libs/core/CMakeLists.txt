@@ -174,6 +174,11 @@ set(PRISM_PUBLIC_MODULES
         src/public/binder/binding_helpers.ixx
         src/public/symbols/error_type_symbol.ixx
         src/public/semantic/lookup_result.ixx
+        src/public/semantic/bound/bound_node.ixx
+        src/public/semantic/bound/bound_statement.ixx
+        src/public/semantic/bound/bound_expression.ixx
+        src/public/semantic/constant_value.ixx
+        src/public/semantic/operations.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

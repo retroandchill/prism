@@ -14,6 +14,11 @@ namespace prism
     export template <std::integral T>
     constexpr T index_none = static_cast<T>(-1);
 
+    export using Int128 = boost::multiprecision::int128_t;
+    export using UInt128 = boost::multiprecision::uint128_t;
+
+    export using Float16 = boost::multiprecision::cpp_bin_float_single;
+
     export using BigInteger = boost::multiprecision::cpp_int;
     export using BigDecimal = boost::multiprecision::cpp_dec_float_50;
 
