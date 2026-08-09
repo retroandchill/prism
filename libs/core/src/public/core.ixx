@@ -34,6 +34,8 @@ export import :util.lazy;
 export import :diagnostics.descriptor;
 export import :diagnostics.registry;
 
+export import :context.target_settings;
+
 export import :syntax.kind;
 export import :syntax.literals;
 export import :syntax.token;

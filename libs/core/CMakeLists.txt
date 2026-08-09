@@ -43,6 +43,7 @@ set(PRISM_SOURCES
         src/private/symbols/namespace_symbol.cpp
         src/private/binder/expression_binder.cpp
         src/private/symbols/function_symbol.cpp
+        src/private/semantic/conversion_classifier.cpp
 )
 
 set(PRISM_PRIVATE_MODULES
@@ -189,6 +190,8 @@ set(PRISM_PUBLIC_MODULES
         src/private/symbols/parameter_symbol.cpp
         src/private/symbols/variable_symbol.cpp
         src/private/symbols/named_type_symbol.cpp
+        src/public/semantic/conversion_classifier.ixx
+        src/public/context/target_settings.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_SOURCES} ${PRISM_PRIVATE_MODULES} ${PRISM_PUBLIC_MODULES})

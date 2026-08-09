@@ -17,22 +17,26 @@ import :symbols.merged_namespace_symbol;
 import :symbols.intrinsic;
 import :binder.signature_binder;
 import :symbols.error;
+import :semantic.conversion_classifier;
 
 namespace prism
 {
 
-    Compilation::Compilation(CreateTag, std::vector<std::unique_ptr<SyntaxTree>> trees) noexcept
-        : trees_{std::move(trees)}
+    Compilation::Compilation(CreateTag,
+                             std::vector<std::unique_ptr<SyntaxTree>> trees,
+                             const TargetSettings target_settings) noexcept
+        : target_settings_{target_settings}, trees_{std::move(trees)}
     {
     }
 
     std::unique_ptr<Compilation> Compilation::create(const Name assembly_name,
-                                                     std::vector<std::unique_ptr<SyntaxTree>> trees)
+                                                     std::vector<std::unique_ptr<SyntaxTree>> trees,
+                                                     const TargetSettings target_settings)
     {
         if (trees.empty())
             throw std::invalid_argument{"Cannot create a compilation with 0 syntax trees"};
 
-        auto compilation = std::make_unique<Compilation>(CreateTag{}, std::move(trees));
+        auto compilation = std::make_unique<Compilation>(CreateTag{}, std::move(trees), target_settings);
 
         auto declaration_records =
             compilation->trees_ |
@@ -110,7 +114,7 @@ namespace prism
 
     Conversion Compilation::classify_conversion(const TypeSymbol &source, const TypeSymbol &destination) const
     {
-        // TODO: Implement me
-        return no_conversion;
+        const ConversionClassifier classifier{target_settings_};
+        return classifier.classify_conversion(source, destination);
     }
 } // namespace prism

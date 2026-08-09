@@ -20,6 +20,7 @@ import :binder.declaration_scope;
 import :binder.semantic_mappings;
 import :symbols.type_symbol;
 import :semantic.bound_node_lookup;
+import :context.target_settings;
 
 namespace prism
 {
@@ -56,9 +57,11 @@ namespace prism
         };
 
       public:
-        Compilation(CreateTag, std::vector<std::unique_ptr<SyntaxTree>> trees) noexcept;
+        Compilation(CreateTag, std::vector<std::unique_ptr<SyntaxTree>> trees, TargetSettings target_settings) noexcept;
 
-        static std::unique_ptr<Compilation> create(Name assembly_name, std::vector<std::unique_ptr<SyntaxTree>> trees);
+        static std::unique_ptr<Compilation> create(Name assembly_name,
+                                                   std::vector<std::unique_ptr<SyntaxTree>> trees,
+                                                   TargetSettings target_settings = TargetSettings::current_platform());
 
         [[nodiscard]] constexpr const AssemblySymbol &assembly() const noexcept
         {
@@ -103,6 +106,7 @@ namespace prism
         friend class SemanticModel;
 
         std::unique_ptr<SemanticLifetime> lifetime_ = std::make_unique<SemanticLifetime>();
+        TargetSettings target_settings_;
         const AssemblySymbol *assembly_ = nullptr;
         const NamespaceSymbol *global_namespace_ = nullptr;
         std::vector<std::unique_ptr<SyntaxTree>> trees_;
