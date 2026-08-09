@@ -96,7 +96,7 @@ namespace prism
     class BoundReturnStatement : public BoundStatement
     {
       public:
-        constexpr BoundReturnStatement(const ExpressionStatementSyntax &syntax, const BoundExpression *expression)
+        constexpr BoundReturnStatement(const ReturnStatementSyntax &syntax, const BoundExpression *expression)
             : BoundStatement{BoundNodeKind::return_statement, syntax}, expression_{expression}
         {
         }

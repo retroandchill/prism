@@ -15,8 +15,6 @@ import :syntax.tree;
 import :syntax.visit;
 import :semantic.compilation;
 import :symbols.function_symbol;
-import :semantic.bound.bound_expression;
-import :semantic.bound.bound_statement;
 import :diagnostics.diagnostic_bag;
 
 namespace prism
@@ -139,5 +137,45 @@ namespace prism
 
         auto interned = lifetime_.copy_refs(statements);
         return lifetime_.create<BoundBlock>(syntax, interned);
+    }
+
+    const BoundExpressionStatement &ExpressionBinder::bind_expression_statement(const ExpressionStatementSyntax &syntax)
+    {
+        auto &expression = bind_expression(syntax.expression());
+        return lifetime_.create<BoundExpressionStatement>(syntax, expression);
+    }
+
+    const BoundReturnStatement &ExpressionBinder::bind_return_statement(const ReturnStatementSyntax &syntax)
+    {
+        auto *expression = syntax.expression()
+                               .transform([this](const ExpressionSyntax &e) -> auto & { return bind_expression(e); })
+                               .value_ptr();
+
+        return lifetime_.create<BoundReturnStatement>(syntax, expression);
+    }
+
+    const BoundExpression &ExpressionBinder::bind_expression(const ExpressionSyntax &syntax)
+    {
+        return visit(syntax,
+                     Overload{[this](const LiteralExpressionSyntax &e) -> const BoundExpression &
+                              { return bind_literal_expression(e); },
+                              [this](const IdentifierExpressionSyntax &e) -> const BoundExpression &
+                              { return bind_identifier_expression(e); },
+                              [this](const ParenthesizedExpressionSyntax &e) -> const BoundExpression &
+                              { return bind_expression(e.expression()); },
+                              [this](const BinaryExpressionSyntax &e) -> const BoundExpression &
+                              { return bind_binary_expression(e); },
+                              [this](const AssignmentExpressionSyntax &e) -> const BoundExpression &
+                              { return bind_assignment_expression(e); },
+                              [this](const PrefixExpressionSyntax &e) -> const BoundExpression &
+                              { return bind_prefix_expression(e); },
+                              [this](const PostfixExpressionSyntax &e) -> const BoundExpression &
+                              { return bind_postfix_expression(e); },
+                              [this](const TernaryExpressionSyntax &e) -> const BoundExpression &
+                              { return bind_ternary_expression(e); },
+                              [this](const InvocationExpressionSyntax &e) -> const BoundExpression &
+                              {
+                                  return bind_invocation_expression(e);
+                              }});
     }
 } // namespace prism

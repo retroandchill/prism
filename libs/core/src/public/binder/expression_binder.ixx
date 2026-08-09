@@ -8,27 +8,14 @@ export module prism.core:binder.expression_binder;
 
 import :syntax.list;
 import :semantic.semantic_model;
+import :semantic.bound.bound_expression;
+import :semantic.bound.bound_statement;
 
 namespace prism
 {
-    class BlockSyntax;
-    class ReturnStatementSyntax;
-    class ExpressionStatementSyntax;
-    class VariableDeclarationStatementSyntax;
-    class BoundReturnStatement;
-    class BoundExpressionStatement;
-    class BoundVariableDeclaration;
-    class BoundBlock;
-    class SemanticLifetime;
     class BoundNodeLookup;
-    class BoundStatement;
-    class StatementSyntax;
-    class ExpressionSyntax;
-    class BoundExpression;
+    class SemanticLifetime;
     class DeclarationSyntax;
-    class FunctionDeclarationSyntax;
-    class VariableDeclarationSyntax;
-    class NamespaceDeclarationSyntax;
     class CompilationUnitSyntax;
     class DiagnosticBag;
 
@@ -58,6 +45,14 @@ namespace prism
         const BoundReturnStatement &bind_return_statement(const ReturnStatementSyntax &syntax);
 
         const BoundExpression &bind_expression(const ExpressionSyntax &syntax);
+        const BoundLiteralExpression &bind_literal_expression(const LiteralExpressionSyntax &syntax);
+        const BoundExpression &bind_identifier_expression(const IdentifierExpressionSyntax &syntax);
+        const BoundBinaryExpression &bind_binary_expression(const BinaryExpressionSyntax &syntax);
+        const BoundAssignmentExpression &bind_assignment_expression(const AssignmentExpressionSyntax &syntax);
+        const BoundExpression &bind_prefix_expression(const PrefixExpressionSyntax &syntax);
+        const BoundUnaryExpression &bind_postfix_expression(const PostfixExpressionSyntax &syntax);
+        const BoundConditionalExpression &bind_ternary_expression(const TernaryExpressionSyntax &syntax);
+        const BoundInvocationExpression &bind_invocation_expression(const InvocationExpressionSyntax &syntax);
 
         SemanticModel semantic_model_;
         DiagnosticBag &diagnostics_;
