@@ -139,6 +139,15 @@ namespace prism
         return lifetime_.create<BoundBlock>(syntax, interned);
     }
 
+    const BoundVariableDeclaration &ExpressionBinder::bind_variable_declaration_statement(
+        const VariableDeclarationStatementSyntax &syntax)
+    {
+        auto &declaration = syntax.declaration();
+        auto &symbol = semantic_model_.get_declared_symbol(declaration).value();
+
+        // TODO: Handle the initializer and type inference
+    }
+
     const BoundExpressionStatement &ExpressionBinder::bind_expression_statement(const ExpressionStatementSyntax &syntax)
     {
         auto &expression = bind_expression(syntax.expression());

@@ -19,6 +19,8 @@ import :symbols.namespace_symbol;
 import :diagnostics.diagnostic_bag;
 import :binder.semantic_mappings;
 import :binder.binding_helpers;
+import :symbols.source;
+import :symbols.function_symbol;
 
 namespace prism
 {
@@ -102,6 +104,37 @@ namespace prism
             auto symbol = mappings_.get_symbol(parameter);
             DEBUG_ASSERT(symbol.has_value(), "No symbol found for function parameter");
             scope.add_symbol(*symbol);
+        }
+
+        auto body = syntax.body();
+        if (body.has_value())
+        {
+            auto &symbol = mappings_.get_symbol(syntax).value().as_checked<FunctionSymbol>();
+            bind_block(*body, scope, symbol);
+        }
+    }
+
+    void DeclarationScopeBuilder::bind_block(const BlockSyntax &syntax,
+                                             DeclarationScope &current,
+                                             const FunctionSymbol &function) const
+    {
+        auto &scope = create_scope(syntax, &current);
+
+        for (auto &statement : syntax.statements())
+        {
+            visit(statement,
+                  Overload{[&](const VariableDeclarationStatementSyntax &s)
+                           {
+                               auto name = s.declaration().identifier().get_value<IdentifierData>().name;
+                               const auto &variable =
+                                   lifetime_.create<SourceVariableSymbol>(name, &function, s.declaration());
+                               mappings_.add_symbol_mapping(s.declaration(), variable);
+                               scope.add_symbol(variable);
+                           },
+                           [&](const BlockSyntax &block) { bind_block(block, scope, function); },
+                           [](const StatementSyntax &) {
+
+                           }});
         }
     }
 

@@ -11,6 +11,8 @@ import :binder.declaration_scope;
 
 namespace prism
 {
+    class FunctionSymbol;
+    class BlockSyntax;
     class SemanticMappings;
     class FunctionDeclarationSyntax;
     class NamespaceDeclarationSyntax;
@@ -46,6 +48,7 @@ namespace prism
         void bind_declaration(const DeclarationSyntax &syntax, DeclarationScope &current) const;
         void bind_namespace_declaration(const NamespaceDeclarationSyntax &syntax, DeclarationScope &current) const;
         void bind_function_declaration(const FunctionDeclarationSyntax &syntax, DeclarationScope &current) const;
+        void bind_block(const BlockSyntax &syntax, DeclarationScope &current, const FunctionSymbol &function) const;
 
         [[nodiscard]] Optional<const NamespaceSymbol &> resolve_namespace(const NameSyntax &syntax) const;
 
