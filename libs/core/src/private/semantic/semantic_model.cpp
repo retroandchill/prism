@@ -11,9 +11,8 @@ import :syntax.tree;
 import :semantic.compilation;
 import :diagnostics.diagnostic;
 import :syntax.declarations;
-import :symbols.variable_symbol;
-import :symbols.function_symbol;
-import :symbols.namespace_symbol;
+import :symbols.source;
+import :syntax.statements;
 
 namespace prism
 {
@@ -68,5 +67,12 @@ namespace prism
     {
         if (&node.tree() != tree_)
             throw std::invalid_argument{"node is not part of this compilation"};
+    }
+
+    SourceVariableSymbol &SemanticModel::get_local_variable(const VariableDeclarationStatementSyntax &syntax) const
+    {
+        auto &scope = compilation_->get_declaration_scope(syntax);
+        const auto name = syntax.declaration().identifier().get_value<IdentifierData>().name;
+        return scope.get_local_variable(name);
     }
 } // namespace prism

@@ -10,6 +10,7 @@ module;
 
 module prism.core:binder.binding_helpers.impl;
 
+import std;
 import :binder.binding_helpers;
 import :syntax.visit;
 import :semantic.compilation;
@@ -178,5 +179,60 @@ namespace prism
         // We added elements in the reverse order we need to go through them in so we reverse the stack
         std::ranges::reverse(stack);
         return stack;
+    }
+
+    bool fits_in(const BigDecimal &value, const SpecialType type, TargetSettings settings)
+    {
+        switch (type)
+        {
+            case SpecialType::i8:
+                return fits_in<std::int8_t>(value);
+            case SpecialType::i16:
+                return fits_in<std::int16_t>(value);
+            case SpecialType::i32:
+                return fits_in<std::int32_t>(value);
+            case SpecialType::i64:
+                return fits_in<std::int64_t>(value);
+            case SpecialType::i128:
+                return fits_in<Int128>(value);
+            case SpecialType::isize:
+                switch (settings.pointer_width)
+                {
+                    case 32:
+                        return fits_in<std::int32_t>(value);
+                    case 64:
+                        return fits_in<std::int64_t>(value);
+                    default:
+                        throw std::invalid_argument{"Invalid pointer width"};
+                }
+            case SpecialType::u8:
+                return fits_in<std::uint8_t>(value);
+            case SpecialType::u16:
+                return fits_in<std::uint16_t>(value);
+            case SpecialType::u32:
+                return fits_in<std::uint32_t>(value);
+            case SpecialType::u64:
+                return fits_in<std::uint64_t>(value);
+            case SpecialType::u128:
+                return fits_in<UInt128>(value);
+            case SpecialType::usize:
+                switch (settings.pointer_width)
+                {
+                    case 32:
+                        return fits_in<std::uint32_t>(value);
+                    case 64:
+                        return fits_in<std::uint64_t>(value);
+                    default:
+                        throw std::invalid_argument{"Invalid pointer width"};
+                }
+            case SpecialType::f16:
+                return fits_in_f16(value);
+            case SpecialType::f32:
+                return fits_in<float>(value);
+            case SpecialType::f64:
+                return fits_in<double>(value);
+            default:
+                throw std::invalid_argument{"Not an integral type"};
+        }
     }
 } // namespace prism

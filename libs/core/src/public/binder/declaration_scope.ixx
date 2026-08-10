@@ -18,6 +18,7 @@ import :semantic.lookup_result;
 
 namespace prism
 {
+    class SourceVariableSymbol;
     export class PRISM_CORE_API DeclarationScope final
     {
       public:
@@ -45,11 +46,17 @@ namespace prism
         [[nodiscard]] LookupResult lookup_all_visible(Name name) const;
 
       private:
+        friend class DeclarationScopeBuilder;
+        friend class SemanticModel;
+
         void append_namespace_members(Name name, SymbolList &symbols) const;
+        void add_local_variable(SourceVariableSymbol &symbol);
+        [[nodiscard]] SourceVariableSymbol &get_local_variable(Name name) const;
 
         const SyntaxNode &owner_;
         DeclarationScope *parent_ = nullptr;
 
+        std::unordered_map<Name, SourceVariableSymbol *> local_variables_{};
         std::unordered_map<Name, std::vector<Ref<const Symbol>>> symbols_{};
         std::vector<Ref<const NamespaceSymbol>> using_namespaces_{};
     };

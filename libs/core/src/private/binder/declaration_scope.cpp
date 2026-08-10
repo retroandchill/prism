@@ -9,6 +9,7 @@ module prism.core:binder.declaration_scope.impl;
 import :binder.declaration_scope;
 
 import :symbols.namespace_symbol;
+import :symbols.source;
 
 namespace prism
 {
@@ -71,5 +72,16 @@ namespace prism
         symbols.append_range(
             using_namespaces_ | std::views::transform([](const NamespaceSymbol &ns) { return ns.members(); }) |
             std::views::join | std::views::filter([name](const Symbol &symbol) { return symbol.name() == name; }));
+    }
+
+    void DeclarationScope::add_local_variable(SourceVariableSymbol &symbol)
+    {
+        local_variables_.emplace(symbol.name(), &symbol);
+        add_symbol(symbol);
+    }
+
+    SourceVariableSymbol &DeclarationScope::get_local_variable(const Name name) const
+    {
+        return *local_variables_.at(name);
     }
 } // namespace prism

@@ -44,6 +44,11 @@ namespace prism
             return false;
         }
 
+        [[nodiscard]] virtual Optional<ConstantValue> constant_value() const noexcept
+        {
+            return std::nullopt;
+        }
+
       private:
         const TypeSymbol &type_;
     };
@@ -58,8 +63,18 @@ namespace prism
         {
         }
 
+        [[nodiscard]] constexpr const ConstantValue &value() const noexcept
+        {
+            return value_;
+        }
+
+        [[nodiscard]] constexpr Optional<ConstantValue> constant_value() const noexcept override
+        {
+            return value_;
+        }
+
       private:
-        ConstantValue value_{};
+        ConstantValue value_;
     };
 
     class BoundVariableReference final : public BoundExpression
@@ -222,7 +237,7 @@ namespace prism
       public:
         constexpr BoundInvocationExpression(const ExpressionSyntax &syntax,
                                             const FunctionSymbol &symbol,
-                                            BoundSpan<BoundExpression> arguments)
+                                            const BoundSpan<BoundExpression> arguments)
             : BoundExpression{BoundNodeKind::call_expression, syntax, symbol.return_type()}, symbol_{symbol},
               arguments_{arguments}
         {

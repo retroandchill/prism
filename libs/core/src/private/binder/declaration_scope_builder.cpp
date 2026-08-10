@@ -126,14 +126,15 @@ namespace prism
                   Overload{[&](const VariableDeclarationStatementSyntax &s)
                            {
                                auto name = s.declaration().identifier().get_value<IdentifierData>().name;
-                               const auto &variable =
+                               auto &variable =
                                    lifetime_.create<SourceVariableSymbol>(name, &function, s.declaration());
                                mappings_.add_symbol_mapping(s.declaration(), variable);
-                               scope.add_symbol(variable);
+                               scope.add_local_variable(variable);
                            },
                            [&](const BlockSyntax &block) { bind_block(block, scope, function); },
-                           [](const StatementSyntax &) {
-
+                           [](const StatementSyntax &)
+                           {
+                               // Other statement kinds can't create local variables
                            }});
         }
     }

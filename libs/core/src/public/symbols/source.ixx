@@ -102,6 +102,7 @@ namespace prism
 
       private:
         friend class SignatureBinder;
+        friend class ExpressionBinder;
 
         constexpr void set_type(const TypeSymbol &type) noexcept
         {

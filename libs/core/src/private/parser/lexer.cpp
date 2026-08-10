@@ -205,7 +205,7 @@ namespace prism
                 return make_green_value(
                     NumericLiteralData{
                         .value = std::move(value),
-                        .base = kind,
+                        .type = kind,
                     },
                     std::string{literal_text},
                     std::move(leading_trivia).node(),
@@ -235,7 +235,7 @@ namespace prism
         return make_green_value(
             NumericLiteralData{
                 .value = std::move(value),
-                .base = kind,
+                .type = kind,
                 .suffix = suffix,
             },
             std::string{text},

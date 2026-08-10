@@ -63,6 +63,11 @@ namespace prism
                                                    std::vector<std::unique_ptr<SyntaxTree>> trees,
                                                    TargetSettings target_settings = TargetSettings::current_platform());
 
+        [[nodiscard]] constexpr const TargetSettings &target_settings() const noexcept
+        {
+            return target_settings_;
+        }
+
         [[nodiscard]] constexpr const AssemblySymbol &assembly() const noexcept
         {
             ASSUME(assembly_ != nullptr);

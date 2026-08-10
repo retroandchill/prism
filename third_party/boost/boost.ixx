@@ -3,6 +3,9 @@ module;
 #include "boost_deps.hpp"
 
 export module boost;
+
+export import :int128;
+
 namespace boost
 {
     export using boost::addressof;

@@ -37,12 +37,13 @@ namespace prism
         void bind_variable_declaration(const VariableDeclarationSyntax &syntax);
         void bind_function_declaration(const FunctionDeclarationSyntax &syntax);
 
-        const BoundStatement &bind_statement(const StatementSyntax &syntax);
-        const BoundBlock &bind_block(const BlockSyntax &syntax);
+        const BoundStatement &bind_statement(const StatementSyntax &syntax, const TypeSymbol &return_type);
+        const BoundBlock &bind_block(const BlockSyntax &syntax, const TypeSymbol &return_type);
         const BoundVariableDeclaration &bind_variable_declaration_statement(
             const VariableDeclarationStatementSyntax &syntax);
         const BoundExpressionStatement &bind_expression_statement(const ExpressionStatementSyntax &syntax);
-        const BoundReturnStatement &bind_return_statement(const ReturnStatementSyntax &syntax);
+        const BoundReturnStatement &bind_return_statement(const ReturnStatementSyntax &syntax,
+                                                          const TypeSymbol &return_type);
 
         const BoundExpression &bind_expression(const ExpressionSyntax &syntax);
         const BoundLiteralExpression &bind_literal_expression(const LiteralExpressionSyntax &syntax);
@@ -53,6 +54,13 @@ namespace prism
         const BoundUnaryExpression &bind_postfix_expression(const PostfixExpressionSyntax &syntax);
         const BoundConditionalExpression &bind_ternary_expression(const TernaryExpressionSyntax &syntax);
         const BoundInvocationExpression &bind_invocation_expression(const InvocationExpressionSyntax &syntax);
+
+        [[nodiscard]] const BoundExpression &add_conversion_if_necessary(const ExpressionSyntax &syntax,
+                                                                         const BoundExpression &expression,
+                                                                         const TypeSymbol &type) const;
+
+        [[nodiscard]] ConstantValue evaluate_constant_expression(const SyntaxToken &token) const;
+        [[nodiscard]] ConstantValue evaluate_numeric_expression(const NumericLiteralData &data) const;
 
         SemanticModel semantic_model_;
         DiagnosticBag &diagnostics_;

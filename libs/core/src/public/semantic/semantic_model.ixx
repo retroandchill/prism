@@ -16,6 +16,8 @@ import :semantic.conversion;
 
 namespace prism
 {
+    class VariableDeclarationStatementSyntax;
+    class SourceVariableSymbol;
     class NamespaceDeclarationSyntax;
     class NamespaceSymbol;
     class VariableDeclarationSyntax;
@@ -60,7 +62,10 @@ namespace prism
             const NamespaceDeclarationSyntax &node) const;
 
       private:
+        friend class ExpressionBinder;
+
         void validate_is_part_of_compilation(const SyntaxNode &node) const;
+        [[nodiscard]] SourceVariableSymbol &get_local_variable(const VariableDeclarationStatementSyntax &syntax) const;
 
         Compilation *compilation_;
         const SyntaxTree *tree_ = nullptr;

@@ -101,7 +101,7 @@ namespace prism
         static constexpr auto kind = SyntaxKind::numeric_literal_token;
 
         BigDecimal value;
-        NumericLiteralKind base = NumericLiteralKind::integer;
+        NumericLiteralKind type = NumericLiteralKind::integer;
         NumericSuffix suffix = NumericSuffix::none;
     };
 

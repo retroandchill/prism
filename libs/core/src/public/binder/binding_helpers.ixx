@@ -10,6 +10,8 @@ export module prism.core:binder.binding_helpers;
 import :memory.buffer_pool;
 import :text.name;
 import :util.ref;
+import :symbols.type_symbol;
+import :context.target_settings;
 
 namespace prism
 {
@@ -29,4 +31,6 @@ namespace prism
                                                     std::span<const Ref<const SimpleNameSyntax>> names);
 
     PooledVector<Ref<const SimpleNameSyntax>> collect_names(const NameSyntax &syntax);
+
+    [[nodiscard]] bool fits_in(const BigDecimal &value, SpecialType type, TargetSettings settings);
 } // namespace prism
