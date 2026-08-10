@@ -62,21 +62,20 @@ namespace prism
         Name name;
         bool is_escaped = false;
 
-        constexpr std::string_view get_string_view() const noexcept
+        [[nodiscard]] constexpr std::string_view get_string_view() const noexcept
         {
             return name.as_string_view(is_escaped);
         }
     };
 
-    export enum class NumericLiteralKind : std::uint8_t
+    export enum class IntegerBase : std::uint8_t
     {
-        integer,
-        floating_point,
+        decimal,
         binary,
         hex
     };
 
-    export enum class NumericSuffix : std::uint8_t
+    export enum class IntegerSuffix : std::uint8_t
     {
         none,
         i8,
@@ -90,19 +89,33 @@ namespace prism
         u32,
         u64,
         u128,
-        uz,
+        uz
+    };
+
+    export struct IntegerLiteralData
+    {
+        static constexpr auto kind = SyntaxKind::integer_literal_token;
+
+        BigInteger value;
+        IntegerBase base = IntegerBase::decimal;
+        IntegerSuffix suffix = IntegerSuffix::none;
+    };
+
+    export enum class FloatSuffix : std::uint8_t
+    {
+        none,
         f16,
         f32,
         f64
     };
 
-    export struct NumericLiteralData
+    export struct FloatLiteralData
     {
-        static constexpr auto kind = SyntaxKind::numeric_literal_token;
+        static constexpr auto kind = SyntaxKind::floating_point_literal_token;
 
-        BigDecimal value;
-        NumericLiteralKind type = NumericLiteralKind::integer;
-        NumericSuffix suffix = NumericSuffix::none;
+        BigInteger significand;
+        std::int32_t exponent10 = 0;
+        FloatSuffix suffix = FloatSuffix::none;
     };
 
     export enum class CharacterEncoding : std::uint8_t

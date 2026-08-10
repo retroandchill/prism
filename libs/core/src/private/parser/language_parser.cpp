@@ -541,7 +541,8 @@ namespace prism
         {
             case SyntaxKind::false_keyword:
             case SyntaxKind::true_keyword:
-            case SyntaxKind::numeric_literal_token:
+            case SyntaxKind::integer_literal_token:
+            case SyntaxKind::floating_point_literal_token:
             case SyntaxKind::character_literal_token:
             case SyntaxKind::string_literal_token:
                 return make_ref_counted<GreenLiteralExpression>(consume_token());

@@ -245,9 +245,14 @@ namespace prism
             return ConstantValue::boolean(*bool_value);
         }
 
-        if (const auto numeric_value = token.try_get_value<NumericLiteralData>(); numeric_value.has_value())
+        if (const auto numeric_value = token.try_get_value<IntegerLiteralData>(); numeric_value.has_value())
         {
             return evaluate_numeric_expression(*numeric_value);
+        }
+
+        if (const auto floating_point_value = token.try_get_value<FloatLiteralData>(); floating_point_value.has_value())
+        {
+            return evaluate_numeric_expression(*floating_point_value);
         }
 
         if (const auto character_value = token.try_get_value<CharacterLiteralData>(); character_value.has_value())

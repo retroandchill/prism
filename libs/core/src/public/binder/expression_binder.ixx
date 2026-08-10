@@ -60,7 +60,8 @@ namespace prism
                                                                          const TypeSymbol &type) const;
 
         [[nodiscard]] ConstantValue evaluate_constant_expression(const SyntaxToken &token) const;
-        [[nodiscard]] ConstantValue evaluate_numeric_expression(const NumericLiteralData &data) const;
+        [[nodiscard]] ConstantValue evaluate_numeric_expression(const IntegerLiteralData &data) const;
+        [[nodiscard]] ConstantValue evaluate_numeric_expression(const FloatLiteralData &data) const;
 
         SemanticModel semantic_model_;
         DiagnosticBag &diagnostics_;

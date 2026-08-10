@@ -44,7 +44,7 @@ TEST_CASE("Can parse variable declarations", "[parser]")
     REQUIRE(expression.is<GreenLiteralExpression>());
     SyntaxToken literal{expression.as<GreenLiteralExpression>()->value(), 0};
 
-    auto value = literal.try_get_value<NumericLiteralData>();
+    auto value = literal.try_get_value<IntegerLiteralData>();
     REQUIRE(value.has_value());
     CHECK(value->value == 5);
 }

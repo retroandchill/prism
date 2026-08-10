@@ -169,8 +169,10 @@ namespace prism
     {
         auto start = cursor_.position();
         auto remainder = cursor_.remaining();
-        BigDecimal value;
-        auto kind = NumericLiteralKind::integer;
+        BigInteger value;
+        bool is_float = false;
+        std::int32_t exponent = 0;
+        auto base = IntegerBase::decimal;
         if (remainder.starts_with("0x") || remainder.starts_with("0X"))
         {
             if (!handle_hex_literal(value))
@@ -179,7 +181,7 @@ namespace prism
                 cursor_.advance();
             }
 
-            kind = NumericLiteralKind::hex;
+            base = IntegerBase::hex;
         }
         else if (remainder.starts_with("0b") || remainder.starts_with("0B"))
         {
@@ -189,7 +191,7 @@ namespace prism
                 cursor_.advance();
             }
 
-            kind = NumericLiteralKind::binary;
+            base = IntegerBase::binary;
         }
         else
         {
@@ -203,9 +205,9 @@ namespace prism
             {
                 const auto literal_text = cursor_.since(start);
                 return make_green_value(
-                    NumericLiteralData{
+                    IntegerLiteralData{
                         .value = std::move(value),
-                        .type = kind,
+                        .base = base,
                     },
                     std::string{literal_text},
                     std::move(leading_trivia).node(),
@@ -215,27 +217,58 @@ namespace prism
             if (!cursor_.at_end() && cursor_.current() == '.')
             {
                 cursor_.advance();
-                kind = NumericLiteralKind::floating_point;
-                BigDecimal place{"0.1"};
-                consume_digit_sequence([](const char c) { return std::isdigit(c); },
-                                       [&place, &value](const char c)
-                                       {
-                                           const auto digit = c - '0';
-                                           value += place * digit;
-                                           place /= 10;
-                                       });
+                is_float = true;
+                if (!consume_digit_sequence([](const char c) { return std::isdigit(c); },
+                                            [&exponent, &value](const char c)
+                                            {
+                                                const auto digit = c - '0';
+                                                value = value * 10 + digit;
+                                                exponent--;
+                                            }))
+                    return std::nullopt;
             }
             else if (!found_digits)
                 return std::nullopt;
         }
 
-        const auto suffix = consume_numeric_suffix(kind);
+        if (is_float)
+        {
+            const auto suffix = consume_float_suffix();
+            const auto text = cursor_.since(start);
+            return make_green_value(
+                FloatLiteralData{
+                    .significand = std::move(value),
+                    .exponent10 = exponent,
+                    .suffix = suffix,
+                },
+                std::string{text},
+                std::move(leading_trivia).node(),
+                collect_trivia().node());
+        }
 
+        if (base == IntegerBase::decimal)
+        {
+            if (const auto suffix = consume_float_suffix(); suffix != FloatSuffix::none)
+            {
+                const auto text = cursor_.since(start);
+                return make_green_value(
+                    FloatLiteralData{
+                        .significand = std::move(value),
+                        .suffix = suffix,
+                    },
+                    std::string{text},
+                    std::move(leading_trivia).node(),
+                    collect_trivia().node());
+            }
+        }
+
+        const auto suffix = consume_integer_suffix();
         const auto text = cursor_.since(start);
+
         return make_green_value(
-            NumericLiteralData{
+            IntegerLiteralData{
                 .value = std::move(value),
-                .type = kind,
+                .base = base,
                 .suffix = suffix,
             },
             std::string{text},
@@ -456,7 +489,7 @@ namespace prism
                                 std::move(leading_trivia).node(),
                                 collect_trivia().node());
     }
-    bool Lexer::handle_hex_literal(BigDecimal &value)
+    bool Lexer::handle_hex_literal(BigInteger &value)
     {
         if (!is_hex_digit(cursor_.peek(3)))
             return false;
@@ -472,7 +505,7 @@ namespace prism
         return true;
     }
 
-    bool Lexer::handle_binary_literal(BigDecimal &value)
+    bool Lexer::handle_binary_literal(BigInteger &value)
     {
         if (!is_binary_digit(cursor_.peek(3)))
             return false;
@@ -488,59 +521,57 @@ namespace prism
         return true;
     }
 
-    NumericSuffix Lexer::consume_numeric_suffix(NumericLiteralKind kind)
+    IntegerSuffix Lexer::consume_integer_suffix()
     {
         using namespace std::literals;
         static constexpr std::array integer_suffixes = {
-            std::make_pair("i8"sv, NumericSuffix::i8),
-            std::make_pair("i16"sv, NumericSuffix::i16),
-            std::make_pair("i32"sv, NumericSuffix::i32),
-            std::make_pair("i64"sv, NumericSuffix::i64),
-            std::make_pair("i128"sv, NumericSuffix::i128),
-            std::make_pair("u8"sv, NumericSuffix::u8),
-            std::make_pair("u16"sv, NumericSuffix::u16),
-            std::make_pair("u32"sv, NumericSuffix::u32),
-            std::make_pair("u64"sv, NumericSuffix::u64),
-            std::make_pair("u128"sv, NumericSuffix::u128),
-            std::make_pair("iz"sv, NumericSuffix::iz),
-            std::make_pair("uz"sv, NumericSuffix::uz),
-            std::make_pair("f16"sv, NumericSuffix::f16),
-            std::make_pair("f32"sv, NumericSuffix::f16),
-            std::make_pair("f64"sv, NumericSuffix::f16),
-        };
-
-        static constexpr std::array float_suffixes = {
-            std::make_pair("f16"sv, NumericSuffix::f16),
-            std::make_pair("f32"sv, NumericSuffix::f16),
-            std::make_pair("f64"sv, NumericSuffix::f16),
+            std::make_pair("i8"sv, IntegerSuffix::i8),
+            std::make_pair("i16"sv, IntegerSuffix::i16),
+            std::make_pair("i32"sv, IntegerSuffix::i32),
+            std::make_pair("i64"sv, IntegerSuffix::i64),
+            std::make_pair("i128"sv, IntegerSuffix::i128),
+            std::make_pair("u8"sv, IntegerSuffix::u8),
+            std::make_pair("u16"sv, IntegerSuffix::u16),
+            std::make_pair("u32"sv, IntegerSuffix::u32),
+            std::make_pair("u64"sv, IntegerSuffix::u64),
+            std::make_pair("u128"sv, IntegerSuffix::u128),
+            std::make_pair("iz"sv, IntegerSuffix::iz),
+            std::make_pair("uz"sv, IntegerSuffix::uz),
         };
 
         auto remaining = cursor_.remaining();
-        if (kind != NumericLiteralKind::floating_point)
+        for (auto [str, type] : integer_suffixes)
         {
-            for (auto [str, type] : integer_suffixes)
+            if (remaining.starts_with(str))
             {
-                if (remaining.starts_with(str))
-                {
-                    cursor_.advance(str.size());
-                    return type;
-                }
+                cursor_.advance(str.size());
+                return type;
             }
         }
 
-        if (kind == NumericLiteralKind::floating_point || kind == NumericLiteralKind::integer)
+        return IntegerSuffix::none;
+    }
+
+    FloatSuffix Lexer::consume_float_suffix()
+    {
+        using namespace std::literals;
+        static constexpr std::array float_suffixes = {
+            std::make_pair("f16"sv, FloatSuffix::f16),
+            std::make_pair("f32"sv, FloatSuffix::f16),
+            std::make_pair("f64"sv, FloatSuffix::f16),
+        };
+
+        auto remaining = cursor_.remaining();
+        for (auto [str, type] : float_suffixes)
         {
-            for (auto [str, type] : float_suffixes)
+            if (remaining.starts_with(str))
             {
-                if (remaining.starts_with(str))
-                {
-                    cursor_.advance(str.size());
-                    return type;
-                }
+                cursor_.advance(str.size());
+                return type;
             }
         }
 
-        return NumericSuffix::none;
+        return FloatSuffix::none;
     }
 
     template <std::predicate<char> Predicate, std::invocable<char> OnDigit>

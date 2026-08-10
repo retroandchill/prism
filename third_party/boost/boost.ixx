@@ -346,6 +346,10 @@ namespace boost
             export using backends::eval_multiply;
             export using backends::eval_divide;
             export using backends::eval_pow;
+            export using backends::eval_left_shift;
+            export using backends::eval_right_shift;
+            export using backends::divide_unsigned_helper;
+            export using backends::eval_get_sign;
         } // namespace backends
     }     // namespace multiprecision
     namespace math

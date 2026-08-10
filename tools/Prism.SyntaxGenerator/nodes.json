@@ -365,7 +365,10 @@
         "name": "IdentifierToken"
       },
       {
-        "name": "NumericLiteralToken"
+        "name": "IntegerLiteralToken"
+      },
+      {
+        "name": "FloatingPointLiteralToken"
       },
       {
         "name": "CharacterLiteralToken"

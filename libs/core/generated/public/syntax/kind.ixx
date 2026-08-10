@@ -122,10 +122,11 @@ namespace prism
         eof_token = 1300,
         bad_token = 1301,
         identifier_token = 1302,
-        numeric_literal_token = 1303,
-        character_literal_token = 1304,
-        string_literal_token = 1305,
-        other_token_end = 1305,
+        integer_literal_token = 1303,
+        floating_point_literal_token = 1304,
+        character_literal_token = 1305,
+        string_literal_token = 1306,
+        other_token_end = 1306,
 #pragma endregion
 
 #pragma region Top level
@@ -386,8 +387,10 @@ namespace prism
                 return "<unrecognized>";
             case SyntaxKind::identifier_token:
                 return "IdentifierToken";
-            case SyntaxKind::numeric_literal_token:
-                return "NumericLiteralToken";
+            case SyntaxKind::integer_literal_token:
+                return "IntegerLiteralToken";
+            case SyntaxKind::floating_point_literal_token:
+                return "FloatingPointLiteralToken";
             case SyntaxKind::character_literal_token:
                 return "CharacterLiteralToken";
             case SyntaxKind::string_literal_token:
