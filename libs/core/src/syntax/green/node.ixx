@@ -283,7 +283,7 @@ namespace prism
             }
         }
 
-        [[nodiscard]] const SyntaxNode &create_red(SyntaxLifetime &lifetime) const
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime) const
         {
             return create_red(lifetime, nullptr, 0);
         }

@@ -9,10 +9,11 @@ export module prism.core:syntax.lifetime;
 import :syntax.green.node;
 import :memory.persistent_allocator;
 import boost;
-import :syntax.node;
 
 namespace prism
 {
+    class SyntaxTree;
+
     class SyntaxLifetime final : public std::enable_shared_from_this<SyntaxLifetime>
     {
       public:

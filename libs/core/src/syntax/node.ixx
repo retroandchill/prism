@@ -14,6 +14,7 @@ import :syntax.green.node;
 import :util.noncopyable;
 import :text.text_span;
 import :diagnostics.location;
+import :syntax.lifetime;
 
 namespace prism
 {
@@ -222,6 +223,12 @@ namespace prism
             {
                 return T::instance_of(*this) ? Optional<const T &>{static_cast<const T &>(*this)} : std::nullopt;
             }
+        }
+
+        template <typename Self>
+        [[nodiscard]] std::shared_ptr<Self> shared_from_this(this Self &self) noexcept
+        {
+            return std::shared_ptr<Self>{lifetime_->shared_from_this(), std::addressof(self)};
         }
 
       protected:

@@ -59,6 +59,12 @@ namespace prism
 
         [[nodiscard]] std::generator<Diagnostic> get_diagnostics(const SyntaxNodeOrToken &node_or_token) const;
 
+        template <typename Self>
+        [[nodiscard]] std::shared_ptr<Self> shared_from_this(this Self &self) noexcept
+        {
+            return std::shared_ptr<Self>{lifetime_->shared_from_this(), std::addressof(self)};
+        }
+
       private:
         [[nodiscard]] std::generator<Diagnostic> get_diagnostics(const GreenNode &root, std::uint32_t position) const;
 
