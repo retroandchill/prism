@@ -24,7 +24,8 @@ namespace prism
         bool processed_diagnostics = false;
     };
 
-    SyntaxTree::SyntaxTree(std::string path,
+    SyntaxTree::SyntaxTree(ConstructTag,
+                           std::string path,
                            std::shared_ptr<SourceText> text,
                            GreenPtr<GreenNode> root,
                            SyntaxLifetime &lifetime)
@@ -34,8 +35,11 @@ namespace prism
         root_->tree_.store(this);
     }
 
-    SyntaxTree::SyntaxTree(std::shared_ptr<SourceText> text, GreenPtr<GreenNode> root, SyntaxLifetime &lifetime)
-        : SyntaxTree{"", std::move(text), std::move(root), lifetime}
+    SyntaxTree::SyntaxTree(ConstructTag,
+                           std::shared_ptr<SourceText> text,
+                           GreenPtr<GreenNode> root,
+                           SyntaxLifetime &lifetime)
+        : SyntaxTree{construct_tag, "", std::move(text), std::move(root), lifetime}
     {
     }
 
@@ -49,7 +53,7 @@ namespace prism
         LanguageParser parser{text->text()};
         auto root = parser.parse_compilation_unit();
         auto lifetime = std::make_shared<SyntaxLifetime>();
-        auto &tree = lifetime->allocate_tree(text, std::move(root));
+        auto &tree = lifetime->allocate_tree(construct_tag, text, std::move(root));
         return std::shared_ptr<SyntaxTree>{std::move(lifetime), &tree};
     }
 

@@ -21,13 +21,20 @@ namespace prism
 
     export class SyntaxTree final : NonCopyable
     {
+        struct ConstructTag
+        {
+        };
+
+        static constexpr ConstructTag construct_tag;
+
       public:
-        SyntaxTree(std::string path,
+        SyntaxTree(ConstructTag,
+                   std::string path,
                    std::shared_ptr<SourceText> text,
                    GreenPtr<GreenNode> root,
                    SyntaxLifetime &lifetime);
 
-        SyntaxTree(std::shared_ptr<SourceText> text, GreenPtr<GreenNode> root, SyntaxLifetime &lifetime);
+        SyntaxTree(ConstructTag, std::shared_ptr<SourceText> text, GreenPtr<GreenNode> root, SyntaxLifetime &lifetime);
 
         static std::shared_ptr<SyntaxTree> parse(std::string text);
         static std::shared_ptr<SyntaxTree> parse(std::shared_ptr<SourceText> text);
@@ -68,7 +75,7 @@ namespace prism
       private:
         [[nodiscard]] std::generator<Diagnostic> get_diagnostics(const GreenNode &root, std::uint32_t position) const;
 
-        friend SyntaxNode;
+        friend class SyntaxNode;
 
         std::string path_;
         std::shared_ptr<SourceText> text_{};
