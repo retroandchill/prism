@@ -29,8 +29,6 @@ internal readonly ref struct GreenNodeEnumerable(GreenNode node)
 
         public GreenNode Current => _current;
 
-        GreenNode IEnumerator<GreenNode>.Current => Current;
-
         object? IEnumerator.Current => Current;
 
         public bool MoveNext()
