@@ -362,7 +362,7 @@ public static class CppEmitter
             );
             writer.WriteLine();
 
-            writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
+            writer.WriteCppAccessSpecifier(CppAccessSpecifier.Public);
             foreach (var property in node.Properties)
             {
                 writer.Write("[[nodiscard]] virtual ");
@@ -416,7 +416,7 @@ public static class CppEmitter
 
         private void EmitGreenNodeConcreteClassBody(CppNode node)
         {
-            writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
+            writer.WriteCppAccessSpecifier(CppAccessSpecifier.Public);
 
             var explicitKeyword = node.Properties.Length <= 1 ? "explicit " : "";
             writer.Write($"{explicitKeyword}{node.GreenClassName}(");
@@ -466,7 +466,7 @@ public static class CppEmitter
             );
 
             writer.WriteLine();
-            writer.WriteAccessSpecifier(CppAccessSpecifier.Private);
+            writer.WriteCppAccessSpecifier(CppAccessSpecifier.Private);
 
             foreach (var property in node.Properties)
             {
@@ -1105,7 +1105,7 @@ public static class CppEmitter
             writer.WriteLine($"class {mutablePrefix}{interfaceName}");
             using (writer.EnterBlockScope(true))
             {
-                writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
+                writer.WriteCppAccessSpecifier(CppAccessSpecifier.Public);
                 writer.WriteLine($"virtual ~{mutablePrefix}{interfaceName}() = default;");
                 writer.WriteLine();
                 writer.WriteLine($"template <std::derived_from<{nodeClassName}> T, typename Self>");
@@ -1130,7 +1130,7 @@ public static class CppEmitter
             );
             using (writer.EnterBlockScope(true))
             {
-                writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
+                writer.WriteCppAccessSpecifier(CppAccessSpecifier.Public);
                 writer.EmitVisitorMethodList(
                     model,
                     isGreen,
@@ -1257,7 +1257,7 @@ public static class CppEmitter
                 $"{export}class {PrismCoreExport} {node.RedClassName}{final} : public {baseName}"
             );
             using var scope = writer.EnterBlockScope(true);
-            writer.WriteAccessSpecifier(
+            writer.WriteCppAccessSpecifier(
                 node.IsAbstract ? CppAccessSpecifier.Protected : CppAccessSpecifier.Public
             );
 
@@ -1274,7 +1274,7 @@ public static class CppEmitter
 
             if (node.IsAbstract)
             {
-                writer.WriteAccessSpecifier(CppAccessSpecifier.Public);
+                writer.WriteCppAccessSpecifier(CppAccessSpecifier.Public);
             }
 
             foreach (var property in node.Properties)
@@ -1302,7 +1302,7 @@ public static class CppEmitter
                 return;
 
             writer.WriteLine();
-            writer.WriteAccessSpecifier(CppAccessSpecifier.Protected);
+            writer.WriteCppAccessSpecifier(CppAccessSpecifier.Protected);
             writer.WriteLine(
                 $"[[nodiscard]] Optional<const {SyntaxNodeClass} &> get_node_slot(std::size_t index) const override;"
             );
@@ -1320,7 +1320,7 @@ public static class CppEmitter
                 if (i == 0)
                 {
                     writer.WriteLine();
-                    writer.WriteAccessSpecifier(CppAccessSpecifier.Private);
+                    writer.WriteCppAccessSpecifier(CppAccessSpecifier.Private);
                 }
 
                 writer.Write("mutable ");

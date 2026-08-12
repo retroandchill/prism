@@ -6,9 +6,14 @@
       "commandLineArgs": "schema --export schema.json",
       "workingDirectory": "."
     },
-    "EmitNodes": {
+    "EmitCppNodes": {
       "commandName": "Project",
-      "commandLineArgs": "generate --input nodes.json --output ../../libs/core/generated",
+      "commandLineArgs": "generate --input nodes.json --language Cpp --output ../../libs/core/generated",
+      "workingDirectory": "."
+    },
+    "EmitCSharpNodes": {
+      "commandName": "Project",
+      "commandLineArgs": "generate --input nodes.json --language CSharp --output ../../compiler/Prism.Core/Generated",
       "workingDirectory": "."
     }
   }

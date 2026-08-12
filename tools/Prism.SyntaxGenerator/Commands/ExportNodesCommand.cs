@@ -8,6 +8,7 @@ using DotMake.CommandLine;
 using Humanizer;
 using Prism.SyntaxGenerator.Emitters;
 using Prism.SyntaxGenerator.Mappers;
+using Prism.SyntaxGenerator.Models.Resolved;
 using Prism.SyntaxGenerator.Models.Spec;
 using Prism.SyntaxGenerator.Output;
 using Prism.SyntaxGenerator.Resolution;
@@ -15,11 +16,20 @@ using ModelJsonSerializerContext = Prism.SyntaxGenerator.Serialization.ModelJson
 
 namespace Prism.SyntaxGenerator.Commands;
 
+public enum OutputLanguage
+{
+    CSharp,
+    Cpp,
+}
+
 [CliCommand(Description = "Export Prism syntax schema", Name = "generate")]
 public class ExportNodesCommand
 {
     [CliOption(Description = "Path to the imported nodes", Name = "input")]
     public string InputPath { get; set; } = null!;
+
+    [CliOption(Description = "The language to output to", Name = "language")]
+    public OutputLanguage Language { get; set; }
 
     [CliOption(Description = "Path for the exported source files", Name = "output")]
     public string OutputPath { get; set; } = null!;
@@ -42,98 +52,19 @@ public class ExportNodesCommand
                 );
         }
 
-        var publicDir = Path.Combine(OutputPath, "public");
-        var publicSyntaxDir = Path.Combine(publicDir, "syntax");
-        var publicGreenDir = Path.Combine(publicSyntaxDir, "green");
-        var privateSyntaxDir = Path.Combine(OutputPath, "private", "syntax");
-        var privateGreenDir = Path.Combine(privateSyntaxDir, "green");
-        var publicDiagnosticDir = Path.Combine(publicDir, "diagnostics");
-
         var builder = new SyntaxModelBuilder();
         var resolvedModel = builder.Build(syntax);
-        var cppModel = resolvedModel.ToCpp();
-
-        using var writer = new CodeWriter();
-        writer.EmitSyntaxKinds(cppModel);
-        await WriteCodeAsync(
-            writer,
-            Path.Join(publicSyntaxDir, "kind.ixx"),
-            context.CancellationToken
-        );
-
-        writer.EmitLexingUtils(cppModel);
-        await WriteCodeAsync(
-            writer,
-            Path.Join(publicSyntaxDir, "lexing_utils.ixx"),
-            context.CancellationToken
-        );
-
-        foreach (var module in cppModel.Modules)
+        switch (Language)
         {
-            var moduleName = module.Name.Underscore();
-            writer.EmitGreenNodeInterface(module);
-            await WriteCodeAsync(
-                writer,
-                Path.Join(publicGreenDir, $"{moduleName}.ixx"),
-                context.CancellationToken
-            );
-
-            writer.EmitGreenNodeImplementation(module);
-            await WriteCodeAsync(
-                writer,
-                Path.Join(privateGreenDir, $"{moduleName}.cpp"),
-                context.CancellationToken
-            );
-
-            writer.EmitRedNodeInterface(module);
-            await WriteCodeAsync(
-                writer,
-                Path.Join(publicSyntaxDir, $"{moduleName}.ixx"),
-                context.CancellationToken
-            );
-
-            writer.EmitRedNodeImplementation(module);
-            await WriteCodeAsync(
-                writer,
-                Path.Join(privateSyntaxDir, $"{moduleName}.cpp"),
-                context.CancellationToken
-            );
+            case OutputLanguage.CSharp:
+                await EmitCSharpAsync(resolvedModel, context.CancellationToken);
+                break;
+            case OutputLanguage.Cpp:
+                await EmitCppAsync(resolvedModel, context.CancellationToken);
+                break;
+            default:
+                throw new InvalidOperationException("Unsupported language");
         }
-
-        writer.EmitGreenVisitorFunctions(cppModel);
-        await WriteCodeAsync(
-            writer,
-            Path.Join(publicGreenDir, "visit.ixx"),
-            context.CancellationToken
-        );
-
-        writer.EmitRedVisitorFunctions(cppModel);
-        await WriteCodeAsync(
-            writer,
-            Path.Join(publicSyntaxDir, "visit.ixx"),
-            context.CancellationToken
-        );
-
-        writer.EmitDiagnosticCodes(cppModel);
-        await WriteCodeAsync(
-            writer,
-            Path.Join(publicDiagnosticDir, "codes.ixx"),
-            context.CancellationToken
-        );
-
-        writer.EmitDiagnosticDescriptors(cppModel);
-        await WriteCodeAsync(
-            writer,
-            Path.Join(publicDiagnosticDir, "registry.ixx"),
-            context.CancellationToken
-        );
-
-        writer.EmitDiagnosticTraits(cppModel);
-        await WriteCodeAsync(
-            writer,
-            Path.Join(publicDiagnosticDir, "traits.ixx"),
-            context.CancellationToken
-        );
     }
 
     private static async ValueTask WriteCodeAsync(
@@ -147,5 +78,103 @@ public class ExportNodesCommand
         await using var fileStream = fileInfo.Open(FileMode.Create, FileAccess.Write);
         await writer.WriteToStreamAsync(fileStream, cancellationToken);
         writer.Clear();
+    }
+
+    private async ValueTask EmitCppAsync(
+        SyntaxModel resolvedModel,
+        CancellationToken cancellationToken
+    )
+    {
+        var publicDir = Path.Combine(OutputPath, "public");
+        var publicSyntaxDir = Path.Combine(publicDir, "syntax");
+        var publicGreenDir = Path.Combine(publicSyntaxDir, "green");
+        var privateSyntaxDir = Path.Combine(OutputPath, "private", "syntax");
+        var privateGreenDir = Path.Combine(privateSyntaxDir, "green");
+        var publicDiagnosticDir = Path.Combine(publicDir, "diagnostics");
+
+        var cppModel = resolvedModel.ToCpp();
+
+        using var writer = new CodeWriter();
+        writer.EmitSyntaxKinds(cppModel);
+        await WriteCodeAsync(writer, Path.Join(publicSyntaxDir, "kind.ixx"), cancellationToken);
+
+        writer.EmitLexingUtils(cppModel);
+        await WriteCodeAsync(
+            writer,
+            Path.Join(publicSyntaxDir, "lexing_utils.ixx"),
+            cancellationToken
+        );
+
+        foreach (var module in cppModel.Modules)
+        {
+            var moduleName = module.Name.Underscore();
+            writer.EmitGreenNodeInterface(module);
+            await WriteCodeAsync(
+                writer,
+                Path.Join(publicGreenDir, $"{moduleName}.ixx"),
+                cancellationToken
+            );
+
+            writer.EmitGreenNodeImplementation(module);
+            await WriteCodeAsync(
+                writer,
+                Path.Join(privateGreenDir, $"{moduleName}.cpp"),
+                cancellationToken
+            );
+
+            writer.EmitRedNodeInterface(module);
+            await WriteCodeAsync(
+                writer,
+                Path.Join(publicSyntaxDir, $"{moduleName}.ixx"),
+                cancellationToken
+            );
+
+            writer.EmitRedNodeImplementation(module);
+            await WriteCodeAsync(
+                writer,
+                Path.Join(privateSyntaxDir, $"{moduleName}.cpp"),
+                cancellationToken
+            );
+        }
+
+        writer.EmitGreenVisitorFunctions(cppModel);
+        await WriteCodeAsync(writer, Path.Join(publicGreenDir, "visit.ixx"), cancellationToken);
+
+        writer.EmitRedVisitorFunctions(cppModel);
+        await WriteCodeAsync(writer, Path.Join(publicSyntaxDir, "visit.ixx"), cancellationToken);
+
+        writer.EmitDiagnosticCodes(cppModel);
+        await WriteCodeAsync(
+            writer,
+            Path.Join(publicDiagnosticDir, "codes.ixx"),
+            cancellationToken
+        );
+
+        writer.EmitDiagnosticDescriptors(cppModel);
+        await WriteCodeAsync(
+            writer,
+            Path.Join(publicDiagnosticDir, "registry.ixx"),
+            cancellationToken
+        );
+
+        writer.EmitDiagnosticTraits(cppModel);
+        await WriteCodeAsync(
+            writer,
+            Path.Join(publicDiagnosticDir, "traits.ixx"),
+            cancellationToken
+        );
+    }
+
+    private async ValueTask EmitCSharpAsync(
+        SyntaxModel resolvedModel,
+        CancellationToken cancellationToken
+    )
+    {
+        var syntaxDir = Path.Combine(OutputPath, "Syntax");
+
+        var csharpModel = resolvedModel.ToCSharp();
+        using var writer = new CodeWriter();
+        writer.EmitSyntaxKinds(csharpModel);
+        await WriteCodeAsync(writer, Path.Join(syntaxDir, "SyntaxKind.cs"), cancellationToken);
     }
 }

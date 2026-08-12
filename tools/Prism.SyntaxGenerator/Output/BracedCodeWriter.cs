@@ -14,7 +14,7 @@ public enum CppAccessSpecifier
     Private,
 }
 
-public static class CppCodeWriter
+public static class BracedCodeWriter
 {
     extension(CodeWriter writer)
     {
@@ -32,7 +32,7 @@ public static class CppCodeWriter
             return writer.EnterBlockScope();
         }
 
-        public void WriteAccessSpecifier(CppAccessSpecifier specifier)
+        public void WriteCppAccessSpecifier(CppAccessSpecifier specifier)
         {
             using var scope = writer.EnterIndentationScope(-1);
             switch (specifier)
