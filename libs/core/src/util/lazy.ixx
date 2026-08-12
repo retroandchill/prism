@@ -14,6 +14,7 @@ import std;
 import :util.exceptions;
 import :util.noncopyable;
 import :util.optional;
+import libassert;
 
 namespace prism
 {
@@ -91,6 +92,26 @@ namespace prism
             }
 
             if (current == LazyState::uninitialized)
+            {
+                return std::forward<U>(default_value);
+            }
+
+            return value_;
+        }
+
+        [[nodiscard]] Optional<const T &> try_get_value() const noexcept
+        {
+            if (state_.load(std::memory_order::acquire) != LazyState::computed)
+                return std::nullopt;
+
+            return value_;
+        }
+
+        template <std::convertible_to<T> U>
+        [[nodiscard]] constexpr T try_get_value(U &&default_value) const noexcept(std::is_nothrow_constructible_v<T, U>)
+            requires std::is_copy_constructible_v<T>
+        {
+            if (state_.load(std::memory_order::acquire) != LazyState::computed)
             {
                 return std::forward<U>(default_value);
             }

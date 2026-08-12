@@ -23,7 +23,7 @@ namespace prism
 
     Optional<const SyntaxNode &> InitializerSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 1 ? Optional<const SyntaxNode &>{value_.value_or(nullptr)} : std::nullopt;
+        return index == 1 ? Optional<const SyntaxNode &>{value_.try_get_value(nullptr)} : std::nullopt;
     }
 
     SyntaxToken TypeSpecifierSyntax::colon() const
@@ -43,7 +43,7 @@ namespace prism
 
     Optional<const SyntaxNode &> TypeSpecifierSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 1 ? Optional<const SyntaxNode &>{type_.value_or(nullptr)} : std::nullopt;
+        return index == 1 ? Optional<const SyntaxNode &>{type_.try_get_value(nullptr)} : std::nullopt;
     }
 
     SyntaxToken NamedParameterSyntax::name() const
@@ -89,7 +89,7 @@ namespace prism
 
     Optional<const SyntaxNode &> ArgumentListSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 1 ? Optional<const SyntaxNode &>{arguments_.value_or(nullptr)} : std::nullopt;
+        return index == 1 ? Optional<const SyntaxNode &>{arguments_.try_get_value(nullptr)} : std::nullopt;
     }
 
     Optional<const NamedParameterSyntax &> ArgumentSyntax::name() const
@@ -120,9 +120,9 @@ namespace prism
         switch (index)
         {
             case 0:
-                return name_.value_or(nullptr);
+                return name_.try_get_value(nullptr);
             case 1:
-                return value_.value_or(nullptr);
+                return value_.try_get_value(nullptr);
             default:
                 return std::nullopt;
         }
@@ -151,7 +151,7 @@ namespace prism
 
     Optional<const SyntaxNode &> ParameterListSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 1 ? Optional<const SyntaxNode &>{parameters_.value_or(nullptr)} : std::nullopt;
+        return index == 1 ? Optional<const SyntaxNode &>{parameters_.try_get_value(nullptr)} : std::nullopt;
     }
 
     Optional<SyntaxToken> ParameterSyntax::mut_keyword() const
@@ -195,9 +195,9 @@ namespace prism
         switch (index)
         {
             case 2:
-                return type_specifier_.value_or(nullptr);
+                return type_specifier_.try_get_value(nullptr);
             case 3:
-                return default_value_.value_or(nullptr);
+                return default_value_.try_get_value(nullptr);
             default:
                 return std::nullopt;
         }
@@ -220,6 +220,6 @@ namespace prism
 
     Optional<const SyntaxNode &> ExpressionBodySyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 1 ? Optional<const SyntaxNode &>{expression_.value_or(nullptr)} : std::nullopt;
+        return index == 1 ? Optional<const SyntaxNode &>{expression_.try_get_value(nullptr)} : std::nullopt;
     }
 } // namespace prism

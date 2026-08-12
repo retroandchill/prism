@@ -1538,7 +1538,7 @@ public static class CppEmitter
                     writer.WriteLine(
                         $"return index == {i} ? "
                             + $"Optional<const {SyntaxNodeClass}&>{{{property.FieldName}"
-                            + $".value_or(nullptr)}} : std::nullopt;"
+                            + $".try_get_value(nullptr)}} : std::nullopt;"
                     );
                     break;
                 }
@@ -1550,7 +1550,7 @@ public static class CppEmitter
                     {
                         writer.WriteLine($"case {i}:");
                         using var indentScope = writer.EnterIndentationScope();
-                        writer.WriteLine($"return {property.FieldName}.value_or(nullptr);");
+                        writer.WriteLine($"return {property.FieldName}.try_get_value(nullptr);");
                     }
                     writer.WriteLine("default:");
                     using (writer.EnterIndentationScope())

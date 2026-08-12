@@ -36,9 +36,9 @@ namespace prism
         switch (index)
         {
             case 0:
-                return usings_.value_or(nullptr);
+                return usings_.try_get_value(nullptr);
             case 1:
-                return members_.value_or(nullptr);
+                return members_.try_get_value(nullptr);
             default:
                 return std::nullopt;
         }

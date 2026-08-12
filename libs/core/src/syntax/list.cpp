@@ -24,6 +24,6 @@ namespace prism
 
     Optional<const SyntaxNode &> SyntaxListImpl::get_cached_slot(const std::size_t index) const
     {
-        return children_[index].value_or(nullptr);
+        return children_[index].try_get_value(nullptr);
     }
 } // namespace prism

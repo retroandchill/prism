@@ -88,11 +88,11 @@ namespace prism
         switch (index)
         {
             case 2:
-                return name_.value_or(nullptr);
+                return name_.try_get_value(nullptr);
             case 4:
-                return usings_.value_or(nullptr);
+                return usings_.try_get_value(nullptr);
             case 5:
-                return members_.value_or(nullptr);
+                return members_.try_get_value(nullptr);
             default:
                 return std::nullopt;
         }
@@ -156,11 +156,11 @@ namespace prism
         switch (index)
         {
             case 2:
-                return name_.value_or(nullptr);
+                return name_.try_get_value(nullptr);
             case 4:
-                return usings_.value_or(nullptr);
+                return usings_.try_get_value(nullptr);
             case 5:
-                return members_.value_or(nullptr);
+                return members_.try_get_value(nullptr);
             default:
                 return std::nullopt;
         }
@@ -228,9 +228,9 @@ namespace prism
         switch (index)
         {
             case 4:
-                return type_.value_or(nullptr);
+                return type_.try_get_value(nullptr);
             case 5:
-                return initializer_.value_or(nullptr);
+                return initializer_.try_get_value(nullptr);
             default:
                 return std::nullopt;
         }
@@ -305,13 +305,13 @@ namespace prism
         switch (index)
         {
             case 3:
-                return parameters_.value_or(nullptr);
+                return parameters_.try_get_value(nullptr);
             case 4:
-                return return_type_.value_or(nullptr);
+                return return_type_.try_get_value(nullptr);
             case 5:
-                return body_.value_or(nullptr);
+                return body_.try_get_value(nullptr);
             case 6:
-                return expression_body_.value_or(nullptr);
+                return expression_body_.try_get_value(nullptr);
             default:
                 return std::nullopt;
         }

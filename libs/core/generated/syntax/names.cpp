@@ -52,9 +52,9 @@ namespace prism
         switch (index)
         {
             case 0:
-                return left_.value_or(nullptr);
+                return left_.try_get_value(nullptr);
             case 2:
-                return right_.value_or(nullptr);
+                return right_.try_get_value(nullptr);
             default:
                 return std::nullopt;
         }

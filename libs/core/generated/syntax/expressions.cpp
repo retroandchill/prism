@@ -33,7 +33,7 @@ namespace prism
 
     Optional<const SyntaxNode &> IdentifierExpressionSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 0 ? Optional<const SyntaxNode &>{value_.value_or(nullptr)} : std::nullopt;
+        return index == 0 ? Optional<const SyntaxNode &>{value_.try_get_value(nullptr)} : std::nullopt;
     }
 
     SyntaxToken ParenthesizedExpressionSyntax::open() const
@@ -60,7 +60,7 @@ namespace prism
 
     Optional<const SyntaxNode &> ParenthesizedExpressionSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 1 ? Optional<const SyntaxNode &>{expression_.value_or(nullptr)} : std::nullopt;
+        return index == 1 ? Optional<const SyntaxNode &>{expression_.try_get_value(nullptr)} : std::nullopt;
     }
 
     const ExpressionSyntax &BinaryExpressionSyntax::left() const
@@ -96,9 +96,9 @@ namespace prism
         switch (index)
         {
             case 0:
-                return left_.value_or(nullptr);
+                return left_.try_get_value(nullptr);
             case 2:
-                return right_.value_or(nullptr);
+                return right_.try_get_value(nullptr);
             default:
                 return std::nullopt;
         }
@@ -137,9 +137,9 @@ namespace prism
         switch (index)
         {
             case 0:
-                return left_.value_or(nullptr);
+                return left_.try_get_value(nullptr);
             case 2:
-                return right_.value_or(nullptr);
+                return right_.try_get_value(nullptr);
             default:
                 return std::nullopt;
         }
@@ -162,7 +162,7 @@ namespace prism
 
     Optional<const SyntaxNode &> PrefixExpressionSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 1 ? Optional<const SyntaxNode &>{operand_.value_or(nullptr)} : std::nullopt;
+        return index == 1 ? Optional<const SyntaxNode &>{operand_.try_get_value(nullptr)} : std::nullopt;
     }
 
     const ExpressionSyntax &PostfixExpressionSyntax::operand() const
@@ -182,7 +182,7 @@ namespace prism
 
     Optional<const SyntaxNode &> PostfixExpressionSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 0 ? Optional<const SyntaxNode &>{operand_.value_or(nullptr)} : std::nullopt;
+        return index == 0 ? Optional<const SyntaxNode &>{operand_.try_get_value(nullptr)} : std::nullopt;
     }
 
     const ExpressionSyntax &TernaryExpressionSyntax::condition() const
@@ -232,11 +232,11 @@ namespace prism
         switch (index)
         {
             case 0:
-                return condition_.value_or(nullptr);
+                return condition_.try_get_value(nullptr);
             case 2:
-                return when_true_.value_or(nullptr);
+                return when_true_.try_get_value(nullptr);
             case 4:
-                return when_false_.value_or(nullptr);
+                return when_false_.try_get_value(nullptr);
             default:
                 return std::nullopt;
         }
@@ -270,9 +270,9 @@ namespace prism
         switch (index)
         {
             case 0:
-                return callee_.value_or(nullptr);
+                return callee_.try_get_value(nullptr);
             case 1:
-                return arguments_.value_or(nullptr);
+                return arguments_.try_get_value(nullptr);
             default:
                 return std::nullopt;
         }
