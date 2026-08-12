@@ -23,14 +23,14 @@ namespace prism
 {
 
     Compilation::Compilation(CreateTag,
-                             std::vector<std::unique_ptr<SyntaxTree>> trees,
+                             std::vector<std::shared_ptr<SyntaxTree>> trees,
                              const TargetSettings target_settings) noexcept
         : target_settings_{target_settings}, trees_{std::move(trees)}
     {
     }
 
     std::unique_ptr<Compilation> Compilation::create(const Name assembly_name,
-                                                     std::vector<std::unique_ptr<SyntaxTree>> trees,
+                                                     std::vector<std::shared_ptr<SyntaxTree>> trees,
                                                      const TargetSettings target_settings)
     {
         if (trees.empty())

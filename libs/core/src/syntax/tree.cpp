@@ -24,28 +24,33 @@ namespace prism
         bool processed_diagnostics = false;
     };
 
-    SyntaxTree::SyntaxTree(std::string path, std::shared_ptr<SourceText> text, GreenPtr<GreenNode> root)
-        : path_{std::move(path)}, text_{std::move(text)}, root_{&root->create_red(*lifetime_)}
+    SyntaxTree::SyntaxTree(std::string path,
+                           std::shared_ptr<SourceText> text,
+                           GreenPtr<GreenNode> root,
+                           SyntaxLifetime &lifetime)
+        : path_{std::move(path)}, text_{std::move(text)}, lifetime_{&lifetime}, root_{&root->create_red(*lifetime_)}
     {
         lifetime_->add_root(std::move(root));
         root_->tree_.store(this);
     }
 
-    SyntaxTree::SyntaxTree(std::shared_ptr<SourceText> text, GreenPtr<GreenNode> root)
-        : SyntaxTree{"", std::move(text), std::move(root)}
+    SyntaxTree::SyntaxTree(std::shared_ptr<SourceText> text, GreenPtr<GreenNode> root, SyntaxLifetime &lifetime)
+        : SyntaxTree{"", std::move(text), std::move(root), lifetime}
     {
     }
 
-    std::unique_ptr<SyntaxTree> SyntaxTree::parse(std::string text)
+    std::shared_ptr<SyntaxTree> SyntaxTree::parse(std::string text)
     {
         return parse(std::make_shared<SourceText>(std::move(text)));
     }
 
-    std::unique_ptr<SyntaxTree> SyntaxTree::parse(std::shared_ptr<SourceText> text)
+    std::shared_ptr<SyntaxTree> SyntaxTree::parse(std::shared_ptr<SourceText> text)
     {
         LanguageParser parser{text->text()};
         auto root = parser.parse_compilation_unit();
-        return std::make_unique<SyntaxTree>(text, std::move(root));
+        auto lifetime = std::make_shared<SyntaxLifetime>();
+        auto &tree = lifetime->allocate_tree(text, std::move(root));
+        return std::shared_ptr<SyntaxTree>{std::move(lifetime), &tree};
     }
 
     FileSourcePositionSpan SyntaxTree::get_position_span(TextSpan span) const

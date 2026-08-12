@@ -22,12 +22,15 @@ namespace prism
     export class SyntaxTree final : NonCopyable
     {
       public:
-        SyntaxTree(std::string path, std::shared_ptr<SourceText> text, GreenPtr<GreenNode> root);
+        SyntaxTree(std::string path,
+                   std::shared_ptr<SourceText> text,
+                   GreenPtr<GreenNode> root,
+                   SyntaxLifetime &lifetime);
 
-        SyntaxTree(std::shared_ptr<SourceText> text, GreenPtr<GreenNode> root);
+        SyntaxTree(std::shared_ptr<SourceText> text, GreenPtr<GreenNode> root, SyntaxLifetime &lifetime);
 
-        static std::unique_ptr<SyntaxTree> parse(std::string text);
-        static std::unique_ptr<SyntaxTree> parse(std::shared_ptr<SourceText> text);
+        static std::shared_ptr<SyntaxTree> parse(std::string text);
+        static std::shared_ptr<SyntaxTree> parse(std::shared_ptr<SourceText> text);
 
         [[nodiscard]] constexpr const std::string &path() const noexcept
         {
@@ -62,8 +65,8 @@ namespace prism
         friend SyntaxNode;
 
         std::string path_;
-        std::shared_ptr<SourceText> text_;
-        std::unique_ptr<SyntaxLifetime> lifetime_ = std::make_unique<SyntaxLifetime>();
+        std::shared_ptr<SourceText> text_{};
+        SyntaxLifetime *lifetime_;
         const SyntaxNode *root_ = nullptr;
     };
 } // namespace prism

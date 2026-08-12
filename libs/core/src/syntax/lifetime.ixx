@@ -13,9 +13,17 @@ import :syntax.node;
 
 namespace prism
 {
-    class SyntaxLifetime final
+    class SyntaxLifetime final : public std::enable_shared_from_this<SyntaxLifetime>
     {
       public:
+        template <typename... Args>
+            requires std::constructible_from<SyntaxTree, Args..., SyntaxLifetime &>
+        constexpr SyntaxTree &allocate_tree(Args &&...args)
+        {
+            std::scoped_lock lock{mutex_};
+            return allocator_.create<SyntaxTree>(std::forward<Args>(args)..., *this);
+        }
+
         template <std::derived_from<SyntaxNode> Red, std::derived_from<GreenNode> Green>
             requires std::constructible_from<Red, SyntaxLifetime &, const Green &, const SyntaxNode *, std::uint32_t>
         constexpr Red &add(const Green &green, const SyntaxNode *parent = nullptr, std::uint32_t position = 0)

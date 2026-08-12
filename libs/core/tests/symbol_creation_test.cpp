@@ -35,7 +35,7 @@ TEST_CASE("Compilation merges namespace declarations", "[compilation]")
     )");
 
     const Name assembly_name = "test";
-    std::vector<std::unique_ptr<SyntaxTree>> trees;
+    std::vector<std::shared_ptr<SyntaxTree>> trees;
     trees.emplace_back(std::move(tree));
     const auto compilation = Compilation::create(assembly_name, std::move(trees));
 
