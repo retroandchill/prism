@@ -15,6 +15,7 @@ import :util.noncopyable;
 import :text.text_span;
 import :diagnostics.location;
 import :syntax.lifetime;
+import :util.lazy;
 
 namespace prism
 {
@@ -244,12 +245,12 @@ namespace prism
         template <typename T>
         friend class SeparatedSyntaxList;
 
-        static const SyntaxTree *compute_tree(const SyntaxNode *node);
+        static const SyntaxTree &compute_tree(const SyntaxNode *node);
 
         const GreenNode *green_;
         const SyntaxNode *parent_ = nullptr;
         SyntaxLifetime *lifetime_;
-        mutable std::atomic<const SyntaxTree *> tree_ = nullptr;
+        mutable Lazy<const SyntaxTree &> tree_;
         std::uint32_t position_;
     };
 } // namespace prism

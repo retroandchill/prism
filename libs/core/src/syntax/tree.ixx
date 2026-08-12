@@ -36,6 +36,8 @@ namespace prism
 
         SyntaxTree(ConstructTag, std::shared_ptr<SourceText> text, GreenPtr<GreenNode> root, SyntaxLifetime &lifetime);
 
+        SyntaxTree(ConstructTag, const SyntaxNode &root, SyntaxLifetime &lifetime);
+
         static std::shared_ptr<SyntaxTree> parse(std::string text);
         static std::shared_ptr<SyntaxTree> parse(std::shared_ptr<SourceText> text);
 
@@ -44,9 +46,9 @@ namespace prism
             return path_;
         }
 
-        [[nodiscard]] constexpr const SourceText &text() const noexcept
+        [[nodiscard]] constexpr Optional<const SourceText &> text() const noexcept
         {
-            return *text_;
+            return text_.get();
         }
 
         [[nodiscard]] constexpr const SyntaxNode &root() const noexcept

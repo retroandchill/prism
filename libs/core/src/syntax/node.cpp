@@ -31,15 +31,7 @@ namespace prism
 
     const SyntaxTree &SyntaxNode::tree() const
     {
-        auto *tree = tree_.load(std::memory_order_acquire);
-        if (tree == nullptr)
-        {
-            tree = compute_tree(this);
-        }
-
-        DEBUG_ASSERT(tree != nullptr);
-
-        return *tree;
+        return tree_.get_or_compute([this]() -> const SyntaxTree & { return compute_tree(this); });
     }
 
     Location SyntaxNode::location() const
@@ -128,50 +120,55 @@ namespace prism
         return *token;
     }
 
-    const SyntaxTree *SyntaxNode::compute_tree(const SyntaxNode *node)
+    const SyntaxTree &SyntaxNode::compute_tree(const SyntaxNode *node)
     {
+        const auto *origin = node;
         std::vector<const SyntaxNode *> nodes;
-        const SyntaxTree *tree = nullptr;
 
         while (true)
         {
-            tree = node->tree_.load(std::memory_order_acquire);
+            const SyntaxTree *tree = nullptr;
+            if (node != origin)
+                tree = node->tree_.wait_if_computing().value_ptr();
+
             if (tree != nullptr)
-                break;
+            {
+                for (auto *n : nodes)
+                {
+                    if (auto *existing_tree = n->tree_.wait_if_computing().value_ptr(); existing_tree != nullptr)
+                    {
+                        DEBUG_ASSERT(existing_tree == tree);
+                        continue;
+                    }
+
+                    n->tree_.set(*tree);
+                }
+
+                return *tree;
+            }
 
             auto *parent = node->parent_;
             if (parent == nullptr)
             {
-                // TODO: Eventually we do want to allow for the lazy creation of syntax trees for orphan nodes
-                // but doing so will require the memory model to be updated to support that, and for getting a
-                // working compiler, that is not necessary at this time.
-                throw InvalidStateException{"Parent node has no syntax tree defined"};
-            }
+                auto &created_tree = node->lifetime().allocate_tree(SyntaxTree::construct_tag, *node);
+                tree = std::addressof(created_tree);
 
-            tree = parent->tree_.load(std::memory_order_acquire);
-            if (tree != nullptr)
-            {
-                node->tree_.store(tree, std::memory_order_release);
-                break;
+                for (auto *n : nodes)
+                {
+                    if (auto existing_tree = n->tree_.wait_if_computing(); existing_tree.has_value())
+                    {
+                        DEBUG_ASSERT(existing_tree.value_ptr() == tree);
+                        continue;
+                    }
+
+                    n->tree_.set(*tree);
+                }
+
+                return *tree;
             }
 
             nodes.push_back(node);
             node = parent;
         }
-
-        ASSUME(tree != nullptr);
-
-        for (auto *n : nodes)
-        {
-            if (auto *existing_tree = n->tree_.load(std::memory_order_acquire); existing_tree != nullptr)
-            {
-                DEBUG_ASSERT(existing_tree == tree);
-                break;
-            }
-
-            n->tree_.store(tree, std::memory_order_release);
-        }
-
-        return tree;
     }
 } // namespace prism

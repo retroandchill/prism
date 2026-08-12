@@ -32,7 +32,7 @@ namespace prism
         : path_{std::move(path)}, text_{std::move(text)}, lifetime_{&lifetime}, root_{&root->create_red(*lifetime_)}
     {
         lifetime_->add_root(std::move(root));
-        root_->tree_.store(this);
+        root_->tree_.set(*this);
     }
 
     SyntaxTree::SyntaxTree(ConstructTag,
@@ -40,6 +40,11 @@ namespace prism
                            GreenPtr<GreenNode> root,
                            SyntaxLifetime &lifetime)
         : SyntaxTree{construct_tag, "", std::move(text), std::move(root), lifetime}
+    {
+    }
+
+    SyntaxTree::SyntaxTree(ConstructTag, const SyntaxNode &root, SyntaxLifetime &lifetime)
+        : lifetime_{&lifetime}, root_{&root}
     {
     }
 
