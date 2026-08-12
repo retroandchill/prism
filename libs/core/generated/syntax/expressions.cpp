@@ -33,7 +33,7 @@ namespace prism
 
     Optional<const SyntaxNode &> IdentifierExpressionSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 0 ? Optional<const SyntaxNode &>{value_.load(std::memory_order_acquire)} : std::nullopt;
+        return index == 0 ? Optional<const SyntaxNode &>{value_.value_or(nullptr)} : std::nullopt;
     }
 
     SyntaxToken ParenthesizedExpressionSyntax::open() const
@@ -60,7 +60,7 @@ namespace prism
 
     Optional<const SyntaxNode &> ParenthesizedExpressionSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 1 ? Optional<const SyntaxNode &>{expression_.load(std::memory_order_acquire)} : std::nullopt;
+        return index == 1 ? Optional<const SyntaxNode &>{expression_.value_or(nullptr)} : std::nullopt;
     }
 
     const ExpressionSyntax &BinaryExpressionSyntax::left() const
@@ -96,9 +96,9 @@ namespace prism
         switch (index)
         {
             case 0:
-                return left_.load(std::memory_order_acquire);
+                return left_.value_or(nullptr);
             case 2:
-                return right_.load(std::memory_order_acquire);
+                return right_.value_or(nullptr);
             default:
                 return std::nullopt;
         }
@@ -137,9 +137,9 @@ namespace prism
         switch (index)
         {
             case 0:
-                return left_.load(std::memory_order_acquire);
+                return left_.value_or(nullptr);
             case 2:
-                return right_.load(std::memory_order_acquire);
+                return right_.value_or(nullptr);
             default:
                 return std::nullopt;
         }
@@ -162,7 +162,7 @@ namespace prism
 
     Optional<const SyntaxNode &> PrefixExpressionSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 1 ? Optional<const SyntaxNode &>{operand_.load(std::memory_order_acquire)} : std::nullopt;
+        return index == 1 ? Optional<const SyntaxNode &>{operand_.value_or(nullptr)} : std::nullopt;
     }
 
     const ExpressionSyntax &PostfixExpressionSyntax::operand() const
@@ -182,7 +182,7 @@ namespace prism
 
     Optional<const SyntaxNode &> PostfixExpressionSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 0 ? Optional<const SyntaxNode &>{operand_.load(std::memory_order_acquire)} : std::nullopt;
+        return index == 0 ? Optional<const SyntaxNode &>{operand_.value_or(nullptr)} : std::nullopt;
     }
 
     const ExpressionSyntax &TernaryExpressionSyntax::condition() const
@@ -232,11 +232,11 @@ namespace prism
         switch (index)
         {
             case 0:
-                return condition_.load(std::memory_order_acquire);
+                return condition_.value_or(nullptr);
             case 2:
-                return when_true_.load(std::memory_order_acquire);
+                return when_true_.value_or(nullptr);
             case 4:
-                return when_false_.load(std::memory_order_acquire);
+                return when_false_.value_or(nullptr);
             default:
                 return std::nullopt;
         }
@@ -270,9 +270,9 @@ namespace prism
         switch (index)
         {
             case 0:
-                return callee_.load(std::memory_order_acquire);
+                return callee_.value_or(nullptr);
             case 1:
-                return arguments_.load(std::memory_order_acquire);
+                return arguments_.value_or(nullptr);
             default:
                 return std::nullopt;
         }

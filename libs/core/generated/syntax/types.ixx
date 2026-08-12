@@ -80,6 +80,6 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const NameSyntax *> identifier_;
+        mutable Lazy<const NameSyntax *> identifier_;
     };
 } // namespace prism

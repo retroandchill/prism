@@ -39,7 +39,7 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const SyntaxNode *> usings_;
-        mutable std::atomic<const SyntaxNode *> members_;
+        mutable Lazy<const SyntaxNode *> usings_;
+        mutable Lazy<const SyntaxNode *> members_;
     };
 } // namespace prism

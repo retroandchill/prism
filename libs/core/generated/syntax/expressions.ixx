@@ -85,7 +85,7 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const NameSyntax *> value_;
+        mutable Lazy<const NameSyntax *> value_;
     };
 
     export class PRISM_CORE_API ParenthesizedExpressionSyntax final : public ExpressionSyntax
@@ -113,7 +113,7 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const ExpressionSyntax *> expression_;
+        mutable Lazy<const ExpressionSyntax *> expression_;
     };
 
     export class PRISM_CORE_API BinaryExpressionSyntax final : public ExpressionSyntax
@@ -141,8 +141,8 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const ExpressionSyntax *> left_;
-        mutable std::atomic<const ExpressionSyntax *> right_;
+        mutable Lazy<const ExpressionSyntax *> left_;
+        mutable Lazy<const ExpressionSyntax *> right_;
     };
 
     export class PRISM_CORE_API AssignmentExpressionSyntax final : public ExpressionSyntax
@@ -170,8 +170,8 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const ExpressionSyntax *> left_;
-        mutable std::atomic<const ExpressionSyntax *> right_;
+        mutable Lazy<const ExpressionSyntax *> left_;
+        mutable Lazy<const ExpressionSyntax *> right_;
     };
 
     export class PRISM_CORE_API PrefixExpressionSyntax final : public ExpressionSyntax
@@ -198,7 +198,7 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const ExpressionSyntax *> operand_;
+        mutable Lazy<const ExpressionSyntax *> operand_;
     };
 
     export class PRISM_CORE_API PostfixExpressionSyntax final : public ExpressionSyntax
@@ -225,7 +225,7 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const ExpressionSyntax *> operand_;
+        mutable Lazy<const ExpressionSyntax *> operand_;
     };
 
     export class PRISM_CORE_API TernaryExpressionSyntax final : public ExpressionSyntax
@@ -255,9 +255,9 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const ExpressionSyntax *> condition_;
-        mutable std::atomic<const ExpressionSyntax *> when_true_;
-        mutable std::atomic<const ExpressionSyntax *> when_false_;
+        mutable Lazy<const ExpressionSyntax *> condition_;
+        mutable Lazy<const ExpressionSyntax *> when_true_;
+        mutable Lazy<const ExpressionSyntax *> when_false_;
     };
 
     export class PRISM_CORE_API InvocationExpressionSyntax final : public ExpressionSyntax
@@ -284,7 +284,7 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const ExpressionSyntax *> callee_;
-        mutable std::atomic<const ArgumentListSyntax *> arguments_;
+        mutable Lazy<const ExpressionSyntax *> callee_;
+        mutable Lazy<const ArgumentListSyntax *> arguments_;
     };
 } // namespace prism

@@ -78,6 +78,26 @@ namespace prism
             return value_;
         }
 
+        template <std::convertible_to<T> U>
+        [[nodiscard]] constexpr T value_or(U &&default_value) const noexcept(std::is_nothrow_constructible_v<T, U>)
+            requires std::is_copy_constructible_v<T>
+        {
+            auto current = state_.load(std::memory_order::acquire);
+
+            while (current == LazyState::computing)
+            {
+                state_.wait(current, std::memory_order::acquire);
+                current = state_.load(std::memory_order::acquire);
+            }
+
+            if (current == LazyState::uninitialized)
+            {
+                return std::forward<U>(default_value);
+            }
+
+            return value_;
+        }
+
         template <std::invocable Evaluator>
             requires std::convertible_to<std::invoke_result_t<Evaluator>, T>
         [[nodiscard]] ReferenceType get_or_compute(Evaluator &&evaluator)

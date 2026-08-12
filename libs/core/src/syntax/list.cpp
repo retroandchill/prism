@@ -12,7 +12,7 @@ import :syntax.lifetime;
 namespace prism
 {
 
-    std::span<std::atomic<const SyntaxNode *>> SyntaxListImpl::create_children() const
+    std::span<Lazy<const SyntaxNode *>> SyntaxListImpl::create_children() const
     {
         return lifetime().allocate_child_slots(green().slot_count());
     }
@@ -24,6 +24,6 @@ namespace prism
 
     Optional<const SyntaxNode &> SyntaxListImpl::get_cached_slot(const std::size_t index) const
     {
-        return children_[index].load(std::memory_order_acquire);
+        return children_[index].value_or(nullptr);
     }
 } // namespace prism

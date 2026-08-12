@@ -32,6 +32,6 @@ namespace prism
 
     Optional<const SyntaxNode &> NamedTypeSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 0 ? Optional<const SyntaxNode &>{identifier_.load(std::memory_order_acquire)} : std::nullopt;
+        return index == 0 ? Optional<const SyntaxNode &>{identifier_.value_or(nullptr)} : std::nullopt;
     }
 } // namespace prism

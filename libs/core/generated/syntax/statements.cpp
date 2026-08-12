@@ -18,7 +18,7 @@ namespace prism
 
     Optional<const SyntaxNode &> VariableDeclarationStatementSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 0 ? Optional<const SyntaxNode &>{declaration_.load(std::memory_order_acquire)} : std::nullopt;
+        return index == 0 ? Optional<const SyntaxNode &>{declaration_.value_or(nullptr)} : std::nullopt;
     }
 
     SyntaxToken BlockSyntax::open_brace() const
@@ -44,7 +44,7 @@ namespace prism
 
     Optional<const SyntaxNode &> BlockSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 1 ? Optional<const SyntaxNode &>{statements_.load(std::memory_order_acquire)} : std::nullopt;
+        return index == 1 ? Optional<const SyntaxNode &>{statements_.value_or(nullptr)} : std::nullopt;
     }
 
     SyntaxToken ReturnStatementSyntax::return_keyword() const
@@ -69,7 +69,7 @@ namespace prism
 
     Optional<const SyntaxNode &> ReturnStatementSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 1 ? Optional<const SyntaxNode &>{expression_.load(std::memory_order_acquire)} : std::nullopt;
+        return index == 1 ? Optional<const SyntaxNode &>{expression_.value_or(nullptr)} : std::nullopt;
     }
 
     const ExpressionSyntax &ExpressionStatementSyntax::expression() const
@@ -91,7 +91,7 @@ namespace prism
 
     Optional<const SyntaxNode &> ExpressionStatementSyntax::get_cached_slot(const std::size_t index) const
     {
-        return index == 0 ? Optional<const SyntaxNode &>{expression_.load(std::memory_order_acquire)} : std::nullopt;
+        return index == 0 ? Optional<const SyntaxNode &>{expression_.value_or(nullptr)} : std::nullopt;
     }
 
     SyntaxToken EmptyStatementSyntax::semicolon() const

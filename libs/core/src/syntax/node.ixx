@@ -123,53 +123,35 @@ namespace prism
         [[nodiscard]] const SyntaxNode &get_required_node_slot(std::size_t index) const;
 
         template <std::derived_from<SyntaxNode> T>
-        Optional<const T &> get_red(std::atomic<const T *> &slot) const
+        Optional<const T &> get_red(Lazy<const T *> &slot) const
         {
-            auto *result = slot.load(std::memory_order_acquire);
-
-            if (result == nullptr)
-            {
-                if (const auto green = green_->get_slot(0); green.has_value())
+            return slot.get_or_compute(
+                [this]
                 {
-                    auto *created =
-                        static_cast<const T *>(std::addressof(green->create_red(lifetime(), this, position_)));
-                    ;
-                    if (slot.compare_exchange_strong(result,
-                                                     created,
-                                                     std::memory_order_acq_rel,
-                                                     std::memory_order_relaxed))
-                    {
-                        return created;
-                    }
-                }
-            }
-
-            return result;
+                    return green_->get_slot(0)
+                        .transform(
+                            [this](const GreenNode &green) {
+                                return static_cast<const T *>(
+                                    std::addressof(green.create_red(lifetime(), this, position_)));
+                            })
+                        .value_or(nullptr);
+                });
         }
 
         template <std::derived_from<SyntaxNode> T>
-        Optional<const T &> get_red(std::atomic<const T *> &slot, const std::size_t index) const
+        Optional<const T &> get_red(Lazy<const T *> &slot, const std::size_t index) const
         {
-            auto *result = slot.load(std::memory_order_acquire);
-
-            if (result == nullptr)
-            {
-                if (const auto green = green_->get_slot(index); green.has_value())
+            return slot.get_or_compute(
+                [this, index]
                 {
-                    auto *created = static_cast<const T *>(
-                        std::addressof(green->create_red(lifetime(), this, get_slot_position(index))));
-                    ;
-                    if (slot.compare_exchange_strong(result,
-                                                     created,
-                                                     std::memory_order_acq_rel,
-                                                     std::memory_order_relaxed))
-                    {
-                        return created;
-                    }
-                }
-            }
-
-            return result;
+                    return green_->get_slot(index)
+                        .transform(
+                            [this, index](const GreenNode &green) {
+                                return static_cast<const T *>(
+                                    std::addressof(green.create_red(lifetime(), this, get_slot_position(index))));
+                            })
+                        .value_or(nullptr);
+                });
         }
 
         template <std::derived_from<SyntaxNode> T>

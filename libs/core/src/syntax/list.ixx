@@ -43,7 +43,7 @@ namespace prism
         }
 
       private:
-        std::span<std::atomic<const SyntaxNode *>> create_children() const;
+        [[nodiscard]] std::span<Lazy<const SyntaxNode *>> create_children() const;
 
       protected:
         [[nodiscard]] Optional<const SyntaxNode &> get_node_slot(std::size_t index) const override;
@@ -54,7 +54,7 @@ namespace prism
         template <typename T>
         friend class SyntaxList;
 
-        std::span<std::atomic<const SyntaxNode *>> children_ = create_children();
+        std::span<Lazy<const SyntaxNode *>> children_ = create_children();
     };
 
     template <typename T>

@@ -123,9 +123,9 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const NameSyntax *> name_;
-        mutable std::atomic<const SyntaxNode *> usings_;
-        mutable std::atomic<const SyntaxNode *> members_;
+        mutable Lazy<const NameSyntax *> name_;
+        mutable Lazy<const SyntaxNode *> usings_;
+        mutable Lazy<const SyntaxNode *> members_;
     };
 
     export class PRISM_CORE_API FileScopedNamespaceDeclarationSyntax final : public NamespaceDeclarationSyntax
@@ -156,9 +156,9 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const NameSyntax *> name_;
-        mutable std::atomic<const SyntaxNode *> usings_;
-        mutable std::atomic<const SyntaxNode *> members_;
+        mutable Lazy<const NameSyntax *> name_;
+        mutable Lazy<const SyntaxNode *> usings_;
+        mutable Lazy<const SyntaxNode *> members_;
     };
 
     export class PRISM_CORE_API VariableDeclarationSyntax final : public DeclarationSyntax
@@ -190,8 +190,8 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const TypeSpecifierSyntax *> type_;
-        mutable std::atomic<const InitializerSyntax *> initializer_;
+        mutable Lazy<const TypeSpecifierSyntax *> type_;
+        mutable Lazy<const InitializerSyntax *> initializer_;
     };
 
     export class PRISM_CORE_API FunctionDeclarationSyntax final : public DeclarationSyntax
@@ -224,9 +224,9 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const ParameterListSyntax *> parameters_;
-        mutable std::atomic<const TypeSpecifierSyntax *> return_type_;
-        mutable std::atomic<const BlockSyntax *> body_;
-        mutable std::atomic<const ExpressionBodySyntax *> expression_body_;
+        mutable Lazy<const ParameterListSyntax *> parameters_;
+        mutable Lazy<const TypeSpecifierSyntax *> return_type_;
+        mutable Lazy<const BlockSyntax *> body_;
+        mutable Lazy<const ExpressionBodySyntax *> expression_body_;
     };
 } // namespace prism

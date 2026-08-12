@@ -1538,7 +1538,7 @@ public static class CppEmitter
                     writer.WriteLine(
                         $"return index == {i} ? "
                             + $"Optional<const {SyntaxNodeClass}&>{{{property.FieldName}"
-                            + $".load(std::memory_order_acquire)}} : std::nullopt;"
+                            + $".value_or(nullptr)}} : std::nullopt;"
                     );
                     break;
                 }
@@ -1550,9 +1550,7 @@ public static class CppEmitter
                     {
                         writer.WriteLine($"case {i}:");
                         using var indentScope = writer.EnterIndentationScope();
-                        writer.WriteLine(
-                            $"return {property.FieldName}.load(std::memory_order_acquire);"
-                        );
+                        writer.WriteLine($"return {property.FieldName}.value_or(nullptr);");
                     }
                     writer.WriteLine("default:");
                     using (writer.EnterIndentationScope())
@@ -1617,10 +1615,10 @@ public static class CppEmitter
             switch (property.Shape)
             {
                 case PropertyShape.Single or PropertyShape.Optional:
-                    writer.Write($"std::atomic<const {property.Type.RedClassName} *>");
+                    writer.Write($"Lazy<const {property.Type.RedClassName} *>");
                     break;
                 case PropertyShape.List or PropertyShape.SeparatedList:
-                    writer.Write($"std::atomic<const {SyntaxNodeClass} *>");
+                    writer.Write($"Lazy<const {SyntaxNodeClass} *>");
                     break;
             }
         }

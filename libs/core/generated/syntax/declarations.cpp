@@ -88,11 +88,11 @@ namespace prism
         switch (index)
         {
             case 2:
-                return name_.load(std::memory_order_acquire);
+                return name_.value_or(nullptr);
             case 4:
-                return usings_.load(std::memory_order_acquire);
+                return usings_.value_or(nullptr);
             case 5:
-                return members_.load(std::memory_order_acquire);
+                return members_.value_or(nullptr);
             default:
                 return std::nullopt;
         }
@@ -156,11 +156,11 @@ namespace prism
         switch (index)
         {
             case 2:
-                return name_.load(std::memory_order_acquire);
+                return name_.value_or(nullptr);
             case 4:
-                return usings_.load(std::memory_order_acquire);
+                return usings_.value_or(nullptr);
             case 5:
-                return members_.load(std::memory_order_acquire);
+                return members_.value_or(nullptr);
             default:
                 return std::nullopt;
         }
@@ -228,9 +228,9 @@ namespace prism
         switch (index)
         {
             case 4:
-                return type_.load(std::memory_order_acquire);
+                return type_.value_or(nullptr);
             case 5:
-                return initializer_.load(std::memory_order_acquire);
+                return initializer_.value_or(nullptr);
             default:
                 return std::nullopt;
         }
@@ -305,13 +305,13 @@ namespace prism
         switch (index)
         {
             case 3:
-                return parameters_.load(std::memory_order_acquire);
+                return parameters_.value_or(nullptr);
             case 4:
-                return return_type_.load(std::memory_order_acquire);
+                return return_type_.value_or(nullptr);
             case 5:
-                return body_.load(std::memory_order_acquire);
+                return body_.value_or(nullptr);
             case 6:
-                return expression_body_.load(std::memory_order_acquire);
+                return expression_body_.value_or(nullptr);
             default:
                 return std::nullopt;
         }

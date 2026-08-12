@@ -8,6 +8,7 @@ export module prism.core:syntax.lifetime;
 
 import :syntax.green.node;
 import :memory.persistent_allocator;
+import :util.lazy;
 import boost;
 
 namespace prism
@@ -36,18 +37,18 @@ namespace prism
         void add_root(GreenPtr<GreenNode> root) noexcept;
 
         template <std::derived_from<SyntaxNode> Red = SyntaxNode>
-        constexpr std::span<std::atomic<const Red *>> allocate_child_slots(const std::size_t count)
+        constexpr std::span<Lazy<const Red *>> allocate_child_slots(const std::size_t count)
         {
             std::scoped_lock lock{mutex_};
-            return allocator_.create_array<std::atomic<const Red *>>(count);
+            return allocator_.create_array<Lazy<const Red *>>(count);
         }
 
-        constexpr std::size_t num_roots() const noexcept
+        [[nodiscard]] constexpr std::size_t num_roots() const noexcept
         {
             return roots_.size();
         }
 
-        constexpr const GreenNode &get_root(const std::size_t index) const
+        [[nodiscard]] constexpr const GreenNode &get_root(const std::size_t index) const
         {
             return *roots_[index];
         }

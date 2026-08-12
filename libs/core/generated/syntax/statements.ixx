@@ -60,7 +60,7 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const VariableDeclarationSyntax *> declaration_;
+        mutable Lazy<const VariableDeclarationSyntax *> declaration_;
     };
 
     export class PRISM_CORE_API BlockSyntax final : public StatementSyntax
@@ -88,7 +88,7 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const SyntaxNode *> statements_;
+        mutable Lazy<const SyntaxNode *> statements_;
     };
 
     export class PRISM_CORE_API ReturnStatementSyntax final : public StatementSyntax
@@ -116,7 +116,7 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const ExpressionSyntax *> expression_;
+        mutable Lazy<const ExpressionSyntax *> expression_;
     };
 
     export class PRISM_CORE_API ExpressionStatementSyntax final : public StatementSyntax
@@ -143,7 +143,7 @@ namespace prism
         [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
 
       private:
-        mutable std::atomic<const ExpressionSyntax *> expression_;
+        mutable Lazy<const ExpressionSyntax *> expression_;
     };
 
     export class PRISM_CORE_API EmptyStatementSyntax final : public StatementSyntax

@@ -36,9 +36,9 @@ namespace prism
         switch (index)
         {
             case 0:
-                return usings_.load(std::memory_order_acquire);
+                return usings_.value_or(nullptr);
             case 1:
-                return members_.load(std::memory_order_acquire);
+                return members_.value_or(nullptr);
             default:
                 return std::nullopt;
         }

@@ -52,9 +52,9 @@ namespace prism
         switch (index)
         {
             case 0:
-                return left_.load(std::memory_order_acquire);
+                return left_.value_or(nullptr);
             case 2:
-                return right_.load(std::memory_order_acquire);
+                return right_.value_or(nullptr);
             default:
                 return std::nullopt;
         }
