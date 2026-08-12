@@ -85,25 +85,18 @@ public class ExportNodesCommand
         CancellationToken cancellationToken
     )
     {
-        var publicDir = Path.Combine(OutputPath, "public");
-        var publicSyntaxDir = Path.Combine(publicDir, "syntax");
-        var publicGreenDir = Path.Combine(publicSyntaxDir, "green");
-        var privateSyntaxDir = Path.Combine(OutputPath, "private", "syntax");
-        var privateGreenDir = Path.Combine(privateSyntaxDir, "green");
-        var publicDiagnosticDir = Path.Combine(publicDir, "diagnostics");
+        var syntaxDir = Path.Combine(OutputPath, "syntax");
+        var greenDir = Path.Combine(syntaxDir, "green");
+        var diagnosticDir = Path.Combine(OutputPath, "diagnostics");
 
         var cppModel = resolvedModel.ToCpp();
 
         using var writer = new CodeWriter();
         writer.EmitSyntaxKinds(cppModel);
-        await WriteCodeAsync(writer, Path.Join(publicSyntaxDir, "kind.ixx"), cancellationToken);
+        await WriteCodeAsync(writer, Path.Join(syntaxDir, "kind.ixx"), cancellationToken);
 
         writer.EmitLexingUtils(cppModel);
-        await WriteCodeAsync(
-            writer,
-            Path.Join(publicSyntaxDir, "lexing_utils.ixx"),
-            cancellationToken
-        );
+        await WriteCodeAsync(writer, Path.Join(syntaxDir, "lexing_utils.ixx"), cancellationToken);
 
         foreach (var module in cppModel.Modules)
         {
@@ -111,58 +104,46 @@ public class ExportNodesCommand
             writer.EmitGreenNodeInterface(module);
             await WriteCodeAsync(
                 writer,
-                Path.Join(publicGreenDir, $"{moduleName}.ixx"),
+                Path.Join(greenDir, $"{moduleName}.ixx"),
                 cancellationToken
             );
 
             writer.EmitGreenNodeImplementation(module);
             await WriteCodeAsync(
                 writer,
-                Path.Join(privateGreenDir, $"{moduleName}.cpp"),
+                Path.Join(greenDir, $"{moduleName}.cpp"),
                 cancellationToken
             );
 
             writer.EmitRedNodeInterface(module);
             await WriteCodeAsync(
                 writer,
-                Path.Join(publicSyntaxDir, $"{moduleName}.ixx"),
+                Path.Join(syntaxDir, $"{moduleName}.ixx"),
                 cancellationToken
             );
 
             writer.EmitRedNodeImplementation(module);
             await WriteCodeAsync(
                 writer,
-                Path.Join(privateSyntaxDir, $"{moduleName}.cpp"),
+                Path.Join(syntaxDir, $"{moduleName}.cpp"),
                 cancellationToken
             );
         }
 
         writer.EmitGreenVisitorFunctions(cppModel);
-        await WriteCodeAsync(writer, Path.Join(publicGreenDir, "visit.ixx"), cancellationToken);
+        await WriteCodeAsync(writer, Path.Join(greenDir, "visit.ixx"), cancellationToken);
 
         writer.EmitRedVisitorFunctions(cppModel);
-        await WriteCodeAsync(writer, Path.Join(publicSyntaxDir, "visit.ixx"), cancellationToken);
+        await WriteCodeAsync(writer, Path.Join(syntaxDir, "visit.ixx"), cancellationToken);
 
         writer.EmitDiagnosticCodes(cppModel);
-        await WriteCodeAsync(
-            writer,
-            Path.Join(publicDiagnosticDir, "codes.ixx"),
-            cancellationToken
-        );
+        await WriteCodeAsync(writer, Path.Join(diagnosticDir, "codes.ixx"), cancellationToken);
 
         writer.EmitDiagnosticDescriptors(cppModel);
-        await WriteCodeAsync(
-            writer,
-            Path.Join(publicDiagnosticDir, "registry.ixx"),
-            cancellationToken
-        );
+        await WriteCodeAsync(writer, Path.Join(diagnosticDir, "registry.ixx"), cancellationToken);
 
         writer.EmitDiagnosticTraits(cppModel);
-        await WriteCodeAsync(
-            writer,
-            Path.Join(publicDiagnosticDir, "traits.ixx"),
-            cancellationToken
-        );
+        await WriteCodeAsync(writer, Path.Join(diagnosticDir, "traits.ixx"), cancellationToken);
     }
 
     private async ValueTask EmitCSharpAsync(
