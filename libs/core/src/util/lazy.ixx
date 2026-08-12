@@ -30,7 +30,25 @@ namespace prism
       public:
         using ReferenceType = const T &;
 
-        constexpr Lazy() noexcept = default;
+        constexpr Lazy() noexcept
+            requires std::is_default_constructible_v<T>
+        = default;
+
+        constexpr Lazy() noexcept
+            requires(!std::is_default_constructible_v<T>)
+            : null_{std::nullopt}
+        {
+        }
+
+        constexpr ~Lazy()
+            requires std::is_trivially_destructible_v<T>
+        = default;
+
+        constexpr ~Lazy() noexcept
+            requires(!std::is_trivially_destructible_v<T>)
+        {
+            reset();
+        }
 
         [[nodiscard]] constexpr LazyState state() const noexcept
         {
@@ -57,7 +75,7 @@ namespace prism
                 throw InvalidStateException{"Lazy value has not been computed"};
             }
 
-            return *value_;
+            return value_;
         }
 
         template <std::invocable Evaluator>
@@ -69,7 +87,7 @@ namespace prism
             while (true)
             {
                 if (current == LazyState::computed)
-                    return *value_;
+                    return value_;
 
                 if (current == LazyState::computing)
                 {
@@ -86,10 +104,10 @@ namespace prism
                 {
                     try
                     {
-                        value_.emplace(std::invoke(std::forward<Evaluator>(evaluator)));
+                        std::construct_at(std::addressof(value_), std::invoke(std::forward<Evaluator>(evaluator)));
                         state_.store(LazyState::computed, std::memory_order::release);
                         state_.notify_all();
-                        return *value_;
+                        return value_;
                     }
                     catch (...)
                     {
@@ -103,14 +121,14 @@ namespace prism
             }
 
             if (state_ == LazyState::computed)
-                return *value_;
+                return value_;
 
             state_ = LazyState::computing;
             try
             {
-                value_.emplace(std::invoke(std::forward<Evaluator>(evaluator)));
+                std::construct_at(std::addressof(value_), std::invoke(std::forward<Evaluator>(evaluator)));
                 state_ = LazyState::computed;
-                return *value_;
+                return value_;
             }
             catch (...)
             {
@@ -129,14 +147,24 @@ namespace prism
                 current = state_.load(std::memory_order::acquire);
             }
 
-            value_.reset();
+            if constexpr (!std::is_trivially_destructible_v<T>)
+            {
+                if (current == LazyState::computed)
+                {
+                    std::destroy_at(std::addressof(value_));
+                }
+            }
             state_.store(LazyState::uninitialized, std::memory_order::release);
             state_.notify_all();
         }
 
       private:
         std::atomic<LazyState> state_ = LazyState::uninitialized;
-        Optional<T> value_ = std::nullopt;
+        union
+        {
+            T value_;
+            std::nullopt_t null_{std::nullopt};
+        };
     };
 
     template <typename T>
