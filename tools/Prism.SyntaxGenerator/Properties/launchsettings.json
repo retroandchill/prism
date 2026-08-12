@@ -10,11 +10,6 @@
       "commandName": "Project",
       "commandLineArgs": "generate --input nodes.json --language Cpp --output ../../libs/core/generated",
       "workingDirectory": "."
-    },
-    "EmitCSharpNodes": {
-      "commandName": "Project",
-      "commandLineArgs": "generate --input nodes.json --language CSharp --output ../../compiler/Prism.Core/Generated",
-      "workingDirectory": "."
     }
   }
 }
