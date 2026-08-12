@@ -348,4 +348,188 @@ namespace prism
 
         std::atomic<std::uintptr_t> value_ = 0;
     };
+
+    template <typename T>
+    class Lazy<T *> final : NonCopyable
+    {
+        static constexpr std::uintptr_t uninitialized = std::numeric_limits<std::uintptr_t>::max();
+        static constexpr std::uintptr_t computing = uninitialized - 1;
+
+      public:
+        using ValueType = T *;
+        using ReferenceType = T *;
+
+        constexpr Lazy() noexcept = default;
+
+        [[nodiscard]] constexpr LazyState state() const noexcept
+        {
+            const auto current = value_.load(std::memory_order::acquire);
+            if (current == uninitialized)
+                return LazyState::uninitialized;
+
+            if (current == computing)
+                return LazyState::computing;
+
+            return LazyState::computed;
+        }
+
+        [[nodiscard]] constexpr bool has_value() const noexcept
+        {
+            return state() == LazyState::computed;
+        }
+
+        [[nodiscard]] constexpr ReferenceType value() const
+        {
+            auto current = value_.load(std::memory_order::acquire);
+
+            while (current == computing)
+            {
+                value_.wait(current, std::memory_order::acquire);
+                current = value_.load(std::memory_order::acquire);
+            }
+
+            if (current == uninitialized)
+                throw InvalidStateException{"Lazy value has not been computed"};
+
+            return decode(current);
+        }
+
+        [[nodiscard]] Optional<ValueType> wait_if_computing() const noexcept
+        {
+            auto current = value_.load(std::memory_order::acquire);
+
+            while (current == computing)
+            {
+                value_.wait(current, std::memory_order::acquire);
+                current = value_.load(std::memory_order::acquire);
+            }
+
+            if (current == uninitialized)
+                return std::nullopt;
+
+            return decode(current);
+        }
+
+        [[nodiscard]] Optional<ValueType> try_get_value() const noexcept
+        {
+            const auto current = value_.load(std::memory_order::acquire);
+
+            if (current == uninitialized || current == computing)
+                return std::nullopt;
+
+            return decode(current);
+        }
+
+        [[nodiscard]] ValueType value_or(ValueType default_value) const noexcept
+        {
+            auto current = value_.load(std::memory_order::acquire);
+
+            while (current == computing)
+            {
+                value_.wait(current, std::memory_order::acquire);
+                current = value_.load(std::memory_order::acquire);
+            }
+
+            if (current == uninitialized)
+                return default_value;
+
+            return decode(current);
+        }
+
+        [[nodiscard]] ValueType try_get_value(ValueType default_value) const noexcept
+        {
+            const auto current = value_.load(std::memory_order::acquire);
+
+            if (current == uninitialized || current == computing)
+                return default_value;
+
+            return decode(current);
+        }
+
+        template <std::invocable Evaluator>
+            requires std::convertible_to<std::invoke_result_t<Evaluator>, ValueType>
+        [[nodiscard]] ReferenceType get_or_compute(Evaluator &&evaluator)
+        {
+            auto current = value_.load(std::memory_order::acquire);
+
+            while (true)
+            {
+                if (current != uninitialized && current != computing)
+                    return decode(current);
+
+                if (current == computing)
+                {
+                    value_.wait(current, std::memory_order::acquire);
+                    current = value_.load(std::memory_order::acquire);
+                    continue;
+                }
+
+                auto expected = uninitialized;
+                if (value_.compare_exchange_strong(expected,
+                                                   computing,
+                                                   std::memory_order::acq_rel,
+                                                   std::memory_order::acquire))
+                {
+                    try
+                    {
+                        auto *result = static_cast<ValueType>(std::invoke(std::forward<Evaluator>(evaluator)));
+                        const auto published = encode(result);
+
+                        value_.store(published, std::memory_order::release);
+                        value_.notify_all();
+
+                        return result;
+                    }
+                    catch (...)
+                    {
+                        value_.store(uninitialized, std::memory_order::release);
+                        value_.notify_all();
+                        throw;
+                    }
+                }
+
+                current = expected;
+            }
+        }
+
+        void reset() noexcept
+        {
+            auto current = value_.load(std::memory_order::acquire);
+
+            while (current == computing)
+            {
+                value_.wait(current, std::memory_order::acquire);
+                current = value_.load(std::memory_order::acquire);
+            }
+
+            value_.store(uninitialized, std::memory_order::release);
+            value_.notify_all();
+        }
+
+        void set(ValueType value) noexcept
+        {
+            value_.store(encode(value), std::memory_order::release);
+            value_.notify_all();
+        }
+
+      private:
+        [[nodiscard]] static constexpr ValueType decode(const std::uintptr_t value) noexcept
+        {
+            DEBUG_ASSERT(value != uninitialized);
+            DEBUG_ASSERT(value != computing);
+            return reinterpret_cast<ValueType>(value);
+        }
+
+        [[nodiscard]] static constexpr std::uintptr_t encode(ValueType value) noexcept
+        {
+            const auto result = reinterpret_cast<std::uintptr_t>(value);
+
+            DEBUG_ASSERT(result != uninitialized);
+            DEBUG_ASSERT(result != computing);
+
+            return result;
+        }
+
+        std::atomic<std::uintptr_t> value_ = uninitialized;
+    };
 } // namespace prism
