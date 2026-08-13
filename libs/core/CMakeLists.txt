@@ -187,6 +187,12 @@ set(PRISM_MODULES
         src/symbols/named_type_symbol.cpp
         src/semantic/conversion_classifier.ixx
         src/context/target_settings.ixx
+        src/declarations/declaration.ixx
+        src/declarations/single_declaration.ixx
+        src/declarations/single_declaration.cpp
+        src/declarations/single_namespace_declaration.ixx
+        src/declarations/single_root_namespace_declaration.ixx
+        src/declarations/merged_declaration.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

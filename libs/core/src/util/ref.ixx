@@ -12,6 +12,13 @@ import :type_traits.basic;
 
 namespace prism
 {
+    template <typename T, typename U>
+    concept HasIsFunction = requires(T t) {
+        {
+            t.template is<U>()
+        } -> std::convertible_to<bool>;
+    };
+
     export template <typename T>
     class Ref
     {
@@ -46,6 +53,27 @@ namespace prism
         [[nodiscard]] constexpr T *operator->() const noexcept
         {
             return ptr_;
+        }
+
+        template <std::derived_from<std::remove_cv_t<T>> Other>
+            requires(HasIsFunction<std::remove_cv_t<T>, Other> || std::is_polymorphic_v<std::remove_cv_t<T>>)
+        [[nodiscard]] constexpr bool is() const noexcept
+        {
+            if constexpr (std::derived_from<std::remove_cv_t<T>, Other>)
+            {
+                // If Other matched exactly or is a superclass of T, then it's always the case that it's the same time
+                return true;
+            }
+            else if constexpr (HasIsFunction<std::remove_cv_t<T>, Other>)
+            {
+                // If we have a user defined is<T> function, then prefer that
+                return ptr_->template is<Other>();
+            }
+            else
+            {
+                // Only fall-back to using dynamic_cast when there is no other way to verify the type
+                return dynamic_cast<const Other *>(ptr_) != nullptr;
+            }
         }
 
         [[nodiscard]] constexpr std::strong_ordering operator<=>(const Ref &other) const noexcept = default;

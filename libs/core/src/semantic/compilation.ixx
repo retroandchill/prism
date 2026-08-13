@@ -108,7 +108,7 @@ namespace prism
         friend class MergedNamespaceSymbol;
         friend class SemanticModel;
 
-        std::unique_ptr<SemanticLifetime> lifetime_ = std::make_unique<SemanticLifetime>();
+        std::shared_ptr<SemanticLifetime> lifetime_ = std::make_shared<SemanticLifetime>();
         TargetSettings target_settings_;
         const AssemblySymbol *assembly_ = nullptr;
         const NamespaceSymbol *global_namespace_ = nullptr;

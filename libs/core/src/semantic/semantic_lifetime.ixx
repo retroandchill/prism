@@ -11,7 +11,7 @@ import :memory.persistent_allocator;
 
 namespace prism
 {
-    class SemanticLifetime final
+    class SemanticLifetime final : public std::enable_shared_from_this<SemanticLifetime>
     {
       public:
         template <typename T, typename... Args>
@@ -42,6 +42,6 @@ namespace prism
 
       private:
         std::mutex mutex_;
-        PersistentAllocator allocator_;
+        PersistentAllocator allocator_{};
     };
 } // namespace prism
