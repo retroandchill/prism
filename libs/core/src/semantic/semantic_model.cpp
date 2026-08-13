@@ -63,6 +63,16 @@ namespace prism
             .transform([](const Symbol &symbol) -> auto & { return symbol.as_checked<NamespaceSymbol>(); });
     }
 
+    std::shared_ptr<SemanticModel> SemanticModel::shared_from_this() noexcept
+    {
+        return {compilation_->shared_from_this(), this};
+    }
+
+    std::shared_ptr<const SemanticModel> SemanticModel::shared_from_this() const noexcept
+    {
+        return {compilation_->shared_from_this(), this};
+    }
+
     void SemanticModel::validate_is_part_of_compilation(const SyntaxNode &node) const
     {
         if (&node.tree() != tree_)

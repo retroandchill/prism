@@ -30,15 +30,21 @@ namespace prism
     class Compilation;
     class SyntaxTree;
 
-    export class PRISM_CORE_API SemanticModel final
+    export class PRISM_CORE_API SemanticModel final : NonCopyable
     {
+        struct CreateTag
+        {
+        };
+
+        static constexpr CreateTag create_tag;
+
       public:
-        SemanticModel(Compilation &compilation, const SyntaxTree &tree) noexcept
+        SemanticModel(CreateTag, const Compilation &compilation, const SyntaxTree &tree) noexcept
             : compilation_{&compilation}, tree_{&tree}
         {
         }
 
-        [[nodiscard]] constexpr Compilation &compilation() const noexcept
+        [[nodiscard]] constexpr const Compilation &compilation() const noexcept
         {
             return *compilation_;
         }
@@ -61,13 +67,18 @@ namespace prism
         [[nodiscard]] Optional<const NamespaceSymbol &> get_declared_symbol(
             const NamespaceDeclarationSyntax &node) const;
 
+        [[nodiscard]] std::shared_ptr<SemanticModel> shared_from_this() noexcept;
+
+        [[nodiscard]] std::shared_ptr<const SemanticModel> shared_from_this() const noexcept;
+
       private:
+        friend class Compilation;
         friend class ExpressionBinder;
 
         void validate_is_part_of_compilation(const SyntaxNode &node) const;
         [[nodiscard]] SourceVariableSymbol &get_local_variable(const VariableDeclarationStatementSyntax &syntax) const;
 
-        Compilation *compilation_;
+        const Compilation *compilation_;
         const SyntaxTree *tree_ = nullptr;
     };
 } // namespace prism

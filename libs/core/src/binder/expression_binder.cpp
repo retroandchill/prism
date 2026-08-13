@@ -239,7 +239,6 @@ namespace prism
 
     ConstantValue ExpressionBinder::evaluate_constant_expression(const SyntaxToken &token) const
     {
-        const auto &compilation = semantic_model_.compilation();
         if (auto bool_value = token.try_get_value<bool>(); bool_value.has_value())
         {
             return ConstantValue::boolean(*bool_value);

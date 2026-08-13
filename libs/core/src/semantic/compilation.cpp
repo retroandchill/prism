@@ -72,6 +72,17 @@ namespace prism
         return compilation;
     }
 
+    const SemanticModel &Compilation::get_semantic_model(const SyntaxTree &tree) const
+    {
+        std::scoped_lock lock{semantic_models_mutex_};
+        if (const auto it = semantic_models_.find(&tree); it != semantic_models_.end())
+            return *it->second;
+
+        auto &model = lifetime_->create<SemanticModel>(SemanticModel::create_tag, *this, tree);
+        semantic_models_.emplace(&tree, &model);
+        return model;
+    }
+
     const DeclarationScope &Compilation::get_declaration_scope(const SyntaxNode &node) const
     {
         const auto scope = semantic_mappings_.get_scope(node);
@@ -87,7 +98,8 @@ namespace prism
         return IntrinsicSymbols::instance().get_type(type);
     }
 
-    const NamedTypeSymbol &Compilation::create_error_type_symbol(Optional<const Symbol &> container, Name name)
+    const NamedTypeSymbol &Compilation::create_error_type_symbol(const Optional<const Symbol &> container,
+                                                                 Name name) const
     {
         SymbolLookupKey lookup_key{.symbol = container.value_ptr(), .name = name};
         std::scoped_lock lock{error_type_mutex_};
@@ -99,8 +111,8 @@ namespace prism
         return error_type;
     }
 
-    const NamespaceSymbol &Compilation::create_error_namespace_symbol(Optional<const NamespaceSymbol &> container,
-                                                                      Name name)
+    const NamespaceSymbol &Compilation::create_error_namespace_symbol(const Optional<const NamespaceSymbol &> container,
+                                                                      Name name) const
     {
         SymbolLookupKey lookup_key{.symbol = container.value_ptr(), .name = name};
         std::scoped_lock lock{error_namespace_mutex_};

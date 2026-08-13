@@ -22,7 +22,7 @@ namespace prism
     class ExpressionBinder final
     {
       public:
-        explicit constexpr ExpressionBinder(const SemanticModel semantic_model,
+        explicit constexpr ExpressionBinder(const SemanticModel &semantic_model,
                                             DiagnosticBag &diagnostics,
                                             BoundNodeLookup &lookup,
                                             SemanticLifetime &lifetime)
@@ -63,7 +63,7 @@ namespace prism
         [[nodiscard]] ConstantValue evaluate_numeric_expression(const IntegerLiteralData &data) const;
         [[nodiscard]] ConstantValue evaluate_numeric_expression(const FloatLiteralData &data) const;
 
-        SemanticModel semantic_model_;
+        const SemanticModel &semantic_model_;
         DiagnosticBag &diagnostics_;
         BoundNodeLookup &lookup_;
         SemanticLifetime &lifetime_;

@@ -85,10 +85,7 @@ namespace prism
             return trees_;
         }
 
-        [[nodiscard]] SemanticModel get_semantic_model(const SyntaxTree &tree) noexcept
-        {
-            return SemanticModel{*this, tree};
-        }
+        [[nodiscard]] const SemanticModel &get_semantic_model(const SyntaxTree &tree) const;
 
         [[nodiscard]] constexpr const std::vector<Diagnostic> &diagnostics() const noexcept
         {
@@ -99,10 +96,11 @@ namespace prism
 
         [[nodiscard]] const NamedTypeSymbol &get_special_type(SpecialType type) const;
 
-        [[nodiscard]] const NamedTypeSymbol &create_error_type_symbol(Optional<const Symbol &> container, Name name);
+        [[nodiscard]] const NamedTypeSymbol &create_error_type_symbol(Optional<const Symbol &> container,
+                                                                      Name name) const;
 
         [[nodiscard]] const NamespaceSymbol &create_error_namespace_symbol(Optional<const NamespaceSymbol &> container,
-                                                                           Name name);
+                                                                           Name name) const;
 
         [[nodiscard]] Conversion classify_conversion(const TypeSymbol &source, const TypeSymbol &destination) const;
 
@@ -119,16 +117,19 @@ namespace prism
         SemanticMappings semantic_mappings_;
         BoundNodeLookup bound_node_lookup_;
 
-        std::mutex error_type_mutex_;
-        std::unordered_map<SymbolLookupKey, const NamedTypeSymbol *> error_types_;
+        mutable std::mutex semantic_models_mutex_;
+        mutable std::unordered_map<const SyntaxTree *, SemanticModel *> semantic_models_;
 
-        std::mutex error_namespace_mutex_;
-        std::unordered_map<SymbolLookupKey, const NamespaceSymbol *> error_namespaces_;
+        mutable std::mutex error_type_mutex_;
+        mutable std::unordered_map<SymbolLookupKey, const NamedTypeSymbol *> error_types_;
 
-        std::mutex variable_initializer_mutex_;
-        std::unordered_map<const VariableSymbol *, const BoundExpression *> variable_initializers_;
+        mutable std::mutex error_namespace_mutex_;
+        mutable std::unordered_map<SymbolLookupKey, const NamespaceSymbol *> error_namespaces_;
 
-        std::mutex function_body_mutex_;
-        std::unordered_map<const FunctionSymbol *, const BoundStatement *> function_bodies_;
+        mutable std::mutex variable_initializer_mutex_;
+        mutable std::unordered_map<const VariableSymbol *, const BoundExpression *> variable_initializers_;
+
+        mutable std::mutex function_body_mutex_;
+        mutable std::unordered_map<const FunctionSymbol *, const BoundStatement *> function_bodies_;
     };
 } // namespace prism
