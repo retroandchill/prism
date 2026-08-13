@@ -22,18 +22,26 @@ namespace prism
 
         for (auto &diagnostic : compilation_->diagnostics())
         {
+            if (auto *location = std::get_if<SourceLocation>(&diagnostic.location());
+                location == nullptr || &location->tree() != tree_)
+            {
+                continue;
+            }
+
             co_yield diagnostic;
         }
     }
 
-    std::generator<Diagnostic> SemanticModel::get_diagnostics(TextSpan span) const
+    std::generator<Diagnostic> SemanticModel::get_diagnostics(const TextSpan span) const
     {
         for (auto diagnostic : get_diagnostics())
         {
             if (auto *source_location = std::get_if<SourceLocation>(&diagnostic.location());
                 source_location == nullptr || &source_location->tree() != tree_ ||
                 source_location->source_span().overlaps_with(span))
+            {
                 continue;
+            }
 
             co_yield std::move(diagnostic);
         }
