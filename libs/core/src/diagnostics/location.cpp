@@ -8,9 +8,20 @@ module prism.core:diagnostics.location.impl;
 
 import :diagnostics.location;
 import :syntax.tree;
+import :syntax.reference;
 
 namespace prism
 {
+    SourceLocation::SourceLocation(const SyntaxTree &syntax_tree, const TextSpan span) noexcept
+        : syntax_tree_{syntax_tree.shared_from_this()}, span_{span}
+    {
+    }
+
+    SourceLocation::SourceLocation(const SyntaxReference &reference) noexcept
+        : SourceLocation{reference.tree(), reference.span()}
+    {
+    }
+
     SourceLocation::SourceLocation(const SyntaxNode &node) noexcept : syntax_tree_{&node.tree()}, span_{node.span()}
     {
     }

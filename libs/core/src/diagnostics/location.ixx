@@ -17,14 +17,14 @@ import :text.source_file;
 namespace prism
 {
     class SyntaxTree;
+    class SyntaxReference;
 
     export class PRISM_CORE_API SourceLocation
     {
       public:
-        constexpr SourceLocation(const SyntaxTree &syntax_tree, const TextSpan span) noexcept
-            : syntax_tree_{&syntax_tree}, span_{span}
-        {
-        }
+        SourceLocation(const SyntaxTree &syntax_tree, TextSpan span) noexcept;
+
+        explicit SourceLocation(const SyntaxReference &reference) noexcept;
 
         explicit SourceLocation(const SyntaxNode &node) noexcept;
 
@@ -44,11 +44,13 @@ namespace prism
 
         [[nodiscard]] FileSourcePositionSpan get_position_span() const;
 
-        [[nodiscard]] constexpr friend bool operator==(const SourceLocation &lhs,
-                                                       const SourceLocation &rhs) noexcept = default;
+        [[nodiscard]] constexpr friend bool operator==(const SourceLocation &lhs, const SourceLocation &rhs) noexcept
+        {
+            return lhs.syntax_tree_ == rhs.syntax_tree_ && lhs.span_ == rhs.span_;
+        }
 
       private:
-        const SyntaxTree *syntax_tree_ = nullptr;
+        std::shared_ptr<const SyntaxTree> syntax_tree_;
         TextSpan span_{};
     };
 

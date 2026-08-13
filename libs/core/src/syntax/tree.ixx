@@ -71,7 +71,7 @@ namespace prism
         template <typename Self>
         [[nodiscard]] std::shared_ptr<Self> shared_from_this(this Self &self) noexcept
         {
-            return std::shared_ptr<Self>{lifetime_->shared_from_this(), std::addressof(self)};
+            return std::shared_ptr<Self>{self.lifetime_->shared_from_this(), std::addressof(self)};
         }
 
       private:

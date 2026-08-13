@@ -7,13 +7,14 @@
 export module prism.core:syntax.reference;
 
 import :syntax.node;
+import :syntax.lifetime;
 
 namespace prism
 {
     export class SyntaxReference final
     {
       public:
-        explicit(false) constexpr SyntaxReference(const SyntaxNode &node) : node_{&node}
+        explicit(false) constexpr SyntaxReference(const SyntaxNode &node) : node_{node.shared_from_this()}
         {
         }
 
@@ -33,6 +34,6 @@ namespace prism
         }
 
       private:
-        const SyntaxNode *node_;
+        std::shared_ptr<const SyntaxNode> node_{};
     };
 } // namespace prism

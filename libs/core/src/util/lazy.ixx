@@ -32,11 +32,11 @@ namespace prism
         using ReferenceType = const T &;
 
         constexpr Lazy() noexcept
-            requires std::is_default_constructible_v<T>
+            requires std::is_trivially_default_constructible_v<T>
         = default;
 
         constexpr Lazy() noexcept
-            requires(!std::is_default_constructible_v<T>)
+            requires(!std::is_trivially_default_constructible_v<T>)
             : null_{std::nullopt}
         {
         }
