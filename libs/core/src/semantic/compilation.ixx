@@ -50,7 +50,7 @@ struct std::hash<prism::SymbolLookupKey>
 
 namespace prism
 {
-    export class PRISM_CORE_API Compilation : NonCopyable
+    export class PRISM_CORE_API Compilation : public std::enable_shared_from_this<Compilation>
     {
         struct CreateTag
         {
@@ -59,7 +59,7 @@ namespace prism
       public:
         Compilation(CreateTag, std::vector<std::shared_ptr<SyntaxTree>> trees, TargetSettings target_settings) noexcept;
 
-        static std::unique_ptr<Compilation> create(Name assembly_name,
+        static std::shared_ptr<Compilation> create(Name assembly_name,
                                                    std::vector<std::shared_ptr<SyntaxTree>> trees,
                                                    TargetSettings target_settings = TargetSettings::current_platform());
 

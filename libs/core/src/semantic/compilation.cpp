@@ -29,14 +29,14 @@ namespace prism
     {
     }
 
-    std::unique_ptr<Compilation> Compilation::create(const Name assembly_name,
+    std::shared_ptr<Compilation> Compilation::create(const Name assembly_name,
                                                      std::vector<std::shared_ptr<SyntaxTree>> trees,
                                                      const TargetSettings target_settings)
     {
         if (trees.empty())
             throw std::invalid_argument{"Cannot create a compilation with 0 syntax trees"};
 
-        auto compilation = std::make_unique<Compilation>(CreateTag{}, std::move(trees), target_settings);
+        auto compilation = std::make_shared<Compilation>(CreateTag{}, std::move(trees), target_settings);
 
         auto declaration_records =
             compilation->trees_ |
