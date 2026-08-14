@@ -75,7 +75,13 @@ namespace prism
                      std::convertible_to<std::ranges::range_reference_t<Range>, std::ranges::range_value_t<Range>>
         std::span<std::ranges::range_value_t<Range>> copy(Range &&range)
         {
-            using T = std::ranges::range_value_t<Range>;
+            return copy<std::ranges::range_value_t<Range>>(std::forward<Range>(range));
+        }
+
+        template <typename T, std::ranges::input_range Range>
+            requires std::ranges::sized_range<Range> && std::convertible_to<std::ranges::range_reference_t<Range>, T>
+        std::span<T> copy(Range &&range)
+        {
             auto *ptr = arena_.allocate(std::ranges::size(range) * sizeof(T), alignof(T));
             std::span target{static_cast<T *>(ptr), std::ranges::size(range)};
             if constexpr (!std::is_trivially_copyable_v<T>)

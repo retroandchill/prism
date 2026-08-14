@@ -197,4 +197,10 @@ namespace prism
     export using PooledWString = BasicPooledString<wchar_t>;
     export using PooledU16String = BasicPooledString<char16_t>;
     export using PooledU32String = BasicPooledString<char32_t>;
+
+    export template <typename Key,
+                     typename Value,
+                     typename Hash = std::hash<Key>,
+                     typename KeyEqual = std::equal_to<Key>>
+    using PooledMap = std::unordered_map<Key, Value, Hash, KeyEqual, BufferPoolAllocator<std::pair<const Key, Value>>>;
 } // namespace prism

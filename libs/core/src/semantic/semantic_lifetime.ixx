@@ -40,6 +40,15 @@ namespace prism
             }
         }
 
+        template <typename T, std::ranges::input_range Range>
+            requires std::ranges::sized_range<Range> &&
+                     std::convertible_to<std::ranges::range_reference_t<Range>, Ref<T>>
+        auto copy_refs(Range &&range)
+        {
+            std::scoped_lock lock{mutex_};
+            return allocator_.copy<Ref<T>>(std::forward<Range>(range));
+        }
+
       private:
         std::mutex mutex_;
         PersistentAllocator allocator_{};

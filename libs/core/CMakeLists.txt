@@ -193,6 +193,8 @@ set(PRISM_MODULES
         src/declarations/single_namespace_declaration.ixx
         src/declarations/single_root_namespace_declaration.ixx
         src/declarations/merged_declaration.ixx
+        src/declarations/merged_namespace_declaration.ixx
+        src/declarations/merged_namespace_declaration.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

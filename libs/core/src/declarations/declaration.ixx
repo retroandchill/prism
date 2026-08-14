@@ -55,7 +55,7 @@ namespace prism
             {
                 return static_cast<const Declaration &>(self).get_declaration_children() |
                        std::views::transform([](const auto &child) -> auto &
-                                             { return static_cast<const Self::ChildType &>(child); });
+                                             { return static_cast<const Self::ChildType &>(child.get()); });
             }
             else
             {
