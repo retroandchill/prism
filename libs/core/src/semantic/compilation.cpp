@@ -4,6 +4,10 @@
  * @date 8/2/2026
  * @brief
  */
+module;
+
+#include <libassert/assert-macros.hpp>
+
 module prism.core:semantic.compilation.impl;
 
 import :semantic.compilation;
@@ -72,6 +76,11 @@ namespace prism
         return compilation;
     }
 
+    bool Compilation::contains_syntax_tree(const SyntaxTree &tree) const noexcept
+    {
+        return std::ranges::any_of(trees_, [&](const auto &t) { return t.get() == &tree; });
+    }
+
     const SemanticModel &Compilation::get_semantic_model(const SyntaxTree &tree) const
     {
         std::scoped_lock lock{semantic_models_mutex_};
@@ -128,5 +137,19 @@ namespace prism
     {
         const ConversionClassifier classifier{target_settings_};
         return classifier.classify_conversion(source, destination);
+    }
+
+    std::uint32_t Compilation::get_syntax_tree_ordinal(const SyntaxTree &tree) const
+    {
+        DEBUG_ASSERT(trees_.size() < std::numeric_limits<std::uint32_t>::max());
+        DEBUG_ASSERT(contains_syntax_tree(tree));
+
+        for (std::uint32_t i = 0; i < trees_.size(); ++i)
+        {
+            if (trees_[i].get() == &tree)
+                return i;
+        }
+
+        UNREACHABLE("We should never reach this point");
     }
 } // namespace prism

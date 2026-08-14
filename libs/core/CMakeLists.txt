@@ -195,6 +195,8 @@ set(PRISM_MODULES
         src/declarations/merged_declaration.ixx
         src/declarations/merged_namespace_declaration.ixx
         src/declarations/merged_namespace_declaration.cpp
+        src/symbols/lexical_sort_key.ixx
+        src/symbols/lexical_sort_key.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

@@ -63,6 +63,25 @@ namespace prism
         return lifetime.create<MergedNamespaceDeclaration>(construct_tag, lifetime, child_span);
     }
 
+    std::shared_ptr<MergedNamespaceDeclaration> MergedNamespaceDeclaration::create(
+        const SingleNamespaceDeclaration &declaration)
+    {
+        const auto lifetime = std::make_shared<SemanticLifetime>();
+        std::array elements = {Ref{declaration}};
+        return create(*lifetime, elements).shared_from_this();
+    }
+
+    LexicalSortKey MergedNamespaceDeclaration::get_lexical_sort_key(const Compilation &compilation) const
+    {
+        LexicalSortKey sort_key{declarations_[0]->name_location(), compilation};
+        for (const auto declaration : declarations_ | std::views::drop(1))
+        {
+            sort_key = LexicalSortKey::first(sort_key, LexicalSortKey{declaration->name_location(), compilation});
+        }
+
+        return sort_key;
+    }
+
     std::vector<Location> MergedNamespaceDeclaration::name_locations() const
     {
         return declarations_ |

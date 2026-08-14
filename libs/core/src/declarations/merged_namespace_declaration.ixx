@@ -9,6 +9,7 @@ export module prism.core:declarations.merged_namespace_declaration;
 import :declarations.merged_declaration;
 import :declarations.single_namespace_declaration;
 import :util.lazy;
+import :symbols.lexical_sort_key;
 
 namespace prism
 {
@@ -28,10 +29,14 @@ namespace prism
         static MergedNamespaceDeclaration &create(SemanticLifetime &lifetime,
                                                   std::span<const Ref<const SingleNamespaceDeclaration>> declarations);
 
+        static std::shared_ptr<MergedNamespaceDeclaration> create(const SingleNamespaceDeclaration &declaration);
+
         [[nodiscard]] constexpr DeclarationKind kind() const noexcept override
         {
             return DeclarationKind::namespace_;
         }
+
+        [[nodiscard]] LexicalSortKey get_lexical_sort_key(const Compilation &compilation) const;
 
         [[nodiscard]] std::vector<Location> name_locations() const;
 

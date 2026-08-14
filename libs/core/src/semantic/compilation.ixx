@@ -85,6 +85,8 @@ namespace prism
             return trees_;
         }
 
+        [[nodiscard]] bool contains_syntax_tree(const SyntaxTree &tree) const noexcept;
+
         [[nodiscard]] const SemanticModel &get_semantic_model(const SyntaxTree &tree) const;
 
         [[nodiscard]] constexpr const std::vector<Diagnostic> &diagnostics() const noexcept
@@ -107,6 +109,9 @@ namespace prism
       private:
         friend class MergedNamespaceSymbol;
         friend class SemanticModel;
+        friend class LexicalSortKey;
+
+        [[nodiscard]] std::uint32_t get_syntax_tree_ordinal(const SyntaxTree &tree) const;
 
         std::shared_ptr<SemanticLifetime> lifetime_ = std::make_shared<SemanticLifetime>();
         TargetSettings target_settings_;
