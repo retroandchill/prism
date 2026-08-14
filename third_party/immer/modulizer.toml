@@ -1,0 +1,36 @@
+[module]
+name = "immer"
+
+[headers]
+include_dirs = [
+    "D://dev//prism//build//debug-static//vcpkg_installed//x64-windows//include"
+]
+library_headers = [
+    "immer/algorithm.hpp",
+    "immer/array.hpp",
+    "immer/array_transient.hpp",
+    "immer/atom.hpp",
+    "immer/box.hpp",
+    "immer/flex_vector.hpp",
+    "immer/flex_vector_transient.hpp",
+    "immer/map.hpp",
+    "immer/map_transient.hpp",
+    "immer/set.hpp",
+    "immer/set_transient.hpp",
+    "immer/table.hpp",
+    "immer/table_transient.hpp",
+    "immer/vector.hpp",
+    "immer/vector_transient.hpp",
+]
+
+[macros]
+expand_from_definition = [
+]
+explicit_macros = [
+    "IMMER_NODISCARD=[[nodiscard]]"
+]
+
+[symbols]
+exclude = [
+    "immer::internal"
+]

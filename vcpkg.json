@@ -31,9 +31,11 @@
   }, {
     "name" : "boost-unordered",
     "version>=" : "1.91.0"
-  },
-    {
-      "name": "int128",
-      "version>=": "3.0.0"
-    }]
+  }, {
+    "name" : "int128",
+    "version>=" : "3.0.0"
+  }, {
+    "name" : "immer",
+    "version>=" : "0.9.1"
+  } ]
 }

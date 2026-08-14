@@ -210,6 +210,7 @@ target_link_libraries(prism_core
         PUBLIC Boost::cppm
                 uni-algo::cppm
                 libassert::cppm
+                immer::cppm
         PRIVATE xxHash::cpp)
 
 target_sources(prism_core PUBLIC

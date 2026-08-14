@@ -1,5 +1,6 @@
 add_subdirectory(boost)
 add_subdirectory(fmt)
+add_subdirectory(immer)
 add_subdirectory(libassert)
 add_subdirectory(uni_algo)
 add_subdirectory(xxhash)
