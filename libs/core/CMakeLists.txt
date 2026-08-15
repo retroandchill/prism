@@ -207,8 +207,6 @@ set(PRISM_MODULES
         src/declarations/merged_declaration.ixx
         src/declarations/merged_namespace_declaration.ixx
         src/declarations/merged_namespace_declaration.cpp
-        src/declarations/single_variable_declaration.ixx
-        src/declarations/single_function_declaration.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

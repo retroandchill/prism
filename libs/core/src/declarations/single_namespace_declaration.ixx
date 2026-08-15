@@ -18,9 +18,15 @@ namespace prism
                                              const bool has_usings,
                                              SyntaxReference syntax_reference,
                                              SourceLocation name_location,
-                                             const std::span<const Diagnostic> diagnostics,
-                                             const std::span<const Ref<const SingleDeclaration>> members)
-            : SingleDeclaration{lifetime, name, std::move(syntax_reference), std::move(name_location), diagnostics},
+                                             const std::span<const Ref<const SingleDeclaration>> members,
+                                             ImmutableHashSet<Name> member_names,
+                                             const std::span<const Diagnostic> diagnostics)
+            : SingleDeclaration{lifetime,
+                                name,
+                                std::move(syntax_reference),
+                                std::move(name_location),
+                                std::move(member_names),
+                                diagnostics},
               has_usings_{has_usings}, members_{members}
         {
         }

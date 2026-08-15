@@ -193,6 +193,20 @@ namespace prism
         Table table_;
     };
 
+    export template <std::input_iterator InputIt,
+                     typename Hash = std::hash<typename std::iterator_traits<InputIt>::value_type>,
+                     typename KeyEqual = std::equal_to<typename std::iterator_traits<InputIt>::value_type>,
+                     SimpleAllocator Allocator = DefaultAllocator<typename std::iterator_traits<InputIt>::value_type>>
+    ImmutableHashSet(InputIt, InputIt, Hash = Hash{}, KeyEqual = KeyEqual{}, Allocator = Allocator{})
+        -> ImmutableHashSet<typename std::iterator_traits<InputIt>::value_type, Hash, KeyEqual, Allocator>;
+
+    export template <std::ranges::input_range Range,
+                     typename Hash = std::hash<std::ranges::range_value_t<Range>>,
+                     typename KeyEqual = std::equal_to<std::ranges::range_value_t<Range>>,
+                     SimpleAllocator Allocator = DefaultAllocator<std::ranges::range_value_t<Range>>>
+    ImmutableHashSet(Range &&, Hash = Hash{}, KeyEqual = KeyEqual{}, Allocator = Allocator{})
+        -> ImmutableHashSet<std::ranges::range_value_t<Range>, Hash, KeyEqual, Allocator>;
+
     export template <typename T, typename Hash, typename KeyEqual, typename Allocator>
     void swap(ImmutableHashSet<T, Hash, KeyEqual, Allocator> &lhs,
               ImmutableHashSet<T, Hash, KeyEqual, Allocator> &rhs) noexcept

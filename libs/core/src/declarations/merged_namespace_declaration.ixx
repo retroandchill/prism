@@ -38,7 +38,7 @@ namespace prism
 
         [[nodiscard]] LexicalSortKey get_lexical_sort_key(const Compilation &compilation) const;
 
-        [[nodiscard]] std::vector<Location> name_locations() const;
+        [[nodiscard]] ImmutableArray<Location> name_locations() const;
 
         [[nodiscard]] std::span<const Ref<const SingleNamespaceDeclaration>> declarations() const noexcept
         {
@@ -47,10 +47,13 @@ namespace prism
 
         [[nodiscard]] std::span<const Ref<const MergedDeclaration>> members() const;
 
+        [[nodiscard]] const ImmutableHashSet<Name> &member_names() const;
+
       private:
         [[nodiscard]] std::span<const Ref<const MergedDeclaration>> make_children() const;
 
         std::span<const Ref<const SingleNamespaceDeclaration>> declarations_;
         mutable Lazy<std::span<const Ref<const MergedDeclaration>>> members_;
+        mutable Lazy<ImmutableHashSet<Name>> member_names_;
     };
 } // namespace prism

@@ -82,17 +82,29 @@ namespace prism
         return sort_key;
     }
 
-    std::vector<Location> MergedNamespaceDeclaration::name_locations() const
+    ImmutableArray<Location> MergedNamespaceDeclaration::name_locations() const
     {
         return declarations_ |
                std::views::transform([](const SingleDeclaration &declaration) -> auto &
                                      { return declaration.name_location(); }) |
-               std::ranges::to<std::vector<Location>>();
+               std::ranges::to<ImmutableArray<Location>>();
     }
 
     std::span<const Ref<const MergedDeclaration>> MergedNamespaceDeclaration::members() const
     {
         return members_.get_or_compute([this] { return make_children(); });
+    }
+
+    const ImmutableHashSet<Name> &MergedNamespaceDeclaration::member_names() const
+    {
+        return member_names_.get_or_compute(
+            [this]
+            {
+                return declarations_ |
+                       std::views::transform([](const SingleNamespaceDeclaration &declaration) -> auto &
+                                             { return declaration.member_names(); }) |
+                       std::views::join | std::ranges::to<ImmutableHashSet>();
+            });
     }
 
     std::span<const Ref<const MergedDeclaration>> MergedNamespaceDeclaration::make_children() const

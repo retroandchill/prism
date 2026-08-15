@@ -17,9 +17,6 @@ namespace prism
     enum class DeclarationKind : std::uint8_t
     {
         namespace_,
-        variable,
-        function,
-        parameter
     };
 
     class Declaration;

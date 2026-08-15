@@ -8,6 +8,7 @@ export module prism.core:declarations.single_declaration;
 
 import :declarations.declaration;
 import :diagnostics.diagnostic;
+import :collections.immutable_hash_set;
 
 namespace prism
 {
@@ -20,9 +21,11 @@ namespace prism
                                     Name name,
                                     SyntaxReference syntax_reference,
                                     SourceLocation name_location,
+                                    ImmutableHashSet<Name> member_names,
                                     std::span<const Diagnostic> diagnostics)
             : Declaration{lifetime, name}, syntax_reference_{std::move(syntax_reference)},
-              name_location_{std::move(name_location)}, diagnostics_{diagnostics}
+              name_location_{std::move(name_location)}, diagnostics_{diagnostics},
+              member_names_{std::move(member_names)}
         {
         }
 
@@ -49,9 +52,15 @@ namespace prism
             return diagnostics_;
         }
 
+        [[nodiscard]] constexpr const ImmutableHashSet<Name> &member_names() const
+        {
+            return member_names_;
+        }
+
       private:
         SyntaxReference syntax_reference_;
         SourceLocation name_location_;
         std::span<const Diagnostic> diagnostics_;
+        ImmutableHashSet<Name> member_names_;
     };
 } // namespace prism
