@@ -198,6 +198,9 @@ namespace prism
     export using PooledU16String = BasicPooledString<char16_t>;
     export using PooledU32String = BasicPooledString<char32_t>;
 
+    export template <typename T, typename Hasher = std::hash<T>, typename KeyEqual = std::equal_to<T>>
+    using PooledSet = std::unordered_set<T, Hasher, KeyEqual, BufferPoolAllocator<T>>;
+
     export template <typename Key,
                      typename Value,
                      typename Hash = std::hash<Key>,

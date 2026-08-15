@@ -87,6 +87,21 @@ namespace prism
         {
         }
 
+        [[nodiscard]] constexpr hasher hash_function() const noexcept
+        {
+            return table_.hash_function();
+        }
+
+        [[nodiscard]] constexpr key_equal key_eq() const noexcept
+        {
+            return table_.key_eq();
+        }
+
+        [[nodiscard]] constexpr allocator_type get_allocator() const noexcept
+        {
+            return table_.get_allocator();
+        }
+
         [[nodiscard]] bool empty() const noexcept
         {
             return table_.empty();
