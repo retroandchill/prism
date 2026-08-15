@@ -15,6 +15,8 @@ export import :memory.default_allocator;
 
 export import :collections.immutable_array;
 export import :collections.immutable_small_array;
+export import :collections.immutable_hash_set;
+export import :collections.immutable_hash_map;
 
 export import :text.name;
 export import :text.text_span;

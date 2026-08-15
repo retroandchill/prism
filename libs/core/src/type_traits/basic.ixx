@@ -96,4 +96,17 @@ namespace prism
     export template <typename Base, typename Derived>
     concept ProperBaseOf =
         std::derived_from<std::remove_cv_t<Derived>, std::remove_cv_t<Base>> && !SameUnqualifed<Base, Derived>;
+
+    template <typename T>
+    concept Transparent = requires { typename T::is_transparent; };
+
+    export template <typename Hasher, typename Key, typename Alternative, typename Size = std::size_t>
+    concept TransparentHasher =
+        Transparent<Hasher> && std::invocable<Hasher, const Key &> && std::invocable<Hasher, Alternative> &&
+        std::convertible_to<std::invoke_result_t<Hasher, const Key &>, Size> &&
+        std::convertible_to<std::invoke_result_t<Hasher, Alternative>, Size>;
+
+    export template <typename Equals, typename Key, typename Alternative>
+    concept TransparentEquals = Transparent<Equals> && std::invocable<Equals, const Key &, Alternative> &&
+                                std::convertible_to<std::invoke_result_t<Equals, const Key &, Alternative>, bool>;
 } // namespace prism

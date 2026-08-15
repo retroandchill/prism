@@ -15,7 +15,7 @@ import :collections.immutable_array;
 namespace prism
 {
     export template <typename T, std::size_t InlineCapacity, SimpleAllocator Allocator = DefaultAllocator<T>>
-    class ImmutableSmallArray
+    class ImmutableSmallArray final
     {
         static_assert(InlineCapacity > 0, "Use ImmutableArray<T, Allocator> for zero inline capacity");
 

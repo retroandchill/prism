@@ -201,6 +201,9 @@ set(PRISM_MODULES
         src/memory/default_allocator.ixx
         src/collections/immutable_array.ixx
         src/collections/immutable_small_array.ixx
+        src/collections/immutable_hash_map.ixx
+        src/collections/immutable_hash_table.ixx
+        src/collections/immutable_hash_set.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

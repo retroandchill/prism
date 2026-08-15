@@ -16,7 +16,7 @@ import :type_traits.basic;
 namespace prism
 {
     export template <typename T, SimpleAllocator Allocator = DefaultAllocator<T>>
-    class ImmutableArray
+    class ImmutableArray final
     {
         struct Storage;
 
