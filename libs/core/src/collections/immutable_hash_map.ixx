@@ -200,6 +200,11 @@ namespace prism
             table_.swap(other.table_);
         }
 
+        [[nodiscard]] constexpr bool same_storage(const ImmutableHashMap &other) const noexcept
+        {
+            return table_.same_storage(other.table_);
+        }
+
       private:
         constexpr explicit ImmutableHashMap(Table table) : table_{std::move(table)}
         {

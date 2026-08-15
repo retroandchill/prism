@@ -601,6 +601,11 @@ namespace prism
             return Hamt{std::move(result.root), size_ - 1, hasher_, key_equal_, allocator_};
         }
 
+        [[nodiscard]] bool same_storage(const Hamt &other) const noexcept
+        {
+            return root_ == other.root_;
+        }
+
         void swap(Hamt &other) noexcept
         {
             std::swap(root_, other.root_);

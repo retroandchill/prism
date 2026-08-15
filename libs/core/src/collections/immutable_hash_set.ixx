@@ -102,6 +102,11 @@ namespace prism
             return {};
         }
 
+        [[nodiscard]] constexpr bool same_storage(const ImmutableHashSet &other) const noexcept
+        {
+            return table_.same_storage(other.table_);
+        }
+
         constexpr void swap(ImmutableHashSet &other) noexcept
         {
             table_.swap(other.table_);
