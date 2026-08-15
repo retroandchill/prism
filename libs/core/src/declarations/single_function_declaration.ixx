@@ -11,6 +11,8 @@ import :declarations.single_declaration;
 
 namespace prism
 {
+    class SingleParameterDeclaration;
+
     class SingleFunctionDeclaration final : public SingleDeclaration
     {
       public:
@@ -19,13 +21,9 @@ namespace prism
                                   SyntaxReference syntax_reference,
                                   SourceLocation name_location,
                                   const std::span<const Diagnostic> diagnostics,
-                                  const std::span<const Ref<const Declaration>> children)
-            : SingleDeclaration{lifetime,
-                                name,
-                                std::move(syntax_reference),
-                                std::move(name_location),
-                                diagnostics,
-                                children}
+                                  const std::span<const Ref<const SingleParameterDeclaration>> parameters)
+            : SingleDeclaration{lifetime, name, std::move(syntax_reference), std::move(name_location), diagnostics},
+              parameters_{parameters}
         {
         }
 
@@ -33,5 +31,13 @@ namespace prism
         {
             return DeclarationKind::function;
         }
+
+        [[nodiscard]] std::span<const Ref<const SingleParameterDeclaration>> parameters() const noexcept
+        {
+            return parameters_;
+        }
+
+      private:
+        std::span<const Ref<const SingleParameterDeclaration>> parameters_{};
     };
 } // namespace prism

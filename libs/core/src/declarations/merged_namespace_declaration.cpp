@@ -90,22 +90,22 @@ namespace prism
                std::ranges::to<std::vector<Location>>();
     }
 
-    std::span<const Ref<const Declaration>> MergedNamespaceDeclaration::get_declaration_children() const
+    std::span<const Ref<const MergedDeclaration>> MergedNamespaceDeclaration::members() const
     {
-        return children_.get_or_compute([this] { return make_children(); });
+        return members_.get_or_compute([this] { return make_children(); });
     }
 
-    std::span<const Ref<const Declaration>> MergedNamespaceDeclaration::make_children() const
+    std::span<const Ref<const MergedDeclaration>> MergedNamespaceDeclaration::make_children() const
     {
         PooledVector<Ref<const SingleNamespaceDeclaration>> namespaces;
         bool all_namespaces_has_same_name = true;
 
-        for (auto &child :
-             declarations_ |
-                 std::views::transform([](const SingleDeclaration &declaration) { return declaration.children(); }) |
-                 std::views::join)
+        for (const auto child : declarations_ |
+                                    std::views::transform([](const SingleNamespaceDeclaration &declaration)
+                                                          { return declaration.members(); }) |
+                                    std::views::join)
         {
-            if (const auto as_namespace = dynamic_cast<const SingleNamespaceDeclaration *>(&child);
+            if (const auto as_namespace = dynamic_cast<const SingleNamespaceDeclaration *>(&child.get());
                 as_namespace != nullptr)
             {
                 if (!namespaces.empty() && all_namespaces_has_same_name &&
@@ -125,6 +125,6 @@ namespace prism
 
         add_namespace_to_children(lifetime(), namespaces, all_namespaces_has_same_name, children);
 
-        return lifetime().copy_refs<const Declaration>(children);
+        return lifetime().copy_refs(children);
     }
 } // namespace prism

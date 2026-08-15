@@ -19,7 +19,7 @@ namespace prism
                                                     SyntaxReference syntax_reference,
                                                     SourceLocation name_location,
                                                     const std::span<const Diagnostic> diagnostics,
-                                                    const std::span<const Ref<const Declaration>> children)
+                                                    const std::span<const Ref<const SingleDeclaration>> children)
             : SingleNamespaceDeclaration{lifetime,
                                          name,
                                          has_usings,

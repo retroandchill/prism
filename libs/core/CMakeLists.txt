@@ -202,7 +202,6 @@ set(PRISM_MODULES
         src/semantic/syntax_and_declaration_state.cpp
         src/declarations/declaration.ixx
         src/declarations/single_declaration.ixx
-        src/declarations/single_declaration.cpp
         src/declarations/single_namespace_declaration.ixx
         src/declarations/single_root_namespace_declaration.ixx
         src/declarations/merged_declaration.ixx

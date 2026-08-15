@@ -19,14 +19,9 @@ namespace prism
                                              SyntaxReference syntax_reference,
                                              SourceLocation name_location,
                                              const std::span<const Diagnostic> diagnostics,
-                                             const std::span<const Ref<const Declaration>> children)
-            : SingleDeclaration{lifetime,
-                                name,
-                                std::move(syntax_reference),
-                                std::move(name_location),
-                                diagnostics,
-                                children},
-              has_usings_{has_usings}
+                                             const std::span<const Ref<const SingleDeclaration>> members)
+            : SingleDeclaration{lifetime, name, std::move(syntax_reference), std::move(name_location), diagnostics},
+              has_usings_{has_usings}, members_{members}
         {
         }
 
@@ -43,7 +38,13 @@ namespace prism
             return has_usings_;
         }
 
+        [[nodiscard]] constexpr std::span<const Ref<const SingleDeclaration>> members() const noexcept
+        {
+            return members_;
+        }
+
       private:
         bool has_usings_;
+        std::span<const Ref<const SingleDeclaration>> members_{};
     };
 } // namespace prism

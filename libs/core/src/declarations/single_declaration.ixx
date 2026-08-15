@@ -15,16 +15,16 @@ namespace prism
 
     class SingleDeclaration : public Declaration
     {
-      public:
-        using ChildType = SingleDeclaration;
-
       protected:
-        SingleDeclaration(SemanticLifetime &lifetime,
-                          Name name,
-                          SyntaxReference syntax_reference,
-                          SourceLocation name_location,
-                          std::span<const Diagnostic> diagnostics,
-                          std::span<const Ref<const Declaration>> children = {});
+        constexpr SingleDeclaration(SemanticLifetime &lifetime,
+                                    Name name,
+                                    SyntaxReference syntax_reference,
+                                    SourceLocation name_location,
+                                    std::span<const Diagnostic> diagnostics)
+            : Declaration{lifetime, name}, syntax_reference_{std::move(syntax_reference)},
+              name_location_{std::move(name_location)}, diagnostics_{diagnostics}
+        {
+        }
 
         ~SingleDeclaration() noexcept = default;
 
@@ -49,17 +49,9 @@ namespace prism
             return diagnostics_;
         }
 
-      protected:
-        [[nodiscard]] std::span<const Ref<const Declaration>> get_declaration_children() const final;
-
       private:
-#ifndef NDEBUG
-        void validate_children() const;
-#endif
-
         SyntaxReference syntax_reference_;
         SourceLocation name_location_;
         std::span<const Diagnostic> diagnostics_;
-        std::span<const Ref<const Declaration>> children_;
     };
 } // namespace prism

@@ -45,13 +45,12 @@ namespace prism
             return declarations_;
         }
 
-      protected:
-        [[nodiscard]] std::span<const Ref<const Declaration>> get_declaration_children() const override;
+        [[nodiscard]] std::span<const Ref<const MergedDeclaration>> members() const;
 
       private:
-        [[nodiscard]] std::span<const Ref<const Declaration>> make_children() const;
+        [[nodiscard]] std::span<const Ref<const MergedDeclaration>> make_children() const;
 
         std::span<const Ref<const SingleNamespaceDeclaration>> declarations_;
-        mutable Lazy<std::span<const Ref<const Declaration>>> children_;
+        mutable Lazy<std::span<const Ref<const MergedDeclaration>>> members_;
     };
 } // namespace prism
