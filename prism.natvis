@@ -13,6 +13,15 @@
         <DisplayString>{id_}</DisplayString>
     </Type>
 
+    <Type Name="prism::RefCountPtr&lt;*&gt;">
+        <DisplayString Condition="ptr_ == 0">null</DisplayString>
+        <DisplayString Condition="ptr_ != 0">{ptr_}</DisplayString>
+        <Expand>
+            <Item Name="[ptr]">ptr_</Item>
+            <ExpandedItem Condition="ptr_ != 0">*ptr_</ExpandedItem>
+        </Expand>
+    </Type>
+
     <Type Name="prism::Optional&lt;*&gt;">
         <DisplayString Condition="!has_value_">nullopt</DisplayString>
         <DisplayString Condition="has_value_">{value_}</DisplayString>
@@ -69,6 +78,94 @@
                 <Size>heap_storage_.storage_->size</Size>
                 <ValuePointer>($T1*)(heap_storage_.storage_ + 1)</ValuePointer>
             </ArrayItems>
+        </Expand>
+    </Type>
+
+    <Type Name="prism::ImmutableHashSet&lt;*,*,*,*&gt;">
+        <DisplayString Condition="table_.root_.ptr_ == 0">{{ size={table_.size_}, empty }}</DisplayString>
+        <DisplayString Condition="table_.root_.ptr_ != 0">{{ size={table_.size_} }}</DisplayString>
+        <Expand>
+            <Item Name="[size]" ExcludeView="simple">table_.size_</Item>
+            <Item Name="[root]" ExcludeView="simple">table_.root_</Item>
+            <Item Name="[table]" ExcludeView="simple">table_</Item>
+        </Expand>
+    </Type>
+
+    <Type Name="prism::ImmutableHashMap&lt;*,*,*,*,*&gt;">
+        <DisplayString Condition="table_.root_.ptr_ == 0">{{ size={table_.size_}, empty }}</DisplayString>
+        <DisplayString Condition="table_.root_.ptr_ != 0">{{ size={table_.size_} }}</DisplayString>
+        <Expand>
+            <Item Name="[size]" ExcludeView="simple">table_.size_</Item>
+            <Item Name="[root]" ExcludeView="simple">table_.root_</Item>
+        </Expand>
+    </Type>
+
+    <Type Name="prism::Hamt&lt;*&gt;">
+        <DisplayString Condition="root_.ptr_ == 0">{{ size={size_}, empty }}</DisplayString>
+        <DisplayString Condition="root_.ptr_ != 0">{{ size={size_}, root={root_.ptr_} }}</DisplayString>
+        <Expand>
+            <Item Name="[size]" ExcludeView="simple">size_</Item>
+            <Item Name="[root]" ExcludeView="simple">root_</Item>
+            <Item Name="[hasher]" ExcludeView="simple">hasher_</Item>
+            <Item Name="[key equal]" ExcludeView="simple">key_equal_</Item>
+            <Item Name="[allocator]" ExcludeView="simple">allocator_</Item>
+        </Expand>
+    </Type>
+
+    <Type Name="prism::Hamt&lt;*&gt;::Node">
+        <DisplayString Condition="slots_.storage_ == 0">{{ bitmap={bitmap_}, slots=0 }}</DisplayString>
+        <DisplayString Condition="slots_.storage_ != 0">{{ bitmap={bitmap_}, slots={slots_.storage_->size} }}</DisplayString>
+        <Expand>
+            <Item Name="[bitmap]" ExcludeView="simple">bitmap_</Item>
+            <Item Name="[slot count]" ExcludeView="simple" Condition="slots_.storage_ == 0">0</Item>
+            <Item Name="[slot count]" ExcludeView="simple" Condition="slots_.storage_ != 0">slots_.storage_->size</Item>
+            <Item Name="[slots]" ExcludeView="simple">slots_</Item>
+        </Expand>
+    </Type>
+
+    <Type Name="prism::Hamt&lt;*&gt;::CollisionNode">
+        <DisplayString Condition="entries_.storage_ == 0">{{ hash={hash_}, entries=0 }}</DisplayString>
+        <DisplayString Condition="entries_.storage_ != 0">{{ hash={hash_}, entries={entries_.storage_->size} }}</DisplayString>
+        <Expand>
+            <Item Name="[hash]" ExcludeView="simple">hash_</Item>
+            <Item Name="[entry count]" ExcludeView="simple" Condition="entries_.storage_ == 0">0</Item>
+            <Item Name="[entry count]" ExcludeView="simple" Condition="entries_.storage_ != 0">entries_.storage_->size</Item>
+            <Item Name="[entries]" ExcludeView="simple">entries_</Item>
+        </Expand>
+    </Type>
+
+    <Type Name="prism::Hamt&lt;*&gt;::Slot">
+        <DisplayString Condition="kind_ == 0">{{ entry }}</DisplayString>
+        <DisplayString Condition="kind_ == 1">{{ node={node_.ptr_} }}</DisplayString>
+        <DisplayString Condition="kind_ == 2">{{ collision={collision_.ptr_} }}</DisplayString>
+        <Expand>
+            <Item Name="[kind]" ExcludeView="simple">kind_</Item>
+            <Item Name="[entry]" Condition="kind_ == 0">entry_</Item>
+            <Item Name="[node]" Condition="kind_ == 1">node_</Item>
+            <Item Name="[collision]" Condition="kind_ == 2">collision_</Item>
+        </Expand>
+    </Type>
+
+    <Type Name="prism::Hamt&lt;*&gt;::Iterator">
+        <DisplayString Condition="current_ == 0">end</DisplayString>
+        <DisplayString Condition="current_ != 0">{*current_}</DisplayString>
+        <Expand>
+            <Item Name="[current]" Condition="current_ != 0">*current_</Item>
+            <Item Name="[current ptr]" ExcludeView="simple">current_</Item>
+            <Item Name="[root]" ExcludeView="simple">root_</Item>
+            <Item Name="[stack]" ExcludeView="simple">stack_</Item>
+        </Expand>
+    </Type>
+
+    <Type Name="prism::Hamt&lt;*&gt;::Iterator::Frame">
+        <DisplayString Condition="kind == 0">{{ node={node.node}, index={node.index} }}</DisplayString>
+        <DisplayString Condition="kind == 1">{{ collision={collision.collision}, index={collision.index} }}</DisplayString>
+        <Expand>
+            <Item Name="[kind]" ExcludeView="simple">kind</Item>
+            <Item Name="[node]" Condition="kind == 0">node.node</Item>
+            <Item Name="[node index]" Condition="kind == 0">node.index</Item>
+            <Item Name="[collision]" Condition="kind == 1">collision.collision</Item>
+            <Item Name="[collision index]" Condition="kind == 1">collision.index</Item>
         </Expand>
     </Type>
 </AutoVisualizer>
