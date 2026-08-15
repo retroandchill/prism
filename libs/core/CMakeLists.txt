@@ -1,6 +1,7 @@
 set(PRISM_HEADERS include/prism/core/exports.h
         include/prism/core/per_project_boilerplate.hpp
         include/prism/core/names.hpp
+        include/prism/core/macros.hpp
 )
 
 set(PRISM_MODULES
@@ -197,6 +198,8 @@ set(PRISM_MODULES
         src/declarations/merged_namespace_declaration.cpp
         src/symbols/lexical_sort_key.ixx
         src/symbols/lexical_sort_key.cpp
+        src/memory/default_allocator.ixx
+        src/collections/immutable_array.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

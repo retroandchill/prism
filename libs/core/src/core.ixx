@@ -11,6 +11,7 @@ export import :memory.arena_allocator;
 export import :memory.buffer_pool;
 export import :memory.ref_counted_ptr;
 export import :memory.persistent_allocator;
+export import :memory.default_allocator;
 
 export import :text.name;
 export import :text.text_span;
