@@ -188,14 +188,6 @@ set(PRISM_MODULES
         src/symbols/named_type_symbol.cpp
         src/semantic/conversion_classifier.ixx
         src/context/target_settings.ixx
-        src/declarations/declaration.ixx
-        src/declarations/single_declaration.ixx
-        src/declarations/single_declaration.cpp
-        src/declarations/single_namespace_declaration.ixx
-        src/declarations/single_root_namespace_declaration.ixx
-        src/declarations/merged_declaration.ixx
-        src/declarations/merged_namespace_declaration.ixx
-        src/declarations/merged_namespace_declaration.cpp
         src/symbols/lexical_sort_key.ixx
         src/symbols/lexical_sort_key.cpp
         src/memory/default_allocator.ixx
@@ -206,6 +198,8 @@ set(PRISM_MODULES
         src/collections/immutable_hash_set.ixx
         src/collections/immutable_ordered_set.ixx
         src/util/lazy_value.ixx
+        src/semantic/syntax_and_declaration_state.ixx
+        src/semantic/syntax_and_declaration_state.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

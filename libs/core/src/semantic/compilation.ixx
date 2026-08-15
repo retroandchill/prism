@@ -57,10 +57,12 @@ namespace prism
         };
 
       public:
-        Compilation(CreateTag, std::vector<std::shared_ptr<SyntaxTree>> trees, TargetSettings target_settings) noexcept;
+        Compilation(CreateTag,
+                    ImmutableArray<std::shared_ptr<SyntaxTree>> trees,
+                    TargetSettings target_settings) noexcept;
 
         static std::shared_ptr<Compilation> create(Name assembly_name,
-                                                   std::vector<std::shared_ptr<SyntaxTree>> trees,
+                                                   ImmutableArray<std::shared_ptr<SyntaxTree>> trees,
                                                    TargetSettings target_settings = TargetSettings::current_platform());
 
         [[nodiscard]] constexpr const TargetSettings &target_settings() const noexcept
@@ -80,7 +82,7 @@ namespace prism
             return *global_namespace_;
         }
 
-        [[nodiscard]] constexpr const std::vector<std::shared_ptr<SyntaxTree>> &trees() const noexcept
+        [[nodiscard]] constexpr const ImmutableArray<std::shared_ptr<SyntaxTree>> &trees() const noexcept
         {
             return trees_;
         }
@@ -117,7 +119,7 @@ namespace prism
         TargetSettings target_settings_;
         const AssemblySymbol *assembly_ = nullptr;
         const NamespaceSymbol *global_namespace_ = nullptr;
-        std::vector<std::shared_ptr<SyntaxTree>> trees_;
+        ImmutableArray<std::shared_ptr<SyntaxTree>> trees_;
         std::vector<Diagnostic> diagnostics_;
         SemanticMappings semantic_mappings_;
         BoundNodeLookup bound_node_lookup_;

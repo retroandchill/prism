@@ -27,14 +27,14 @@ namespace prism
 {
 
     Compilation::Compilation(CreateTag,
-                             std::vector<std::shared_ptr<SyntaxTree>> trees,
+                             ImmutableArray<std::shared_ptr<SyntaxTree>> trees,
                              const TargetSettings target_settings) noexcept
         : target_settings_{target_settings}, trees_{std::move(trees)}
     {
     }
 
     std::shared_ptr<Compilation> Compilation::create(const Name assembly_name,
-                                                     std::vector<std::shared_ptr<SyntaxTree>> trees,
+                                                     ImmutableArray<std::shared_ptr<SyntaxTree>> trees,
                                                      const TargetSettings target_settings)
     {
         if (trees.empty())

@@ -596,6 +596,15 @@ namespace prism
         Storage *storage_ = nullptr;
     };
 
+    export template <typename InputIt,
+                     typename Allocator = DefaultAllocator<typename std::iterator_traits<InputIt>::value_type>>
+    ImmutableArray(InputIt, InputIt, Allocator = Allocator{})
+        -> ImmutableArray<typename std::iterator_traits<InputIt>::value_type, Allocator>;
+
+    export template <std::ranges::input_range Range,
+                     typename Allocator = DefaultAllocator<std::ranges::range_value_t<Range>>>
+    ImmutableArray(Range &&, Allocator = Allocator{}) -> ImmutableArray<std::ranges::range_value_t<Range>, Allocator>;
+
     export template <typename T, SimpleAllocator Allocator>
     void swap(ImmutableArray<T, Allocator> &lhs, ImmutableArray<T, Allocator> &rhs) noexcept
     {

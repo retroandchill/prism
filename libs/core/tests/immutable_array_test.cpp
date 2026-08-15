@@ -405,3 +405,10 @@ TEST_CASE("ImmutableArray uses allocate_at_least deallocation count", "[Immutabl
     CHECK(state->deallocations == 1);
     CHECK(state->deallocated_count == state->allocated_count);
 }
+
+TEST_CASE("ImmutableArray is creatable using std::ranges::to", "[ImmutableArray]")
+{
+    std::array values = {1, 2, 3, 4};
+    const auto immutable = values | std::ranges::to<ImmutableArray>();
+    CHECK(immutable.size() == 4);
+}
