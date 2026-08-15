@@ -205,6 +205,7 @@ set(PRISM_MODULES
         src/collections/immutable_hash_table.ixx
         src/collections/immutable_hash_set.ixx
         src/collections/immutable_ordered_set.ixx
+        src/util/lazy_value.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})
