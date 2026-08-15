@@ -43,4 +43,32 @@
             </ArrayItems>
         </Expand>
     </Type>
+
+    <Type Name="prism::ImmutableSmallArray&lt;*,*,*&gt;">
+        <DisplayString Condition="inline_size_ != -1">{{ size={inline_size_}, inline }}</DisplayString>
+        <DisplayString Condition="inline_size_ == -1 &amp;&amp; heap_storage_.storage_ == nullptr">{{ size=0, heap }}</DisplayString>
+        <DisplayString Condition="inline_size_ == -1 &amp;&amp; heap_storage_.storage_ != nullptr">{{ size={heap_storage_.storage_->size}, heap }}</DisplayString>
+        <Expand>
+            <Item Name="[storage]" ExcludeView="simple" Condition="inline_size_ != -1">"inline"</Item>
+            <Item Name="[storage]" ExcludeView="simple" Condition="inline_size_ == -1">"heap"</Item>
+
+            <Item Name="[size]" ExcludeView="simple" Condition="inline_size_ != -1">inline_size_</Item>
+            <Item Name="[size]" ExcludeView="simple" Condition="inline_size_ == -1 &amp;&amp; heap_storage_.storage_ == nullptr">0</Item>
+            <Item Name="[size]" ExcludeView="simple" Condition="inline_size_ == -1 &amp;&amp; heap_storage_.storage_ != nullptr">heap_storage_.storage_->size</Item>
+
+            <Item Name="[ref count]" ExcludeView="simple" Condition="inline_size_ != -1 &amp;&amp; inline_size_ == 0">0</Item>
+            <Item Name="[ref count]" ExcludeView="simple" Condition="inline_size_ != -1 &amp;&amp; inline_size_ != 0">1</Item>
+            <Item Name="[ref count]" ExcludeView="simple" Condition="inline_size_ == -1 &amp;&amp; heap_storage_.storage_ != nullptr">heap_storage_.storage_->ref_count</Item>
+
+            <ArrayItems Condition="inline_size_ != -1">
+                <Size>inline_size_</Size>
+                <ValuePointer>($T1*)inline_storage_</ValuePointer>
+            </ArrayItems>
+
+            <ArrayItems Condition="inline_size_ == -1 &amp;&amp; heap_storage_.storage_ != nullptr">
+                <Size>heap_storage_.storage_->size</Size>
+                <ValuePointer>($T1*)(heap_storage_.storage_ + 1)</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
 </AutoVisualizer>

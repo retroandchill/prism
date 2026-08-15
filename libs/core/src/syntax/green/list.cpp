@@ -16,7 +16,7 @@ import :syntax.lifetime;
 
 namespace prism
 {
-    GreenListNode::GreenListNode(GreenSyntaxVector children)
+    GreenListNode::GreenListNode(GreenSyntaxArray children)
         : GreenNode{SyntaxKind::list}, children_{std::move(children)}
     {
         DEBUG_ASSERT(children_.size() <= std::numeric_limits<std::uint32_t>::max());
@@ -35,9 +35,7 @@ namespace prism
             return shared_from_this();
         }
 
-        auto copy = clone();
-        copy->set_slot(index, std::move(slot));
-        return std::move(copy);
+        return make_ref_counted<const GreenListNode>(children_.set(index, std::move(slot)));
     }
 
     SyntaxNode &GreenListNode::create_red(SyntaxLifetime &lifetime,

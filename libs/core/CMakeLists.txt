@@ -200,6 +200,7 @@ set(PRISM_MODULES
         src/symbols/lexical_sort_key.cpp
         src/memory/default_allocator.ixx
         src/collections/immutable_array.ixx
+        src/collections/immutable_small_array.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

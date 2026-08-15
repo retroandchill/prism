@@ -14,17 +14,19 @@ import :syntax.green.node;
 import boost;
 import :syntax.list_view;
 import :text.string_writer;
+import :collections.immutable_small_array;
 
 namespace prism
 {
     constexpr std::uint32_t small_list_size = 8;
 
     using GreenSyntaxVector = boost::container::small_vector<GreenPtr<GreenNode>, small_list_size>;
+    using GreenSyntaxArray = ImmutableSmallArray<GreenPtr<GreenNode>, small_list_size>;
 
     class GreenListNode final : public GreenNode
     {
       public:
-        explicit GreenListNode(GreenSyntaxVector children);
+        explicit GreenListNode(GreenSyntaxArray children);
 
         [[nodiscard]] constexpr Optional<const GreenNode &> get_slot(const std::size_t index) const override
         {
@@ -34,7 +36,7 @@ namespace prism
         constexpr void set_slot(const std::size_t index, GreenPtr<GreenNode> slot)
         {
             ASSUME(index < children_.size());
-            children_[index] = std::move(slot);
+            children_ = children_.set(index, std::move(slot));
         }
 
         [[nodiscard]] GreenPtr<GreenListNode> with_slot(size_t index, GreenPtr<GreenNode> slot) const;
@@ -53,7 +55,7 @@ namespace prism
       private:
         friend class GreenListNodeBuilder;
 
-        GreenSyntaxVector children_;
+        GreenSyntaxArray children_;
     };
 
     class GreenListNodeBuilder
@@ -91,7 +93,7 @@ namespace prism
             if (children_.size() == 1)
                 return children_[0];
 
-            return make_ref_counted<const GreenListNode>(children_);
+            return make_ref_counted<const GreenListNode>(make_immutable_small_array<small_list_size>(children_));
         }
 
         GreenPtr<GreenNode> build() &&
@@ -100,9 +102,10 @@ namespace prism
                 return nullptr;
 
             if (children_.size() == 1)
-                return children_[0];
+                return std::move(children_[0]);
 
-            return make_ref_counted<GreenListNode>(std::move(children_));
+            return make_ref_counted<GreenListNode>(
+                make_immutable_small_array<small_list_size>(children_ | std::views::as_rvalue));
         }
 
       private:

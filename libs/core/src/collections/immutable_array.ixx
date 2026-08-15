@@ -11,10 +11,11 @@ module;
 export module prism.core:collections.immutable_array;
 
 import :memory.default_allocator;
+import :type_traits.basic;
 
 namespace prism
 {
-    export template <typename T, typename Allocator = DefaultAllocator<T>>
+    export template <typename T, SimpleAllocator Allocator = DefaultAllocator<T>>
     class ImmutableArray
     {
         struct Storage;
@@ -595,14 +596,14 @@ namespace prism
         Storage *storage_ = nullptr;
     };
 
-    export template <typename T, typename Allocator>
+    export template <typename T, SimpleAllocator Allocator>
     void swap(ImmutableArray<T, Allocator> &lhs, ImmutableArray<T, Allocator> &rhs) noexcept
     {
         lhs.swap(rhs);
     }
 
     export template <std::ranges::input_range Range,
-                     typename Allocator = DefaultAllocator<std::ranges::range_value_t<Range>>>
+                     SimpleAllocator Allocator = DefaultAllocator<std::ranges::range_value_t<Range>>>
         requires std::copy_constructible<std::ranges::range_value_t<Range>>
     [[nodiscard]] auto make_immutable_array(Range &&range, const Allocator &allocator = Allocator{})
     {
