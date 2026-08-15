@@ -200,6 +200,16 @@ set(PRISM_MODULES
         src/util/lazy_value.ixx
         src/semantic/syntax_and_declaration_state.ixx
         src/semantic/syntax_and_declaration_state.cpp
+        src/declarations/declaration.ixx
+        src/declarations/single_declaration.ixx
+        src/declarations/single_declaration.cpp
+        src/declarations/single_namespace_declaration.ixx
+        src/declarations/single_root_namespace_declaration.ixx
+        src/declarations/merged_declaration.ixx
+        src/declarations/merged_namespace_declaration.ixx
+        src/declarations/merged_namespace_declaration.cpp
+        src/declarations/single_variable_declaration.ixx
+        src/declarations/single_function_declaration.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

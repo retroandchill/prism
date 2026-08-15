@@ -51,8 +51,6 @@ namespace prism
         std::vector<ParameterRecord> parameters;
     };
 
-    std::vector<DeclarationRecord> scan_declarations(const SyntaxTree &tree);
-
     class DeclarationBinder final : NonCopyable
     {
       public:
