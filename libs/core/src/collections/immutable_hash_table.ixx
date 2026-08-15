@@ -48,6 +48,8 @@ namespace prism
     class Hamt final
     {
       public:
+        class Iterator;
+
         using traits_type = Traits;
         using key_type = Traits::key_type;
         using entry_type = Traits::entry_type;
@@ -56,6 +58,8 @@ namespace prism
         using allocator_type = Traits::allocator_type;
         using size_type = std::size_t;
         using hash_type = std::size_t;
+        using iterator = Iterator;
+        using const_iterator = Iterator;
 
       private:
         template <typename LookupKey>
@@ -347,6 +351,153 @@ namespace prism
         };
 
       public:
+        class Iterator final
+        {
+            struct NodeFrame
+            {
+                const Node *node = nullptr;
+                std::size_t index = 0;
+            };
+
+            struct CollisionFrame
+            {
+                const CollisionNode *collision = nullptr;
+                std::size_t index = 0;
+            };
+
+            enum class FrameKind : std::uint8_t
+            {
+                node,
+                collision
+            };
+
+            struct Frame
+            {
+                FrameKind kind = FrameKind::node;
+                union
+                {
+                    NodeFrame node{};
+                    CollisionFrame collision;
+                };
+
+                [[nodiscard]] static Frame for_node(const Node &node) noexcept
+                {
+                    return Frame{.kind = FrameKind::node, .node = NodeFrame{.node = std::addressof(node)}};
+                }
+
+                [[nodiscard]] static Frame for_collision(const CollisionNode &collision) noexcept
+                {
+                    return Frame{.kind = FrameKind::collision,
+                                 .collision = CollisionFrame{.collision = std::addressof(collision)}};
+                }
+            };
+
+          public:
+            using iterator_category = std::forward_iterator_tag;
+            using iterator_concept = std::forward_iterator_tag;
+            using value_type = entry_type;
+            using difference_type = std::ptrdiff_t;
+            using reference = const entry_type &;
+            using pointer = const entry_type *;
+
+            constexpr Iterator() noexcept = default;
+
+            explicit constexpr Iterator(NodePtr root) : root_{std::move(root)}
+            {
+                if (root_ == nullptr)
+                    return;
+
+                stack_.push_back(Frame::for_node(*root_));
+                advance_to_next_entry();
+            }
+
+            [[nodiscard]] constexpr reference operator*() const noexcept
+            {
+                return *current_;
+            }
+
+            [[nodiscard]] constexpr pointer operator->() const noexcept
+            {
+                return current_;
+            }
+
+            const_iterator &operator++()
+            {
+                current_ = nullptr;
+                advance_to_next_entry();
+                return *this;
+            }
+
+            const_iterator operator++(int)
+            {
+                auto copy = *this;
+                ++*this;
+                return copy;
+            }
+
+            [[nodiscard]] friend bool operator==(const const_iterator &lhs, const const_iterator &rhs) noexcept
+            {
+                if (lhs.current_ == nullptr || rhs.current_ == nullptr)
+                    return lhs.current_ == rhs.current_;
+
+                return lhs.current_ == rhs.current_;
+            }
+
+          private:
+            void advance_to_next_entry()
+            {
+                while (!stack_.empty())
+                {
+                    auto &frame = stack_.back();
+
+                    if (frame.kind == FrameKind::collision)
+                    {
+                        auto &collision = *frame.collision.collision;
+                        if (frame.collision.index < collision.entries().size())
+                        {
+                            current_ = std::addressof(collision.entries()[frame.collision.index]);
+                            ++frame.collision.index;
+                            return;
+                        }
+
+                        stack_.pop_back();
+                        continue;
+                    }
+
+                    auto &node = *frame.node.node;
+                    if (frame.node.index >= node.slots().size())
+                    {
+                        stack_.pop_back();
+                        continue;
+                    }
+
+                    const auto &slot = node.slots()[frame.node.index];
+                    ++frame.node.index;
+
+                    switch (slot.kind())
+                    {
+                        case SlotKind::entry:
+                            current_ = std::addressof(slot.entry());
+                            return;
+
+                        case SlotKind::node:
+                            stack_.push_back(Frame::for_node(slot.node()));
+                            break;
+
+                        case SlotKind::collision:
+                            stack_.push_back(Frame::for_collision(slot.collision()));
+                            break;
+                    }
+                }
+
+                current_ = nullptr;
+            }
+
+            NodePtr root_;
+            std::vector<Frame> stack_;
+            const entry_type *current_ = nullptr;
+        };
+
         constexpr Hamt() = default;
 
         constexpr explicit Hamt(hasher_type hasher,
@@ -364,6 +515,26 @@ namespace prism
         [[nodiscard]] constexpr size_type size() const noexcept
         {
             return size_;
+        }
+
+        [[nodiscard]] constexpr Iterator begin() const noexcept
+        {
+            return Iterator{root_};
+        }
+
+        [[nodiscard]] constexpr Iterator end() const noexcept
+        {
+            return Iterator{};
+        }
+
+        [[nodiscard]] const_iterator cbegin() const
+        {
+            return begin();
+        }
+
+        [[nodiscard]] const_iterator cend() const noexcept
+        {
+            return end();
         }
 
         [[nodiscard]] constexpr const allocator_type &get_allocator() const noexcept

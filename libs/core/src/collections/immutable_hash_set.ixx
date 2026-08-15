@@ -31,6 +31,8 @@ namespace prism
         using const_reference = const T &;
         using pointer = const T *;
         using const_pointer = const T *;
+        using iterator = Table::iterator;
+        using const_iterator = Table::const_iterator;
 
         constexpr ImmutableHashSet() noexcept = default;
 
@@ -42,6 +44,26 @@ namespace prism
         [[nodiscard]] std::size_t size() const noexcept
         {
             return table_.size();
+        }
+
+        [[nodiscard]] constexpr const_iterator begin() const noexcept
+        {
+            return table_.begin();
+        }
+
+        [[nodiscard]] constexpr const_iterator end() const noexcept
+        {
+            return table_.end();
+        }
+
+        [[nodiscard]] const_iterator cbegin() const
+        {
+            return begin();
+        }
+
+        [[nodiscard]] const_iterator cend() const noexcept
+        {
+            return end();
         }
 
         [[nodiscard]] bool contains(const T &key) const noexcept

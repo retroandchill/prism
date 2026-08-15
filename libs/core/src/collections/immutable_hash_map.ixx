@@ -36,6 +36,8 @@ namespace prism
         using const_reference = const value_type &;
         using pointer = std::allocator_traits<Allocator>::const_pointer;
         using const_pointer = std::allocator_traits<Allocator>::const_pointer;
+        using iterator = Table::iterator;
+        using const_iterator = Table::const_iterator;
 
         constexpr ImmutableHashMap() noexcept = default;
 
@@ -47,6 +49,26 @@ namespace prism
         [[nodiscard]] constexpr size_type size() const noexcept
         {
             return table_.size();
+        }
+
+        [[nodiscard]] constexpr const_iterator begin() const noexcept
+        {
+            return table_.begin();
+        }
+
+        [[nodiscard]] constexpr const_iterator end() const noexcept
+        {
+            return table_.end();
+        }
+
+        [[nodiscard]] const_iterator cbegin() const
+        {
+            return begin();
+        }
+
+        [[nodiscard]] const_iterator cend() const noexcept
+        {
+            return end();
         }
 
         [[nodiscard]] constexpr bool contains(const Key &key) const
@@ -146,13 +168,13 @@ namespace prism
         template <std::convertible_to<Value> U>
         [[nodiscard]] constexpr ImmutableHashMap set(const Key &key, U &&value) const
         {
-            return ImmutableHashMap{table_.set(value_type{key, std::move(value)})};
+            return ImmutableHashMap{table_.set(value_type{key, std::forward<U>(value)})};
         }
 
         template <std::convertible_to<Value> U>
         [[nodiscard]] constexpr ImmutableHashMap set(Key &&key, U &&value) const
         {
-            return ImmutableHashMap{table_.set(value_type{std::move(key), std::move(value)})};
+            return ImmutableHashMap{table_.set(value_type{std::move(key), std::forward<U>(value)})};
         }
 
         [[nodiscard]] constexpr ImmutableHashMap remove(const Key &key) const
