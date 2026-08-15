@@ -50,7 +50,7 @@ namespace prism
         }
 
         template <typename Alt>
-            requires AlternativeLookupFor<const Alt, T, Hash, KeyEqual, size_type>
+            requires AlternativeLookupFor<const Alt &, T, Hash, KeyEqual, size_type>
         [[nodiscard]] bool contains(const Alt &key) const noexcept
         {
             return table_.contains(key);
@@ -63,6 +63,13 @@ namespace prism
         }
 
         [[nodiscard]] constexpr ImmutableHashSet remove(const T &key) const
+        {
+            return ImmutableHashSet{table_.remove(key)};
+        }
+
+        template <typename Alt>
+            requires AlternativeLookupFor<const Alt &, T, Hash, KeyEqual, size_type>
+        [[nodiscard]] constexpr ImmutableHashSet remove(const Alt &key) const
         {
             return ImmutableHashSet{table_.remove(key)};
         }

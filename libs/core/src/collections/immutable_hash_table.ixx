@@ -25,19 +25,22 @@ namespace prism
             typename Traits::key_equal_type;
             typename Traits::allocator_type;
         } && requires(const typename Traits::entry_type &entry,
+                      const typename Traits::entry_type &other_entry,
                       const typename Traits::key_type &key,
                       const typename Traits::hasher_type &hasher,
                       const typename Traits::key_equal_type &key_equal) {
             {
                 Traits::key_of(entry)
             } -> std::same_as<const typename Traits::key_type &>;
-
             {
-                hasher(key)
+                Traits::entry_equals(entry, other_entry)
+            } -> std::convertible_to<bool>;
+            {
+                std::invoke(hasher, key)
             } -> std::convertible_to<std::size_t>;
 
             {
-                key_equal(Traits::key_of(entry), key)
+                std::invoke(key_equal, Traits::key_of(entry), key)
             } -> std::convertible_to<bool>;
         };
 
@@ -55,6 +58,13 @@ namespace prism
         using hash_type = std::size_t;
 
       private:
+        template <typename LookupKey>
+        static constexpr bool can_lookup_with =
+            std::invocable<hasher_type, const LookupKey &> &&
+            std::convertible_to<std::invoke_result_t<hasher_type, const LookupKey &>, hash_type> &&
+            std::invocable<key_equal_type, const key_type &, const LookupKey &> &&
+            std::convertible_to<std::invoke_result_t<key_equal_type, const key_type &, const LookupKey &>, bool>;
+
         static constexpr std::uint32_t bits_per_level = 5;
         static constexpr std::uint32_t fan_out = 1u << bits_per_level;
         static constexpr std::uint32_t index_mask = fan_out - 1;
@@ -372,6 +382,7 @@ namespace prism
         }
 
         template <typename LookupKey>
+            requires can_lookup_with<LookupKey>
         [[nodiscard]] constexpr Optional<const entry_type &> find(const LookupKey &key) const noexcept
         {
             if (root_ == nullptr)
@@ -381,6 +392,7 @@ namespace prism
         }
 
         template <typename LookupKey>
+            requires can_lookup_with<LookupKey>
         [[nodiscard]] constexpr bool contains(const LookupKey &key) const noexcept
         {
             return find(key).has_value();
@@ -404,6 +416,7 @@ namespace prism
         }
 
         template <typename LookupKey>
+            requires can_lookup_with<LookupKey>
         [[nodiscard]] constexpr Hamt remove(const LookupKey &key) const
         {
             if (root_ == nullptr)
@@ -562,17 +575,33 @@ namespace prism
             entries.reserve(collision.entries().size() + 1);
 
             bool replaced = false;
+            bool identical = false;
             for (const auto &existing : collision.entries())
             {
                 if (std::invoke(key_equal_, Traits::key_of(existing), Traits::key_of(entry)))
                 {
-                    entries.emplace_back(std::move(entry));
                     replaced = true;
+                    if (Traits::entry_equals(existing, entry))
+                    {
+                        identical = true;
+                        entries.emplace_back(existing);
+                    }
+                    else
+                    {
+                        entries.emplace_back(std::move(entry));
+                    }
                 }
                 else
                 {
                     entries.emplace_back(existing);
                 }
+            }
+
+            if (identical)
+            {
+                added = false;
+                changed = false;
+                return collision.shared_from_this();
             }
 
             if (!replaced)
@@ -694,6 +723,9 @@ namespace prism
                         const auto &existing = slot.entry();
                         if (std::invoke(key_equal_, Traits::key_of(existing), Traits::key_of(entry)))
                         {
+                            if (Traits::entry_equals(existing, entry))
+                                return {.root = node.shared_from_this(), .added = false, .changed = false};
+
                             auto slots = replace_slot(node, bit, Slot{std::move(entry)});
                             return {.root = make_node(node.bitmap(), std::move(slots)),
                                     .added = false,
@@ -867,6 +899,20 @@ namespace prism
         {
             return entry;
         }
+
+        [[nodiscard]] static constexpr bool entry_equals(const entry_type &lhs, const entry_type &rhs) noexcept
+        {
+            if constexpr (std::equality_comparable<entry_type>)
+            {
+                return lhs == rhs;
+            }
+            else
+            {
+                // Fallback for cases where we can't compare the values for equality
+                // In that case just assume everything is unique
+                return false;
+            }
+        }
     };
 
     template <typename Key,
@@ -886,6 +932,20 @@ namespace prism
         [[nodiscard]] static constexpr const key_type &key_of(const entry_type &entry) noexcept
         {
             return entry.first;
+        }
+
+        [[nodiscard]] static constexpr bool entry_equals(const entry_type &lhs, const entry_type &rhs) noexcept
+        {
+            if constexpr (std::equality_comparable<mapped_type>)
+            {
+                return lhs.second == rhs.second;
+            }
+            else
+            {
+                // Fallback for cases where we can't compare the values for equality
+                // In that case just assume everything is unique
+                return false;
+            }
         }
     };
 } // namespace prism

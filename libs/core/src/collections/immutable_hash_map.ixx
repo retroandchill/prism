@@ -55,7 +55,7 @@ namespace prism
         }
 
         template <typename Alt>
-            requires AlternativeLookupFor<const Alt, Key, Hash, KeyEqual, size_type>
+            requires AlternativeLookupFor<const Alt &, Key, Hash, KeyEqual, size_type>
         [[nodiscard]] constexpr bool contains(const Alt &key) const
         {
             return table_.contains(key);
@@ -67,7 +67,7 @@ namespace prism
         }
 
         template <typename Alt>
-            requires AlternativeLookupFor<const Alt, Key, Hash, KeyEqual, size_type>
+            requires AlternativeLookupFor<const Alt &, Key, Hash, KeyEqual, size_type>
         [[nodiscard]] constexpr const mapped_type &operator[](const Alt &key) const
         {
             return *try_get(key);
@@ -83,7 +83,7 @@ namespace prism
         }
 
         template <typename Alt>
-            requires AlternativeLookupFor<const Alt, Key, Hash, KeyEqual, size_type>
+            requires AlternativeLookupFor<const Alt &, Key, Hash, KeyEqual, size_type>
         [[nodiscard]] constexpr const mapped_type &get(const Alt &key) const
         {
             auto result = try_get(key);
@@ -100,7 +100,7 @@ namespace prism
         }
 
         template <typename Alt>
-            requires AlternativeLookupFor<const Alt, Key, Hash, KeyEqual, size_type>
+            requires AlternativeLookupFor<const Alt &, Key, Hash, KeyEqual, size_type>
         [[nodiscard]] constexpr Optional<const mapped_type &> try_get(const Alt &key) const
         {
             return table_.find(key).transform([](const value_type &value) -> const mapped_type &
@@ -129,7 +129,7 @@ namespace prism
         [[nodiscard]] constexpr ImmutableHashMap try_add(const Key &key, U &&value) const
         {
             if (contains(key))
-                throw *this;
+                return *this;
 
             return set(key, std::forward<U>(value));
         }
@@ -138,7 +138,7 @@ namespace prism
         [[nodiscard]] constexpr ImmutableHashMap try_add(Key &&key, U &&value) const
         {
             if (contains(key))
-                throw *this;
+                return *this;
 
             return set(std::move(key), std::forward<U>(value));
         }
@@ -146,16 +146,23 @@ namespace prism
         template <std::convertible_to<Value> U>
         [[nodiscard]] constexpr ImmutableHashMap set(const Key &key, U &&value) const
         {
-            return ImmutableHashMap{table_.set(value_type{std::move(key), std::move(value)})};
+            return ImmutableHashMap{table_.set(value_type{key, std::move(value)})};
         }
 
         template <std::convertible_to<Value> U>
         [[nodiscard]] constexpr ImmutableHashMap set(Key &&key, U &&value) const
         {
-            return ImmutableHashMap{table_.set(value_type{key, std::move(value)})};
+            return ImmutableHashMap{table_.set(value_type{std::move(key), std::move(value)})};
         }
 
         [[nodiscard]] constexpr ImmutableHashMap remove(const Key &key) const
+        {
+            return ImmutableHashMap{table_.remove(key)};
+        }
+
+        template <typename Alt>
+            requires AlternativeLookupFor<const Alt &, Key, Hash, KeyEqual, size_type>
+        [[nodiscard]] constexpr ImmutableHashMap remove(const Alt &key) const
         {
             return ImmutableHashMap{table_.remove(key)};
         }
