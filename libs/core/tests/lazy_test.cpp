@@ -4,13 +4,10 @@
  * @date 8/12/2026
  * @brief
  */
-module;
-
 #include <catch2/catch_test_macros.hpp>
 
-module prism.core:tests.lazy;
-
-import :util.lazy;
+import std;
+import prism.core;
 
 using namespace prism;
 

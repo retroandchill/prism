@@ -263,7 +263,7 @@ namespace prism
             requires std::copy_constructible<T>
         [[nodiscard]] constexpr ImmutableArray insert(const size_type index, U &&value) const
         {
-            if (index >= size())
+            if (index > size())
                 throw std::out_of_range{"ImmutableArray index out of range"};
 
             auto source = as_span();
@@ -285,7 +285,7 @@ namespace prism
             requires std::copy_constructible<T> && std::convertible_to<std::ranges::range_reference_t<Range>, T>
         [[nodiscard]] constexpr ImmutableArray insert_range(const size_type index, Range &&range) const
         {
-            if (index >= size())
+            if (index > size())
                 throw std::out_of_range{"ImmutableArray index out of range"};
 
             if constexpr (std::ranges::sized_range<Range>)
@@ -367,7 +367,7 @@ namespace prism
                 return {};
 
             auto source = as_span();
-            return create_with_size(
+            return ImmutableArray::create_with_size(
                 size() - 1,
                 get_allocator(),
                 [&](T *output)
@@ -375,6 +375,7 @@ namespace prism
                     output =
                         ImmutableArray::uninitialized_copy(source.begin(), std::next(source.begin(), index), output);
                     ImmutableArray::uninitialized_copy(std::next(source.begin(), index + 1), source.end(), output);
+                    return size() - 1;
                 });
         }
 
@@ -574,13 +575,13 @@ namespace prism
             PRISM_NO_UNIQUE_ADDRESS Allocator allocator;
         };
 
-        void add_ref() const noexcept
+        constexpr void add_ref() const noexcept
         {
             if (storage_ != nullptr)
                 storage_->ref_count.fetch_add(1, std::memory_order_relaxed);
         }
 
-        void sub_ref() noexcept
+        constexpr void sub_ref() noexcept
         {
             if (storage_ == nullptr)
                 return;

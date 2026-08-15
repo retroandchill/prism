@@ -33,6 +33,7 @@ export import :util.numerics;
 export import :util.overload;
 export import :util.enum_set;
 export import :util.lazy;
+export import :util.exceptions;
 
 export import :diagnostics.descriptor;
 export import :diagnostics.registry;
