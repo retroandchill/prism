@@ -109,4 +109,7 @@ namespace prism
     export template <typename Equals, typename Key, typename Alternative>
     concept TransparentEquals = Transparent<Equals> && std::invocable<Equals, const Key &, Alternative> &&
                                 std::convertible_to<std::invoke_result_t<Equals, const Key &, Alternative>, bool>;
+
+    export template <typename T, typename Key, typename Hasher, typename KeyEquals, typename Size = std::size_t>
+    concept AlternativeLookupFor = TransparentHasher<Hasher, Key, T, Size> && TransparentEquals<KeyEquals, Key, T>;
 } // namespace prism

@@ -246,6 +246,9 @@ namespace prism
             };
         };
 
+        using SlotAllocator = std::allocator_traits<allocator_type>::template rebind_alloc<Slot>;
+        using SlotArray = ImmutableArray<Slot, SlotAllocator>;
+
         class CollisionNode final : public IntrusiveRefCounted
         {
           public:
@@ -285,8 +288,7 @@ namespace prism
         class Node final : public IntrusiveRefCounted
         {
           public:
-            Node(const std::uint32_t bitmap, ImmutableArray<Slot, typename Traits::slot_allocator_type> slots)
-                : bitmap_{bitmap}, slots_{std::move(slots)}
+            Node(const std::uint32_t bitmap, SlotArray slots) : bitmap_{bitmap}, slots_{std::move(slots)}
             {
             }
 
@@ -317,7 +319,21 @@ namespace prism
 
           private:
             std::uint32_t bitmap_;
-            ImmutableArray<Slot, typename Traits::slot_allocator_type> slots_;
+            SlotArray slots_;
+        };
+
+        struct SetResult
+        {
+            NodePtr root;
+            bool added = false;
+            bool changed = false;
+        };
+
+        struct RemoveResult
+        {
+            NodePtr root;
+            bool removed = false;
+            bool changed = false;
         };
 
       public:
@@ -356,21 +372,71 @@ namespace prism
         }
 
         template <typename LookupKey>
-        [[nodiscard]] Optional<const entry_type &> find(const LookupKey &key) const noexcept
+        [[nodiscard]] constexpr Optional<const entry_type &> find(const LookupKey &key) const noexcept
         {
             if (root_ == nullptr)
                 return std::nullopt;
 
-            return find_in_node(*root_, key, static_cast<hash_type>(hasher_(key)), 0);
+            return find_in_node(*root_, key, static_cast<hash_type>(std::invoke(hasher_, key)), 0);
         }
 
         template <typename LookupKey>
-        [[nodiscard]] bool contains(const LookupKey &key) const noexcept
+        [[nodiscard]] constexpr bool contains(const LookupKey &key) const noexcept
         {
             return find(key).has_value();
         }
 
+        [[nodiscard]] constexpr Hamt set(entry_type entry) const
+        {
+            const auto hash = static_cast<hash_type>(std::invoke(hasher_, Traits::key_of(entry)));
+
+            if (root_ == nullptr)
+            {
+                auto root = make_node(bit_for_index(hash_index(hash, 0)), make_slot_array({Slot{std::move(entry)}}));
+                return Hamt{std::move(root), 1, hasher_, key_equal_, allocator_};
+            }
+
+            auto result = set_in_node(*root_, std::move(entry), hash, 0);
+            if (!result.changed)
+                return *this;
+
+            return Hamt{std::move(result.root), size_ + (result.added ? 1 : 0), hasher_, key_equal_, allocator_};
+        }
+
+        template <typename LookupKey>
+        [[nodiscard]] constexpr Hamt remove(const LookupKey &key) const
+        {
+            if (root_ == nullptr)
+                return *this;
+
+            const auto hash = static_cast<hash_type>(std::invoke(hasher_, key));
+            auto result = remove_from_node(*root_, key, hash, 0);
+            if (!result.changed)
+                return *this;
+
+            return Hamt{std::move(result.root), size_ - 1, hasher_, key_equal_, allocator_};
+        }
+
+        void swap(Hamt &other) noexcept
+        {
+            std::swap(root_, other.root_);
+            std::swap(size_, other.size_);
+            std::swap(hasher_, other.hasher_);
+            std::swap(key_equal_, other.key_equal_);
+            std::swap(allocator_, other.allocator_);
+        }
+
       private:
+        constexpr Hamt(NodePtr root,
+                       const size_type size,
+                       hasher_type hasher,
+                       key_equal_type key_equal,
+                       allocator_type allocator)
+            : root_{std::move(root)}, size_{size}, hasher_{std::move(hasher)}, key_equal_{std::move(key_equal)},
+              allocator_{std::move(allocator)}
+        {
+        }
+
         [[nodiscard]] static constexpr std::uint32_t hash_index(const hash_type hash,
                                                                 const std::uint32_t shift) noexcept
         {
@@ -388,11 +454,371 @@ namespace prism
             return static_cast<std::uint32_t>(std::popcount(bitmap & (bit - 1u)));
         }
 
+        [[nodiscard]] constexpr SlotArray make_slot_array(std::initializer_list<Slot> slots) const
+        {
+            return SlotArray{slots, SlotAllocator{allocator_}};
+        }
+
+        [[nodiscard]] constexpr SlotArray make_slot_array(std::vector<Slot, SlotAllocator> &&slots) const
+        {
+            return SlotArray{std::make_move_iterator(slots.begin()),
+                             std::make_move_iterator(slots.end()),
+                             SlotAllocator{allocator_}};
+        }
+
+        [[nodiscard]] constexpr NodePtr make_node(const std::uint32_t bitmap, SlotArray slots) const
+        {
+            return make_ref_counted<const Node>(bitmap, std::move(slots));
+        }
+
+        [[nodiscard]] constexpr CollisionNodePtr make_collision_node(
+            hash_type hash,
+            ImmutableArray<entry_type, allocator_type> entries) const
+        {
+            return make_ref_counted<const CollisionNode>(hash, std::move(entries));
+        }
+
+        [[nodiscard]] constexpr SlotArray insert_slot(const Node &node, const std::uint32_t bit, Slot slot) const
+        {
+            const auto insert_index = compact_index(node.bitmap(), bit);
+            std::vector<Slot, SlotAllocator> slots{SlotAllocator{allocator_}};
+            slots.reserve(node.slots().size() + 1);
+
+            for (std::size_t i = 0; i < insert_index; ++i)
+            {
+                slots.emplace_back(node.slots()[i]);
+            }
+
+            slots.emplace_back(std::move(slot));
+
+            for (std::size_t i = insert_index; i < node.slots().size(); ++i)
+            {
+                slots.emplace_back(node.slots()[i]);
+            }
+
+            return make_slot_array(std::move(slots));
+        }
+
+        [[nodiscard]] constexpr SlotArray replace_slot(const Node &node, const std::uint32_t bit, Slot slot) const
+        {
+            const auto replace_index = compact_index(node.bitmap(), bit);
+            std::vector<Slot, SlotAllocator> slots{SlotAllocator{allocator_}};
+            slots.reserve(node.slots().size());
+
+            for (std::size_t i = 0; i < node.slots().size(); ++i)
+            {
+                if (i == replace_index)
+                {
+                    slots.emplace_back(std::move(slot));
+                }
+                else
+                {
+                    slots.emplace_back(node.slots()[i]);
+                }
+            }
+
+            return make_slot_array(std::move(slots));
+        }
+
+        [[nodiscard]] constexpr SlotArray remove_slot(const Node &node, const std::uint32_t bit) const
+        {
+            const auto remove_index = compact_index(node.bitmap(), bit);
+            std::vector<Slot, SlotAllocator> slots{SlotAllocator{allocator_}};
+            slots.reserve(node.slots().size() - 1);
+
+            for (std::size_t i = 0; i < node.slots().size(); ++i)
+            {
+                if (i != remove_index)
+                {
+                    slots.emplace_back(node.slots()[i]);
+                }
+            }
+
+            return make_slot_array(std::move(slots));
+        }
+
+        [[nodiscard]] constexpr CollisionNodePtr create_collision(hash_type hash,
+                                                                  entry_type first,
+                                                                  entry_type second) const
+        {
+            std::vector<entry_type, allocator_type> entries{allocator_};
+            entries.reserve(2);
+            entries.emplace_back(std::move(first));
+            entries.emplace_back(std::move(second));
+
+            return make_collision_node(
+                hash,
+                ImmutableArray<entry_type, allocator_type>{std::make_move_iterator(entries.begin()),
+                                                           std::make_move_iterator(entries.end()),
+                                                           allocator_});
+        }
+
+        [[nodiscard]] constexpr CollisionNodePtr collision_set(const CollisionNode &collision,
+                                                               entry_type entry,
+                                                               bool &added,
+                                                               bool &changed) const
+        {
+            std::vector<entry_type, allocator_type> entries{allocator_};
+            entries.reserve(collision.entries().size() + 1);
+
+            bool replaced = false;
+            for (const auto &existing : collision.entries())
+            {
+                if (std::invoke(key_equal_, Traits::key_of(existing), Traits::key_of(entry)))
+                {
+                    entries.emplace_back(std::move(entry));
+                    replaced = true;
+                }
+                else
+                {
+                    entries.emplace_back(existing);
+                }
+            }
+
+            if (!replaced)
+            {
+                entries.emplace_back(std::move(entry));
+                added = true;
+            }
+
+            changed = true;
+            return make_collision_node(
+                collision.hash(),
+                ImmutableArray<entry_type, allocator_type>{std::make_move_iterator(entries.begin()),
+                                                           std::make_move_iterator(entries.end()),
+                                                           allocator_});
+        }
+
         template <typename LookupKey>
-        [[nodiscard]] Optional<const entry_type &> find_in_node(const Node &node,
-                                                                const LookupKey &key,
-                                                                const hash_type hash,
-                                                                const std::uint32_t shift) const noexcept
+        [[nodiscard]] constexpr CollisionNodePtr collision_remove(const CollisionNode &collision,
+                                                                  const LookupKey &key,
+                                                                  bool &removed,
+                                                                  bool &changed) const
+        {
+            std::vector<entry_type, allocator_type> entries{allocator_};
+            entries.reserve(collision.entries().size());
+
+            for (const auto &existing : collision.entries())
+            {
+                if (std::invoke(key_equal_, Traits::key_of(existing), key))
+                {
+                    removed = true;
+                    changed = true;
+                }
+                else
+                {
+                    entries.emplace_back(existing);
+                }
+            }
+
+            if (!removed)
+                return collision.shared_from_this();
+
+            return make_collision_node(
+                collision.hash(),
+                ImmutableArray<entry_type, allocator_type>{std::make_move_iterator(entries.begin()),
+                                                           std::make_move_iterator(entries.end()),
+                                                           allocator_});
+        }
+
+        [[nodiscard]] constexpr NodePtr merge_entries(entry_type existing,
+                                                      hash_type existing_hash,
+                                                      entry_type incoming,
+                                                      hash_type incoming_hash,
+                                                      std::uint32_t shift) const
+        {
+            if (shift >= max_shift || existing_hash == incoming_hash)
+            {
+                const auto index = hash_index(existing_hash, shift);
+                const auto bit = bit_for_index(index);
+                auto collision = create_collision(existing_hash, std::move(existing), std::move(incoming));
+                return make_node(bit, make_slot_array({Slot{std::move(collision)}}));
+            }
+
+            const auto existing_index = hash_index(existing_hash, shift);
+            const auto incoming_index = hash_index(incoming_hash, shift);
+
+            if (existing_index != incoming_index)
+            {
+                const auto existing_bit = bit_for_index(existing_index);
+                const auto incoming_bit = bit_for_index(incoming_index);
+                const auto bitmap = existing_bit | incoming_bit;
+
+                std::vector<Slot, SlotAllocator> slots{SlotAllocator{allocator_}};
+                slots.reserve(2);
+
+                if (existing_index < incoming_index)
+                {
+                    slots.emplace_back(std::move(existing));
+                    slots.emplace_back(std::move(incoming));
+                }
+                else
+                {
+                    slots.emplace_back(std::move(incoming));
+                    slots.emplace_back(std::move(existing));
+                }
+
+                return make_node(bitmap, make_slot_array(std::move(slots)));
+            }
+
+            const auto bit = bit_for_index(existing_index);
+            auto child = merge_entries(std::move(existing),
+                                       existing_hash,
+                                       std::move(incoming),
+                                       incoming_hash,
+                                       shift + bits_per_level);
+            return make_node(bit, make_slot_array({Slot{std::move(child)}}));
+        }
+
+        [[nodiscard]] constexpr SetResult set_in_node(const Node &node,
+                                                      entry_type entry,
+                                                      const hash_type hash,
+                                                      const std::uint32_t shift) const
+        {
+            const auto index = hash_index(hash, shift);
+            const auto bit = bit_for_index(index);
+
+            if (!node.contains_bit(bit))
+            {
+                const auto bitmap = node.bitmap() | bit;
+                auto slots = insert_slot(node, bit, Slot{std::move(entry)});
+                return {.root = make_node(bitmap, std::move(slots)), .added = true, .changed = true};
+            }
+
+            const auto &slot = node.slot_for_bit(bit);
+
+            switch (slot.kind())
+            {
+                case SlotKind::entry:
+                    {
+                        const auto &existing = slot.entry();
+                        if (std::invoke(key_equal_, Traits::key_of(existing), Traits::key_of(entry)))
+                        {
+                            auto slots = replace_slot(node, bit, Slot{std::move(entry)});
+                            return {.root = make_node(node.bitmap(), std::move(slots)),
+                                    .added = false,
+                                    .changed = true};
+                        }
+
+                        const auto existing_hash =
+                            static_cast<hash_type>(std::invoke(hasher_, Traits::key_of(existing)));
+                        auto child =
+                            merge_entries(existing, existing_hash, std::move(entry), hash, shift + bits_per_level);
+                        auto slots = replace_slot(node, bit, Slot{std::move(child)});
+                        return {.root = make_node(node.bitmap(), std::move(slots)), .added = true, .changed = true};
+                    }
+
+                case SlotKind::node:
+                    {
+                        auto child_result = set_in_node(slot.node(), std::move(entry), hash, shift + bits_per_level);
+                        if (!child_result.changed)
+                            return {.root = node.shared_from_this(), .added = false, .changed = false};
+
+                        auto slots = replace_slot(node, bit, Slot{std::move(child_result.root)});
+                        return {.root = make_node(node.bitmap(), std::move(slots)),
+                                .added = child_result.added,
+                                .changed = true};
+                    }
+
+                case SlotKind::collision:
+                    {
+                        bool added = false;
+                        bool changed = false;
+                        auto collision = collision_set(slot.collision(), std::move(entry), added, changed);
+
+                        if (!changed)
+                            return {.root = node.shared_from_this(), .added = false, .changed = false};
+
+                        auto slots = replace_slot(node, bit, Slot{std::move(collision)});
+                        return {.root = make_node(node.bitmap(), std::move(slots)), .added = added, .changed = true};
+                    }
+            }
+
+            std::unreachable();
+        }
+
+        template <typename LookupKey>
+        [[nodiscard]] constexpr RemoveResult remove_from_node(const Node &node,
+                                                              const LookupKey &key,
+                                                              const hash_type hash,
+                                                              const std::uint32_t shift) const
+        {
+            const auto index = hash_index(hash, shift);
+            const auto bit = bit_for_index(index);
+
+            if (!node.contains_bit(bit))
+            {
+                return {.root = node.shared_from_this(), .removed = false, .changed = false};
+            }
+
+            const auto &slot = node.slot_for_bit(bit);
+
+            switch (slot.kind())
+            {
+                case SlotKind::entry:
+                    {
+                        if (!std::invoke(key_equal_, Traits::key_of(slot.entry()), key))
+                            return {.root = node.shared_from_this(), .removed = false, .changed = false};
+
+                        const auto bitmap = node.bitmap() & ~bit;
+                        if (bitmap == 0)
+                            return {.root = nullptr, .removed = true, .changed = true};
+
+                        auto slots = remove_slot(node, bit);
+                        return {.root = make_node(bitmap, std::move(slots)), .removed = true, .changed = true};
+                    }
+
+                case SlotKind::node:
+                    {
+                        auto child_result = remove_from_node(slot.node(), key, hash, shift + bits_per_level);
+                        if (!child_result.changed)
+                            return {.root = node.shared_from_this(), .removed = false, .changed = false};
+
+                        if (child_result.root == nullptr)
+                        {
+                            const auto bitmap = node.bitmap() & ~bit;
+                            if (bitmap == 0)
+                                return {.root = nullptr, .removed = true, .changed = true};
+
+                            auto slots = remove_slot(node, bit);
+                            return {.root = make_node(bitmap, std::move(slots)), .removed = true, .changed = true};
+                        }
+
+                        auto slots = replace_slot(node, bit, Slot{std::move(child_result.root)});
+                        return {.root = make_node(node.bitmap(), std::move(slots)), .removed = true, .changed = true};
+                    }
+
+                case SlotKind::collision:
+                    {
+                        bool removed = false;
+                        bool changed = false;
+                        auto collision = collision_remove(slot.collision(), key, removed, changed);
+                        if (!changed)
+                            return {.root = node.shared_from_this(), .removed = false, .changed = false};
+
+                        if (collision->entries().empty())
+                        {
+                            const auto bitmap = node.bitmap() & ~bit;
+                            if (bitmap == 0)
+                                return {.root = nullptr, .removed = true, .changed = true};
+
+                            auto slots = remove_slot(node, bit);
+                            return {.root = make_node(bitmap, std::move(slots)), .removed = true, .changed = true};
+                        }
+
+                        auto slots = replace_slot(node, bit, Slot{std::move(collision)});
+                        return {.root = make_node(node.bitmap(), std::move(slots)), .removed = true, .changed = true};
+                    }
+            }
+
+            std::unreachable();
+        }
+
+        template <typename LookupKey>
+        [[nodiscard]] constexpr Optional<const entry_type &> find_in_node(const Node &node,
+                                                                          const LookupKey &key,
+                                                                          const hash_type hash,
+                                                                          const std::uint32_t shift) const noexcept
         {
             const auto index = hash_index(hash, shift);
             const auto bit = bit_for_index(index);
@@ -403,7 +829,7 @@ namespace prism
             switch (const auto &slot = node.slot_for_bit(bit); slot.kind())
             {
                 case SlotKind::entry:
-                    if (key_equal_(Traits::key_of(slot.entry()), key))
+                    if (std::invoke(key_equal_, Traits::key_of(slot.entry()), key))
                         return slot.entry();
 
                     return std::nullopt;
@@ -436,7 +862,6 @@ namespace prism
         using hasher_type = Hash;
         using key_equal_type = KeyEqual;
         using allocator_type = Allocator;
-        using slot_allocator_type = std::allocator_traits<Allocator>::template rebind_alloc<entry_type>;
 
         [[nodiscard]] static constexpr const key_type &key_of(const entry_type &entry) noexcept
         {
@@ -457,7 +882,6 @@ namespace prism
         using hasher_type = Hash;
         using key_equal_type = KeyEqual;
         using allocator_type = Allocator;
-        using slot_allocator_type = std::allocator_traits<Allocator>::template rebind_alloc<entry_type>;
 
         [[nodiscard]] static constexpr const key_type &key_of(const entry_type &entry) noexcept
         {
