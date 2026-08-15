@@ -28,4 +28,19 @@
             <Item Condition="value_ != nullptr" Name="[value]">*value_</Item>
         </Expand>
     </Type>
+
+    <Type Name="prism::ImmutableArray&lt;*&gt;">
+        <DisplayString Condition="storage_ == nullptr">empty</DisplayString>
+        <DisplayString Condition="storage_ != nullptr">{{ size={storage_->size} }}</DisplayString>
+        <Expand>
+            <Item Name="[size]" ExcludeView="simple" Condition="storage_ == nullptr">0</Item>
+            <Item Name="[size]" ExcludeView="simple" Condition="storage_ != nullptr">storage_->size</Item>
+            <Item Name="[ref count]" ExcludeView="simple" Condition="storage_ != nullptr">storage_->ref_count</Item>
+            <Item Name="[allocated size]" ExcludeView="simple" Condition="storage_ != nullptr">storage_->allocated_size</Item>
+            <ArrayItems Condition="storage_ != nullptr">
+                <Size>storage_->size</Size>
+                <ValuePointer>($T1*)(storage_ + 1)</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
 </AutoVisualizer>
