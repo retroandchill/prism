@@ -19,19 +19,16 @@ namespace prism
         namespace_,
     };
 
-    class Declaration;
-
-    class Declaration : NonCopyable
+    class Declaration : public IntrusiveRefCounted
     {
       protected:
-        constexpr explicit Declaration(SemanticLifetime &lifetime, Name name) noexcept
-            : name_{std::move(name)}, lifetime_{&lifetime}
+        constexpr explicit Declaration(Name name) noexcept : name_{std::move(name)}
         {
         }
 
-        ~Declaration() noexcept = default;
-
       public:
+        virtual ~Declaration() noexcept = default;
+
         [[nodiscard]] virtual DeclarationKind kind() const noexcept = 0;
 
         [[nodiscard]] constexpr Name name() const noexcept
@@ -39,20 +36,7 @@ namespace prism
             return name_;
         }
 
-        template <typename Self>
-        [[nodiscard]] constexpr std::shared_ptr<Self> shared_from_this(this Self &self) noexcept
-        {
-            return std::shared_ptr<Self>{self.lifetime_->shared_from_this(), std::addressof(self)};
-        }
-
-      protected:
-        [[nodiscard]] constexpr SemanticLifetime &lifetime() const noexcept
-        {
-            return *lifetime_;
-        }
-
       private:
         Name name_;
-        SemanticLifetime *lifetime_;
     };
 } // namespace prism

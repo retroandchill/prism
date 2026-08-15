@@ -17,19 +17,16 @@ namespace prism
     class SingleDeclaration : public Declaration
     {
       protected:
-        constexpr SingleDeclaration(SemanticLifetime &lifetime,
-                                    Name name,
+        constexpr SingleDeclaration(const Name name,
                                     SyntaxReference syntax_reference,
                                     SourceLocation name_location,
                                     ImmutableHashSet<Name> member_names,
-                                    std::span<const Diagnostic> diagnostics)
-            : Declaration{lifetime, name}, syntax_reference_{std::move(syntax_reference)},
-              name_location_{std::move(name_location)}, diagnostics_{diagnostics},
+                                    ImmutableArray<Diagnostic> diagnostics)
+            : Declaration{name}, syntax_reference_{std::move(syntax_reference)},
+              name_location_{std::move(name_location)}, diagnostics_{std::move(diagnostics)},
               member_names_{std::move(member_names)}
         {
         }
-
-        ~SingleDeclaration() noexcept = default;
 
       public:
         [[nodiscard]] inline SourceLocation location() const noexcept
@@ -47,7 +44,7 @@ namespace prism
             return name_location_;
         }
 
-        [[nodiscard]] constexpr std::span<const Diagnostic> diagnostics() const noexcept
+        [[nodiscard]] constexpr const ImmutableArray<Diagnostic> &diagnostics() const noexcept
         {
             return diagnostics_;
         }
@@ -60,7 +57,7 @@ namespace prism
       private:
         SyntaxReference syntax_reference_;
         SourceLocation name_location_;
-        std::span<const Diagnostic> diagnostics_;
+        ImmutableArray<Diagnostic> diagnostics_;
         ImmutableHashSet<Name> member_names_;
     };
 } // namespace prism

@@ -13,20 +13,20 @@ namespace prism
     class SingleRootNamespaceDeclaration final : public SingleNamespaceDeclaration
     {
       public:
-        constexpr SingleRootNamespaceDeclaration(SemanticLifetime &lifetime,
-                                                 const Name name,
+        constexpr SingleRootNamespaceDeclaration(const Name name,
                                                  const bool has_usings,
                                                  SyntaxReference syntax_reference,
                                                  SourceLocation name_location,
-                                                 const std::span<const Diagnostic> diagnostics,
-                                                 const std::span<const Ref<const SingleDeclaration>> children)
-            : SingleNamespaceDeclaration{lifetime,
-                                         name,
+                                                 MemberList members,
+                                                 ImmutableHashSet<Name> member_names,
+                                                 ImmutableArray<Diagnostic> diagnostics)
+            : SingleNamespaceDeclaration{name,
                                          has_usings,
                                          std::move(syntax_reference),
                                          std::move(name_location),
-                                         diagnostics,
-                                         children}
+                                         std::move(members),
+                                         std::move(member_names),
+                                         std::move(diagnostics)}
         {
         }
     };

@@ -22,14 +22,13 @@ namespace prism
         static constexpr ConstructTag construct_tag;
 
       public:
-        MergedNamespaceDeclaration(ConstructTag,
-                                   SemanticLifetime &lifetime,
-                                   std::span<const Ref<const SingleNamespaceDeclaration>> declarations);
+        using SingleNamespaceList = ImmutableArray<RefCountPtr<const SingleNamespaceDeclaration>>;
 
-        static MergedNamespaceDeclaration &create(SemanticLifetime &lifetime,
-                                                  std::span<const Ref<const SingleNamespaceDeclaration>> declarations);
+        MergedNamespaceDeclaration(ConstructTag, SingleNamespaceList declarations);
 
-        static std::shared_ptr<MergedNamespaceDeclaration> create(const SingleNamespaceDeclaration &declaration);
+        static RefCountPtr<MergedNamespaceDeclaration> create(SingleNamespaceList declarations);
+
+        static RefCountPtr<MergedNamespaceDeclaration> create(const SingleNamespaceDeclaration &declaration);
 
         [[nodiscard]] constexpr DeclarationKind kind() const noexcept override
         {
@@ -40,20 +39,20 @@ namespace prism
 
         [[nodiscard]] ImmutableArray<Location> name_locations() const;
 
-        [[nodiscard]] std::span<const Ref<const SingleNamespaceDeclaration>> declarations() const noexcept
+        [[nodiscard]] const SingleNamespaceList &declarations() const noexcept
         {
             return declarations_;
         }
 
-        [[nodiscard]] std::span<const Ref<const MergedDeclaration>> members() const;
+        [[nodiscard]] const ImmutableArray<RefCountPtr<const MergedDeclaration>> &members() const;
 
         [[nodiscard]] const ImmutableHashSet<Name> &member_names() const;
 
       private:
-        [[nodiscard]] std::span<const Ref<const MergedDeclaration>> make_children() const;
+        [[nodiscard]] ImmutableArray<RefCountPtr<const MergedDeclaration>> make_children() const;
 
-        std::span<const Ref<const SingleNamespaceDeclaration>> declarations_;
-        mutable Lazy<std::span<const Ref<const MergedDeclaration>>> members_;
+        SingleNamespaceList declarations_;
+        mutable Lazy<ImmutableArray<RefCountPtr<const MergedDeclaration>>> members_;
         mutable Lazy<ImmutableHashSet<Name>> member_names_;
     };
 } // namespace prism

@@ -12,22 +12,22 @@ namespace prism
 {
     class SingleNamespaceDeclaration : public SingleDeclaration
     {
-      protected:
-        constexpr SingleNamespaceDeclaration(SemanticLifetime &lifetime,
-                                             const Name name,
+      public:
+        using MemberList = ImmutableArray<RefCountPtr<const SingleDeclaration>>;
+
+        constexpr SingleNamespaceDeclaration(const Name name,
                                              const bool has_usings,
                                              SyntaxReference syntax_reference,
                                              SourceLocation name_location,
-                                             const std::span<const Ref<const SingleDeclaration>> members,
+                                             MemberList members,
                                              ImmutableHashSet<Name> member_names,
-                                             const std::span<const Diagnostic> diagnostics)
-            : SingleDeclaration{lifetime,
-                                name,
+                                             ImmutableArray<Diagnostic> diagnostics)
+            : SingleDeclaration{name,
                                 std::move(syntax_reference),
                                 std::move(name_location),
                                 std::move(member_names),
-                                diagnostics},
-              has_usings_{has_usings}, members_{members}
+                                std::move(diagnostics)},
+              has_usings_{has_usings}, members_{std::move(members)}
         {
         }
 
@@ -44,13 +44,13 @@ namespace prism
             return has_usings_;
         }
 
-        [[nodiscard]] constexpr std::span<const Ref<const SingleDeclaration>> members() const noexcept
+        [[nodiscard]] constexpr const MemberList &members() const noexcept
         {
             return members_;
         }
 
       private:
         bool has_usings_;
-        std::span<const Ref<const SingleDeclaration>> members_{};
+        MemberList members_{};
     };
 } // namespace prism

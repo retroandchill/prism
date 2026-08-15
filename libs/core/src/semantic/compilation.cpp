@@ -139,6 +139,45 @@ namespace prism
         return classifier.classify_conversion(source, destination);
     }
 
+    std::strong_ordering Compilation::compare_source_locations(const SourceLocation &lhs,
+                                                               const SourceLocation &rhs) const
+    {
+        if (const auto comparison = compare_syntax_tree_ordering(lhs.tree(), rhs.tree());
+            comparison != std::strong_ordering::equal)
+            return comparison;
+
+        return lhs.source_span().start <=> rhs.source_span().start;
+    }
+
+    std::strong_ordering Compilation::compare_source_locations(const SyntaxReference &lhs,
+                                                               const SyntaxReference &rhs) const
+    {
+        if (const auto comparison = compare_syntax_tree_ordering(lhs.tree(), rhs.tree());
+            comparison != std::strong_ordering::equal)
+            return comparison;
+
+        return lhs.span().start <=> rhs.span().start;
+    }
+
+    std::strong_ordering Compilation::compare_source_locations(const SyntaxNode &lhs, const SyntaxNode &rhs) const
+    {
+        if (const auto comparison = compare_syntax_tree_ordering(lhs.tree(), rhs.tree());
+            comparison != std::strong_ordering::equal)
+            return comparison;
+
+        return lhs.span().start <=> rhs.span().start;
+    }
+
+    std::strong_ordering Compilation::compare_syntax_tree_ordering(const SyntaxTree &lhs, const SyntaxTree &rhs) const
+    {
+        if (&lhs == &rhs)
+            return std::strong_ordering::equal;
+
+        DEBUG_ASSERT(contains_syntax_tree(lhs));
+        DEBUG_ASSERT(contains_syntax_tree(rhs));
+        return get_syntax_tree_ordinal(lhs) <=> get_syntax_tree_ordinal(rhs);
+    }
+
     std::uint32_t Compilation::get_syntax_tree_ordinal(const SyntaxTree &tree) const
     {
         DEBUG_ASSERT(trees_.size() < std::numeric_limits<std::uint32_t>::max());

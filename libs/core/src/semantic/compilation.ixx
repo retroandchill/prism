@@ -112,6 +112,15 @@ namespace prism
         friend class MergedNamespaceSymbol;
         friend class SemanticModel;
         friend class LexicalSortKey;
+        friend class DeclarationTable;
+
+        [[nodiscard]] std::strong_ordering compare_source_locations(const SourceLocation &lhs,
+                                                                    const SourceLocation &rhs) const;
+        [[nodiscard]] std::strong_ordering compare_source_locations(const SyntaxReference &lhs,
+                                                                    const SyntaxReference &rhs) const;
+        [[nodiscard]] std::strong_ordering compare_source_locations(const SyntaxNode &lhs, const SyntaxNode &rhs) const;
+        [[nodiscard]] std::strong_ordering compare_syntax_tree_ordering(const SyntaxTree &lhs,
+                                                                        const SyntaxTree &rhs) const;
 
         [[nodiscard]] std::uint32_t get_syntax_tree_ordinal(const SyntaxTree &tree) const;
 

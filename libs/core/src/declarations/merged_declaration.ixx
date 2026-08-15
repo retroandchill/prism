@@ -13,10 +13,8 @@ namespace prism
     class MergedDeclaration : public Declaration
     {
       protected:
-        constexpr MergedDeclaration(SemanticLifetime &lifetime, const Name name) : Declaration{lifetime, name}
+        explicit constexpr MergedDeclaration(const Name name) : Declaration{name}
         {
         }
-
-        ~MergedDeclaration() = default;
     };
 } // namespace prism
