@@ -13,6 +13,8 @@ export import :memory.ref_counted_ptr;
 export import :memory.persistent_allocator;
 export import :memory.default_allocator;
 
+export import :collections.immutable_array;
+
 export import :text.name;
 export import :text.text_span;
 export import :text.source_file;

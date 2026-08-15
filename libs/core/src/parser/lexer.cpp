@@ -285,7 +285,7 @@ namespace prism
 
     Optional<GreenPtr<GreenToken>> Lexer::match_character_literal(GreenTriviaList leading_trivia)
     {
-        DiagnosticInfoList diagnostics;
+        std::vector<std::shared_ptr<const DiagnosticInfo>> diagnostics;
         CharacterEncoding encoding;
         auto start = cursor_.position();
         auto remaining = cursor_.remaining();
@@ -366,7 +366,7 @@ namespace prism
                                     std::string{cursor_.since(start)},
                                     std::move(leading_trivia).node(),
                                     collect_trivia().node());
-        ptr->set_diagnostics(std::move(diagnostics));
+        ptr->set_diagnostics(make_immutable_array(diagnostics));
         return std::move(ptr);
     }
 
@@ -377,7 +377,7 @@ namespace prism
 
         const auto start = cursor_.position();
         std::string str;
-        DiagnosticInfoList diagnostics;
+        std::vector<std::shared_ptr<const DiagnosticInfo>> diagnostics;
         auto terminated = false;
         while (!cursor_.at_end())
         {
@@ -443,7 +443,7 @@ namespace prism
                                         std::string{slice},
                                         std::move(leading_trivia).node(),
                                         collect_trivia().node());
-        literal->set_diagnostics(std::move(diagnostics));
+        literal->set_diagnostics(make_immutable_array(diagnostics));
         return std::move(literal);
     }
 

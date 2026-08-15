@@ -131,7 +131,7 @@ namespace prism
 
     void GreenNode::add_diagnostic(std::shared_ptr<const DiagnosticInfo> diagnostic)
     {
-        diagnostics_.push_back(std::move(diagnostic));
+        diagnostics_ = diagnostics_.add(std::move(diagnostic));
         if (diagnostics_.size() > 1)
         {
             flags_ |= SyntaxFlags::contains_diagnostics;

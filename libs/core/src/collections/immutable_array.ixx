@@ -39,22 +39,22 @@ namespace prism
         {
         }
 
-        ImmutableArray(const ImmutableArray &other) noexcept : storage_{other.storage_}
+        constexpr ImmutableArray(const ImmutableArray &other) noexcept : storage_{other.storage_}
         {
             add_ref();
         }
 
-        ImmutableArray(ImmutableArray &&other) noexcept : storage_{std::exchange(other.storage_, nullptr)}
+        constexpr ImmutableArray(ImmutableArray &&other) noexcept : storage_{std::exchange(other.storage_, nullptr)}
         {
         }
 
-        ImmutableArray(std::initializer_list<T> values)
+        constexpr ImmutableArray(std::initializer_list<T> values)
             requires std::copy_constructible<T>
             : ImmutableArray{values, Allocator{}}
         {
         }
 
-        ImmutableArray(std::initializer_list<T> values, const Allocator &allocator)
+        constexpr ImmutableArray(std::initializer_list<T> values, const Allocator &allocator)
             requires std::copy_constructible<T>
             : storage_{Storage::create(values.begin(), values.end(), allocator)}
         {
@@ -62,24 +62,24 @@ namespace prism
 
         template <std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
             requires std::constructible_from<T, std::iter_reference_t<Iterator>>
-        ImmutableArray(Iterator first, Sentinel last, const Allocator &allocator = Allocator{})
+        constexpr ImmutableArray(Iterator first, Sentinel last, const Allocator &allocator = Allocator{})
             : storage_{Storage::create(first, last, allocator)}
         {
         }
 
         template <std::ranges::input_range Range>
             requires std::constructible_from<T, std::ranges::range_reference_t<Range>>
-        explicit ImmutableArray(Range &&range, const Allocator &allocator = Allocator{})
+        constexpr explicit ImmutableArray(std::from_range_t, Range &&range, const Allocator &allocator = Allocator{})
             : ImmutableArray{std::ranges::begin(range), std::ranges::end(range), allocator}
         {
         }
 
-        ~ImmutableArray() noexcept
+        constexpr ~ImmutableArray() noexcept
         {
             sub_ref();
         }
 
-        ImmutableArray &operator=(const ImmutableArray &other) noexcept
+        constexpr ImmutableArray &operator=(const ImmutableArray &other) noexcept
         {
             if (this == std::addressof(other) || storage_ == other.storage_)
                 return *this;
@@ -90,7 +90,7 @@ namespace prism
             return *this;
         }
 
-        ImmutableArray &operator=(ImmutableArray &&other) noexcept
+        constexpr ImmutableArray &operator=(ImmutableArray &&other) noexcept
         {
             if (this == std::addressof(other))
                 return *this;
@@ -125,7 +125,7 @@ namespace prism
             return data()[index];
         }
 
-        [[nodiscard]] const_reference at(const size_type index) const
+        [[nodiscard]] constexpr const_reference at(const size_type index) const
         {
             if (index >= size())
                 throw std::out_of_range{"ImmutableArray index out of range"};
@@ -188,7 +188,7 @@ namespace prism
             return {data(), size()};
         }
 
-        [[nodiscard]] allocator_type get_allocator() const noexcept
+        [[nodiscard]] constexpr allocator_type get_allocator() const noexcept
         {
             return storage_ != nullptr ? storage_->allocator : Allocator{};
         }
@@ -196,6 +196,192 @@ namespace prism
         [[nodiscard]] std::uint32_t use_count() const noexcept
         {
             return storage_ != nullptr ? storage_->ref_count.load(std::memory_order_relaxed) : 0;
+        }
+        template <std::convertible_to<T> U>
+            requires std::copy_constructible<T>
+        [[nodiscard]] constexpr ImmutableArray add(U &&value) const
+        {
+            auto source = as_span();
+            return create_with_size(size() + 1,
+                                    get_allocator(),
+                                    [&](T *output)
+                                    {
+                                        output =
+                                            ImmutableArray::uninitialized_copy(source.begin(), source.end(), output);
+                                        std::construct_at(output, std::forward<U>(value));
+                                        return size() + 1;
+                                    });
+        }
+
+        template <std::ranges::input_range Range>
+            requires std::copy_constructible<T> && std::convertible_to<std::ranges::range_reference_t<Range>, T>
+        [[nodiscard]] constexpr ImmutableArray add_range(Range &&range) const
+        {
+            if constexpr (std::ranges::sized_range<Range>)
+            {
+                const auto range_size = static_cast<size_type>(std::ranges::size(range));
+                if (range_size == 0)
+                    return *this;
+
+                auto source = as_span();
+                return create_with_size(size() + range_size,
+                                        get_allocator(),
+                                        [&](T *output)
+                                        {
+                                            output = uninitialized_copy(source.begin(), source.end(), output);
+                                            for (auto &&item : range)
+                                            {
+                                                std::construct_at(output, std::forward<decltype(item)>(item));
+                                                ++output;
+                                            }
+
+                                            return size() + range_size;
+                                        });
+            }
+            else
+            {
+                std::vector<T, Allocator> values{get_allocator()};
+                values.reserve(size());
+
+                for (const auto &item : *this)
+                {
+                    values.emplace_back(item);
+                }
+
+                for (auto &&item : range)
+                {
+                    values.emplace_back(std::forward<decltype(item)>(item));
+                }
+
+                return ImmutableArray{std::make_move_iterator(values.begin()),
+                                      std::make_move_iterator(values.end()),
+                                      get_allocator()};
+            }
+        }
+
+        template <std::convertible_to<T> U>
+            requires std::copy_constructible<T>
+        [[nodiscard]] constexpr ImmutableArray insert(const size_type index, U &&value) const
+        {
+            if (index >= size())
+                throw std::out_of_range{"ImmutableArray index out of range"};
+
+            auto source = as_span();
+            return create_with_size(
+                size() + 1,
+                get_allocator(),
+                [&](T *output)
+                {
+                    output =
+                        ImmutableArray::uninitialized_copy(source.begin(), std::next(source.begin(), index), output);
+                    std::construct_at(output, std::forward<U>(value));
+                    ++output;
+                    output = ImmutableArray::uninitialized_copy(std::next(source.begin(), index), source.end(), output);
+                    return size() + 1;
+                });
+        }
+
+        template <std::ranges::input_range Range>
+            requires std::copy_constructible<T> && std::convertible_to<std::ranges::range_reference_t<Range>, T>
+        [[nodiscard]] constexpr ImmutableArray insert_range(const size_type index, Range &&range) const
+        {
+            if (index >= size())
+                throw std::out_of_range{"ImmutableArray index out of range"};
+
+            if constexpr (std::ranges::sized_range<Range>)
+            {
+                auto source = as_span();
+                return create_with_size(
+                    size() + std::ranges::size(range),
+                    get_allocator(),
+                    [&](T *output)
+                    {
+                        output = ImmutableArray::uninitialized_copy(source.begin(),
+                                                                    std::next(source.begin(), index),
+                                                                    output);
+                        for (auto &&item : range)
+                        {
+                            std::construct_at(output, std::forward<decltype(item)>(item));
+                            ++output;
+                        }
+                        output =
+                            ImmutableArray::uninitialized_copy(std::next(source.begin(), index), source.end(), output);
+                        return size() + 1;
+                    });
+            }
+            else
+            {
+                std::vector<T, Allocator> values{get_allocator()};
+                values.reserve(size());
+
+                for (const auto &item : *this | std::views::take(index))
+                {
+                    values.emplace_back(item);
+                }
+
+                for (auto &&item : range)
+                {
+                    values.emplace_back(std::forward<decltype(item)>(item));
+                }
+
+                for (const auto &item : *this | std::views::drop(index))
+                {
+                    values.emplace_back(item);
+                }
+
+                return ImmutableArray{std::make_move_iterator(values.begin()),
+                                      std::make_move_iterator(values.end()),
+                                      get_allocator()};
+            }
+        }
+
+        template <std::convertible_to<T> U>
+            requires std::copy_constructible<T>
+        [[nodiscard]] constexpr ImmutableArray set(const size_type index, U &&value) const
+        {
+            if (index >= size())
+                throw std::out_of_range{"ImmutableArray index out of range"};
+
+            auto source = as_span();
+            return create_with_size(
+                size(),
+                get_allocator(),
+                [&](T *output)
+                {
+                    output =
+                        ImmutableArray::uninitialized_copy(source.begin(), std::next(source.begin(), index), output);
+                    std::construct_at(output, std::forward<U>(value));
+                    ++output;
+                    output =
+                        ImmutableArray::uninitialized_copy(std::next(source.begin(), index + 1), source.end(), output);
+                    return size();
+                });
+        }
+
+        [[nodiscard]] constexpr ImmutableArray remove_at(const size_type index) const
+        {
+            if (index >= size())
+                throw std::out_of_range{"ImmutableArray remove index out of range"};
+
+            if (size() == 1)
+                return {};
+
+            auto source = as_span();
+            return create_with_size(
+                size() - 1,
+                get_allocator(),
+                [&](T *output)
+                {
+                    output =
+                        ImmutableArray::uninitialized_copy(source.begin(), std::next(source.begin(), index), output);
+                    ImmutableArray::uninitialized_copy(std::next(source.begin(), index + 1), source.end(), output);
+                });
+        }
+
+        // ReSharper disable once CppMemberFunctionMayBeStatic
+        [[nodiscard]] constexpr ImmutableArray clear() const noexcept
+        {
+            return {};
         }
 
         void swap(ImmutableArray &other) noexcept
@@ -219,6 +405,47 @@ namespace prism
         using AllocatorTraits = std::allocator_traits<Allocator>;
         using StorageAllocator = AllocatorTraits::template rebind_alloc<std::byte>;
         using StorageAllocatorTraits = std::allocator_traits<StorageAllocator>;
+
+        explicit constexpr ImmutableArray(Storage *storage) noexcept : storage_{storage}
+        {
+        }
+
+        template <typename First, typename Last>
+        static T *uninitialized_copy(First first, Last last, T *output)
+        {
+            for (; first != last; ++first, ++output)
+            {
+                std::construct_at(output, *first);
+            }
+
+            return output;
+        }
+
+        template <std::invocable<T *> Initializer>
+            requires std::convertible_to<std::invoke_result_t<Initializer, T *>, size_type>
+        [[nodiscard]] static ImmutableArray create_with_size(const size_type size,
+                                                             const Allocator &allocator,
+                                                             Initializer &&initializer)
+        {
+            if (size == 0)
+                return {};
+
+            auto *storage = Storage::create_uninitialized(size, allocator);
+
+            size_type constructed = 0;
+            try
+            {
+                constructed = std::invoke(std::forward<Initializer>(initializer), storage->data());
+            }
+            catch (...)
+            {
+                std::destroy_n(storage->data(), constructed);
+                Storage::destroy_uninitialized(storage);
+                throw;
+            }
+
+            return ImmutableArray{storage};
+        }
 
         struct Storage
         {
@@ -274,7 +501,7 @@ namespace prism
 
                 const auto bytes = allocation_size(size);
                 StorageAllocator storage_allocator{allocator};
-                auto [memory, allocated] = StorageAllocatorTraits::allocate(storage_allocator, bytes);
+                auto [memory, allocated] = StorageAllocatorTraits::allocate_at_least(storage_allocator, bytes);
 
                 auto *storage = reinterpret_cast<Storage *>(memory);
                 std::construct_at(storage, size, allocated, allocator);
@@ -296,6 +523,29 @@ namespace prism
                 }
 
                 return storage;
+            }
+
+            [[nodiscard]] static Storage *create_uninitialized(const size_type size, const Allocator &allocator)
+            {
+                const auto bytes = allocation_size(size);
+                StorageAllocator storage_allocator{allocator};
+                const auto allocation = StorageAllocatorTraits::allocate_at_least(storage_allocator, bytes);
+                auto *memory = allocation.ptr;
+
+                auto *storage = reinterpret_cast<Storage *>(memory);
+                std::construct_at(storage, size, allocation.count, allocator);
+                return storage;
+            }
+
+            static void destroy_uninitialized(Storage *storage) noexcept
+            {
+                auto storage_allocator = StorageAllocator{storage->allocator};
+                const auto allocated_bytes = storage->allocated_size;
+
+                std::destroy_at(storage);
+                StorageAllocatorTraits::deallocate(storage_allocator,
+                                                   reinterpret_cast<std::byte *>(storage),
+                                                   allocated_bytes);
             }
 
             static void destroy(Storage *storage) noexcept
@@ -350,10 +600,12 @@ namespace prism
         lhs.swap(rhs);
     }
 
-    export template <typename Range, typename Allocator = DefaultAllocator<std::ranges::range_value_t<Range>>>
+    export template <std::ranges::input_range Range,
+                     typename Allocator = DefaultAllocator<std::ranges::range_value_t<Range>>>
+        requires std::copy_constructible<std::ranges::range_value_t<Range>>
     [[nodiscard]] auto make_immutable_array(Range &&range, const Allocator &allocator = Allocator{})
     {
         using T = std::ranges::range_value_t<Range>;
-        return ImmutableArray<T, Allocator>{std::forward<Range>(range), allocator};
+        return ImmutableArray<T, Allocator>{std::from_range, std::forward<Range>(range), allocator};
     }
 } // namespace prism

@@ -17,6 +17,7 @@ import :util.optional;
 import :util.exceptions;
 import libassert;
 import :text.string_writer;
+import :collections.immutable_array;
 
 namespace prism
 {
@@ -28,7 +29,7 @@ namespace prism
     class GreenToken;
     class DiagnosticInfo;
 
-    using DiagnosticInfoList = std::vector<std::shared_ptr<const DiagnosticInfo>>;
+    using DiagnosticInfoList = ImmutableArray<std::shared_ptr<const DiagnosticInfo>>;
 
     class GreenTrivia;
     template <typename T, bool Owning = true>
@@ -276,7 +277,7 @@ namespace prism
             requires std::convertible_to<std::ranges::range_reference_t<Range>, RefCountPtr<const DiagnosticInfo>>
         void add_diagnostics(Range &&range)
         {
-            diagnostics_.append_range(std::forward<Range>(range));
+            diagnostics_ = diagnostics_.add_range(std::forward<Range>(range));
             if (diagnostics_.size() > 1)
             {
                 flags_ |= SyntaxFlags::contains_diagnostics;
