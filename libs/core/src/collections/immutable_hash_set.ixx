@@ -36,6 +36,57 @@ namespace prism
 
         constexpr ImmutableHashSet() noexcept = default;
 
+        constexpr explicit ImmutableHashSet(Hash hash, KeyEqual key_equal = {}, Allocator allocator = {}) noexcept
+            : table_{std::move(hash), std::move(key_equal), std::move(allocator)}
+        {
+        }
+
+        constexpr ImmutableHashSet(std::initializer_list<T> values)
+            requires std::copy_constructible<T>
+            : ImmutableHashSet{values, Hash{}, KeyEqual{}, Allocator{}}
+        {
+        }
+
+        constexpr ImmutableHashSet(std::initializer_list<T> values,
+                                   Hash hash,
+                                   KeyEqual key_equal = KeyEqual{},
+                                   Allocator allocator = Allocator{})
+            requires std::copy_constructible<T>
+            : table_{Hash{std::move(hash)}, KeyEqual{std::move(key_equal)}, Allocator{std::move(allocator)}}
+        {
+            table_ = table_.set_range(values);
+        }
+
+        template <std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
+            requires std::convertible_to<std::iter_reference_t<Iterator>, T>
+        constexpr ImmutableHashSet(Iterator first,
+                                   Sentinel last,
+                                   Hash hash = Hash{},
+                                   KeyEqual key_equal = KeyEqual{},
+                                   Allocator allocator = Allocator{})
+            : table_{std::move(hash), std::move(key_equal), std::move(allocator)}
+        {
+            for (; first != last; ++first)
+            {
+                table_ = table_.set(static_cast<T>(*first));
+            }
+        }
+
+        template <std::ranges::input_range Range>
+            requires std::convertible_to<std::ranges::range_reference_t<Range>, T>
+        constexpr explicit ImmutableHashSet(std::from_range_t,
+                                            Range &&range,
+                                            Hash hash = Hash{},
+                                            KeyEqual key_equal = KeyEqual{},
+                                            Allocator allocator = Allocator{})
+            : ImmutableHashSet{std::ranges::begin(range),
+                               std::ranges::end(range),
+                               std::move(hash),
+                               std::move(key_equal),
+                               std::move(allocator)}
+        {
+        }
+
         [[nodiscard]] bool empty() const noexcept
         {
             return table_.empty();
@@ -84,6 +135,13 @@ namespace prism
             return ImmutableHashSet{table_.set(std::forward<U>(value))};
         }
 
+        template <std::ranges::input_range Range>
+            requires std::convertible_to<std::ranges::range_reference_t<Range>, T>
+        [[nodiscard]] constexpr ImmutableHashSet add_range(Range &&range) const
+        {
+            return ImmutableHashSet{table_.set_range(std::forward<Range>(range))};
+        }
+
         [[nodiscard]] constexpr ImmutableHashSet remove(const T &key) const
         {
             return ImmutableHashSet{table_.remove(key)};
@@ -125,5 +183,23 @@ namespace prism
               ImmutableHashSet<T, Hash, KeyEqual, Allocator> &rhs) noexcept
     {
         lhs.swap(rhs);
+    }
+
+    export template <std::ranges::input_range Range,
+                     typename Hash = std::hash<std::ranges::range_value_t<Range>>,
+                     typename KeyEqual = std::equal_to<std::ranges::range_value_t<Range>>,
+                     SimpleAllocator Allocator = DefaultAllocator<std::ranges::range_value_t<Range>>>
+        requires std::convertible_to<std::ranges::range_reference_t<Range>, std::ranges::range_value_t<Range>>
+    [[nodiscard]] constexpr auto make_immutable_hash_set(Range &&range,
+                                                         Hash hash = Hash{},
+                                                         KeyEqual key_equal = KeyEqual{},
+                                                         Allocator allocator = Allocator{})
+    {
+        using T = std::ranges::range_value_t<Range>;
+        return ImmutableHashSet<T, Hash, KeyEqual, Allocator>{std::from_range,
+                                                              std::forward<Range>(range),
+                                                              std::move(hash),
+                                                              std::move(key_equal),
+                                                              std::move(allocator)};
     }
 } // namespace prism

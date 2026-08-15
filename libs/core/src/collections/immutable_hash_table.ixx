@@ -586,6 +586,19 @@ namespace prism
             return Hamt{std::move(result.root), size_ + (result.added ? 1 : 0), hasher_, key_equal_, allocator_};
         }
 
+        template <std::ranges::input_range Range>
+            requires std::convertible_to<std::ranges::range_reference_t<Range>, entry_type>
+        [[nodiscard]] constexpr Hamt set_range(Range &&range) const
+        {
+            auto result = *this;
+            for (auto &&entry : range)
+            {
+                result = result.set(static_cast<entry_type>(std::forward<decltype(entry)>(entry)));
+            }
+
+            return result;
+        }
+
         template <typename LookupKey>
             requires can_lookup_with<LookupKey>
         [[nodiscard]] constexpr Hamt remove(const LookupKey &key) const

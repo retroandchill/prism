@@ -41,6 +41,59 @@ namespace prism
 
         constexpr ImmutableHashMap() noexcept = default;
 
+        constexpr explicit ImmutableHashMap(Hash hash,
+                                            KeyEqual key_equal = KeyEqual{},
+                                            Allocator allocator = Allocator{})
+            : table_{std::move(hash), std::move(key_equal), std::move(allocator)}
+        {
+        }
+
+        constexpr ImmutableHashMap(std::initializer_list<value_type> entries)
+            requires std::copy_constructible<value_type>
+            : ImmutableHashMap{entries, Hash{}, KeyEqual{}, Allocator{}}
+        {
+        }
+
+        constexpr ImmutableHashMap(std::initializer_list<value_type> entries,
+                                   Hash hash,
+                                   KeyEqual key_equal = KeyEqual{},
+                                   Allocator allocator = Allocator{})
+            requires std::copy_constructible<value_type>
+            : table_{std::move(hash), std::move(key_equal), std::move(allocator)}
+        {
+            table_ = table_.set_range(entries);
+        }
+
+        template <std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
+            requires std::convertible_to<std::iter_reference_t<Iterator>, value_type>
+        constexpr ImmutableHashMap(Iterator first,
+                                   Sentinel last,
+                                   Hash hash = Hash{},
+                                   KeyEqual key_equal = KeyEqual{},
+                                   Allocator allocator = Allocator{})
+            : table_{std::move(hash), std::move(key_equal), std::move(allocator)}
+        {
+            for (; first != last; ++first)
+            {
+                table_ = table_.set(static_cast<value_type>(*first));
+            }
+        }
+
+        template <std::ranges::input_range Range>
+            requires std::convertible_to<std::ranges::range_reference_t<Range>, value_type>
+        constexpr explicit ImmutableHashMap(std::from_range_t,
+                                            Range &&range,
+                                            Hash hash = Hash{},
+                                            KeyEqual key_equal = KeyEqual{},
+                                            Allocator allocator = Allocator{})
+            : ImmutableHashMap{std::ranges::begin(range),
+                               std::ranges::end(range),
+                               std::move(hash),
+                               std::move(key_equal),
+                               std::move(allocator)}
+        {
+        }
+
         [[nodiscard]] constexpr bool empty() const noexcept
         {
             return table_.empty();
@@ -177,6 +230,13 @@ namespace prism
             return ImmutableHashMap{table_.set(value_type{std::move(key), std::forward<U>(value)})};
         }
 
+        template <std::ranges::input_range Range>
+            requires std::convertible_to<std::ranges::range_reference_t<Range>, value_type>
+        [[nodiscard]] constexpr ImmutableHashMap set_range(Range &&range) const
+        {
+            return ImmutableHashMap{table_.set_range(std::forward<Range>(range))};
+        }
+
         [[nodiscard]] constexpr ImmutableHashMap remove(const Key &key) const
         {
             return ImmutableHashMap{table_.remove(key)};
@@ -220,4 +280,23 @@ namespace prism
         lhs.swap(rhs);
     }
 
+    export template <std::ranges::input_range Range,
+                     typename Entry = std::ranges::range_value_t<Range>,
+                     typename Key = std::remove_cv_t<std::tuple_element_t<0, Entry>>,
+                     typename Value = std::tuple_element_t<1, Entry>,
+                     typename Hash = std::hash<Key>,
+                     typename KeyEqual = std::equal_to<Key>,
+                     SimpleAllocator Allocator = DefaultAllocator<std::pair<Key, Value>>>
+        requires std::convertible_to<std::ranges::range_reference_t<Range>, std::pair<Key, Value>>
+    [[nodiscard]] constexpr auto make_immutable_hash_map(Range &&range,
+                                                         Hash hash = Hash{},
+                                                         KeyEqual key_equal = KeyEqual{},
+                                                         Allocator allocator = Allocator{})
+    {
+        return ImmutableHashMap<Key, Value, Hash, KeyEqual, Allocator>{std::from_range,
+                                                                       std::forward<Range>(range),
+                                                                       std::move(hash),
+                                                                       std::move(key_equal),
+                                                                       std::move(allocator)};
+    }
 } // namespace prism

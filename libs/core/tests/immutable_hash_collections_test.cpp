@@ -398,3 +398,124 @@ TEST_CASE("ImmutableHashMap clear returns an empty map", "[ImmutableHashMap]")
 
     CHECK(map.size() == 2);
 }
+
+TEST_CASE("ImmutableHashSet can be constructed from an initializer list", "[ImmutableHashSet]")
+{
+    const ImmutableHashSet<int> set{1, 2, 3, 2};
+
+    CHECK(set.size() == 3);
+    CHECK(set.contains(1));
+    CHECK(set.contains(2));
+    CHECK(set.contains(3));
+}
+
+TEST_CASE("ImmutableHashSet can be constructed from an iterator range", "[ImmutableHashSet]")
+{
+    const std::vector values{1, 2, 3, 2};
+
+    const ImmutableHashSet<int> set{values.begin(), values.end()};
+
+    CHECK(set.size() == 3);
+    CHECK(set.contains(1));
+    CHECK(set.contains(2));
+    CHECK(set.contains(3));
+}
+
+TEST_CASE("ImmutableHashSet can be constructed from a range", "[ImmutableHashSet]")
+{
+    const std::vector values{1, 2, 3, 2};
+
+    const ImmutableHashSet<int> set{std::from_range, values};
+
+    CHECK(set.size() == 3);
+    CHECK(set.contains(1));
+    CHECK(set.contains(2));
+    CHECK(set.contains(3));
+}
+
+TEST_CASE("ImmutableHashSet add_range adds multiple values", "[ImmutableHashSet]")
+{
+    const auto original = ImmutableHashSet<int>{}.add(1);
+    const std::array values{2, 3, 3, 4};
+
+    const auto updated = original.add_range(values);
+
+    CHECK(original.size() == 1);
+    CHECK(original.contains(1));
+
+    CHECK(updated.size() == 4);
+    CHECK(updated.contains(1));
+    CHECK(updated.contains(2));
+    CHECK(updated.contains(3));
+    CHECK(updated.contains(4));
+}
+
+TEST_CASE("make_immutable_hash_set constructs a set from a range", "[ImmutableHashSet]")
+{
+    const std::array values{1, 2, 3, 2};
+
+    const auto set = make_immutable_hash_set(values);
+
+    CHECK(set.size() == 3);
+    CHECK(set.contains(1));
+    CHECK(set.contains(2));
+    CHECK(set.contains(3));
+}
+
+TEST_CASE("ImmutableHashMap can be constructed from an initializer list", "[ImmutableHashMap]")
+{
+    const ImmutableHashMap<int, std::string> map{{{1, "one"}, {2, "two"}, {1, "uno"}}};
+
+    CHECK(map.size() == 2);
+    CHECK(map.get(1) == "uno");
+    CHECK(map.get(2) == "two");
+}
+
+TEST_CASE("ImmutableHashMap can be constructed from an iterator range", "[ImmutableHashMap]")
+{
+    const std::vector<std::pair<int, std::string>> entries{{1, "one"}, {2, "two"}, {1, "uno"}};
+
+    const ImmutableHashMap<int, std::string> map{entries.begin(), entries.end()};
+
+    CHECK(map.size() == 2);
+    CHECK(map.get(1) == "uno");
+    CHECK(map.get(2) == "two");
+}
+
+TEST_CASE("ImmutableHashMap can be constructed from a range", "[ImmutableHashMap]")
+{
+    const std::vector<std::pair<int, std::string>> entries{{1, "one"}, {2, "two"}, {1, "uno"}};
+
+    const ImmutableHashMap<int, std::string> map{std::from_range, entries};
+
+    CHECK(map.size() == 2);
+    CHECK(map.get(1) == "uno");
+    CHECK(map.get(2) == "two");
+}
+
+TEST_CASE("ImmutableHashMap set_range adds and replaces multiple values", "[ImmutableHashMap]")
+{
+    const auto original = ImmutableHashMap<int, std::string>{}.set(1, "one");
+    const std::array<std::pair<int, std::string>, 3> entries{{{2, "two"}, {3, "three"}, {1, "uno"}}};
+
+    const auto updated = original.set_range(entries);
+
+    CHECK(original.size() == 1);
+    CHECK(original.get(1) == "one");
+
+    CHECK(updated.size() == 3);
+    CHECK(updated.get(1) == "uno");
+    CHECK(updated.get(2) == "two");
+    CHECK(updated.get(3) == "three");
+}
+
+TEST_CASE("make_immutable_hash_map constructs a map from a range", "[ImmutableHashMap]")
+{
+    const std::array<std::pair<int, std::string>, 3> entries{{{1, "one"}, {2, "two"}, {1, "uno"}}};
+
+    const auto map = make_immutable_hash_map(entries);
+
+    CHECK(map.size() == 2);
+    CHECK(map.get(1) == "uno");
+    CHECK(map.get(2) == "two");
+}
