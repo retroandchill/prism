@@ -259,6 +259,16 @@ namespace prism
             return *result;
         }
 
+        [[nodiscard]] Optional<ReferenceType> try_get_value() const noexcept
+        {
+            const auto current = value_.load(std::memory_order::acquire);
+
+            if (current == uninitialized || current == computing)
+                return std::nullopt;
+
+            return decode(current);
+        }
+
         [[nodiscard]] Optional<T &> wait_if_computing() const noexcept
         {
             auto current = value_.load(std::memory_order::acquire);

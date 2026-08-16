@@ -31,11 +31,9 @@ namespace prism
       public:
         explicit SourceAssemblySymbol(const Compilation &compilation);
 
-        [[nodiscard]] constexpr const NamespaceSymbol &global_namespace() const noexcept override
-        {
-            ASSUME(global_namespace_ != nullptr);
-            return *global_namespace_;
-        }
+        [[nodiscard]] const ImmutableArray<Location> &locations() const override;
+
+        [[nodiscard]] const NamespaceSymbol &global_namespace() const override;
 
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
 
@@ -43,10 +41,9 @@ namespace prism
         [[nodiscard]] Optional<const Compilation &> declaring_compilation() const override;
 
       private:
-        friend class DeclarationMerger;
-
         const Compilation &declaring_compilation_;
-        const NamespaceSymbol *global_namespace_ = nullptr;
+        mutable Lazy<ImmutableArray<Location>> locations_;
+        mutable Lazy<const NamespaceSymbol &> global_namespace_;
     };
 
     class SourceNamespaceSymbol final : public NamespaceSymbol

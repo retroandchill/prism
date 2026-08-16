@@ -100,7 +100,8 @@ namespace prism
                 ImmutableArray<Diagnostic>{});
 
             children = ImmutableArray<RefCountPtr<const SingleDeclaration>>{std::move(ns)};
-            current_node = &qualified->left();
+            name = &qualified->left();
+            current_node = name;
             has_usings = false;
         }
 

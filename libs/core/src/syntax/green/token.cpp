@@ -40,7 +40,6 @@ namespace prism
                      std::move(trailing_trivia)}
     {
         set_flags(SyntaxFlags::not_missing);
-        set_slot_count(2);
         if (leading_trivia_ != nullptr)
             adjust_flags_and_width(*leading_trivia_);
         if (trailing_trivia_ != nullptr)
@@ -56,7 +55,6 @@ namespace prism
     {
         set_flags(SyntaxFlags::not_missing);
         DEBUG_ASSERT(prism::is_token(kind));
-        set_slot_count(2);
         if (leading_trivia_ != nullptr)
             adjust_flags_and_width(*leading_trivia_);
         if (trailing_trivia_ != nullptr)
@@ -125,15 +123,7 @@ namespace prism
 
     Optional<const GreenNode &> GreenToken::get_slot(std::size_t index) const
     {
-        switch (index)
-        {
-            case 0:
-                return leading_trivia_.get();
-            case 1:
-                return trailing_trivia_.get();
-            default:
-                return std::nullopt;
-        }
+        UNREACHABLE("We shouldn't be able to get here");
     }
 
     GreenPtr<GreenToken> GreenToken::with_leading_trivia(GreenPtr<GreenNode> leading_trivia) const

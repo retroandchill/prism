@@ -22,6 +22,29 @@ namespace prism
     {
     }
 
+    const ImmutableArray<Location> &SourceAssemblySymbol::locations() const
+    {
+        return locations_.get_or_compute(
+            [this]
+            {
+                return declaring_compilation_.merged_root_declaration().declarations() |
+                       std::views::transform([](const RefCountPtr<const SingleNamespaceDeclaration> &d)
+                                             { return d->location(); }) |
+                       std::ranges::to<ImmutableArray<Location>>();
+            });
+    }
+
+    const NamespaceSymbol &SourceAssemblySymbol::global_namespace() const
+    {
+        return global_namespace_.get_or_compute(
+            [this] -> auto &
+            {
+                return declaring_compilation_.lifetime_.create<SourceNamespaceSymbol>(
+                    declaring_compilation_.merged_root_declaration().shared_from_this(),
+                    this);
+            });
+    }
+
     std::span<const SyntaxReference> SourceAssemblySymbol::declaring_syntax_references() const
     {
         return {};

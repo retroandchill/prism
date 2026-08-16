@@ -82,9 +82,9 @@ namespace prism
         {
             const GreenNode *last_child = nullptr;
 
-            for (std::size_t i = node->slot_count() - 1; i != std::numeric_limits<std::size_t>::max(); --i)
+            for (std::size_t i = node->slot_count(); i > 0; --i)
             {
-                auto child = get_slot(i);
+                auto child = node->get_slot(i - 1);
                 if (!child.has_value())
                     continue;
 

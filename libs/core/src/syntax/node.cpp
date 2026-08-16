@@ -135,7 +135,7 @@ namespace prism
             {
                 for (auto *n : nodes)
                 {
-                    if (auto *existing_tree = n->tree_.wait_if_computing().value_ptr(); existing_tree != nullptr)
+                    if (auto *existing_tree = n->tree_.try_get_value().value_ptr(); existing_tree != nullptr)
                     {
                         DEBUG_ASSERT(existing_tree == tree);
                         continue;

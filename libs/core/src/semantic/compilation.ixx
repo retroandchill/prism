@@ -114,6 +114,10 @@ namespace prism
         friend class SemanticModel;
         friend class LexicalSortKey;
         friend class DeclarationTable;
+        friend class SourceAssemblySymbol;
+
+        [[nodiscard]] const DeclarationTable &declarations() const;
+        [[nodiscard]] const MergedNamespaceDeclaration &merged_root_declaration() const;
 
         [[nodiscard]] std::strong_ordering compare_source_locations(const SourceLocation &lhs,
                                                                     const SourceLocation &rhs) const;

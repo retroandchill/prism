@@ -20,6 +20,7 @@ import :symbols.intrinsic;
 import :binder.signature_binder;
 import :symbols.error;
 import :semantic.conversion_classifier;
+import :symbols.source;
 
 namespace prism
 {
@@ -53,7 +54,7 @@ namespace prism
 
     const AssemblySymbol &Compilation::assembly() const
     {
-        throw NotImplementedException{};
+        return assembly_.get_or_compute([this] -> auto & { return lifetime_.create<SourceAssemblySymbol>(*this); });
     }
 
     const NamespaceSymbol &Compilation::common_global_namespace() const
@@ -144,6 +145,16 @@ namespace prism
     std::shared_ptr<const Compilation> Compilation::shared_from_this() const noexcept
     {
         return {lifetime_.shared_from_this(), this};
+    }
+
+    const DeclarationTable &Compilation::declarations() const
+    {
+        return *syntax_and_declaration_manager_->state().declaration_table;
+    }
+
+    const MergedNamespaceDeclaration &Compilation::merged_root_declaration() const
+    {
+        return declarations().get_merged_root(*this);
     }
 
     std::strong_ordering Compilation::compare_source_locations(const SourceLocation &lhs,

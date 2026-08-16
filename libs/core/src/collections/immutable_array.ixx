@@ -460,12 +460,12 @@ namespace prism
 
             [[nodiscard]] T *data() noexcept
             {
-                return reinterpret_cast<T *>(this + 1);
+                return reinterpret_cast<T *>(reinterpret_cast<std::byte *>(this) + data_offset());
             }
 
             [[nodiscard]] const T *data() const noexcept
             {
-                return reinterpret_cast<const T *>(this + 1);
+                return reinterpret_cast<const T *>(reinterpret_cast<const std::byte *>(this) + data_offset());
             }
 
             template <std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
@@ -562,12 +562,13 @@ namespace prism
 
             [[nodiscard]] static consteval size_type data_offset() noexcept
             {
-                return sizeof(Storage);
+                constexpr auto alignment = alignof(T);
+                return (sizeof(Storage) + alignment - 1) / alignment * alignment;
             }
 
             [[nodiscard]] static constexpr size_type allocation_size(const size_type count) noexcept
             {
-                return sizeof(Storage) + sizeof(T) * count;
+                return data_offset() + sizeof(T) * count;
             }
 
             std::atomic<std::uint32_t> ref_count{1};

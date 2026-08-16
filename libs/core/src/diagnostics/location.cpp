@@ -23,7 +23,8 @@ namespace prism
     {
     }
 
-    SourceLocation::SourceLocation(const SyntaxNode &node) noexcept : syntax_tree_{&node.tree()}, span_{node.span()}
+    SourceLocation::SourceLocation(const SyntaxNode &node) noexcept
+        : syntax_tree_{node.tree().shared_from_this()}, span_{node.span()}
     {
     }
 

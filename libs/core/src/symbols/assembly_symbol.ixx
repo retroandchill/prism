@@ -21,7 +21,7 @@ namespace prism
         ~AssemblySymbol() = default;
 
       public:
-        [[nodiscard]] virtual const NamespaceSymbol &global_namespace() const noexcept = 0;
+        [[nodiscard]] virtual const NamespaceSymbol &global_namespace() const = 0;
 
         [[nodiscard]] static constexpr bool instance_of(const Symbol &symbol) noexcept
         {
