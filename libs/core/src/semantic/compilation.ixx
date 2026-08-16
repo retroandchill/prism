@@ -21,6 +21,7 @@ import :binder.semantic_mappings;
 import :symbols.type_symbol;
 import :semantic.bound_node_lookup;
 import :context.target_settings;
+import :semantic.syntax_and_declaration_manager;
 
 namespace prism
 {
@@ -58,16 +59,22 @@ namespace prism
 
       public:
         Compilation(CreateTag,
-                    ImmutableArray<std::shared_ptr<SyntaxTree>> trees,
-                    TargetSettings target_settings) noexcept;
+                    Name assembly_name,
+                    TargetSettings target_settings,
+                    RefCountPtr<SyntaxAndDeclarationManager> syntax_and_declarations) noexcept;
 
         static std::shared_ptr<Compilation> create(Name assembly_name,
-                                                   ImmutableArray<std::shared_ptr<SyntaxTree>> trees,
+                                                   ImmutableArray<std::shared_ptr<const SyntaxTree>> trees = {},
                                                    TargetSettings target_settings = TargetSettings::current_platform());
 
         [[nodiscard]] constexpr const TargetSettings &target_settings() const noexcept
         {
             return target_settings_;
+        }
+
+        [[nodiscard]] constexpr const Name &assembly_name() const noexcept
+        {
+            return assembly_name_;
         }
 
         [[nodiscard]] constexpr const AssemblySymbol &assembly() const noexcept
@@ -82,10 +89,7 @@ namespace prism
             return *global_namespace_;
         }
 
-        [[nodiscard]] constexpr const ImmutableArray<std::shared_ptr<SyntaxTree>> &trees() const noexcept
-        {
-            return trees_;
-        }
+        [[nodiscard]] const ImmutableArray<std::shared_ptr<const SyntaxTree>> &trees() const noexcept;
 
         [[nodiscard]] bool contains_syntax_tree(const SyntaxTree &tree) const noexcept;
 
@@ -124,11 +128,14 @@ namespace prism
 
         [[nodiscard]] std::uint32_t get_syntax_tree_ordinal(const SyntaxTree &tree) const;
 
-        std::shared_ptr<SemanticLifetime> lifetime_ = std::make_shared<SemanticLifetime>();
+        Name assembly_name_;
         TargetSettings target_settings_;
+        RefCountPtr<SyntaxAndDeclarationManager> syntax_and_declaration_manager_;
+
+        // Old-stuff, subject to pruning as we refactor to the lazy model
+        std::shared_ptr<SemanticLifetime> lifetime_ = std::make_shared<SemanticLifetime>();
         const AssemblySymbol *assembly_ = nullptr;
         const NamespaceSymbol *global_namespace_ = nullptr;
-        ImmutableArray<std::shared_ptr<SyntaxTree>> trees_;
         std::vector<Diagnostic> diagnostics_;
         SemanticMappings semantic_mappings_;
         BoundNodeLookup bound_node_lookup_;

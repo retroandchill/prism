@@ -27,58 +27,35 @@ namespace prism
 {
 
     Compilation::Compilation(CreateTag,
-                             ImmutableArray<std::shared_ptr<SyntaxTree>> trees,
-                             const TargetSettings target_settings) noexcept
-        : target_settings_{target_settings}, trees_{std::move(trees)}
+                             const Name assembly_name,
+                             const TargetSettings target_settings,
+                             RefCountPtr<SyntaxAndDeclarationManager> syntax_and_declarations) noexcept
+        : assembly_name_{assembly_name}, target_settings_{target_settings},
+          syntax_and_declaration_manager_{std::move(syntax_and_declarations)}
     {
     }
 
     std::shared_ptr<Compilation> Compilation::create(const Name assembly_name,
-                                                     ImmutableArray<std::shared_ptr<SyntaxTree>> trees,
+                                                     ImmutableArray<std::shared_ptr<const SyntaxTree>> trees,
                                                      const TargetSettings target_settings)
     {
         if (trees.empty())
             throw std::invalid_argument{"Cannot create a compilation with 0 syntax trees"};
 
-        auto compilation = std::make_shared<Compilation>(CreateTag{}, std::move(trees), target_settings);
+        return std::make_shared<Compilation>(CreateTag{},
+                                             assembly_name,
+                                             target_settings,
+                                             make_ref_counted<SyntaxAndDeclarationManager>(std::move(trees)));
+    }
 
-        auto declaration_records =
-            compilation->trees_ |
-            std::views::transform([](const auto &tree) { return DeclarationBinder{*tree}.bind(); }) | std::views::join |
-            std::ranges::to<std::vector>();
-
-        DiagnosticBag diagnostics{16};
-        auto &lifetime = *compilation->lifetime_;
-        auto &mappings = compilation->semantic_mappings_;
-        std::vector<PartiallyBoundSymbol> partially_bound;
-        compilation->assembly_ =
-            &DeclarationMerger{assembly_name, lifetime, mappings, partially_bound}.merge(declaration_records);
-
-        std::vector<Ref<const NamespaceSymbol>> global_namespaces;
-        global_namespaces.reserve(2);
-        global_namespaces.emplace_back(compilation->assembly().global_namespace());
-        global_namespaces.emplace_back(IntrinsicSymbols::instance().global_namespace());
-        compilation->global_namespace_ =
-            &MergedNamespaceSymbol::create(*compilation, nullptr, std::move(global_namespaces));
-
-        const DeclarationScopeBuilder declaration_scopes{lifetime,
-                                                         *compilation->global_namespace_,
-                                                         diagnostics,
-                                                         mappings};
-        for (const auto &tree : trees)
-        {
-            declaration_scopes.add(*tree);
-        }
-
-        SignatureBinder{*compilation, diagnostics}.bind(partially_bound);
-        diagnostics.move_to(compilation->diagnostics_);
-
-        return compilation;
+    const ImmutableArray<std::shared_ptr<const SyntaxTree>> &Compilation::trees() const noexcept
+    {
+        return syntax_and_declaration_manager_->state().syntax_trees;
     }
 
     bool Compilation::contains_syntax_tree(const SyntaxTree &tree) const noexcept
     {
-        return std::ranges::any_of(trees_, [&](const auto &t) { return t.get() == &tree; });
+        return syntax_and_declaration_manager_->state().root_namespaces.contains(&tree);
     }
 
     const SemanticModel &Compilation::get_semantic_model(const SyntaxTree &tree) const
@@ -180,15 +157,7 @@ namespace prism
 
     std::uint32_t Compilation::get_syntax_tree_ordinal(const SyntaxTree &tree) const
     {
-        DEBUG_ASSERT(trees_.size() < std::numeric_limits<std::uint32_t>::max());
         DEBUG_ASSERT(contains_syntax_tree(tree));
-
-        for (std::uint32_t i = 0; i < trees_.size(); ++i)
-        {
-            if (trees_[i].get() == &tree)
-                return i;
-        }
-
-        UNREACHABLE("We should never reach this point");
+        return syntax_and_declaration_manager_->state().ordinal_map.get(&tree);
     }
 } // namespace prism

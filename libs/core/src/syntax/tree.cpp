@@ -48,12 +48,12 @@ namespace prism
     {
     }
 
-    std::shared_ptr<SyntaxTree> SyntaxTree::parse(std::string text)
+    std::shared_ptr<const SyntaxTree> SyntaxTree::parse(std::string text)
     {
         return parse(std::make_shared<SourceText>(std::move(text)));
     }
 
-    std::shared_ptr<SyntaxTree> SyntaxTree::parse(std::shared_ptr<SourceText> text)
+    std::shared_ptr<const SyntaxTree> SyntaxTree::parse(std::shared_ptr<SourceText> text)
     {
         LanguageParser parser{text->text()};
         auto root = parser.parse_compilation_unit();

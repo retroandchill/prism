@@ -11,6 +11,7 @@ import :util.lazy;
 import :util.ref;
 import :collections.immutable_ordered_set;
 import :declarations.merged_namespace_declaration;
+import :declarations.single_root_namespace_declaration;
 import :util.lazy_value;
 
 namespace prism
@@ -18,10 +19,11 @@ namespace prism
     class SingleRootNamespaceDeclaration;
     class Compilation;
 
+    using LazyRootNamespace = LazyValue<RefCountPtr<const SingleRootNamespaceDeclaration>>;
+
     class DeclarationTable final : public IntrusiveRefCounted
     {
 
-        using LazyRootNamespace = LazyValue<RefCountPtr<const SingleRootNamespaceDeclaration>>;
         struct ConstructTag
         {
         };

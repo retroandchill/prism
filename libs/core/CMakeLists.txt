@@ -198,8 +198,6 @@ set(PRISM_MODULES
         src/collections/immutable_hash_set.ixx
         src/collections/immutable_ordered_set.ixx
         src/util/lazy_value.ixx
-        src/semantic/syntax_and_declaration_state.ixx
-        src/semantic/syntax_and_declaration_state.cpp
         src/declarations/declaration.ixx
         src/declarations/single_declaration.ixx
         src/declarations/single_namespace_declaration.ixx
@@ -212,6 +210,8 @@ set(PRISM_MODULES
         src/declarations/visit.ixx
         src/declarations/declaration_tree_builder.ixx
         src/declarations/declaration_tree_builder.cpp
+        src/semantic/syntax_and_declaration_manager.ixx
+        src/semantic/syntax_and_declaration_manager.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

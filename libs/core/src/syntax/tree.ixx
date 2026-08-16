@@ -38,8 +38,8 @@ namespace prism
 
         SyntaxTree(ConstructTag, const SyntaxNode &root, SyntaxLifetime &lifetime);
 
-        static std::shared_ptr<SyntaxTree> parse(std::string text);
-        static std::shared_ptr<SyntaxTree> parse(std::shared_ptr<SourceText> text);
+        static std::shared_ptr<const SyntaxTree> parse(std::string text);
+        static std::shared_ptr<const SyntaxTree> parse(std::shared_ptr<SourceText> text);
 
         [[nodiscard]] constexpr const std::string &path() const noexcept
         {
