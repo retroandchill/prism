@@ -23,20 +23,13 @@ namespace prism
                                              ImmutableHashSet<Name> member_names,
                                              ImmutableArray<Diagnostic> diagnostics)
             : SingleDeclaration{name,
+                                DeclarationKind::namespace_,
                                 std::move(syntax_reference),
                                 std::move(name_location),
                                 std::move(member_names),
                                 std::move(diagnostics)},
               has_usings_{has_usings}, members_{std::move(members)}
         {
-        }
-
-        ~SingleNamespaceDeclaration() noexcept = default;
-
-      public:
-        [[nodiscard]] constexpr DeclarationKind kind() const noexcept final
-        {
-            return DeclarationKind::namespace_;
         }
 
         [[nodiscard]] constexpr bool has_usings() const noexcept

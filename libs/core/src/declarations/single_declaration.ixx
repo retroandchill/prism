@@ -18,11 +18,12 @@ namespace prism
     {
       protected:
         constexpr SingleDeclaration(const Name name,
+                                    const DeclarationKind kind,
                                     SyntaxReference syntax_reference,
                                     SourceLocation name_location,
                                     ImmutableHashSet<Name> member_names,
                                     ImmutableArray<Diagnostic> diagnostics)
-            : Declaration{name}, syntax_reference_{std::move(syntax_reference)},
+            : Declaration{name, kind, false}, syntax_reference_{std::move(syntax_reference)},
               name_location_{std::move(name_location)}, diagnostics_{std::move(diagnostics)},
               member_names_{std::move(member_names)}
         {

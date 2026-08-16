@@ -13,7 +13,8 @@ namespace prism
     class MergedDeclaration : public Declaration
     {
       protected:
-        explicit constexpr MergedDeclaration(const Name name) : Declaration{name}
+        explicit constexpr MergedDeclaration(const Name name, const DeclarationKind kind)
+            : Declaration{name, kind, true}
         {
         }
     };

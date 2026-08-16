@@ -30,11 +30,6 @@ namespace prism
 
         static RefCountPtr<MergedNamespaceDeclaration> create(const SingleNamespaceDeclaration &declaration);
 
-        [[nodiscard]] constexpr DeclarationKind kind() const noexcept override
-        {
-            return DeclarationKind::namespace_;
-        }
-
         [[nodiscard]] LexicalSortKey get_lexical_sort_key(const Compilation &compilation) const;
 
         [[nodiscard]] ImmutableArray<Location> name_locations() const;

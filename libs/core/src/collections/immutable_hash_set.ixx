@@ -204,7 +204,7 @@ namespace prism
                      typename Hash = std::hash<std::ranges::range_value_t<Range>>,
                      typename KeyEqual = std::equal_to<std::ranges::range_value_t<Range>>,
                      SimpleAllocator Allocator = DefaultAllocator<std::ranges::range_value_t<Range>>>
-    ImmutableHashSet(Range &&, Hash = Hash{}, KeyEqual = KeyEqual{}, Allocator = Allocator{})
+    ImmutableHashSet(std::from_range_t, Range &&, Hash = Hash{}, KeyEqual = KeyEqual{}, Allocator = Allocator{})
         -> ImmutableHashSet<std::ranges::range_value_t<Range>, Hash, KeyEqual, Allocator>;
 
     export template <typename T, typename Hash, typename KeyEqual, typename Allocator>

@@ -88,7 +88,7 @@ namespace prism
                 return value_.has_value();
             }
 
-            [[nodiscard]] constexpr T &get() noexcept
+            [[nodiscard]] constexpr const T &get() noexcept
             {
                 return value_.get_or_compute([this] { return factory_(); });
             }

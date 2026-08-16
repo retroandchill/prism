@@ -209,6 +209,7 @@ set(PRISM_MODULES
         src/declarations/merged_namespace_declaration.cpp
         src/declarations/declaration_table.ixx
         src/declarations/declaration_table.cpp
+        src/declarations/visit.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

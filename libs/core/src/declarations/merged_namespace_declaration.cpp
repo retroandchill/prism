@@ -12,6 +12,7 @@ module prism.core:declarations.merged_namespace_declaration.impl;
 
 import :declarations.merged_namespace_declaration;
 import :memory.buffer_pool;
+import :declarations.visit;
 
 namespace prism
 {
@@ -46,7 +47,8 @@ namespace prism
     } // namespace
 
     MergedNamespaceDeclaration::MergedNamespaceDeclaration(ConstructTag, SingleNamespaceList declarations)
-        : MergedDeclaration{!declarations.empty() ? declarations.front()->name() : KnownName::none},
+        : MergedDeclaration{!declarations.empty() ? declarations.front()->name() : KnownName::none,
+                            DeclarationKind::namespace_},
           declarations_{std::move(declarations)}
     {
     }
@@ -110,20 +112,17 @@ namespace prism
                                        { return declaration->members(); }) |
                  std::views::join)
         {
-            if (const auto as_namespace = dynamic_cast<const SingleNamespaceDeclaration *>(child.get());
-                as_namespace != nullptr)
-            {
-                if (!namespaces.empty() && all_namespaces_has_same_name &&
-                    as_namespace->name() != namespaces.front()->name())
-                {
-                    all_namespaces_has_same_name = false;
-                }
+            visit(*child,
+                  Overload{[&](const SingleNamespaceDeclaration &as_namespace)
+                           {
+                               if (!namespaces.empty() && all_namespaces_has_same_name &&
+                                   as_namespace.name() != namespaces.front()->name())
+                               {
+                                   all_namespaces_has_same_name = false;
+                               }
 
-                namespaces.emplace_back(as_namespace->shared_from_this());
-                continue;
-            }
-
-            PANIC("If we got here then some strange type got through that we don't want");
+                               namespaces.emplace_back(as_namespace.shared_from_this());
+                           }});
         }
 
         PooledVector<RefCountPtr<const MergedDeclaration>> children;
