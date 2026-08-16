@@ -51,6 +51,23 @@ namespace prism
         return std::shared_ptr<Compilation>{std::move(lifetime), &compilation};
     }
 
+    const AssemblySymbol &Compilation::assembly() const
+    {
+        throw NotImplementedException{};
+    }
+
+    const NamespaceSymbol &Compilation::common_global_namespace() const
+    {
+        return global_namespace_.get_or_compute(
+            [this] -> auto &
+            {
+                return MergedNamespaceSymbol::create(*this,
+                                                     nullptr,
+                                                     std::vector{Ref{assembly().global_namespace()},
+                                                                 Ref{IntrinsicSymbols::instance().global_namespace()}});
+            });
+    }
+
     const ImmutableArray<std::shared_ptr<const SyntaxTree>> &Compilation::trees() const noexcept
     {
         return syntax_and_declaration_manager_->state().syntax_trees;

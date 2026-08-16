@@ -78,17 +78,9 @@ namespace prism
             return assembly_name_;
         }
 
-        [[nodiscard]] constexpr const AssemblySymbol &assembly() const noexcept
-        {
-            ASSUME(assembly_ != nullptr);
-            return *assembly_;
-        }
+        [[nodiscard]] const AssemblySymbol &assembly() const;
 
-        [[nodiscard]] constexpr const NamespaceSymbol &common_global_namespace() const noexcept
-        {
-            ASSUME(global_namespace_ != nullptr);
-            return *global_namespace_;
-        }
+        [[nodiscard]] const NamespaceSymbol &common_global_namespace() const;
 
         [[nodiscard]] const ImmutableArray<std::shared_ptr<const SyntaxTree>> &trees() const noexcept;
 
@@ -137,10 +129,10 @@ namespace prism
         Name assembly_name_;
         TargetSettings target_settings_;
         RefCountPtr<SyntaxAndDeclarationManager> syntax_and_declaration_manager_;
+        mutable Lazy<const AssemblySymbol &> assembly_;
+        mutable Lazy<const NamespaceSymbol &> global_namespace_;
 
         // Old-stuff, subject to pruning as we refactor to the lazy model
-        const AssemblySymbol *assembly_ = nullptr;
-        const NamespaceSymbol *global_namespace_ = nullptr;
         std::vector<Diagnostic> diagnostics_;
         SemanticMappings semantic_mappings_;
         BoundNodeLookup bound_node_lookup_;
