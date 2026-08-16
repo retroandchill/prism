@@ -51,7 +51,7 @@ struct std::hash<prism::SymbolLookupKey>
 
 namespace prism
 {
-    export class PRISM_CORE_API Compilation : public std::enable_shared_from_this<Compilation>
+    export class PRISM_CORE_API Compilation final : NonCopyable
     {
         struct CreateTag
         {
@@ -59,6 +59,7 @@ namespace prism
 
       public:
         Compilation(CreateTag,
+                    SemanticLifetime &lifetime,
                     Name assembly_name,
                     TargetSettings target_settings,
                     RefCountPtr<SyntaxAndDeclarationManager> syntax_and_declarations) noexcept;
@@ -112,6 +113,10 @@ namespace prism
 
         [[nodiscard]] Conversion classify_conversion(const TypeSymbol &source, const TypeSymbol &destination) const;
 
+        [[nodiscard]] std::shared_ptr<Compilation> shared_from_this() noexcept;
+
+        [[nodiscard]] std::shared_ptr<const Compilation> shared_from_this() const noexcept;
+
       private:
         friend class MergedNamespaceSymbol;
         friend class SemanticModel;
@@ -128,12 +133,12 @@ namespace prism
 
         [[nodiscard]] std::uint32_t get_syntax_tree_ordinal(const SyntaxTree &tree) const;
 
+        SemanticLifetime &lifetime_;
         Name assembly_name_;
         TargetSettings target_settings_;
         RefCountPtr<SyntaxAndDeclarationManager> syntax_and_declaration_manager_;
 
         // Old-stuff, subject to pruning as we refactor to the lazy model
-        std::shared_ptr<SemanticLifetime> lifetime_ = std::make_shared<SemanticLifetime>();
         const AssemblySymbol *assembly_ = nullptr;
         const NamespaceSymbol *global_namespace_ = nullptr;
         std::vector<Diagnostic> diagnostics_;

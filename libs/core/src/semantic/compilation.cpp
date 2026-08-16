@@ -25,10 +25,11 @@ namespace prism
 {
 
     Compilation::Compilation(CreateTag,
+                             SemanticLifetime &lifetime,
                              const Name assembly_name,
                              const TargetSettings target_settings,
                              RefCountPtr<SyntaxAndDeclarationManager> syntax_and_declarations) noexcept
-        : assembly_name_{assembly_name}, target_settings_{target_settings},
+        : lifetime_{lifetime}, assembly_name_{assembly_name}, target_settings_{target_settings},
           syntax_and_declaration_manager_{std::move(syntax_and_declarations)}
     {
     }
@@ -40,10 +41,14 @@ namespace prism
         if (trees.empty())
             throw std::invalid_argument{"Cannot create a compilation with 0 syntax trees"};
 
-        return std::make_shared<Compilation>(CreateTag{},
-                                             assembly_name,
-                                             target_settings,
-                                             make_ref_counted<SyntaxAndDeclarationManager>(std::move(trees)));
+        auto lifetime = std::make_shared<SemanticLifetime>();
+        auto &compilation =
+            lifetime->create<Compilation>(CreateTag{},
+                                          *lifetime,
+                                          assembly_name,
+                                          target_settings,
+                                          make_ref_counted<SyntaxAndDeclarationManager>(std::move(trees)));
+        return std::shared_ptr<Compilation>{std::move(lifetime), &compilation};
     }
 
     const ImmutableArray<std::shared_ptr<const SyntaxTree>> &Compilation::trees() const noexcept
@@ -62,7 +67,7 @@ namespace prism
         if (const auto it = semantic_models_.find(&tree); it != semantic_models_.end())
             return *it->second;
 
-        auto &model = lifetime_->create<SemanticModel>(SemanticModel::create_tag, *this, tree);
+        auto &model = lifetime_.create<SemanticModel>(SemanticModel::create_tag, *this, tree);
         semantic_models_.emplace(&tree, &model);
         return model;
     }
@@ -90,7 +95,7 @@ namespace prism
         if (const auto it = error_types_.find(lookup_key); it != error_types_.end())
             return *it->second;
 
-        auto &error_type = lifetime_->create<ErrorTypeSymbol>(name, container.value_ptr());
+        auto &error_type = lifetime_.create<ErrorTypeSymbol>(name, container.value_ptr());
         error_types_.emplace(lookup_key, &error_type);
         return error_type;
     }
@@ -103,7 +108,7 @@ namespace prism
         if (const auto it = error_namespaces_.find(lookup_key); it != error_namespaces_.end())
             return *it->second;
 
-        auto &error_namespace = lifetime_->create<ErrorNamespaceSymbol>(name, container.value_ptr());
+        auto &error_namespace = lifetime_.create<ErrorNamespaceSymbol>(name, container.value_ptr());
         error_namespaces_.emplace(lookup_key, &error_namespace);
         return error_namespace;
     }
@@ -112,6 +117,16 @@ namespace prism
     {
         const ConversionClassifier classifier{target_settings_};
         return classifier.classify_conversion(source, destination);
+    }
+
+    std::shared_ptr<Compilation> Compilation::shared_from_this() noexcept
+    {
+        return {lifetime_.shared_from_this(), this};
+    }
+
+    std::shared_ptr<const Compilation> Compilation::shared_from_this() const noexcept
+    {
+        return {lifetime_.shared_from_this(), this};
     }
 
     std::strong_ordering Compilation::compare_source_locations(const SourceLocation &lhs,

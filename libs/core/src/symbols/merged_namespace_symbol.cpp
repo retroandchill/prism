@@ -26,7 +26,7 @@ namespace prism
         if (namespaces.size() == 1)
             return namespaces.front();
 
-        auto &lifetime = *compilation.lifetime_;
+        auto &lifetime = compilation.lifetime_;
         auto name = namespaces.front()->name();
         return lifetime.create<MergedNamespaceSymbol>(name, containing_namespace, compilation, std::move(namespaces));
     }
