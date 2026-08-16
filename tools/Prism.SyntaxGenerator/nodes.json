@@ -1575,6 +1575,26 @@
               "type": "String"
             }
           ]
+        },
+        {
+          "name": "MultipleFileScopedNamespaces",
+          "severity": "Error",
+          "format": "Multiple file-scoped namespaces are not allowed"
+        },
+        {
+          "name": "FileScopedAndNormalNamespace",
+          "severity": "Error",
+          "format": "Cannot mix file-scoped and block-scoped namespaces"
+        },
+        {
+          "name": "FileScopedNamespaceNotBeforeAllMembers",
+          "severity": "Error",
+          "format": "File-scoped namespace must be declared before all other members"
+        },
+        {
+          "name": "BadModifiersOnNamespace",
+          "severity": "Error",
+          "format": "Namespaces cannot have modifiers"
         }
       ]
     }

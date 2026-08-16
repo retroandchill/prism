@@ -9,10 +9,9 @@ export module prism.core:declarations.declaration_table;
 import :collections.immutable_array;
 import :util.lazy;
 import :util.ref;
-import :memory.ref_counted_ptr;
+import :collections.immutable_ordered_set;
 import :declarations.merged_namespace_declaration;
 import :util.lazy_value;
-import :collections.immutable_ordered_set;
 
 namespace prism
 {

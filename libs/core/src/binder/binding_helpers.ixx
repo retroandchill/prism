@@ -34,5 +34,7 @@ namespace prism
 
     PooledVector<Ref<const SimpleNameSyntax>> collect_names(const NameSyntax &syntax);
 
-    [[nodiscard]] bool fits_in(const BigDecimal &value, SpecialType type, TargetSettings settings);
+    Name get_identifier_name(const SyntaxToken &syntax);
+
+    Name get_unqualified_name(const SimpleNameSyntax &syntax);
 } // namespace prism

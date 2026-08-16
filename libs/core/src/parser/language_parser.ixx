@@ -62,7 +62,8 @@ namespace prism
         [[nodiscard]] NamespaceBody parse_namespace_body(Predicate &&predicate);
         [[nodiscard]] GreenPtr<GreenUsingDirective> parse_using_directive();
         [[nodiscard]] GreenSyntaxList<GreenToken> parse_modifiers();
-        [[nodiscard]] GreenPtr<GreenNamespaceDeclaration> parse_namespace_declaration();
+        [[nodiscard]] GreenPtr<GreenNamespaceDeclaration> parse_namespace_declaration(
+            GreenSyntaxList<GreenToken> modifiers);
         [[nodiscard]] GreenPtr<GreenVariableDeclaration> parse_variable_declaration(
             GreenSyntaxList<GreenToken> modifiers = {});
         [[nodiscard]] GreenPtr<GreenFunctionDeclaration> parse_function_declaration(

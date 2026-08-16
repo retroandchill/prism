@@ -21,6 +21,7 @@ import :text.name;
 import :util.noncopyable;
 import :diagnostics.location;
 import libassert;
+import :text.writer;
 
 namespace prism
 {

@@ -26,9 +26,9 @@ namespace prism
 
         MergedNamespaceDeclaration(ConstructTag, SingleNamespaceList declarations);
 
-        static RefCountPtr<MergedNamespaceDeclaration> create(SingleNamespaceList declarations);
+        static RefCountPtr<const MergedNamespaceDeclaration> create(SingleNamespaceList declarations);
 
-        static RefCountPtr<MergedNamespaceDeclaration> create(const SingleNamespaceDeclaration &declaration);
+        static RefCountPtr<const MergedNamespaceDeclaration> create(const SingleNamespaceDeclaration &declaration);
 
         [[nodiscard]] LexicalSortKey get_lexical_sort_key(const Compilation &compilation) const;
 

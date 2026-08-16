@@ -210,6 +210,8 @@ set(PRISM_MODULES
         src/declarations/declaration_table.ixx
         src/declarations/declaration_table.cpp
         src/declarations/visit.ixx
+        src/declarations/declaration_tree_builder.ixx
+        src/declarations/declaration_tree_builder.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

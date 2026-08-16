@@ -9,6 +9,7 @@ module prism.core:diagnostics.location.impl;
 import :diagnostics.location;
 import :syntax.tree;
 import :syntax.reference;
+import :syntax.token;
 
 namespace prism
 {
@@ -28,11 +29,6 @@ namespace prism
 
     SourceLocation::SourceLocation(const SyntaxToken &token) noexcept
         : syntax_tree_{token.tree().value_ptr()}, span_{token.span()}
-    {
-    }
-
-    SourceLocation::SourceLocation(const SyntaxNodeOrToken &token) noexcept
-        : syntax_tree_{get_tree(token).value_ptr()}, span_{get_span(token)}
     {
     }
 

@@ -6,7 +6,6 @@
  */
 module;
 
-#include <functional>
 #include <libassert/assert-macros.hpp>
 
 export module prism.core:util.lazy_value;
@@ -58,7 +57,7 @@ namespace prism
 
         [[nodiscard]] constexpr friend std::size_t hash_value(const LazyValue &value) noexcept
         {
-            return std::hash<RefCountPtr<Payload>>{}(value.payload_);
+            return hash_value(value.payload_);
         }
 
         [[nodiscard]] constexpr friend bool operator==(const LazyValue &lhs, const LazyValue &rhs) noexcept

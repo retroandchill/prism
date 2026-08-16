@@ -235,4 +235,13 @@ namespace prism
         mutable Lazy<const SyntaxTree &> tree_;
         std::uint32_t position_;
     };
+
+    export template <SyntaxNodeLike T>
+    [[nodiscard]] constexpr bool is_instance(const Optional<const SyntaxNode &> node)
+    {
+        if (node.has_value())
+            return node->is<T>();
+
+        return false;
+    }
 } // namespace prism

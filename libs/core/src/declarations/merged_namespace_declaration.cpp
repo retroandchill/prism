@@ -13,6 +13,7 @@ module prism.core:declarations.merged_namespace_declaration.impl;
 import :declarations.merged_namespace_declaration;
 import :memory.buffer_pool;
 import :declarations.visit;
+import :util.overload;
 
 namespace prism
 {
@@ -53,12 +54,12 @@ namespace prism
     {
     }
 
-    RefCountPtr<MergedNamespaceDeclaration> MergedNamespaceDeclaration::create(SingleNamespaceList declarations)
+    RefCountPtr<const MergedNamespaceDeclaration> MergedNamespaceDeclaration::create(SingleNamespaceList declarations)
     {
-        return make_ref_counted<MergedNamespaceDeclaration>(construct_tag, std::move(declarations));
+        return make_ref_counted<const MergedNamespaceDeclaration>(construct_tag, std::move(declarations));
     }
 
-    RefCountPtr<MergedNamespaceDeclaration> MergedNamespaceDeclaration::create(
+    RefCountPtr<const MergedNamespaceDeclaration> MergedNamespaceDeclaration::create(
         const SingleNamespaceDeclaration &declaration)
     {
         return create(ImmutableArray{declaration.shared_from_this()});

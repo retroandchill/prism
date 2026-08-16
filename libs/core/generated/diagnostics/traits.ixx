@@ -80,4 +80,28 @@ namespace prism
     {
         using Args = std::tuple<std::string, std::string>;
     };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::multiple_file_scoped_namespaces>
+    {
+        using Args = std::tuple<>;
+    };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::file_scoped_and_normal_namespace>
+    {
+        using Args = std::tuple<>;
+    };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::file_scoped_namespace_not_before_all_members>
+    {
+        using Args = std::tuple<>;
+    };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::bad_modifiers_on_namespace>
+    {
+        using Args = std::tuple<>;
+    };
 } // namespace prism

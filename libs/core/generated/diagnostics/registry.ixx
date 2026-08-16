@@ -130,6 +130,50 @@ namespace prism::diagnostics
                                                                  ""sv,
                                                                  {}};
 
+    export constexpr DiagnosticDescriptor multiple_file_scoped_namespaces{
+        to_string(DiagnosticCode::multiple_file_scoped_namespaces),
+        "Multiple file scoped namespaces"sv,
+        "Multiple file-scoped namespaces are not allowed",
+        "Semantic"sv,
+        DiagnosticSeverity::error,
+        true,
+        ""sv,
+        ""sv,
+        {}};
+
+    export constexpr DiagnosticDescriptor file_scoped_and_normal_namespace{
+        to_string(DiagnosticCode::file_scoped_and_normal_namespace),
+        "File scoped and normal namespace"sv,
+        "Cannot mix file-scoped and block-scoped namespaces",
+        "Semantic"sv,
+        DiagnosticSeverity::error,
+        true,
+        ""sv,
+        ""sv,
+        {}};
+
+    export constexpr DiagnosticDescriptor file_scoped_namespace_not_before_all_members{
+        to_string(DiagnosticCode::file_scoped_namespace_not_before_all_members),
+        "File scoped namespace not before all members"sv,
+        "File-scoped namespace must be declared before all other members",
+        "Semantic"sv,
+        DiagnosticSeverity::error,
+        true,
+        ""sv,
+        ""sv,
+        {}};
+
+    export constexpr DiagnosticDescriptor bad_modifiers_on_namespace{
+        to_string(DiagnosticCode::bad_modifiers_on_namespace),
+        "Bad modifiers on namespace"sv,
+        "Namespaces cannot have modifiers",
+        "Semantic"sv,
+        DiagnosticSeverity::error,
+        true,
+        ""sv,
+        ""sv,
+        {}};
+
     export [[nodiscard]] constexpr Optional<const DiagnosticDescriptor &> get_descriptor(const DiagnosticCode code)
     {
         switch (code)
@@ -158,6 +202,14 @@ namespace prism::diagnostics
                 return no_conversion;
             case DiagnosticCode::conversion_is_explicit:
                 return conversion_is_explicit;
+            case DiagnosticCode::multiple_file_scoped_namespaces:
+                return multiple_file_scoped_namespaces;
+            case DiagnosticCode::file_scoped_and_normal_namespace:
+                return file_scoped_and_normal_namespace;
+            case DiagnosticCode::file_scoped_namespace_not_before_all_members:
+                return file_scoped_namespace_not_before_all_members;
+            case DiagnosticCode::bad_modifiers_on_namespace:
+                return bad_modifiers_on_namespace;
             default:
                 return std::nullopt;
         }

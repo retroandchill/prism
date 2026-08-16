@@ -181,6 +181,17 @@ namespace prism
         return stack;
     }
 
+    Name get_identifier_name(const SyntaxToken &syntax)
+    {
+        DEBUG_ASSERT(syntax.kind() == SyntaxKind::identifier_token);
+        return syntax.get_value<IdentifierData>().name;
+    }
+
+    Name get_unqualified_name(const SimpleNameSyntax &syntax)
+    {
+        return get_identifier_name(syntax.identifier());
+    }
+
     bool fits_in(const BigDecimal &value, const SpecialType type, TargetSettings settings)
     {
         switch (type)

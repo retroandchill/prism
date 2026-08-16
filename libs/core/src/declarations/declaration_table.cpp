@@ -9,6 +9,7 @@ module prism.core:declarations.declaration_table.impl;
 import :declarations.declaration_table;
 import :declarations.single_root_namespace_declaration;
 import :declarations.visit;
+import :semantic.compilation;
 
 namespace prism
 {
@@ -19,7 +20,7 @@ namespace prism
         {
         }
 
-        const MergedDeclaration &merged_root() const
+        const MergedNamespaceDeclaration &merged_root() const
         {
             return *merged_root_.get_or_compute(
                 [this]
@@ -193,7 +194,27 @@ namespace prism
     RefCountPtr<const MergedNamespaceDeclaration> DeclarationTable::calculate_merged_root(
         const Compilation &compilation) const
     {
-        throw NotImplementedException{};
+        auto &old_root = cache_->merged_root();
+        if (!latest_lazy_root_declaration_.has_value())
+        {
+            return old_root.shared_from_this();
+        }
+
+        auto &old_declarations = old_root.declarations();
+        PooledVector<RefCountPtr<const SingleNamespaceDeclaration>> new_declarations;
+        new_declarations.reserve(old_declarations.size() + 1);
+        new_declarations.append_range(old_declarations);
+        new_declarations.emplace_back(latest_lazy_root_declaration_->get());
+        std::ranges::sort(new_declarations,
+                          [&compilation](const RefCountPtr<const SingleNamespaceDeclaration> &lhs,
+                                         const RefCountPtr<const SingleNamespaceDeclaration> &rhs)
+                          {
+                              return compilation.compare_source_locations(lhs->syntax_reference(),
+                                                                          rhs->syntax_reference()) ==
+                                     std::strong_ordering::less;
+                          });
+        return MergedNamespaceDeclaration::create(
+            ImmutableArray{std::from_range, new_declarations | std::views::as_rvalue});
     }
 
     ImmutableHashSet<Name> DeclarationTable::get_merged_type_names() const

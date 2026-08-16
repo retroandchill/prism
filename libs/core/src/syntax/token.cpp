@@ -17,6 +17,14 @@ namespace prism
         return parent().transform([](const SyntaxNode &node) -> auto & { return node.tree(); });
     }
 
+    Location SyntaxToken::location() const
+    {
+        if (tree().has_value())
+            return SourceLocation{*this};
+
+        return no_location;
+    }
+
     SyntaxTriviaList SyntaxToken::leading_trivia() const noexcept
     {
         const auto trivia = green_->leading_trivia();

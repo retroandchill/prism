@@ -12,6 +12,7 @@ export module prism.core:syntax.token;
 
 import :syntax.literals;
 import :text.text_span;
+import :diagnostics.location;
 
 namespace prism
 {
@@ -56,6 +57,8 @@ namespace prism
         }
 
         [[nodiscard]] Optional<const SyntaxTree &> tree() const;
+
+        [[nodiscard]] Location location() const;
 
         [[nodiscard]] constexpr bool is_missing() const noexcept
         {

@@ -158,14 +158,11 @@ namespace prism
 
     GreenPtr<GreenDeclaration> LanguageParser::parse_declaration()
     {
-        if (peek_token().kind() == SyntaxKind::namespace_keyword)
-        {
-            return parse_namespace_declaration();
-        }
-
         auto modifiers = parse_modifiers();
         switch (auto &next = peek_token(); next.kind())
         {
+            case SyntaxKind::namespace_keyword:
+                return parse_namespace_declaration(std::move(modifiers));
             case SyntaxKind::var_keyword:
                 return parse_variable_declaration(std::move(modifiers));
             case SyntaxKind::func_keyword:
@@ -258,7 +255,8 @@ namespace prism
         return std::move(builder).build();
     }
 
-    GreenPtr<GreenNamespaceDeclaration> LanguageParser::parse_namespace_declaration()
+    GreenPtr<GreenNamespaceDeclaration> LanguageParser::parse_namespace_declaration(
+        GreenSyntaxList<GreenToken> modifiers)
     {
         auto namespace_keyword = expect_token(SyntaxKind::namespace_keyword);
         auto identifier = parse_name();
@@ -266,7 +264,7 @@ namespace prism
         if (auto semicolon = match_token(SyntaxKind::semicolon_token); semicolon.has_value())
         {
             auto [usings, members] = parse_namespace_body();
-            return make_ref_counted<GreenFileScopedNamespaceDeclaration>(GreenSyntaxList<GreenToken>{},
+            return make_ref_counted<GreenFileScopedNamespaceDeclaration>(std::move(modifiers),
                                                                          std::move(namespace_keyword),
                                                                          std::move(identifier),
                                                                          *std::move(semicolon),

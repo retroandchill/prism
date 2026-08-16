@@ -13,17 +13,15 @@ namespace prism
     class SingleRootNamespaceDeclaration final : public SingleNamespaceDeclaration
     {
       public:
-        constexpr SingleRootNamespaceDeclaration(const Name name,
-                                                 const bool has_usings,
+        constexpr SingleRootNamespaceDeclaration(const bool has_usings,
                                                  SyntaxReference syntax_reference,
-                                                 SourceLocation name_location,
                                                  MemberList members,
                                                  ImmutableHashSet<Name> member_names,
                                                  ImmutableArray<Diagnostic> diagnostics)
-            : SingleNamespaceDeclaration{name,
+            : SingleNamespaceDeclaration{KnownName::none,
                                          has_usings,
                                          std::move(syntax_reference),
-                                         std::move(name_location),
+                                         SourceLocation{syntax_reference},
                                          std::move(members),
                                          std::move(member_names),
                                          std::move(diagnostics)}

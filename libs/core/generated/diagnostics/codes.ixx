@@ -23,6 +23,10 @@ namespace prism
         ambiguous_symbol = 2003,
         no_conversion = 2004,
         conversion_is_explicit = 2005,
+        multiple_file_scoped_namespaces = 2006,
+        file_scoped_and_normal_namespace = 2007,
+        file_scoped_namespace_not_before_all_members = 2008,
+        bad_modifiers_on_namespace = 2009,
     };
 
     export constexpr std::string_view to_string(const DiagnosticCode code)
@@ -53,6 +57,14 @@ namespace prism
                 return "E2004";
             case DiagnosticCode::conversion_is_explicit:
                 return "E2005";
+            case DiagnosticCode::multiple_file_scoped_namespaces:
+                return "E2006";
+            case DiagnosticCode::file_scoped_and_normal_namespace:
+                return "E2007";
+            case DiagnosticCode::file_scoped_namespace_not_before_all_members:
+                return "E2008";
+            case DiagnosticCode::bad_modifiers_on_namespace:
+                return "E2009";
             default:
                 throw std::invalid_argument{"Invalid diagnostic code"};
         }

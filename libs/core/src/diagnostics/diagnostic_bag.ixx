@@ -12,12 +12,10 @@ import :diagnostics.diagnostic;
 namespace prism
 {
     template <typename Container>
-    concept DiagnosticBaggable = requires(Container &c, const Diagnostic &diagnostic) {
-        requires
-            // ReSharper disable once CppRedundantParentheses
-            (
-                requires { c.emplace_back(diagnostic); } || requires { c.push_back(diagnostic); } ||
-                requires { c.emplace(c.end(), diagnostic); } || requires { c.insert(c.end(), diagnostic); });
+    concept DiagnosticBaggable = requires(Container &c, const std::vector<Diagnostic> &diagnostics) {
+        {
+            std::ranges::to<Container>(diagnostics)
+        } -> std::same_as<Container>;
     };
 
     template <typename Container>

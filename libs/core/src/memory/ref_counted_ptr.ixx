@@ -696,6 +696,6 @@ struct std::hash<prism::RefCountPtr<T>>
 {
     constexpr size_t operator()(const prism::RefCountPtr<T> &ptr) const noexcept
     {
-        return hash_value(ptr);
+        return std::hash<T *>{}(ptr.get());
     }
 };
