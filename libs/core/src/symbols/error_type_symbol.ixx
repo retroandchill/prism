@@ -24,6 +24,12 @@ namespace prism
         {
             return {};
         }
+
+        [[nodiscard]] const ImmutableArray<Location> &locations() const override
+        {
+            static constexpr ImmutableArray<Location> empty{};
+            return empty;
+        }
     };
 
     constexpr ErrorTypeSymbol unnamed_error_type;
@@ -33,6 +39,12 @@ namespace prism
       public:
         ErrorNamespaceSymbol(const Name &name, const NamespaceSymbol *containing) : NamespaceSymbol(name, containing)
         {
+        }
+
+        [[nodiscard]] const ImmutableArray<Location> &locations() const override
+        {
+            static constexpr ImmutableArray<Location> empty{};
+            return empty;
         }
 
         [[nodiscard]] constexpr std::span<const SyntaxReference> declaring_syntax_references() const override

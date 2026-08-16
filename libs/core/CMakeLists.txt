@@ -140,18 +140,14 @@ set(PRISM_MODULES
         generated/syntax/directives.ixx
         generated/syntax/green/directives.ixx
         src/semantic/semantic_lifetime.ixx
-        src/binder/declaration_binder.ixx
         generated/syntax/visit.ixx
         src/symbols/source.ixx
-        src/binder/declaration_binder.cpp
         src/symbols/symbol.cpp
         src/symbols/visit.ixx
         src/util/lazy.ixx
         src/symbols/source.cpp
         src/semantic/compilation.ixx
         src/semantic/compilation.cpp
-        src/binder/declaration_merger.ixx
-        src/binder/declaration_merger.cpp
         src/binder/declaration_scope.ixx
         src/binder/declaration_scope.cpp
         src/diagnostics/diagnostic.ixx

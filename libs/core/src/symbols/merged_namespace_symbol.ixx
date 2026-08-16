@@ -27,6 +27,7 @@ namespace prism
                                                            const NamespaceSymbol *containing_namespace,
                                                            std::vector<Ref<const NamespaceSymbol>> namespaces);
 
+        [[nodiscard]] const ImmutableArray<Location> &locations() const override;
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
         [[nodiscard]] Optional<const Compilation &> containing_compilation() const noexcept override;
         [[nodiscard]] SymbolSpan<Symbol> members() const override;
@@ -34,6 +35,7 @@ namespace prism
       private:
         const Compilation &compilation_;
         std::vector<Ref<const NamespaceSymbol>> namespaces_{};
+        mutable Lazy<ImmutableArray<Location>> locations_;
         mutable Lazy<std::vector<Ref<const Symbol>>> members_;
         mutable Lazy<std::vector<SyntaxReference>> syntax_references_;
     };

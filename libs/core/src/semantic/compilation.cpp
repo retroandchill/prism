@@ -11,8 +11,6 @@ module;
 module prism.core:semantic.compilation.impl;
 
 import :semantic.compilation;
-import :binder.declaration_binder;
-import :binder.declaration_merger;
 import :diagnostics.diagnostic_bag;
 import :binder.declaration_scope;
 import :binder.declaration_scope_builder;

@@ -6,6 +6,8 @@
  */
 module;
 
+#include "prism/core/exports.h"
+
 #include <libassert/assert-macros.hpp>
 
 export module prism.core:symbols.symbol;
@@ -20,6 +22,7 @@ import :syntax.reference;
 
 namespace prism
 {
+    class Compilation;
     export class Symbol;
     class AssemblySymbol;
     class NamespaceSymbol;
@@ -38,7 +41,7 @@ namespace prism
     /**
      * @brief Base class for all symbols.
      */
-    class Symbol : NonCopyable
+    export class PRISM_CORE_API Symbol : NonCopyable
     {
       protected:
         constexpr Symbol(const SymbolKind kind, const Name name, const Symbol *containing = nullptr)
@@ -66,6 +69,14 @@ namespace prism
         {
             return name_;
         }
+
+        [[nodiscard]] virtual const ImmutableArray<Location> &locations() const = 0;
+
+        [[nodiscard]] Optional<Location> try_get_first_location() const;
+
+        [[nodiscard]] Location first_location() const;
+
+        [[nodiscard]] Location first_location_or_none() const;
 
         /**
          * @brief Get the containing symbol.
@@ -155,6 +166,9 @@ namespace prism
             self.write_display_string(writer);
             return result;
         }
+
+      protected:
+        [[nodiscard]] virtual Optional<const Compilation &> declaring_compilation() const;
 
       private:
         SymbolKind kind_;

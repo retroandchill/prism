@@ -77,6 +77,12 @@ namespace prism
         {
         }
 
+        [[nodiscard]] const ImmutableArray<Location> &locations() const override
+        {
+            static constexpr ImmutableArray<Location> empty{};
+            return empty;
+        }
+
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
     };
 
@@ -84,6 +90,12 @@ namespace prism
     {
       public:
         using NamespaceSymbol::NamespaceSymbol;
+
+        [[nodiscard]] const ImmutableArray<Location> &locations() const override
+        {
+            static constexpr ImmutableArray<Location> empty{};
+            return empty;
+        }
 
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
         [[nodiscard]] Optional<const Compilation &> containing_compilation() const noexcept override;

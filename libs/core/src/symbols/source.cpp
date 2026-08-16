@@ -13,12 +13,34 @@ module prism.core:symbols.source.impl;
 import :symbols.source;
 import :syntax.declarations;
 import :syntax.clauses;
+import :semantic.compilation;
 
 namespace prism
 {
+    SourceAssemblySymbol::SourceAssemblySymbol(const Compilation &compilation)
+        : AssemblySymbol{compilation.assembly_name()}, declaring_compilation_{compilation}
+    {
+    }
+
     std::span<const SyntaxReference> SourceAssemblySymbol::declaring_syntax_references() const
     {
         return {};
+    }
+
+    Optional<const Compilation &> SourceAssemblySymbol::declaring_compilation() const
+    {
+        return declaring_compilation_;
+    }
+
+    SourceNamespaceSymbol::SourceNamespaceSymbol(RefCountPtr<const MergedNamespaceDeclaration> declaration,
+                                                 const Symbol *containing)
+        : NamespaceSymbol{declaration->name(), containing}, merged_declaration_{std::move(declaration)}
+    {
+    }
+
+    const ImmutableArray<Location> &SourceNamespaceSymbol::locations() const
+    {
+        return locations_.get_or_compute([this] { return merged_declaration_->name_locations(); });
     }
 
     Optional<const Compilation &> SourceNamespaceSymbol::containing_compilation() const noexcept
@@ -31,6 +53,11 @@ namespace prism
                                                const VariableDeclarationSyntax &syntax)
         : VariableSymbol(name, containing), syntax_{syntax}, syntax_reference_{syntax}
     {
+    }
+
+    const ImmutableArray<Location> &SourceVariableSymbol::locations() const
+    {
+        return locations_.get_or_compute([this] { return ImmutableArray{syntax_.identifier().location()}; });
     }
 
     const TypeSymbol &SourceVariableSymbol::type() const
@@ -56,6 +83,11 @@ namespace prism
     {
     }
 
+    const ImmutableArray<Location> &SourceFunctionSymbol::locations() const
+    {
+        return locations_.get_or_compute([this] { return ImmutableArray{syntax_.identifier().location()}; });
+    }
+
     const TypeSymbol &SourceFunctionSymbol::return_type() const
     {
         ASSUME(return_type_ == nullptr);
@@ -72,6 +104,11 @@ namespace prism
                                                  const ParameterSyntax &syntax)
         : ParameterSymbol(name, containing), syntax_{syntax}, syntax_reference_{syntax}
     {
+    }
+
+    const ImmutableArray<Location> &SourceParameterSymbol::locations() const
+    {
+        return locations_.get_or_compute([this] { return ImmutableArray{syntax_.name().location()}; });
     }
 
     const TypeSymbol &SourceParameterSymbol::type() const

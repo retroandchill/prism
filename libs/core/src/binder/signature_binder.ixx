@@ -7,13 +7,21 @@
 
 export module prism.core:binder.signature_binder;
 
-import :binder.declaration_merger;
+import :util.noncopyable;
+import :diagnostics.diagnostic_bag;
+import :util.ref;
 
 namespace prism
 {
+    class SourceParameterSymbol;
+    class SourceFunctionSymbol;
+    class SourceVariableSymbol;
     class TypeSyntax;
     class TypeSymbol;
     class Compilation;
+
+    using PartiallyBoundSymbol =
+        std::variant<Ref<SourceVariableSymbol>, Ref<SourceFunctionSymbol>, Ref<SourceParameterSymbol>>;
 
     class SignatureBinder final : NonCopyable
     {

@@ -31,6 +31,17 @@ namespace prism
         return lifetime.create<MergedNamespaceSymbol>(name, containing_namespace, compilation, std::move(namespaces));
     }
 
+    const ImmutableArray<Location> &MergedNamespaceSymbol::locations() const
+    {
+        return locations_.get_or_compute(
+            [this]
+            {
+                return namespaces_ |
+                       std::views::transform([](const NamespaceSymbol &n) -> auto & { return n.locations(); }) |
+                       std::views::join | std::ranges::to<ImmutableArray>();
+            });
+    }
+
     std::span<const SyntaxReference> MergedNamespaceSymbol::declaring_syntax_references() const
     {
         return syntax_references_.get_or_compute(

@@ -18,6 +18,7 @@ import :symbols.variable_symbol;
 import :symbols.function_symbol;
 import :symbols.parameter_symbol;
 import :symbols.named_type_symbol;
+import :declarations.merged_namespace_declaration;
 
 namespace prism
 {
@@ -28,9 +29,7 @@ namespace prism
     class SourceAssemblySymbol final : public AssemblySymbol
     {
       public:
-        constexpr explicit SourceAssemblySymbol(const Name name) : AssemblySymbol{name}
-        {
-        }
+        explicit SourceAssemblySymbol(const Compilation &compilation);
 
         [[nodiscard]] constexpr const NamespaceSymbol &global_namespace() const noexcept override
         {
@@ -40,18 +39,22 @@ namespace prism
 
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
 
+      protected:
+        [[nodiscard]] Optional<const Compilation &> declaring_compilation() const override;
+
       private:
         friend class DeclarationMerger;
 
+        const Compilation &declaring_compilation_;
         const NamespaceSymbol *global_namespace_ = nullptr;
     };
 
     class SourceNamespaceSymbol final : public NamespaceSymbol
     {
       public:
-        constexpr SourceNamespaceSymbol(const Name name, const Symbol *containing) : NamespaceSymbol{name, containing}
-        {
-        }
+        SourceNamespaceSymbol(RefCountPtr<const MergedNamespaceDeclaration> declaration, const Symbol *containing);
+
+        [[nodiscard]] const ImmutableArray<Location> &locations() const override;
 
         [[nodiscard]] Optional<const Compilation &> containing_compilation() const noexcept override;
 
@@ -71,9 +74,9 @@ namespace prism
             members_.emplace_back(member);
         }
 
-        constexpr void add_syntax_reference(const SyntaxReference syntax_reference)
+        constexpr void add_syntax_reference(SyntaxReference syntax_reference)
         {
-            syntax_references_.push_back(syntax_reference);
+            syntax_references_.push_back(std::move(syntax_reference));
         }
 
         template <std::ranges::input_range Range>
@@ -83,8 +86,10 @@ namespace prism
             members_.append_range(std::forward<Range>(range));
         }
 
-      private:
         friend class DeclarationMerger;
+
+        RefCountPtr<const MergedNamespaceDeclaration> merged_declaration_;
+        mutable Lazy<ImmutableArray<Location>> locations_;
 
         std::vector<Ref<const Symbol>> members_{};
         std::vector<SyntaxReference> syntax_references_{};
@@ -94,6 +99,8 @@ namespace prism
     {
       public:
         SourceVariableSymbol(const Name &name, const Symbol *containing, const VariableDeclarationSyntax &syntax);
+
+        [[nodiscard]] const ImmutableArray<Location> &locations() const override;
 
         [[nodiscard]] const TypeSymbol &type() const override;
         [[nodiscard]] bool is_mutable() const noexcept override;
@@ -109,6 +116,8 @@ namespace prism
             type_ = &type;
         }
 
+        mutable Lazy<ImmutableArray<Location>> locations_;
+
         const VariableDeclarationSyntax &syntax_;
         SyntaxReference syntax_reference_;
         const TypeSymbol *type_ = nullptr;
@@ -118,6 +127,8 @@ namespace prism
     {
       public:
         SourceFunctionSymbol(const Name &name, const Symbol *containing, const FunctionDeclarationSyntax &syntax);
+
+        [[nodiscard]] const ImmutableArray<Location> &locations() const override;
 
         [[nodiscard]] const TypeSymbol &return_type() const override;
 
@@ -149,16 +160,20 @@ namespace prism
             return_type_ = &type;
         }
 
+      private:
         const FunctionDeclarationSyntax &syntax_;
         SyntaxReference syntax_reference_;
         std::vector<Ref<const ParameterSymbol>> parameters_;
         const TypeSymbol *return_type_ = nullptr;
+        mutable Lazy<ImmutableArray<Location>> locations_;
     };
 
     class SourceParameterSymbol final : public ParameterSymbol
     {
       public:
         SourceParameterSymbol(const Name &name, const Symbol *containing, const ParameterSyntax &syntax);
+
+        [[nodiscard]] const ImmutableArray<Location> &locations() const override;
 
         [[nodiscard]] const TypeSymbol &type() const override;
         [[nodiscard]] bool is_mutable() const noexcept override;
@@ -175,5 +190,6 @@ namespace prism
         const ParameterSyntax &syntax_;
         SyntaxReference syntax_reference_;
         const TypeSymbol *type_ = nullptr;
+        mutable Lazy<ImmutableArray<Location>> locations_;
     };
 } // namespace prism
