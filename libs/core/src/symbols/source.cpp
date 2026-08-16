@@ -14,6 +14,9 @@ import :symbols.source;
 import :syntax.declarations;
 import :syntax.clauses;
 import :semantic.compilation;
+import :declarations.visit;
+import :syntax.visit;
+import :binder.binding_helpers;
 
 namespace prism
 {
@@ -41,6 +44,7 @@ namespace prism
             {
                 return declaring_compilation_.lifetime_.create<SourceNamespaceSymbol>(
                     declaring_compilation_.merged_root_declaration().shared_from_this(),
+                    *this,
                     this);
             });
     }
@@ -56,9 +60,16 @@ namespace prism
     }
 
     SourceNamespaceSymbol::SourceNamespaceSymbol(RefCountPtr<const MergedNamespaceDeclaration> declaration,
+                                                 const AssemblySymbol &assembly,
                                                  const Symbol *containing)
-        : NamespaceSymbol{declaration->name(), containing}, merged_declaration_{std::move(declaration)}
+        : NamespaceSymbol{declaration->name(), containing}, containing_assembly_{assembly},
+          merged_declaration_{std::move(declaration)}
     {
+    }
+
+    Optional<const AssemblySymbol &> SourceNamespaceSymbol::containing_assembly() const noexcept
+    {
+        return containing_assembly_;
     }
 
     const ImmutableArray<Location> &SourceNamespaceSymbol::locations() const
@@ -69,6 +80,114 @@ namespace prism
     Optional<const Compilation &> SourceNamespaceSymbol::containing_compilation() const noexcept
     {
         return std::nullopt;
+    }
+
+    SymbolSpan<Symbol> SourceNamespaceSymbol::members() const
+    {
+        return members_.get_or_compute([this] { return compute_members(); });
+    }
+
+    std::span<const SyntaxReference> SourceNamespaceSymbol::declaring_syntax_references() const
+    {
+        return syntax_references_.get_or_compute(
+            [this]
+            {
+                return merged_declaration_->declarations() |
+                       std::views::transform(
+                           [this](const RefCountPtr<const SingleNamespaceDeclaration> &declaration) -> auto &
+                           { return declaration->syntax_reference(); }) |
+                       std::ranges::to<ImmutableArray>();
+            });
+    }
+
+    const std::unordered_map<Name, std::vector<Ref<const Symbol>>> &SourceNamespaceSymbol::get_name_to_members_map()
+        const
+    {
+        return name_to_members_map_.get_or_compute([this] { return make_name_to_members_map(); });
+    }
+
+    std::unordered_map<Name, std::vector<Ref<const Symbol>>> SourceNamespaceSymbol::make_name_to_members_map() const
+    {
+        std::unordered_map<Name, std::vector<Ref<const Symbol>>> result;
+        for (auto &declaration : merged_declaration_->members())
+        {
+            auto &symbol = build_symbol(*declaration);
+            result[symbol.name()].emplace_back(symbol);
+        }
+
+        constexpr static auto get_members = [](const RefCountPtr<const SingleNamespaceDeclaration> &decl)
+        {
+            return visit(decl->syntax_reference().syntax(),
+                         Overload{[](const CompilationUnitSyntax &cu) { return cu.members(); },
+                                  [](const NamespaceDeclarationSyntax &ns) { return ns.members(); },
+                                  [](const SyntaxNode &)
+                                  {
+                                      return SyntaxList<DeclarationSyntax>{};
+                                  }});
+        };
+
+        for (auto &syntax : merged_declaration_->declarations() | std::views::transform(get_members) | std::views::join)
+        {
+            visit(syntax,
+                  Overload{[](const NamespaceDeclarationSyntax &)
+                           {
+                               // We already handled namespaces
+                           },
+                           [&](const VariableDeclarationSyntax &variable)
+                           {
+                               auto &symbol = build_symbol(variable);
+                               result[symbol.name()].emplace_back(symbol);
+                           },
+                           [&](const FunctionDeclarationSyntax &function)
+                           {
+                               auto &symbol = build_symbol(function);
+                               result[symbol.name()].emplace_back(symbol);
+                           },
+                           [](const IncompleteDeclarationSyntax &)
+                           {
+                               // Incomplete declarations are not symbols
+                           }});
+        }
+
+        return result;
+    }
+
+    const Symbol &SourceNamespaceSymbol::build_symbol(const MergedDeclaration &declaration) const
+    {
+        return visit(declaration,
+                     Overload{[this](const MergedNamespaceDeclaration &ns) -> const Symbol &
+                              {
+                                  return declaring_compilation()->lifetime_.create<SourceNamespaceSymbol>(
+                                      ns.shared_from_this(),
+                                      containing_assembly_,
+                                      this);
+                              }});
+    }
+
+    const Symbol &SourceNamespaceSymbol::build_symbol(const VariableDeclarationSyntax &declaration) const
+    {
+        auto name = get_identifier_name(declaration.identifier());
+        return declaring_compilation()->lifetime_.create<SourceVariableSymbol>(name, this, declaration);
+    }
+
+    const Symbol &SourceNamespaceSymbol::build_symbol(const FunctionDeclarationSyntax &declaration) const
+    {
+        auto name = get_identifier_name(declaration.identifier());
+        return declaring_compilation()->lifetime_.create<SourceFunctionSymbol>(name, this, declaration);
+    }
+
+    ImmutableArray<Ref<const Symbol>> SourceNamespaceSymbol::compute_members() const
+    {
+        auto unsorted =
+            get_name_to_members_map() | std::views::values | std::views::join | std::ranges::to<std::vector>();
+        std::ranges::sort(unsorted,
+                          [this](const Symbol &lhs, const Symbol &rhs)
+                          {
+                              return declaring_compilation()->compare_source_locations(lhs.first_location(),
+                                                                                       rhs.first_location()) ==
+                                     std::strong_ordering::less;
+                          });
+        return ImmutableArray{std::from_range, unsorted};
     }
 
     SourceVariableSymbol::SourceVariableSymbol(const Name &name,

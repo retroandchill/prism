@@ -29,7 +29,10 @@ namespace prism
     }
 
     SourceLocation::SourceLocation(const SyntaxToken &token) noexcept
-        : syntax_tree_{token.tree().value_ptr()}, span_{token.span()}
+        : syntax_tree_{token.tree()
+                           .transform([](const SyntaxTree &tree) { return tree.shared_from_this(); })
+                           .value_or_default()},
+          span_{token.span()}
     {
     }
 

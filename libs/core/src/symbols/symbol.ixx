@@ -91,19 +91,19 @@ namespace prism
          * @brief Get the containing assembly.
          * @return The containing assembly
          */
-        [[nodiscard]] Optional<const AssemblySymbol &> containing_assembly() const noexcept;
+        [[nodiscard]] virtual Optional<const AssemblySymbol &> containing_assembly() const;
 
         /**
          * @brief Get the containing namespace.
          * @return The containing namespace
          */
-        [[nodiscard]] Optional<const NamespaceSymbol &> containing_namespace() const noexcept;
+        [[nodiscard]] virtual Optional<const NamespaceSymbol &> containing_namespace() const;
 
         /**
          * @brief Get the containing type.
          * @return The containing type
          */
-        [[nodiscard]] Optional<const TypeSymbol &> containing_type() const noexcept;
+        [[nodiscard]] virtual Optional<const TypeSymbol &> containing_type() const;
 
         /**
          * Get the syntax references that declare this symbol.

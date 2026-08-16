@@ -21,6 +21,21 @@ namespace prism
         ~AssemblySymbol() = default;
 
       public:
+        [[nodiscard]] constexpr Optional<const AssemblySymbol &> containing_assembly() const noexcept final
+        {
+            return std::nullopt;
+        }
+
+        [[nodiscard]] constexpr Optional<const NamespaceSymbol &> containing_namespace() const noexcept final
+        {
+            return std::nullopt;
+        }
+
+        [[nodiscard]] constexpr Optional<const TypeSymbol &> containing_type() const noexcept final
+        {
+            return std::nullopt;
+        }
+
         [[nodiscard]] virtual const NamespaceSymbol &global_namespace() const = 0;
 
         [[nodiscard]] static constexpr bool instance_of(const Symbol &symbol) noexcept

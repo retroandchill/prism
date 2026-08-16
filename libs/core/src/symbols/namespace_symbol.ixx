@@ -33,6 +33,11 @@ namespace prism
         ~NamespaceSymbol() = default;
 
       public:
+        [[nodiscard]] constexpr Optional<const TypeSymbol &> containing_type() const noexcept final
+        {
+            return std::nullopt;
+        }
+
         [[nodiscard]] constexpr bool is_global() const noexcept
         {
             return name() == KnownName::global;

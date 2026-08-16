@@ -157,6 +157,11 @@ namespace prism
         return declarations().get_merged_root(*this);
     }
 
+    std::strong_ordering Compilation::compare_source_locations(const Location &lhs, const Location &rhs) const
+    {
+        return compare_source_locations(std::get<SourceLocation>(lhs), std::get<SourceLocation>(rhs));
+    }
+
     std::strong_ordering Compilation::compare_source_locations(const SourceLocation &lhs,
                                                                const SourceLocation &rhs) const
     {

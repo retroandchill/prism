@@ -49,47 +49,38 @@ namespace prism
     class SourceNamespaceSymbol final : public NamespaceSymbol
     {
       public:
-        SourceNamespaceSymbol(RefCountPtr<const MergedNamespaceDeclaration> declaration, const Symbol *containing);
+        SourceNamespaceSymbol(RefCountPtr<const MergedNamespaceDeclaration> declaration,
+                              const AssemblySymbol &assembly,
+                              const Symbol *containing);
+
+        [[nodiscard]] Optional<const AssemblySymbol &> containing_assembly() const noexcept override;
 
         [[nodiscard]] const ImmutableArray<Location> &locations() const override;
 
         [[nodiscard]] Optional<const Compilation &> containing_compilation() const noexcept override;
 
-        [[nodiscard]] constexpr SymbolSpan<Symbol> members() const override
-        {
-            return members_;
-        }
+        [[nodiscard]] SymbolSpan<Symbol> members() const override;
 
-        [[nodiscard]] constexpr std::span<const SyntaxReference> declaring_syntax_references() const override
-        {
-            return syntax_references_;
-        }
+        [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
 
       private:
-        constexpr void add_member(const Symbol &member)
-        {
-            members_.emplace_back(member);
-        }
+        [[nodiscard]] const std::unordered_map<Name, std::vector<Ref<const Symbol>>> &get_name_to_members_map() const;
+        [[nodiscard]] std::unordered_map<Name, std::vector<Ref<const Symbol>>> make_name_to_members_map() const;
 
-        constexpr void add_syntax_reference(SyntaxReference syntax_reference)
-        {
-            syntax_references_.push_back(std::move(syntax_reference));
-        }
+        [[nodiscard]] const Symbol &build_symbol(const MergedDeclaration &declaration) const;
+        [[nodiscard]] const Symbol &build_symbol(const VariableDeclarationSyntax &declaration) const;
+        [[nodiscard]] const Symbol &build_symbol(const FunctionDeclarationSyntax &declaration) const;
 
-        template <std::ranges::input_range Range>
-            requires std::convertible_to<std::ranges::range_reference_t<Range>, Ref<const Symbol>>
-        constexpr void add_members(Range &&range)
-        {
-            members_.append_range(std::forward<Range>(range));
-        }
+        [[nodiscard]] ImmutableArray<Ref<const Symbol>> compute_members() const;
 
         friend class DeclarationMerger;
 
+        const AssemblySymbol &containing_assembly_;
         RefCountPtr<const MergedNamespaceDeclaration> merged_declaration_;
         mutable Lazy<ImmutableArray<Location>> locations_;
-
-        std::vector<Ref<const Symbol>> members_{};
-        std::vector<SyntaxReference> syntax_references_{};
+        mutable Lazy<std::unordered_map<Name, std::vector<Ref<const Symbol>>>> name_to_members_map_;
+        mutable Lazy<ImmutableArray<SyntaxReference>> syntax_references_;
+        mutable Lazy<ImmutableArray<Ref<const Symbol>>> members_;
     };
 
     class SourceVariableSymbol final : public VariableSymbol
