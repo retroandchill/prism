@@ -41,7 +41,7 @@ namespace prism
             return set_.contains(value);
         }
 
-        [[nodiscard]] constexpr ImmutableOrderedSet add(const T &value)
+        [[nodiscard]] constexpr ImmutableOrderedSet add(const T &value) const
         {
             auto next_set = set_.add(value);
             if (set_.same_storage(next_set))
@@ -50,7 +50,7 @@ namespace prism
             return ImmutableOrderedSet{values_.add(value), std::move(next_set)};
         }
 
-        [[nodiscard]] constexpr ImmutableOrderedSet add(T &&value)
+        [[nodiscard]] constexpr ImmutableOrderedSet add(T &&value) const
         {
             auto next_set = set_.add(value);
             if (set_.same_storage(next_set))
@@ -61,7 +61,7 @@ namespace prism
 
         template <std::ranges::input_range Range>
             requires std::convertible_to<std::ranges::range_value_t<Range>, T>
-        [[nodiscard]] constexpr ImmutableOrderedSet add_range(Range &&range)
+        [[nodiscard]] constexpr ImmutableOrderedSet add_range(Range &&range) const
         {
             bool changed = false;
             PooledVector<T> values;
@@ -83,7 +83,7 @@ namespace prism
                     continue;
                 }
 
-                values.append(value);
+                values.push_back(value);
                 explored.insert(std::forward<decltype(value)>(value));
             }
 
@@ -94,7 +94,7 @@ namespace prism
                                        make_immutable_hash_set(explored | std::views::as_rvalue)};
         }
 
-        [[nodiscard]] constexpr ImmutableOrderedSet remove(const T &value)
+        [[nodiscard]] constexpr ImmutableOrderedSet remove(const T &value) const
         {
             auto new_set = set_.remove(value);
             if (set_.same_storage(new_set))
@@ -105,7 +105,7 @@ namespace prism
 
         template <std::ranges::input_range Range>
             requires std::convertible_to<std::ranges::range_value_t<Range>, T>
-        [[nodiscard]] constexpr ImmutableOrderedSet remove_range(Range &&range)
+        [[nodiscard]] constexpr ImmutableOrderedSet remove_range(Range &&range) const
         {
             bool changed = false;
             PooledVector<T> values;
@@ -121,7 +121,7 @@ namespace prism
                     changed = true;
                 }
 
-                std::ranges::remove(values, value);
+                std::erase(values, value);
             }
 
             if (!changed)

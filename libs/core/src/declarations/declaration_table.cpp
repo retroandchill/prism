@@ -50,6 +50,108 @@ namespace prism
         mutable Lazy<ImmutableHashSet<Name>> namespace_names_;
     };
 
+    DeclarationTable::Builder::Builder(RefCountPtr<const DeclarationTable> table)
+        : table_{table != nullptr ? std::move(table) : empty()}
+    {
+    }
+
+    void DeclarationTable::Builder::add_root_declaration(LazyRootNamespace root)
+    {
+        realize_removes();
+        added_roots_.push_back(std::move(root));
+    }
+
+    void DeclarationTable::Builder::remove_root_declaration(LazyRootNamespace root)
+    {
+        realize_adds();
+        removed_roots_.push_back(std::move(root));
+    }
+
+    RefCountPtr<const DeclarationTable> DeclarationTable::Builder::build() &&
+    {
+        realize_adds();
+        realize_removes();
+
+        return std::move(table_);
+    }
+
+    void DeclarationTable::Builder::realize_adds()
+    {
+        if (added_roots_.empty())
+            return;
+
+        auto last_declaration = std::move(added_roots_.back());
+        if (added_roots_.size() == 1)
+        {
+            if (!table_->latest_lazy_root_declaration_.has_value())
+            {
+                table_ = make_ref_counted<const DeclarationTable>(construct_tag,
+                                                                  table_->old_roots_,
+                                                                  std::move(last_declaration),
+                                                                  table_->cache_);
+            }
+            else
+            {
+                table_ = make_ref_counted<const DeclarationTable>(
+                    construct_tag,
+                    table_->old_roots_.add(*table_->latest_lazy_root_declaration_),
+                    std::move(last_declaration),
+                    table_->cache_);
+            }
+        }
+        else
+        {
+            added_roots_.pop_back();
+
+            if (table_->latest_lazy_root_declaration_.has_value())
+            {
+                added_roots_.insert(added_roots_.begin(), *table_->latest_lazy_root_declaration_);
+            }
+
+            auto new_old_roots = table_->old_roots_.add_range(added_roots_ | std::views::as_rvalue);
+        }
+
+        added_roots_.clear();
+    }
+
+    void DeclarationTable::Builder::realize_removes()
+    {
+        if (removed_roots_.empty())
+            return;
+
+        if (removed_roots_.size() == 1)
+        {
+            auto first_declaration = std::move(removed_roots_.front());
+            if (table_->latest_lazy_root_declaration_ == first_declaration)
+            {
+                table_ =
+                    make_ref_counted<DeclarationTable>(construct_tag, table_->old_roots_, std::nullopt, table_->cache_);
+            }
+            else
+            {
+                table_ = make_ref_counted<DeclarationTable>(construct_tag,
+                                                            table_->old_roots_.remove(first_declaration),
+                                                            std::move(first_declaration),
+                                                            table_->cache_);
+            }
+        }
+        else
+        {
+            auto is_latest_removed = table_->latest_lazy_root_declaration_.has_value() &&
+                                     std::ranges::contains(removed_roots_, *table_->latest_lazy_root_declaration_);
+
+            auto new_old_roots = table_->old_roots_.remove_range(removed_roots_);
+            auto new_latest = !is_latest_removed ? table_->latest_lazy_root_declaration_ : std::nullopt;
+
+            table_ = make_ref_counted<DeclarationTable>(construct_tag,
+                                                        std::move(new_old_roots),
+                                                        std::move(new_latest),
+                                                        table_->cache_);
+        }
+
+        removed_roots_.clear();
+    }
+
     DeclarationTable::DeclarationTable(ConstructTag,
                                        ImmutableOrderedSet<LazyRootNamespace> old_roots,
                                        Optional<LazyRootNamespace> latest_lazy_root,
@@ -57,6 +159,20 @@ namespace prism
         : old_roots_{std::move(old_roots)}, latest_lazy_root_declaration_{std::move(latest_lazy_root)},
           cache_{cache != nullptr ? std::move(cache) : std::make_shared<Cache>(*this)}
     {
+    }
+
+    const RefCountPtr<const DeclarationTable> &DeclarationTable::empty()
+    {
+        static auto empty_table = make_ref_counted<const DeclarationTable>(construct_tag,
+                                                                           ImmutableOrderedSet<LazyRootNamespace>{},
+                                                                           std::nullopt,
+                                                                           nullptr);
+        return empty_table;
+    }
+
+    DeclarationTable::Builder DeclarationTable::to_builder() const
+    {
+        return Builder{shared_from_this()};
     }
 
     const MergedNamespaceDeclaration &DeclarationTable::get_merged_root(const Compilation &compilation) const

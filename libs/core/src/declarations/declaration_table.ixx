@@ -19,7 +19,7 @@ namespace prism
     class SingleRootNamespaceDeclaration;
     class Compilation;
 
-    class DeclarationTable final
+    class DeclarationTable final : public IntrusiveRefCounted
     {
 
         using LazyRootNamespace = LazyValue<RefCountPtr<const SingleRootNamespaceDeclaration>>;
@@ -31,10 +31,33 @@ namespace prism
         static constexpr ConstructTag construct_tag;
 
       public:
+        class Builder
+        {
+          public:
+            explicit Builder(RefCountPtr<const DeclarationTable> table = nullptr);
+
+            void add_root_declaration(LazyRootNamespace root);
+            void remove_root_declaration(LazyRootNamespace root);
+
+            RefCountPtr<const DeclarationTable> build() &&;
+
+          private:
+            void realize_adds();
+            void realize_removes();
+
+            RefCountPtr<const DeclarationTable> table_{};
+            std::vector<LazyRootNamespace> added_roots_{};
+            std::vector<LazyRootNamespace> removed_roots_{};
+        };
+
         DeclarationTable(ConstructTag,
                          ImmutableOrderedSet<LazyRootNamespace> old_roots,
                          Optional<LazyRootNamespace> latest_lazy_root,
                          std::shared_ptr<Cache> cache);
+
+        static const RefCountPtr<const DeclarationTable> &empty();
+
+        [[nodiscard]] Builder to_builder() const;
 
         [[nodiscard]] const MergedNamespaceDeclaration &get_merged_root(const Compilation &compilation) const;
         [[nodiscard]] const ImmutableHashSet<Name> &type_names() const;
