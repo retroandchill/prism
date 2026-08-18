@@ -65,10 +65,17 @@ namespace prism
                                                             initializer_binder);
     }
 
-    LookupResult LocalScopeBinder::lookup_local(Name name) const
+    LookupResult LocalScopeBinder::lookup_local(Name name,
+                                                const LookupOptions options,
+                                                [[maybe_unused]] const LookupContext &context) const
     {
-        return LookupResult{local_variables() |
-                            std::views::filter([name](const Symbol &symbol) { return symbol.name() == name; }) |
-                            std::ranges::to<SymbolList>()};
+        if (has_any_flags(options, LookupOptions::value))
+        {
+            return LookupResult{local_variables() |
+                                std::views::filter([name](const Symbol &symbol) { return symbol.name() == name; }) |
+                                std::ranges::to<SymbolList>()};
+        }
+
+        return LookupResult{};
     }
 } // namespace prism

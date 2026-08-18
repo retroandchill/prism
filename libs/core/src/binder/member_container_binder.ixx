@@ -17,15 +17,12 @@ namespace prism
       public:
         MemberContainerBinder(const Binder &next, const MemberContainerSymbol &symbol);
 
-        [[nodiscard]] constexpr const MemberContainerSymbol &symbol() const noexcept
-        {
-            return symbol_;
-        }
-
         [[nodiscard]] Optional<const Symbol &> containing_symbol() const override;
 
       protected:
-        [[nodiscard]] LookupResult lookup_local(Name name) const override;
+        [[nodiscard]] LookupResult lookup_local(Name name,
+                                                LookupOptions options,
+                                                const LookupContext &context) const override;
 
       private:
         const MemberContainerSymbol &symbol_;

@@ -222,6 +222,8 @@ set(PRISM_MODULES
         src/binder/member_container_binder.ixx
         src/symbols/member_container_symbol.ixx
         src/binder/member_container_binder.cpp
+        src/binder/lookup_context.ixx
+        src/binder/lookup_context.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

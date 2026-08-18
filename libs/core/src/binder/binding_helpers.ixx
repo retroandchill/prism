@@ -24,6 +24,8 @@ namespace prism
     class TypeSyntax;
     class TypeSymbol;
 
+    SpecialType from_token(SyntaxKind kind);
+
     const TypeSymbol &resolve_type(const TypeSyntax &syntax,
                                    const Compilation &compilation,
                                    DiagnosticBag &diagnostics);

@@ -19,6 +19,12 @@ import :semantic.lookup_result;
 
 namespace prism
 {
+    class BoundExpression;
+    class QualifiedNameSyntax;
+    class SimpleNameSyntax;
+    class NameSyntax;
+    class MemberContainerSymbol;
+    class LookupContext;
     class VariableSymbol;
     class Symbol;
     class SyntaxNode;
@@ -28,7 +34,23 @@ namespace prism
 
     using VariablesSpan = std::span<const Ref<const VariableSymbol>>;
 
-    export class Binder : NonCopyable
+    enum class LookupOptions : std::uint32_t
+    {
+        none = 0,
+        namespace_ = 1 << 0,
+        type = 1 << 1,
+        value = 1 << 2,
+        callable = 1 << 3,
+
+        all = namespace_ | type | value | callable,
+        namespace_or_type = namespace_ | type,
+        value_or_callable = value | callable,
+    };
+
+    template <>
+    constexpr bool is_flag_enum<LookupOptions> = true;
+
+    class Binder : NonCopyable
     {
       protected:
         explicit Binder(const Compilation &compilation);
@@ -68,32 +90,38 @@ namespace prism
 
         [[nodiscard]] virtual VariablesSpan get_declared_local_variables_for_scope(const SyntaxNode &designator) const;
 
-        /**
-         * Search the visible scopes and return the set of symbols that match a given name from the first scope to find
-         * a non-empty set of results.
-         *
-         * @param name The name of the symbol to lookup.
-         * @return The result of the search
-         */
-        [[nodiscard]] LookupResult lookup_nearest(Name name) const;
+        [[nodiscard]] const BoundExpression &get_bound_expression(const SyntaxNode &node) const;
 
-        /**
-         * Search all visible scopes and collect all symbols that match that name.
-         * The results are returned in order with the nearest results first.
-         *
-         * @param name The name of the identifier to lookup
-         * @return The result of the search
-         * @remarks This is generally used for resolving call statements which need all
-         *          possible functions to properly resolve overloads.
-         */
-        [[nodiscard]] LookupResult lookup_all_visible(Name name) const;
+        [[nodiscard]] LookupResult lookup_from_syntax(const NameSyntax &syntax,
+                                                      LookupOptions options,
+                                                      const LookupContext &context) const;
+
+        [[nodiscard]] LookupResult lookup_unqualified_name(Name name,
+                                                           LookupOptions options,
+                                                           const LookupContext &context) const;
+
+        [[nodiscard]] LookupResult lookup_qualified_name(Name name,
+                                                         const MemberContainerSymbol &container,
+                                                         LookupOptions options,
+                                                         const LookupContext &context) const;
 
       protected:
         [[nodiscard]] SemanticLifetime &lifetime() const noexcept;
 
-        [[nodiscard]] virtual LookupResult lookup_local(Name name) const = 0;
+        [[nodiscard]] virtual LookupResult lookup_local(Name name,
+                                                        LookupOptions options,
+                                                        const LookupContext &context) const = 0;
+
+        [[nodiscard]] bool visible_from(const Symbol &symbol, const LookupContext &context) const;
 
       private:
+        [[nodiscard]] LookupResult lookup_from_simple_name(const SimpleNameSyntax &syntax,
+                                                           LookupOptions options,
+                                                           const LookupContext &context) const;
+        [[nodiscard]] LookupResult lookup_from_qualified_name(const QualifiedNameSyntax &syntax,
+                                                              LookupOptions options,
+                                                              const LookupContext &context) const;
+
         const Compilation &compilation_;
         const Binder *next_ = nullptr;
         mutable Lazy<const ConversionClassifier &> conversion_classifier_;

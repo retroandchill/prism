@@ -17,6 +17,10 @@ import :semantic.compilation;
 import :declarations.visit;
 import :syntax.visit;
 import :binder.binding_helpers;
+import :binder;
+import :binder.lookup_context;
+import :symbols.error;
+import :semantic.bound.bound_expression;
 
 namespace prism
 {
@@ -216,12 +220,6 @@ namespace prism
         return locations_.get_or_compute([this] { return ImmutableArray{syntax_.identifier().location()}; });
     }
 
-    const TypeSymbol &SourceVariableSymbol::type() const
-    {
-        ASSUME(type_ == nullptr);
-        return *type_;
-    }
-
     bool SourceVariableSymbol::is_mutable() const noexcept
     {
         return syntax_.mut_keyword().has_value();
@@ -232,6 +230,11 @@ namespace prism
         return {&syntax_reference_, 1};
     }
 
+    const VariableDeclarationSyntax &SourceVariableSymbol::syntax() const noexcept
+    {
+        return syntax_;
+    }
+
     SourceLocalVariableSymbol::SourceLocalVariableSymbol(const Name name,
                                                          const Symbol *containing,
                                                          const VariableDeclarationSyntax &syntax,
@@ -240,6 +243,40 @@ namespace prism
         : SourceVariableSymbol{name, containing, syntax}, scope_binder_{scope_binder},
           initializer_binder_{initializer_binder}
     {
+    }
+
+    const TypeSymbol &SourceLocalVariableSymbol::type() const
+    {
+        return type_.get_or_compute(
+            [this] -> const TypeSymbol &
+            {
+                const LookupContext context{*containing_assembly()};
+                if (syntax().type().has_value())
+                {
+                    return visit(syntax().type()->type(),
+                                 Overload{
+                                     [&](const NamedTypeSyntax &named) -> auto &
+                                     {
+                                         const auto symbol = scope_binder_.lookup_from_syntax(named.identifier(),
+                                                                                              LookupOptions::type,
+                                                                                              context);
+                                         return static_cast<const TypeSymbol &>(symbol.symbol());
+                                     },
+                                     [&](const PredefinedTypeSyntax &predefined) -> const TypeSymbol & {
+                                         return declaring_compilation().value().get_special_type(
+                                             from_token(predefined.keyword().kind()));
+                                     },
+                                 });
+                }
+
+                if (!syntax().initializer().has_value())
+                {
+                    return unnamed_error_type;
+                }
+
+                auto &initializer = scope_binder_.get_bound_expression(*syntax().initializer());
+                return initializer.type();
+            });
     }
 
     SourceGlobalVariableSymbol::SourceGlobalVariableSymbol(const Name name,

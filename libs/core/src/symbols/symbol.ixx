@@ -38,6 +38,14 @@ namespace prism
                              } -> std::convertible_to<bool>;
                          });
 
+    export enum class DeclaredVisibility : std::uint8_t
+    {
+        not_applicable,
+        public_,
+        internal,
+        file
+    };
+
     /**
      * @brief Base class for all symbols.
      */
@@ -69,6 +77,8 @@ namespace prism
         {
             return name_;
         }
+
+        [[nodiscard]] virtual DeclaredVisibility declared_visibility() const;
 
         [[nodiscard]] virtual const ImmutableArray<Location> &locations() const = 0;
 
@@ -128,6 +138,13 @@ namespace prism
             {
                 return T::instance_of(self);
             }
+        }
+
+        template <SymbolLike... Ts, typename Self>
+            requires(std::derived_from<Ts, Self> && ...)
+        [[nodiscard]] constexpr bool is_any_of(this const Self &self) noexcept
+        {
+            return (self.template is<Ts>() || ...);
         }
 
         /**

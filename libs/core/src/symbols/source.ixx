@@ -102,25 +102,21 @@ namespace prism
       public:
         [[nodiscard]] const ImmutableArray<Location> &locations() const override;
 
-        [[nodiscard]] const TypeSymbol &type() const override;
         [[nodiscard]] bool is_mutable() const noexcept override;
 
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
+
+      protected:
+        [[nodiscard]] const VariableDeclarationSyntax &syntax() const noexcept;
 
       private:
         friend class SignatureBinder;
         friend class ExpressionBinder;
 
-        constexpr void set_type(const TypeSymbol &type) noexcept
-        {
-            type_ = &type;
-        }
-
         mutable Lazy<ImmutableArray<Location>> locations_;
 
         const VariableDeclarationSyntax &syntax_;
         SyntaxReference syntax_reference_;
-        const TypeSymbol *type_ = nullptr;
     };
 
     class SourceLocalVariableSymbol final : public SourceVariableSymbol
@@ -132,15 +128,23 @@ namespace prism
                                   const Binder &scope_binder,
                                   const Binder *initializer_binder);
 
+        [[nodiscard]] const TypeSymbol &type() const override;
+
       private:
         const Binder &scope_binder_;
         const Binder *initializer_binder_;
+        mutable Lazy<const TypeSymbol &> type_;
     };
 
     class SourceGlobalVariableSymbol final : public SourceVariableSymbol
     {
       public:
         SourceGlobalVariableSymbol(Name name, const Symbol *containing, const VariableDeclarationSyntax &syntax);
+
+        [[nodiscard]] const TypeSymbol &type() const override;
+
+      private:
+        Lazy<const TypeSymbol &> type_;
     };
 
     class SourceFunctionSymbol final : public FunctionSymbol

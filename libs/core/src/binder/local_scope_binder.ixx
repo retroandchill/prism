@@ -42,7 +42,9 @@ namespace prism
         const SourceVariableSymbol &make_local(const VariableDeclarationSyntax &declaration,
                                                const Binder *initializer_binder = nullptr) const;
 
-        [[nodiscard]] LookupResult lookup_local(Name name) const override;
+        [[nodiscard]] LookupResult lookup_local(Name name,
+                                                LookupOptions options,
+                                                const LookupContext &context) const override;
 
       private:
         mutable Lazy<std::span<Ref<const VariableSymbol>>> local_variables_{};

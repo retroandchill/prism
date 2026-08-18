@@ -14,6 +14,12 @@ import :symbols.named_type_symbol;
 namespace prism
 {
 
+    DeclaredVisibility Symbol::declared_visibility() const
+    {
+        // TODO: For now symbol visibility does not apply but eventually it will
+        return DeclaredVisibility::not_applicable;
+    }
+
     Optional<Location> Symbol::try_get_first_location() const
     {
         const auto locations = this->locations();

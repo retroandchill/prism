@@ -15,4 +15,16 @@ namespace prism
         : Binder{next}, symbol_{symbol}
     {
     }
+
+    Optional<const Symbol &> MemberContainerBinder::containing_symbol() const
+    {
+        return symbol_;
+    }
+
+    LookupResult MemberContainerBinder::lookup_local(const Name name,
+                                                     const LookupOptions options,
+                                                     const LookupContext &context) const
+    {
+        return lookup_qualified_name(name, symbol_, options, context);
+    }
 } // namespace prism
