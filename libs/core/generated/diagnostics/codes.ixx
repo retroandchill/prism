@@ -21,12 +21,13 @@ namespace prism
         invalid_symbol = 2001,
         expected_type_specifier = 2002,
         ambiguous_symbol = 2003,
-        no_conversion = 2004,
-        conversion_is_explicit = 2005,
-        multiple_file_scoped_namespaces = 2006,
-        file_scoped_and_normal_namespace = 2007,
-        file_scoped_namespace_not_before_all_members = 2008,
-        bad_modifiers_on_namespace = 2009,
+        symbol_inaccessible = 2004,
+        no_conversion = 2005,
+        conversion_is_explicit = 2006,
+        multiple_file_scoped_namespaces = 2007,
+        file_scoped_and_normal_namespace = 2008,
+        file_scoped_namespace_not_before_all_members = 2009,
+        bad_modifiers_on_namespace = 2010,
     };
 
     export constexpr std::string_view to_string(const DiagnosticCode code)
@@ -53,18 +54,20 @@ namespace prism
                 return "E2002";
             case DiagnosticCode::ambiguous_symbol:
                 return "E2003";
-            case DiagnosticCode::no_conversion:
+            case DiagnosticCode::symbol_inaccessible:
                 return "E2004";
-            case DiagnosticCode::conversion_is_explicit:
+            case DiagnosticCode::no_conversion:
                 return "E2005";
-            case DiagnosticCode::multiple_file_scoped_namespaces:
+            case DiagnosticCode::conversion_is_explicit:
                 return "E2006";
-            case DiagnosticCode::file_scoped_and_normal_namespace:
+            case DiagnosticCode::multiple_file_scoped_namespaces:
                 return "E2007";
-            case DiagnosticCode::file_scoped_namespace_not_before_all_members:
+            case DiagnosticCode::file_scoped_and_normal_namespace:
                 return "E2008";
-            case DiagnosticCode::bad_modifiers_on_namespace:
+            case DiagnosticCode::file_scoped_namespace_not_before_all_members:
                 return "E2009";
+            case DiagnosticCode::bad_modifiers_on_namespace:
+                return "E2010";
             default:
                 throw std::invalid_argument{"Invalid diagnostic code"};
         }

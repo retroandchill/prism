@@ -22,6 +22,7 @@ import :syntax.reference;
 
 namespace prism
 {
+    class DiagnosticBag;
     class Compilation;
     export class Symbol;
     class AssemblySymbol;
@@ -186,6 +187,8 @@ namespace prism
 
       protected:
         [[nodiscard]] virtual Optional<const Compilation &> declaring_compilation() const;
+
+        virtual void add_declaration_diagnostics(const DiagnosticBag &diagnostics) const;
 
       private:
         SymbolKind kind_;

@@ -18,118 +18,147 @@ import :symbols.named_type_symbol;
 import :diagnostics.diagnostic_bag;
 import :diagnostics.info;
 import :symbols.visit;
+import :binder;
+import :binder.lookup_context;
 
 namespace prism
 {
-
-    SpecialType from_token(const SyntaxKind kind)
-    {
-        switch (kind)
-        {
-            case SyntaxKind::void_keyword:
-                return SpecialType::void_;
-            case SyntaxKind::bool_keyword:
-                return SpecialType::bool_;
-            case SyntaxKind::i8_keyword:
-                return SpecialType::i8;
-            case SyntaxKind::i16_keyword:
-                return SpecialType::i16;
-            case SyntaxKind::i32_keyword:
-                return SpecialType::i32;
-            case SyntaxKind::i64_keyword:
-                return SpecialType::i64;
-            case SyntaxKind::i128_keyword:
-                return SpecialType::i128;
-            case SyntaxKind::u8_keyword:
-                return SpecialType::u8;
-            case SyntaxKind::u16_keyword:
-                return SpecialType::u16;
-            case SyntaxKind::u32_keyword:
-                return SpecialType::u32;
-            case SyntaxKind::u64_keyword:
-                return SpecialType::u64;
-            case SyntaxKind::u128_keyword:
-                return SpecialType::u128;
-            case SyntaxKind::isize_keyword:
-                return SpecialType::isize;
-            case SyntaxKind::usize_keyword:
-                return SpecialType::usize;
-            case SyntaxKind::f16_keyword:
-                return SpecialType::f16;
-            case SyntaxKind::f32_keyword:
-                return SpecialType::f32;
-            case SyntaxKind::f64_keyword:
-                return SpecialType::f64;
-            case SyntaxKind::char_keyword:
-                return SpecialType::char_;
-            case SyntaxKind::char16_keyword:
-                return SpecialType::char16;
-            case SyntaxKind::rune_keyword:
-                return SpecialType::rune;
-            case SyntaxKind::str_keyword:
-                return SpecialType::str;
-            default:
-                [[unlikely]] throw std::invalid_argument{"unknown special type"};
-        }
-    }
-
     namespace
     {
 
-        const TypeSymbol &resolve_symbol_chain(const Compilation &compilation,
-                                               DiagnosticBag &diagnostics,
-                                               const NamedTypeSyntax &named)
+        SpecialType from_token(const SyntaxKind kind)
         {
-            auto &scope = compilation.get_declaration_scope(named);
-            const auto names = collect_names(named.identifier());
-            std::span names_span{names};
-            ASSUME(!names_span.empty());
-
-            const Symbol *current_symbol = nullptr;
-            while (!names_span.empty())
+            switch (kind)
             {
-                const auto outer_name = names_span.front()->identifier().get_value<IdentifierData>().name;
-
-                auto result = scope.lookup_nearest(outer_name);
-                if (!result.found())
-                {
-                    diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::unresolved_symbol>(outer_name),
-                                               names.front()->location()});
-
-                    return create_error_type_symbol(std::nullopt, compilation, names);
-                }
-
-                if (result.ambiguous())
-                {
-                    diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::ambiguous_symbol>(outer_name),
-                                               names.front()->location()});
-
-                    return create_error_type_symbol(std::nullopt, compilation, names);
-                }
-
-                current_symbol = &result.symbol();
-                names_span = names_span.subspan(1);
+                case SyntaxKind::void_keyword:
+                    return SpecialType::void_;
+                case SyntaxKind::bool_keyword:
+                    return SpecialType::bool_;
+                case SyntaxKind::i8_keyword:
+                    return SpecialType::i8;
+                case SyntaxKind::i16_keyword:
+                    return SpecialType::i16;
+                case SyntaxKind::i32_keyword:
+                    return SpecialType::i32;
+                case SyntaxKind::i64_keyword:
+                    return SpecialType::i64;
+                case SyntaxKind::i128_keyword:
+                    return SpecialType::i128;
+                case SyntaxKind::u8_keyword:
+                    return SpecialType::u8;
+                case SyntaxKind::u16_keyword:
+                    return SpecialType::u16;
+                case SyntaxKind::u32_keyword:
+                    return SpecialType::u32;
+                case SyntaxKind::u64_keyword:
+                    return SpecialType::u64;
+                case SyntaxKind::u128_keyword:
+                    return SpecialType::u128;
+                case SyntaxKind::isize_keyword:
+                    return SpecialType::isize;
+                case SyntaxKind::usize_keyword:
+                    return SpecialType::usize;
+                case SyntaxKind::f16_keyword:
+                    return SpecialType::f16;
+                case SyntaxKind::f32_keyword:
+                    return SpecialType::f32;
+                case SyntaxKind::f64_keyword:
+                    return SpecialType::f64;
+                case SyntaxKind::char_keyword:
+                    return SpecialType::char_;
+                case SyntaxKind::char16_keyword:
+                    return SpecialType::char16;
+                case SyntaxKind::rune_keyword:
+                    return SpecialType::rune;
+                case SyntaxKind::str_keyword:
+                    return SpecialType::str;
+                default:
+                    [[unlikely]] throw std::invalid_argument{"unknown special type"};
             }
-
-            return visit(*current_symbol,
-                         Overload{[](const TypeSymbol &type) -> auto & { return type; },
-                                  [&](const Symbol &symbol) -> const TypeSymbol &
-                                  {
-                                      return compilation.create_error_type_symbol(symbol.containing_symbol(),
-                                                                                  symbol.name());
-                                  }});
         }
     } // namespace
 
-    const TypeSymbol &resolve_type(const TypeSyntax &syntax, const Compilation &compilation, DiagnosticBag &diagnostics)
+    void diagnose_lookup_failure(const LookupResult &result,
+                                 const NameSyntax &syntax,
+                                 const LookupOptions expected,
+                                 const LookupContext &context)
+    {
+        switch (result.kind())
+        {
+
+            case LookupResultKind::viable:
+            case LookupResultKind::error:
+                break;
+            case LookupResultKind::not_found:
+                {
+                    const auto name = get_unqualified_name(syntax);
+                    context.report_diagnostic(
+                        Diagnostic{DiagnosticInfo::create<DiagnosticCode::unresolved_symbol>(name), syntax.location()});
+
+                    break;
+                }
+            case LookupResultKind::ambiguous:
+                {
+                    const auto name =
+                        !result.symbols().empty() ? result.symbols().front()->name() : get_unqualified_name(syntax);
+
+                    context.report_diagnostic(
+                        Diagnostic{DiagnosticInfo::create<DiagnosticCode::ambiguous_symbol>(name), syntax.location()});
+                    break;
+                }
+            case LookupResultKind::inaccessible:
+                {
+                    const auto name = !result.symbols().empty()
+                                          ? result.symbols().front()->name()
+                                          : collect_names(syntax).back()->identifier().get_value<IdentifierData>().name;
+
+                    context.report_diagnostic(
+                        Diagnostic{DiagnosticInfo::create<DiagnosticCode::symbol_inaccessible>(name),
+                                   syntax.location()});
+                    break;
+                }
+            case LookupResultKind::wrong_kind:
+                {
+                    const auto name = get_unqualified_name(syntax);
+
+                    context.report_diagnostic(
+                        Diagnostic{DiagnosticInfo::create<DiagnosticCode::invalid_symbol>(name, to_string(expected)),
+                                   syntax.location()});
+
+                    break;
+                }
+        }
+    }
+
+    const TypeSymbol &require_type(const LookupResult &result,
+                                   const NameSyntax &syntax,
+                                   const Binder &binder,
+                                   const LookupContext &context)
+    {
+        if (result.viable())
+        {
+            if (const auto type = result.symbol().as<TypeSymbol>(); type.has_value())
+                return *type;
+        }
+
+        diagnose_lookup_failure(result, syntax, LookupOptions::type, context);
+        auto names = collect_names(syntax);
+        return create_error_type_symbol(binder.containing_symbol(), binder.compilation(), names);
+    }
+
+    const TypeSymbol &resolve_type(const TypeSyntax &syntax, const Binder &binder, const LookupContext &context)
     {
         return visit(syntax,
-                     Overload{[&](const PredefinedTypeSyntax &predefined) -> const TypeSymbol &
-                              { return compilation.get_special_type(from_token(predefined.keyword().kind())); },
-                              [&](const NamedTypeSyntax &named) -> const TypeSymbol &
-                              {
-                                  return resolve_symbol_chain(compilation, diagnostics, named);
-                              }});
+                     Overload{
+                         [&](const NamedTypeSyntax &named) -> auto &
+                         {
+                             const auto result =
+                                 binder.lookup_from_syntax(named.identifier(), LookupOptions::type, context);
+                             return require_type(result, named.identifier(), binder, context);
+                         },
+                         [&](const PredefinedTypeSyntax &predefined) -> const TypeSymbol &
+                         { return binder.compilation().get_special_type(from_token(predefined.keyword().kind())); },
+                     });
     }
 
     const NamedTypeSymbol &create_error_type_symbol(Optional<const Symbol &> owning_symbol,
@@ -139,7 +168,7 @@ namespace prism
         ASSUME(!names.empty());
         for (const auto syntax : names.subspan(0, names.size() - 1))
         {
-            auto name = syntax->identifier().get_value<IdentifierData>().name;
+            auto name = get_identifier_name(syntax->identifier());
             if (!owning_symbol.has_value())
                 owning_symbol = compilation.create_error_namespace_symbol(std::nullopt, name);
 
@@ -187,6 +216,16 @@ namespace prism
     {
         DEBUG_ASSERT(syntax.kind() == SyntaxKind::identifier_token);
         return syntax.get_value<IdentifierData>().name;
+    }
+
+    Name get_unqualified_name(const NameSyntax &syntax)
+    {
+        return visit(syntax,
+                     Overload{[](const SimpleNameSyntax &simple) { return get_unqualified_name(simple); },
+                              [](const QualifiedNameSyntax &qualified)
+                              {
+                                  return get_unqualified_name(qualified.right());
+                              }});
     }
 
     Name get_unqualified_name(const SimpleNameSyntax &syntax)

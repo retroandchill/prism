@@ -20,6 +20,58 @@ import :symbols.visit;
 
 namespace prism
 {
+    LookupResult make_lookup_result(SymbolList symbols, const LookupOptions options)
+    {
+        if (symbols.empty())
+            return LookupResult::not_found();
+
+        if (has_any_flags(options, LookupOptions::callable))
+            return LookupResult::viable(std::move(symbols));
+
+        if (symbols.size() == 1)
+            return LookupResult::viable(std::move(symbols));
+
+        return LookupResult::ambiguous(std::move(symbols));
+    }
+
+    std::string to_string(LookupOptions options)
+    {
+        PooledVector<std::string_view> result;
+        if (has_any_flags(options, LookupOptions::namespace_))
+            result.push_back("namespace");
+        if (has_any_flags(options, LookupOptions::type))
+            result.push_back("type");
+        if (has_any_flags(options, LookupOptions::value))
+            result.push_back("value");
+        if (has_any_flags(options, LookupOptions::callable))
+            result.push_back("callable");
+
+        if (result.empty())
+            return "none";
+
+        if (result.size() == 1)
+            return std::string{result.front()};
+
+        if (result.size() == 2)
+            return std::format("{} or {}", result.front(), result.back());
+
+        std::string output;
+        for (auto [i, view] : result | std::views::enumerate)
+        {
+            if (i > 0)
+            {
+                if (i == result.size() - 1)
+                    output += ", or ";
+                else
+                    output += ", ";
+            }
+
+            output += view;
+        }
+
+        return output;
+    }
+
     Binder::Binder(const Compilation &compilation) : compilation_{compilation}
     {
     }
@@ -69,6 +121,11 @@ namespace prism
         return next_->get_declared_local_variables_for_scope(designator);
     }
 
+    const BoundExpression &Binder::get_bound_expression(const ExpressionSyntax &node) const
+    {
+        throw NotImplementedException{};
+    }
+
     LookupResult Binder::lookup_from_syntax(const NameSyntax &syntax,
                                             const LookupOptions options,
                                             const LookupContext &context) const
@@ -86,45 +143,45 @@ namespace prism
                                                  const LookupOptions options,
                                                  const LookupContext &context) const
     {
-        LookupResult result;
-        auto *binder = this;
+
         if (has_any_flags(options, LookupOptions::callable))
         {
+            SymbolList symbols;
+            auto *binder = this;
             while (binder != nullptr)
             {
-                auto local_result = binder->lookup_local(name, options, context);
-
-                // If any symbol is not a function symbol, then we are going to return that result
-                if (local_result.found() &&
-                    std::ranges::any_of(local_result.symbols(),
-                                        [](const Symbol &s) { return !s.is<FunctionSymbol>(); }))
+                if (auto local_result = binder->lookup_local(name, options, context);
+                    local_result.kind() != LookupResultKind::not_found)
                 {
-                    if (!result.found())
+                    if (!local_result.viable())
+                        return local_result;
+
+                    if (std::ranges::any_of(local_result.symbols(),
+                                            [](const Symbol &s) { return !s.is<FunctionSymbol>(); }))
                     {
-                        result = std::move(local_result);
+                        return local_result;
                     }
 
-                    break;
+                    symbols.append_range(local_result.symbols());
                 }
 
-                result.append(std::move(local_result));
                 binder = binder->next_;
             }
+
+            return make_lookup_result(std::move(symbols), options);
         }
-        else
+
+        auto *binder = this;
+        while (binder != nullptr)
         {
-            while (binder != nullptr)
-            {
-                result = binder->lookup_local(name, options, context);
-                if (result.found())
-                {
-                    break;
-                }
-                binder = binder->next_;
-            }
+            auto result = binder->lookup_local(name, options, context);
+            if (result.kind() != LookupResultKind::not_found)
+                return result;
+
+            binder = binder->next_;
         }
 
-        return result;
+        return LookupResult::not_found();
     }
 
     LookupResult Binder::lookup_qualified_name(const Name name,
@@ -135,7 +192,7 @@ namespace prism
         SymbolList symbols;
 
         for (const auto symbol :
-             container.members(name) | std::views::filter([&](const Symbol &s) { return visible_from(s, context); }))
+             container.members(name) | std::views::filter([&](const Symbol &s) { return visible_from(s); }))
         {
             visit(symbol,
                   Overload{[&](const VariableSymbol &variable)
@@ -172,7 +229,7 @@ namespace prism
                            }});
         }
 
-        return LookupResult{std::move(symbols)};
+        return make_lookup_result(std::move(symbols), options);
     }
 
     SemanticLifetime &Binder::lifetime() const noexcept
@@ -180,7 +237,7 @@ namespace prism
         return CompilationInternal::get_lifetime(compilation_);
     }
 
-    bool Binder::visible_from(const Symbol &symbol, const LookupContext &context) const
+    bool Binder::visible_from(const Symbol &symbol) const
     {
         switch (symbol.declared_visibility())
         {
@@ -188,7 +245,7 @@ namespace prism
             case DeclaredVisibility::public_:
                 return true;
             case DeclaredVisibility::internal:
-                return &context.assembly_symbol() == &compilation_.assembly();
+                return symbol.containing_assembly().value_ptr() == &compilation_.assembly();
             case DeclaredVisibility::file:
                 {
                     const auto designator = scope_designator();
@@ -201,8 +258,7 @@ namespace prism
                 }
         }
 
-        // TODO: Add visibility check
-        return true;
+        UNREACHABLE("Invalid visibility");
     }
 
     LookupResult Binder::lookup_from_simple_name(const SimpleNameSyntax &syntax,
@@ -214,31 +270,18 @@ namespace prism
     }
 
     LookupResult Binder::lookup_from_qualified_name(const QualifiedNameSyntax &syntax,
-                                                    LookupOptions options,
+                                                    const LookupOptions options,
                                                     const LookupContext &context) const
     {
         auto lookup_result = lookup_from_syntax(syntax.left(), LookupOptions::namespace_or_type, context);
-        if (!lookup_result.found())
+        if (!lookup_result.viable())
             return lookup_result;
 
-        if (!lookup_result.ambiguous())
-        {
-            const auto symbol = lookup_result.symbol().as<MemberContainerSymbol>();
-            DEBUG_ASSERT(symbol.has_value());
-            const auto unqualified_name = get_unqualified_name(syntax.right());
-            return lookup_qualified_name(unqualified_name, *symbol, options, context);
-        }
+        const auto symbol = lookup_result.symbol().as<MemberContainerSymbol>();
+        if (!symbol.has_value())
+            return LookupResult::wrong_kind(lookup_result.symbols());
 
-        auto location = visit(syntax.left(),
-                              Overload{[](const SimpleNameSyntax &simple) { return simple.location(); },
-                                       [](const QualifiedNameSyntax &qualified)
-                                       {
-                                           return qualified.right().location();
-                                       }});
-        context.report_diagnostic(
-            Diagnostic{DiagnosticInfo::create<DiagnosticCode::ambiguous_symbol>(lookup_result.symbols()[0]->name()),
-                       std::move(location)});
-
-        return LookupResult{};
+        const auto unqualified_name = get_unqualified_name(syntax.right());
+        return lookup_qualified_name(unqualified_name, *symbol, options, context);
     }
 } // namespace prism

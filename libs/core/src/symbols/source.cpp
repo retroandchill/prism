@@ -21,6 +21,7 @@ import :binder;
 import :binder.lookup_context;
 import :symbols.error;
 import :semantic.bound.bound_expression;
+import :binder.binder_factory;
 
 namespace prism
 {
@@ -220,6 +221,18 @@ namespace prism
         return locations_.get_or_compute([this] { return ImmutableArray{syntax_.identifier().location()}; });
     }
 
+    const TypeSymbol &SourceVariableSymbol::type() const
+    {
+        return type_.get_or_compute(
+            [this] -> const TypeSymbol &
+            {
+                DiagnosticBag diagnostics;
+                auto &type = compute_type(diagnostics);
+                add_declaration_diagnostics(diagnostics);
+                return type;
+            });
+    }
+
     bool SourceVariableSymbol::is_mutable() const noexcept
     {
         return syntax_.mut_keyword().has_value();
@@ -245,38 +258,23 @@ namespace prism
     {
     }
 
-    const TypeSymbol &SourceLocalVariableSymbol::type() const
+    const TypeSymbol &SourceLocalVariableSymbol::compute_type(DiagnosticBag &diagnostics) const
     {
-        return type_.get_or_compute(
-            [this] -> const TypeSymbol &
-            {
-                const LookupContext context{*containing_assembly()};
-                if (syntax().type().has_value())
-                {
-                    return visit(syntax().type()->type(),
-                                 Overload{
-                                     [&](const NamedTypeSyntax &named) -> auto &
-                                     {
-                                         const auto symbol = scope_binder_.lookup_from_syntax(named.identifier(),
-                                                                                              LookupOptions::type,
-                                                                                              context);
-                                         return static_cast<const TypeSymbol &>(symbol.symbol());
-                                     },
-                                     [&](const PredefinedTypeSyntax &predefined) -> const TypeSymbol & {
-                                         return declaring_compilation().value().get_special_type(
-                                             from_token(predefined.keyword().kind()));
-                                     },
-                                 });
-                }
+        const LookupContext context{diagnostics};
+        if (syntax().type().has_value())
+        {
+            return resolve_type(syntax().type()->type(), scope_binder_, context);
+        }
 
-                if (!syntax().initializer().has_value())
-                {
-                    return unnamed_error_type;
-                }
+        if (!syntax().initializer().has_value())
+        {
+            diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::expected_type_specifier>(),
+                                       syntax().identifier().location()});
+            return unnamed_error_type;
+        }
 
-                auto &initializer = scope_binder_.get_bound_expression(*syntax().initializer());
-                return initializer.type();
-            });
+        auto &initializer = scope_binder_.get_bound_expression(syntax().initializer()->value());
+        return initializer.type();
     }
 
     SourceGlobalVariableSymbol::SourceGlobalVariableSymbol(const Name name,
@@ -285,6 +283,22 @@ namespace prism
         : SourceVariableSymbol{name, containing, syntax}
     {
     }
+
+    const TypeSymbol &SourceGlobalVariableSymbol::compute_type(DiagnosticBag &diagnostics) const
+    {
+        if (syntax().type().has_value())
+        {
+            auto &factory = CompilationInternal::get_binder_factory(*declaring_compilation(), syntax().tree());
+            auto &binder = factory.get_binder(syntax());
+            const LookupContext context{diagnostics};
+            return resolve_type(syntax().type()->type(), binder, context);
+        }
+
+        diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::expected_type_specifier>(),
+                                   syntax().identifier().location()});
+        return unnamed_error_type;
+    }
+
     SourceFunctionSymbol::SourceFunctionSymbol(const Name &name,
                                                const Symbol *containing,
                                                const FunctionDeclarationSyntax &syntax)

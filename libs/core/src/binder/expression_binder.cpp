@@ -124,6 +124,7 @@ namespace prism
     const BoundVariableDeclaration &ExpressionBinder::bind_variable_declaration_statement(
         const VariableDeclarationStatementSyntax &syntax)
     {
+        /*
         auto &declaration = syntax.declaration();
         auto &symbol = semantic_model_.get_local_variable(syntax);
 
@@ -133,13 +134,13 @@ namespace prism
         {
             if (declaration.type().has_value())
             {
-                symbol.type_ = &resolve_type(declaration.type()->type(), semantic_model_.compilation(), diagnostics_);
+                //symbol.type_ = &resolve_type(declaration.type()->type(), semantic_model_.compilation(), diagnostics_);
                 initializer =
                     add_conversion_if_necessary(declaration.initializer()->value(), *initializer, symbol.type());
             }
             else
             {
-                symbol.type_ = &initializer->type();
+                //symbol.type_ = &initializer->type();
             }
         }
         else
@@ -148,15 +149,17 @@ namespace prism
             {
                 diagnostics_.add(
                     Diagnostic{DiagnosticInfo::create<DiagnosticCode::expected_type_specifier>(), syntax.location()});
-                symbol.type_ = &unnamed_error_type;
+                //symbol.type_ = &unnamed_error_type;
             }
             else
             {
-                symbol.type_ = &resolve_type(declaration.type()->type(), semantic_model_.compilation(), diagnostics_);
+                //symbol.type_ = &resolve_type(declaration.type()->type(), semantic_model_.compilation(), diagnostics_);
             }
         }
 
         return lifetime_.create<BoundVariableDeclaration>(syntax, symbol, initializer.value_ptr());
+        */
+        throw NotImplementedException{};
     }
 
     const BoundExpressionStatement &ExpressionBinder::bind_expression_statement(const ExpressionStatementSyntax &syntax)

@@ -37,6 +37,6 @@ namespace prism
 
     LookupResult TerminalBinder::lookup_local(Name, LookupOptions, const LookupContext &) const
     {
-        return LookupResult{};
+        return LookupResult::not_found();
     }
 } // namespace prism

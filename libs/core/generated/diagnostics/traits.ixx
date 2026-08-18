@@ -70,6 +70,12 @@ namespace prism
     };
 
     template <>
+    struct DiagnosticTraits<DiagnosticCode::symbol_inaccessible>
+    {
+        using Args = std::tuple<Name>;
+    };
+
+    template <>
     struct DiagnosticTraits<DiagnosticCode::no_conversion>
     {
         using Args = std::tuple<std::string, std::string>;

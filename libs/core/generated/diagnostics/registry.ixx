@@ -110,6 +110,16 @@ namespace prism::diagnostics
                                                            ""sv,
                                                            {}};
 
+    export constexpr DiagnosticDescriptor symbol_inaccessible{to_string(DiagnosticCode::symbol_inaccessible),
+                                                              "Symbol inaccessible"sv,
+                                                              "Symbol {} is inaccessible",
+                                                              "Semantic"sv,
+                                                              DiagnosticSeverity::error,
+                                                              true,
+                                                              ""sv,
+                                                              ""sv,
+                                                              {}};
+
     export constexpr DiagnosticDescriptor no_conversion{to_string(DiagnosticCode::no_conversion),
                                                         "No conversion"sv,
                                                         "No conversion exists between type {} and type {}",
@@ -198,6 +208,8 @@ namespace prism::diagnostics
                 return expected_type_specifier;
             case DiagnosticCode::ambiguous_symbol:
                 return ambiguous_symbol;
+            case DiagnosticCode::symbol_inaccessible:
+                return symbol_inaccessible;
             case DiagnosticCode::no_conversion:
                 return no_conversion;
             case DiagnosticCode::conversion_is_explicit:

@@ -16,37 +16,6 @@ import :syntax.statements;
 
 namespace prism
 {
-    std::generator<Diagnostic> SemanticModel::get_diagnostics() const
-    {
-        co_yield std::ranges::elements_of(tree_->get_diagnostics());
-
-        for (auto &diagnostic : compilation_->diagnostics())
-        {
-            if (auto *location = std::get_if<SourceLocation>(&diagnostic.location());
-                location == nullptr || &location->tree() != tree_)
-            {
-                continue;
-            }
-
-            co_yield diagnostic;
-        }
-    }
-
-    std::generator<Diagnostic> SemanticModel::get_diagnostics(const TextSpan span) const
-    {
-        for (auto diagnostic : get_diagnostics())
-        {
-            if (auto *source_location = std::get_if<SourceLocation>(&diagnostic.location());
-                source_location == nullptr || &source_location->tree() != tree_ ||
-                source_location->source_span().overlaps_with(span))
-            {
-                continue;
-            }
-
-            co_yield std::move(diagnostic);
-        }
-    }
-
     Optional<const Symbol &> SemanticModel::get_declared_symbol(const SyntaxNode &node) const
     {
         validate_is_part_of_compilation(node);
@@ -85,12 +54,5 @@ namespace prism
     {
         if (&node.tree() != tree_)
             throw std::invalid_argument{"node is not part of this compilation"};
-    }
-
-    SourceVariableSymbol &SemanticModel::get_local_variable(const VariableDeclarationStatementSyntax &syntax) const
-    {
-        auto &scope = compilation_->get_declaration_scope(syntax);
-        const auto name = syntax.declaration().identifier().get_value<IdentifierData>().name;
-        return scope.get_local_variable(name);
     }
 } // namespace prism

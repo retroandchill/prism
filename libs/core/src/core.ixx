@@ -60,4 +60,4 @@ export import :symbols.parameter_symbol;
 
 export import :semantic.compilation;
 export import :semantic.semantic_model;
-export import :semantic.lookup_result;
+export import :binder.lookup_result;

@@ -18,25 +18,15 @@ namespace prism
     class LookupContext final
     {
       public:
-        explicit constexpr LookupContext(const AssemblySymbol &assembly_symbol) noexcept
-            : assembly_symbol_{assembly_symbol}
-        {
-        }
+        constexpr LookupContext() noexcept = default;
 
-        explicit constexpr LookupContext(const AssemblySymbol &assembly_symbol, DiagnosticBag &diagnostics) noexcept
-            : assembly_symbol_{assembly_symbol}, diagnostics_{&diagnostics}
+        explicit constexpr LookupContext(DiagnosticBag &diagnostics) noexcept : diagnostics_{&diagnostics}
         {
-        }
-
-        [[nodiscard]] constexpr const AssemblySymbol &assembly_symbol() const noexcept
-        {
-            return assembly_symbol_;
         }
 
         void report_diagnostic(Diagnostic diagnostic) const;
 
       private:
-        const AssemblySymbol &assembly_symbol_;
         DiagnosticBag *diagnostics_ = nullptr;
     };
 } // namespace prism

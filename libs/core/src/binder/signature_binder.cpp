@@ -33,6 +33,7 @@ namespace prism
 
     void SignatureBinder::bind_variable_type(SourceVariableSymbol &variable) const
     {
+        /*
         if (const auto type = variable.syntax_.type(); type.has_value())
         {
             variable.set_type(resolve_type(type->type(), compilation_, diagnostics_));
@@ -42,10 +43,12 @@ namespace prism
         diagnostics_.add(
             Diagnostic{DiagnosticInfo::create<DiagnosticCode::expected_type_specifier>(), variable.syntax_.location()});
         variable.set_type(unnamed_error_type);
+        */
     }
 
     void SignatureBinder::bind_function_return_type(SourceFunctionSymbol &function) const
     {
+        /*
         if (const auto return_type = function.syntax_.return_type(); return_type.has_value())
         {
             function.set_return_type(resolve_type(return_type->type(), compilation_, diagnostics_));
@@ -54,10 +57,12 @@ namespace prism
         {
             function.set_return_type(compilation_.get_special_type(SpecialType::void_));
         }
+        */
     }
 
     void SignatureBinder::bind_function_parameter_type(SourceParameterSymbol &parameter) const
     {
+        /*
         if (const auto type = parameter.syntax_.type_specifier(); type.has_value())
         {
             parameter.set_type(resolve_type(type->type(), compilation_, diagnostics_));
@@ -67,5 +72,6 @@ namespace prism
         diagnostics_.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::expected_type_specifier>(),
                                     parameter.syntax_.location()});
         parameter.set_type(unnamed_error_type);
+        */
     }
 } // namespace prism

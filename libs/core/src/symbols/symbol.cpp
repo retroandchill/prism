@@ -4,12 +4,18 @@
  * @date 8/2/2026
  * @brief
  */
+module;
+
+#include <libassert/assert-macros.hpp>
+
 module prism.core:symbols.symbol.impl;
 
 import :symbols.symbol;
 import :symbols.assembly_symbol;
 import :symbols.namespace_symbol;
 import :symbols.named_type_symbol;
+import :semantic.compilation;
+import :diagnostics.diagnostic_bag;
 
 namespace prism
 {
@@ -77,5 +83,12 @@ namespace prism
     {
         return containing_assembly().and_then([](const AssemblySymbol &assembly)
                                               { return assembly.declaring_compilation(); });
+    }
+
+    void Symbol::add_declaration_diagnostics(const DiagnosticBag &diagnostics) const
+    {
+        const auto compilation = declaring_compilation();
+        DEBUG_ASSERT(compilation.has_value());
+        CompilationInternal::get_declaration_diagnostics(*compilation).add_range(diagnostics);
     }
 } // namespace prism

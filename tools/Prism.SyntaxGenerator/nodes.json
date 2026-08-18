@@ -1547,6 +1547,17 @@
           ]
         },
         {
+          "name": "SymbolInaccessible",
+          "severity": "Error",
+          "format": "Symbol {Symbol} is inaccessible",
+          "args": [
+            {
+              "name": "Symbol",
+              "type": "Name"
+            }
+          ]
+        },
+        {
           "name": "NoConversion",
           "severity": "Error",
           "format": "No conversion exists between type {FromType} and type {ToType}",

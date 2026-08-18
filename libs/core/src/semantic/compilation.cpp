@@ -12,8 +12,6 @@ module prism.core:semantic.compilation.impl;
 
 import :semantic.compilation;
 import :diagnostics.diagnostic_bag;
-import :binder.declaration_scope;
-import :binder.declaration_scope_builder;
 import :symbols.assembly_symbol;
 import :symbols.merged_namespace_symbol;
 import :symbols.intrinsic;
@@ -126,15 +124,6 @@ namespace prism
         auto &model = lifetime_.create<SemanticModel>(SemanticModel::create_tag, *this, tree);
         semantic_models_.emplace(&tree, &model);
         return model;
-    }
-
-    const DeclarationScope &Compilation::get_declaration_scope(const SyntaxNode &node) const
-    {
-        const auto scope = semantic_mappings_.get_scope(node);
-        if (!scope.has_value())
-            throw std::invalid_argument{"No declaration scope found for node"};
-
-        return *scope;
     }
 
     // ReSharper disable once CppMemberFunctionMayBeStatic

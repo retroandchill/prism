@@ -100,14 +100,15 @@ namespace prism
         ~SourceVariableSymbol() = default;
 
       public:
-        [[nodiscard]] const ImmutableArray<Location> &locations() const override;
+        [[nodiscard]] const ImmutableArray<Location> &locations() const final;
 
-        [[nodiscard]] bool is_mutable() const noexcept override;
-
-        [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
+        [[nodiscard]] const TypeSymbol &type() const final;
+        [[nodiscard]] bool is_mutable() const noexcept final;
+        [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const final;
 
       protected:
         [[nodiscard]] const VariableDeclarationSyntax &syntax() const noexcept;
+        [[nodiscard]] virtual const TypeSymbol &compute_type(DiagnosticBag &diagnostics) const = 0;
 
       private:
         friend class SignatureBinder;
@@ -117,6 +118,7 @@ namespace prism
 
         const VariableDeclarationSyntax &syntax_;
         SyntaxReference syntax_reference_;
+        mutable Lazy<const TypeSymbol &> type_;
     };
 
     class SourceLocalVariableSymbol final : public SourceVariableSymbol
@@ -128,12 +130,11 @@ namespace prism
                                   const Binder &scope_binder,
                                   const Binder *initializer_binder);
 
-        [[nodiscard]] const TypeSymbol &type() const override;
+      protected:
+        [[nodiscard]] const TypeSymbol &compute_type(DiagnosticBag &diagnostics) const override;
 
-      private:
         const Binder &scope_binder_;
         const Binder *initializer_binder_;
-        mutable Lazy<const TypeSymbol &> type_;
     };
 
     class SourceGlobalVariableSymbol final : public SourceVariableSymbol
@@ -141,10 +142,8 @@ namespace prism
       public:
         SourceGlobalVariableSymbol(Name name, const Symbol *containing, const VariableDeclarationSyntax &syntax);
 
-        [[nodiscard]] const TypeSymbol &type() const override;
-
-      private:
-        Lazy<const TypeSymbol &> type_;
+      protected:
+        [[nodiscard]] const TypeSymbol &compute_type(DiagnosticBag &diagnostics) const override;
     };
 
     class SourceFunctionSymbol final : public FunctionSymbol

@@ -6,6 +6,7 @@
  */
 module;
 
+#include <complex.h>
 #include <libassert/assert-macros.hpp>
 
 export module prism.core:binder;
@@ -15,10 +16,12 @@ import :util.noncopyable;
 import :util.optional;
 import :util.lazy;
 import :util.ref;
-import :semantic.lookup_result;
+import :binder.lookup_result;
 
 namespace prism
 {
+    class TypeSyntax;
+    class ExpressionSyntax;
     class BoundExpression;
     class QualifiedNameSyntax;
     class SimpleNameSyntax;
@@ -49,6 +52,10 @@ namespace prism
 
     template <>
     constexpr bool is_flag_enum<LookupOptions> = true;
+
+    LookupResult make_lookup_result(SymbolList symbols, LookupOptions options);
+
+    std::string to_string(LookupOptions options);
 
     class Binder : NonCopyable
     {
@@ -90,7 +97,7 @@ namespace prism
 
         [[nodiscard]] virtual VariablesSpan get_declared_local_variables_for_scope(const SyntaxNode &designator) const;
 
-        [[nodiscard]] const BoundExpression &get_bound_expression(const SyntaxNode &node) const;
+        [[nodiscard]] const BoundExpression &get_bound_expression(const ExpressionSyntax &node) const;
 
         [[nodiscard]] LookupResult lookup_from_syntax(const NameSyntax &syntax,
                                                       LookupOptions options,
@@ -112,7 +119,7 @@ namespace prism
                                                         LookupOptions options,
                                                         const LookupContext &context) const = 0;
 
-        [[nodiscard]] bool visible_from(const Symbol &symbol, const LookupContext &context) const;
+        [[nodiscard]] bool visible_from(const Symbol &symbol) const;
 
       private:
         [[nodiscard]] LookupResult lookup_from_simple_name(const SimpleNameSyntax &syntax,

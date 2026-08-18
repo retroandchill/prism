@@ -16,12 +16,12 @@ import :util.noncopyable;
 import :syntax.tree;
 import :semantic.semantic_lifetime;
 import :semantic.semantic_model;
-import :binder.declaration_scope;
 import :binder.semantic_mappings;
 import :symbols.type_symbol;
 import :semantic.bound_node_lookup;
 import :context.target_settings;
 import :semantic.syntax_and_declaration_manager;
+import :diagnostics.diagnostic_bag;
 
 namespace prism
 {
@@ -92,13 +92,6 @@ namespace prism
 
         [[nodiscard]] const SemanticModel &get_semantic_model(const SyntaxTree &tree) const;
 
-        [[nodiscard]] constexpr const std::vector<Diagnostic> &diagnostics() const noexcept
-        {
-            return diagnostics_;
-        }
-
-        [[nodiscard]] const DeclarationScope &get_declaration_scope(const SyntaxNode &node) const;
-
         [[nodiscard]] const NamedTypeSymbol &get_special_type(SpecialType type) const;
 
         [[nodiscard]] const NamedTypeSymbol &create_error_type_symbol(Optional<const Symbol &> container,
@@ -139,6 +132,7 @@ namespace prism
         RefCountPtr<SyntaxAndDeclarationManager> syntax_and_declaration_manager_;
         mutable Lazy<const AssemblySymbol &> assembly_;
         mutable Lazy<const NamespaceSymbol &> global_namespace_;
+        mutable DiagnosticBag declaration_diagnostics_;
 
         mutable std::mutex compilation_namespace_mutex_;
         mutable std::unordered_map<const NamespaceSymbol *, const NamespaceSymbol *> compilation_namespaces_;
@@ -148,7 +142,6 @@ namespace prism
         mutable Lazy<const Binder &> root_binder_;
 
         // Old-stuff, subject to pruning as we refactor to the lazy model
-        std::vector<Diagnostic> diagnostics_;
         SemanticMappings semantic_mappings_;
         BoundNodeLookup bound_node_lookup_;
 
@@ -236,6 +229,11 @@ namespace prism
         [[nodiscard]] static inline const Binder &get_root_binder(const Compilation &compilation)
         {
             return compilation.root_binder();
+        }
+
+        [[nodiscard]] static inline DiagnosticBag &get_declaration_diagnostics(const Compilation &compilation)
+        {
+            return compilation.declaration_diagnostics_;
         }
     };
 } // namespace prism

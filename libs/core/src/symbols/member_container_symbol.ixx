@@ -11,7 +11,7 @@ module;
 export module prism.core:symbols.member_container_symbol;
 
 import :symbols.symbol;
-import :semantic.lookup_result;
+import :binder.lookup_result;
 
 namespace prism
 {

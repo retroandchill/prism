@@ -71,11 +71,12 @@ namespace prism
     {
         if (has_any_flags(options, LookupOptions::value))
         {
-            return LookupResult{local_variables() |
-                                std::views::filter([name](const Symbol &symbol) { return symbol.name() == name; }) |
-                                std::ranges::to<SymbolList>()};
+            return make_lookup_result(
+                local_variables() | std::views::filter([name](const Symbol &symbol) { return symbol.name() == name; }) |
+                    std::ranges::to<SymbolList>(),
+                LookupOptions::value);
         }
 
-        return LookupResult{};
+        return LookupResult::not_found();
     }
 } // namespace prism

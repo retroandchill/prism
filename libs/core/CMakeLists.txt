@@ -148,8 +148,6 @@ set(PRISM_MODULES
         src/symbols/source.cpp
         src/semantic/compilation.ixx
         src/semantic/compilation.cpp
-        src/binder/declaration_scope.ixx
-        src/binder/declaration_scope.cpp
         src/diagnostics/diagnostic.ixx
         src/diagnostics/diagnostic.cpp
         src/diagnostics/location.ixx
@@ -159,8 +157,6 @@ set(PRISM_MODULES
         src/semantic/semantic_model.ixx
         src/semantic/semantic_model.cpp
         src/syntax/reference.ixx
-        src/binder/declaration_scope_builder.ixx
-        src/binder/declaration_scope_builder.cpp
         src/binder/semantic_mappings.ixx
         src/binder/semantic_mappings.cpp
         src/symbols/merged_namespace_symbol.ixx
@@ -168,7 +164,7 @@ set(PRISM_MODULES
         src/binder/signature_binder.ixx
         src/binder/binding_helpers.ixx
         src/symbols/error_type_symbol.ixx
-        src/semantic/lookup_result.ixx
+        src/binder/lookup_result.ixx
         src/semantic/bound/bound_node.ixx
         src/semantic/bound/bound_statement.ixx
         src/semantic/bound/bound_expression.ixx

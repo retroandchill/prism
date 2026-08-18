@@ -13,7 +13,7 @@ export module prism.core:symbols.namespace_symbol;
 import :symbols.member_container_symbol;
 import :util.ref;
 import :type_traits.visitor;
-import :semantic.lookup_result;
+import :binder.lookup_result;
 
 namespace prism
 {
