@@ -7,6 +7,8 @@
 module prism.core:semantic.conversion_classifier.impl;
 
 import :semantic.conversion_classifier;
+import :binder;
+import :semantic.compilation;
 
 namespace prism
 {
@@ -29,6 +31,11 @@ namespace prism
         }
 
         return no_conversion;
+    }
+
+    const Compilation &ConversionClassifier::compilation() const noexcept
+    {
+        return binder_.compilation();
     }
 
     bool ConversionClassifier::is_numeric_type(const TypeSymbol &type) noexcept
@@ -137,9 +144,12 @@ namespace prism
                 return {.family = NumericFamily::signed_integer, .width = 128, .precision = 128};
 
             case SpecialType::isize:
-                return {.family = NumericFamily::signed_integer,
-                        .width = target_settings_.pointer_width,
-                        .precision = target_settings_.pointer_width};
+                {
+                    auto [pointer_width] = compilation().target_settings();
+                    return {.family = NumericFamily::signed_integer,
+                            .width = pointer_width,
+                            .precision = pointer_width};
+                }
 
             case SpecialType::u8:
                 return {.family = NumericFamily::unsigned_integer, .width = 8, .precision = 8};
@@ -157,9 +167,12 @@ namespace prism
                 return {.family = NumericFamily::unsigned_integer, .width = 128, .precision = 128};
 
             case SpecialType::usize:
-                return {.family = NumericFamily::unsigned_integer,
-                        .width = target_settings_.pointer_width,
-                        .precision = target_settings_.pointer_width};
+                {
+                    auto [pointer_width] = compilation().target_settings();
+                    return {.family = NumericFamily::unsigned_integer,
+                            .width = pointer_width,
+                            .precision = pointer_width};
+                }
 
             case SpecialType::f16:
                 return {.family = NumericFamily::floating_point, .width = 16, .precision = 11};

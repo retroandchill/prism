@@ -21,8 +21,8 @@ namespace prism
 
     export class PRISM_CORE_API SyntaxTrivia final
     {
-        constexpr SyntaxTrivia(SyntaxToken parent, const GreenNode &trivia, const std::uint32_t position)
-            : token_{std::move(parent)}, green_{&trivia}, position_{position}
+        constexpr SyntaxTrivia(const SyntaxToken &parent, const GreenNode &trivia, const std::uint32_t position)
+            : token_{parent}, green_{&trivia}, position_{position}
         {
         }
 
@@ -53,9 +53,7 @@ namespace prism
         }
 
       private:
-        friend class SyntaxTriviaList;
-        friend class StructuredTriviaSyntax;
-        friend class SyntaxTree;
+        friend struct SyntaxTriviaInternal;
 
         SyntaxToken token_;
         const GreenNode *green_;
@@ -65,7 +63,7 @@ namespace prism
     class SyntaxTriviaList PRISM_CORE_API final : public SyntaxListView<SyntaxTrivia>
     {
         constexpr explicit SyntaxTriviaList(SyntaxToken parent, const GreenNode *trivia_list)
-            : parent_{std::move(parent)}, green_{trivia_list}, position_{parent.position_}
+            : parent_{std::move(parent)}, green_{trivia_list}, position_{SyntaxTokenInternal::get_position(parent)}
         {
         }
 
@@ -85,7 +83,7 @@ namespace prism
         [[nodiscard]] SyntaxTrivia operator[](std::size_t index) const;
 
       private:
-        friend class SyntaxToken;
+        friend class SyntaxTriviaInternal;
 
         SyntaxToken parent_;
         GreenSyntaxList<GreenNode, false> green_;
@@ -114,5 +112,38 @@ namespace prism
 
       private:
         Optional<SyntaxTrivia> parent_trivia_;
+    };
+
+    struct SyntaxTriviaInternal
+    {
+        [[nodiscard]] static constexpr SyntaxTrivia create(SyntaxToken parent,
+                                                           const GreenNode &trivia,
+                                                           const std::uint32_t position)
+        {
+            return SyntaxTrivia{std::move(parent), trivia, position};
+        }
+
+        [[nodiscard]] static constexpr const GreenNode &get_green(const SyntaxTrivia &trivia) noexcept
+        {
+            return *trivia.green_;
+        }
+
+        [[nodiscard]] static constexpr std::uint32_t get_position(const SyntaxTrivia &trivia) noexcept
+        {
+            return trivia.position_;
+        }
+
+        [[nodiscard]] static constexpr SyntaxTriviaList create_list(const SyntaxToken &parent,
+                                                                    const GreenNode *trivia_list)
+        {
+            return SyntaxTriviaList{parent, trivia_list};
+        }
+
+        [[nodiscard]] constexpr static constexpr SyntaxTriviaList create_list(const SyntaxToken &parent,
+                                                                              const GreenNode *trivia_list,
+                                                                              const std::uint32_t position)
+        {
+            return SyntaxTriviaList{parent, trivia_list, position};
+        }
     };
 } // namespace prism

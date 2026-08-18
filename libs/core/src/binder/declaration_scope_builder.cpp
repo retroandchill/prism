@@ -125,11 +125,13 @@ namespace prism
             visit(statement,
                   Overload{[&](const VariableDeclarationStatementSyntax &s)
                            {
-                               auto name = s.declaration().identifier().get_value<IdentifierData>().name;
-                               auto &variable =
-                                   lifetime_.create<SourceVariableSymbol>(name, &function, s.declaration());
-                               mappings_.add_symbol_mapping(s.declaration(), variable);
-                               scope.add_local_variable(variable);
+                               /*
+                                        auto name = s.declaration().identifier().get_value<IdentifierData>().name;
+                                        auto &variable =
+                                            lifetime_.create<SourceVariableSymbol>(name, &function, s.declaration());
+                                        mappings_.add_symbol_mapping(s.declaration(), variable);
+                                        scope.add_local_variable(variable);
+                                        */
                            },
                            [&](const BlockSyntax &block) { bind_block(block, scope, function); },
                            [](const StatementSyntax &)

@@ -30,6 +30,11 @@ namespace prism
             static constexpr ImmutableArray<Location> empty{};
             return empty;
         }
+
+        [[nodiscard]] SymbolSpan<Symbol> members() const override
+        {
+            return {};
+        }
     };
 
     constexpr ErrorTypeSymbol unnamed_error_type;

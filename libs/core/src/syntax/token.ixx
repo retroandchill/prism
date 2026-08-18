@@ -111,18 +111,24 @@ namespace prism
         }
 
       private:
-        friend class SyntaxTokenList;
-        friend class SyntaxTriviaList;
-        friend class Lexer;
-        friend class ChildSyntaxList;
-        friend class SyntaxNodeOrTokenList;
-        template <typename T>
-        friend class SeparatedSyntaxList;
-        friend class SyntaxTree;
+        friend struct SyntaxTokenInternal;
 
         const SyntaxNode *parent_ = nullptr;
         const GreenToken *green_;
         std::uint32_t position_;
+    };
+
+    struct SyntaxTokenInternal
+    {
+        [[nodiscard]] static constexpr const GreenToken &get_green(const SyntaxToken &token) noexcept
+        {
+            return *token.green_;
+        }
+
+        [[nodiscard]] static constexpr std::uint32_t get_position(const SyntaxToken &token) noexcept
+        {
+            return token.position_;
+        }
     };
 
     class SyntaxTokenList PRISM_CORE_API final : public SyntaxListView<SyntaxToken>

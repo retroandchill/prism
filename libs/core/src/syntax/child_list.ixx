@@ -23,13 +23,14 @@ namespace prism
     {
       public:
         constexpr ChildSyntaxList() = default;
-        constexpr explicit ChildSyntaxList(const SyntaxNode &node) : node_{&node}, count_{count_nodes(node.green())}
+        constexpr explicit ChildSyntaxList(const SyntaxNode &node)
+            : node_{&node}, count_{count_nodes(SyntaxNodeInternal::get_green(node))}
         {
         }
 
         [[nodiscard]] constexpr std::size_t size() const noexcept
         {
-            return node_ != nullptr ? node_->green().slot_count() : 0;
+            return node_ != nullptr ? SyntaxNodeInternal::get_green(*node_).slot_count() : 0;
         }
 
         [[nodiscard]] SyntaxNodeOrToken operator[](std::size_t index) const;

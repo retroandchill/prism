@@ -11,7 +11,7 @@ import :memory.buffer_pool;
 
 namespace prism
 {
-    using SymbolList = PooledVector<Ref<const Symbol>>;
+    using SymbolList = std::vector<Ref<const Symbol>>;
 
     export class LookupResult final
     {
@@ -47,6 +47,29 @@ namespace prism
         [[nodiscard]] constexpr SymbolSpan<Symbol> symbols() const noexcept
         {
             return symbols_;
+        }
+
+        constexpr void append(const LookupResult &other) noexcept
+        {
+            if (!other.found())
+                return;
+
+            symbols_.append_range(other.symbols_);
+        }
+
+        constexpr void append(LookupResult &&other) noexcept
+        {
+            if (!other.found())
+                return;
+
+            if (!found())
+            {
+                symbols_ = std::move(other.symbols_);
+            }
+            else
+            {
+                symbols_.append_range(other.symbols_);
+            }
         }
 
       private:

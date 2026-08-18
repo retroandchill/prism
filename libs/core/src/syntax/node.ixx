@@ -79,6 +79,11 @@ namespace prism
             return {.start = position_ + green_->leading_trivia_width(), .length = green_->width()};
         }
 
+        [[nodiscard]] constexpr std::uint32_t span_start() const noexcept
+        {
+            return position_ + green_->leading_trivia_width();
+        }
+
         [[nodiscard]] constexpr bool is_missing() const noexcept
         {
             return green_->is_missing();
@@ -154,19 +159,6 @@ namespace prism
                 });
         }
 
-        template <std::derived_from<SyntaxNode> T>
-        SyntaxList<T> make_syntax_list(const Optional<const SyntaxNode &> red) const
-        {
-            return SyntaxList<T>{red.value_ptr()};
-        }
-
-        template <std::derived_from<SyntaxNode> T>
-        SeparatedSyntaxList<T> make_separated_syntax_list(const Optional<const SyntaxNode &> red) const
-        {
-            // ReSharper disable once CppClassIsIncomplete
-            return SeparatedSyntaxList<T>{SyntaxNodeOrTokenList{red.value_ptr()}};
-        }
-
         [[nodiscard]] virtual Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const = 0;
 
         [[nodiscard]] virtual std::uint32_t get_slot_position(std::size_t index) const;
@@ -195,6 +187,12 @@ namespace prism
             }
         }
 
+        template <SyntaxNodeLike... Ts>
+        [[nodiscard]] bool is_any_of() const
+        {
+            return (is<Ts>() || ...);
+        }
+
         template <SyntaxNodeLike T>
         [[nodiscard]] Optional<const T &> as() const
         {
@@ -214,18 +212,8 @@ namespace prism
             return std::shared_ptr<Self>{self.lifetime_->shared_from_this(), std::addressof(self)};
         }
 
-      protected:
-        [[nodiscard]] constexpr const GreenNode &green() const noexcept
-        {
-            return *green_;
-        }
-
       private:
-        friend class SyntaxNodeOrTokenList;
-        friend class ChildSyntaxList;
-        friend class SyntaxTree;
-        template <typename T>
-        friend class SeparatedSyntaxList;
+        friend struct SyntaxNodeInternal;
 
         static const SyntaxTree &compute_tree(const SyntaxNode *node);
 
@@ -234,6 +222,49 @@ namespace prism
         SyntaxLifetime *lifetime_;
         mutable Lazy<const SyntaxTree &> tree_;
         std::uint32_t position_;
+    };
+
+    struct SyntaxNodeInternal
+    {
+        [[nodiscard]] static const GreenNode &get_green(const SyntaxNode &node) noexcept
+        {
+            return *node.green_;
+        }
+
+        [[nodiscard]] static inline Optional<const SyntaxNode &> get_node_slot(const SyntaxNode &node,
+                                                                               const std::size_t index)
+        {
+            return node.get_node_slot(index);
+        }
+
+        [[nodiscard]] static inline const SyntaxNode &get_required_node_slot(const SyntaxNode &node,
+                                                                             const std::size_t index)
+        {
+            return node.get_required_node_slot(index);
+        }
+
+        [[nodiscard]] static inline std::uint32_t get_slot_position(const SyntaxNode &node, const std::size_t index)
+        {
+            return node.get_slot_position(index);
+        }
+
+        static inline void set_tree(const SyntaxNode &node, const SyntaxTree &tree)
+        {
+            node.tree_.set(tree);
+        }
+
+        template <std::derived_from<SyntaxNode> T>
+        static constexpr SyntaxList<T> make_syntax_list(const Optional<const SyntaxNode &> red)
+        {
+            return SyntaxList<T>{red.value_ptr()};
+        }
+
+        template <std::derived_from<SyntaxNode> T>
+        static constexpr SeparatedSyntaxList<T> make_separated_syntax_list(const Optional<const SyntaxNode &> red)
+        {
+            // ReSharper disable once CppClassIsIncomplete
+            return SeparatedSyntaxList<T>{SyntaxNodeOrTokenList{red.value_ptr()}};
+        }
     };
 
     export template <SyntaxNodeLike T>

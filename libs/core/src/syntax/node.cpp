@@ -150,7 +150,7 @@ namespace prism
             auto *parent = node->parent_;
             if (parent == nullptr)
             {
-                auto &created_tree = node->lifetime().allocate_tree(SyntaxTree::construct_tag, *node);
+                auto &created_tree = node->lifetime().allocate_tree(SyntaxTreeInternal::construct_tag, *node);
                 tree = std::addressof(created_tree);
 
                 for (auto *n : nodes)

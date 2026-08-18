@@ -12,17 +12,19 @@ import :context.target_settings;
 
 namespace prism
 {
+    class Binder;
     class ConversionClassifier final
     {
       public:
-        explicit constexpr ConversionClassifier(const TargetSettings target_settings)
-            : target_settings_{target_settings}
+        explicit constexpr ConversionClassifier(const Binder &binder) : binder_{binder}
         {
         }
 
         [[nodiscard]] Conversion classify_conversion(const TypeSymbol &source, const TypeSymbol &destination) const;
 
       private:
+        [[nodiscard]] const Compilation &compilation() const noexcept;
+
         [[nodiscard]] static bool is_numeric_type(const TypeSymbol &type) noexcept;
 
         [[nodiscard]] static bool is_numeric_special_type(SpecialType type) noexcept;
@@ -51,6 +53,6 @@ namespace prism
 
         [[nodiscard]] static bool is_integer_family(NumericFamily family) noexcept;
 
-        TargetSettings target_settings_{};
+        const Binder &binder_;
     };
 } // namespace prism

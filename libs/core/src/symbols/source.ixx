@@ -22,6 +22,7 @@ import :declarations.merged_namespace_declaration;
 
 namespace prism
 {
+    class Binder;
     class ParameterSyntax;
     class FunctionDeclarationSyntax;
     class VariableDeclarationSyntax;
@@ -83,11 +84,14 @@ namespace prism
         mutable Lazy<ImmutableArray<Ref<const Symbol>>> members_;
     };
 
-    class SourceVariableSymbol final : public VariableSymbol
+    class SourceVariableSymbol : public VariableSymbol
     {
-      public:
-        SourceVariableSymbol(const Name &name, const Symbol *containing, const VariableDeclarationSyntax &syntax);
+      protected:
+        SourceVariableSymbol(Name name, const Symbol *containing, const VariableDeclarationSyntax &syntax);
 
+        ~SourceVariableSymbol() = default;
+
+      public:
         [[nodiscard]] const ImmutableArray<Location> &locations() const override;
 
         [[nodiscard]] const TypeSymbol &type() const override;
@@ -109,6 +113,26 @@ namespace prism
         const VariableDeclarationSyntax &syntax_;
         SyntaxReference syntax_reference_;
         const TypeSymbol *type_ = nullptr;
+    };
+
+    class SourceLocalVariableSymbol final : public SourceVariableSymbol
+    {
+      public:
+        SourceLocalVariableSymbol(Name name,
+                                  const Symbol *containing,
+                                  const VariableDeclarationSyntax &syntax,
+                                  const Binder &scope_binder,
+                                  const Binder *initializer_binder);
+
+      private:
+        const Binder &scope_binder_;
+        const Binder *initializer_binder_;
+    };
+
+    class SourceGlobalVariableSymbol final : public SourceVariableSymbol
+    {
+      public:
+        SourceGlobalVariableSymbol(Name name, const Symbol *containing, const VariableDeclarationSyntax &syntax);
     };
 
     class SourceFunctionSymbol final : public FunctionSymbol
@@ -148,7 +172,6 @@ namespace prism
             return_type_ = &type;
         }
 
-      private:
         const FunctionDeclarationSyntax &syntax_;
         SyntaxReference syntax_reference_;
         std::vector<Ref<const ParameterSymbol>> parameters_;

@@ -225,6 +225,10 @@ namespace prism
 
         constexpr Lazy() noexcept = default;
 
+        explicit constexpr Lazy(T &value) noexcept : value_{reinterpret_cast<std::uintptr_t>(std::addressof(value))}
+        {
+        }
+
         [[nodiscard]] constexpr LazyState state() const noexcept
         {
             const auto current = value_.load(std::memory_order_acquire);

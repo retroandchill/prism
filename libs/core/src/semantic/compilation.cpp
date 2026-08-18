@@ -21,10 +21,10 @@ import :binder.signature_binder;
 import :symbols.error;
 import :semantic.conversion_classifier;
 import :symbols.source;
+import :binder.terminal_binder;
 
 namespace prism
 {
-
     Compilation::Compilation(CreateTag,
                              SemanticLifetime &lifetime,
                              const Name assembly_name,
@@ -133,8 +133,11 @@ namespace prism
 
     Conversion Compilation::classify_conversion(const TypeSymbol &source, const TypeSymbol &destination) const
     {
+        return no_conversion;
+        /*
         const ConversionClassifier classifier{target_settings_};
         return classifier.classify_conversion(source, destination);
+        */
     }
 
     std::shared_ptr<Compilation> Compilation::shared_from_this() noexcept
@@ -205,5 +208,17 @@ namespace prism
     {
         DEBUG_ASSERT(contains_syntax_tree(tree));
         return syntax_and_declaration_manager_->state().ordinal_map.get(&tree);
+    }
+
+    const BinderFactory &Compilation::get_binder_factory(const SyntaxTree &tree) const
+    {
+        std::scoped_lock lock{binder_factory_mutex_};
+        if (const auto it = binder_factories_.find(&tree); it != binder_factories_.end())
+            return *it->second;
+    }
+
+    const Binder &Compilation::root_binder() const
+    {
+        return root_binder_.get_or_compute([this] -> auto & { return lifetime_.create<TerminalBinder>(*this); });
     }
 } // namespace prism

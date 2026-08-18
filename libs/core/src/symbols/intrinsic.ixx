@@ -84,6 +84,8 @@ namespace prism
         }
 
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
+
+        [[nodiscard]] SymbolSpan<Symbol> members() const override;
     };
 
     class IntrinsicNamespaceSymbol final : public NamespaceSymbol

@@ -109,7 +109,7 @@ namespace prism
         }
 
       private:
-        friend class SyntaxNode;
+        friend struct SyntaxNodeInternal;
 
         const SyntaxNode *node_ = nullptr;
     };
@@ -143,7 +143,7 @@ namespace prism
             if (!node.has_value())
                 throw std::out_of_range{"index out of range"};
 
-            if (!node->green().is_list())
+            if (!SyntaxNodeInternal::get_green(*node).is_list())
             {
                 if (index != 0)
                     throw std::out_of_range{"index out of range"};
@@ -152,10 +152,10 @@ namespace prism
                 return static_cast<const T &>(*node);
             }
 
-            if (index >= node->green().slot_count())
+            if (index >= SyntaxNodeInternal::get_green(*node).slot_count())
                 throw std::out_of_range{"index out of range"};
 
-            auto &target = node->get_required_node_slot(index);
+            auto &target = SyntaxNodeInternal::get_required_node_slot(*node, index);
             DEBUG_ASSERT(target.is<T>());
             return static_cast<const T &>(target);
         }
@@ -166,11 +166,11 @@ namespace prism
             if (!node.has_value())
                 throw std::out_of_range{"index out of range"};
 
-            DEBUG_ASSERT(node->green().is_list(), "separator cannot appear in a non-list");
-            if (index >= node->green().slot_count())
+            DEBUG_ASSERT(SyntaxNodeInternal::get_green(*node).is_list(), "separator cannot appear in a non-list");
+            if (index >= SyntaxNodeInternal::get_green(*node).slot_count())
                 throw std::out_of_range{"index out of range"};
 
-            auto &green = node->green().get_required_slot(index);
+            auto &green = SyntaxNodeInternal::get_green(*node).get_required_slot(index);
             DEBUG_ASSERT(green.is_token());
             return SyntaxToken{static_cast<const GreenToken &>(green),
                                node.value_ptr(),
@@ -183,7 +183,7 @@ namespace prism
         }
 
       private:
-        friend class SyntaxNode;
+        friend struct SyntaxNodeInternal;
 
 #ifndef NDEBUG
         static void validate(const SyntaxNodeOrTokenList list)

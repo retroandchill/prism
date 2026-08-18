@@ -50,7 +50,7 @@ namespace prism
     Optional<const Symbol &> SemanticModel::get_declared_symbol(const SyntaxNode &node) const
     {
         validate_is_part_of_compilation(node);
-        return compilation_->semantic_mappings_.get_symbol(node);
+        return CompilationInternal::get_semantic_mappings(*compilation_).get_symbol(node);
     }
 
     Optional<const VariableSymbol &> SemanticModel::get_declared_symbol(const VariableDeclarationSyntax &node) const

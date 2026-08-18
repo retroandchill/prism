@@ -32,7 +32,7 @@ namespace prism
         : path_{std::move(path)}, text_{std::move(text)}, lifetime_{&lifetime}, root_{&root->create_red(*lifetime_)}
     {
         lifetime_->add_root(std::move(root));
-        root_->tree_.set(*this);
+        SyntaxNodeInternal::set_tree(*root_, *this);
     }
 
     SyntaxTree::SyntaxTree(ConstructTag,
@@ -74,17 +74,17 @@ namespace prism
 
     std::generator<Diagnostic> SyntaxTree::get_diagnostics(const SyntaxNode &node) const
     {
-        return get_diagnostics(node.green(), node.position());
+        return get_diagnostics(SyntaxNodeInternal::get_green(node), node.position());
     }
 
     std::generator<Diagnostic> SyntaxTree::get_diagnostics(const SyntaxToken &token) const
     {
-        return get_diagnostics(*token.green_, token.position_);
+        return get_diagnostics(SyntaxTokenInternal::get_green(token), SyntaxTokenInternal::get_position(token));
     }
 
     std::generator<Diagnostic> SyntaxTree::get_diagnostics(const SyntaxTrivia &trivia) const
     {
-        return get_diagnostics(*trivia.green_, trivia.position_);
+        return get_diagnostics(SyntaxTriviaInternal::get_green(trivia), SyntaxTriviaInternal::get_position(trivia));
     }
 
     std::generator<Diagnostic> SyntaxTree::get_diagnostics(const SyntaxNodeOrToken &node_or_token) const

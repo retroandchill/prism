@@ -6,7 +6,7 @@
  */
 export module prism.core:symbols.type_symbol;
 
-import :symbols.symbol;
+import :symbols.member_container_symbol;
 
 namespace prism
 {
@@ -36,14 +36,14 @@ namespace prism
         str
     };
 
-    export class TypeSymbol : public Symbol
+    export class TypeSymbol : public MemberContainerSymbol
     {
       protected:
         constexpr TypeSymbol(const SymbolKind kind,
                              const Name name,
                              const Symbol *containing,
                              const SpecialType special_type = SpecialType::none)
-            : Symbol{kind, name, containing}, special_type_{special_type}
+            : MemberContainerSymbol{kind, name, containing}, special_type_{special_type}
         {
         }
 

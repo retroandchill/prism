@@ -30,7 +30,7 @@ namespace prism
         return locations_.get_or_compute(
             [this]
             {
-                return declaring_compilation_.merged_root_declaration().declarations() |
+                return CompilationInternal::merged_root_declaration(declaring_compilation_).declarations() |
                        std::views::transform([](const RefCountPtr<const SingleNamespaceDeclaration> &d)
                                              { return d->location(); }) |
                        std::ranges::to<ImmutableArray<Location>>();
@@ -42,10 +42,11 @@ namespace prism
         return global_namespace_.get_or_compute(
             [this] -> auto &
             {
-                return declaring_compilation_.lifetime_.create<SourceNamespaceSymbol>(
-                    declaring_compilation_.merged_root_declaration().shared_from_this(),
-                    *this,
-                    this);
+                return CompilationInternal::get_lifetime(declaring_compilation_)
+                    .create<SourceNamespaceSymbol>(
+                        CompilationInternal::merged_root_declaration(declaring_compilation_).shared_from_this(),
+                        *this,
+                        this);
             });
     }
 
@@ -157,23 +158,23 @@ namespace prism
         return visit(declaration,
                      Overload{[this](const MergedNamespaceDeclaration &ns) -> const Symbol &
                               {
-                                  return declaring_compilation()->lifetime_.create<SourceNamespaceSymbol>(
-                                      ns.shared_from_this(),
-                                      containing_assembly_,
-                                      this);
+                                  return CompilationInternal::get_lifetime(declaring_compilation().value())
+                                      .create<SourceNamespaceSymbol>(ns.shared_from_this(), containing_assembly_, this);
                               }});
     }
 
     const Symbol &SourceNamespaceSymbol::build_symbol(const VariableDeclarationSyntax &declaration) const
     {
         auto name = get_identifier_name(declaration.identifier());
-        return declaring_compilation()->lifetime_.create<SourceVariableSymbol>(name, this, declaration);
+        return CompilationInternal::get_lifetime(declaring_compilation().value())
+            .create<SourceGlobalVariableSymbol>(name, this, declaration);
     }
 
     const Symbol &SourceNamespaceSymbol::build_symbol(const FunctionDeclarationSyntax &declaration) const
     {
         auto name = get_identifier_name(declaration.identifier());
-        return declaring_compilation()->lifetime_.create<SourceFunctionSymbol>(name, this, declaration);
+        return CompilationInternal::get_lifetime(declaring_compilation().value())
+            .create<SourceFunctionSymbol>(name, this, declaration);
     }
 
     ImmutableArray<Ref<const Symbol>> SourceNamespaceSymbol::compute_members() const
@@ -183,17 +184,19 @@ namespace prism
         std::ranges::sort(unsorted,
                           [this](const Symbol &lhs, const Symbol &rhs)
                           {
-                              return declaring_compilation()->compare_source_locations(lhs.first_location(),
-                                                                                       rhs.first_location()) ==
-                                     std::strong_ordering::less;
+                              const auto comparison =
+                                  CompilationInternal::compare_source_locations(declaring_compilation().value(),
+                                                                                lhs.first_location(),
+                                                                                rhs.first_location());
+                              return comparison == std::strong_ordering::less;
                           });
         return ImmutableArray{std::from_range, unsorted};
     }
 
-    SourceVariableSymbol::SourceVariableSymbol(const Name &name,
+    SourceVariableSymbol::SourceVariableSymbol(const Name name,
                                                const Symbol *containing,
                                                const VariableDeclarationSyntax &syntax)
-        : VariableSymbol(name, containing), syntax_{syntax}, syntax_reference_{syntax}
+        : VariableSymbol{name, containing}, syntax_{syntax}, syntax_reference_{syntax}
     {
     }
 
@@ -218,6 +221,22 @@ namespace prism
         return {&syntax_reference_, 1};
     }
 
+    SourceLocalVariableSymbol::SourceLocalVariableSymbol(const Name name,
+                                                         const Symbol *containing,
+                                                         const VariableDeclarationSyntax &syntax,
+                                                         const Binder &scope_binder,
+                                                         const Binder *initializer_binder)
+        : SourceVariableSymbol{name, containing, syntax}, scope_binder_{scope_binder},
+          initializer_binder_{initializer_binder}
+    {
+    }
+
+    SourceGlobalVariableSymbol::SourceGlobalVariableSymbol(const Name name,
+                                                           const Symbol *containing,
+                                                           const VariableDeclarationSyntax &syntax)
+        : SourceVariableSymbol{name, containing, syntax}
+    {
+    }
     SourceFunctionSymbol::SourceFunctionSymbol(const Name &name,
                                                const Symbol *containing,
                                                const FunctionDeclarationSyntax &syntax)

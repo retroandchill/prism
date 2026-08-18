@@ -10,7 +10,10 @@ namespace prism
 {
     SyntaxTokenList IncompleteDeclarationSyntax::modifiers() const
     {
-        return SyntaxTokenList{this, static_cast<const GreenIncompleteDeclaration &>(green()).modifiers(), position()};
+        return SyntaxTokenList{
+            this,
+            static_cast<const GreenIncompleteDeclaration &>(SyntaxNodeInternal::get_green(*this)).modifiers(),
+            position()};
     }
 
     Optional<const SyntaxNode &> IncompleteDeclarationSyntax::get_node_slot(const std::size_t) const
@@ -25,16 +28,18 @@ namespace prism
 
     SyntaxTokenList BlockNamespaceDeclarationSyntax::modifiers() const
     {
-        return SyntaxTokenList{this,
-                               static_cast<const GreenBlockNamespaceDeclaration &>(green()).modifiers(),
-                               position()};
+        return SyntaxTokenList{
+            this,
+            static_cast<const GreenBlockNamespaceDeclaration &>(SyntaxNodeInternal::get_green(*this)).modifiers(),
+            position()};
     }
 
     SyntaxToken BlockNamespaceDeclarationSyntax::namespace_token() const
     {
-        return SyntaxToken{static_cast<const GreenBlockNamespaceDeclaration &>(green()).namespace_token(),
-                           this,
-                           get_slot_position(1)};
+        return SyntaxToken{
+            static_cast<const GreenBlockNamespaceDeclaration &>(SyntaxNodeInternal::get_green(*this)).namespace_token(),
+            this,
+            get_slot_position(1)};
     }
 
     const NameSyntax &BlockNamespaceDeclarationSyntax::name() const
@@ -44,28 +49,30 @@ namespace prism
 
     SyntaxToken BlockNamespaceDeclarationSyntax::open_brace() const
     {
-        return SyntaxToken{static_cast<const GreenBlockNamespaceDeclaration &>(green()).open_brace(),
-                           this,
-                           get_slot_position(3)};
+        return SyntaxToken{
+            static_cast<const GreenBlockNamespaceDeclaration &>(SyntaxNodeInternal::get_green(*this)).open_brace(),
+            this,
+            get_slot_position(3)};
     }
 
     SyntaxList<UsingDirectiveSyntax> BlockNamespaceDeclarationSyntax::usings() const
     {
         const auto red = get_red(usings_, 4);
-        return make_syntax_list<UsingDirectiveSyntax>(red);
+        return SyntaxNodeInternal::make_syntax_list<UsingDirectiveSyntax>(red);
     }
 
     SyntaxList<DeclarationSyntax> BlockNamespaceDeclarationSyntax::members() const
     {
         const auto red = get_red(members_, 5);
-        return make_syntax_list<DeclarationSyntax>(red);
+        return SyntaxNodeInternal::make_syntax_list<DeclarationSyntax>(red);
     }
 
     SyntaxToken BlockNamespaceDeclarationSyntax::close_brace() const
     {
-        return SyntaxToken{static_cast<const GreenBlockNamespaceDeclaration &>(green()).close_brace(),
-                           this,
-                           get_slot_position(6)};
+        return SyntaxToken{
+            static_cast<const GreenBlockNamespaceDeclaration &>(SyntaxNodeInternal::get_green(*this)).close_brace(),
+            this,
+            get_slot_position(6)};
     }
 
     Optional<const SyntaxNode &> BlockNamespaceDeclarationSyntax::get_node_slot(const std::size_t index) const
@@ -100,16 +107,19 @@ namespace prism
 
     SyntaxTokenList FileScopedNamespaceDeclarationSyntax::modifiers() const
     {
-        return SyntaxTokenList{this,
-                               static_cast<const GreenFileScopedNamespaceDeclaration &>(green()).modifiers(),
-                               position()};
+        return SyntaxTokenList{
+            this,
+            static_cast<const GreenFileScopedNamespaceDeclaration &>(SyntaxNodeInternal::get_green(*this)).modifiers(),
+            position()};
     }
 
     SyntaxToken FileScopedNamespaceDeclarationSyntax::namespace_token() const
     {
-        return SyntaxToken{static_cast<const GreenFileScopedNamespaceDeclaration &>(green()).namespace_token(),
-                           this,
-                           get_slot_position(1)};
+        return SyntaxToken{
+            static_cast<const GreenFileScopedNamespaceDeclaration &>(SyntaxNodeInternal::get_green(*this))
+                .namespace_token(),
+            this,
+            get_slot_position(1)};
     }
 
     const NameSyntax &FileScopedNamespaceDeclarationSyntax::name() const
@@ -119,21 +129,22 @@ namespace prism
 
     SyntaxToken FileScopedNamespaceDeclarationSyntax::semicolon() const
     {
-        return SyntaxToken{static_cast<const GreenFileScopedNamespaceDeclaration &>(green()).semicolon(),
-                           this,
-                           get_slot_position(3)};
+        return SyntaxToken{
+            static_cast<const GreenFileScopedNamespaceDeclaration &>(SyntaxNodeInternal::get_green(*this)).semicolon(),
+            this,
+            get_slot_position(3)};
     }
 
     SyntaxList<UsingDirectiveSyntax> FileScopedNamespaceDeclarationSyntax::usings() const
     {
         const auto red = get_red(usings_, 4);
-        return make_syntax_list<UsingDirectiveSyntax>(red);
+        return SyntaxNodeInternal::make_syntax_list<UsingDirectiveSyntax>(red);
     }
 
     SyntaxList<DeclarationSyntax> FileScopedNamespaceDeclarationSyntax::members() const
     {
         const auto red = get_red(members_, 5);
-        return make_syntax_list<DeclarationSyntax>(red);
+        return SyntaxNodeInternal::make_syntax_list<DeclarationSyntax>(red);
     }
 
     Optional<const SyntaxNode &> FileScopedNamespaceDeclarationSyntax::get_node_slot(const std::size_t index) const
@@ -168,29 +179,36 @@ namespace prism
 
     SyntaxTokenList VariableDeclarationSyntax::modifiers() const
     {
-        return SyntaxTokenList{this, static_cast<const GreenVariableDeclaration &>(green()).modifiers(), position()};
+        return SyntaxTokenList{
+            this,
+            static_cast<const GreenVariableDeclaration &>(SyntaxNodeInternal::get_green(*this)).modifiers(),
+            position()};
     }
 
     SyntaxToken VariableDeclarationSyntax::var_keyword() const
     {
-        return SyntaxToken{static_cast<const GreenVariableDeclaration &>(green()).var_keyword(),
-                           this,
-                           get_slot_position(1)};
+        return SyntaxToken{
+            static_cast<const GreenVariableDeclaration &>(SyntaxNodeInternal::get_green(*this)).var_keyword(),
+            this,
+            get_slot_position(1)};
     }
 
     Optional<SyntaxToken> VariableDeclarationSyntax::mut_keyword() const
     {
-        return static_cast<const GreenVariableDeclaration &>(green()).mut_keyword().transform(
-            [this](const GreenToken &g) {
-                return SyntaxToken{g, this, get_slot_position(2)};
-            });
+        return static_cast<const GreenVariableDeclaration &>(SyntaxNodeInternal::get_green(*this))
+            .mut_keyword()
+            .transform(
+                [this](const GreenToken &g) {
+                    return SyntaxToken{g, this, get_slot_position(2)};
+                });
     }
 
     SyntaxToken VariableDeclarationSyntax::identifier() const
     {
-        return SyntaxToken{static_cast<const GreenVariableDeclaration &>(green()).identifier(),
-                           this,
-                           get_slot_position(3)};
+        return SyntaxToken{
+            static_cast<const GreenVariableDeclaration &>(SyntaxNodeInternal::get_green(*this)).identifier(),
+            this,
+            get_slot_position(3)};
     }
 
     Optional<const TypeSpecifierSyntax &> VariableDeclarationSyntax::type() const
@@ -205,9 +223,10 @@ namespace prism
 
     SyntaxToken VariableDeclarationSyntax::semicolon() const
     {
-        return SyntaxToken{static_cast<const GreenVariableDeclaration &>(green()).semicolon(),
-                           this,
-                           get_slot_position(6)};
+        return SyntaxToken{
+            static_cast<const GreenVariableDeclaration &>(SyntaxNodeInternal::get_green(*this)).semicolon(),
+            this,
+            get_slot_position(6)};
     }
 
     Optional<const SyntaxNode &> VariableDeclarationSyntax::get_node_slot(const std::size_t index) const
@@ -238,21 +257,26 @@ namespace prism
 
     SyntaxTokenList FunctionDeclarationSyntax::modifiers() const
     {
-        return SyntaxTokenList{this, static_cast<const GreenFunctionDeclaration &>(green()).modifiers(), position()};
+        return SyntaxTokenList{
+            this,
+            static_cast<const GreenFunctionDeclaration &>(SyntaxNodeInternal::get_green(*this)).modifiers(),
+            position()};
     }
 
     SyntaxToken FunctionDeclarationSyntax::func_keyword() const
     {
-        return SyntaxToken{static_cast<const GreenFunctionDeclaration &>(green()).func_keyword(),
-                           this,
-                           get_slot_position(1)};
+        return SyntaxToken{
+            static_cast<const GreenFunctionDeclaration &>(SyntaxNodeInternal::get_green(*this)).func_keyword(),
+            this,
+            get_slot_position(1)};
     }
 
     SyntaxToken FunctionDeclarationSyntax::identifier() const
     {
-        return SyntaxToken{static_cast<const GreenFunctionDeclaration &>(green()).identifier(),
-                           this,
-                           get_slot_position(2)};
+        return SyntaxToken{
+            static_cast<const GreenFunctionDeclaration &>(SyntaxNodeInternal::get_green(*this)).identifier(),
+            this,
+            get_slot_position(2)};
     }
 
     const ParameterListSyntax &FunctionDeclarationSyntax::parameters() const
@@ -277,10 +301,12 @@ namespace prism
 
     Optional<SyntaxToken> FunctionDeclarationSyntax::semicolon() const
     {
-        return static_cast<const GreenFunctionDeclaration &>(green()).semicolon().transform(
-            [this](const GreenToken &g) {
-                return SyntaxToken{g, this, get_slot_position(7)};
-            });
+        return static_cast<const GreenFunctionDeclaration &>(SyntaxNodeInternal::get_green(*this))
+            .semicolon()
+            .transform(
+                [this](const GreenToken &g) {
+                    return SyntaxToken{g, this, get_slot_position(7)};
+                });
     }
 
     Optional<const SyntaxNode &> FunctionDeclarationSyntax::get_node_slot(const std::size_t index) const

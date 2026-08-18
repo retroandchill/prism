@@ -9,13 +9,13 @@ namespace prism
     SyntaxList<UsingDirectiveSyntax> CompilationUnitSyntax::usings() const
     {
         const auto red = get_red(usings_);
-        return make_syntax_list<UsingDirectiveSyntax>(red);
+        return SyntaxNodeInternal::make_syntax_list<UsingDirectiveSyntax>(red);
     }
 
     SyntaxList<DeclarationSyntax> CompilationUnitSyntax::members() const
     {
         const auto red = get_red(members_, 1);
-        return make_syntax_list<DeclarationSyntax>(red);
+        return SyntaxNodeInternal::make_syntax_list<DeclarationSyntax>(red);
     }
 
     Optional<const SyntaxNode &> CompilationUnitSyntax::get_node_slot(const std::size_t index) const

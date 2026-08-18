@@ -6,7 +6,9 @@ namespace prism
 {
     SyntaxToken SimpleNameSyntax::identifier() const
     {
-        return SyntaxToken{static_cast<const GreenSimpleName &>(green()).identifier(), this, position()};
+        return SyntaxToken{static_cast<const GreenSimpleName &>(SyntaxNodeInternal::get_green(*this)).identifier(),
+                           this,
+                           position()};
     }
 
     Optional<const SyntaxNode &> SimpleNameSyntax::get_node_slot(const std::size_t) const
@@ -26,7 +28,9 @@ namespace prism
 
     SyntaxToken QualifiedNameSyntax::separator() const
     {
-        return SyntaxToken{static_cast<const GreenQualifiedName &>(green()).separator(), this, get_slot_position(1)};
+        return SyntaxToken{static_cast<const GreenQualifiedName &>(SyntaxNodeInternal::get_green(*this)).separator(),
+                           this,
+                           get_slot_position(1)};
     }
 
     const SimpleNameSyntax &QualifiedNameSyntax::right() const

@@ -48,7 +48,7 @@ namespace prism
         }
 
       private:
-        friend class SyntaxNode;
+        friend class SyntaxNodeInternal;
 
         [[nodiscard]] Optional<const SyntaxNode &> parent() const;
 

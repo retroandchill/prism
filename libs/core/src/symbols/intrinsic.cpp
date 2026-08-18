@@ -15,6 +15,11 @@ namespace prism
         return {};
     }
 
+    SymbolSpan<Symbol> IntrinsicNamedTypeSymbol::members() const
+    {
+        return {};
+    }
+
     std::span<const SyntaxReference> IntrinsicNamespaceSymbol::declaring_syntax_references() const
     {
         return {};

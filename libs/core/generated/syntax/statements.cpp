@@ -23,18 +23,22 @@ namespace prism
 
     SyntaxToken BlockSyntax::open_brace() const
     {
-        return SyntaxToken{static_cast<const GreenBlock &>(green()).open_brace(), this, position()};
+        return SyntaxToken{static_cast<const GreenBlock &>(SyntaxNodeInternal::get_green(*this)).open_brace(),
+                           this,
+                           position()};
     }
 
     SyntaxList<StatementSyntax> BlockSyntax::statements() const
     {
         const auto red = get_red(statements_, 1);
-        return make_syntax_list<StatementSyntax>(red);
+        return SyntaxNodeInternal::make_syntax_list<StatementSyntax>(red);
     }
 
     SyntaxToken BlockSyntax::close_brace() const
     {
-        return SyntaxToken{static_cast<const GreenBlock &>(green()).close_brace(), this, get_slot_position(2)};
+        return SyntaxToken{static_cast<const GreenBlock &>(SyntaxNodeInternal::get_green(*this)).close_brace(),
+                           this,
+                           get_slot_position(2)};
     }
 
     Optional<const SyntaxNode &> BlockSyntax::get_node_slot(const std::size_t index) const
@@ -49,7 +53,10 @@ namespace prism
 
     SyntaxToken ReturnStatementSyntax::return_keyword() const
     {
-        return SyntaxToken{static_cast<const GreenReturnStatement &>(green()).return_keyword(), this, position()};
+        return SyntaxToken{
+            static_cast<const GreenReturnStatement &>(SyntaxNodeInternal::get_green(*this)).return_keyword(),
+            this,
+            position()};
     }
 
     Optional<const ExpressionSyntax &> ReturnStatementSyntax::expression() const
@@ -59,7 +66,9 @@ namespace prism
 
     SyntaxToken ReturnStatementSyntax::semicolon() const
     {
-        return SyntaxToken{static_cast<const GreenReturnStatement &>(green()).semicolon(), this, get_slot_position(2)};
+        return SyntaxToken{static_cast<const GreenReturnStatement &>(SyntaxNodeInternal::get_green(*this)).semicolon(),
+                           this,
+                           get_slot_position(2)};
     }
 
     Optional<const SyntaxNode &> ReturnStatementSyntax::get_node_slot(const std::size_t index) const
@@ -79,9 +88,10 @@ namespace prism
 
     SyntaxToken ExpressionStatementSyntax::semicolon() const
     {
-        return SyntaxToken{static_cast<const GreenExpressionStatement &>(green()).semicolon(),
-                           this,
-                           get_slot_position(1)};
+        return SyntaxToken{
+            static_cast<const GreenExpressionStatement &>(SyntaxNodeInternal::get_green(*this)).semicolon(),
+            this,
+            get_slot_position(1)};
     }
 
     Optional<const SyntaxNode &> ExpressionStatementSyntax::get_node_slot(const std::size_t index) const
@@ -96,7 +106,9 @@ namespace prism
 
     SyntaxToken EmptyStatementSyntax::semicolon() const
     {
-        return SyntaxToken{static_cast<const GreenEmptyStatement &>(green()).semicolon(), this, position()};
+        return SyntaxToken{static_cast<const GreenEmptyStatement &>(SyntaxNodeInternal::get_green(*this)).semicolon(),
+                           this,
+                           position()};
     }
 
     Optional<const SyntaxNode &> EmptyStatementSyntax::get_node_slot(const std::size_t) const

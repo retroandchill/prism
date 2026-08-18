@@ -208,6 +208,21 @@ set(PRISM_MODULES
         src/declarations/declaration_tree_builder.cpp
         src/semantic/syntax_and_declaration_manager.ixx
         src/semantic/syntax_and_declaration_manager.cpp
+        src/binder/binder.ixx
+        src/binder/binder.cpp
+        src/binder/local_scope_binder.ixx
+        src/binder/local_scope_binder.cpp
+        src/binder/default_local_scope_binder.ixx
+        src/binder/block_binder.ixx
+        src/binder/terminal_binder.ixx
+        src/binder/terminal_binder.cpp
+        src/binder/block_binder.cpp
+        src/binder/binder_factory.ixx
+        src/binder/binder_factory.cpp
+        src/binder/member_container_binder.ixx
+        src/symbols/member_container_symbol.ixx
+        src/symbols/member_container_symbol.cpp
+        src/binder/member_container_binder.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

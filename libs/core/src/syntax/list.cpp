@@ -14,7 +14,7 @@ namespace prism
 
     std::span<Lazy<const SyntaxNode *>> SyntaxListImpl::create_children() const
     {
-        return lifetime().allocate_child_slots(green().slot_count());
+        return lifetime().allocate_child_slots(SyntaxNodeInternal::get_green(*this).slot_count());
     }
 
     Optional<const SyntaxNode &> SyntaxListImpl::get_node_slot(const std::size_t index) const

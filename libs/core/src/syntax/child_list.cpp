@@ -51,7 +51,7 @@ namespace prism
     SyntaxNodeOrToken ChildSyntaxList::get_item(const SyntaxNode &node, std::size_t index, SlotData &slot_data)
     {
         Optional<const GreenNode &> green_child;
-        auto &green = node.green();
+        auto &green = SyntaxNodeInternal::get_green(node);
 
         DEBUG_ASSERT(index > slot_data.preceding_occupant_slot_count);
         auto idx = index - slot_data.preceding_occupant_slot_count;
@@ -81,7 +81,7 @@ namespace prism
                          .position_at_slot_index = position};
         }
 
-        auto red = node.get_node_slot(slot_index);
+        auto red = SyntaxNodeInternal::get_node_slot(node, slot_index);
         if (!green_child->is_list())
         {
             if (red.has_value())
@@ -89,12 +89,12 @@ namespace prism
         }
         else if (red.has_value())
         {
-            auto red_child = red->get_node_slot(idx);
+            auto red_child = SyntaxNodeInternal::get_node_slot(*red, idx);
             if (red_child.has_value())
                 return *red_child;
 
             green_child = green.get_slot(idx);
-            position = red->get_slot_position(idx);
+            position = SyntaxNodeInternal::get_slot_position(*red, idx);
         }
         else
         {

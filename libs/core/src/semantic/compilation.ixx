@@ -25,6 +25,8 @@ import :semantic.syntax_and_declaration_manager;
 
 namespace prism
 {
+    class Binder;
+    class BinderFactory;
     class BoundStatement;
     class BoundExpression;
     class NamedTypeSymbol;
@@ -110,13 +112,6 @@ namespace prism
         [[nodiscard]] std::shared_ptr<const Compilation> shared_from_this() const noexcept;
 
       private:
-        friend class MergedNamespaceSymbol;
-        friend class SemanticModel;
-        friend class LexicalSortKey;
-        friend class DeclarationTable;
-        friend class SourceAssemblySymbol;
-        friend class SourceNamespaceSymbol;
-
         [[nodiscard]] const DeclarationTable &declarations() const;
         [[nodiscard]] const MergedNamespaceDeclaration &merged_root_declaration() const;
 
@@ -131,12 +126,21 @@ namespace prism
 
         [[nodiscard]] std::uint32_t get_syntax_tree_ordinal(const SyntaxTree &tree) const;
 
+        [[nodiscard]] const BinderFactory &get_binder_factory(const SyntaxTree &tree) const;
+        [[nodiscard]] const Binder &root_binder() const;
+
+        friend struct CompilationInternal;
+
         SemanticLifetime &lifetime_;
         Name assembly_name_;
         TargetSettings target_settings_;
         RefCountPtr<SyntaxAndDeclarationManager> syntax_and_declaration_manager_;
         mutable Lazy<const AssemblySymbol &> assembly_;
         mutable Lazy<const NamespaceSymbol &> global_namespace_;
+
+        mutable std::mutex binder_factory_mutex_;
+        mutable std::unordered_map<const SyntaxTree *, const BinderFactory *> binder_factories_;
+        mutable Lazy<const Binder &> root_binder_;
 
         // Old-stuff, subject to pruning as we refactor to the lazy model
         std::vector<Diagnostic> diagnostics_;
@@ -157,5 +161,76 @@ namespace prism
 
         mutable std::mutex function_body_mutex_;
         mutable std::unordered_map<const FunctionSymbol *, const BoundStatement *> function_bodies_;
+    };
+
+    struct CompilationInternal
+    {
+        [[nodiscard]] static inline std::strong_ordering compare_source_locations(const Compilation &compilation,
+                                                                                  const Location &lhs,
+                                                                                  const Location &rhs)
+        {
+            return compilation.compare_source_locations(lhs, rhs);
+        }
+
+        [[nodiscard]] static inline std::strong_ordering compare_source_locations(const Compilation &compilation,
+                                                                                  const SourceLocation &lhs,
+                                                                                  const SourceLocation &rhs)
+        {
+            return compilation.compare_source_locations(lhs, rhs);
+        }
+
+        [[nodiscard]] static inline std::strong_ordering compare_source_locations(const Compilation &compilation,
+                                                                                  const SyntaxReference &lhs,
+                                                                                  const SyntaxReference &rhs)
+        {
+            return compilation.compare_source_locations(lhs, rhs);
+        }
+
+        [[nodiscard]] static inline std::strong_ordering compare_source_locations(const Compilation &compilation,
+                                                                                  const SyntaxNode &lhs,
+                                                                                  const SyntaxNode &rhs)
+        {
+            return compilation.compare_source_locations(lhs, rhs);
+        }
+
+        [[nodiscard]] static inline std::strong_ordering compare_syntax_tree_ordering(const Compilation &compilation,
+                                                                                      const SyntaxTree &lhs,
+                                                                                      const SyntaxTree &rhs)
+        {
+            return compilation.compare_syntax_tree_ordering(lhs, rhs);
+        }
+
+        [[nodiscard]] static inline std::uint32_t get_syntax_tree_ordinal(const Compilation &compilation,
+                                                                          const SyntaxTree &tree)
+        {
+            return compilation.get_syntax_tree_ordinal(tree);
+        }
+
+        [[nodiscard]] static inline const SemanticMappings &get_semantic_mappings(const Compilation &compilation)
+        {
+            return compilation.semantic_mappings_;
+        }
+
+        [[nodiscard]] static inline SemanticLifetime &get_lifetime(const Compilation &compilation)
+        {
+            return compilation.lifetime_;
+        }
+
+        [[nodiscard]] static inline const MergedNamespaceDeclaration &merged_root_declaration(
+            const Compilation &compilation)
+        {
+            return compilation.merged_root_declaration();
+        }
+
+        [[nodiscard]] static inline const BinderFactory &get_binder_factory(const Compilation &compilation,
+                                                                            const SyntaxTree &tree)
+        {
+            return compilation.get_binder_factory(tree);
+        }
+
+        [[nodiscard]] static inline const Binder &get_root_binder(const Compilation &compilation)
+        {
+            return compilation.root_binder();
+        }
     };
 } // namespace prism

@@ -1434,7 +1434,7 @@ public static class CppEmitter
                             writer.Write($", {index}");
                         writer.WriteLine(");");
                         writer.WriteLine(
-                            $"return make_syntax_list<{property.Type.RedClassName}>(red);"
+                            $"return {SyntaxNodeClass}Internal::make_syntax_list<{property.Type.RedClassName}>(red);"
                         );
                         break;
                     case PropertyShape.SeparatedList:
@@ -1443,7 +1443,7 @@ public static class CppEmitter
                             writer.Write($", {index}");
                         writer.WriteLine(");");
                         writer.WriteLine(
-                            $"return make_separated_syntax_list<{property.Type.RedClassName}>(red);"
+                            $"return {SyntaxNodeClass}Internal::make_separated_syntax_list<{property.Type.RedClassName}>(red);"
                         );
                         break;
                     default:
@@ -1455,7 +1455,7 @@ public static class CppEmitter
         private void EmitInvokeGreenGetter(CppProperty property)
         {
             writer.Write(
-                $"static_cast<const {property.Owner.GreenClassName} &>(green()).{property.GetterName}()"
+                $"static_cast<const {property.Owner.GreenClassName} &>({SyntaxNodeClass}Internal::get_green(*this)).{property.GetterName}()"
             );
         }
 

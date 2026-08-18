@@ -577,6 +577,8 @@ namespace prism
             PRISM_NO_UNIQUE_ADDRESS Allocator allocator;
         };
 
+        friend std::atomic<ImmutableArray>;
+
         constexpr void add_ref() const noexcept
         {
             if (storage_ != nullptr)

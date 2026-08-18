@@ -4,9 +4,13 @@
  * @date 7/31/2026
  * @brief
  */
+module;
+
+#include "prism/core/exports.h"
+
 export module prism.core:symbols.namespace_symbol;
 
-import :symbols.symbol;
+import :symbols.member_container_symbol;
 import :util.ref;
 import :type_traits.visitor;
 import :semantic.lookup_result;
@@ -22,11 +26,11 @@ namespace prism
         compilation
     };
 
-    export class NamespaceSymbol : public Symbol
+    export class PRISM_CORE_API NamespaceSymbol : public MemberContainerSymbol
     {
       protected:
         constexpr NamespaceSymbol(const Name name, const Symbol *containing)
-            : Symbol{SymbolKind::namespace_, name, containing}
+            : MemberContainerSymbol{SymbolKind::namespace_, name, containing}
         {
         }
 
@@ -44,10 +48,6 @@ namespace prism
         }
 
         [[nodiscard]] virtual Optional<const Compilation &> containing_compilation() const noexcept = 0;
-
-        [[nodiscard]] virtual SymbolSpan<Symbol> members() const = 0;
-
-        [[nodiscard]] LookupResult members(Name name) const;
 
         [[nodiscard]] static constexpr bool instance_of(const Symbol &symbol) noexcept
         {

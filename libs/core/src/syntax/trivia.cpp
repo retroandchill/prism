@@ -18,16 +18,18 @@ namespace prism
 
         auto &element = green_[index];
         const auto position =
-            parent_.position_ +
+            SyntaxTokenInternal::get_position(parent_) +
             green_.node().transform([index](const GreenNode &node) { return node.get_slot_offset(index); }).value_or(0);
-        return SyntaxTrivia{parent_, element, position};
+        return SyntaxTriviaInternal::create(parent_, element, position);
     }
 
     StructuredTriviaSyntax &StructuredTriviaSyntax::create(SyntaxLifetime &lifetime, const SyntaxTrivia &trivia)
     {
-        auto *parent = trivia.token_.parent().value_ptr();
-        auto &red =
-            static_cast<StructuredTriviaSyntax &>(trivia.green_->create_red(lifetime, parent, trivia.position_));
+        auto *parent = trivia.token().parent().value_ptr();
+        auto &red = static_cast<StructuredTriviaSyntax &>(
+            SyntaxTriviaInternal::get_green(trivia).create_red(lifetime,
+                                                               parent,
+                                                               SyntaxTriviaInternal::get_position(trivia)));
         red.parent_trivia_ = trivia;
         return red;
     }

@@ -8,7 +8,9 @@ namespace prism
 {
     SyntaxToken LiteralExpressionSyntax::value() const
     {
-        return SyntaxToken{static_cast<const GreenLiteralExpression &>(green()).value(), this, position()};
+        return SyntaxToken{static_cast<const GreenLiteralExpression &>(SyntaxNodeInternal::get_green(*this)).value(),
+                           this,
+                           position()};
     }
 
     Optional<const SyntaxNode &> LiteralExpressionSyntax::get_node_slot(const std::size_t) const
@@ -38,7 +40,10 @@ namespace prism
 
     SyntaxToken ParenthesizedExpressionSyntax::open() const
     {
-        return SyntaxToken{static_cast<const GreenParenthesizedExpression &>(green()).open(), this, position()};
+        return SyntaxToken{
+            static_cast<const GreenParenthesizedExpression &>(SyntaxNodeInternal::get_green(*this)).open(),
+            this,
+            position()};
     }
 
     const ExpressionSyntax &ParenthesizedExpressionSyntax::expression() const
@@ -48,9 +53,10 @@ namespace prism
 
     SyntaxToken ParenthesizedExpressionSyntax::close() const
     {
-        return SyntaxToken{static_cast<const GreenParenthesizedExpression &>(green()).close(),
-                           this,
-                           get_slot_position(2)};
+        return SyntaxToken{
+            static_cast<const GreenParenthesizedExpression &>(SyntaxNodeInternal::get_green(*this)).close(),
+            this,
+            get_slot_position(2)};
     }
 
     Optional<const SyntaxNode &> ParenthesizedExpressionSyntax::get_node_slot(const std::size_t index) const
@@ -70,7 +76,9 @@ namespace prism
 
     SyntaxToken BinaryExpressionSyntax::op() const
     {
-        return SyntaxToken{static_cast<const GreenBinaryExpression &>(green()).op(), this, get_slot_position(1)};
+        return SyntaxToken{static_cast<const GreenBinaryExpression &>(SyntaxNodeInternal::get_green(*this)).op(),
+                           this,
+                           get_slot_position(1)};
     }
 
     const ExpressionSyntax &BinaryExpressionSyntax::right() const
@@ -111,7 +119,9 @@ namespace prism
 
     SyntaxToken AssignmentExpressionSyntax::op() const
     {
-        return SyntaxToken{static_cast<const GreenAssignmentExpression &>(green()).op(), this, get_slot_position(1)};
+        return SyntaxToken{static_cast<const GreenAssignmentExpression &>(SyntaxNodeInternal::get_green(*this)).op(),
+                           this,
+                           get_slot_position(1)};
     }
 
     const ExpressionSyntax &AssignmentExpressionSyntax::right() const
@@ -147,7 +157,9 @@ namespace prism
 
     SyntaxToken PrefixExpressionSyntax::op() const
     {
-        return SyntaxToken{static_cast<const GreenPrefixExpression &>(green()).op(), this, position()};
+        return SyntaxToken{static_cast<const GreenPrefixExpression &>(SyntaxNodeInternal::get_green(*this)).op(),
+                           this,
+                           position()};
     }
 
     const ExpressionSyntax &PrefixExpressionSyntax::operand() const
@@ -172,7 +184,9 @@ namespace prism
 
     SyntaxToken PostfixExpressionSyntax::op() const
     {
-        return SyntaxToken{static_cast<const GreenPostfixExpression &>(green()).op(), this, get_slot_position(1)};
+        return SyntaxToken{static_cast<const GreenPostfixExpression &>(SyntaxNodeInternal::get_green(*this)).op(),
+                           this,
+                           get_slot_position(1)};
     }
 
     Optional<const SyntaxNode &> PostfixExpressionSyntax::get_node_slot(const std::size_t index) const
@@ -192,9 +206,10 @@ namespace prism
 
     SyntaxToken TernaryExpressionSyntax::question_mark() const
     {
-        return SyntaxToken{static_cast<const GreenTernaryExpression &>(green()).question_mark(),
-                           this,
-                           get_slot_position(1)};
+        return SyntaxToken{
+            static_cast<const GreenTernaryExpression &>(SyntaxNodeInternal::get_green(*this)).question_mark(),
+            this,
+            get_slot_position(1)};
     }
 
     const ExpressionSyntax &TernaryExpressionSyntax::when_true() const
@@ -204,7 +219,9 @@ namespace prism
 
     SyntaxToken TernaryExpressionSyntax::colon() const
     {
-        return SyntaxToken{static_cast<const GreenTernaryExpression &>(green()).colon(), this, get_slot_position(3)};
+        return SyntaxToken{static_cast<const GreenTernaryExpression &>(SyntaxNodeInternal::get_green(*this)).colon(),
+                           this,
+                           get_slot_position(3)};
     }
 
     const ExpressionSyntax &TernaryExpressionSyntax::when_false() const

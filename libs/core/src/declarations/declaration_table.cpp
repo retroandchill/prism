@@ -209,8 +209,9 @@ namespace prism
                           [&compilation](const RefCountPtr<const SingleNamespaceDeclaration> &lhs,
                                          const RefCountPtr<const SingleNamespaceDeclaration> &rhs)
                           {
-                              return compilation.compare_source_locations(lhs->syntax_reference(),
-                                                                          rhs->syntax_reference()) ==
+                              return CompilationInternal::compare_source_locations(compilation,
+                                                                                   lhs->syntax_reference(),
+                                                                                   rhs->syntax_reference()) ==
                                      std::strong_ordering::less;
                           });
         return MergedNamespaceDeclaration::create(

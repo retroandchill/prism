@@ -16,7 +16,7 @@ namespace prism
 {
 
     LexicalSortKey::LexicalSortKey(const SyntaxTree &tree, const std::uint32_t position, const Compilation &compilation)
-        : LexicalSortKey{compilation.get_syntax_tree_ordinal(tree), position}
+        : LexicalSortKey{CompilationInternal::get_syntax_tree_ordinal(compilation, tree), position}
     {
     }
 

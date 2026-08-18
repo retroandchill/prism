@@ -7,7 +7,10 @@ namespace prism
 {
     SyntaxToken UsingDirectiveSyntax::using_keyword() const
     {
-        return SyntaxToken{static_cast<const GreenUsingDirective &>(green()).using_keyword(), this, position()};
+        return SyntaxToken{
+            static_cast<const GreenUsingDirective &>(SyntaxNodeInternal::get_green(*this)).using_keyword(),
+            this,
+            position()};
     }
 
     const NameSyntax &UsingDirectiveSyntax::name() const
@@ -17,7 +20,9 @@ namespace prism
 
     SyntaxToken UsingDirectiveSyntax::semicolon() const
     {
-        return SyntaxToken{static_cast<const GreenUsingDirective &>(green()).semicolon(), this, get_slot_position(2)};
+        return SyntaxToken{static_cast<const GreenUsingDirective &>(SyntaxNodeInternal::get_green(*this)).semicolon(),
+                           this,
+                           get_slot_position(2)};
     }
 
     Optional<const SyntaxNode &> UsingDirectiveSyntax::get_node_slot(const std::size_t index) const

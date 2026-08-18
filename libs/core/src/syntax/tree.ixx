@@ -75,13 +75,18 @@ namespace prism
         }
 
       private:
-        [[nodiscard]] std::generator<Diagnostic> get_diagnostics(const GreenNode &root, std::uint32_t position) const;
+        friend struct SyntaxTreeInternal;
 
-        friend class SyntaxNode;
+        [[nodiscard]] std::generator<Diagnostic> get_diagnostics(const GreenNode &root, std::uint32_t position) const;
 
         std::string path_;
         std::shared_ptr<SourceText> text_{};
         SyntaxLifetime *lifetime_;
         const SyntaxNode *root_ = nullptr;
+    };
+
+    struct SyntaxTreeInternal
+    {
+        static constexpr SyntaxTree::ConstructTag construct_tag;
     };
 } // namespace prism

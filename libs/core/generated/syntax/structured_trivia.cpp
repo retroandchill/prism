@@ -6,7 +6,10 @@ namespace prism
 {
     SyntaxTokenList SkippedTokensTriviaSyntax::tokens() const
     {
-        return SyntaxTokenList{this, static_cast<const GreenSkippedTokensTrivia &>(green()).tokens(), position()};
+        return SyntaxTokenList{
+            this,
+            static_cast<const GreenSkippedTokensTrivia &>(SyntaxNodeInternal::get_green(*this)).tokens(),
+            position()};
     }
 
     Optional<const SyntaxNode &> SkippedTokensTriviaSyntax::get_node_slot(const std::size_t) const

@@ -7,7 +7,9 @@ namespace prism
 {
     SyntaxToken PredefinedTypeSyntax::keyword() const
     {
-        return SyntaxToken{static_cast<const GreenPredefinedType &>(green()).keyword(), this, position()};
+        return SyntaxToken{static_cast<const GreenPredefinedType &>(SyntaxNodeInternal::get_green(*this)).keyword(),
+                           this,
+                           position()};
     }
 
     Optional<const SyntaxNode &> PredefinedTypeSyntax::get_node_slot(const std::size_t) const

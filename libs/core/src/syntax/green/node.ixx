@@ -284,6 +284,11 @@ namespace prism
             }
         }
 
+        constexpr void set_diagnostics(DiagnosticInfoList list)
+        {
+            diagnostics_ = std::move(list);
+        }
+
         [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime) const
         {
             return create_red(lifetime, nullptr, 0);
@@ -333,13 +338,6 @@ namespace prism
         }
 
       private:
-        friend class Lexer;
-
-        constexpr void set_diagnostics(DiagnosticInfoList list)
-        {
-            diagnostics_ = std::move(list);
-        }
-
         SyntaxKind kind_;
         SyntaxFlags flags_ = SyntaxFlags::none;
         std::uint32_t full_width_ = 0;
