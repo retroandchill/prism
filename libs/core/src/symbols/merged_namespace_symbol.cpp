@@ -98,4 +98,21 @@ namespace prism
                 return merged_members;
             });
     }
+
+    SymbolSpan<Symbol> MergedNamespaceSymbol::members(Name name) const
+    {
+        Lazy<ImmutableArray<Ref<const Symbol>>> *lazy_array;
+        {
+            std::scoped_lock lock{name_to_members_mutex_};
+            lazy_array = &name_to_members_[name];
+        }
+
+        return lazy_array->get_or_compute([this, name] { return compute_members(name); });
+    }
+
+    ImmutableArray<Ref<const Symbol>> MergedNamespaceSymbol::compute_members(const Name name) const
+    {
+        return namespaces_ | std::views::transform([&](const NamespaceSymbol &n) { return n.members(name); }) |
+               std::views::join | std::ranges::to<ImmutableArray>();
+    }
 } // namespace prism

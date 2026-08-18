@@ -10,6 +10,17 @@ import :symbols.namespace_symbol;
 
 namespace prism
 {
+    Optional<const NamespaceSymbol &> NamespaceSymbol::get_nested_namespace(const Name name) const
+    {
+        for (const auto symbol : members(name))
+        {
+            if (auto ns = symbol->as<NamespaceSymbol>(); ns.has_value())
+                return ns;
+        }
+
+        return std::nullopt;
+    }
+
     void NamespaceSymbol::write_display_string(TextWriter &writer) const
     {
         if (const auto owner = containing_namespace(); owner.has_value() && !owner->is_global())

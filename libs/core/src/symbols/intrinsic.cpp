@@ -20,6 +20,11 @@ namespace prism
         return {};
     }
 
+    SymbolSpan<Symbol> IntrinsicNamedTypeSymbol::members(Name) const
+    {
+        return {};
+    }
+
     std::span<const SyntaxReference> IntrinsicNamespaceSymbol::declaring_syntax_references() const
     {
         return {};
@@ -30,9 +35,21 @@ namespace prism
         return std::nullopt;
     }
 
+    SymbolSpan<Symbol> IntrinsicNamespaceSymbol::members(const Name name) const
+    {
+        const auto it = name_to_members_.find(name);
+        if (it == name_to_members_.end())
+        {
+            return {};
+        }
+
+        return it->second;
+    }
+
     void IntrinsicNamespaceSymbol::add_member(const Symbol &member)
     {
         members_.emplace_back(member);
+        name_to_members_[member.name()].emplace_back(member);
     }
 
     IntrinsicSymbols::IntrinsicSymbols()

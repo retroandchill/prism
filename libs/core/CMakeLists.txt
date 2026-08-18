@@ -221,7 +221,6 @@ set(PRISM_MODULES
         src/binder/binder_factory.cpp
         src/binder/member_container_binder.ixx
         src/symbols/member_container_symbol.ixx
-        src/symbols/member_container_symbol.cpp
         src/binder/member_container_binder.cpp
 )
 

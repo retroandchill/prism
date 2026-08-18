@@ -82,7 +82,9 @@ namespace prism
 
         [[nodiscard]] const AssemblySymbol &assembly() const;
 
-        [[nodiscard]] const NamespaceSymbol &common_global_namespace() const;
+        [[nodiscard]] const NamespaceSymbol &global_namespace() const;
+
+        [[nodiscard]] Optional<const NamespaceSymbol &> get_compilation_namespace(const NamespaceSymbol &symbol) const;
 
         [[nodiscard]] const ImmutableArray<std::shared_ptr<const SyntaxTree>> &trees() const noexcept;
 
@@ -137,6 +139,9 @@ namespace prism
         RefCountPtr<SyntaxAndDeclarationManager> syntax_and_declaration_manager_;
         mutable Lazy<const AssemblySymbol &> assembly_;
         mutable Lazy<const NamespaceSymbol &> global_namespace_;
+
+        mutable std::mutex compilation_namespace_mutex_;
+        mutable std::unordered_map<const NamespaceSymbol *, const NamespaceSymbol *> compilation_namespaces_;
 
         mutable std::mutex binder_factory_mutex_;
         mutable std::unordered_map<const SyntaxTree *, const BinderFactory *> binder_factories_;

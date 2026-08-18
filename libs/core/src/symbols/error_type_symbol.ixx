@@ -25,13 +25,18 @@ namespace prism
             return {};
         }
 
-        [[nodiscard]] const ImmutableArray<Location> &locations() const override
+        [[nodiscard]] constexpr const ImmutableArray<Location> &locations() const override
         {
             static constexpr ImmutableArray<Location> empty{};
             return empty;
         }
 
-        [[nodiscard]] SymbolSpan<Symbol> members() const override
+        [[nodiscard]] constexpr SymbolSpan<Symbol> members() const override
+        {
+            return {};
+        }
+
+        [[nodiscard]] constexpr SymbolSpan<Symbol> members(Name name) const override
         {
             return {};
         }
@@ -46,10 +51,15 @@ namespace prism
         {
         }
 
-        [[nodiscard]] const ImmutableArray<Location> &locations() const override
+        [[nodiscard]] constexpr const ImmutableArray<Location> &locations() const override
         {
             static constexpr ImmutableArray<Location> empty{};
             return empty;
+        }
+
+        [[nodiscard]] constexpr NamespaceKind namespace_kind() const noexcept override
+        {
+            return NamespaceKind::compilation;
         }
 
         [[nodiscard]] constexpr std::span<const SyntaxReference> declaring_syntax_references() const override
@@ -63,6 +73,11 @@ namespace prism
         }
 
         [[nodiscard]] constexpr SymbolSpan<Symbol> members() const override
+        {
+            return {};
+        }
+
+        [[nodiscard]] constexpr SymbolSpan<Symbol> members(Name name) const override
         {
             return {};
         }

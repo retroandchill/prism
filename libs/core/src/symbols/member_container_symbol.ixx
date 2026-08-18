@@ -28,7 +28,7 @@ namespace prism
       public:
         [[nodiscard]] virtual SymbolSpan<Symbol> members() const = 0;
 
-        [[nodiscard]] LookupResult members(Name name) const;
+        [[nodiscard]] virtual SymbolSpan<Symbol> members(Name name) const = 0;
 
         [[nodiscard]] static constexpr bool instance_of(const Symbol &symbol) noexcept
         {

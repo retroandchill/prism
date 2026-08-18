@@ -86,6 +86,8 @@ namespace prism
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
 
         [[nodiscard]] SymbolSpan<Symbol> members() const override;
+
+        [[nodiscard]] SymbolSpan<Symbol> members(Name name) const override;
     };
 
     class IntrinsicNamespaceSymbol final : public NamespaceSymbol
@@ -93,10 +95,15 @@ namespace prism
       public:
         using NamespaceSymbol::NamespaceSymbol;
 
-        [[nodiscard]] const ImmutableArray<Location> &locations() const override
+        [[nodiscard]] constexpr const ImmutableArray<Location> &locations() const override
         {
             static constexpr ImmutableArray<Location> empty{};
             return empty;
+        }
+
+        [[nodiscard]] constexpr NamespaceKind namespace_kind() const noexcept override
+        {
+            return NamespaceKind::assembly;
         }
 
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
@@ -106,12 +113,15 @@ namespace prism
             return members_;
         }
 
+        [[nodiscard]] SymbolSpan<Symbol> members(Name name) const override;
+
       private:
         friend class IntrinsicSymbols;
 
         void add_member(const Symbol &member);
 
         std::vector<Ref<const Symbol>> members_{};
+        std::unordered_map<Name, std::vector<Ref<const Symbol>>> name_to_members_;
     };
 
     class IntrinsicSymbols final

@@ -54,6 +54,11 @@ namespace prism
                               const AssemblySymbol &assembly,
                               const Symbol *containing);
 
+        [[nodiscard]] constexpr NamespaceKind namespace_kind() const noexcept override
+        {
+            return NamespaceKind::assembly;
+        }
+
         [[nodiscard]] Optional<const AssemblySymbol &> containing_assembly() const noexcept override;
 
         [[nodiscard]] const ImmutableArray<Location> &locations() const override;
@@ -62,11 +67,14 @@ namespace prism
 
         [[nodiscard]] SymbolSpan<Symbol> members() const override;
 
+        [[nodiscard]] SymbolSpan<Symbol> members(Name name) const override;
+
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
 
       private:
-        [[nodiscard]] const std::unordered_map<Name, std::vector<Ref<const Symbol>>> &get_name_to_members_map() const;
-        [[nodiscard]] std::unordered_map<Name, std::vector<Ref<const Symbol>>> make_name_to_members_map() const;
+        [[nodiscard]] const std::unordered_map<Name, ImmutableArray<Ref<const Symbol>>> &get_name_to_members_map()
+            const;
+        [[nodiscard]] std::unordered_map<Name, ImmutableArray<Ref<const Symbol>>> make_name_to_members_map() const;
 
         [[nodiscard]] const Symbol &build_symbol(const MergedDeclaration &declaration) const;
         [[nodiscard]] const Symbol &build_symbol(const VariableDeclarationSyntax &declaration) const;
@@ -79,7 +87,7 @@ namespace prism
         const AssemblySymbol &containing_assembly_;
         RefCountPtr<const MergedNamespaceDeclaration> merged_declaration_;
         mutable Lazy<ImmutableArray<Location>> locations_;
-        mutable Lazy<std::unordered_map<Name, std::vector<Ref<const Symbol>>>> name_to_members_map_;
+        mutable Lazy<std::unordered_map<Name, ImmutableArray<Ref<const Symbol>>>> name_to_members_map_;
         mutable Lazy<ImmutableArray<SyntaxReference>> syntax_references_;
         mutable Lazy<ImmutableArray<Ref<const Symbol>>> members_;
     };

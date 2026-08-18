@@ -88,6 +88,13 @@ namespace prism
         return members_.get_or_compute([this] { return compute_members(); });
     }
 
+    SymbolSpan<Symbol> SourceNamespaceSymbol::members(const Name name) const
+    {
+        auto &map = get_name_to_members_map();
+        const auto it = map.find(name);
+        return it != map.end() ? it->second : ImmutableArray<Ref<const Symbol>>{};
+    }
+
     std::span<const SyntaxReference> SourceNamespaceSymbol::declaring_syntax_references() const
     {
         return syntax_references_.get_or_compute(
@@ -101,15 +108,15 @@ namespace prism
             });
     }
 
-    const std::unordered_map<Name, std::vector<Ref<const Symbol>>> &SourceNamespaceSymbol::get_name_to_members_map()
+    const std::unordered_map<Name, ImmutableArray<Ref<const Symbol>>> &SourceNamespaceSymbol::get_name_to_members_map()
         const
     {
         return name_to_members_map_.get_or_compute([this] { return make_name_to_members_map(); });
     }
 
-    std::unordered_map<Name, std::vector<Ref<const Symbol>>> SourceNamespaceSymbol::make_name_to_members_map() const
+    std::unordered_map<Name, ImmutableArray<Ref<const Symbol>>> SourceNamespaceSymbol::make_name_to_members_map() const
     {
-        std::unordered_map<Name, std::vector<Ref<const Symbol>>> result;
+        PooledMap<Name, PooledVector<Ref<const Symbol>>> result;
         for (auto &declaration : merged_declaration_->members())
         {
             auto &symbol = build_symbol(*declaration);
@@ -150,7 +157,11 @@ namespace prism
                            }});
         }
 
-        return result;
+        return result |
+               std::views::transform(
+                   [](const auto &pair)
+                   { return std::make_pair(pair.first, pair.second | std::ranges::to<ImmutableArray>()); }) |
+               std::ranges::to<std::unordered_map>();
     }
 
     const Symbol &SourceNamespaceSymbol::build_symbol(const MergedDeclaration &declaration) const

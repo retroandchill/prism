@@ -47,7 +47,11 @@ namespace prism
             return name() == KnownName::global;
         }
 
+        [[nodiscard]] virtual NamespaceKind namespace_kind() const noexcept = 0;
+
         [[nodiscard]] virtual Optional<const Compilation &> containing_compilation() const noexcept = 0;
+
+        [[nodiscard]] Optional<const NamespaceSymbol &> get_nested_namespace(Name name) const;
 
         [[nodiscard]] static constexpr bool instance_of(const Symbol &symbol) noexcept
         {

@@ -22,6 +22,7 @@ import :symbols.error;
 import :semantic.conversion_classifier;
 import :symbols.source;
 import :binder.terminal_binder;
+import :symbols.namespace_symbol;
 
 namespace prism
 {
@@ -57,7 +58,7 @@ namespace prism
         return assembly_.get_or_compute([this] -> auto & { return lifetime_.create<SourceAssemblySymbol>(*this); });
     }
 
-    const NamespaceSymbol &Compilation::common_global_namespace() const
+    const NamespaceSymbol &Compilation::global_namespace() const
     {
         return global_namespace_.get_or_compute(
             [this] -> auto &
@@ -67,6 +68,43 @@ namespace prism
                                                      std::vector{Ref{assembly().global_namespace()},
                                                                  Ref{IntrinsicSymbols::instance().global_namespace()}});
             });
+    }
+
+    Optional<const NamespaceSymbol &> Compilation::get_compilation_namespace(const NamespaceSymbol &symbol) const
+    {
+        if (symbol.namespace_kind() == NamespaceKind::compilation &&
+            symbol.containing_compilation().value_ptr() == this)
+        {
+            return symbol;
+        }
+
+        {
+            std::scoped_lock lock{compilation_namespace_mutex_};
+            if (const auto it = compilation_namespaces_.find(&symbol); it != compilation_namespaces_.end())
+            {
+                return it->second;
+            }
+        }
+
+        auto containing_namespace = symbol.containing_namespace();
+        if (!containing_namespace.has_value())
+        {
+            return global_namespace();
+        }
+
+        auto current = get_compilation_namespace(*containing_namespace);
+        if (!current.has_value())
+        {
+            return std::nullopt;
+        }
+
+        const auto found = current->get_nested_namespace(symbol.name());
+        DEBUG_ASSERT(found.has_value());
+        // It's fine if we overwrite an existing entry, since we're not creating any new symbol objects
+        // so there shouldn't be any leaks if two threads write to the same key.
+        std::scoped_lock lock{compilation_namespace_mutex_};
+        compilation_namespaces_.emplace(&symbol, &*found);
+        return found;
     }
 
     const ImmutableArray<std::shared_ptr<const SyntaxTree>> &Compilation::trees() const noexcept
