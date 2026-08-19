@@ -33,7 +33,6 @@ namespace prism
                 make_ref_counted<GreenToken>(SyntaxKind::u128_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::isize_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::usize_keyword),
-                make_ref_counted<GreenToken>(SyntaxKind::f16_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::f32_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::f64_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::char_keyword),
@@ -120,8 +119,6 @@ namespace prism
                     return SyntaxKind::u8_keyword;
                 break;
             case 3:
-                if (text == "f16")
-                    return SyntaxKind::f16_keyword;
                 if (text == "f32")
                     return SyntaxKind::f32_keyword;
                 if (text == "f64")

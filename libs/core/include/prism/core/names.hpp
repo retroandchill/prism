@@ -23,7 +23,6 @@
     X(uint64, "UInt64")                                                                                                \
     X(uint128, "UInt128")                                                                                              \
     X(usize, "USize")                                                                                                  \
-    X(float16, "Float16")                                                                                              \
     X(float32, "Float32")                                                                                              \
     X(float64, "Float64")                                                                                              \
     X(char_type, "Char")                                                                                               \

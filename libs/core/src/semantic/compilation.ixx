@@ -16,9 +16,7 @@ import :util.noncopyable;
 import :syntax.tree;
 import :semantic.semantic_lifetime;
 import :semantic.semantic_model;
-import :binder.semantic_mappings;
 import :symbols.type_symbol;
-import :semantic.bound_node_lookup;
 import :context.target_settings;
 import :semantic.syntax_and_declaration_manager;
 import :diagnostics.diagnostic_bag;
@@ -58,6 +56,8 @@ namespace prism
         struct CreateTag
         {
         };
+
+        class Cache;
 
       public:
         Compilation(CreateTag,
@@ -100,8 +100,6 @@ namespace prism
         [[nodiscard]] const NamespaceSymbol &create_error_namespace_symbol(Optional<const NamespaceSymbol &> container,
                                                                            Name name) const;
 
-        [[nodiscard]] Conversion classify_conversion(const TypeSymbol &source, const TypeSymbol &destination) const;
-
         [[nodiscard]] std::shared_ptr<Compilation> shared_from_this() noexcept;
 
         [[nodiscard]] std::shared_ptr<const Compilation> shared_from_this() const noexcept;
@@ -133,32 +131,7 @@ namespace prism
         mutable Lazy<const AssemblySymbol &> assembly_;
         mutable Lazy<const NamespaceSymbol &> global_namespace_;
         mutable DiagnosticBag declaration_diagnostics_;
-
-        mutable std::mutex compilation_namespace_mutex_;
-        mutable std::unordered_map<const NamespaceSymbol *, const NamespaceSymbol *> compilation_namespaces_;
-
-        mutable std::mutex binder_factory_mutex_;
-        mutable std::unordered_map<const SyntaxTree *, Lazy<const BinderFactory &>> binder_factories_;
-        mutable Lazy<const Binder &> root_binder_;
-
-        // Old-stuff, subject to pruning as we refactor to the lazy model
-        SemanticMappings semantic_mappings_;
-        BoundNodeLookup bound_node_lookup_;
-
-        mutable std::mutex semantic_models_mutex_;
-        mutable std::unordered_map<const SyntaxTree *, SemanticModel *> semantic_models_;
-
-        mutable std::mutex error_type_mutex_;
-        mutable std::unordered_map<SymbolLookupKey, const NamedTypeSymbol *> error_types_;
-
-        mutable std::mutex error_namespace_mutex_;
-        mutable std::unordered_map<SymbolLookupKey, const NamespaceSymbol *> error_namespaces_;
-
-        mutable std::mutex variable_initializer_mutex_;
-        mutable std::unordered_map<const VariableSymbol *, const BoundExpression *> variable_initializers_;
-
-        mutable std::mutex function_body_mutex_;
-        mutable std::unordered_map<const FunctionSymbol *, const BoundStatement *> function_bodies_;
+        Cache &cache_;
     };
 
     struct CompilationInternal
@@ -202,11 +175,6 @@ namespace prism
                                                                           const SyntaxTree &tree)
         {
             return compilation.get_syntax_tree_ordinal(tree);
-        }
-
-        [[nodiscard]] static inline const SemanticMappings &get_semantic_mappings(const Compilation &compilation)
-        {
-            return compilation.semantic_mappings_;
         }
 
         [[nodiscard]] static inline SemanticLifetime &get_lifetime(const Compilation &compilation)

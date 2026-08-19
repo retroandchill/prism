@@ -110,10 +110,6 @@
         "text": "usize"
       },
       {
-        "name": "F16Keyword",
-        "text": "f16"
-      },
-      {
         "name": "F32Keyword",
         "text": "f32"
       },
@@ -449,7 +445,6 @@
                 "U64Keyword",
                 "U128Keyword",
                 "UsizeKeyword",
-                "F16Keyword",
                 "F32Keyword",
                 "F64Keyword",
                 "CharKeyword",
@@ -1606,6 +1601,11 @@
           "name": "BadModifiersOnNamespace",
           "severity": "Error",
           "format": "Namespaces cannot have modifiers"
+        },
+        {
+          "name": "LiteralValueTooBig",
+          "severity": "Error",
+          "format": "Literal value is too big for its type"
         }
       ]
     }

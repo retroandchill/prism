@@ -104,7 +104,6 @@ namespace prism
     export enum class FloatSuffix : std::uint8_t
     {
         none,
-        f16,
         f32,
         f64
     };

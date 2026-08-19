@@ -32,14 +32,16 @@ namespace prism
         return factory.get_binder(node);
     }
 
-    const BoundExpression &SemanticModelState::get_bound_expression(const ExpressionSyntax &expression)
+    const BoundExpression &SemanticModelState::get_bound_expression(const ExpressionSyntax &expression,
+                                                                    const LookupContext &context)
     {
         auto &binder = get_binder(expression);
-        return get_bound_expression(expression, binder);
+        return get_bound_expression(expression, binder, context);
     }
 
     const BoundExpression &SemanticModelState::get_bound_expression(const ExpressionSyntax &expression,
-                                                                    const Binder &binder)
+                                                                    const Binder &binder,
+                                                                    const LookupContext &context)
     {
         Lazy<const BoundExpression &> *bound_expression;
         {
@@ -47,8 +49,7 @@ namespace prism
             bound_expression = &bound_expressions_[&expression];
         }
 
-        return bound_expression->get_or_compute([&binder, &expression] -> auto &
-                                                { return binder.bind_expression(expression); });
+        return bound_expression->get_or_compute([&] -> auto & { return binder.bind_expression(expression, context); });
     }
 
     Optional<const Symbol &> SemanticModelState::get_declared_symbol(const SyntaxNode &node)

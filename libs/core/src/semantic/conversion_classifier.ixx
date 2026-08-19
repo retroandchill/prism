@@ -13,6 +13,7 @@ import :context.target_settings;
 namespace prism
 {
     class Binder;
+
     class ConversionClassifier final
     {
       public:

@@ -15,7 +15,6 @@ import :diagnostics.diagnostic_bag;
 import :symbols.assembly_symbol;
 import :symbols.merged_namespace_symbol;
 import :symbols.intrinsic;
-import :binder.signature_binder;
 import :symbols.error;
 import :semantic.conversion_classifier;
 import :symbols.source;
@@ -25,13 +24,131 @@ import :binder.binder_factory;
 
 namespace prism
 {
+    class Compilation::Cache final
+    {
+      public:
+        explicit Cache(const Compilation &compilation) : compilation_{compilation}
+        {
+        }
+
+        [[nodiscard]] Optional<const NamespaceSymbol &> get_compilation_namespace(const NamespaceSymbol &symbol)
+        {
+            if (symbol.namespace_kind() == NamespaceKind::compilation &&
+                symbol.containing_compilation().value_ptr() == &compilation_)
+            {
+                return symbol;
+            }
+
+            {
+                std::scoped_lock lock{compilation_namespace_mutex_};
+                if (const auto it = compilation_namespaces_.find(&symbol); it != compilation_namespaces_.end())
+                {
+                    return it->second;
+                }
+            }
+
+            auto containing_namespace = symbol.containing_namespace();
+            if (!containing_namespace.has_value())
+            {
+                return compilation_.global_namespace();
+            }
+
+            auto current = get_compilation_namespace(*containing_namespace);
+            if (!current.has_value())
+            {
+                return std::nullopt;
+            }
+
+            const auto found = current->get_nested_namespace(symbol.name());
+            DEBUG_ASSERT(found.has_value());
+            // It's fine if we overwrite an existing entry, since we're not creating any new symbol objects
+            // so there shouldn't be any leaks if two threads write to the same key.
+            std::scoped_lock lock{compilation_namespace_mutex_};
+            compilation_namespaces_.emplace(&symbol, &*found);
+            return found;
+        }
+
+        [[nodiscard]] const SemanticModel &get_semantic_model(const SyntaxTree &tree)
+        {
+            std::scoped_lock lock{semantic_models_mutex_};
+            if (const auto it = semantic_models_.find(&tree); it != semantic_models_.end())
+                return *it->second;
+
+            auto &model = SemanticModelInternal::create(compilation_, tree);
+            semantic_models_.emplace(&tree, &model);
+            return model;
+        }
+
+        [[nodiscard]] const NamedTypeSymbol &create_error_type_symbol(const Optional<const Symbol &> container,
+                                                                      Name name)
+        {
+            SymbolLookupKey lookup_key{.symbol = container.value_ptr(), .name = name};
+            std::scoped_lock lock{error_type_mutex_};
+            if (const auto it = error_types_.find(lookup_key); it != error_types_.end())
+                return *it->second;
+
+            auto &error_type = compilation_.lifetime_.create<ErrorTypeSymbol>(name, container.value_ptr());
+            error_types_.emplace(lookup_key, &error_type);
+            return error_type;
+        }
+
+        const NamespaceSymbol &create_error_namespace_symbol(const Optional<const NamespaceSymbol &> container,
+                                                             Name name)
+        {
+            SymbolLookupKey lookup_key{.symbol = container.value_ptr(), .name = name};
+            std::scoped_lock lock{error_namespace_mutex_};
+            if (const auto it = error_namespaces_.find(lookup_key); it != error_namespaces_.end())
+                return *it->second;
+
+            auto &error_namespace = compilation_.lifetime_.create<ErrorNamespaceSymbol>(name, container.value_ptr());
+            error_namespaces_.emplace(lookup_key, &error_namespace);
+            return error_namespace;
+        }
+
+        const BinderFactory &get_binder_factory(const SyntaxTree &tree)
+        {
+            Lazy<const BinderFactory &> *factory;
+            {
+                std::scoped_lock lock{binder_factory_mutex_};
+                factory = &binder_factories_[&tree];
+            }
+
+            return factory->get_or_compute(
+                [this, &tree] -> auto & { return compilation_.lifetime_.create<BinderFactory>(compilation_, tree); });
+        }
+
+        const Binder &root_binder()
+        {
+            return root_binder_.get_or_compute([this] -> auto &
+                                               { return compilation_.lifetime_.create<TerminalBinder>(compilation_); });
+        }
+
+      private:
+        const Compilation &compilation_;
+        std::mutex compilation_namespace_mutex_;
+        std::unordered_map<const NamespaceSymbol *, const NamespaceSymbol *> compilation_namespaces_;
+
+        std::mutex binder_factory_mutex_;
+        std::unordered_map<const SyntaxTree *, Lazy<const BinderFactory &>> binder_factories_;
+        Lazy<const Binder &> root_binder_;
+
+        std::mutex semantic_models_mutex_;
+        std::unordered_map<const SyntaxTree *, SemanticModel *> semantic_models_;
+
+        std::mutex error_type_mutex_;
+        std::unordered_map<SymbolLookupKey, const NamedTypeSymbol *> error_types_;
+
+        std::mutex error_namespace_mutex_;
+        std::unordered_map<SymbolLookupKey, const NamespaceSymbol *> error_namespaces_;
+    };
+
     Compilation::Compilation(CreateTag,
                              SemanticLifetime &lifetime,
                              const Name assembly_name,
                              const TargetSettings target_settings,
                              RefCountPtr<SyntaxAndDeclarationManager> syntax_and_declarations) noexcept
         : lifetime_{lifetime}, assembly_name_{assembly_name}, target_settings_{target_settings},
-          syntax_and_declaration_manager_{std::move(syntax_and_declarations)}
+          syntax_and_declaration_manager_{std::move(syntax_and_declarations)}, cache_{lifetime_.create<Cache>(*this)}
     {
     }
 
@@ -71,39 +188,7 @@ namespace prism
 
     Optional<const NamespaceSymbol &> Compilation::get_compilation_namespace(const NamespaceSymbol &symbol) const
     {
-        if (symbol.namespace_kind() == NamespaceKind::compilation &&
-            symbol.containing_compilation().value_ptr() == this)
-        {
-            return symbol;
-        }
-
-        {
-            std::scoped_lock lock{compilation_namespace_mutex_};
-            if (const auto it = compilation_namespaces_.find(&symbol); it != compilation_namespaces_.end())
-            {
-                return it->second;
-            }
-        }
-
-        auto containing_namespace = symbol.containing_namespace();
-        if (!containing_namespace.has_value())
-        {
-            return global_namespace();
-        }
-
-        auto current = get_compilation_namespace(*containing_namespace);
-        if (!current.has_value())
-        {
-            return std::nullopt;
-        }
-
-        const auto found = current->get_nested_namespace(symbol.name());
-        DEBUG_ASSERT(found.has_value());
-        // It's fine if we overwrite an existing entry, since we're not creating any new symbol objects
-        // so there shouldn't be any leaks if two threads write to the same key.
-        std::scoped_lock lock{compilation_namespace_mutex_};
-        compilation_namespaces_.emplace(&symbol, &*found);
-        return found;
+        return cache_.get_compilation_namespace(symbol);
     }
 
     const ImmutableArray<std::shared_ptr<const SyntaxTree>> &Compilation::trees() const noexcept
@@ -118,13 +203,7 @@ namespace prism
 
     const SemanticModel &Compilation::get_semantic_model(const SyntaxTree &tree) const
     {
-        std::scoped_lock lock{semantic_models_mutex_};
-        if (const auto it = semantic_models_.find(&tree); it != semantic_models_.end())
-            return *it->second;
-
-        auto &model = SemanticModelInternal::create(*this, tree);
-        semantic_models_.emplace(&tree, &model);
-        return model;
+        return cache_.get_semantic_model(tree);
     }
 
     // ReSharper disable once CppMemberFunctionMayBeStatic
@@ -134,38 +213,15 @@ namespace prism
     }
 
     const NamedTypeSymbol &Compilation::create_error_type_symbol(const Optional<const Symbol &> container,
-                                                                 Name name) const
+                                                                 const Name name) const
     {
-        SymbolLookupKey lookup_key{.symbol = container.value_ptr(), .name = name};
-        std::scoped_lock lock{error_type_mutex_};
-        if (const auto it = error_types_.find(lookup_key); it != error_types_.end())
-            return *it->second;
-
-        auto &error_type = lifetime_.create<ErrorTypeSymbol>(name, container.value_ptr());
-        error_types_.emplace(lookup_key, &error_type);
-        return error_type;
+        return cache_.create_error_type_symbol(container, name);
     }
 
     const NamespaceSymbol &Compilation::create_error_namespace_symbol(const Optional<const NamespaceSymbol &> container,
-                                                                      Name name) const
+                                                                      const Name name) const
     {
-        SymbolLookupKey lookup_key{.symbol = container.value_ptr(), .name = name};
-        std::scoped_lock lock{error_namespace_mutex_};
-        if (const auto it = error_namespaces_.find(lookup_key); it != error_namespaces_.end())
-            return *it->second;
-
-        auto &error_namespace = lifetime_.create<ErrorNamespaceSymbol>(name, container.value_ptr());
-        error_namespaces_.emplace(lookup_key, &error_namespace);
-        return error_namespace;
-    }
-
-    Conversion Compilation::classify_conversion(const TypeSymbol &source, const TypeSymbol &destination) const
-    {
-        return no_conversion;
-        /*
-        const ConversionClassifier classifier{target_settings_};
-        return classifier.classify_conversion(source, destination);
-        */
+        return cache_.create_error_namespace_symbol(container, name);
     }
 
     std::shared_ptr<Compilation> Compilation::shared_from_this() noexcept
@@ -240,18 +296,11 @@ namespace prism
 
     const BinderFactory &Compilation::get_binder_factory(const SyntaxTree &tree) const
     {
-        Lazy<const BinderFactory &> *factory;
-        {
-            std::scoped_lock lock{binder_factory_mutex_};
-            factory = &binder_factories_[&tree];
-        }
-
-        return factory->get_or_compute([this, &tree] -> auto &
-                                       { return lifetime_.create<BinderFactory>(*this, tree); });
+        return cache_.get_binder_factory(tree);
     }
 
     const Binder &Compilation::root_binder() const
     {
-        return root_binder_.get_or_compute([this] -> auto & { return lifetime_.create<TerminalBinder>(*this); });
+        return cache_.root_binder();
     }
 } // namespace prism

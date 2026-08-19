@@ -17,6 +17,8 @@ import :syntax.visit;
 import :binder.binding_helpers;
 import :binder.lookup_context;
 import :symbols.visit;
+import :semantic.bound.bound_statement;
+import :semantic.bound.bound_expression;
 
 namespace prism
 {
@@ -55,8 +57,6 @@ namespace prism
                     return SpecialType::isize;
                 case SyntaxKind::usize_keyword:
                     return SpecialType::usize;
-                case SyntaxKind::f16_keyword:
-                    return SpecialType::f16;
                 case SyntaxKind::f32_keyword:
                     return SpecialType::f32;
                 case SyntaxKind::f64_keyword:
@@ -176,9 +176,57 @@ namespace prism
         return next_->get_declared_local_variables_for_scope(designator);
     }
 
-    const BoundExpression &Binder::bind_expression(const ExpressionSyntax &node) const
+    const BoundStatement &Binder::bind_statement(const StatementSyntax &syntax,
+                                                 const TypeSymbol &return_type,
+                                                 const LookupContext &context) const
     {
-        throw NotImplementedException{};
+        return visit(syntax,
+                     Overload{[&](const BlockSyntax &block) -> const BoundStatement &
+                              { return bind_block(block, return_type, context); },
+                              [&](const ExpressionStatementSyntax &expression) -> const BoundStatement &
+                              { return bind_expression_statement(expression, context); },
+                              [&](const ReturnStatementSyntax &statement) -> const BoundStatement &
+                              { return bind_return_statement(statement, return_type, context); },
+                              [&](const VariableDeclarationStatementSyntax &variable) -> const BoundStatement &
+                              { return bind_variable_declaration_statement(variable, context); },
+                              [&](const EmptyStatementSyntax &) -> const BoundStatement &
+                              {
+                                  UNREACHABLE("We should guard against entering into this context");
+                              }});
+    }
+
+    const BoundExpression &Binder::bind_expression(const ExpressionSyntax &syntax,
+                                                   const TypeSymbol *target_type,
+                                                   const LookupContext &context) const
+    {
+        auto &bound = visit(syntax,
+                            Overload{[&](const LiteralExpressionSyntax &e) -> const BoundExpression &
+                                     { return bind_literal_expression(e, target_type, context); },
+                                     [&](const IdentifierExpressionSyntax &e) -> const BoundExpression &
+                                     { return bind_identifier_expression(e, context); },
+                                     [&](const ParenthesizedExpressionSyntax &e) -> const BoundExpression &
+                                     { return bind_expression(e.expression(), context); },
+                                     [&](const BinaryExpressionSyntax &e) -> const BoundExpression &
+                                     { return bind_binary_expression(e, context); },
+                                     [&](const AssignmentExpressionSyntax &e) -> const BoundExpression &
+                                     { return bind_assignment_expression(e, context); },
+                                     [&](const PrefixExpressionSyntax &e) -> const BoundExpression &
+                                     { return bind_prefix_expression(e, context); },
+                                     [&](const PostfixExpressionSyntax &e) -> const BoundExpression &
+                                     { return bind_postfix_expression(e, context); },
+                                     [&](const TernaryExpressionSyntax &e) -> const BoundExpression &
+                                     { return bind_ternary_expression(e, context); },
+                                     [&](const InvocationExpressionSyntax &e) -> const BoundExpression &
+                                     {
+                                         return bind_invocation_expression(e, context);
+                                     }});
+
+        if (target_type != nullptr)
+        {
+            return add_conversion_if_necessary(syntax, bound, *target_type, context);
+        }
+
+        return bound;
     }
 
     const TypeSymbol &Binder::resolve_type(const TypeSyntax &syntax, const LookupContext &context) const
@@ -419,5 +467,260 @@ namespace prism
         diagnose_lookup_failure(result, syntax, LookupOptions::type, context);
         auto names = collect_names(syntax);
         return create_error_type_symbol(containing_symbol(), compilation_, names);
+    }
+
+    const BoundBlock &Binder::bind_block(const BlockSyntax &syntax,
+                                         const TypeSymbol &return_type,
+                                         const LookupContext &context) const
+    {
+        PooledVector<Ref<const BoundStatement>> statements;
+        for (auto &statement : syntax.statements())
+        {
+            if (statement.is<EmptyStatementSyntax>())
+                continue;
+
+            statements.emplace_back(bind_statement(statement, return_type, context));
+        }
+
+        auto interned = lifetime().copy_refs(statements);
+        return lifetime().create<BoundBlock>(syntax, interned);
+    }
+
+    const BoundVariableDeclaration &Binder::bind_variable_declaration_statement(
+        const VariableDeclarationStatementSyntax &syntax,
+        const LookupContext &context) const
+    {
+        auto &semantic_model = compilation_.get_semantic_model(syntax.tree());
+        auto &declaration = syntax.declaration();
+        auto &variable = semantic_model.get_declared_symbol(declaration).value();
+
+        const auto initializer = declaration.initializer().transform(
+            [&](const InitializerSyntax &i) -> auto &
+            {
+                return declaration.type().has_value()
+                           ? bind_expression(i.value(), variable.type(), context)
+                           : SemanticModelInternal::get_bound_expression(semantic_model, i.value(), *this, context);
+            });
+
+        return lifetime().create<BoundVariableDeclaration>(syntax, variable, initializer.value_ptr());
+    }
+
+    const BoundExpressionStatement &Binder::bind_expression_statement(const ExpressionStatementSyntax &syntax,
+                                                                      const LookupContext &context) const
+    {
+        auto &expression = bind_expression(syntax.expression(), context);
+        return lifetime().create<BoundExpressionStatement>(syntax, expression);
+    }
+
+    const BoundReturnStatement &Binder::bind_return_statement(const ReturnStatementSyntax &syntax,
+                                                              const TypeSymbol &return_type,
+                                                              const LookupContext &context) const
+    {
+        auto *expression = syntax.expression()
+                               .transform([&](const ExpressionSyntax &e) -> auto &
+                                          { return bind_expression(e, return_type, context); })
+                               .value_ptr();
+
+        return lifetime().create<BoundReturnStatement>(syntax, expression);
+    }
+
+    const BoundLiteralExpression &Binder::bind_literal_expression(const LiteralExpressionSyntax &syntax,
+                                                                  const TypeSymbol *return_type,
+                                                                  const LookupContext &context) const
+    {
+        const auto token = syntax.value();
+        auto value = evaluate_constant_expression(token, return_type, context);
+        auto &type = compilation().get_special_type(value.special_type());
+        return lifetime().create<BoundLiteralExpression>(syntax, value, type);
+    }
+
+    const BoundExpression &Binder::bind_identifier_expression(const IdentifierExpressionSyntax &syntax,
+                                                              const LookupContext &context) const
+    {
+        throw NotImplementedException{};
+    }
+
+    const BoundBinaryExpression &Binder::bind_binary_expression(const BinaryExpressionSyntax &syntax,
+                                                                const LookupContext &context) const
+    {
+        throw NotImplementedException{};
+    }
+
+    const BoundAssignmentExpression &Binder::bind_assignment_expression(const AssignmentExpressionSyntax &syntax,
+                                                                        const LookupContext &context) const
+    {
+        throw NotImplementedException{};
+    }
+
+    const BoundExpression &Binder::bind_prefix_expression(const PrefixExpressionSyntax &syntax,
+                                                          const LookupContext &context) const
+    {
+        throw NotImplementedException{};
+    }
+
+    const BoundUnaryExpression &Binder::bind_postfix_expression(const PostfixExpressionSyntax &syntax,
+                                                                const LookupContext &context) const
+    {
+        throw NotImplementedException{};
+    }
+
+    const BoundConditionalExpression &Binder::bind_ternary_expression(const TernaryExpressionSyntax &syntax,
+                                                                      const LookupContext &context) const
+    {
+        throw NotImplementedException{};
+    }
+
+    const BoundInvocationExpression &Binder::bind_invocation_expression(const InvocationExpressionSyntax &syntax,
+                                                                        const LookupContext &context) const
+    {
+        throw NotImplementedException{};
+    }
+
+    const BoundExpression &Binder::add_conversion_if_necessary(const ExpressionSyntax &syntax,
+                                                               const BoundExpression &expression,
+                                                               const TypeSymbol &type,
+                                                               const LookupContext &context) const
+    {
+        auto &conversions = conversion_classifier();
+        if (auto conversion = conversions.classify_conversion(expression.type(), type); !conversion.exists())
+        {
+            context.report_diagnostic(
+                Diagnostic{DiagnosticInfo::create<DiagnosticCode::no_conversion>(expression.type().to_display_string(),
+                                                                                 type.to_display_string()),
+                           syntax.location()});
+        }
+        else if (!conversion.is_identity())
+        {
+            if (!conversion.is_implicit())
+            {
+                context.report_diagnostic(Diagnostic{DiagnosticInfo::create<DiagnosticCode::conversion_is_explicit>(
+                                                         expression.type().to_display_string(),
+                                                         type.to_display_string()),
+                                                     syntax.location()});
+            }
+
+            return lifetime().create<BoundConversionExpression>(syntax, expression, type, conversion);
+        }
+
+        return expression;
+    }
+
+    ConstantValue Binder::evaluate_constant_expression(const SyntaxToken &token,
+                                                       const TypeSymbol *return_type,
+                                                       const LookupContext &context) const
+    {
+        if (auto bool_value = token.try_get_value<bool>(); bool_value.has_value())
+        {
+            return ConstantValue::boolean(*bool_value);
+        }
+
+        if (const auto numeric_value = token.try_get_value<IntegerLiteralData>(); numeric_value.has_value())
+        {
+            return evaluate_numeric_expression(*numeric_value, return_type, token.location(), context);
+        }
+
+        if (const auto floating_point_value = token.try_get_value<FloatLiteralData>(); floating_point_value.has_value())
+        {
+            return evaluate_numeric_expression(*floating_point_value, return_type, context);
+        }
+
+        if (const auto character_value = token.try_get_value<CharacterLiteralData>(); character_value.has_value())
+        {
+            switch (character_value->encoding)
+            {
+                case CharacterEncoding::utf8:
+                    DEBUG_ASSERT(character_value->value <= std::numeric_limits<char8_t>::max());
+                    return ConstantValue::character(static_cast<char8_t>(character_value->value));
+                    break;
+                case CharacterEncoding::utf16:
+                    DEBUG_ASSERT(character_value->value <= std::numeric_limits<char16_t>::max());
+                    return ConstantValue::character16(static_cast<char16_t>(character_value->value));
+                    break;
+                case CharacterEncoding::utf32:
+                    return ConstantValue::rune(character_value->value);
+            }
+        }
+
+        if (const auto string_value = token.try_get_value<StringLiteralData>(); string_value.has_value())
+        {
+            return ConstantValue::str(string_value->value);
+        }
+
+        UNREACHABLE("Invalid literal type");
+    }
+
+    ConstantValue Binder::evaluate_numeric_expression(const IntegerLiteralData &data,
+                                                      const TypeSymbol *return_type,
+                                                      const Location &location,
+                                                      const LookupContext &context) const
+    {
+        auto target_type = get_integer_target_kind(data, return_type);
+
+        // If it doesn't fit, we're going to raise an error and then truncate the value
+        if (!fits_in(data.value, target_type, compilation_.target_settings()))
+        {
+            context.report_diagnostic(
+                Diagnostic{DiagnosticInfo::create<DiagnosticCode::literal_value_too_big>(), location});
+        }
+
+        switch (target_type)
+        {
+            case IntegerTargetKind::i8:
+                return ConstantValue::i8(data.value.convert_to<std::int8_t>());
+            case IntegerTargetKind::i16:
+                return ConstantValue::i16(data.value.convert_to<std::int16_t>());
+            case IntegerTargetKind::i32:
+                return ConstantValue::i32(data.value.convert_to<std::int32_t>());
+            case IntegerTargetKind::i64:
+                return ConstantValue::i64(data.value.convert_to<std::int64_t>());
+            case IntegerTargetKind::i128:
+                return ConstantValue::i128(data.value.convert_to<Int128>());
+            case IntegerTargetKind::isize:
+                return ConstantValue::isize(data.value.convert_to<std::int64_t>());
+            case IntegerTargetKind::u8:
+                return ConstantValue::u8(data.value.convert_to<std::uint8_t>());
+            case IntegerTargetKind::u16:
+                return ConstantValue::u16(data.value.convert_to<std::uint16_t>());
+            case IntegerTargetKind::u32:
+                return ConstantValue::u32(data.value.convert_to<std::uint32_t>());
+            case IntegerTargetKind::u64:
+                return ConstantValue::u64(data.value.convert_to<std::uint64_t>());
+            case IntegerTargetKind::u128:
+                return ConstantValue::u128(data.value.convert_to<UInt128>());
+            case IntegerTargetKind::usize:
+                return ConstantValue::usize(data.value.convert_to<std::uint64_t>());
+            case IntegerTargetKind::f32:
+                return ConstantValue::usize(data.value.convert_to<float>());
+            case IntegerTargetKind::f64:
+                return ConstantValue::usize(data.value.convert_to<double>());
+            case IntegerTargetKind::best_fit:
+                {
+                    if (fits_in<std::int32_t>(data.value))
+                        return ConstantValue::i32(data.value.convert_to<std::int32_t>());
+
+                    if (fits_in<std::uint32_t>(data.value))
+                        return ConstantValue::u32(data.value.convert_to<std::uint32_t>());
+
+                    if (fits_in<std::int64_t>(data.value))
+                        return ConstantValue::i64(data.value.convert_to<std::int64_t>());
+
+                    if (fits_in<std::uint64_t>(data.value))
+                        return ConstantValue::u64(data.value.convert_to<std::uint64_t>());
+
+                    if (fits_in<Int128>(data.value))
+                        return ConstantValue::i128(data.value.convert_to<Int128>());
+
+                    return ConstantValue::u128(data.value.convert_to<UInt128>());
+                }
+            default:
+                UNREACHABLE("Invalid input");
+        }
+    }
+
+    ConstantValue Binder::evaluate_numeric_expression(const FloatLiteralData &data,
+                                                      const TypeSymbol *return_type,
+                                                      const LookupContext &context) const
+    {
+        throw NotImplementedException{};
     }
 } // namespace prism

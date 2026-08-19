@@ -31,7 +31,6 @@ namespace prism
                                          SyntaxKind::u64_keyword,
                                          SyntaxKind::u128_keyword,
                                          SyntaxKind::usize_keyword,
-                                         SyntaxKind::f16_keyword,
                                          SyntaxKind::f32_keyword,
                                          SyntaxKind::f64_keyword,
                                          SyntaxKind::char_keyword,

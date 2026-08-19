@@ -39,10 +39,8 @@ set(PRISM_MODULES
         generated/syntax/green/directives.cpp
         src/syntax/node_or_token.cpp
         src/symbols/merged_namespace_symbol.cpp
-        src/binder/signature_binder.cpp
         src/binder/binder_helpers.cpp
         src/symbols/namespace_symbol.cpp
-        src/binder/expression_binder.cpp
         src/symbols/function_symbol.cpp
         src/semantic/conversion_classifier.cpp
         src/symbols/intrinsic.cpp
@@ -157,11 +155,8 @@ set(PRISM_MODULES
         src/semantic/semantic_model.ixx
         src/semantic/semantic_model.cpp
         src/syntax/reference.ixx
-        src/binder/semantic_mappings.ixx
-        src/binder/semantic_mappings.cpp
         src/symbols/merged_namespace_symbol.ixx
         src/symbols/intrinsic.ixx
-        src/binder/signature_binder.ixx
         src/binder/binding_helpers.ixx
         src/symbols/error_type_symbol.ixx
         src/binder/lookup_result.ixx
@@ -170,10 +165,7 @@ set(PRISM_MODULES
         src/semantic/bound/bound_expression.ixx
         src/semantic/constant_value.ixx
         src/semantic/operations.ixx
-        src/binder/expression_binder.ixx
-        src/semantic/bound_node_lookup.ixx
         src/semantic/conversion.ixx
-        src/semantic/bound_node_lookup.cpp
         src/symbols/assembly_symbol.cpp
         src/symbols/parameter_symbol.cpp
         src/symbols/variable_symbol.cpp

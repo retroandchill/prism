@@ -110,4 +110,10 @@ namespace prism
     {
         using Args = std::tuple<>;
     };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::literal_value_too_big>
+    {
+        using Args = std::tuple<>;
+    };
 } // namespace prism

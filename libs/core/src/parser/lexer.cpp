@@ -556,9 +556,8 @@ namespace prism
     {
         using namespace std::literals;
         static constexpr std::array float_suffixes = {
-            std::make_pair("f16"sv, FloatSuffix::f16),
-            std::make_pair("f32"sv, FloatSuffix::f16),
-            std::make_pair("f64"sv, FloatSuffix::f16),
+            std::make_pair("f32"sv, FloatSuffix::f32),
+            std::make_pair("f64"sv, FloatSuffix::f64),
         };
 
         auto remaining = cursor_.remaining();

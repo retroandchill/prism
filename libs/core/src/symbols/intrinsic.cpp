@@ -61,10 +61,9 @@ namespace prism
           u8_{SpecialType::u8, std_namespace_}, u16_{SpecialType::u16, std_namespace_},
           u32_{SpecialType::u32, std_namespace_}, u64_{SpecialType::u64, std_namespace_},
           u128_{SpecialType::u128, std_namespace_}, usize_{SpecialType::usize, std_namespace_},
-          f16_{SpecialType::f16, std_namespace_}, f32_{SpecialType::f32, std_namespace_},
-          f64_{SpecialType::f64, std_namespace_}, char_{SpecialType::char_, std_namespace_},
-          char16_{SpecialType::char16, std_namespace_}, rune_{SpecialType::rune, std_namespace_},
-          str_{SpecialType::str, std_namespace_}
+          f32_{SpecialType::f32, std_namespace_}, f64_{SpecialType::f64, std_namespace_},
+          char_{SpecialType::char_, std_namespace_}, char16_{SpecialType::char16, std_namespace_},
+          rune_{SpecialType::rune, std_namespace_}, str_{SpecialType::str, std_namespace_}
     {
         global_namespace_.add_member(std_namespace_);
 
@@ -82,7 +81,6 @@ namespace prism
         std_namespace_.add_member(u64_);
         std_namespace_.add_member(u128_);
         std_namespace_.add_member(usize_);
-        std_namespace_.add_member(f16_);
         std_namespace_.add_member(f32_);
         std_namespace_.add_member(f64_);
         std_namespace_.add_member(char_);
@@ -129,8 +127,6 @@ namespace prism
                 return u128_;
             case SpecialType::usize:
                 return usize_;
-            case SpecialType::f16:
-                return f16_;
             case SpecialType::f32:
                 return f32_;
             case SpecialType::f64:

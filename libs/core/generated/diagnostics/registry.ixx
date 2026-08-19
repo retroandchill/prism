@@ -184,6 +184,16 @@ namespace prism::diagnostics
         ""sv,
         {}};
 
+    export constexpr DiagnosticDescriptor literal_value_too_big{to_string(DiagnosticCode::literal_value_too_big),
+                                                                "Literal value too big"sv,
+                                                                "Literal value is too big for its type",
+                                                                "Semantic"sv,
+                                                                DiagnosticSeverity::error,
+                                                                true,
+                                                                ""sv,
+                                                                ""sv,
+                                                                {}};
+
     export [[nodiscard]] constexpr Optional<const DiagnosticDescriptor &> get_descriptor(const DiagnosticCode code)
     {
         switch (code)
@@ -222,6 +232,8 @@ namespace prism::diagnostics
                 return file_scoped_namespace_not_before_all_members;
             case DiagnosticCode::bad_modifiers_on_namespace:
                 return bad_modifiers_on_namespace;
+            case DiagnosticCode::literal_value_too_big:
+                return literal_value_too_big;
             default:
                 return std::nullopt;
         }

@@ -56,9 +56,6 @@ namespace prism
             case SpecialType::usize:
                 writer.write("usize");
                 break;
-            case SpecialType::f16:
-                writer.write("f16");
-                break;
             case SpecialType::f32:
                 writer.write("f32");
                 break;

@@ -49,14 +49,13 @@ namespace prism
         u128_keyword = 1020,
         isize_keyword = 1021,
         usize_keyword = 1022,
-        f16_keyword = 1023,
-        f32_keyword = 1024,
-        f64_keyword = 1025,
-        char_keyword = 1026,
-        char16_keyword = 1027,
-        rune_keyword = 1028,
-        str_keyword = 1029,
-        keyword_end = 1029,
+        f32_keyword = 1023,
+        f64_keyword = 1024,
+        char_keyword = 1025,
+        char16_keyword = 1026,
+        rune_keyword = 1027,
+        str_keyword = 1028,
+        keyword_end = 1028,
 #pragma endregion
 
 #pragma region Punctuations
@@ -261,8 +260,6 @@ namespace prism
                 return "isize";
             case SyntaxKind::usize_keyword:
                 return "usize";
-            case SyntaxKind::f16_keyword:
-                return "f16";
             case SyntaxKind::f32_keyword:
                 return "f32";
             case SyntaxKind::f64_keyword:

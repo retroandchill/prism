@@ -28,6 +28,7 @@ namespace prism
         file_scoped_and_normal_namespace = 2008,
         file_scoped_namespace_not_before_all_members = 2009,
         bad_modifiers_on_namespace = 2010,
+        literal_value_too_big = 2011,
     };
 
     export constexpr std::string_view to_string(const DiagnosticCode code)
@@ -68,6 +69,8 @@ namespace prism
                 return "E2009";
             case DiagnosticCode::bad_modifiers_on_namespace:
                 return "E2010";
+            case DiagnosticCode::literal_value_too_big:
+                return "E2011";
             default:
                 throw std::invalid_argument{"Invalid diagnostic code"};
         }

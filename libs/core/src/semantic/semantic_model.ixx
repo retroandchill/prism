@@ -34,6 +34,7 @@ namespace prism
     class TypeSymbol;
     class Compilation;
     class SyntaxTree;
+    class LookupContext;
 
     export class PRISM_CORE_API SemanticModel final : NonCopyable
     {
@@ -79,10 +80,12 @@ namespace prism
 
         [[nodiscard]] const Binder &get_binder(const SyntaxNode &node) const;
 
-        [[nodiscard]] const BoundExpression &get_bound_expression(const ExpressionSyntax &node) const;
+        [[nodiscard]] const BoundExpression &get_bound_expression(const ExpressionSyntax &node,
+                                                                  const LookupContext &context) const;
 
         [[nodiscard]] const BoundExpression &get_bound_expression(const ExpressionSyntax &node,
-                                                                  const Binder &binder) const;
+                                                                  const Binder &binder,
+                                                                  const LookupContext &context) const;
 
         void validate_is_part_of_compilation(const SyntaxNode &node) const;
 
@@ -106,16 +109,18 @@ namespace prism
         }
 
         [[nodiscard]] static inline const BoundExpression &get_bound_expression(const SemanticModel &model,
-                                                                                const ExpressionSyntax &node)
+                                                                                const ExpressionSyntax &node,
+                                                                                const LookupContext &context)
         {
-            return model.get_bound_expression(node);
+            return model.get_bound_expression(node, context);
         }
 
         [[nodiscard]] static inline const BoundExpression &get_bound_expression(const SemanticModel &model,
                                                                                 const ExpressionSyntax &node,
-                                                                                const Binder &binder)
+                                                                                const Binder &binder,
+                                                                                const LookupContext &context)
         {
-            return model.get_bound_expression(node, binder);
+            return model.get_bound_expression(node, binder, context);
         }
     };
 } // namespace prism

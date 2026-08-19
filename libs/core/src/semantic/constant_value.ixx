@@ -17,7 +17,7 @@ import :symbols.type_symbol;
 
 namespace prism
 {
-    export class ConstantValue
+    export class ConstantValue final
     {
         union Storage
         {
@@ -27,7 +27,6 @@ namespace prism
             std::uint64_t u64_value;
             Int128 i128_value;
             UInt128 u128_value;
-            std::uint16_t f16_bits;
             float f32_value;
             double f64_value;
             std::string_view str_value;
@@ -52,7 +51,6 @@ namespace prism
             u64,
             u128,
             usize,
-            f16,
             f32,
             f64,
             str
@@ -144,11 +142,6 @@ namespace prism
             return ConstantValue{Kind::usize, {.u64_value = value}};
         }
 
-        [[nodiscard]] static constexpr ConstantValue f16(const std::uint16_t value) noexcept
-        {
-            return ConstantValue{Kind::f16, {.f16_bits = value}};
-        }
-
         [[nodiscard]] static constexpr ConstantValue f32(const float value) noexcept
         {
             return ConstantValue{Kind::f32, {.f32_value = value}};
@@ -205,8 +198,6 @@ namespace prism
                     return SpecialType::u128;
                 case Kind::usize:
                     return SpecialType::usize;
-                case Kind::f16:
-                    return SpecialType::f16;
                 case Kind::f32:
                     return SpecialType::f32;
                 case Kind::f64:
@@ -237,7 +228,7 @@ namespace prism
 
         [[nodiscard]] constexpr bool is_float() const noexcept
         {
-            return kind_ == Kind::f16 || kind_ == Kind::f32 || kind_ == Kind::f64;
+            return kind_ == Kind::f32 || kind_ == Kind::f64;
         }
 
         [[nodiscard]] constexpr bool can_be_negative() const noexcept
@@ -284,12 +275,6 @@ namespace prism
         {
             DEBUG_ASSERT(kind_ == Kind::u128);
             return storage_.u128_value;
-        }
-
-        [[nodiscard]] constexpr std::uint16_t as_f16_bits() const noexcept
-        {
-            DEBUG_ASSERT(kind_ == Kind::f16);
-            return storage_.f16_bits;
         }
 
         [[nodiscard]] constexpr float as_f32() const noexcept

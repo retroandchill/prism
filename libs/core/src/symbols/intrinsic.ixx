@@ -50,8 +50,6 @@ namespace prism
                 return KnownName::uint128;
             case SpecialType::usize:
                 return KnownName::usize;
-            case SpecialType::f16:
-                return KnownName::float16;
             case SpecialType::f32:
                 return KnownName::float32;
             case SpecialType::f64:
@@ -157,7 +155,6 @@ namespace prism
         IntrinsicNamedTypeSymbol u64_;
         IntrinsicNamedTypeSymbol u128_;
         IntrinsicNamedTypeSymbol usize_;
-        IntrinsicNamedTypeSymbol f16_;
         IntrinsicNamedTypeSymbol f32_;
         IntrinsicNamedTypeSymbol f64_;
         IntrinsicNamedTypeSymbol char_;

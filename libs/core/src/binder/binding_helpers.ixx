@@ -12,9 +12,11 @@ import :text.name;
 import :util.ref;
 import :symbols.type_symbol;
 import :context.target_settings;
+import :util.numerics;
 
 namespace prism
 {
+    struct IntegerLiteralData;
     enum class LookupOptions : std::uint32_t;
     class LookupContext;
     class Binder;
@@ -43,4 +45,29 @@ namespace prism
     Name get_unqualified_name(const NameSyntax &syntax);
 
     Name get_unqualified_name(const SimpleNameSyntax &syntax);
+
+    enum class IntegerTargetKind
+    {
+        i8,
+        i16,
+        i32,
+        i64,
+        i128,
+        isize,
+        u8,
+        u16,
+        u32,
+        u64,
+        u128,
+        usize,
+        f32,
+        f64,
+        best_fit
+    };
+
+    IntegerTargetKind get_integer_target_kind(const TypeSymbol *target_type);
+
+    IntegerTargetKind get_integer_target_kind(const IntegerLiteralData &literal, const TypeSymbol *target_type);
+
+    bool fits_in(const BigInteger &value, IntegerTargetKind type, TargetSettings settings);
 } // namespace prism

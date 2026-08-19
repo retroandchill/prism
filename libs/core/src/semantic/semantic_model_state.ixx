@@ -19,6 +19,7 @@ namespace prism
     class Binder;
     class SyntaxTree;
     class Compilation;
+    class LookupContext;
 
     class SemanticModelState final : NonCopyable
     {
@@ -26,8 +27,10 @@ namespace prism
         SemanticModelState(const Compilation &compilation, const SyntaxTree &syntax_tree);
 
         [[nodiscard]] const Binder &get_binder(const SyntaxNode &node) const;
-        const BoundExpression &get_bound_expression(const ExpressionSyntax &expression);
-        const BoundExpression &get_bound_expression(const ExpressionSyntax &expression, const Binder &binder);
+        const BoundExpression &get_bound_expression(const ExpressionSyntax &expression, const LookupContext &context);
+        const BoundExpression &get_bound_expression(const ExpressionSyntax &expression,
+                                                    const Binder &binder,
+                                                    const LookupContext &context);
 
         [[nodiscard]] Optional<const Symbol &> get_declared_symbol(const SyntaxNode &node);
         void cache_symbol(const SyntaxNode &node, const Symbol &symbol);

@@ -148,21 +148,98 @@ namespace prism
         return get_identifier_name(syntax.identifier());
     }
 
-    bool fits_in(const BigDecimal &value, const SpecialType type, TargetSettings settings)
+    IntegerTargetKind get_integer_target_kind(const TypeSymbol *target_type)
+    {
+        if (target_type == nullptr)
+            return IntegerTargetKind::best_fit;
+
+        switch (target_type->special_type())
+        {
+            case SpecialType::i8:
+                return IntegerTargetKind::i8;
+            case SpecialType::i16:
+                return IntegerTargetKind::i16;
+            case SpecialType::i32:
+                return IntegerTargetKind::i32;
+            case SpecialType::i64:
+                return IntegerTargetKind::i64;
+            case SpecialType::i128:
+                return IntegerTargetKind::i128;
+            case SpecialType::isize:
+                return IntegerTargetKind::isize;
+            case SpecialType::u8:
+                return IntegerTargetKind::u8;
+            case SpecialType::u16:
+                return IntegerTargetKind::u16;
+            case SpecialType::u32:
+                return IntegerTargetKind::u32;
+            case SpecialType::u64:
+                return IntegerTargetKind::u64;
+            case SpecialType::u128:
+                return IntegerTargetKind::u128;
+            case SpecialType::usize:
+                return IntegerTargetKind::usize;
+            case SpecialType::f32:
+                return IntegerTargetKind::f32;
+            case SpecialType::f64:
+                return IntegerTargetKind::f64;
+            default:
+                // This will most-likely result in an error unless there's a user-defined conversion from a given
+                // integer type
+                return IntegerTargetKind::best_fit;
+        }
+    }
+
+    IntegerTargetKind get_integer_target_kind(const IntegerLiteralData &literal, const TypeSymbol *target_type)
+    {
+        switch (literal.suffix)
+        {
+            case IntegerSuffix::none:
+                return get_integer_target_kind(target_type);
+            case IntegerSuffix::i8:
+                return IntegerTargetKind::i8;
+            case IntegerSuffix::i16:
+                return IntegerTargetKind::i16;
+            case IntegerSuffix::i32:
+                return IntegerTargetKind::i32;
+            case IntegerSuffix::i64:
+                return IntegerTargetKind::i64;
+            case IntegerSuffix::i128:
+                return IntegerTargetKind::i128;
+            case IntegerSuffix::iz:
+                return IntegerTargetKind::isize;
+            case IntegerSuffix::u8:
+                return IntegerTargetKind::u8;
+            case IntegerSuffix::u16:
+                return IntegerTargetKind::u16;
+            case IntegerSuffix::u32:
+                return IntegerTargetKind::u32;
+            case IntegerSuffix::u64:
+                return IntegerTargetKind::u64;
+            case IntegerSuffix::u128:
+                return IntegerTargetKind::u128;
+            case IntegerSuffix::uz:
+                return IntegerTargetKind::usize;
+        }
+
+        UNREACHABLE("Invalid integer suffix");
+    }
+
+    bool fits_in(const BigInteger &value, const IntegerTargetKind type, TargetSettings settings)
     {
         switch (type)
         {
-            case SpecialType::i8:
+            case IntegerTargetKind::i8:
                 return fits_in<std::int8_t>(value);
-            case SpecialType::i16:
+            case IntegerTargetKind::i16:
                 return fits_in<std::int16_t>(value);
-            case SpecialType::i32:
+            case IntegerTargetKind::i32:
                 return fits_in<std::int32_t>(value);
-            case SpecialType::i64:
+            case IntegerTargetKind::i64:
                 return fits_in<std::int64_t>(value);
-            case SpecialType::i128:
+            case IntegerTargetKind::i128:
                 return fits_in<Int128>(value);
-            case SpecialType::isize:
+            case IntegerTargetKind::isize:
                 switch (settings.pointer_width)
                 {
                     case 32:
@@ -172,17 +249,17 @@ namespace prism
                     default:
                         throw std::invalid_argument{"Invalid pointer width"};
                 }
-            case SpecialType::u8:
+            case IntegerTargetKind::u8:
                 return fits_in<std::uint8_t>(value);
-            case SpecialType::u16:
+            case IntegerTargetKind::u16:
                 return fits_in<std::uint16_t>(value);
-            case SpecialType::u32:
+            case IntegerTargetKind::u32:
                 return fits_in<std::uint32_t>(value);
-            case SpecialType::u64:
+            case IntegerTargetKind::u64:
                 return fits_in<std::uint64_t>(value);
-            case SpecialType::u128:
+            case IntegerTargetKind::u128:
                 return fits_in<UInt128>(value);
-            case SpecialType::usize:
+            case IntegerTargetKind::usize:
                 switch (settings.pointer_width)
                 {
                     case 32:
@@ -192,14 +269,14 @@ namespace prism
                     default:
                         throw std::invalid_argument{"Invalid pointer width"};
                 }
-            case SpecialType::f16:
-                return fits_in_f16(value);
-            case SpecialType::f32:
+            case IntegerTargetKind::f32:
                 return fits_in<float>(value);
-            case SpecialType::f64:
+            case IntegerTargetKind::f64:
                 return fits_in<double>(value);
-            default:
-                throw std::invalid_argument{"Not an integral type"};
+            case IntegerTargetKind::best_fit:
+                return fits_in<UInt128>(value) || fits_in<Int128>(value);
         }
+
+        UNREACHABLE("Invalid input");
     }
 } // namespace prism

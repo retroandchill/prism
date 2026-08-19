@@ -27,7 +27,6 @@ namespace prism
         u64,
         u128,
         usize,
-        f16,
         f32,
         f64,
         char_,

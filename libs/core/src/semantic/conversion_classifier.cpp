@@ -59,7 +59,6 @@ namespace prism
             case SpecialType::u64:
             case SpecialType::u128:
             case SpecialType::usize:
-            case SpecialType::f16:
             case SpecialType::f32:
             case SpecialType::f64:
                 return true;
@@ -173,9 +172,6 @@ namespace prism
                             .width = pointer_width,
                             .precision = pointer_width};
                 }
-
-            case SpecialType::f16:
-                return {.family = NumericFamily::floating_point, .width = 16, .precision = 11};
 
             case SpecialType::f32:
                 return {.family = NumericFamily::floating_point, .width = 32, .precision = 24};
