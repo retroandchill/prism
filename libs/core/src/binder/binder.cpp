@@ -621,7 +621,7 @@ namespace prism
 
         if (const auto floating_point_value = token.try_get_value<FloatLiteralData>(); floating_point_value.has_value())
         {
-            return evaluate_numeric_expression(*floating_point_value, return_type, context);
+            return evaluate_numeric_expression(*floating_point_value, return_type, token.location(), context);
         }
 
         if (const auto character_value = token.try_get_value<CharacterLiteralData>(); character_value.has_value())
@@ -719,8 +719,43 @@ namespace prism
 
     ConstantValue Binder::evaluate_numeric_expression(const FloatLiteralData &data,
                                                       const TypeSymbol *return_type,
-                                                      const LookupContext &context) const
+                                                      const Location &location,
+                                                      const LookupContext &context)
     {
-        throw NotImplementedException{};
+        SpecialType target{};
+        switch (data.suffix)
+        {
+            case FloatSuffix::none:
+                target = return_type != nullptr ? return_type->special_type() : SpecialType::f64;
+                break;
+            case FloatSuffix::f32:
+                target = SpecialType::f32;
+                break;
+            case FloatSuffix::f64:
+                target = SpecialType::f64;
+                break;
+        }
+        switch (target)
+        {
+            case SpecialType::f32:
+                if (!fits_in_finite_float_magnitude<float>(data.significand, data.exponent10))
+                {
+                    context.report_diagnostic(
+                        Diagnostic{DiagnosticInfo::create<DiagnosticCode::literal_value_too_big>(), location});
+                }
+
+                return ConstantValue::f32(parse_decimal_float<float>(data.significand, data.exponent10));
+
+            case SpecialType::f64:
+                if (!fits_in_finite_float_magnitude<double>(data.significand, data.exponent10))
+                {
+                    context.report_diagnostic(
+                        Diagnostic{DiagnosticInfo::create<DiagnosticCode::literal_value_too_big>(), location});
+                }
+                return ConstantValue::f64(parse_decimal_float<double>(data.significand, data.exponent10));
+
+            default:
+                UNREACHABLE("Invalid input");
+        }
     }
 } // namespace prism

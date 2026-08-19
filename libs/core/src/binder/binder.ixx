@@ -229,9 +229,10 @@ namespace prism
                                                                 const TypeSymbol *return_type,
                                                                 const Location &location,
                                                                 const LookupContext &context) const;
-        [[nodiscard]] ConstantValue evaluate_numeric_expression(const FloatLiteralData &data,
-                                                                const TypeSymbol *return_type,
-                                                                const LookupContext &context) const;
+        [[nodiscard]] static ConstantValue evaluate_numeric_expression(const FloatLiteralData &data,
+                                                                       const TypeSymbol *return_type,
+                                                                       const Location &location,
+                                                                       const LookupContext &context);
 
         const Compilation &compilation_;
         const Binder *next_ = nullptr;

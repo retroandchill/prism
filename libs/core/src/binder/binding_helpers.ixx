@@ -16,6 +16,7 @@ import :util.numerics;
 
 namespace prism
 {
+    struct FloatLiteralData;
     struct IntegerLiteralData;
     enum class LookupOptions : std::uint32_t;
     class LookupContext;
