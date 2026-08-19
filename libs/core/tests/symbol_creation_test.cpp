@@ -54,4 +54,13 @@ TEST_CASE("Compilation merges namespace declarations", "[compilation]")
     CHECK(members[0]->is<VariableSymbol>());
     CHECK(members[1]->name() == Name{"f"});
     CHECK(members[1]->is<FunctionSymbol>());
+
+    auto &x = members[0]->as<VariableSymbol>()->type();
+    CHECK(x.special_type() == SpecialType::i32);
+
+    auto &f = members[1]->as<FunctionSymbol>()->return_type();
+    CHECK(f.special_type() == SpecialType::void_);
+
+    auto &p = members[1]->as<FunctionSymbol>()->parameters()[0]->type();
+    CHECK(p.special_type() == SpecialType::i32);
 }

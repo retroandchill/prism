@@ -32,13 +32,6 @@ namespace prism
                                  LookupOptions expected,
                                  const LookupContext &context);
 
-    const TypeSymbol &require_type(const LookupResult &result,
-                                   const NameSyntax &syntax,
-                                   const Binder &binder,
-                                   const LookupContext &context);
-
-    const TypeSymbol &resolve_type(const TypeSyntax &syntax, const Binder &binder, const LookupContext &context);
-
     const NamedTypeSymbol &create_error_type_symbol(Optional<const Symbol &> owning_symbol,
                                                     const Compilation &compilation,
                                                     std::span<const Ref<const SimpleNameSyntax>> names);

@@ -50,7 +50,7 @@ namespace prism
         }
 
       private:
-        std::mutex mutex_;
+        std::recursive_mutex mutex_;
         PersistentAllocator allocator_{};
     };
 } // namespace prism

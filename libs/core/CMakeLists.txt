@@ -220,6 +220,12 @@ set(PRISM_MODULES
         src/binder/member_container_binder.cpp
         src/binder/lookup_context.ixx
         src/binder/lookup_context.cpp
+        src/semantic/semantic_model_state.ixx
+        src/semantic/semantic_model_state.cpp
+        src/binder/compilation_unit_binder.ixx
+        src/binder/compilation_unit_binder.cpp
+        src/binder/function_signature_binder.ixx
+        src/binder/function_signature_binder.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

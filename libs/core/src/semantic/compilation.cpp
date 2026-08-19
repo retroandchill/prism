@@ -21,6 +21,7 @@ import :semantic.conversion_classifier;
 import :symbols.source;
 import :binder.terminal_binder;
 import :symbols.namespace_symbol;
+import :binder.binder_factory;
 
 namespace prism
 {
@@ -121,7 +122,7 @@ namespace prism
         if (const auto it = semantic_models_.find(&tree); it != semantic_models_.end())
             return *it->second;
 
-        auto &model = lifetime_.create<SemanticModel>(SemanticModel::create_tag, *this, tree);
+        auto &model = SemanticModelInternal::create(*this, tree);
         semantic_models_.emplace(&tree, &model);
         return model;
     }
@@ -239,9 +240,14 @@ namespace prism
 
     const BinderFactory &Compilation::get_binder_factory(const SyntaxTree &tree) const
     {
-        std::scoped_lock lock{binder_factory_mutex_};
-        if (const auto it = binder_factories_.find(&tree); it != binder_factories_.end())
-            return *it->second;
+        Lazy<const BinderFactory &> *factory;
+        {
+            std::scoped_lock lock{binder_factory_mutex_};
+            factory = &binder_factories_[&tree];
+        }
+
+        return factory->get_or_compute([this, &tree] -> auto &
+                                       { return lifetime_.create<BinderFactory>(*this, tree); });
     }
 
     const Binder &Compilation::root_binder() const

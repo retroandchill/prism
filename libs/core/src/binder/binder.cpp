@@ -20,6 +20,61 @@ import :symbols.visit;
 
 namespace prism
 {
+    namespace
+    {
+
+        SpecialType from_token(const SyntaxKind kind)
+        {
+            switch (kind)
+            {
+                case SyntaxKind::void_keyword:
+                    return SpecialType::void_;
+                case SyntaxKind::bool_keyword:
+                    return SpecialType::bool_;
+                case SyntaxKind::i8_keyword:
+                    return SpecialType::i8;
+                case SyntaxKind::i16_keyword:
+                    return SpecialType::i16;
+                case SyntaxKind::i32_keyword:
+                    return SpecialType::i32;
+                case SyntaxKind::i64_keyword:
+                    return SpecialType::i64;
+                case SyntaxKind::i128_keyword:
+                    return SpecialType::i128;
+                case SyntaxKind::u8_keyword:
+                    return SpecialType::u8;
+                case SyntaxKind::u16_keyword:
+                    return SpecialType::u16;
+                case SyntaxKind::u32_keyword:
+                    return SpecialType::u32;
+                case SyntaxKind::u64_keyword:
+                    return SpecialType::u64;
+                case SyntaxKind::u128_keyword:
+                    return SpecialType::u128;
+                case SyntaxKind::isize_keyword:
+                    return SpecialType::isize;
+                case SyntaxKind::usize_keyword:
+                    return SpecialType::usize;
+                case SyntaxKind::f16_keyword:
+                    return SpecialType::f16;
+                case SyntaxKind::f32_keyword:
+                    return SpecialType::f32;
+                case SyntaxKind::f64_keyword:
+                    return SpecialType::f64;
+                case SyntaxKind::char_keyword:
+                    return SpecialType::char_;
+                case SyntaxKind::char16_keyword:
+                    return SpecialType::char16;
+                case SyntaxKind::rune_keyword:
+                    return SpecialType::rune;
+                case SyntaxKind::str_keyword:
+                    return SpecialType::str;
+                default:
+                    [[unlikely]] throw std::invalid_argument{"unknown special type"};
+            }
+        }
+    } // namespace
+
     LookupResult make_lookup_result(SymbolList symbols, const LookupOptions options)
     {
         if (symbols.empty())
@@ -121,9 +176,23 @@ namespace prism
         return next_->get_declared_local_variables_for_scope(designator);
     }
 
-    const BoundExpression &Binder::get_bound_expression(const ExpressionSyntax &node) const
+    const BoundExpression &Binder::bind_expression(const ExpressionSyntax &node) const
     {
         throw NotImplementedException{};
+    }
+
+    const TypeSymbol &Binder::resolve_type(const TypeSyntax &syntax, const LookupContext &context) const
+    {
+        return visit(syntax,
+                     Overload{
+                         [&](const NamedTypeSyntax &named) -> auto &
+                         {
+                             const auto result = lookup_from_syntax(named.identifier(), LookupOptions::type, context);
+                             return require_type(result, named.identifier(), context);
+                         },
+                         [&](const PredefinedTypeSyntax &predefined) -> const TypeSymbol &
+                         { return compilation_.get_special_type(from_token(predefined.keyword().kind())); },
+                     });
     }
 
     LookupResult Binder::lookup_from_syntax(const NameSyntax &syntax,
@@ -186,8 +255,7 @@ namespace prism
 
     LookupResult Binder::lookup_qualified_name(const Name name,
                                                const MemberContainerSymbol &container,
-                                               const LookupOptions options,
-                                               const LookupContext &context) const
+                                               const LookupOptions options) const
     {
         SymbolList symbols;
 
@@ -237,6 +305,26 @@ namespace prism
         return CompilationInternal::get_lifetime(compilation_);
     }
 
+    ImmutableArray<Ref<const NamespaceSymbol>> Binder::build_using_namespaces(
+        SyntaxList<UsingDirectiveSyntax> usings) const
+    {
+        PooledVector<Ref<const NamespaceSymbol>> result;
+        PooledSet<const NamespaceSymbol *> seen;
+        result.reserve(usings.size());
+        seen.reserve(result.capacity());
+
+        for (auto &directive : usings)
+        {
+            auto &resolved = resolve_using_namespace(directive.name());
+            if (auto [it, inserted] = seen.insert(&resolved); inserted)
+                continue;
+
+            result.push_back(resolved);
+        }
+
+        return result | std::ranges::to<ImmutableArray>();
+    }
+
     bool Binder::visible_from(const Symbol &symbol) const
     {
         switch (symbol.declared_visibility())
@@ -282,6 +370,54 @@ namespace prism
             return LookupResult::wrong_kind(lookup_result.symbols());
 
         const auto unqualified_name = get_unqualified_name(syntax.right());
-        return lookup_qualified_name(unqualified_name, *symbol, options, context);
+        return lookup_qualified_name(unqualified_name, *symbol, options);
+    }
+
+    const NamespaceSymbol &Binder::resolve_using_namespace(const NameSyntax &syntax) const
+    {
+        DiagnosticBag diagnostics;
+        const auto names = collect_names(syntax);
+        auto current = Ref{compilation().global_namespace()};
+        bool is_error = false;
+        for (auto simple : names)
+        {
+            const auto name = get_unqualified_name(simple);
+            if (auto result = lookup_qualified_name(name, current, LookupOptions::namespace_); result.viable())
+            {
+                current = result.symbol().as_checked<NamespaceSymbol>();
+            }
+            else
+            {
+                current = compilation().create_error_namespace_symbol(current, name);
+                if (!is_error)
+                {
+                    diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::unresolved_symbol>(name),
+                                               simple->location()});
+                    is_error = true;
+                }
+            }
+        }
+
+        if (is_error)
+        {
+            CompilationInternal::get_declaration_diagnostics(compilation()).add_range(diagnostics);
+        }
+
+        return current;
+    }
+
+    const TypeSymbol &Binder::require_type(const LookupResult &result,
+                                           const NameSyntax &syntax,
+                                           const LookupContext &context) const
+    {
+        if (result.viable())
+        {
+            if (const auto type = result.symbol().as<TypeSymbol>(); type.has_value())
+                return *type;
+        }
+
+        diagnose_lookup_failure(result, syntax, LookupOptions::type, context);
+        auto names = collect_names(syntax);
+        return create_error_type_symbol(containing_symbol(), compilation_, names);
     }
 } // namespace prism

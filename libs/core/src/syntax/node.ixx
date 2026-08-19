@@ -212,6 +212,8 @@ namespace prism
             return std::shared_ptr<Self>{self.lifetime_->shared_from_this(), std::addressof(self)};
         }
 
+        [[nodiscard]] std::string to_string() const;
+
       private:
         friend struct SyntaxNodeInternal;
 

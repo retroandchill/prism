@@ -1,28 +1,25 @@
 /**
- * @file member_container_binder.ixx
+ * @file compilation_unit_binder.ixx
  * @author Francesco Corso
- * @date 8/17/2026
+ * @date 8/18/2026
  * @brief
  */
-
-export module prism.core:binder.member_container_binder;
+export module prism.core:binder.compilation_unit_binder;
 
 import :binder;
-import :symbols.member_container_symbol;
 
 namespace prism
 {
-    class UsingDirectiveSyntax;
-    class DeclarationSyntax;
+    class CompilationUnitSyntax;
 
-    class MemberContainerBinder final : public Binder
+    class CompilationUnitBinder final : public Binder
     {
       public:
-        MemberContainerBinder(const Binder &next, const MemberContainerSymbol &symbol, const DeclarationSyntax &syntax);
-
-        [[nodiscard]] Optional<const Symbol &> containing_symbol() const override;
+        explicit CompilationUnitBinder(const Binder &next, const CompilationUnitSyntax &syntax);
 
         [[nodiscard]] Optional<const SyntaxNode &> scope_designator() const override;
+
+        [[nodiscard]] Optional<const Symbol &> containing_symbol() const override;
 
       protected:
         [[nodiscard]] LookupResult lookup_local(Name name,
@@ -31,10 +28,8 @@ namespace prism
 
       private:
         [[nodiscard]] const ImmutableArray<Ref<const NamespaceSymbol>> &get_using_namespaces() const;
-        [[nodiscard]] ImmutableArray<Ref<const NamespaceSymbol>> compute_using_namespaces() const;
 
-        const MemberContainerSymbol &symbol_;
-        const DeclarationSyntax &syntax_;
+        const CompilationUnitSyntax &syntax_;
         mutable Lazy<ImmutableArray<Ref<const NamespaceSymbol>>> using_namespaces_;
     };
 } // namespace prism

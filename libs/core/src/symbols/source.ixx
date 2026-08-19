@@ -82,8 +82,6 @@ namespace prism
 
         [[nodiscard]] ImmutableArray<Ref<const Symbol>> compute_members() const;
 
-        friend class DeclarationMerger;
-
         const AssemblySymbol &containing_assembly_;
         RefCountPtr<const MergedNamespaceDeclaration> merged_declaration_;
         mutable Lazy<ImmutableArray<Location>> locations_;
@@ -111,9 +109,6 @@ namespace prism
         [[nodiscard]] virtual const TypeSymbol &compute_type(DiagnosticBag &diagnostics) const = 0;
 
       private:
-        friend class SignatureBinder;
-        friend class ExpressionBinder;
-
         mutable Lazy<ImmutableArray<Location>> locations_;
 
         const VariableDeclarationSyntax &syntax_;
@@ -155,38 +150,19 @@ namespace prism
 
         [[nodiscard]] const TypeSymbol &return_type() const override;
 
-        [[nodiscard]] constexpr SymbolSpan<ParameterSymbol> parameters() const noexcept override
-        {
-            return parameters_;
-        }
+        [[nodiscard]] SymbolSpan<ParameterSymbol> parameters() const noexcept override;
 
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
 
       private:
-        friend class DeclarationMerger;
-        friend class SignatureBinder;
+        [[nodiscard]] const TypeSymbol &compute_return_type(DiagnosticBag &diagnostics) const;
 
-        constexpr void add_parameter(const ParameterSymbol &parameter)
-        {
-            parameters_.emplace_back(parameter);
-        }
-
-        template <std::ranges::input_range Range>
-            requires std::convertible_to<std::ranges::range_reference_t<Range>, Ref<const ParameterSymbol>>
-        constexpr void add_parameters(Range &&range)
-        {
-            parameters_.append_range(std::forward<Range>(range));
-        }
-
-        constexpr void set_return_type(const TypeSymbol &type) noexcept
-        {
-            return_type_ = &type;
-        }
+        [[nodiscard]] SymbolSpan<ParameterSymbol> compute_parameters() const;
 
         const FunctionDeclarationSyntax &syntax_;
         SyntaxReference syntax_reference_;
-        std::vector<Ref<const ParameterSymbol>> parameters_;
-        const TypeSymbol *return_type_ = nullptr;
+        mutable Lazy<SymbolSpan<ParameterSymbol>> parameters_;
+        mutable Lazy<const TypeSymbol &> return_type_;
         mutable Lazy<ImmutableArray<Location>> locations_;
     };
 
@@ -202,16 +178,11 @@ namespace prism
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
 
       private:
-        friend class SignatureBinder;
-
-        constexpr void set_type(const TypeSymbol &type) noexcept
-        {
-            type_ = &type;
-        }
+        [[nodiscard]] const TypeSymbol &compute_type(DiagnosticBag &diagnostics) const;
 
         const ParameterSyntax &syntax_;
         SyntaxReference syntax_reference_;
-        const TypeSymbol *type_ = nullptr;
+        mutable Lazy<const TypeSymbol &> type_;
         mutable Lazy<ImmutableArray<Location>> locations_;
     };
 } // namespace prism

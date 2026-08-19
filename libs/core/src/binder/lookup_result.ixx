@@ -55,9 +55,14 @@ namespace prism
             return kind_ == LookupResultKind::error;
         }
 
-        [[nodiscard]] constexpr const SymbolList &symbols() const noexcept
+        [[nodiscard]] constexpr const SymbolList &symbols() const & noexcept
         {
             return symbols_;
+        }
+
+        [[nodiscard]] constexpr SymbolList &&symbols() && noexcept
+        {
+            return std::move(symbols_);
         }
 
         [[nodiscard]] constexpr const Symbol &symbol() const

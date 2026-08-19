@@ -138,7 +138,7 @@ namespace prism
         mutable std::unordered_map<const NamespaceSymbol *, const NamespaceSymbol *> compilation_namespaces_;
 
         mutable std::mutex binder_factory_mutex_;
-        mutable std::unordered_map<const SyntaxTree *, const BinderFactory *> binder_factories_;
+        mutable std::unordered_map<const SyntaxTree *, Lazy<const BinderFactory &>> binder_factories_;
         mutable Lazy<const Binder &> root_binder_;
 
         // Old-stuff, subject to pruning as we refactor to the lazy model

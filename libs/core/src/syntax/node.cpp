@@ -120,6 +120,11 @@ namespace prism
         return *token;
     }
 
+    std::string SyntaxNode::to_string() const
+    {
+        return green_->to_string();
+    }
+
     const SyntaxTree &SyntaxNode::compute_tree(const SyntaxNode *node)
     {
         const auto *origin = node;

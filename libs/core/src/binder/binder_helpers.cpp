@@ -23,60 +23,6 @@ import :binder.lookup_context;
 
 namespace prism
 {
-    namespace
-    {
-
-        SpecialType from_token(const SyntaxKind kind)
-        {
-            switch (kind)
-            {
-                case SyntaxKind::void_keyword:
-                    return SpecialType::void_;
-                case SyntaxKind::bool_keyword:
-                    return SpecialType::bool_;
-                case SyntaxKind::i8_keyword:
-                    return SpecialType::i8;
-                case SyntaxKind::i16_keyword:
-                    return SpecialType::i16;
-                case SyntaxKind::i32_keyword:
-                    return SpecialType::i32;
-                case SyntaxKind::i64_keyword:
-                    return SpecialType::i64;
-                case SyntaxKind::i128_keyword:
-                    return SpecialType::i128;
-                case SyntaxKind::u8_keyword:
-                    return SpecialType::u8;
-                case SyntaxKind::u16_keyword:
-                    return SpecialType::u16;
-                case SyntaxKind::u32_keyword:
-                    return SpecialType::u32;
-                case SyntaxKind::u64_keyword:
-                    return SpecialType::u64;
-                case SyntaxKind::u128_keyword:
-                    return SpecialType::u128;
-                case SyntaxKind::isize_keyword:
-                    return SpecialType::isize;
-                case SyntaxKind::usize_keyword:
-                    return SpecialType::usize;
-                case SyntaxKind::f16_keyword:
-                    return SpecialType::f16;
-                case SyntaxKind::f32_keyword:
-                    return SpecialType::f32;
-                case SyntaxKind::f64_keyword:
-                    return SpecialType::f64;
-                case SyntaxKind::char_keyword:
-                    return SpecialType::char_;
-                case SyntaxKind::char16_keyword:
-                    return SpecialType::char16;
-                case SyntaxKind::rune_keyword:
-                    return SpecialType::rune;
-                case SyntaxKind::str_keyword:
-                    return SpecialType::str;
-                default:
-                    [[unlikely]] throw std::invalid_argument{"unknown special type"};
-            }
-        }
-    } // namespace
 
     void diagnose_lookup_failure(const LookupResult &result,
                                  const NameSyntax &syntax,
@@ -128,37 +74,6 @@ namespace prism
                     break;
                 }
         }
-    }
-
-    const TypeSymbol &require_type(const LookupResult &result,
-                                   const NameSyntax &syntax,
-                                   const Binder &binder,
-                                   const LookupContext &context)
-    {
-        if (result.viable())
-        {
-            if (const auto type = result.symbol().as<TypeSymbol>(); type.has_value())
-                return *type;
-        }
-
-        diagnose_lookup_failure(result, syntax, LookupOptions::type, context);
-        auto names = collect_names(syntax);
-        return create_error_type_symbol(binder.containing_symbol(), binder.compilation(), names);
-    }
-
-    const TypeSymbol &resolve_type(const TypeSyntax &syntax, const Binder &binder, const LookupContext &context)
-    {
-        return visit(syntax,
-                     Overload{
-                         [&](const NamedTypeSyntax &named) -> auto &
-                         {
-                             const auto result =
-                                 binder.lookup_from_syntax(named.identifier(), LookupOptions::type, context);
-                             return require_type(result, named.identifier(), binder, context);
-                         },
-                         [&](const PredefinedTypeSyntax &predefined) -> const TypeSymbol &
-                         { return binder.compilation().get_special_type(from_token(predefined.keyword().kind())); },
-                     });
     }
 
     const NamedTypeSymbol &create_error_type_symbol(Optional<const Symbol &> owning_symbol,

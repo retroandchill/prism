@@ -14,6 +14,10 @@ import :binder.binder_factory;
 import :syntax.visit;
 import :semantic.compilation;
 import :binder.block_binder;
+import :binder.member_container_binder;
+import :binder.compilation_unit_binder;
+import :symbols.namespace_symbol;
+import :binder.function_signature_binder;
 
 namespace prism
 {
@@ -65,11 +69,24 @@ namespace prism
         return visit(
             node,
             Overload{
-                [&](const CompilationUnitSyntax &compilation_unit) -> const Binder &
-                { throw NotImplementedException{}; },
-                [&](const NamespaceDeclarationSyntax &ns) -> const Binder & { throw NotImplementedException{}; },
+                [&](const CompilationUnitSyntax &compilation_unit) -> const Binder & {
+                    return CompilationInternal::get_lifetime(compilation_)
+                        .create<CompilationUnitBinder>(enclosing, compilation_unit);
+                },
+                [&](const NamespaceDeclarationSyntax &ns) -> const Binder &
+                {
+                    auto &symbol = compilation_.get_semantic_model(syntax_tree_).get_declared_symbol(ns).value();
+                    auto &compilation_symbol = compilation_.get_compilation_namespace(symbol).value();
+                    return CompilationInternal::get_lifetime(compilation_)
+                        .create<MemberContainerBinder>(enclosing, compilation_symbol, ns);
+                },
                 [&](const FunctionDeclarationSyntax &function_declaration) -> const Binder &
-                { throw NotImplementedException{}; },
+                {
+                    auto &symbol =
+                        compilation_.get_semantic_model(syntax_tree_).get_declared_symbol(function_declaration).value();
+                    return CompilationInternal::get_lifetime(compilation_)
+                        .create<FunctionSignatureBinder>(enclosing, symbol, function_declaration);
+                },
                 [&](const BlockSyntax &block_syntax) -> const Binder & {
                     return CompilationInternal::get_lifetime(compilation_).create<BlockBinder>(enclosing, block_syntax);
                 },

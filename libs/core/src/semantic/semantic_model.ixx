@@ -13,9 +13,14 @@ export module prism.core:semantic.semantic_model;
 import :util.optional;
 import :diagnostics.diagnostic;
 import :semantic.conversion;
+import :util.lazy;
 
 namespace prism
 {
+    class Binder;
+    class ExpressionSyntax;
+    class BoundExpression;
+    class SemanticModelState;
     class VariableDeclarationStatementSyntax;
     class SourceVariableSymbol;
     class NamespaceDeclarationSyntax;
@@ -68,12 +73,49 @@ namespace prism
         [[nodiscard]] std::shared_ptr<const SemanticModel> shared_from_this() const noexcept;
 
       private:
-        friend class Compilation;
-        friend class ExpressionBinder;
+        friend struct SemanticModelInternal;
+
+        [[nodiscard]] SemanticModelState &state() const;
+
+        [[nodiscard]] const Binder &get_binder(const SyntaxNode &node) const;
+
+        [[nodiscard]] const BoundExpression &get_bound_expression(const ExpressionSyntax &node) const;
+
+        [[nodiscard]] const BoundExpression &get_bound_expression(const ExpressionSyntax &node,
+                                                                  const Binder &binder) const;
 
         void validate_is_part_of_compilation(const SyntaxNode &node) const;
 
         const Compilation *compilation_;
         const SyntaxTree *tree_ = nullptr;
+        mutable Lazy<SemanticModelState &> state_{};
+    };
+
+    struct SemanticModelInternal
+    {
+        [[nodiscard]] static SemanticModel &create(const Compilation &compilation, const SyntaxTree &tree);
+
+        [[nodiscard]] static inline SemanticModelState &get_state(const SemanticModel &model)
+        {
+            return model.state();
+        }
+
+        [[nodiscard]] static inline const Binder &get_binder(const SemanticModel &model, const SyntaxNode &node)
+        {
+            return model.get_binder(node);
+        }
+
+        [[nodiscard]] static inline const BoundExpression &get_bound_expression(const SemanticModel &model,
+                                                                                const ExpressionSyntax &node)
+        {
+            return model.get_bound_expression(node);
+        }
+
+        [[nodiscard]] static inline const BoundExpression &get_bound_expression(const SemanticModel &model,
+                                                                                const ExpressionSyntax &node,
+                                                                                const Binder &binder)
+        {
+            return model.get_bound_expression(node, binder);
+        }
     };
 } // namespace prism

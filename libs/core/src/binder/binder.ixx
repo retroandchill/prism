@@ -20,6 +20,8 @@ import :binder.lookup_result;
 
 namespace prism
 {
+    class UsingDirectiveSyntax;
+    class BoundStatement;
     class TypeSyntax;
     class ExpressionSyntax;
     class BoundExpression;
@@ -53,9 +55,9 @@ namespace prism
     template <>
     constexpr bool is_flag_enum<LookupOptions> = true;
 
-    LookupResult make_lookup_result(SymbolList symbols, LookupOptions options);
+    [[nodiscard]] LookupResult make_lookup_result(SymbolList symbols, LookupOptions options);
 
-    std::string to_string(LookupOptions options);
+    [[nodiscard]] std::string to_string(LookupOptions options);
 
     class Binder : NonCopyable
     {
@@ -97,7 +99,11 @@ namespace prism
 
         [[nodiscard]] virtual VariablesSpan get_declared_local_variables_for_scope(const SyntaxNode &designator) const;
 
-        [[nodiscard]] const BoundExpression &get_bound_expression(const ExpressionSyntax &node) const;
+        [[nodiscard]] const BoundStatement &bind_statement(const SyntaxNode &node) const;
+
+        [[nodiscard]] const BoundExpression &bind_expression(const ExpressionSyntax &node) const;
+
+        [[nodiscard]] const TypeSymbol &resolve_type(const TypeSyntax &syntax, const LookupContext &context) const;
 
         [[nodiscard]] LookupResult lookup_from_syntax(const NameSyntax &syntax,
                                                       LookupOptions options,
@@ -109,8 +115,7 @@ namespace prism
 
         [[nodiscard]] LookupResult lookup_qualified_name(Name name,
                                                          const MemberContainerSymbol &container,
-                                                         LookupOptions options,
-                                                         const LookupContext &context) const;
+                                                         LookupOptions options) const;
 
       protected:
         [[nodiscard]] SemanticLifetime &lifetime() const noexcept;
@@ -118,6 +123,9 @@ namespace prism
         [[nodiscard]] virtual LookupResult lookup_local(Name name,
                                                         LookupOptions options,
                                                         const LookupContext &context) const = 0;
+
+        [[nodiscard]] ImmutableArray<Ref<const NamespaceSymbol>> build_using_namespaces(
+            SyntaxList<UsingDirectiveSyntax> usings) const;
 
         [[nodiscard]] bool visible_from(const Symbol &symbol) const;
 
@@ -128,6 +136,12 @@ namespace prism
         [[nodiscard]] LookupResult lookup_from_qualified_name(const QualifiedNameSyntax &syntax,
                                                               LookupOptions options,
                                                               const LookupContext &context) const;
+
+        [[nodiscard]] const NamespaceSymbol &resolve_using_namespace(const NameSyntax &syntax) const;
+
+        [[nodiscard]] const TypeSymbol &require_type(const LookupResult &result,
+                                                     const NameSyntax &syntax,
+                                                     const LookupContext &context) const;
 
         const Compilation &compilation_;
         const Binder *next_ = nullptr;

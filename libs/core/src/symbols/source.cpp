@@ -22,9 +22,21 @@ import :binder.lookup_context;
 import :symbols.error;
 import :semantic.bound.bound_expression;
 import :binder.binder_factory;
+import :semantic.semantic_model;
+import :semantic.semantic_model_state;
 
 namespace prism
 {
+    namespace
+    {
+        void cache_symbol(const Compilation &compilation, const SyntaxNode &node, const Symbol &symbol)
+        {
+            auto &semantic_model = compilation.get_semantic_model(node.tree());
+            auto &state = SemanticModelInternal::get_state(semantic_model);
+            state.cache_symbol(node, symbol);
+        }
+    } // namespace
+
     SourceAssemblySymbol::SourceAssemblySymbol(const Compilation &compilation)
         : AssemblySymbol{compilation.assembly_name()}, declaring_compilation_{compilation}
     {
@@ -71,6 +83,12 @@ namespace prism
         : NamespaceSymbol{declaration->name(), containing}, containing_assembly_{assembly},
           merged_declaration_{std::move(declaration)}
     {
+        // ReSharper disable once CppVirtualFunctionCallInsideCtor (Class is final)
+        auto &compilation = declaring_compilation().value();
+        for (auto &decl : merged_declaration_->declarations())
+        {
+            cache_symbol(compilation, decl->syntax_reference().syntax(), *this);
+        }
     }
 
     Optional<const AssemblySymbol &> SourceNamespaceSymbol::containing_assembly() const noexcept
@@ -256,6 +274,8 @@ namespace prism
         : SourceVariableSymbol{name, containing, syntax}, scope_binder_{scope_binder},
           initializer_binder_{initializer_binder}
     {
+        // ReSharper disable once CppVirtualFunctionCallInsideCtor
+        cache_symbol(declaring_compilation().value(), syntax, *this);
     }
 
     const TypeSymbol &SourceLocalVariableSymbol::compute_type(DiagnosticBag &diagnostics) const
@@ -263,7 +283,7 @@ namespace prism
         const LookupContext context{diagnostics};
         if (syntax().type().has_value())
         {
-            return resolve_type(syntax().type()->type(), scope_binder_, context);
+            return scope_binder_.resolve_type(syntax().type()->type(), context);
         }
 
         if (!syntax().initializer().has_value())
@@ -273,7 +293,10 @@ namespace prism
             return unnamed_error_type;
         }
 
-        auto &initializer = scope_binder_.get_bound_expression(syntax().initializer()->value());
+        auto &semantic_model = declaring_compilation()->get_semantic_model(syntax().tree());
+        auto &initializer = SemanticModelInternal::get_bound_expression(semantic_model,
+                                                                        syntax().initializer()->value(),
+                                                                        *initializer_binder_);
         return initializer.type();
     }
 
@@ -282,6 +305,8 @@ namespace prism
                                                            const VariableDeclarationSyntax &syntax)
         : SourceVariableSymbol{name, containing, syntax}
     {
+        // ReSharper disable once CppVirtualFunctionCallInsideCtor
+        cache_symbol(declaring_compilation().value(), syntax, *this);
     }
 
     const TypeSymbol &SourceGlobalVariableSymbol::compute_type(DiagnosticBag &diagnostics) const
@@ -291,7 +316,7 @@ namespace prism
             auto &factory = CompilationInternal::get_binder_factory(*declaring_compilation(), syntax().tree());
             auto &binder = factory.get_binder(syntax());
             const LookupContext context{diagnostics};
-            return resolve_type(syntax().type()->type(), binder, context);
+            return binder.resolve_type(syntax().type()->type(), context);
         }
 
         diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::expected_type_specifier>(),
@@ -304,6 +329,8 @@ namespace prism
                                                const FunctionDeclarationSyntax &syntax)
         : FunctionSymbol(name, containing), syntax_{syntax}, syntax_reference_{syntax}
     {
+        // ReSharper disable once CppVirtualFunctionCallInsideCtor
+        cache_symbol(declaring_compilation().value(), syntax, *this);
     }
 
     const ImmutableArray<Location> &SourceFunctionSymbol::locations() const
@@ -313,8 +340,19 @@ namespace prism
 
     const TypeSymbol &SourceFunctionSymbol::return_type() const
     {
-        ASSUME(return_type_ == nullptr);
-        return *return_type_;
+        return return_type_.get_or_compute(
+            [this] -> auto &
+            {
+                DiagnosticBag diagnostics;
+                auto &type = compute_return_type(diagnostics);
+                add_declaration_diagnostics(diagnostics);
+                return type;
+            });
+    }
+
+    SymbolSpan<ParameterSymbol> SourceFunctionSymbol::parameters() const noexcept
+    {
+        return parameters_.get_or_compute([this] { return compute_parameters(); });
     }
 
     std::span<const SyntaxReference> SourceFunctionSymbol::declaring_syntax_references() const
@@ -322,11 +360,45 @@ namespace prism
         return {&syntax_reference_, 1};
     }
 
+    const TypeSymbol &SourceFunctionSymbol::compute_return_type(DiagnosticBag &diagnostics) const
+    {
+        const LookupContext context{diagnostics};
+        if (syntax_.return_type().has_value())
+        {
+            auto &semantic_model = declaring_compilation()->get_semantic_model(syntax_.tree());
+            auto &binder = SemanticModelInternal::get_binder(semantic_model, syntax_);
+            return binder.resolve_type(syntax_.return_type()->type(), context);
+        }
+
+        // Omitting the return type just results in void
+        return declaring_compilation()->get_special_type(SpecialType::void_);
+    }
+
+    SymbolSpan<ParameterSymbol> SourceFunctionSymbol::compute_parameters() const
+    {
+        auto source = syntax_.parameters().parameters();
+        if (source.empty())
+            return {};
+
+        auto &lifetime = CompilationInternal::get_lifetime(declaring_compilation().value());
+        PooledVector<Ref<const ParameterSymbol>> parameters;
+        parameters.reserve(source.size());
+        for (auto &syntax : source)
+        {
+            auto name = get_identifier_name(syntax.name());
+            parameters.emplace_back(lifetime.create<SourceParameterSymbol>(name, this, syntax));
+        }
+
+        return lifetime.create<SymbolSpan<ParameterSymbol>>(parameters);
+    }
+
     SourceParameterSymbol::SourceParameterSymbol(const Name &name,
                                                  const Symbol *containing,
                                                  const ParameterSyntax &syntax)
         : ParameterSymbol(name, containing), syntax_{syntax}, syntax_reference_{syntax}
     {
+        // ReSharper disable once CppVirtualFunctionCallInsideCtor
+        cache_symbol(declaring_compilation().value(), syntax, *this);
     }
 
     const ImmutableArray<Location> &SourceParameterSymbol::locations() const
@@ -336,8 +408,14 @@ namespace prism
 
     const TypeSymbol &SourceParameterSymbol::type() const
     {
-        ASSUME(type_ == nullptr);
-        return *type_;
+        return type_.get_or_compute(
+            [this] -> auto &
+            {
+                DiagnosticBag diagnostics;
+                auto &type = compute_type(diagnostics);
+                add_declaration_diagnostics(diagnostics);
+                return type;
+            });
     }
 
     bool SourceParameterSymbol::is_mutable() const noexcept
@@ -348,5 +426,15 @@ namespace prism
     std::span<const SyntaxReference> SourceParameterSymbol::declaring_syntax_references() const
     {
         return {&syntax_reference_, 1};
+    }
+
+    const TypeSymbol &SourceParameterSymbol::compute_type(DiagnosticBag &diagnostics) const
+    {
+        auto &factory = CompilationInternal::get_binder_factory(*declaring_compilation(), syntax_.tree());
+        auto &binder = factory.get_binder(syntax_);
+        const LookupContext context{diagnostics};
+
+        // TODO: When we add support for lambdas we need to ensure we can infer a type from the context
+        return binder.resolve_type(syntax_.type_specifier()->type(), context);
     }
 } // namespace prism
