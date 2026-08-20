@@ -19,6 +19,7 @@ import :binder.lookup_context;
 import :symbols.visit;
 import :semantic.bound.bound_statement;
 import :semantic.bound.bound_expression;
+import :symbols.error;
 
 namespace prism
 {
@@ -71,6 +72,91 @@ namespace prism
                     return SpecialType::str;
                 default:
                     [[unlikely]] throw std::invalid_argument{"unknown special type"};
+            }
+        }
+
+        UnaryOperation to_prefix_operation(const SyntaxKind kind)
+        {
+            switch (kind)
+            {
+                case SyntaxKind::plus_token:
+                    return UnaryOperation::identity;
+                case SyntaxKind::minus_token:
+                    return UnaryOperation::negation;
+                case SyntaxKind::bang_token:
+                    return UnaryOperation::logical_not;
+                case SyntaxKind::tilde_token:
+                    return UnaryOperation::bitwise_not;
+                case SyntaxKind::plus_plus_token:
+                    return UnaryOperation::pre_increment;
+                case SyntaxKind::minus_minus_token:
+                    return UnaryOperation::pre_decrement;
+                default:
+                    throw std::invalid_argument{"invalid unary operation"};
+            }
+        }
+
+        UnaryOperation to_postfix_operation(const SyntaxKind kind)
+        {
+            switch (kind)
+            {
+                case SyntaxKind::plus_plus_token:
+                    return UnaryOperation::post_increment;
+                case SyntaxKind::minus_minus_token:
+                    return UnaryOperation::post_decrement;
+                default:
+                    throw std::invalid_argument{"invalid unary operation"};
+            }
+        }
+
+        BinaryOperation to_binary_operation(const SyntaxKind kind)
+        {
+            switch (kind)
+            {
+                case SyntaxKind::plus_token:
+                    return BinaryOperation::addition;
+                case SyntaxKind::minus_token:
+                    return BinaryOperation::subtraction;
+                case SyntaxKind::star_token:
+                    return BinaryOperation::multiplication;
+                case SyntaxKind::slash_token:
+                    return BinaryOperation::division;
+                case SyntaxKind::percent_token:
+                    return BinaryOperation::modulo;
+                case SyntaxKind::amp_token:
+                    return BinaryOperation::bitwise_and;
+                case SyntaxKind::pipe_token:
+                    return BinaryOperation::bitwise_or;
+                case SyntaxKind::caret_token:
+                    return BinaryOperation::bitwise_xor;
+                case SyntaxKind::amp_amp_token:
+                    return BinaryOperation::logical_and;
+                case SyntaxKind::pipe_pipe_token:
+                    return BinaryOperation::logical_or;
+                case SyntaxKind::equal_equal_token:
+                    return BinaryOperation::equals;
+                case SyntaxKind::bang_equal_token:
+                    return BinaryOperation::not_equals;
+                case SyntaxKind::less_token:
+                    return BinaryOperation::less_than;
+                case SyntaxKind::less_equal_token:
+                    return BinaryOperation::less_than_or_equals;
+                case SyntaxKind::greater_token:
+                    return BinaryOperation::greater_than;
+                case SyntaxKind::greater_equal_token:
+                    return BinaryOperation::greater_than_or_equals;
+                case SyntaxKind::spaceship_token:
+                    return BinaryOperation::three_way_comparison;
+                case SyntaxKind::less_less_token:
+                    return BinaryOperation::shift_left;
+                case SyntaxKind::greater_greater_token:
+                    return BinaryOperation::shift_right;
+                case SyntaxKind::greater_greater_greater_token:
+                    return BinaryOperation::unsigned_shift_right;
+                case SyntaxKind::question_question_token:
+                    return BinaryOperation::null_coalescing;
+                default:
+                    throw std::invalid_argument{"invalid binary operation"};
             }
         }
     } // namespace
@@ -211,7 +297,7 @@ namespace prism
                                      [&](const AssignmentExpressionSyntax &e) -> const BoundExpression &
                                      { return bind_assignment_expression(e, context); },
                                      [&](const PrefixExpressionSyntax &e) -> const BoundExpression &
-                                     { return bind_prefix_expression(e, context); },
+                                     { return bind_prefix_expression(e, target_type, context); },
                                      [&](const PostfixExpressionSyntax &e) -> const BoundExpression &
                                      { return bind_postfix_expression(e, context); },
                                      [&](const TernaryExpressionSyntax &e) -> const BoundExpression &
@@ -524,26 +610,69 @@ namespace prism
         return lifetime().create<BoundReturnStatement>(syntax, expression);
     }
 
-    const BoundLiteralExpression &Binder::bind_literal_expression(const LiteralExpressionSyntax &syntax,
-                                                                  const TypeSymbol *return_type,
-                                                                  const LookupContext &context) const
+    const BoundLiteral &Binder::bind_literal_expression(const LiteralExpressionSyntax &syntax,
+                                                        const TypeSymbol *return_type,
+                                                        const LookupContext &context) const
     {
         const auto token = syntax.value();
         auto value = evaluate_constant_expression(token, return_type, context);
         auto &type = compilation().get_special_type(value.special_type());
-        return lifetime().create<BoundLiteralExpression>(syntax, value, type);
+        return lifetime().create<BoundLiteral>(syntax, value, type);
     }
 
     const BoundExpression &Binder::bind_identifier_expression(const IdentifierExpressionSyntax &syntax,
                                                               const LookupContext &context) const
     {
-        throw NotImplementedException{};
+        const auto result = lookup_from_syntax(syntax.value(), LookupOptions::value, context);
+        if (!result.viable())
+            return lifetime().create<BoundBadExpression>(syntax, unnamed_error_type);
+
+        auto &symbol = result.symbol();
+        return visit(
+            symbol,
+            Overload{
+                [&](const VariableSymbol &s) -> const BoundExpression &
+                { return lifetime().create<BoundVariableAccess>(syntax, s); },
+                [&](const ParameterSymbol &s) -> const BoundExpression &
+                { return lifetime().create<BoundParameterAccess>(syntax, s); },
+                [](const Symbol &) -> const BoundExpression &
+                {
+                    throw InvalidStateException{
+                        "We must have added a symbol type that can hold a value that we haven't accounted for yet."};
+                }});
+
+        diagnose_lookup_failure(result, syntax.value(), LookupOptions::value, context);
     }
 
     const BoundBinaryExpression &Binder::bind_binary_expression(const BinaryExpressionSyntax &syntax,
                                                                 const LookupContext &context) const
     {
-        throw NotImplementedException{};
+        Ref left = bind_expression(syntax.left(), context);
+        Ref right = bind_expression(syntax.right(), context);
+        const auto operation = to_binary_operation(syntax.op().kind());
+        auto common_type = conversion_classifier().classify_binary_operand_type(operation, left->type(), right->type());
+        if (common_type.has_value())
+        {
+            left =
+                add_conversion_if_necessary(syntax.left().as_checked<ExpressionSyntax>(), left, *common_type, context);
+            right = add_conversion_if_necessary(syntax.right().as_checked<ExpressionSyntax>(),
+                                                right,
+                                                *common_type,
+                                                context);
+        }
+        else
+        {
+            context.report_diagnostic(Diagnostic{
+                DiagnosticInfo::create<DiagnosticCode::binary_operator_undefined>(left->type().to_display_string(),
+                                                                                  right->type().to_display_string()),
+                syntax.location()});
+        }
+
+        return lifetime().create<BoundBinaryExpression>(syntax,
+                                                        left,
+                                                        right,
+                                                        operation,
+                                                        common_type.value_or_ref(unnamed_error_type));
     }
 
     const BoundAssignmentExpression &Binder::bind_assignment_expression(const AssignmentExpressionSyntax &syntax,
@@ -553,15 +682,21 @@ namespace prism
     }
 
     const BoundExpression &Binder::bind_prefix_expression(const PrefixExpressionSyntax &syntax,
+                                                          const TypeSymbol *return_type,
                                                           const LookupContext &context) const
     {
-        throw NotImplementedException{};
+        auto &operand = bind_expression(syntax.operand(), return_type, context);
+        const auto op = to_prefix_operation(syntax.op().kind());
+        return create_unary_operation(syntax, op, operand, context);
     }
 
     const BoundUnaryExpression &Binder::bind_postfix_expression(const PostfixExpressionSyntax &syntax,
                                                                 const LookupContext &context) const
     {
-        throw NotImplementedException{};
+        auto &operand = bind_expression(syntax.operand(), context);
+        auto op = to_postfix_operation(syntax.op().kind());
+
+        return create_unary_operation(syntax, op, operand, context);
     }
 
     const BoundConditionalExpression &Binder::bind_ternary_expression(const TernaryExpressionSyntax &syntax,
@@ -758,4 +893,35 @@ namespace prism
                 UNREACHABLE("Invalid input");
         }
     }
+    const BoundUnaryExpression &Binder::create_unary_operation(const ExpressionSyntax &syntax,
+                                                               UnaryOperation operation,
+                                                               const BoundExpression &operand,
+                                                               const LookupContext &context) const
+    {
+        Ref result = operand;
+        const auto result_type = conversion_classifier().classify_unary_operand_type(operation, operand.type());
+        if (result_type.has_value())
+        {
+            result = add_conversion_if_necessary(operand.syntax().as_checked<ExpressionSyntax>(),
+                                                 operand,
+                                                 *result_type,
+                                                 context);
+        }
+        else
+        {
+            context.report_diagnostic(Diagnostic{
+                DiagnosticInfo::create<DiagnosticCode::unary_operator_undefined>(operand.type().to_display_string()),
+                syntax.location()});
+        }
+
+        if (is_assigning_operation(operation) && !operand.is_assignable())
+        {
+            context.report_diagnostic(
+                Diagnostic{DiagnosticInfo::create<DiagnosticCode::cannot_assign_expression>(), syntax.location()});
+        }
+
+        auto &final_type = result_type.value_or_ref(unnamed_error_type);
+        return lifetime().create<BoundUnaryExpression>(syntax, result, operation, final_type);
+    }
+
 } // namespace prism

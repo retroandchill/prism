@@ -8,6 +8,8 @@ module;
 
 #include "prism/core/exports.h"
 
+#include <libassert/assert-macros.hpp>
+
 export module prism.core:syntax.node;
 
 import :syntax.green.node;
@@ -193,17 +195,26 @@ namespace prism
             return (is<Ts>() || ...);
         }
 
-        template <SyntaxNodeLike T>
-        [[nodiscard]] Optional<const T &> as() const
+        template <SyntaxNodeLike T, typename Self>
+            requires std::derived_from<T, Self>
+        [[nodiscard]] Optional<const T &> as(this const Self &self)
         {
             if constexpr (std::is_same_v<T, SyntaxNode>)
             {
-                return *this;
+                return self;
             }
             else
             {
-                return T::instance_of(*this) ? Optional<const T &>{static_cast<const T &>(*this)} : std::nullopt;
+                return T::instance_of(self) ? Optional<const T &>{static_cast<const T &>(self)} : std::nullopt;
             }
+        }
+
+        template <SyntaxNodeLike T, typename Self>
+        [[nodiscard]] const T &as_checked(this const Self &self)
+        {
+            auto result = self.template as<T>();
+            DEBUG_ASSERT(result.has_value());
+            return result.value();
         }
 
         template <typename Self>

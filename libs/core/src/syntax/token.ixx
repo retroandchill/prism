@@ -110,6 +110,18 @@ namespace prism
             return LiteralDataTraits<T>::get_value(*green_);
         }
 
+        template <LiteralData T>
+        [[nodiscard]] constexpr bool holds_value() const noexcept
+        {
+            return LiteralDataTraits<T>::valid_kind(kind());
+        }
+
+        template <LiteralData... Ts>
+        [[nodiscard]] constexpr bool holds_any_of() const noexcept
+        {
+            return (holds_value<Ts>() || ...);
+        }
+
       private:
         friend struct SyntaxTokenInternal;
 

@@ -29,6 +29,9 @@ namespace prism
         file_scoped_namespace_not_before_all_members = 2009,
         bad_modifiers_on_namespace = 2010,
         literal_value_too_big = 2011,
+        unary_operator_undefined = 2012,
+        cannot_assign_expression = 2013,
+        binary_operator_undefined = 2014,
     };
 
     export constexpr std::string_view to_string(const DiagnosticCode code)
@@ -71,6 +74,12 @@ namespace prism
                 return "E2010";
             case DiagnosticCode::literal_value_too_big:
                 return "E2011";
+            case DiagnosticCode::unary_operator_undefined:
+                return "E2012";
+            case DiagnosticCode::cannot_assign_expression:
+                return "E2013";
+            case DiagnosticCode::binary_operator_undefined:
+                return "E2014";
             default:
                 throw std::invalid_argument{"Invalid diagnostic code"};
         }

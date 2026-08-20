@@ -4,11 +4,16 @@
  * @date 8/9/2026
  * @brief
  */
+module;
+
+#include <libassert/assert-macros.hpp>
+
 module prism.core:semantic.conversion_classifier.impl;
 
 import :semantic.conversion_classifier;
 import :binder;
 import :semantic.compilation;
+import :symbols.named_type_symbol;
 
 namespace prism
 {
@@ -33,6 +38,56 @@ namespace prism
         return no_conversion;
     }
 
+    Optional<const TypeSymbol &> ConversionClassifier::classify_unary_operand_type(const UnaryOperation operation,
+                                                                                   const TypeSymbol &operand) const
+    {
+        switch (operation)
+        {
+            case UnaryOperation::identity:
+                if (is_numeric_type(operand))
+                {
+                    return promote_numeric_type(operand);
+                }
+                break;
+            case UnaryOperation::negation:
+                if (is_numeric_type(operand))
+                {
+                    return promote_negation_type(operand);
+                }
+                break;
+            case UnaryOperation::logical_not:
+                if (operand.special_type() == SpecialType::bool_)
+                {
+                    return operand;
+                }
+                break;
+            case UnaryOperation::bitwise_not:
+                if (is_integral_type(operand))
+                {
+                    return promote_numeric_type(operand);
+                }
+                break;
+            case UnaryOperation::pre_increment:
+            case UnaryOperation::pre_decrement:
+            case UnaryOperation::post_increment:
+            case UnaryOperation::post_decrement:
+                if (is_numeric_type(operand))
+                {
+                    return operand;
+                }
+                break;
+        }
+
+        return std::nullopt;
+    }
+
+    Optional<const TypeSymbol &> ConversionClassifier::classify_binary_operand_type(BinaryOperation operation,
+                                                                                    const TypeSymbol &left,
+                                                                                    const TypeSymbol &right) const
+    {
+        throw NotImplementedException{};
+    }
+
     const Compilation &ConversionClassifier::compilation() const noexcept
     {
         return binder_.compilation();
@@ -40,32 +95,12 @@ namespace prism
 
     bool ConversionClassifier::is_numeric_type(const TypeSymbol &type) noexcept
     {
-        return is_numeric_special_type(type.special_type());
+        return is_numeric(type.special_type());
     }
 
-    bool ConversionClassifier::is_numeric_special_type(SpecialType type) noexcept
+    bool ConversionClassifier::is_integral_type(const TypeSymbol &type) noexcept
     {
-        switch (type)
-        {
-            case SpecialType::i8:
-            case SpecialType::i16:
-            case SpecialType::i32:
-            case SpecialType::i64:
-            case SpecialType::i128:
-            case SpecialType::isize:
-            case SpecialType::u8:
-            case SpecialType::u16:
-            case SpecialType::u32:
-            case SpecialType::u64:
-            case SpecialType::u128:
-            case SpecialType::usize:
-            case SpecialType::f32:
-            case SpecialType::f64:
-                return true;
-
-            default:
-                return false;
-        }
+        return is_integer(type.special_type());
     }
 
     Conversion ConversionClassifier::classify_numeric_conversion(const SpecialType source,
@@ -187,6 +222,58 @@ namespace prism
     bool ConversionClassifier::is_integer_family(const NumericFamily family) noexcept
     {
         return family == NumericFamily::signed_integer || family == NumericFamily::unsigned_integer;
+    }
+
+    const TypeSymbol &ConversionClassifier::promote_numeric_type(const TypeSymbol &source) const
+    {
+        DEBUG_ASSERT(is_numeric(source.special_type()));
+        switch (source.special_type())
+        {
+            case SpecialType::i8:
+            case SpecialType::i16:
+            case SpecialType::u8:
+            case SpecialType::u16:
+                return compilation().get_special_type(SpecialType::i32);
+            default:
+                return source;
+        }
+    }
+
+    Optional<const TypeSymbol &> ConversionClassifier::promote_negation_type(const TypeSymbol &source) const
+    {
+        DEBUG_ASSERT(is_numeric(source.special_type()));
+
+        switch (source.special_type())
+        {
+            case SpecialType::i8:
+            case SpecialType::i16:
+            case SpecialType::u8:
+            case SpecialType::u16:
+                return compilation().get_special_type(SpecialType::i32);
+
+            case SpecialType::u32:
+                return compilation().get_special_type(SpecialType::i64);
+
+            case SpecialType::u64:
+                return compilation().get_special_type(SpecialType::i128);
+
+            case SpecialType::usize:
+                switch (compilation().target_settings().pointer_width)
+                {
+                    case 32:
+                        return compilation().get_special_type(SpecialType::i64);
+                    case 64:
+                        return compilation().get_special_type(SpecialType::i128);
+                    default:
+                        throw InvalidStateException("Invalid pointer width");
+                }
+
+            case SpecialType::u128:
+                return std::nullopt;
+
+            default:
+                return source;
+        }
     }
 
 } // namespace prism

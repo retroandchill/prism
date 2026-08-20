@@ -22,6 +22,12 @@ namespace prism
         post_decrement,
     };
 
+    [[nodiscard]] constexpr bool is_assigning_operation(UnaryOperation op) noexcept
+    {
+        return op == UnaryOperation::pre_increment || op == UnaryOperation::pre_decrement ||
+               op == UnaryOperation::post_increment || op == UnaryOperation::post_decrement;
+    }
+
     export enum class BinaryOperation : std::uint8_t
     {
         addition,

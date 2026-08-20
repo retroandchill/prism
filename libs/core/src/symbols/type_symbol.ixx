@@ -35,6 +35,88 @@ namespace prism
         str
     };
 
+    constexpr bool is_integer(const SpecialType type) noexcept
+    {
+        switch (type)
+        {
+            case SpecialType::i8:
+            case SpecialType::i16:
+            case SpecialType::i32:
+            case SpecialType::i64:
+            case SpecialType::i128:
+            case SpecialType::isize:
+            case SpecialType::u8:
+            case SpecialType::u16:
+            case SpecialType::u32:
+            case SpecialType::u64:
+            case SpecialType::u128:
+            case SpecialType::usize:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    constexpr bool is_signed_integer(const SpecialType type) noexcept
+    {
+        switch (type)
+        {
+            case SpecialType::i8:
+            case SpecialType::i16:
+            case SpecialType::i32:
+            case SpecialType::i64:
+            case SpecialType::i128:
+            case SpecialType::isize:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    constexpr bool is_unsigned_integer(const SpecialType type) noexcept
+    {
+        switch (type)
+        {
+            case SpecialType::u8:
+            case SpecialType::u16:
+            case SpecialType::u32:
+            case SpecialType::u64:
+            case SpecialType::u128:
+            case SpecialType::usize:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    constexpr bool is_numeric(const SpecialType type) noexcept
+    {
+        switch (type)
+        {
+            case SpecialType::i8:
+            case SpecialType::i16:
+            case SpecialType::i32:
+            case SpecialType::i64:
+            case SpecialType::i128:
+            case SpecialType::isize:
+            case SpecialType::u8:
+            case SpecialType::u16:
+            case SpecialType::u32:
+            case SpecialType::u64:
+            case SpecialType::u128:
+            case SpecialType::usize:
+            case SpecialType::f32:
+            case SpecialType::f64:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     export class TypeSymbol : public MemberContainerSymbol
     {
       protected:

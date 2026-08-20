@@ -840,6 +840,18 @@ namespace prism
             return std::decay_t<T>{std::forward<U>(value)};
         }
 
+        template <typename U>
+            requires(std::constructible_from<T &, U> && !ReferenceConvertsFromTemporary<T &, U>)
+        constexpr T &value_or_ref(U &&value) const
+        {
+            if (value_ != nullptr)
+            {
+                return *value_;
+            }
+
+            return std::forward<U>(value);
+        }
+
         template <std::invocable<T &> Functor>
             requires OptionalSpecialization<std::invoke_result_t<Functor, T &>>
         constexpr auto and_then(Functor &&functor) const

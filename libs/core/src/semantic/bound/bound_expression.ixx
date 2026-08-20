@@ -10,6 +10,7 @@ import :semantic.bound.bound_node;
 import :syntax.expressions;
 import :semantic.constant_value;
 import :symbols.variable_symbol;
+import :symbols.parameter_symbol;
 import :semantic.operations;
 import :symbols.function_symbol;
 import :semantic.conversion;
@@ -53,13 +54,20 @@ namespace prism
         const TypeSymbol &type_;
     };
 
-    class BoundLiteralExpression final : public BoundExpression
+    class BoundBadExpression final : public BoundExpression
     {
       public:
-        constexpr BoundLiteralExpression(const ExpressionSyntax &syntax,
-                                         const ConstantValue &value,
-                                         const TypeSymbol &type)
-            : BoundExpression{BoundNodeKind::literal_expression, syntax, type}, value_{value}
+        constexpr BoundBadExpression(const ExpressionSyntax &syntax, const TypeSymbol &type)
+            : BoundExpression{BoundNodeKind::bad_expression, syntax, type}
+        {
+        }
+    };
+
+    class BoundLiteral final : public BoundExpression
+    {
+      public:
+        constexpr BoundLiteral(const ExpressionSyntax &syntax, const ConstantValue &value, const TypeSymbol &type)
+            : BoundExpression{BoundNodeKind::literal, syntax, type}, value_{value}
         {
         }
 
@@ -77,11 +85,11 @@ namespace prism
         ConstantValue value_;
     };
 
-    class BoundVariableReference final : public BoundExpression
+    class BoundVariableAccess final : public BoundExpression
     {
       public:
-        constexpr BoundVariableReference(const ExpressionSyntax &syntax, const VariableSymbol &symbol)
-            : BoundExpression{BoundNodeKind::variable_reference_expression, syntax, symbol.type()}, symbol_{symbol}
+        constexpr BoundVariableAccess(const ExpressionSyntax &syntax, const VariableSymbol &symbol)
+            : BoundExpression{BoundNodeKind::variable_access, syntax, symbol.type()}, symbol_{symbol}
         {
         }
 
@@ -102,6 +110,33 @@ namespace prism
 
       private:
         const VariableSymbol &symbol_;
+    };
+
+    class BoundParameterAccess final : public BoundExpression
+    {
+      public:
+        constexpr BoundParameterAccess(const ExpressionSyntax &syntax, const ParameterSymbol &symbol)
+            : BoundExpression{BoundNodeKind::variable_access, syntax, symbol.type()}, symbol_{symbol}
+        {
+        }
+
+        [[nodiscard]] constexpr const ParameterSymbol &symbol() const noexcept
+        {
+            return symbol_;
+        }
+
+        [[nodiscard]] constexpr bool is_lvalue() const noexcept override
+        {
+            return true;
+        }
+
+        [[nodiscard]] constexpr bool is_assignable() const noexcept override
+        {
+            return symbol_.is_mutable();
+        }
+
+      private:
+        const ParameterSymbol &symbol_;
     };
 
     class BoundUnaryExpression final : public BoundExpression

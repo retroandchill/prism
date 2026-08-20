@@ -194,6 +194,37 @@ namespace prism::diagnostics
                                                                 ""sv,
                                                                 {}};
 
+    export constexpr DiagnosticDescriptor unary_operator_undefined{to_string(DiagnosticCode::unary_operator_undefined),
+                                                                   "Unary operator undefined"sv,
+                                                                   "Unary operator not defined for type {}",
+                                                                   "Semantic"sv,
+                                                                   DiagnosticSeverity::error,
+                                                                   true,
+                                                                   ""sv,
+                                                                   ""sv,
+                                                                   {}};
+
+    export constexpr DiagnosticDescriptor cannot_assign_expression{to_string(DiagnosticCode::cannot_assign_expression),
+                                                                   "Cannot assign expression"sv,
+                                                                   "Cannot assign value to expression",
+                                                                   "Semantic"sv,
+                                                                   DiagnosticSeverity::error,
+                                                                   true,
+                                                                   ""sv,
+                                                                   ""sv,
+                                                                   {}};
+
+    export constexpr DiagnosticDescriptor binary_operator_undefined{
+        to_string(DiagnosticCode::binary_operator_undefined),
+        "Binary operator undefined"sv,
+        "Unary operator not defined for types {} and {}",
+        "Semantic"sv,
+        DiagnosticSeverity::error,
+        true,
+        ""sv,
+        ""sv,
+        {}};
+
     export [[nodiscard]] constexpr Optional<const DiagnosticDescriptor &> get_descriptor(const DiagnosticCode code)
     {
         switch (code)
@@ -234,6 +265,12 @@ namespace prism::diagnostics
                 return bad_modifiers_on_namespace;
             case DiagnosticCode::literal_value_too_big:
                 return literal_value_too_big;
+            case DiagnosticCode::unary_operator_undefined:
+                return unary_operator_undefined;
+            case DiagnosticCode::cannot_assign_expression:
+                return cannot_assign_expression;
+            case DiagnosticCode::binary_operator_undefined:
+                return binary_operator_undefined;
             default:
                 return std::nullopt;
         }

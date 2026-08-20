@@ -6,6 +6,8 @@
  */
 module;
 
+#include "prism/core/exports.h"
+
 #include <libassert/assert-macros.hpp>
 
 export module prism.core:semantic.constant_value;
@@ -17,7 +19,7 @@ import :symbols.type_symbol;
 
 namespace prism
 {
-    export class ConstantValue final
+    export class PRISM_CORE_API ConstantValue final
     {
         union Storage
         {

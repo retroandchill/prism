@@ -1606,6 +1606,37 @@
           "name": "LiteralValueTooBig",
           "severity": "Error",
           "format": "Literal value is too big for its type"
+        },
+        {
+          "name": "UnaryOperatorUndefined",
+          "severity": "Error",
+          "format": "Unary operator not defined for type {Type}",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "CannotAssignExpression",
+          "severity": "Error",
+          "format": "Cannot assign value to expression"
+        },
+        {
+          "name": "BinaryOperatorUndefined",
+          "severity": "Error",
+          "format": "Unary operator not defined for types {Type1} and {Type2}",
+          "args": [
+            {
+              "name": "Type1",
+              "type": "String"
+            },
+            {
+              "name": "Type2",
+              "type": "String"
+            }
+          ]
         }
       ]
     }

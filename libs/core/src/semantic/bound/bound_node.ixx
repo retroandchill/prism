@@ -20,8 +20,10 @@ namespace prism
         expression_statement,
         return_statement,
 
-        literal_expression,
-        variable_reference_expression,
+        bad_expression,
+        literal,
+        variable_access,
+        parameter_access,
         unary_expression,
         binary_expression,
         assignment_expression,
