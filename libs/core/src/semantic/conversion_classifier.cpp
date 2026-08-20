@@ -81,10 +81,52 @@ namespace prism
         return std::nullopt;
     }
 
-    Optional<const TypeSymbol &> ConversionClassifier::classify_binary_operand_type(BinaryOperation operation,
+    Optional<const TypeSymbol &> ConversionClassifier::classify_binary_operand_type(const BinaryOperation operation,
                                                                                     const TypeSymbol &left,
                                                                                     const TypeSymbol &right) const
     {
+        switch (operation)
+        {
+            case BinaryOperation::addition:
+            case BinaryOperation::subtraction:
+            case BinaryOperation::multiplication:
+            case BinaryOperation::division:
+            case BinaryOperation::modulo:
+                if (is_numeric_type(left) && is_numeric_type(right))
+                {
+                    return get_common_numeric_type(left, right);
+                }
+                break;
+            case BinaryOperation::bitwise_and:
+            case BinaryOperation::bitwise_or:
+            case BinaryOperation::bitwise_xor:
+            case BinaryOperation::shift_left:
+            case BinaryOperation::shift_right:
+            case BinaryOperation::unsigned_shift_right:
+                if (is_integral_type(left) && is_integral_type(right))
+                {
+                    return get_common_numeric_type(left, right);
+                }
+                break;
+            case BinaryOperation::logical_and:
+            case BinaryOperation::logical_or:
+                if (left.special_type() == SpecialType::bool_ && right.special_type() == SpecialType::bool_)
+                {
+                    return left;
+                }
+                break;
+            case BinaryOperation::equals:
+            case BinaryOperation::not_equals:
+                throw NotImplementedException{};
+            case BinaryOperation::less_than:
+            case BinaryOperation::less_than_or_equals:
+            case BinaryOperation::greater_than:
+            case BinaryOperation::greater_than_or_equals:
+                throw NotImplementedException{};
+            case BinaryOperation::three_way_comparison:
+            case BinaryOperation::null_coalescing:
+                throw NotImplementedException{};
+        }
         throw NotImplementedException{};
     }
 
@@ -280,7 +322,110 @@ namespace prism
     {
         DEBUG_ASSERT(is_numeric(left.special_type()) && is_numeric(right.special_type()));
 
+        if (left.special_type() == right.special_type())
+            return promote_numeric_type(left);
+
+        auto left_family = numeric_info(left.special_type()).family;
+        auto right_family = numeric_info(right.special_type()).family;
+
+        if (left_family == right_family)
+        {
+            return promote_numeric_type(wider_precision(left, right));
+        }
+
+        if (is_integer_family(left_family) && right_family == NumericFamily::floating_point)
+        {
+            return common_float_type(right, left);
+        }
+
+        if (left_family == NumericFamily::floating_point && is_integer_family(right_family))
+        {
+            return common_float_type(left, right);
+        }
+
+        if (left_family == NumericFamily::signed_integer && right_family == NumericFamily::unsigned_integer)
+        {
+            return common_signed_type(left, right)
+                .transform([this](const TypeSymbol &symbol) -> auto & { return promote_numeric_type(symbol); });
+        }
+
+        if (left_family == NumericFamily::unsigned_integer && right_family == NumericFamily::signed_integer)
+        {
+            return common_signed_type(right, left)
+                .transform([this](const TypeSymbol &symbol) -> auto & { return promote_numeric_type(symbol); });
+        }
+
         return std::nullopt;
+    }
+
+    const TypeSymbol &ConversionClassifier::wider_precision(const TypeSymbol &left, const TypeSymbol &right) const
+    {
+        const auto left_info = numeric_info(left.special_type());
+        const auto right_info = numeric_info(right.special_type());
+        DEBUG_ASSERT(left_info.family == right_info.family);
+
+        if (left_info.precision < right_info.precision)
+            return right;
+
+        return left;
+    }
+
+    Optional<const TypeSymbol &> ConversionClassifier::common_float_type(const TypeSymbol &float_type,
+                                                                         const TypeSymbol &integer_type) const
+    {
+        const auto float_info = numeric_info(float_type.special_type());
+        const auto integer_info = numeric_info(integer_type.special_type());
+        DEBUG_ASSERT(float_info.family == NumericFamily::floating_point);
+        DEBUG_ASSERT(is_integer_family(integer_info.family));
+
+        if (float_info.precision <= integer_info.precision)
+            return float_type;
+
+        if (float_type.special_type() == SpecialType::f32 &&
+            integer_info.precision <= numeric_info(SpecialType::f64).precision)
+        {
+            return compilation().get_special_type(SpecialType::f64);
+        }
+
+        return std::nullopt;
+    }
+
+    Optional<const TypeSymbol &> ConversionClassifier::common_signed_type(const TypeSymbol &signed_type,
+                                                                          const TypeSymbol &unsigned_type) const
+    {
+        const auto signed_info = numeric_info(signed_type.special_type());
+        const auto unsigned_info = numeric_info(unsigned_type.special_type());
+        DEBUG_ASSERT(signed_info.family == NumericFamily::signed_integer);
+        DEBUG_ASSERT(unsigned_info.family == NumericFamily::unsigned_integer);
+
+        if (signed_info.precision > unsigned_info.precision)
+            return signed_type;
+
+        switch (unsigned_type.special_type())
+        {
+            case SpecialType::u8:
+                return compilation().get_special_type(SpecialType::i16);
+            case SpecialType::u16:
+                return compilation().get_special_type(SpecialType::i32);
+            case SpecialType::u32:
+                return compilation().get_special_type(SpecialType::i64);
+            case SpecialType::u64:
+                return compilation().get_special_type(SpecialType::i128);
+            case SpecialType::u128:
+                return std::nullopt;
+            case SpecialType::usize:
+                switch (compilation().target_settings().pointer_width)
+                {
+                    case 32:
+                        return compilation().get_special_type(SpecialType::i64);
+                    case 64:
+                        return compilation().get_special_type(SpecialType::i128);
+                    default:
+                        throw InvalidStateException("Invalid pointer width");
+                }
+            default:
+                UNREACHABLE("This isn't a valid path");
+        }
     }
 
 } // namespace prism

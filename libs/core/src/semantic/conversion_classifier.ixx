@@ -49,6 +49,14 @@ namespace prism
         [[nodiscard]] Optional<const TypeSymbol &> get_common_numeric_type(const TypeSymbol &left,
                                                                            const TypeSymbol &right) const;
 
+        [[nodiscard]] const TypeSymbol &wider_precision(const TypeSymbol &left, const TypeSymbol &right) const;
+
+        [[nodiscard]] Optional<const TypeSymbol &> common_float_type(const TypeSymbol &float_type,
+                                                                     const TypeSymbol &integer_type) const;
+
+        [[nodiscard]] Optional<const TypeSymbol &> common_signed_type(const TypeSymbol &signed_type,
+                                                                      const TypeSymbol &unsigned_type) const;
+
         enum class NumericFamily : std::uint8_t
         {
             none,
