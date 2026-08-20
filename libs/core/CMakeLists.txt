@@ -218,6 +218,7 @@ set(PRISM_MODULES
         src/binder/compilation_unit_binder.cpp
         src/binder/function_signature_binder.ixx
         src/binder/function_signature_binder.cpp
+        src/semantic/bound/bound_expression.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

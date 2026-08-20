@@ -46,6 +46,9 @@ namespace prism
         [[nodiscard]] const TypeSymbol &promote_numeric_type(const TypeSymbol &source) const;
         [[nodiscard]] Optional<const TypeSymbol &> promote_negation_type(const TypeSymbol &source) const;
 
+        [[nodiscard]] Optional<const TypeSymbol &> get_common_numeric_type(const TypeSymbol &left,
+                                                                           const TypeSymbol &right) const;
+
         enum class NumericFamily : std::uint8_t
         {
             none,

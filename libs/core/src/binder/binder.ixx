@@ -243,12 +243,6 @@ namespace prism
                                                                          const BoundExpression &operand,
                                                                          const LookupContext &context) const;
 
-        [[nodiscard]] Optional<Ref<const TypeSymbol>> find_common_arithmetic_type(const TypeSymbol &left,
-                                                                                  const TypeSymbol &right) const;
-
-        [[nodiscard]] Optional<Ref<const TypeSymbol>> find_common_integer_type(const TypeSymbol &left,
-                                                                               const TypeSymbol &right) const;
-
         const Compilation &compilation_;
         const Binder *next_ = nullptr;
         mutable Lazy<const ConversionClassifier &> conversion_classifier_;

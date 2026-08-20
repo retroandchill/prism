@@ -41,7 +41,8 @@ namespace prism
         {
         }
 
-        template <std::constructible_from<T> U>
+        template <typename U>
+            requires std::constructible_from<T, U>
         constexpr explicit(std::convertible_to<U, T>) Lazy(U &&value) noexcept(std::is_nothrow_constructible_v<T, U>)
             : state_{LazyState::computed}, value_{std::forward<U>(value)}
         {

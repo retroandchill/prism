@@ -45,13 +45,14 @@ namespace prism
             return false;
         }
 
-        [[nodiscard]] virtual Optional<ConstantValue> constant_value() const noexcept
-        {
-            return std::nullopt;
-        }
+        [[nodiscard]] const Optional<ConstantValue> &constant_value() const;
+
+      protected:
+        [[nodiscard]] virtual Optional<ConstantValue> compute_constant_value() const;
 
       private:
         const TypeSymbol &type_;
+        mutable Lazy<Optional<ConstantValue>> constant_value_{};
     };
 
     class BoundBadExpression final : public BoundExpression
@@ -76,10 +77,8 @@ namespace prism
             return value_;
         }
 
-        [[nodiscard]] constexpr Optional<ConstantValue> constant_value() const noexcept override
-        {
-            return value_;
-        }
+      protected:
+        [[nodiscard]] Optional<ConstantValue> compute_constant_value() const override;
 
       private:
         ConstantValue value_;
@@ -290,7 +289,7 @@ namespace prism
 
       private:
         const FunctionSymbol &symbol_;
-        BoundSpan<BoundExpression> arguments_;
+        BoundSpan<BoundExpression> arguments_{};
     };
 
     class BoundConversionExpression final : public BoundExpression

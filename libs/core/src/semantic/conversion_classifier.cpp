@@ -275,5 +275,12 @@ namespace prism
                 return source;
         }
     }
+    Optional<const TypeSymbol &> ConversionClassifier::get_common_numeric_type(const TypeSymbol &left,
+                                                                               const TypeSymbol &right) const
+    {
+        DEBUG_ASSERT(is_numeric(left.special_type()) && is_numeric(right.special_type()));
+
+        return std::nullopt;
+    }
 
 } // namespace prism
