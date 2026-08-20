@@ -117,6 +117,11 @@ namespace prism
         }
     }
 
+    constexpr bool is_character(const SpecialType type) noexcept
+    {
+        return type == SpecialType::char_ || type == SpecialType::char16 || type == SpecialType::rune;
+    }
+
     export class TypeSymbol : public MemberContainerSymbol
     {
       protected:

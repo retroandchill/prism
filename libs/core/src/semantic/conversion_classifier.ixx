@@ -57,6 +57,13 @@ namespace prism
         [[nodiscard]] Optional<const TypeSymbol &> common_signed_type(const TypeSymbol &signed_type,
                                                                       const TypeSymbol &unsigned_type) const;
 
+        [[nodiscard]] static bool is_character_type(const TypeSymbol &type) noexcept;
+
+        [[nodiscard]] static std::int32_t character_width(SpecialType type) noexcept;
+
+        [[nodiscard]] static Conversion classify_character_conversion(SpecialType source,
+                                                                      SpecialType destination) noexcept;
+
         enum class NumericFamily : std::uint8_t
         {
             none,

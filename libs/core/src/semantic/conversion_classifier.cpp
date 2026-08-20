@@ -35,6 +35,11 @@ namespace prism
             return classify_numeric_conversion(source.special_type(), destination.special_type());
         }
 
+        if (is_character_type(source) && is_character_type(destination))
+        {
+            return classify_character_conversion(source.special_type(), destination.special_type());
+        }
+
         return no_conversion;
     }
 
@@ -426,6 +431,43 @@ namespace prism
             default:
                 UNREACHABLE("This isn't a valid path");
         }
+    }
+
+    bool ConversionClassifier::is_character_type(const TypeSymbol &type) noexcept
+    {
+        return is_character(type.special_type());
+    }
+
+    std::int32_t ConversionClassifier::character_width(SpecialType type) noexcept
+    {
+        DEBUG_ASSERT(is_character(type));
+        switch (type)
+        {
+            case SpecialType::char_:
+                return 8;
+            case SpecialType::char16:
+                return 16;
+            case SpecialType::rune:
+                return 32;
+            default:
+                std::unreachable();
+        }
+    }
+
+    Conversion ConversionClassifier::classify_character_conversion(const SpecialType source,
+                                                                   const SpecialType destination) noexcept
+    {
+        if (source == destination)
+            return get_trivial_conversion(ConversionKind::identity);
+
+        const auto source_width = character_width(source);
+        const auto destination_width = character_width(destination);
+        DEBUG_ASSERT(source_width != destination_width);
+
+        if (source_width > destination_width)
+            return get_trivial_conversion(ConversionKind::explicit_character);
+
+        return get_trivial_conversion(ConversionKind::implicit_character);
     }
 
 } // namespace prism

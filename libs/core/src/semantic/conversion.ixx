@@ -23,13 +23,16 @@ namespace prism
         no_conversion,
         identity,
         implicit_numeric,
+        implicit_character,
 
         explicit_numeric,
+        explicit_character,
     };
 
     constexpr bool is_implicit_conversion(const ConversionKind kind) noexcept
     {
-        return kind == ConversionKind::implicit_numeric || kind == ConversionKind::identity;
+        return kind == ConversionKind::implicit_numeric || kind == ConversionKind::implicit_character ||
+               kind == ConversionKind::identity;
     }
 
     constexpr bool is_trivial_conversion(const ConversionKind kind) noexcept
