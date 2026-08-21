@@ -225,7 +225,7 @@ namespace prism
         UNREACHABLE("Invalid integer suffix");
     }
 
-    bool fits_in(const BigInteger &value, const IntegerTargetKind type, TargetSettings settings)
+    bool fits_in(const BigInteger &value, const IntegerTargetKind type, const TargetSettings &settings)
     {
         switch (type)
         {
@@ -242,9 +242,9 @@ namespace prism
             case IntegerTargetKind::isize:
                 switch (settings.pointer_width)
                 {
-                    case 32:
+                    case PointerWidth::x32:
                         return fits_in<std::int32_t>(value);
-                    case 64:
+                    case PointerWidth::x64:
                         return fits_in<std::int64_t>(value);
                     default:
                         throw std::invalid_argument{"Invalid pointer width"};
@@ -262,9 +262,9 @@ namespace prism
             case IntegerTargetKind::usize:
                 switch (settings.pointer_width)
                 {
-                    case 32:
+                    case PointerWidth::x32:
                         return fits_in<std::uint32_t>(value);
-                    case 64:
+                    case PointerWidth::x64:
                         return fits_in<std::uint64_t>(value);
                     default:
                         throw std::invalid_argument{"Invalid pointer width"};

@@ -25,6 +25,12 @@ namespace prism
         constexpr BoundStatement(const BoundNodeKind kind, const ExpressionBodySyntax &syntax) : BoundNode{kind, syntax}
         {
         }
+
+      public:
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return is_statement(node.kind());
+        }
     };
 
     class BoundBlock : public BoundStatement
@@ -38,6 +44,11 @@ namespace prism
         [[nodiscard]] constexpr const BoundList<BoundStatement> &statements() const noexcept
         {
             return statements_;
+        }
+
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return node.kind() == BoundNodeKind::block;
         }
 
       private:
@@ -65,6 +76,11 @@ namespace prism
             return initializer_.get();
         }
 
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return node.kind() == BoundNodeKind::variable_declaration;
+        }
+
       private:
         const VariableSymbol &symbol_;
         BoundPtr<BoundExpression> initializer_{};
@@ -89,6 +105,11 @@ namespace prism
             return *expression_;
         }
 
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return node.kind() == BoundNodeKind::expression_statement;
+        }
+
       private:
         BoundPtr<BoundExpression> expression_{};
     };
@@ -109,6 +130,11 @@ namespace prism
         [[nodiscard]] constexpr Optional<const BoundExpression &> expression() const noexcept
         {
             return expression_.get();
+        }
+
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return node.kind() == BoundNodeKind::return_statement;
         }
 
       private:

@@ -46,6 +46,11 @@ namespace prism
 
         [[nodiscard]] const Optional<ConstantValue> &constant_value() const;
 
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return is_expression(node.kind());
+        }
+
       protected:
         [[nodiscard]] virtual Optional<ConstantValue> compute_constant_value() const;
 
@@ -61,19 +66,29 @@ namespace prism
             : BoundExpression{BoundNodeKind::bad_expression, syntax, type}
         {
         }
+
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return node.kind() == BoundNodeKind::bad_expression;
+        }
     };
 
     class BoundLiteral final : public BoundExpression
     {
       public:
-        constexpr BoundLiteral(const ExpressionSyntax &syntax, const ConstantValue &value, const TypeSymbol &type)
-            : BoundExpression{BoundNodeKind::literal, syntax, type}, value_{value}
+        constexpr BoundLiteral(const ExpressionSyntax &syntax, ConstantValue value, const TypeSymbol &type)
+            : BoundExpression{BoundNodeKind::literal, syntax, type}, value_{std::move(value)}
         {
         }
 
         [[nodiscard]] constexpr const ConstantValue &value() const noexcept
         {
             return value_;
+        }
+
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return node.kind() == BoundNodeKind::literal;
         }
 
       protected:
@@ -106,6 +121,11 @@ namespace prism
             return symbol_.is_mutable();
         }
 
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return node.kind() == BoundNodeKind::variable_access;
+        }
+
       private:
         const VariableSymbol &symbol_;
     };
@@ -133,6 +153,11 @@ namespace prism
             return symbol_.is_mutable();
         }
 
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return node.kind() == BoundNodeKind::variable_access;
+        }
+
       private:
         const ParameterSymbol &symbol_;
     };
@@ -148,6 +173,11 @@ namespace prism
         [[nodiscard]] constexpr std::span<const Ref<const FunctionSymbol>> functions() const noexcept
         {
             return functions_;
+        }
+
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return node.kind() == BoundNodeKind::overload_set;
         }
 
       private:
@@ -174,6 +204,11 @@ namespace prism
         [[nodiscard]] constexpr UnaryOperation operation() const noexcept
         {
             return operation_;
+        }
+
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return node.kind() == BoundNodeKind::unary_expression;
         }
 
       private:
@@ -207,6 +242,11 @@ namespace prism
         [[nodiscard]] constexpr BinaryOperation operation() const noexcept
         {
             return operation_;
+        }
+
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return node.kind() == BoundNodeKind::binary_expression;
         }
 
       private:
@@ -243,6 +283,11 @@ namespace prism
             return operation_;
         }
 
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return node.kind() == BoundNodeKind::assignment_expression;
+        }
+
       private:
         BoundPtr<BoundExpression> left_;
         BoundPtr<BoundExpression> right_;
@@ -277,6 +322,11 @@ namespace prism
             return *when_false_;
         }
 
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return node.kind() == BoundNodeKind::conditional_expression;
+        }
+
       private:
         BoundPtr<BoundExpression> condition_;
         BoundPtr<BoundExpression> when_true_;
@@ -304,6 +354,11 @@ namespace prism
             return arguments_;
         }
 
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return node.kind() == BoundNodeKind::call_expression;
+        }
+
       private:
         const FunctionSymbol &symbol_;
         BoundList<BoundExpression> arguments_{};
@@ -329,6 +384,11 @@ namespace prism
         [[nodiscard]] constexpr Conversion conversion() const noexcept
         {
             return conversion_;
+        }
+
+        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
+        {
+            return node.kind() == BoundNodeKind::conversion_expression;
         }
 
       private:

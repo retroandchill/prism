@@ -279,8 +279,8 @@ namespace prism
                 {
                     auto [pointer_width] = compilation().target_settings();
                     return {.family = NumericFamily::signed_integer,
-                            .width = pointer_width,
-                            .precision = pointer_width};
+                            .width = bit_width(pointer_width),
+                            .precision = bit_width(pointer_width)};
                 }
 
             case SpecialType::u8:
@@ -302,8 +302,8 @@ namespace prism
                 {
                     auto [pointer_width] = compilation().target_settings();
                     return {.family = NumericFamily::unsigned_integer,
-                            .width = pointer_width,
-                            .precision = pointer_width};
+                            .width = bit_width(pointer_width),
+                            .precision = bit_width(pointer_width)};
                 }
 
             case SpecialType::f32:
@@ -358,9 +358,9 @@ namespace prism
             case SpecialType::usize:
                 switch (compilation().target_settings().pointer_width)
                 {
-                    case 32:
+                    case PointerWidth::x32:
                         return compilation().get_special_type(SpecialType::i64);
-                    case 64:
+                    case PointerWidth::x64:
                         return compilation().get_special_type(SpecialType::i128);
                     default:
                         throw InvalidStateException{"Invalid pointer width"};
@@ -472,9 +472,9 @@ namespace prism
             case SpecialType::usize:
                 switch (compilation().target_settings().pointer_width)
                 {
-                    case 32:
+                    case PointerWidth::x32:
                         return compilation().get_special_type(SpecialType::i64);
-                    case 64:
+                    case PointerWidth::x64:
                         return compilation().get_special_type(SpecialType::i128);
                     default:
                         throw InvalidStateException{"Invalid pointer width"};

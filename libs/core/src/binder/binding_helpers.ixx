@@ -70,5 +70,5 @@ namespace prism
 
     IntegerTargetKind get_integer_target_kind(const IntegerLiteralData &literal, const TypeSymbol *target_type);
 
-    bool fits_in(const BigInteger &value, IntegerTargetKind type, TargetSettings settings);
+    bool fits_in(const BigInteger &value, IntegerTargetKind type, const TargetSettings &settings);
 } // namespace prism

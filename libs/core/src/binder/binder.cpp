@@ -26,7 +26,7 @@ namespace prism
     namespace
     {
 
-        SpecialType from_token(const SyntaxKind kind)
+        SpecialType to_special_type(const SyntaxKind kind) noexcept
         {
             switch (kind)
             {
@@ -71,7 +71,7 @@ namespace prism
                 case SyntaxKind::str_keyword:
                     return SpecialType::str;
                 default:
-                    [[unlikely]] throw std::invalid_argument{"unknown special type"};
+                    UNREACHABLE("unknown special type");
             }
         }
 
@@ -325,7 +325,7 @@ namespace prism
                              return require_type(result, named.identifier(), context);
                          },
                          [&](const PredefinedTypeSyntax &predefined) -> const TypeSymbol &
-                         { return compilation_.get_special_type(from_token(predefined.keyword().kind())); },
+                         { return compilation_.get_special_type(to_special_type(predefined.keyword().kind())); },
                      });
     }
 
@@ -700,6 +700,21 @@ namespace prism
     {
         auto operand = bind_expression(syntax.operand(), return_type, context);
         const auto op = to_prefix_operation(syntax.op().kind());
+
+        // Negation has a special treatment where it collapses the value into a literal provided the value is a signed
+        // integer or floating-point value.
+        if (op == UnaryOperation::negation)
+        {
+            if (const auto literal = operand->as<BoundLiteral>();
+                literal.has_value() && (literal->value().is_signed_integer() || literal->value().is_float()))
+            {
+                auto negated = literal->value().negate(compilation().target_settings());
+                return make_ref_counted<BoundLiteral>(syntax,
+                                                      negated,
+                                                      compilation().get_special_type(to_special_type(negated.kind())));
+            }
+        }
+
         return create_unary_operation(syntax, op, std::move(operand), context);
     }
 

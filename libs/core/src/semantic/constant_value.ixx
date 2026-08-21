@@ -17,10 +17,11 @@ import libassert;
 import :util.numerics;
 import :symbols.type_symbol;
 import :collections.immutable_string;
+import :context.target_settings;
 
 namespace prism
 {
-    export class PRISM_CORE_API ConstantValue final
+    export class ConstantValue final
     {
         union Storage
         {
@@ -302,9 +303,110 @@ namespace prism
             return str_value_;
         }
 
+        [[nodiscard]] constexpr Optional<ConstantValue> try_negate(const TargetSettings &target) const noexcept
+        {
+            switch (kind_)
+            {
+                case Kind::i8:
+                case Kind::i16:
+                case Kind::i32:
+                case Kind::i64:
+                case Kind::isize:
+                    return ConstantValue{kind_, {.i64_value = -storage_.i64_value}};
+                case Kind::i128:
+                    return ConstantValue{kind_, {.i128_value = -storage_.i128_value}};
+                case Kind::u8:
+                    return ConstantValue{Kind::i16, {.i64_value = -static_cast<std::int64_t>(storage_.u64_value)}};
+                case Kind::u16:
+                    return ConstantValue{Kind::i32, {.i64_value = -static_cast<std::int64_t>(storage_.u64_value)}};
+                case Kind::u32:
+                    return ConstantValue{Kind::i64, {.i64_value = -static_cast<std::int64_t>(storage_.u64_value)}};
+                case Kind::u64:
+                    return ConstantValue{Kind::i128, {.i128_value = -static_cast<Int128>(storage_.u64_value)}};
+                case Kind::usize:
+                    switch (target.pointer_width)
+                    {
+                        case PointerWidth::x32:
+                            return ConstantValue{Kind::i64,
+                                                 {.i64_value = -static_cast<std::int64_t>(storage_.u64_value)}};
+                        case PointerWidth::x64:
+                            return ConstantValue{Kind::i128, {.i128_value = -static_cast<Int128>(storage_.u64_value)}};
+                        default:
+                            UNREACHABLE("Invalid pointer width");
+                    }
+                case Kind::f32:
+                    return ConstantValue{kind_, {.f32_value = -storage_.f32_value}};
+                case Kind::f64:
+                    return ConstantValue{kind_, {.f64_value = -storage_.f64_value}};
+                case Kind::bool_:
+                case Kind::char_:
+                case Kind::char16:
+                case Kind::rune:
+                case Kind::u128:
+                case Kind::str:
+                    return std::nullopt;
+            }
+        }
+
+        [[nodiscard]] constexpr ConstantValue negate(const TargetSettings &target) const noexcept
+        {
+            auto negated = try_negate(target);
+            if (!negated.has_value())
+                throw std::invalid_argument{"Cannot negate constant value"};
+
+            return *negated;
+        }
+
       private:
         Kind kind_;
         ImmutableString str_value_{};
         Storage storage_;
     };
+
+    export [[nodiscard]] SpecialType to_special_type(const ConstantValue::Kind kind) noexcept
+    {
+        switch (kind)
+        {
+            case ConstantValue::Kind::bool_:
+                return SpecialType::bool_;
+            case ConstantValue::Kind::char_:
+                return SpecialType::char_;
+            case ConstantValue::Kind::char16:
+                return SpecialType::char16;
+            case ConstantValue::Kind::rune:
+                return SpecialType::rune;
+            case ConstantValue::Kind::i8:
+                return SpecialType::i8;
+            case ConstantValue::Kind::i16:
+                return SpecialType::i16;
+            case ConstantValue::Kind::i32:
+                return SpecialType::i32;
+            case ConstantValue::Kind::i64:
+                return SpecialType::i64;
+            case ConstantValue::Kind::i128:
+                return SpecialType::i128;
+            case ConstantValue::Kind::isize:
+                return SpecialType::isize;
+            case ConstantValue::Kind::u8:
+                return SpecialType::u8;
+            case ConstantValue::Kind::u16:
+                return SpecialType::u16;
+            case ConstantValue::Kind::u32:
+                return SpecialType::u32;
+            case ConstantValue::Kind::u64:
+                return SpecialType::u64;
+            case ConstantValue::Kind::u128:
+                return SpecialType::u128;
+            case ConstantValue::Kind::usize:
+                return SpecialType::usize;
+            case ConstantValue::Kind::f32:
+                return SpecialType::f32;
+            case ConstantValue::Kind::f64:
+                return SpecialType::f64;
+            case ConstantValue::Kind::str:
+                return SpecialType::str;
+            default:
+                UNREACHABLE("unknown special type");
+        }
+    }
 } // namespace prism
