@@ -2,7 +2,8 @@ set(PRISM_CORE_TESTS
         lazy_test.cpp
         immutable_array_test.cpp
         immutable_small_array_test.cpp
-        immutable_hash_collections_test.cpp)
+        immutable_hash_collections_test.cpp
+        immutable_string_test.cpp)
 
 set(PRISM_CORE_INTERNAL_TESTS name_test.cpp
         source_file_test.cpp

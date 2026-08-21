@@ -33,12 +33,20 @@ namespace prism
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-        constexpr ImmutableSmallArray() noexcept
+        constexpr ImmutableSmallArray() noexcept(std::is_nothrow_copy_assignable_v<Allocator>)
+            requires std::default_initializable<Allocator>
         {
         }
 
-        explicit(false) constexpr ImmutableSmallArray(std::nullptr_t) noexcept
+        explicit(false) constexpr ImmutableSmallArray(std::nullptr_t) noexcept(
+            std::is_nothrow_copy_assignable_v<Allocator>)
+            requires std::default_initializable<Allocator>
         {
+        }
+
+        explicit constexpr ImmutableSmallArray(const Allocator &allocator) noexcept
+        {
+            allocator_ = allocator;
         }
 
         constexpr ImmutableSmallArray(const ImmutableSmallArray &other)

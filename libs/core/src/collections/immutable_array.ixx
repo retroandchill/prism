@@ -34,37 +34,49 @@ namespace prism
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-        constexpr ImmutableArray() noexcept = default;
+        constexpr ImmutableArray() noexcept(std::is_nothrow_default_constructible_v<Allocator>)
+            requires std::is_default_constructible_v<Allocator>
+        = default;
 
-        explicit(false) constexpr ImmutableArray(std::nullptr_t) noexcept
+        explicit(false) constexpr ImmutableArray(std::nullptr_t) noexcept(
+            std::is_nothrow_default_constructible_v<Allocator>)
+            requires std::is_default_constructible_v<Allocator>
         {
         }
 
-        constexpr ImmutableArray(const ImmutableArray &other) noexcept : storage_{other.storage_}
+        explicit constexpr ImmutableArray(const Allocator &allocator) noexcept(
+            std::is_nothrow_copy_assignable_v<Allocator>)
+            : allocator_{allocator}
+        {
+        }
+
+        constexpr ImmutableArray(const ImmutableArray &other) noexcept
+            : storage_{other.storage_}, allocator_{other.allocator_}
         {
             add_ref();
         }
 
-        constexpr ImmutableArray(ImmutableArray &&other) noexcept : storage_{std::exchange(other.storage_, nullptr)}
+        constexpr ImmutableArray(ImmutableArray &&other) noexcept
+            : storage_{std::exchange(other.storage_, nullptr)}, allocator_{other.allocator_}
         {
         }
 
         constexpr ImmutableArray(std::initializer_list<T> values)
-            requires std::copy_constructible<T>
+            requires std::copy_constructible<T> && std::is_default_constructible_v<Allocator>
             : ImmutableArray{values, Allocator{}}
         {
         }
 
         constexpr ImmutableArray(std::initializer_list<T> values, const Allocator &allocator)
             requires std::copy_constructible<T>
-            : storage_{Storage::create(values.begin(), values.end(), allocator)}
+            : storage_{Storage::create(values.begin(), values.end(), allocator)}, allocator_{allocator}
         {
         }
 
         template <std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
             requires std::constructible_from<T, std::iter_reference_t<Iterator>>
         constexpr ImmutableArray(Iterator first, Sentinel last, const Allocator &allocator = Allocator{})
-            : storage_{Storage::create(first, last, allocator)}
+            : storage_{Storage::create(first, last, allocator)}, allocator_{allocator}
         {
         }
 
@@ -113,7 +125,7 @@ namespace prism
 
         [[nodiscard]] constexpr size_type max_size() const noexcept
         {
-            return std::allocator_traits<Allocator>::max_size(Allocator{});
+            return std::allocator_traits<Allocator>::max_size(allocator_);
         }
 
         [[nodiscard]] constexpr const_pointer data() const noexcept
@@ -191,13 +203,14 @@ namespace prism
 
         [[nodiscard]] constexpr allocator_type get_allocator() const noexcept
         {
-            return storage_ != nullptr ? storage_->allocator : Allocator{};
+            return allocator_;
         }
 
         [[nodiscard]] std::uint32_t use_count() const noexcept
         {
             return storage_ != nullptr ? storage_->ref_count.load(std::memory_order_relaxed) : 0;
         }
+
         template <std::convertible_to<T> U>
             requires std::copy_constructible<T>
         [[nodiscard]] constexpr ImmutableArray add(U &&value) const
@@ -408,7 +421,8 @@ namespace prism
         using StorageAllocator = AllocatorTraits::template rebind_alloc<std::byte>;
         using StorageAllocatorTraits = std::allocator_traits<StorageAllocator>;
 
-        explicit constexpr ImmutableArray(Storage *storage) noexcept : storage_{storage}
+        explicit constexpr ImmutableArray(Storage *storage, Allocator allocator) noexcept
+            : storage_{storage}, allocator_{allocator}
         {
         }
 
@@ -442,19 +456,18 @@ namespace prism
             catch (...)
             {
                 std::destroy_n(storage->data(), constructed);
-                Storage::destroy_uninitialized(storage);
+                Storage::destroy_uninitialized(storage, allocator);
                 throw;
             }
 
-            return ImmutableArray{storage};
+            return ImmutableArray{storage, allocator};
         }
 
         struct Storage
         {
             explicit Storage(const size_type size,
-                             const size_type allocated,
-                             const Allocator &allocator) noexcept(std::is_nothrow_copy_constructible_v<Allocator>)
-                : size{size}, allocated_size{allocated}, allocator{allocator}
+                             const size_type allocated) noexcept(std::is_nothrow_copy_constructible_v<Allocator>)
+                : size{size}, allocated_size{allocated}
             {
             }
 
@@ -506,7 +519,7 @@ namespace prism
                 auto [memory, allocated] = StorageAllocatorTraits::allocate_at_least(storage_allocator, bytes);
 
                 auto *storage = reinterpret_cast<Storage *>(memory);
-                std::construct_at(storage, size, allocated, allocator);
+                std::construct_at(storage, size, allocated);
 
                 size_type constructed = 0;
                 try
@@ -535,13 +548,13 @@ namespace prism
                 auto *memory = allocation.ptr;
 
                 auto *storage = reinterpret_cast<Storage *>(memory);
-                std::construct_at(storage, size, allocation.count, allocator);
+                std::construct_at(storage, size, allocation.count);
                 return storage;
             }
 
-            static void destroy_uninitialized(Storage *storage) noexcept
+            static void destroy_uninitialized(Storage *storage, const Allocator &allocator) noexcept
             {
-                auto storage_allocator = StorageAllocator{storage->allocator};
+                auto storage_allocator = StorageAllocator{allocator};
                 const auto allocated_bytes = storage->allocated_size;
 
                 std::destroy_at(storage);
@@ -550,9 +563,9 @@ namespace prism
                                                    allocated_bytes);
             }
 
-            static void destroy(Storage *storage) noexcept
+            static void destroy(Storage *storage, const Allocator &allocator) noexcept
             {
-                auto storage_allocator = StorageAllocator{storage->allocator};
+                auto storage_allocator = StorageAllocator{allocator};
                 const auto bytes = storage->allocated_size;
 
                 std::destroy_n(storage->data(), storage->size);
@@ -574,7 +587,6 @@ namespace prism
             std::atomic<std::uint32_t> ref_count{1};
             size_type size = 0;
             size_type allocated_size = 0;
-            PRISM_NO_UNIQUE_ADDRESS Allocator allocator;
         };
 
         friend std::atomic<ImmutableArray>;
@@ -591,12 +603,13 @@ namespace prism
                 return;
 
             if (storage_->ref_count.fetch_sub(1, std::memory_order_acq_rel) == 1)
-                Storage::destroy(storage_);
+                Storage::destroy(storage_, allocator_);
 
             storage_ = nullptr;
         }
 
         Storage *storage_ = nullptr;
+        PRISM_NO_UNIQUE_ADDRESS Allocator allocator_;
     };
 
     export template <typename InputIt,

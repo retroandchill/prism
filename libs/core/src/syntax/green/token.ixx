@@ -9,6 +9,7 @@ export module prism.core:syntax.green.token;
 import :syntax.green.node;
 import :syntax.green.trivia;
 import :util.exceptions;
+import :collections.immutable_string;
 
 namespace prism
 {
@@ -103,21 +104,13 @@ namespace prism
         } -> std::convertible_to<SyntaxKind>;
     };
 
-    struct TrivialBase
-    {
-    };
-
     template <StandardLiteralData T>
-    using TokenDataBase =
-        std::conditional_t<std::is_trivially_copy_constructible_v<T>, TrivialBase, IntrusiveRefCounted>;
-
-    template <StandardLiteralData T>
-    struct GreenValueTokenData : TokenDataBase<T>
+    struct GreenValueTokenData
     {
         T value;
-        std::string text;
+        ImmutableString text;
 
-        constexpr GreenValueTokenData(T value, std::string text) : value{std::move(value)}, text{std::move(text)}
+        constexpr GreenValueTokenData(T value, ImmutableString text) : value{std::move(value)}, text{std::move(text)}
         {
         }
 
@@ -129,7 +122,7 @@ namespace prism
 
     template <StandardLiteralData T>
         requires CanGetStringView<T>
-    struct GreenValueTokenData<T> : TokenDataBase<T>
+    struct GreenValueTokenData<T>
     {
         T value;
 
@@ -146,8 +139,7 @@ namespace prism
     template <StandardLiteralData T>
     class GreenValueToken final : public GreenToken
     {
-        using RawData = GreenValueTokenData<T>;
-        using Data = std::conditional_t<std::is_trivially_copy_constructible_v<T>, RawData, RefCountPtr<const RawData>>;
+        using Data = GreenValueTokenData<T>;
 
         constexpr GreenValueToken(Data data, GreenPtr<GreenNode> leading_trivia, GreenPtr<GreenNode> trailing_trivia)
             : GreenToken{T::kind, get_width(data), std::move(leading_trivia), std::move(trailing_trivia)},
@@ -157,7 +149,7 @@ namespace prism
 
       public:
         constexpr GreenValueToken(T value,
-                                  std::string text,
+                                  ImmutableString text,
                                   GreenPtr<GreenNode> leading_trivia = {},
                                   GreenPtr<GreenNode> trailing_trivia = {})
             requires !CanGetStringView<T>
@@ -215,16 +207,9 @@ namespace prism
         }
 
       private:
-        constexpr const RawData &data() const noexcept
+        constexpr const Data &data() const noexcept
         {
-            if constexpr (std::is_trivially_copy_constructible_v<T>)
-            {
-                return data_;
-            }
-            else
-            {
-                return *data_;
-            }
+            return data_;
         }
 
         static constexpr Data make_data(T value)
@@ -236,33 +221,19 @@ namespace prism
             }
             else
             {
-                return make_ref_counted<RawData>(std::move(value));
+                return Data{std::move(value)};
             }
         }
 
-        static constexpr Data make_data(T value, std::string text)
+        static constexpr Data make_data(T value, ImmutableString text)
             requires !CanGetStringView<T>
         {
-            if constexpr (std::is_trivially_copy_constructible_v<T>)
-            {
-                return Data{std::move(value), std::move(text)};
-            }
-            else
-            {
-                return make_ref_counted<RawData>(std::move(value), std::move(text));
-            }
+            return Data{std::move(value), std::move(text)};
         }
 
         static constexpr std::uint32_t get_width(const Data &data) noexcept
         {
-            if constexpr (std::is_trivially_copy_constructible_v<T>)
-            {
-                return data.width();
-            }
-            else
-            {
-                return data->width();
-            }
+            return data.width();
         }
 
         Data data_;
@@ -289,7 +260,7 @@ namespace prism
                  !CanGetStringView<std::decay_t<T>>
                  constexpr RefCountPtr<GreenValueToken<std::decay_t<T>>> make_green_value(
                      T && value,
-                     std::string text,
+                     ImmutableString text,
                      GreenPtr<GreenNode> leading_trivia = {},
                      GreenPtr<GreenNode> trailing_trivia = {})
     {

@@ -53,7 +53,7 @@ namespace prism
         if (cursor_.at_end() || cursor_.any('\n', '\r') || !std::isspace(cursor_.current()))
             return std::nullopt;
 
-        std::string str;
+        PooledString str;
         do
         {
             str.push_back(cursor_.current());
@@ -63,7 +63,7 @@ namespace prism
         if (str.empty())
             return std::nullopt;
 
-        return make_ref_counted<GreenTrivia>(SyntaxKind::whitespace_trivia, std::move(str));
+        return make_ref_counted<GreenTrivia>(SyntaxKind::whitespace_trivia, ImmutableString{str});
     }
     Optional<GreenPtr<GreenTrivia>> Lexer::match_new_line()
     {
@@ -107,7 +107,7 @@ namespace prism
 
     GreenPtr<GreenTrivia> Lexer::handle_line_comment()
     {
-        std::string str = "//";
+        PooledString str = "//";
         cursor_.advance(2);
         while (!cursor_.at_end() && !cursor_.any('\n', '\r'))
         {
@@ -127,13 +127,13 @@ namespace prism
             cursor_.advance();
         }
 
-        return make_ref_counted<const GreenTrivia>(SyntaxKind::line_comment_trivia, std::move(str));
+        return make_ref_counted<const GreenTrivia>(SyntaxKind::line_comment_trivia, ImmutableString{str});
     }
 
     GreenPtr<GreenTrivia> Lexer::handle_block_comment()
     {
         const auto start = cursor_.position();
-        std::string str = "/*";
+        PooledString str = "/*";
         cursor_.advance(2);
         while (!cursor_.at_end())
         {
@@ -142,13 +142,13 @@ namespace prism
             {
                 cursor_.advance(2);
                 str.append("*/");
-                return make_ref_counted<const GreenTrivia>(SyntaxKind::block_comment_trivia, std::move(str));
+                return make_ref_counted<const GreenTrivia>(SyntaxKind::block_comment_trivia, ImmutableString{str});
             }
 
             cursor_.advance();
         }
 
-        auto ptr = make_ref_counted<GreenTrivia>(SyntaxKind::block_comment_trivia, std::move(str));
+        auto ptr = make_ref_counted<GreenTrivia>(SyntaxKind::block_comment_trivia, ImmutableString{str});
         ptr->add_diagnostic(
             SyntaxDiagnosticInfo::create<DiagnosticCode::unterminated_block_comment>(cursor_.position() - start, 0));
         return std::move(ptr);
@@ -209,7 +209,7 @@ namespace prism
                         .value = std::move(value),
                         .base = base,
                     },
-                    std::string{literal_text},
+                    ImmutableString{literal_text},
                     std::move(leading_trivia).node(),
                     collect_trivia().node());
             }
@@ -241,7 +241,7 @@ namespace prism
                     .exponent10 = exponent,
                     .suffix = suffix,
                 },
-                std::string{text},
+                ImmutableString{text},
                 std::move(leading_trivia).node(),
                 collect_trivia().node());
         }
@@ -256,7 +256,7 @@ namespace prism
                         .significand = std::move(value),
                         .suffix = suffix,
                     },
-                    std::string{text},
+                    ImmutableString{text},
                     std::move(leading_trivia).node(),
                     collect_trivia().node());
             }
@@ -271,7 +271,7 @@ namespace prism
                 .base = base,
                 .suffix = suffix,
             },
-            std::string{text},
+            ImmutableString{text},
             std::move(leading_trivia).node(),
             collect_trivia().node());
     }
@@ -363,7 +363,7 @@ namespace prism
         }
 
         auto ptr = make_green_value(CharacterLiteralData{character, encoding},
-                                    std::string{cursor_.since(start)},
+                                    ImmutableString{cursor_.since(start)},
                                     std::move(leading_trivia).node(),
                                     collect_trivia().node());
         ptr->set_diagnostics(make_immutable_array(diagnostics));
@@ -440,7 +440,7 @@ namespace prism
 
         const auto slice = cursor_.since(start);
         auto literal = make_green_value(StringLiteralData{.value = std::move(str)},
-                                        std::string{slice},
+                                        ImmutableString{slice},
                                         std::move(leading_trivia).node(),
                                         collect_trivia().node());
         literal->set_diagnostics(make_immutable_array(diagnostics));

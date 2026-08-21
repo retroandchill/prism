@@ -13,6 +13,7 @@ export module prism.core:syntax.green.trivia;
 import :syntax.green.node;
 import :syntax.green.list;
 import :util.exceptions;
+import :collections.immutable_string;
 import libassert;
 
 namespace prism
@@ -20,7 +21,7 @@ namespace prism
     class GreenTrivia final : public GreenNode
     {
       public:
-        constexpr GreenTrivia(const SyntaxKind kind, std::string text)
+        constexpr GreenTrivia(const SyntaxKind kind, ImmutableString text)
             : GreenNode{kind, static_cast<std::uint32_t>(text.size())}, text_{std::move(text)}
         {
             DEBUG_ASSERT(text_.size() <= std::numeric_limits<std::uint32_t>::max());
@@ -31,7 +32,7 @@ namespace prism
         static const GreenPtr<GreenTrivia> &carriage_return();
         static const GreenPtr<GreenTrivia> &line_feed();
 
-        [[nodiscard]] constexpr const std::string &text() const noexcept
+        [[nodiscard]] constexpr const ImmutableString &text() const noexcept
         {
             return text_;
         }
@@ -83,7 +84,7 @@ namespace prism
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
-        std::string text_;
+        ImmutableString text_ = "";
     };
 
     class GreenStructuredTrivia : public GreenNode
