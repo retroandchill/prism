@@ -24,6 +24,7 @@ namespace prism
         literal,
         variable_access,
         parameter_access,
+        overload_set,
         unary_expression,
         binary_expression,
         assignment_expression,
@@ -35,7 +36,13 @@ namespace prism
     template <typename T>
     using BoundSpan = std::span<const Ref<const T>>;
 
-    class BoundNode : NonCopyable
+    template <typename T>
+    using BoundPtr = RefCountPtr<const T>;
+
+    template <typename T>
+    using BoundList = ImmutableArray<BoundPtr<T>>;
+
+    class BoundNode : public IntrusiveRefCounted
     {
       protected:
         constexpr BoundNode(const BoundNodeKind kind, const SyntaxNode &syntax_node)
@@ -43,9 +50,9 @@ namespace prism
         {
         }
 
-        ~BoundNode() = default;
-
       public:
+        virtual ~BoundNode() = default;
+
         [[nodiscard]] constexpr BoundNodeKind kind() const noexcept
         {
             return kind_;

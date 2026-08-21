@@ -15,6 +15,19 @@ namespace prism
 {
     class Binder;
 
+    struct OperandConversion
+    {
+        Conversion conversion;
+        Ref<const TypeSymbol> type;
+    };
+
+    struct BinaryOperandConversion
+    {
+        Conversion left_conversion;
+        Conversion right_conversion;
+        Ref<const TypeSymbol> type;
+    };
+
     class ConversionClassifier final
     {
       public:
@@ -24,12 +37,12 @@ namespace prism
 
         [[nodiscard]] Conversion classify_conversion(const TypeSymbol &source, const TypeSymbol &destination) const;
 
-        [[nodiscard]] Optional<const TypeSymbol &> classify_unary_operand_type(UnaryOperation operation,
-                                                                               const TypeSymbol &operand) const;
+        [[nodiscard]] Optional<OperandConversion> classify_unary_operand_type(UnaryOperation operation,
+                                                                              const TypeSymbol &operand) const;
 
-        [[nodiscard]] Optional<const TypeSymbol &> classify_binary_operand_type(BinaryOperation operation,
-                                                                                const TypeSymbol &left,
-                                                                                const TypeSymbol &right) const;
+        [[nodiscard]] Optional<BinaryOperandConversion> classify_binary_operand_type(BinaryOperation operation,
+                                                                                     const TypeSymbol &left,
+                                                                                     const TypeSymbol &right) const;
 
       private:
         [[nodiscard]] const Compilation &compilation() const noexcept;
@@ -63,6 +76,9 @@ namespace prism
 
         [[nodiscard]] static Conversion classify_character_conversion(SpecialType source,
                                                                       SpecialType destination) noexcept;
+
+        [[nodiscard]] static const TypeSymbol &get_common_character_type(const TypeSymbol &left,
+                                                                         const TypeSymbol &right) noexcept;
 
         enum class NumericFamily : std::uint8_t
         {

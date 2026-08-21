@@ -43,33 +43,46 @@ namespace prism
         return no_conversion;
     }
 
-    Optional<const TypeSymbol &> ConversionClassifier::classify_unary_operand_type(const UnaryOperation operation,
-                                                                                   const TypeSymbol &operand) const
+    Optional<OperandConversion> ConversionClassifier::classify_unary_operand_type(const UnaryOperation operation,
+                                                                                  const TypeSymbol &operand) const
     {
         switch (operation)
         {
             case UnaryOperation::identity:
                 if (is_numeric_type(operand))
                 {
-                    return promote_numeric_type(operand);
+                    auto &promoted = promote_numeric_type(operand);
+                    return OperandConversion{
+                        .conversion = classify_numeric_conversion(operand.special_type(), promoted.special_type()),
+                        .type = promoted};
                 }
                 break;
             case UnaryOperation::negation:
                 if (is_numeric_type(operand))
                 {
-                    return promote_negation_type(operand);
+                    return promote_negation_type(operand).transform(
+                        [&](const TypeSymbol &promoted)
+                        {
+                            return OperandConversion{.conversion = classify_numeric_conversion(operand.special_type(),
+                                                                                               promoted.special_type()),
+                                                     .type = promoted};
+                        });
                 }
                 break;
             case UnaryOperation::logical_not:
                 if (operand.special_type() == SpecialType::bool_)
                 {
-                    return operand;
+                    return OperandConversion{.conversion = get_trivial_conversion(ConversionKind::identity),
+                                             .type = operand};
                 }
                 break;
             case UnaryOperation::bitwise_not:
                 if (is_integral_type(operand))
                 {
-                    return promote_numeric_type(operand);
+                    auto &promoted = promote_numeric_type(operand);
+                    return OperandConversion{
+                        .conversion = classify_numeric_conversion(operand.special_type(), promoted.special_type()),
+                        .type = promoted};
                 }
                 break;
             case UnaryOperation::pre_increment:
@@ -78,7 +91,8 @@ namespace prism
             case UnaryOperation::post_decrement:
                 if (is_numeric_type(operand))
                 {
-                    return operand;
+                    return OperandConversion{.conversion = get_trivial_conversion(ConversionKind::identity),
+                                             .type = operand};
                 }
                 break;
         }
@@ -86,10 +100,19 @@ namespace prism
         return std::nullopt;
     }
 
-    Optional<const TypeSymbol &> ConversionClassifier::classify_binary_operand_type(const BinaryOperation operation,
-                                                                                    const TypeSymbol &left,
-                                                                                    const TypeSymbol &right) const
+    Optional<BinaryOperandConversion> ConversionClassifier::classify_binary_operand_type(
+        const BinaryOperation operation,
+        const TypeSymbol &left,
+        const TypeSymbol &right) const
     {
+        const auto get_numeric_conversion = [&](const TypeSymbol &promoted)
+        {
+            return BinaryOperandConversion{
+                .left_conversion = classify_numeric_conversion(left.special_type(), promoted.special_type()),
+                .right_conversion = classify_numeric_conversion(right.special_type(), promoted.special_type()),
+                .type = promoted};
+        };
+
         switch (operation)
         {
             case BinaryOperation::addition:
@@ -99,7 +122,7 @@ namespace prism
             case BinaryOperation::modulo:
                 if (is_numeric_type(left) && is_numeric_type(right))
                 {
-                    return get_common_numeric_type(left, right);
+                    return get_common_numeric_type(left, right).transform(get_numeric_conversion);
                 }
                 break;
             case BinaryOperation::bitwise_and:
@@ -110,29 +133,57 @@ namespace prism
             case BinaryOperation::unsigned_shift_right:
                 if (is_integral_type(left) && is_integral_type(right))
                 {
-                    return get_common_numeric_type(left, right);
+                    return get_common_numeric_type(left, right).transform(get_numeric_conversion);
                 }
                 break;
             case BinaryOperation::logical_and:
             case BinaryOperation::logical_or:
                 if (left.special_type() == SpecialType::bool_ && right.special_type() == SpecialType::bool_)
                 {
-                    return left;
+                    return BinaryOperandConversion{.left_conversion = get_trivial_conversion(ConversionKind::identity),
+                                                   .right_conversion = get_trivial_conversion(ConversionKind::identity),
+                                                   .type = left};
                 }
                 break;
             case BinaryOperation::equals:
             case BinaryOperation::not_equals:
-                throw NotImplementedException{};
+                if (left.special_type() == SpecialType::bool_ && right.special_type() == SpecialType::bool_)
+                {
+                    return BinaryOperandConversion{.left_conversion = get_trivial_conversion(ConversionKind::identity),
+                                                   .right_conversion = get_trivial_conversion(ConversionKind::identity),
+                                                   .type = left};
+                }
+
+                if (is_numeric_type(left) && is_numeric_type(right))
+                {
+                    return get_common_numeric_type(left, right).transform(get_numeric_conversion);
+                }
+
+                if (is_character_type(left) && is_numeric_type(right))
+                {
+                    auto &promoted = get_common_character_type(left, right);
+                    return BinaryOperandConversion{
+                        .left_conversion = classify_character_conversion(left.special_type(), promoted.special_type()),
+                        .right_conversion = classify_numeric_conversion(promoted.special_type(), right.special_type()),
+                        .type = promoted};
+                }
+
+                break;
             case BinaryOperation::less_than:
             case BinaryOperation::less_than_or_equals:
             case BinaryOperation::greater_than:
             case BinaryOperation::greater_than_or_equals:
-                throw NotImplementedException{};
             case BinaryOperation::three_way_comparison:
+                if (is_numeric_type(left) && is_numeric_type(right))
+                {
+                    return get_common_numeric_type(left, right).transform(get_numeric_conversion);
+                }
+                break;
             case BinaryOperation::null_coalescing:
                 throw NotImplementedException{};
         }
-        throw NotImplementedException{};
+
+        UNREACHABLE("Invalid binary operation");
     }
 
     const Compilation &ConversionClassifier::compilation() const noexcept
@@ -312,7 +363,7 @@ namespace prism
                     case 64:
                         return compilation().get_special_type(SpecialType::i128);
                     default:
-                        throw InvalidStateException("Invalid pointer width");
+                        throw InvalidStateException{"Invalid pointer width"};
                 }
 
             case SpecialType::u128:
@@ -426,7 +477,7 @@ namespace prism
                     case 64:
                         return compilation().get_special_type(SpecialType::i128);
                     default:
-                        throw InvalidStateException("Invalid pointer width");
+                        throw InvalidStateException{"Invalid pointer width"};
                 }
             default:
                 UNREACHABLE("This isn't a valid path");
@@ -438,7 +489,7 @@ namespace prism
         return is_character(type.special_type());
     }
 
-    std::int32_t ConversionClassifier::character_width(SpecialType type) noexcept
+    std::int32_t ConversionClassifier::character_width(const SpecialType type) noexcept
     {
         DEBUG_ASSERT(is_character(type));
         switch (type)
@@ -468,6 +519,22 @@ namespace prism
             return get_trivial_conversion(ConversionKind::explicit_character);
 
         return get_trivial_conversion(ConversionKind::implicit_character);
+    }
+
+    const TypeSymbol &ConversionClassifier::get_common_character_type(const TypeSymbol &left,
+                                                                      const TypeSymbol &right) noexcept
+    {
+        if (&left == &right)
+            return left;
+
+        const auto source_width = character_width(left.special_type());
+        const auto destination_width = character_width(right.special_type());
+        DEBUG_ASSERT(source_width != destination_width);
+
+        if (source_width > destination_width)
+            return left;
+
+        return right;
     }
 
 } // namespace prism

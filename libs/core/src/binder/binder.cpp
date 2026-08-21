@@ -197,7 +197,7 @@ namespace prism
             return std::format("{} or {}", result.front(), result.back());
 
         std::string output;
-        for (auto [i, view] : result | std::views::enumerate)
+        for (const auto [i, view] : result | std::views::enumerate)
         {
             if (i > 0)
             {
@@ -262,54 +262,54 @@ namespace prism
         return next_->get_declared_local_variables_for_scope(designator);
     }
 
-    const BoundStatement &Binder::bind_statement(const StatementSyntax &syntax,
-                                                 const TypeSymbol &return_type,
-                                                 const LookupContext &context) const
+    BoundPtr<BoundStatement> Binder::bind_statement(const StatementSyntax &syntax,
+                                                    const TypeSymbol &return_type,
+                                                    const LookupContext &context) const
     {
         return visit(syntax,
-                     Overload{[&](const BlockSyntax &block) -> const BoundStatement &
+                     Overload{[&](const BlockSyntax &block) -> BoundPtr<BoundStatement>
                               { return bind_block(block, return_type, context); },
-                              [&](const ExpressionStatementSyntax &expression) -> const BoundStatement &
+                              [&](const ExpressionStatementSyntax &expression) -> BoundPtr<BoundStatement>
                               { return bind_expression_statement(expression, context); },
-                              [&](const ReturnStatementSyntax &statement) -> const BoundStatement &
+                              [&](const ReturnStatementSyntax &statement) -> BoundPtr<BoundStatement>
                               { return bind_return_statement(statement, return_type, context); },
-                              [&](const VariableDeclarationStatementSyntax &variable) -> const BoundStatement &
+                              [&](const VariableDeclarationStatementSyntax &variable) -> BoundPtr<BoundStatement>
                               { return bind_variable_declaration_statement(variable, context); },
-                              [&](const EmptyStatementSyntax &) -> const BoundStatement &
+                              [&](const EmptyStatementSyntax &) -> BoundPtr<BoundStatement>
                               {
                                   UNREACHABLE("We should guard against entering into this context");
                               }});
     }
 
-    const BoundExpression &Binder::bind_expression(const ExpressionSyntax &syntax,
-                                                   const TypeSymbol *target_type,
-                                                   const LookupContext &context) const
+    BoundPtr<BoundExpression> Binder::bind_expression(const ExpressionSyntax &syntax,
+                                                      const TypeSymbol *target_type,
+                                                      const LookupContext &context) const
     {
-        auto &bound = visit(syntax,
-                            Overload{[&](const LiteralExpressionSyntax &e) -> const BoundExpression &
-                                     { return bind_literal_expression(e, target_type, context); },
-                                     [&](const IdentifierExpressionSyntax &e) -> const BoundExpression &
-                                     { return bind_identifier_expression(e, context); },
-                                     [&](const ParenthesizedExpressionSyntax &e) -> const BoundExpression &
-                                     { return bind_expression(e.expression(), context); },
-                                     [&](const BinaryExpressionSyntax &e) -> const BoundExpression &
-                                     { return bind_binary_expression(e, context); },
-                                     [&](const AssignmentExpressionSyntax &e) -> const BoundExpression &
-                                     { return bind_assignment_expression(e, context); },
-                                     [&](const PrefixExpressionSyntax &e) -> const BoundExpression &
-                                     { return bind_prefix_expression(e, target_type, context); },
-                                     [&](const PostfixExpressionSyntax &e) -> const BoundExpression &
-                                     { return bind_postfix_expression(e, context); },
-                                     [&](const TernaryExpressionSyntax &e) -> const BoundExpression &
-                                     { return bind_ternary_expression(e, context); },
-                                     [&](const InvocationExpressionSyntax &e) -> const BoundExpression &
-                                     {
-                                         return bind_invocation_expression(e, context);
-                                     }});
+        auto bound = visit(syntax,
+                           Overload{[&](const LiteralExpressionSyntax &e) -> BoundPtr<BoundExpression>
+                                    { return bind_literal_expression(e, target_type, context); },
+                                    [&](const IdentifierExpressionSyntax &e) -> BoundPtr<BoundExpression>
+                                    { return bind_identifier_expression(e, context); },
+                                    [&](const ParenthesizedExpressionSyntax &e) -> BoundPtr<BoundExpression>
+                                    { return bind_expression(e.expression(), context); },
+                                    [&](const BinaryExpressionSyntax &e) -> BoundPtr<BoundExpression>
+                                    { return bind_binary_expression(e, context); },
+                                    [&](const AssignmentExpressionSyntax &e) -> BoundPtr<BoundExpression>
+                                    { return bind_assignment_expression(e, context); },
+                                    [&](const PrefixExpressionSyntax &e) -> BoundPtr<BoundExpression>
+                                    { return bind_prefix_expression(e, target_type, context); },
+                                    [&](const PostfixExpressionSyntax &e) -> BoundPtr<BoundExpression>
+                                    { return bind_postfix_expression(e, context); },
+                                    [&](const TernaryExpressionSyntax &e) -> BoundPtr<BoundExpression>
+                                    { return bind_ternary_expression(e, target_type, context); },
+                                    [&](const InvocationExpressionSyntax &e) -> BoundPtr<BoundExpression>
+                                    {
+                                        return bind_invocation_expression(e, context);
+                                    }});
 
         if (target_type != nullptr)
         {
-            return add_conversion_if_necessary(syntax, bound, *target_type, context);
+            return add_conversion_if_necessary(syntax, std::move(bound), *target_type, context);
         }
 
         return bound;
@@ -555,11 +555,11 @@ namespace prism
         return create_error_type_symbol(containing_symbol(), compilation_, names);
     }
 
-    const BoundBlock &Binder::bind_block(const BlockSyntax &syntax,
-                                         const TypeSymbol &return_type,
-                                         const LookupContext &context) const
+    BoundPtr<BoundBlock> Binder::bind_block(const BlockSyntax &syntax,
+                                            const TypeSymbol &return_type,
+                                            const LookupContext &context) const
     {
-        PooledVector<Ref<const BoundStatement>> statements;
+        PooledVector<BoundPtr<BoundStatement>> statements;
         for (auto &statement : syntax.statements())
         {
             if (statement.is<EmptyStatementSyntax>())
@@ -568,11 +568,11 @@ namespace prism
             statements.emplace_back(bind_statement(statement, return_type, context));
         }
 
-        auto interned = lifetime().copy_refs(statements);
-        return lifetime().create<BoundBlock>(syntax, interned);
+        return make_ref_counted<const BoundBlock>(syntax,
+                                                  ImmutableArray{std::from_range, statements | std::views::as_rvalue});
     }
 
-    const BoundVariableDeclaration &Binder::bind_variable_declaration_statement(
+    BoundPtr<BoundVariableDeclaration> Binder::bind_variable_declaration_statement(
         const VariableDeclarationStatementSyntax &syntax,
         const LookupContext &context) const
     {
@@ -580,62 +580,68 @@ namespace prism
         auto &declaration = syntax.declaration();
         auto &variable = semantic_model.get_declared_symbol(declaration).value();
 
-        const auto initializer = declaration.initializer().transform(
-            [&](const InitializerSyntax &i) -> auto &
-            {
-                return declaration.type().has_value()
-                           ? bind_expression(i.value(), variable.type(), context)
-                           : SemanticModelInternal::get_bound_expression(semantic_model, i.value(), *this, context);
-            });
+        auto initializer = declaration.initializer()
+                               .transform(
+                                   [&](const InitializerSyntax &i)
+                                   {
+                                       return declaration.type().has_value()
+                                                  ? bind_expression(i.value(), variable.type(), context)
+                                                  : SemanticModelInternal::get_bound_expression(semantic_model,
+                                                                                                i.value(),
+                                                                                                *this,
+                                                                                                context)
+                                                        .shared_from_this();
+                                   })
+                               .value_or_default();
 
-        return lifetime().create<BoundVariableDeclaration>(syntax, variable, initializer.value_ptr());
+        return make_ref_counted<const BoundVariableDeclaration>(syntax, variable, std::move(initializer));
     }
 
-    const BoundExpressionStatement &Binder::bind_expression_statement(const ExpressionStatementSyntax &syntax,
-                                                                      const LookupContext &context) const
+    BoundPtr<BoundExpressionStatement> Binder::bind_expression_statement(const ExpressionStatementSyntax &syntax,
+                                                                         const LookupContext &context) const
     {
-        auto &expression = bind_expression(syntax.expression(), context);
-        return lifetime().create<BoundExpressionStatement>(syntax, expression);
+        auto expression = bind_expression(syntax.expression(), context);
+        return make_ref_counted<const BoundExpressionStatement>(syntax, std::move(expression));
     }
 
-    const BoundReturnStatement &Binder::bind_return_statement(const ReturnStatementSyntax &syntax,
-                                                              const TypeSymbol &return_type,
-                                                              const LookupContext &context) const
+    BoundPtr<BoundReturnStatement> Binder::bind_return_statement(const ReturnStatementSyntax &syntax,
+                                                                 const TypeSymbol &return_type,
+                                                                 const LookupContext &context) const
     {
-        auto *expression = syntax.expression()
-                               .transform([&](const ExpressionSyntax &e) -> auto &
-                                          { return bind_expression(e, return_type, context); })
-                               .value_ptr();
+        auto expression =
+            syntax.expression()
+                .transform([&](const ExpressionSyntax &e) { return bind_expression(e, return_type, context); })
+                .value_or_default();
 
-        return lifetime().create<BoundReturnStatement>(syntax, expression);
+        return make_ref_counted<const BoundReturnStatement>(syntax, std::move(expression));
     }
 
-    const BoundLiteral &Binder::bind_literal_expression(const LiteralExpressionSyntax &syntax,
-                                                        const TypeSymbol *return_type,
-                                                        const LookupContext &context) const
+    BoundPtr<BoundLiteral> Binder::bind_literal_expression(const LiteralExpressionSyntax &syntax,
+                                                           const TypeSymbol *return_type,
+                                                           const LookupContext &context) const
     {
         const auto token = syntax.value();
         auto value = evaluate_constant_expression(token, return_type, context);
         auto &type = compilation().get_special_type(value.special_type());
-        return lifetime().create<BoundLiteral>(syntax, value, type);
+        return make_ref_counted<const BoundLiteral>(syntax, value, type);
     }
 
-    const BoundExpression &Binder::bind_identifier_expression(const IdentifierExpressionSyntax &syntax,
-                                                              const LookupContext &context) const
+    BoundPtr<BoundExpression> Binder::bind_identifier_expression(const IdentifierExpressionSyntax &syntax,
+                                                                 const LookupContext &context) const
     {
         const auto result = lookup_from_syntax(syntax.value(), LookupOptions::value, context);
         if (!result.viable())
-            return lifetime().create<BoundBadExpression>(syntax, unnamed_error_type);
+            return make_ref_counted<const BoundBadExpression>(syntax, unnamed_error_type);
 
         auto &symbol = result.symbol();
         return visit(
             symbol,
             Overload{
-                [&](const VariableSymbol &s) -> const BoundExpression &
-                { return lifetime().create<BoundVariableAccess>(syntax, s); },
-                [&](const ParameterSymbol &s) -> const BoundExpression &
-                { return lifetime().create<BoundParameterAccess>(syntax, s); },
-                [](const Symbol &) -> const BoundExpression &
+                [&](const VariableSymbol &s) -> BoundPtr<BoundExpression>
+                { return make_ref_counted<const BoundVariableAccess>(syntax, s); },
+                [&](const ParameterSymbol &s) -> BoundPtr<BoundExpression>
+                { return make_ref_counted<const BoundParameterAccess>(syntax, s); },
+                [](const Symbol &) -> BoundPtr<BoundExpression>
                 {
                     throw InvalidStateException{
                         "We must have added a symbol type that can hold a value that we haven't accounted for yet."};
@@ -644,20 +650,24 @@ namespace prism
         diagnose_lookup_failure(result, syntax.value(), LookupOptions::value, context);
     }
 
-    const BoundBinaryExpression &Binder::bind_binary_expression(const BinaryExpressionSyntax &syntax,
-                                                                const LookupContext &context) const
+    BoundPtr<BoundBinaryExpression> Binder::bind_binary_expression(const BinaryExpressionSyntax &syntax,
+                                                                   const LookupContext &context) const
     {
-        Ref left = bind_expression(syntax.left(), context);
-        Ref right = bind_expression(syntax.right(), context);
+        auto left = bind_expression(syntax.left(), context);
+        auto right = bind_expression(syntax.right(), context);
         const auto operation = to_binary_operation(syntax.op().kind());
-        auto common_type = conversion_classifier().classify_binary_operand_type(operation, left->type(), right->type());
-        if (common_type.has_value())
+        auto conversion = conversion_classifier().classify_binary_operand_type(operation, left->type(), right->type());
+        if (conversion.has_value())
         {
-            left =
-                add_conversion_if_necessary(syntax.left().as_checked<ExpressionSyntax>(), left, *common_type, context);
+            left = add_conversion_if_necessary(syntax.left().as_checked<ExpressionSyntax>(),
+                                               left,
+                                               conversion->type,
+                                               conversion->left_conversion,
+                                               context);
             right = add_conversion_if_necessary(syntax.right().as_checked<ExpressionSyntax>(),
                                                 right,
-                                                *common_type,
+                                                conversion->type,
+                                                conversion->right_conversion,
                                                 context);
         }
         else
@@ -668,59 +678,96 @@ namespace prism
                 syntax.location()});
         }
 
-        return lifetime().create<BoundBinaryExpression>(syntax,
-                                                        left,
-                                                        right,
-                                                        operation,
-                                                        common_type.value_or_ref(unnamed_error_type));
+        return make_ref_counted<const BoundBinaryExpression>(
+            syntax,
+            left,
+            right,
+            operation,
+            conversion
+                .transform([](const BinaryOperandConversion &c) -> const TypeSymbol & { return c.type; })
+                .value_or_ref(unnamed_error_type));
     }
 
-    const BoundAssignmentExpression &Binder::bind_assignment_expression(const AssignmentExpressionSyntax &syntax,
-                                                                        const LookupContext &context) const
+    BoundPtr<BoundAssignmentExpression> Binder::bind_assignment_expression(const AssignmentExpressionSyntax &syntax,
+                                                                           const LookupContext &context) const
     {
         throw NotImplementedException{};
     }
 
-    const BoundExpression &Binder::bind_prefix_expression(const PrefixExpressionSyntax &syntax,
-                                                          const TypeSymbol *return_type,
-                                                          const LookupContext &context) const
+    BoundPtr<BoundExpression> Binder::bind_prefix_expression(const PrefixExpressionSyntax &syntax,
+                                                             const TypeSymbol *return_type,
+                                                             const LookupContext &context) const
     {
-        auto &operand = bind_expression(syntax.operand(), return_type, context);
+        auto operand = bind_expression(syntax.operand(), return_type, context);
         const auto op = to_prefix_operation(syntax.op().kind());
-        return create_unary_operation(syntax, op, operand, context);
+        return create_unary_operation(syntax, op, std::move(operand), context);
     }
 
-    const BoundUnaryExpression &Binder::bind_postfix_expression(const PostfixExpressionSyntax &syntax,
-                                                                const LookupContext &context) const
+    BoundPtr<BoundUnaryExpression> Binder::bind_postfix_expression(const PostfixExpressionSyntax &syntax,
+                                                                   const LookupContext &context) const
     {
-        auto &operand = bind_expression(syntax.operand(), context);
-        auto op = to_postfix_operation(syntax.op().kind());
+        auto operand = bind_expression(syntax.operand(), context);
+        const auto op = to_postfix_operation(syntax.op().kind());
 
-        return create_unary_operation(syntax, op, operand, context);
+        return create_unary_operation(syntax, op, std::move(operand), context);
     }
 
-    const BoundConditionalExpression &Binder::bind_ternary_expression(const TernaryExpressionSyntax &syntax,
-                                                                      const LookupContext &context) const
+    BoundPtr<BoundConditionalExpression> Binder::bind_ternary_expression(const TernaryExpressionSyntax &syntax,
+                                                                         const TypeSymbol *target_type,
+                                                                         const LookupContext &context) const
+    {
+        auto condition = add_conversion_if_necessary(syntax.condition(),
+                                                     bind_expression(syntax.condition(), context),
+                                                     compilation_.get_special_type(SpecialType::bool_),
+                                                     context);
+
+        auto when_true = bind_expression(syntax.when_true(), context);
+        auto when_false = bind_expression(syntax.when_false(), context);
+
+        if (target_type != nullptr)
+        {
+            when_true = add_conversion_if_necessary(syntax.when_true(), when_true, *target_type, context);
+            when_false = add_conversion_if_necessary(syntax.when_false(), when_false, *target_type, context);
+        }
+        else
+        {
+            when_false = add_conversion_if_necessary(syntax.when_false(), when_false, when_true->type(), context);
+            target_type = &when_true->type();
+        }
+
+        return make_ref_counted<const BoundConditionalExpression>(syntax,
+                                                                  std::move(condition),
+                                                                  std::move(when_true),
+                                                                  std::move(when_false),
+                                                                  *target_type);
+    }
+
+    BoundPtr<BoundInvocationExpression> Binder::bind_invocation_expression(const InvocationExpressionSyntax &syntax,
+                                                                           const LookupContext &context) const
     {
         throw NotImplementedException{};
     }
 
-    const BoundInvocationExpression &Binder::bind_invocation_expression(const InvocationExpressionSyntax &syntax,
-                                                                        const LookupContext &context) const
-    {
-        throw NotImplementedException{};
-    }
-
-    const BoundExpression &Binder::add_conversion_if_necessary(const ExpressionSyntax &syntax,
-                                                               const BoundExpression &expression,
-                                                               const TypeSymbol &type,
-                                                               const LookupContext &context) const
+    BoundPtr<BoundExpression> Binder::add_conversion_if_necessary(const ExpressionSyntax &syntax,
+                                                                  BoundPtr<BoundExpression> expression,
+                                                                  const TypeSymbol &type,
+                                                                  const LookupContext &context) const
     {
         auto &conversions = conversion_classifier();
-        if (auto conversion = conversions.classify_conversion(expression.type(), type); !conversion.exists())
+        const auto conversion = conversions.classify_conversion(expression->type(), type);
+        return add_conversion_if_necessary(syntax, std::move(expression), type, conversion, context);
+    }
+
+    BoundPtr<BoundExpression> Binder::add_conversion_if_necessary(const ExpressionSyntax &syntax,
+                                                                  BoundPtr<BoundExpression> expression,
+                                                                  const TypeSymbol &type,
+                                                                  const Conversion &conversion,
+                                                                  const LookupContext &context)
+    {
+        if (!conversion.exists())
         {
             context.report_diagnostic(
-                Diagnostic{DiagnosticInfo::create<DiagnosticCode::no_conversion>(expression.type().to_display_string(),
+                Diagnostic{DiagnosticInfo::create<DiagnosticCode::no_conversion>(expression->type().to_display_string(),
                                                                                  type.to_display_string()),
                            syntax.location()});
         }
@@ -729,12 +776,12 @@ namespace prism
             if (!conversion.is_implicit())
             {
                 context.report_diagnostic(Diagnostic{DiagnosticInfo::create<DiagnosticCode::conversion_is_explicit>(
-                                                         expression.type().to_display_string(),
+                                                         expression->type().to_display_string(),
                                                          type.to_display_string()),
                                                      syntax.location()});
             }
 
-            return lifetime().create<BoundConversionExpression>(syntax, expression, type, conversion);
+            return make_ref_counted<const BoundConversionExpression>(syntax, std::move(expression), type, conversion);
         }
 
         return expression;
@@ -893,35 +940,38 @@ namespace prism
                 UNREACHABLE("Invalid input");
         }
     }
-    const BoundUnaryExpression &Binder::create_unary_operation(const ExpressionSyntax &syntax,
-                                                               UnaryOperation operation,
-                                                               const BoundExpression &operand,
-                                                               const LookupContext &context) const
+    BoundPtr<BoundUnaryExpression> Binder::create_unary_operation(const ExpressionSyntax &syntax,
+                                                                  UnaryOperation operation,
+                                                                  BoundPtr<BoundExpression> operand,
+                                                                  const LookupContext &context) const
     {
-        Ref result = operand;
-        const auto result_type = conversion_classifier().classify_unary_operand_type(operation, operand.type());
+        const auto result_type = conversion_classifier().classify_unary_operand_type(operation, operand->type());
         if (result_type.has_value())
         {
-            result = add_conversion_if_necessary(operand.syntax().as_checked<ExpressionSyntax>(),
-                                                 operand,
-                                                 *result_type,
-                                                 context);
+            operand = add_conversion_if_necessary(operand->syntax().as_checked<ExpressionSyntax>(),
+                                                  std::move(operand),
+                                                  result_type->type,
+                                                  result_type->conversion,
+                                                  context);
         }
         else
         {
             context.report_diagnostic(Diagnostic{
-                DiagnosticInfo::create<DiagnosticCode::unary_operator_undefined>(operand.type().to_display_string()),
+                DiagnosticInfo::create<DiagnosticCode::unary_operator_undefined>(operand->type().to_display_string()),
                 syntax.location()});
         }
 
-        if (is_assigning_operation(operation) && !operand.is_assignable())
+        if (is_assigning_operation(operation) && !operand->is_assignable())
         {
             context.report_diagnostic(
                 Diagnostic{DiagnosticInfo::create<DiagnosticCode::cannot_assign_expression>(), syntax.location()});
         }
 
-        auto &final_type = result_type.value_or_ref(unnamed_error_type);
-        return lifetime().create<BoundUnaryExpression>(syntax, result, operation, final_type);
+        auto &final_type = result_type
+                               .transform([](const OperandConversion &operand_conversion) -> const TypeSymbol &
+                                          { return operand_conversion.type; })
+                               .value_or_ref(unnamed_error_type);
+        return make_ref_counted<const BoundUnaryExpression>(syntax, std::move(operand), operation, final_type);
     }
 
 } // namespace prism

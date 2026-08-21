@@ -9,10 +9,10 @@ export module prism.core:semantic.bound.bound_statement;
 import :semantic.bound.bound_node;
 import :syntax.statements;
 import :syntax.clauses;
+import :semantic.bound.bound_expression;
 
 namespace prism
 {
-    class BoundExpression;
     class VariableSymbol;
 
     class BoundStatement : public BoundNode
@@ -25,25 +25,23 @@ namespace prism
         constexpr BoundStatement(const BoundNodeKind kind, const ExpressionBodySyntax &syntax) : BoundNode{kind, syntax}
         {
         }
-
-        ~BoundStatement() = default;
     };
 
     class BoundBlock : public BoundStatement
     {
       public:
-        constexpr BoundBlock(const BlockSyntax &syntax, const BoundSpan<BoundStatement> statements)
-            : BoundStatement{BoundNodeKind::block, syntax}, statements_{statements}
+        constexpr BoundBlock(const BlockSyntax &syntax, BoundList<BoundStatement> statements)
+            : BoundStatement{BoundNodeKind::block, syntax}, statements_{std::move(statements)}
         {
         }
 
-        [[nodiscard]] constexpr BoundSpan<BoundStatement> statements() const noexcept
+        [[nodiscard]] constexpr const BoundList<BoundStatement> &statements() const noexcept
         {
             return statements_;
         }
 
       private:
-        BoundSpan<BoundStatement> statements_{};
+        BoundList<BoundStatement> statements_{};
     };
 
     class BoundVariableDeclaration : public BoundStatement
@@ -51,8 +49,9 @@ namespace prism
       public:
         constexpr BoundVariableDeclaration(const VariableDeclarationStatementSyntax &syntax,
                                            const VariableSymbol &symbol,
-                                           const BoundExpression *initializer)
-            : BoundStatement{BoundNodeKind::variable_declaration, syntax}, symbol_{symbol}, initializer_{initializer}
+                                           BoundPtr<BoundExpression> initializer)
+            : BoundStatement{BoundNodeKind::variable_declaration, syntax}, symbol_{symbol},
+              initializer_{std::move(initializer)}
         {
         }
 
@@ -63,55 +62,56 @@ namespace prism
 
         [[nodiscard]] constexpr Optional<const BoundExpression &> initializer() const noexcept
         {
-            return initializer_;
+            return initializer_.get();
         }
 
       private:
         const VariableSymbol &symbol_;
-        const BoundExpression *initializer_;
+        BoundPtr<BoundExpression> initializer_{};
     };
 
     class BoundExpressionStatement : public BoundStatement
     {
       public:
-        constexpr BoundExpressionStatement(const ExpressionStatementSyntax &syntax, const BoundExpression &expression)
-            : BoundStatement{BoundNodeKind::expression_statement, syntax}, expression_{expression}
+        constexpr BoundExpressionStatement(const ExpressionStatementSyntax &syntax,
+                                           BoundPtr<BoundExpression> expression)
+            : BoundStatement{BoundNodeKind::expression_statement, syntax}, expression_{std::move(expression)}
         {
         }
 
-        constexpr BoundExpressionStatement(const ExpressionBodySyntax &syntax, const BoundExpression &expression)
-            : BoundStatement{BoundNodeKind::expression_statement, syntax}, expression_{expression}
+        constexpr BoundExpressionStatement(const ExpressionBodySyntax &syntax, BoundPtr<BoundExpression> expression)
+            : BoundStatement{BoundNodeKind::expression_statement, syntax}, expression_{std::move(expression)}
         {
         }
 
         [[nodiscard]] constexpr const BoundExpression &expression() const noexcept
         {
-            return expression_;
+            return *expression_;
         }
 
       private:
-        const BoundExpression &expression_;
+        BoundPtr<BoundExpression> expression_{};
     };
 
     class BoundReturnStatement : public BoundStatement
     {
       public:
-        constexpr BoundReturnStatement(const ReturnStatementSyntax &syntax, const BoundExpression *expression)
-            : BoundStatement{BoundNodeKind::return_statement, syntax}, expression_{expression}
+        constexpr BoundReturnStatement(const ReturnStatementSyntax &syntax, BoundPtr<BoundExpression> expression)
+            : BoundStatement{BoundNodeKind::return_statement, syntax}, expression_{std::move(expression)}
         {
         }
 
-        constexpr BoundReturnStatement(const ExpressionBodySyntax &syntax, const BoundExpression *expression)
-            : BoundStatement{BoundNodeKind::expression_statement, syntax}, expression_{expression}
+        constexpr BoundReturnStatement(const ExpressionBodySyntax &syntax, BoundPtr<BoundExpression> expression)
+            : BoundStatement{BoundNodeKind::expression_statement, syntax}, expression_{std::move(expression)}
         {
         }
 
         [[nodiscard]] constexpr Optional<const BoundExpression &> expression() const noexcept
         {
-            return expression_;
+            return expression_.get();
         }
 
       private:
-        const BoundExpression *expression_;
+        BoundPtr<BoundExpression> expression_{};
     };
 } // namespace prism
