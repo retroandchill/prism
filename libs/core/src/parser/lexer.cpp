@@ -376,7 +376,7 @@ namespace prism
             return std::nullopt;
 
         const auto start = cursor_.position();
-        std::string str;
+        PooledString str;
         std::vector<std::shared_ptr<const DiagnosticInfo>> diagnostics;
         auto terminated = false;
         while (!cursor_.at_end())
@@ -439,7 +439,7 @@ namespace prism
         }
 
         const auto slice = cursor_.since(start);
-        auto literal = make_green_value(StringLiteralData{.value = std::move(str)},
+        auto literal = make_green_value(StringLiteralData{.value = ImmutableString{str}},
                                         ImmutableString{slice},
                                         std::move(leading_trivia).node(),
                                         collect_trivia().node());

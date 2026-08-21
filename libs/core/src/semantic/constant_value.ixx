@@ -16,6 +16,7 @@ import std;
 import libassert;
 import :util.numerics;
 import :symbols.type_symbol;
+import :collections.immutable_string;
 
 namespace prism
 {
@@ -31,7 +32,6 @@ namespace prism
             UInt128 u128_value;
             float f32_value;
             double f64_value;
-            std::string_view str_value;
         };
 
       public:
@@ -60,6 +60,11 @@ namespace prism
 
       private:
         constexpr ConstantValue(const Kind kind, const Storage storage) noexcept : kind_{kind}, storage_{storage}
+        {
+        }
+
+        constexpr explicit ConstantValue(ImmutableString str_value) noexcept
+            : kind_{Kind::str}, str_value_{std::move(str_value)}, storage_{Storage{.bool_value = false}}
         {
         }
 
@@ -154,9 +159,9 @@ namespace prism
             return ConstantValue{Kind::f64, {.f64_value = value}};
         }
 
-        [[nodiscard]] static constexpr ConstantValue str(const std::string_view value) noexcept
+        [[nodiscard]] static constexpr ConstantValue str(ImmutableString value) noexcept
         {
-            return ConstantValue{Kind::str, {.str_value = value}};
+            return ConstantValue{std::move(value)};
         }
 
         [[nodiscard]] constexpr Kind kind() const noexcept
@@ -291,14 +296,15 @@ namespace prism
             return storage_.f64_value;
         }
 
-        [[nodiscard]] constexpr std::string_view as_str() const noexcept
+        [[nodiscard]] constexpr const ImmutableString &as_str() const noexcept
         {
             DEBUG_ASSERT(kind_ == Kind::str);
-            return storage_.str_value;
+            return str_value_;
         }
 
       private:
         Kind kind_;
+        ImmutableString str_value_{};
         Storage storage_;
     };
 } // namespace prism
