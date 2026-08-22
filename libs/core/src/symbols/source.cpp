@@ -294,10 +294,8 @@ namespace prism
         }
 
         auto &semantic_model = declaring_compilation()->get_semantic_model(syntax().tree());
-        auto &initializer = SemanticModelInternal::get_bound_expression(semantic_model,
-                                                                        syntax().initializer()->value(),
-                                                                        *initializer_binder_,
-                                                                        context);
+        auto &initializer =
+            SemanticModelInternal::get_bound_initializer(semantic_model, syntax(), *initializer_binder_, context);
         return initializer.type();
     }
 

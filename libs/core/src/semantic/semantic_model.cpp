@@ -65,17 +65,17 @@ namespace prism
         return state().get_binder(node);
     }
 
-    const BoundExpression &SemanticModel::get_bound_expression(const ExpressionSyntax &node,
-                                                               const LookupContext &context) const
+    const BoundExpression &SemanticModel::get_bound_initializer(const VariableDeclarationSyntax &declaration,
+                                                                const LookupContext &context) const
     {
-        return state().get_bound_expression(node, context);
+        return state().get_bound_variable_initializer(declaration, context);
     }
 
-    const BoundExpression &SemanticModel::get_bound_expression(const ExpressionSyntax &node,
-                                                               const Binder &binder,
-                                                               const LookupContext &context) const
+    const BoundExpression &SemanticModel::get_bound_initializer(const VariableDeclarationSyntax &declaration,
+                                                                const Binder &binder,
+                                                                const LookupContext &context) const
     {
-        return state().get_bound_expression(node, binder, context);
+        return state().get_bound_variable_initializer(declaration, binder, context);
     }
 
     void SemanticModel::validate_is_part_of_compilation(const SyntaxNode &node) const

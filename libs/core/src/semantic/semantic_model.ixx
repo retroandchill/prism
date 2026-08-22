@@ -80,12 +80,12 @@ namespace prism
 
         [[nodiscard]] const Binder &get_binder(const SyntaxNode &node) const;
 
-        [[nodiscard]] const BoundExpression &get_bound_expression(const ExpressionSyntax &node,
-                                                                  const LookupContext &context) const;
+        [[nodiscard]] const BoundExpression &get_bound_initializer(const VariableDeclarationSyntax &declaration,
+                                                                   const LookupContext &context) const;
 
-        [[nodiscard]] const BoundExpression &get_bound_expression(const ExpressionSyntax &node,
-                                                                  const Binder &binder,
-                                                                  const LookupContext &context) const;
+        [[nodiscard]] const BoundExpression &get_bound_initializer(const VariableDeclarationSyntax &declaration,
+                                                                   const Binder &binder,
+                                                                   const LookupContext &context) const;
 
         void validate_is_part_of_compilation(const SyntaxNode &node) const;
 
@@ -108,19 +108,21 @@ namespace prism
             return model.get_binder(node);
         }
 
-        [[nodiscard]] static inline const BoundExpression &get_bound_expression(const SemanticModel &model,
-                                                                                const ExpressionSyntax &node,
-                                                                                const LookupContext &context)
+        [[nodiscard]] static inline const BoundExpression &get_bound_initializer(
+            const SemanticModel &model,
+            const VariableDeclarationSyntax &declaration,
+            const LookupContext &context)
         {
-            return model.get_bound_expression(node, context);
+            return model.get_bound_initializer(declaration, context);
         }
 
-        [[nodiscard]] static inline const BoundExpression &get_bound_expression(const SemanticModel &model,
-                                                                                const ExpressionSyntax &node,
-                                                                                const Binder &binder,
-                                                                                const LookupContext &context)
+        [[nodiscard]] static inline const BoundExpression &get_bound_initializer(
+            const SemanticModel &model,
+            const VariableDeclarationSyntax &declaration,
+            const Binder &binder,
+            const LookupContext &context)
         {
-            return model.get_bound_expression(node, binder, context);
+            return model.get_bound_initializer(declaration, binder, context);
         }
     };
 } // namespace prism

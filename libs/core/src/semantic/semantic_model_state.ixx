@@ -20,6 +20,7 @@ namespace prism
     class SyntaxTree;
     class Compilation;
     class LookupContext;
+    class VariableDeclarationSyntax;
 
     class SemanticModelState final : NonCopyable
     {
@@ -27,10 +28,11 @@ namespace prism
         SemanticModelState(const Compilation &compilation, const SyntaxTree &syntax_tree);
 
         [[nodiscard]] const Binder &get_binder(const SyntaxNode &node) const;
-        const BoundExpression &get_bound_expression(const ExpressionSyntax &expression, const LookupContext &context);
-        const BoundExpression &get_bound_expression(const ExpressionSyntax &expression,
-                                                    const Binder &binder,
-                                                    const LookupContext &context);
+        const BoundExpression &get_bound_variable_initializer(const VariableDeclarationSyntax &declaration,
+                                                              const LookupContext &context);
+        const BoundExpression &get_bound_variable_initializer(const VariableDeclarationSyntax &declaration,
+                                                              const Binder &binder,
+                                                              const LookupContext &context);
 
         [[nodiscard]] Optional<const Symbol &> get_declared_symbol(const SyntaxNode &node);
         void cache_symbol(const SyntaxNode &node, const Symbol &symbol);
@@ -39,8 +41,8 @@ namespace prism
         const Compilation &compilation_;
         const SyntaxTree &tree_;
 
-        std::mutex bound_expression_mutex_;
-        std::unordered_map<const ExpressionSyntax *, Lazy<const BoundExpression &>> bound_expressions_;
+        std::mutex bound_initializers_mutex_;
+        std::unordered_map<const VariableDeclarationSyntax *, Lazy<const BoundExpression &>> bound_initializers_;
 
         std::shared_mutex symbol_mutex_;
         std::unordered_map<const SyntaxNode *, const Symbol *> symbols_;

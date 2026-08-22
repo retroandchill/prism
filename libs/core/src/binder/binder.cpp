@@ -624,12 +624,14 @@ namespace prism
                                              const LookupContext &context) const
     {
         PooledVector<Ref<const BoundStatement>> statements;
+        auto &semantic_model = compilation_.get_semantic_model(syntax.tree());
+        auto &binder = SemanticModelInternal::get_binder(semantic_model, syntax);
         for (auto &statement : syntax.statements())
         {
             if (statement.is<EmptyStatementSyntax>())
                 continue;
 
-            statements.emplace_back(bind_statement(statement, return_type, context));
+            statements.emplace_back(binder.bind_statement(statement, return_type, context));
         }
 
         auto interned = lifetime().copy_refs(statements);
@@ -648,7 +650,10 @@ namespace prism
             {
                 return declaration.type().has_value()
                            ? bind_expression(i.value(), variable.type(), context)
-                           : SemanticModelInternal::get_bound_expression(semantic_model, i.value(), *this, context);
+                           : SemanticModelInternal::get_bound_initializer(semantic_model,
+                                                                          syntax.declaration(),
+                                                                          *this,
+                                                                          context);
             });
 
         return lifetime().create<BoundVariableDeclaration>(syntax, variable, initializer.value_ptr());

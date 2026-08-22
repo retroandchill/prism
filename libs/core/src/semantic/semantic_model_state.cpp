@@ -16,6 +16,8 @@ import :semantic.compilation;
 import :syntax.node;
 import :binder.binder_factory;
 import :syntax.expressions;
+import :syntax.declarations;
+import :syntax.clauses;
 
 namespace prism
 {
@@ -32,24 +34,28 @@ namespace prism
         return factory.get_binder(node);
     }
 
-    const BoundExpression &SemanticModelState::get_bound_expression(const ExpressionSyntax &expression,
-                                                                    const LookupContext &context)
+    const BoundExpression &SemanticModelState::get_bound_variable_initializer(
+        const VariableDeclarationSyntax &declaration,
+        const LookupContext &context)
     {
-        auto &binder = get_binder(expression);
-        return get_bound_expression(expression, binder, context);
+        auto &binder = get_binder(declaration);
+        return get_bound_variable_initializer(declaration, binder, context);
     }
 
-    const BoundExpression &SemanticModelState::get_bound_expression(const ExpressionSyntax &expression,
-                                                                    const Binder &binder,
-                                                                    const LookupContext &context)
+    const BoundExpression &SemanticModelState::get_bound_variable_initializer(
+        const VariableDeclarationSyntax &declaration,
+        const Binder &binder,
+        const LookupContext &context)
     {
+        DEBUG_ASSERT(declaration.initializer().has_value());
         Lazy<const BoundExpression &> *bound_expression;
         {
-            std::scoped_lock lock{bound_expression_mutex_};
-            bound_expression = &bound_expressions_[&expression];
+            std::scoped_lock lock{bound_initializers_mutex_};
+            bound_expression = &bound_initializers_[&declaration];
         }
 
-        return bound_expression->get_or_compute([&] -> auto & { return binder.bind_expression(expression, context); });
+        return bound_expression->get_or_compute(
+            [&] -> auto & { return binder.bind_expression(declaration.initializer()->value(), context); });
     }
 
     Optional<const Symbol &> SemanticModelState::get_declared_symbol(const SyntaxNode &node)
