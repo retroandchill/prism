@@ -134,4 +134,22 @@ namespace prism
     {
         using Args = std::tuple<std::string, std::string>;
     };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::no_overload_matching_arg_count>
+    {
+        using Args = std::tuple<std::size_t>;
+    };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::no_overload_for_arg_types>
+    {
+        using Args = std::tuple<std::string>;
+    };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::no_call_operator_defined>
+    {
+        using Args = std::tuple<std::string>;
+    };
 } // namespace prism

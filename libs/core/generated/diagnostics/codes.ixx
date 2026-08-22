@@ -32,6 +32,9 @@ namespace prism
         unary_operator_undefined = 2012,
         cannot_assign_expression = 2013,
         binary_operator_undefined = 2014,
+        no_overload_matching_arg_count = 2015,
+        no_overload_for_arg_types = 2016,
+        no_call_operator_defined = 2017,
     };
 
     export constexpr std::string_view to_string(const DiagnosticCode code)
@@ -80,6 +83,12 @@ namespace prism
                 return "E2013";
             case DiagnosticCode::binary_operator_undefined:
                 return "E2014";
+            case DiagnosticCode::no_overload_matching_arg_count:
+                return "E2015";
+            case DiagnosticCode::no_overload_for_arg_types:
+                return "E2016";
+            case DiagnosticCode::no_call_operator_defined:
+                return "E2017";
             default:
                 throw std::invalid_argument{"Invalid diagnostic code"};
         }

@@ -1637,6 +1637,39 @@
               "type": "String"
             }
           ]
+        },
+        {
+          "name": "NoOverloadMatchingArgCount",
+          "severity": "Error",
+          "format": "No overload that accepts {ArgCount} arguments",
+          "args": [
+            {
+              "name": "ArgCount",
+              "type": "SizeT"
+            }
+          ]
+        },
+        {
+          "name": "NoOverloadForArgTypes",
+          "severity": "Error",
+          "format": "No overload for argument types {ArgTypes}",
+          "args": [
+            {
+              "name": "ArgTypes",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NoCallOperatorDefined",
+          "severity": "Error",
+          "format": "Type {Type} is not callable",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
         }
       ]
     }

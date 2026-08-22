@@ -9,6 +9,7 @@ export module prism.core:symbols.error;
 
 import :symbols.named_type_symbol;
 import :symbols.namespace_symbol;
+import :symbols.function_symbol;
 
 namespace prism
 {
@@ -82,4 +83,41 @@ namespace prism
             return {};
         }
     };
+
+    class ErrorFunctionSymbol final : public FunctionSymbol
+    {
+      public:
+        constexpr ErrorFunctionSymbol(const Name name = KnownName::none,
+                                      const Symbol *containing = nullptr,
+                                      const TypeSymbol &return_type = unnamed_error_type)
+            : FunctionSymbol{name, containing}, return_type_{return_type}
+        {
+        }
+
+        [[nodiscard]] constexpr const ImmutableArray<Location> &locations() const override
+        {
+            static constexpr ImmutableArray<Location> empty{};
+            return empty;
+        }
+
+        [[nodiscard]] constexpr std::span<const SyntaxReference> declaring_syntax_references() const override
+        {
+            return {};
+        }
+
+        [[nodiscard]] constexpr const TypeSymbol &return_type() const override
+        {
+            return return_type_;
+        }
+
+        [[nodiscard]] constexpr SymbolSpan<ParameterSymbol> parameters() const noexcept override
+        {
+            return {};
+        }
+
+      private:
+        const TypeSymbol &return_type_;
+    };
+
+    constexpr ErrorFunctionSymbol unnamed_error_function;
 } // namespace prism

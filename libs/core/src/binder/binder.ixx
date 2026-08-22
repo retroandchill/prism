@@ -18,9 +18,11 @@ import :util.ref;
 import :binder.lookup_result;
 import :semantic.constant_value;
 import :semantic.operations;
+import :semantic.bound.bound_node;
 
 namespace prism
 {
+    class FunctionSymbol;
     class Conversion;
     struct FloatLiteralData;
     struct IntegerLiteralData;
@@ -223,13 +225,11 @@ namespace prism
             const InvocationExpressionSyntax &syntax,
             const LookupContext &context) const;
 
-        [[nodiscard]] const BoundExpression &add_conversion_if_necessary(const ExpressionSyntax &syntax,
-                                                                         const BoundExpression &expression,
+        [[nodiscard]] const BoundExpression &add_conversion_if_necessary(const BoundExpression &expression,
                                                                          const TypeSymbol &type,
                                                                          const LookupContext &context) const;
 
-        [[nodiscard]] const BoundExpression &add_conversion_if_necessary(const ExpressionSyntax &syntax,
-                                                                         const BoundExpression &expression,
+        [[nodiscard]] const BoundExpression &add_conversion_if_necessary(const BoundExpression &expression,
                                                                          const TypeSymbol &type,
                                                                          const Conversion &conversion,
                                                                          const LookupContext &context) const;
@@ -252,6 +252,15 @@ namespace prism
                                                                          UnaryOperation operation,
                                                                          Ref<const BoundExpression> operand,
                                                                          const LookupContext &context) const;
+
+        [[nodiscard]] const FunctionSymbol &resolve_overload(const LookupResult &result,
+                                                             std::span<Ref<const BoundExpression>> arguments,
+                                                             const Location &location,
+                                                             const LookupContext &context) const;
+
+        [[nodiscard]] bool try_match_overload(const FunctionSymbol &overload,
+                                              std::span<Ref<const BoundExpression>> arguments,
+                                              const LookupContext &context) const;
 
         const Compilation &compilation_;
         const Binder *next_ = nullptr;

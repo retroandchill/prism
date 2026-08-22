@@ -250,6 +250,8 @@ public static partial class CppModelMapper
         return name switch
         {
             "Int32" => "std::int32_t",
+            "UInt32" => "std::uint32_t",
+            "SizeT" => "std::size_t",
             "String" => "std::string",
             _ => name.Pascalize(),
         };

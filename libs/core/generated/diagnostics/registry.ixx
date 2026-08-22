@@ -225,6 +225,38 @@ namespace prism::diagnostics
         ""sv,
         {}};
 
+    export constexpr DiagnosticDescriptor no_overload_matching_arg_count{
+        to_string(DiagnosticCode::no_overload_matching_arg_count),
+        "No overload matching arg count"sv,
+        "No overload that accepts {} arguments",
+        "Semantic"sv,
+        DiagnosticSeverity::error,
+        true,
+        ""sv,
+        ""sv,
+        {}};
+
+    export constexpr DiagnosticDescriptor no_overload_for_arg_types{
+        to_string(DiagnosticCode::no_overload_for_arg_types),
+        "No overload for arg types"sv,
+        "No overload for argument types {}",
+        "Semantic"sv,
+        DiagnosticSeverity::error,
+        true,
+        ""sv,
+        ""sv,
+        {}};
+
+    export constexpr DiagnosticDescriptor no_call_operator_defined{to_string(DiagnosticCode::no_call_operator_defined),
+                                                                   "No call operator defined"sv,
+                                                                   "Type {} is not callable",
+                                                                   "Semantic"sv,
+                                                                   DiagnosticSeverity::error,
+                                                                   true,
+                                                                   ""sv,
+                                                                   ""sv,
+                                                                   {}};
+
     export [[nodiscard]] constexpr Optional<const DiagnosticDescriptor &> get_descriptor(const DiagnosticCode code)
     {
         switch (code)
@@ -271,6 +303,12 @@ namespace prism::diagnostics
                 return cannot_assign_expression;
             case DiagnosticCode::binary_operator_undefined:
                 return binary_operator_undefined;
+            case DiagnosticCode::no_overload_matching_arg_count:
+                return no_overload_matching_arg_count;
+            case DiagnosticCode::no_overload_for_arg_types:
+                return no_overload_for_arg_types;
+            case DiagnosticCode::no_call_operator_defined:
+                return no_call_operator_defined;
             default:
                 return std::nullopt;
         }

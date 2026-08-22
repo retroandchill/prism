@@ -179,6 +179,15 @@ namespace prism
 
             return value;
         }
+
+        [[nodiscard]] std::string get_type_names(BoundSpan<BoundExpression> args)
+        {
+            using namespace std::string_view_literals;
+            return args |
+                   std::views::transform([](const BoundExpression &expression)
+                                         { return expression.type().to_display_string(); }) |
+                   std::views::join_with(", "sv) | std::ranges::to<std::string>();
+        };
     } // namespace
 
     LookupResult make_lookup_result(SymbolList symbols, const LookupOptions options)
@@ -329,7 +338,7 @@ namespace prism
 
         if (target_type != nullptr)
         {
-            return add_conversion_if_necessary(syntax, bound, *target_type, context);
+            return add_conversion_if_necessary(bound, *target_type, context);
         }
 
         return bound;
@@ -673,16 +682,8 @@ namespace prism
         auto conversion = conversion_classifier().classify_binary_operand_type(operation, left->type(), right->type());
         if (conversion.has_value())
         {
-            left = add_conversion_if_necessary(syntax.left().as_checked<ExpressionSyntax>(),
-                                               left,
-                                               conversion->type,
-                                               conversion->left_conversion,
-                                               context);
-            right = add_conversion_if_necessary(syntax.right().as_checked<ExpressionSyntax>(),
-                                                right,
-                                                conversion->type,
-                                                conversion->right_conversion,
-                                                context);
+            left = add_conversion_if_necessary(left, conversion->type, conversion->left_conversion, context);
+            right = add_conversion_if_necessary(right, conversion->type, conversion->right_conversion, context);
         }
         else
         {
@@ -759,8 +760,7 @@ namespace prism
                                                                       const TypeSymbol *target_type,
                                                                       const LookupContext &context) const
     {
-        auto &condition = add_conversion_if_necessary(syntax.condition(),
-                                                      bind_expression(syntax.condition(), context),
+        auto &condition = add_conversion_if_necessary(bind_expression(syntax.condition(), context),
                                                       compilation_.get_special_type(SpecialType::bool_),
                                                       context);
 
@@ -769,12 +769,12 @@ namespace prism
 
         if (target_type != nullptr)
         {
-            when_true = add_conversion_if_necessary(syntax.when_true(), when_true, *target_type, context);
-            when_false = add_conversion_if_necessary(syntax.when_false(), when_false, *target_type, context);
+            when_true = add_conversion_if_necessary(when_true, *target_type, context);
+            when_false = add_conversion_if_necessary(when_false, *target_type, context);
         }
         else
         {
-            when_false = add_conversion_if_necessary(syntax.when_false(), when_false, when_true->type(), context);
+            when_false = add_conversion_if_necessary(when_false, when_true->type(), context);
             target_type = &when_true->type();
         }
 
@@ -784,25 +784,48 @@ namespace prism
     const BoundInvocationExpression &Binder::bind_invocation_expression(const InvocationExpressionSyntax &syntax,
                                                                         const LookupContext &context) const
     {
-        throw NotImplementedException{};
+        PooledVector<Ref<const BoundExpression>> arguments;
+        for (auto &argument_syntax : syntax.arguments().arguments())
+        {
+            arguments.emplace_back(bind_expression(argument_syntax.value(), context));
+        }
+
+        if (const auto name_syntax = syntax.callee().as<IdentifierExpressionSyntax>(); name_syntax.has_value())
+        {
+            if (const auto overloads = lookup_from_syntax(name_syntax->value(), LookupOptions::callable, context);
+                overloads.viable())
+            {
+                auto &overload = resolve_overload(overloads, arguments, syntax.callee().location(), context);
+                auto interned = lifetime().copy_refs(arguments);
+                return lifetime().create<BoundInvocationExpression>(syntax, overload, interned);
+            }
+        }
+
+        auto &callee = bind_expression(syntax.callee(), context);
+        arguments.insert(arguments.begin(), callee);
+
+        // TODO: For now we don't have user-defined callable operators, so for now we just emit an error
+        context.report_diagnostic(Diagnostic{
+            DiagnosticInfo::create<DiagnosticCode::no_call_operator_defined>(callee.type().to_display_string()),
+            syntax.callee().location()});
+        return lifetime().create<BoundInvocationExpression>(syntax, unnamed_error_function, arguments);
     }
 
-    const BoundExpression &Binder::add_conversion_if_necessary(const ExpressionSyntax &syntax,
-                                                               const BoundExpression &expression,
+    const BoundExpression &Binder::add_conversion_if_necessary(const BoundExpression &expression,
                                                                const TypeSymbol &type,
                                                                const LookupContext &context) const
     {
         auto &conversions = conversion_classifier();
         const auto conversion = conversions.classify_conversion(expression.type(), type);
-        return add_conversion_if_necessary(syntax, expression, type, conversion, context);
+        return add_conversion_if_necessary(expression, type, conversion, context);
     }
 
-    const BoundExpression &Binder::add_conversion_if_necessary(const ExpressionSyntax &syntax,
-                                                               const BoundExpression &expression,
+    const BoundExpression &Binder::add_conversion_if_necessary(const BoundExpression &expression,
                                                                const TypeSymbol &type,
                                                                const Conversion &conversion,
                                                                const LookupContext &context) const
     {
+        auto &syntax = expression.syntax().as_checked<ExpressionSyntax>();
         if (!conversion.exists())
         {
             context.report_diagnostic(
@@ -996,11 +1019,7 @@ namespace prism
         const auto result_type = conversion_classifier().classify_unary_operand_type(operation, operand->type());
         if (result_type.has_value())
         {
-            operand = add_conversion_if_necessary(operand->syntax().as_checked<ExpressionSyntax>(),
-                                                  operand,
-                                                  result_type->type,
-                                                  result_type->conversion,
-                                                  context);
+            operand = add_conversion_if_necessary(operand, result_type->type, result_type->conversion, context);
         }
         else
         {
@@ -1020,6 +1039,90 @@ namespace prism
                                           { return operand_conversion.type; })
                                .value_or_ref(unnamed_error_type);
         return lifetime().create<BoundUnaryExpression>(syntax, operand, operation, final_type);
+    }
+
+    const FunctionSymbol &Binder::resolve_overload(const LookupResult &result,
+                                                   const std::span<Ref<const BoundExpression>> arguments,
+                                                   const Location &location,
+                                                   const LookupContext &context) const
+    {
+        DEBUG_ASSERT(result.viable());
+        if (result.symbols().size() == 1)
+        {
+            auto &symbol = result.symbol().as_checked<FunctionSymbol>();
+            if (symbol.parameters().size() != arguments.size())
+            {
+                context.report_diagnostic(
+                    Diagnostic{DiagnosticInfo::create<DiagnosticCode::no_overload_matching_arg_count>(arguments.size()),
+                               location});
+                return symbol;
+            }
+
+            if (!try_match_overload(symbol, arguments, context))
+            {
+                context.report_diagnostic(Diagnostic{
+                    DiagnosticInfo::create<DiagnosticCode::no_overload_for_arg_types>(get_type_names(arguments)),
+                    location});
+            }
+
+            return symbol;
+        }
+
+        bool matches_arg_size = false;
+        for (const auto overload : result.symbols())
+        {
+            auto &symbol = overload->as_checked<FunctionSymbol>();
+            if (symbol.parameters().size() == arguments.size())
+            {
+                matches_arg_size = true;
+            }
+
+            if (!try_match_overload(symbol, arguments, context))
+                continue;
+
+            return symbol;
+        }
+
+        if (matches_arg_size)
+        {
+            context.report_diagnostic(
+                Diagnostic{DiagnosticInfo::create<DiagnosticCode::no_overload_matching_arg_count>(arguments.size()),
+                           location});
+        }
+        else
+        {
+            context.report_diagnostic(
+                Diagnostic{DiagnosticInfo::create<DiagnosticCode::no_overload_for_arg_types>(get_type_names(arguments)),
+                           location});
+        }
+
+        return result.symbols().front()->as_checked<FunctionSymbol>();
+    }
+
+    bool Binder::try_match_overload(const FunctionSymbol &overload,
+                                    const std::span<Ref<const BoundExpression>> arguments,
+                                    const LookupContext &context) const
+    {
+        DEBUG_ASSERT(overload.parameters().size() == arguments.size());
+        PooledVector<Conversion> conversions;
+        conversions.reserve(overload.parameters().size());
+
+        auto &classifier = conversion_classifier();
+        for (auto [param, arg] : std::views::zip(overload.parameters(), arguments))
+        {
+            if (auto &conversion = conversions.emplace_back(classifier.classify_conversion(arg->type(), param->type()));
+                !conversion.is_implicit())
+            {
+                return false;
+            }
+        }
+
+        for (auto [param, arg, conversion] : std::views::zip(overload.parameters(), arguments, conversions))
+        {
+            arg = add_conversion_if_necessary(arg, param->type(), conversion, context);
+        }
+
+        return true;
     }
 
 } // namespace prism
