@@ -84,6 +84,7 @@ public class ExportNodesCommand
         var syntaxDir = Path.Combine(OutputPath, "syntax");
         var greenDir = Path.Combine(syntaxDir, "green");
         var diagnosticDir = Path.Combine(OutputPath, "diagnostics");
+        var boundNodesDir = Path.Combine(OutputPath, "semantic", "bound");
 
         var cppModel = resolvedModel.ToCpp();
 
@@ -140,5 +141,8 @@ public class ExportNodesCommand
 
         writer.EmitDiagnosticTraits(cppModel);
         await WriteCodeAsync(writer, Path.Join(diagnosticDir, "traits.ixx"), cancellationToken);
+
+        writer.EmitBoundNodeVisitors(cppModel);
+        await WriteCodeAsync(writer, Path.Join(boundNodesDir, "visit.ixx"), cancellationToken);
     }
 }

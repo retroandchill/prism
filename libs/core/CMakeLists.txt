@@ -220,6 +220,7 @@ set(PRISM_MODULES
         src/binder/function_signature_binder.cpp
         src/semantic/bound/bound_expression.cpp
         src/collections/immutable_string.ixx
+        generated/semantic/bound/visit.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

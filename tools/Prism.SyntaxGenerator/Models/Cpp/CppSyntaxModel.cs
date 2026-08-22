@@ -19,6 +19,8 @@ public class CppSyntaxModel
 
     public ImmutableArray<CppDiagnosticCategory> Diagnostics { get; }
 
+    public ImmutableArray<CppBoundNode> BoundNodes { get; }
+
     internal CppSyntaxModel(
         ImmutableArray<CppKind> kinds,
         ImmutableArray<CppGroup> kindGroups,
@@ -26,7 +28,8 @@ public class CppSyntaxModel
         ImmutableArray<CppToken> tokens,
         ImmutableArray<CppModule> modules,
         ImmutableArray<CppDispatchGroup> dispatchGroups,
-        ImmutableArray<CppDiagnosticCategory> diagnostics
+        ImmutableArray<CppDiagnosticCategory> diagnostics,
+        ImmutableArray<CppBoundNode> boundNodes
     )
     {
         Kinds = kinds;
@@ -36,5 +39,6 @@ public class CppSyntaxModel
         Modules = modules;
         DispatchGroups = dispatchGroups;
         Diagnostics = diagnostics;
+        BoundNodes = boundNodes;
     }
 }

@@ -311,6 +311,18 @@
                 },
                 "explanation": {
                   "type": "string"
+                },
+                "helpLink": {
+                  "type": "string"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
                 }
               },
               "required": [
@@ -326,6 +338,32 @@
           "diagnostics"
         ]
       }
+    },
+    "boundNodes": {
+      "type": "array",
+      "items": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "hasModule": {
+            "type": "boolean"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/properties/boundNodes/items"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
     }
   },
   "required": [
@@ -333,6 +371,7 @@
     "trivia",
     "tokens",
     "modules",
-    "diagnostics"
+    "diagnostics",
+    "boundNodes"
   ]
 }

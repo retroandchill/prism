@@ -312,12 +312,12 @@ namespace prism
         const BoundExpression &when_false_;
     };
 
-    class BoundInvocationExpression final : public BoundExpression
+    class BoundCallExpression final : public BoundExpression
     {
       public:
-        constexpr BoundInvocationExpression(const ExpressionSyntax &syntax,
-                                            const FunctionSymbol &symbol,
-                                            const BoundSpan<BoundExpression> arguments)
+        constexpr BoundCallExpression(const ExpressionSyntax &syntax,
+                                      const FunctionSymbol &symbol,
+                                      const BoundSpan<BoundExpression> arguments)
             : BoundExpression{BoundNodeKind::call_expression, syntax, symbol.return_type()}, symbol_{symbol},
               arguments_{arguments}
         {

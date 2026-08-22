@@ -39,6 +39,7 @@ public sealed class SyntaxModelBuilder
     private readonly Dictionary<SyntaxNode, Dictionary<string, SyntaxProperty>> _nodeProperties =
         new();
     private readonly List<DiagnosticCategory> _diagnostics = [];
+    private readonly List<BoundNode> _boundNodes = [];
 
     public SyntaxModel Build(SyntaxSpecification spec)
     {
@@ -47,6 +48,7 @@ public sealed class SyntaxModelBuilder
         LoadTokens(spec);
         LoadNodes(spec);
         LoadDiagnostics(spec);
+        LoadBoundNodes(spec);
         ResolveInheritance();
         ResolveProperties();
         ResolveProductions();
@@ -61,7 +63,8 @@ public sealed class SyntaxModelBuilder
             [.. _tokens.Values],
             [.. _modules.Values],
             [_topLevelDispatchGroup, _structuredTriviaDispatchGroup, .. _dispatchGroups.Values],
-            [.. _diagnostics]
+            [.. _diagnostics],
+            [.. _boundNodes]
         );
     }
 
@@ -629,6 +632,33 @@ public sealed class SyntaxModelBuilder
         {
             _dispatchGroups[baseClass].AddNode(node);
             baseClass = baseClass.Base;
+        }
+    }
+
+    private void LoadBoundNodes(SyntaxSpecification spec)
+    {
+        foreach (var definition in spec.BoundNodes)
+        {
+            LoadBoundNode(definition, []);
+        }
+    }
+
+    private void LoadBoundNode(BoundNodeDefinition definition, ImmutableArray<BoundNode> parents)
+    {
+        var boundNode = new BoundNode(definition.Name, definition.HasModule);
+        _boundNodes.Add(boundNode);
+
+        foreach (var childDefinition in definition.Children)
+        {
+            LoadBoundNode(childDefinition, parents.Add(boundNode));
+        }
+
+        if (!definition.Children.IsEmpty)
+            return;
+
+        foreach (var parent in parents)
+        {
+            parent.AddLeafNode(boundNode);
         }
     }
 }

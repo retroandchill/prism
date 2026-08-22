@@ -194,6 +194,21 @@ public static partial class CppModelMapper
         [ReferenceHandler] IReferenceHandler refHandler
     );
 
+    [MapProperty(
+        nameof(BoundNode.Name),
+        nameof(CppBoundNode.ClassName),
+        Use = nameof(GetBoundClassName)
+    )]
+    [MapProperty(
+        nameof(BoundNode.Name),
+        nameof(CppBoundNode.LowerName),
+        Use = nameof(GetPublicCppMemberName)
+    )]
+    private static partial CppBoundNode ToCpp(
+        this BoundNode node,
+        [ReferenceHandler] IReferenceHandler refHandler
+    );
+
     [UserMapping(Default = false)]
     private static string GetPublicCppMemberName(string source)
     {
@@ -236,6 +251,12 @@ public static partial class CppModelMapper
             "Node" => CommonNames.SyntaxNodeClass,
             _ => $"{name.Pascalize()}Syntax",
         };
+    }
+
+    [UserMapping(Default = false)]
+    private static string GetBoundClassName(string name)
+    {
+        return $"Bound{name.Pascalize()}";
     }
 
     [UserMapping(Default = false)]

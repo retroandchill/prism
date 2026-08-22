@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.SyntaxGenerator.Models.Cpp;
 using Prism.SyntaxGenerator.Models.Resolved;
@@ -1900,6 +1901,87 @@ public static class CppEmitter
                     writer.Write(arg.CppType);
                 }
                 writer.WriteLine(">;");
+            }
+        }
+        #endregion
+
+        #region Bound Node Visitors
+
+        public void EmitBoundNodeVisitors(CppSyntaxModel model)
+        {
+            writer.WriteLine("module;");
+            writer.WriteLine();
+            writer.WriteLine("#include <libassert/assert-macros.hpp>");
+            writer.WriteLine();
+            writer.WriteLine($"export module {BaseModuleName}:semantic.bound.visit;");
+            writer.WriteLine();
+            foreach (var boundNode in model.BoundNodes)
+            {
+                if (boundNode.HasModule)
+                    writer.WriteLine($"import :semantic.bound.bound_{boundNode.LowerName};");
+            }
+            writer.WriteLine();
+            using var namespaceScope = writer.EnterNamespaceScope(PrismNamespace);
+
+            foreach (
+                var (i, boundNode) in model
+                    .BoundNodes.AsValueEnumerable()
+                    .Where(boundNode => !boundNode.LeafNodes.IsEmpty)
+                    .Index()
+            )
+            {
+                if (i > 0)
+                    writer.WriteLine();
+
+                writer.EmitBoundNodeVisitor(boundNode, false);
+                writer.WriteLine();
+                writer.EmitBoundNodeVisitor(boundNode, true);
+            }
+        }
+
+        private void EmitBoundNodeVisitor(CppBoundNode node, bool isConvertible)
+        {
+            var typenameR = isConvertible ? ", typename R" : "";
+            writer.WriteLine($"template <typename Functor{typenameR}>");
+
+            var returningSuffix = isConvertible ? "Returning" : "";
+            var visitorConcept = isConvertible ? "ConvertibleVisitor" : "ExhaustiveVisitor";
+            var rArg = isConvertible ? ", R" : "";
+            writer.Write(
+                $"concept VisitorFor{node.ClassName}{returningSuffix} = {visitorConcept}<Functor{rArg}"
+            );
+            foreach (var leaf in node.LeafNodes)
+            {
+                writer.Write($", {leaf.ClassName}");
+            }
+            writer.WriteLine(">;");
+            writer.WriteLine();
+
+            typenameR = isConvertible ? "typename R, " : "";
+            returningSuffix = isConvertible ? "Returning<R>" : "";
+            writer.WriteLine(
+                $"template <{typenameR}VisitorFor{node.ClassName}{returningSuffix} Functor>"
+            );
+
+            var returnType = isConvertible ? "R" : "decltype(auto)";
+            writer.WriteLine(
+                $"constexpr {returnType} visit(const {node.ClassName}& node, Functor&& functor)"
+            );
+            using var blockScope = writer.EnterBlockScope();
+            writer.WriteLine("switch (node.kind())");
+            using var switchScope = writer.EnterBlockScope();
+            foreach (var leaf in node.LeafNodes)
+            {
+                writer.WriteLine($"case BoundNodeKind::{leaf.LowerName}:");
+                using var caseScope = writer.EnterIndentationScope();
+                writer.WriteLine(
+                    $"return std::invoke(std::forward<Functor>(functor), static_cast<const {leaf.ClassName}&>(node));"
+                );
+            }
+            writer.WriteLine("default:");
+            using (writer.EnterIndentationScope())
+            {
+                writer.WriteLine("UNREACHABLE(\"Invalid node type passed into visit\");");
             }
         }
         #endregion

@@ -24,6 +24,8 @@ public sealed class SyntaxModel
 
     public ImmutableArray<DiagnosticCategory> Diagnostics { get; }
 
+    public ImmutableArray<BoundNode> BoundNodes { get; }
+
     internal SyntaxModel(
         ImmutableArray<SyntaxKind> kinds,
         ImmutableArray<SyntaxGroup> kindGroups,
@@ -31,7 +33,8 @@ public sealed class SyntaxModel
         ImmutableArray<SyntaxToken> tokens,
         ImmutableArray<SyntaxModule> modules,
         ImmutableArray<SyntaxDispatchGroup> dispatchGroups,
-        ImmutableArray<DiagnosticCategory> diagnostics
+        ImmutableArray<DiagnosticCategory> diagnostics,
+        ImmutableArray<BoundNode> boundNodes
     )
     {
         Kinds = kinds;
@@ -41,5 +44,6 @@ public sealed class SyntaxModel
         Modules = modules;
         DispatchGroups = dispatchGroups;
         Diagnostics = diagnostics;
+        BoundNodes = boundNodes;
     }
 }

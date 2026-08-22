@@ -1694,5 +1694,64 @@
         }
       ]
     }
+  ],
+  "boundNodes": [
+    {
+      "name": "Node",
+      "hasModule": true,
+      "children": [
+        {
+          "name": "Statement",
+          "hasModule": true,
+          "children": [
+            {
+              "name": "Block"
+            },
+            {
+              "name": "VariableDeclaration"
+            },
+            {
+              "name": "ExpressionStatement"
+            },
+            {
+              "name": "ReturnStatement"
+            }
+          ]
+        },
+        {
+          "name": "Expression",
+          "hasModule": true,
+          "children": [
+            {
+              "name": "BadExpression"
+            },
+            {
+              "name": "Literal"
+            },
+            {
+              "name": "VariableAccess"
+            },
+            {
+              "name": "UnaryExpression"
+            },
+            {
+              "name": "BinaryExpression"
+            },
+            {
+              "name": "AssignmentExpression"
+            },
+            {
+              "name": "ConditionalExpression"
+            },
+            {
+              "name": "CallExpression"
+            },
+            {
+              "name": "ConversionExpression"
+            }
+          ]
+        }
+      ]
+    }
   ]
 }

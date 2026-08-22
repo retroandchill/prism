@@ -871,7 +871,7 @@ namespace prism
             {
                 auto &overload = resolve_overload(overloads, arguments, syntax.callee().location(), context);
                 auto interned = lifetime().copy_refs(arguments);
-                return lifetime().create<BoundInvocationExpression>(syntax, overload, interned);
+                return lifetime().create<BoundCallExpression>(syntax, overload, interned);
             }
         }
 
@@ -882,7 +882,7 @@ namespace prism
         context.report_diagnostic(Diagnostic{
             DiagnosticInfo::create<DiagnosticCode::no_call_operator_defined>(callee.type().to_display_string()),
             syntax.callee().location()});
-        return lifetime().create<BoundInvocationExpression>(syntax, unnamed_error_function, arguments);
+        return lifetime().create<BoundCallExpression>(syntax, unnamed_error_function, arguments);
     }
 
     const BoundExpression &Binder::add_conversion_if_necessary(const BoundExpression &expression,
