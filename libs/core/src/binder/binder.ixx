@@ -240,11 +240,13 @@ namespace prism
         [[nodiscard]] ConstantValue evaluate_numeric_expression(const IntegerLiteralData &data,
                                                                 const TypeSymbol *return_type,
                                                                 const Location &location,
-                                                                const LookupContext &context) const;
+                                                                const LookupContext &context,
+                                                                bool is_negative = false) const;
         [[nodiscard]] static ConstantValue evaluate_numeric_expression(const FloatLiteralData &data,
                                                                        const TypeSymbol *return_type,
                                                                        const Location &location,
-                                                                       const LookupContext &context);
+                                                                       const LookupContext &context,
+                                                                       bool is_negative = false);
 
         [[nodiscard]] const BoundUnaryExpression &create_unary_operation(const ExpressionSyntax &syntax,
                                                                          UnaryOperation operation,

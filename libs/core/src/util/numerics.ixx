@@ -174,7 +174,7 @@ namespace prism
     }
 
     template <std::floating_point T>
-    [[nodiscard]] T parse_decimal_float(const BigInteger &significand, std::int32_t exponent10)
+    [[nodiscard]] T parse_decimal_float(const BigInteger &significand, std::int32_t exponent10, bool is_negative)
     {
         DEBUG_ASSERT(significand >= 0);
 
@@ -208,6 +208,6 @@ namespace prism
         DEBUG_ASSERT(ptr == text.data() + text.size());
         DEBUG_ASSERT(std::isfinite(result));
 
-        return result;
+        return is_negative ? -result : result;
     }
 } // namespace prism

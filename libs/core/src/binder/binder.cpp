@@ -26,7 +26,7 @@ namespace prism
     namespace
     {
 
-        SpecialType to_special_type(const SyntaxKind kind) noexcept
+        [[nodiscard]] SpecialType to_special_type(const SyntaxKind kind) noexcept
         {
             switch (kind)
             {
@@ -75,7 +75,7 @@ namespace prism
             }
         }
 
-        UnaryOperation to_prefix_operation(const SyntaxKind kind)
+        [[nodiscard]] UnaryOperation to_prefix_operation(const SyntaxKind kind)
         {
             switch (kind)
             {
@@ -96,7 +96,7 @@ namespace prism
             }
         }
 
-        UnaryOperation to_postfix_operation(const SyntaxKind kind)
+        [[nodiscard]] UnaryOperation to_postfix_operation(const SyntaxKind kind)
         {
             switch (kind)
             {
@@ -109,7 +109,7 @@ namespace prism
             }
         }
 
-        BinaryOperation to_binary_operation(const SyntaxKind kind)
+        [[nodiscard]] BinaryOperation to_binary_operation(const SyntaxKind kind)
         {
             switch (kind)
             {
@@ -158,6 +158,26 @@ namespace prism
                 default:
                     throw std::invalid_argument{"invalid binary operation"};
             }
+        }
+
+        [[nodiscard]] bool can_be_signed(const IntegerSuffix suffix)
+        {
+            return suffix != IntegerSuffix::u8 && suffix != IntegerSuffix::u16 && suffix != IntegerSuffix::u32 &&
+                   suffix != IntegerSuffix::u64 && suffix != IntegerSuffix::u128 && suffix != IntegerSuffix::uz;
+        }
+
+        void throw_if_negative(const bool is_negative)
+        {
+            if (is_negative)
+                throw InvalidStateException{"invalid unary operation"};
+        }
+
+        [[nodiscard]] BigInteger maybe_negate(BigInteger value, bool is_negative)
+        {
+            if (is_negative)
+                return -value;
+
+            return value;
         }
     } // namespace
 
@@ -692,23 +712,37 @@ namespace prism
                                                           const TypeSymbol *return_type,
                                                           const LookupContext &context) const
     {
-        auto &operand = bind_expression(syntax.operand(), return_type, context);
         const auto op = to_prefix_operation(syntax.op().kind());
 
         // Negation has a special treatment where it collapses the value into a literal provided the value is a signed
-        // integer or floating-point value.
+        // integer or floating-point value. We use a special path here because literals are allowed to be in a slightly
+        // different range for negative integers.
         if (op == UnaryOperation::negation)
         {
-            if (const auto literal = operand.as<BoundLiteral>();
-                literal.has_value() && (literal->value().is_signed_integer() || literal->value().is_float()))
+            if (const auto literal = syntax.operand().as<LiteralExpressionSyntax>(); literal.has_value())
             {
-                auto negated = literal->value().negate(compilation().target_settings());
-                return lifetime().create<BoundLiteral>(syntax,
-                                                       negated,
-                                                       compilation().get_special_type(to_special_type(negated.kind())));
+                if (const auto int_data = literal->value().try_get_value<IntegerLiteralData>();
+                    int_data.has_value() && can_be_signed(int_data->suffix))
+                {
+                    auto negated =
+                        evaluate_numeric_expression(*int_data, return_type, syntax.location(), context, true);
+                    return lifetime().create<BoundLiteral>(syntax,
+                                                           negated,
+                                                           compilation().get_special_type(negated.special_type()));
+                }
+
+                if (const auto float_data = literal->value().try_get_value<FloatLiteralData>(); float_data.has_value())
+                {
+                    auto negated =
+                        evaluate_numeric_expression(*float_data, return_type, syntax.location(), context, true);
+                    return lifetime().create<BoundLiteral>(syntax,
+                                                           negated,
+                                                           compilation().get_special_type(negated.special_type()));
+                }
             }
         }
 
+        auto &operand = bind_expression(syntax.operand(), return_type, context);
         return create_unary_operation(syntax, op, operand, context);
     }
 
@@ -839,7 +873,8 @@ namespace prism
     ConstantValue Binder::evaluate_numeric_expression(const IntegerLiteralData &data,
                                                       const TypeSymbol *return_type,
                                                       const Location &location,
-                                                      const LookupContext &context) const
+                                                      const LookupContext &context,
+                                                      bool is_negative) const
     {
         auto target_type = get_integer_target_kind(data, return_type);
 
@@ -853,28 +888,34 @@ namespace prism
         switch (target_type)
         {
             case IntegerTargetKind::i8:
-                return ConstantValue::i8(data.value.convert_to<std::int8_t>());
+                return ConstantValue::i8(maybe_negate(data.value, is_negative).convert_to<std::int8_t>());
             case IntegerTargetKind::i16:
-                return ConstantValue::i16(data.value.convert_to<std::int16_t>());
+                return ConstantValue::i16(maybe_negate(data.value, is_negative).convert_to<std::int16_t>());
             case IntegerTargetKind::i32:
-                return ConstantValue::i32(data.value.convert_to<std::int32_t>());
+                return ConstantValue::i32(maybe_negate(data.value, is_negative).convert_to<std::int32_t>());
             case IntegerTargetKind::i64:
-                return ConstantValue::i64(data.value.convert_to<std::int64_t>());
+                return ConstantValue::i64(maybe_negate(data.value, is_negative).convert_to<std::int64_t>());
             case IntegerTargetKind::i128:
-                return ConstantValue::i128(data.value.convert_to<Int128>());
+                return ConstantValue::i128(maybe_negate(data.value, is_negative).convert_to<Int128>());
             case IntegerTargetKind::isize:
-                return ConstantValue::isize(data.value.convert_to<std::int64_t>());
+                return ConstantValue::isize(maybe_negate(data.value, is_negative).convert_to<std::int64_t>());
             case IntegerTargetKind::u8:
+                throw_if_negative(is_negative);
                 return ConstantValue::u8(data.value.convert_to<std::uint8_t>());
             case IntegerTargetKind::u16:
+                throw_if_negative(is_negative);
                 return ConstantValue::u16(data.value.convert_to<std::uint16_t>());
             case IntegerTargetKind::u32:
+                throw_if_negative(is_negative);
                 return ConstantValue::u32(data.value.convert_to<std::uint32_t>());
             case IntegerTargetKind::u64:
+                throw_if_negative(is_negative);
                 return ConstantValue::u64(data.value.convert_to<std::uint64_t>());
             case IntegerTargetKind::u128:
+                throw_if_negative(is_negative);
                 return ConstantValue::u128(data.value.convert_to<UInt128>());
             case IntegerTargetKind::usize:
+                throw_if_negative(is_negative);
                 return ConstantValue::usize(data.value.convert_to<std::uint64_t>());
             case IntegerTargetKind::f32:
                 return ConstantValue::usize(data.value.convert_to<float>());
@@ -882,22 +923,23 @@ namespace prism
                 return ConstantValue::usize(data.value.convert_to<double>());
             case IntegerTargetKind::best_fit:
                 {
-                    if (fits_in<std::int32_t>(data.value))
-                        return ConstantValue::i32(data.value.convert_to<std::int32_t>());
+                    auto value = maybe_negate(data.value, is_negative);
+                    if (fits_in<std::int32_t>(value))
+                        return ConstantValue::i32(value.convert_to<std::int32_t>());
 
-                    if (fits_in<std::uint32_t>(data.value))
-                        return ConstantValue::u32(data.value.convert_to<std::uint32_t>());
+                    if (fits_in<std::uint32_t>(value))
+                        return ConstantValue::u32(value.convert_to<std::uint32_t>());
 
-                    if (fits_in<std::int64_t>(data.value))
-                        return ConstantValue::i64(data.value.convert_to<std::int64_t>());
+                    if (fits_in<std::int64_t>(value))
+                        return ConstantValue::i64(value.convert_to<std::int64_t>());
 
-                    if (fits_in<std::uint64_t>(data.value))
-                        return ConstantValue::u64(data.value.convert_to<std::uint64_t>());
+                    if (fits_in<std::uint64_t>(value))
+                        return ConstantValue::u64(value.convert_to<std::uint64_t>());
 
-                    if (fits_in<Int128>(data.value))
-                        return ConstantValue::i128(data.value.convert_to<Int128>());
+                    if (fits_in<Int128>(value))
+                        return ConstantValue::i128(value.convert_to<Int128>());
 
-                    return ConstantValue::u128(data.value.convert_to<UInt128>());
+                    return ConstantValue::u128(value.convert_to<UInt128>());
                 }
             default:
                 UNREACHABLE("Invalid input");
@@ -907,7 +949,8 @@ namespace prism
     ConstantValue Binder::evaluate_numeric_expression(const FloatLiteralData &data,
                                                       const TypeSymbol *return_type,
                                                       const Location &location,
-                                                      const LookupContext &context)
+                                                      const LookupContext &context,
+                                                      bool is_negative)
     {
         SpecialType target{};
         switch (data.suffix)
@@ -931,7 +974,7 @@ namespace prism
                         Diagnostic{DiagnosticInfo::create<DiagnosticCode::literal_value_too_big>(), location});
                 }
 
-                return ConstantValue::f32(parse_decimal_float<float>(data.significand, data.exponent10));
+                return ConstantValue::f32(parse_decimal_float<float>(data.significand, data.exponent10, is_negative));
 
             case SpecialType::f64:
                 if (!fits_in_finite_float_magnitude<double>(data.significand, data.exponent10))
@@ -939,7 +982,7 @@ namespace prism
                     context.report_diagnostic(
                         Diagnostic{DiagnosticInfo::create<DiagnosticCode::literal_value_too_big>(), location});
                 }
-                return ConstantValue::f64(parse_decimal_float<double>(data.significand, data.exponent10));
+                return ConstantValue::f64(parse_decimal_float<double>(data.significand, data.exponent10, is_negative));
 
             default:
                 UNREACHABLE("Invalid input");
