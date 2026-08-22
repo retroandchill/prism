@@ -64,7 +64,7 @@ namespace prism
             } -> std::convertible_to<bool>;
         });
 
-    class BoundNode : public IntrusiveRefCounted
+    class BoundNode : NonCopyable
     {
       protected:
         constexpr BoundNode(const BoundNodeKind kind, const SyntaxNode &syntax_node)
@@ -72,9 +72,9 @@ namespace prism
         {
         }
 
-      public:
-        virtual ~BoundNode() = default;
+        ~BoundNode() = default;
 
+      public:
         [[nodiscard]] constexpr BoundNodeKind kind() const noexcept
         {
             return kind_;

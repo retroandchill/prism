@@ -9,9 +9,6 @@ export module prism.core:semantic.semantic_model_state;
 import :util.noncopyable;
 import std;
 import :util.lazy;
-import :semantic.bound.bound_node;
-import :semantic.bound.bound_expression;
-import :semantic.bound.bound_statement;
 
 namespace prism
 {
@@ -43,7 +40,7 @@ namespace prism
         const SyntaxTree &tree_;
 
         std::mutex bound_expression_mutex_;
-        std::unordered_map<const ExpressionSyntax *, Lazy<BoundPtr<BoundExpression>>> bound_expressions_;
+        std::unordered_map<const ExpressionSyntax *, Lazy<const BoundExpression &>> bound_expressions_;
 
         std::shared_mutex symbol_mutex_;
         std::unordered_map<const SyntaxNode *, const Symbol *> symbols_;

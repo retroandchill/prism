@@ -28,6 +28,8 @@ namespace prism
         {
         }
 
+        ~BoundExpression() noexcept = default;
+
       public:
         [[nodiscard]] constexpr const TypeSymbol &type() const noexcept
         {
@@ -76,8 +78,8 @@ namespace prism
     class BoundLiteral final : public BoundExpression
     {
       public:
-        constexpr BoundLiteral(const ExpressionSyntax &syntax, ConstantValue value, const TypeSymbol &type)
-            : BoundExpression{BoundNodeKind::literal, syntax, type}, value_{std::move(value)}
+        constexpr BoundLiteral(const ExpressionSyntax &syntax, const ConstantValue &value, const TypeSymbol &type)
+            : BoundExpression{BoundNodeKind::literal, syntax, type}, value_{value}
         {
         }
 
@@ -188,17 +190,16 @@ namespace prism
     {
       public:
         constexpr BoundUnaryExpression(const ExpressionSyntax &syntax,
-                                       BoundPtr<BoundExpression> operand,
+                                       const BoundExpression &operand,
                                        const UnaryOperation operation,
                                        const TypeSymbol &type)
-            : BoundExpression{BoundNodeKind::unary_expression, syntax, type}, operand_{std::move(operand)},
-              operation_{operation}
+            : BoundExpression{BoundNodeKind::unary_expression, syntax, type}, operand_{operand}, operation_{operation}
         {
         }
 
         [[nodiscard]] constexpr const BoundExpression &operand() const noexcept
         {
-            return *operand_;
+            return operand_;
         }
 
         [[nodiscard]] constexpr UnaryOperation operation() const noexcept
@@ -212,7 +213,7 @@ namespace prism
         }
 
       private:
-        BoundPtr<BoundExpression> operand_;
+        const BoundExpression &operand_;
         UnaryOperation operation_{};
     };
 
@@ -220,23 +221,23 @@ namespace prism
     {
       public:
         constexpr BoundBinaryExpression(const ExpressionSyntax &syntax,
-                                        BoundPtr<BoundExpression> left,
-                                        BoundPtr<BoundExpression> right,
+                                        const BoundExpression &left,
+                                        const BoundExpression &right,
                                         const BinaryOperation operation,
                                         const TypeSymbol &type)
-            : BoundExpression{BoundNodeKind::binary_expression, syntax, type}, left_{std::move(left)},
-              right_{std::move(right)}, operation_{operation}
+            : BoundExpression{BoundNodeKind::binary_expression, syntax, type}, left_{left}, right_{right},
+              operation_{operation}
         {
         }
 
         [[nodiscard]] constexpr const BoundExpression &left() const noexcept
         {
-            return *left_;
+            return left_;
         }
 
         [[nodiscard]] constexpr const BoundExpression &right() const noexcept
         {
-            return *right_;
+            return right_;
         }
 
         [[nodiscard]] constexpr BinaryOperation operation() const noexcept
@@ -250,8 +251,8 @@ namespace prism
         }
 
       private:
-        BoundPtr<BoundExpression> left_{};
-        BoundPtr<BoundExpression> right_{};
+        const BoundExpression &left_;
+        const BoundExpression &right_;
         BinaryOperation operation_{};
     };
 
@@ -259,23 +260,23 @@ namespace prism
     {
       public:
         constexpr BoundAssignmentExpression(const ExpressionSyntax &syntax,
-                                            BoundPtr<BoundExpression> left,
-                                            BoundPtr<BoundExpression> right,
+                                            const BoundExpression &left,
+                                            const BoundExpression &right,
                                             const AssignmentOperation operation,
                                             const TypeSymbol &type)
-            : BoundExpression{BoundNodeKind::assignment_expression, syntax, type}, left_{std::move(left)},
-              right_{std::move(right)}, operation_{operation}
+            : BoundExpression{BoundNodeKind::assignment_expression, syntax, type}, left_{left}, right_{right},
+              operation_{operation}
         {
         }
 
         [[nodiscard]] constexpr const BoundExpression &left() const noexcept
         {
-            return *left_;
+            return left_;
         }
 
         [[nodiscard]] constexpr const BoundExpression &right() const noexcept
         {
-            return *right_;
+            return right_;
         }
 
         [[nodiscard]] constexpr AssignmentOperation operation() const noexcept
@@ -289,8 +290,8 @@ namespace prism
         }
 
       private:
-        BoundPtr<BoundExpression> left_;
-        BoundPtr<BoundExpression> right_;
+        const BoundExpression &left_;
+        const BoundExpression &right_;
         AssignmentOperation operation_{};
     };
 
@@ -298,28 +299,28 @@ namespace prism
     {
       public:
         constexpr BoundConditionalExpression(const ExpressionSyntax &syntax,
-                                             BoundPtr<BoundExpression> condition,
-                                             BoundPtr<BoundExpression> when_true,
-                                             BoundPtr<BoundExpression> when_false,
+                                             const BoundExpression &condition,
+                                             const BoundExpression &when_true,
+                                             const BoundExpression &when_false,
                                              const TypeSymbol &type)
-            : BoundExpression{BoundNodeKind::conditional_expression, syntax, type}, condition_{std::move(condition)},
-              when_true_{std::move(when_true)}, when_false_{std::move(when_false)}
+            : BoundExpression{BoundNodeKind::conditional_expression, syntax, type}, condition_{condition},
+              when_true_{when_true}, when_false_{when_false}
         {
         }
 
         [[nodiscard]] constexpr const BoundExpression &condition() const noexcept
         {
-            return *condition_;
+            return condition_;
         }
 
         [[nodiscard]] constexpr const BoundExpression &when_true() const noexcept
         {
-            return *when_true_;
+            return when_true_;
         }
 
         [[nodiscard]] constexpr const BoundExpression &when_false() const noexcept
         {
-            return *when_false_;
+            return when_false_;
         }
 
         [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
@@ -328,9 +329,9 @@ namespace prism
         }
 
       private:
-        BoundPtr<BoundExpression> condition_;
-        BoundPtr<BoundExpression> when_true_;
-        BoundPtr<BoundExpression> when_false_;
+        const BoundExpression &condition_;
+        const BoundExpression &when_true_;
+        const BoundExpression &when_false_;
     };
 
     class BoundInvocationExpression final : public BoundExpression
@@ -338,9 +339,9 @@ namespace prism
       public:
         constexpr BoundInvocationExpression(const ExpressionSyntax &syntax,
                                             const FunctionSymbol &symbol,
-                                            BoundList<BoundExpression> arguments)
+                                            const BoundSpan<BoundExpression> arguments)
             : BoundExpression{BoundNodeKind::call_expression, syntax, symbol.return_type()}, symbol_{symbol},
-              arguments_{std::move(arguments)}
+              arguments_{arguments}
         {
         }
 
@@ -349,7 +350,7 @@ namespace prism
             return symbol_;
         }
 
-        [[nodiscard]] constexpr const BoundList<BoundExpression> &arguments() const noexcept
+        [[nodiscard]] constexpr BoundSpan<BoundExpression> arguments() const noexcept
         {
             return arguments_;
         }
@@ -361,24 +362,24 @@ namespace prism
 
       private:
         const FunctionSymbol &symbol_;
-        BoundList<BoundExpression> arguments_{};
+        BoundSpan<BoundExpression> arguments_{};
     };
 
     class BoundConversionExpression final : public BoundExpression
     {
       public:
         constexpr BoundConversionExpression(const ExpressionSyntax &syntax,
-                                            BoundPtr<BoundExpression> operand,
+                                            const BoundExpression &operand,
                                             const TypeSymbol &type,
                                             const Conversion conversion)
-            : BoundExpression{BoundNodeKind::conversion_expression, syntax, type}, operand_{std::move(operand)},
+            : BoundExpression{BoundNodeKind::conversion_expression, syntax, type}, operand_{operand},
               conversion_{conversion}
         {
         }
 
         [[nodiscard]] constexpr const BoundExpression &operand() const noexcept
         {
-            return *operand_;
+            return operand_;
         }
 
         [[nodiscard]] constexpr Conversion conversion() const noexcept
@@ -392,7 +393,7 @@ namespace prism
         }
 
       private:
-        BoundPtr<BoundExpression> operand_;
+        const BoundExpression &operand_;
         Conversion conversion_{};
     };
 } // namespace prism

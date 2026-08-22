@@ -43,13 +43,13 @@ namespace prism
                                                                     const Binder &binder,
                                                                     const LookupContext &context)
     {
-        Lazy<BoundPtr<BoundExpression>> *bound_expression;
+        Lazy<const BoundExpression &> *bound_expression;
         {
             std::scoped_lock lock{bound_expression_mutex_};
             bound_expression = &bound_expressions_[&expression];
         }
 
-        return *bound_expression->get_or_compute([&] { return binder.bind_expression(expression, context); });
+        return bound_expression->get_or_compute([&] -> auto & { return binder.bind_expression(expression, context); });
     }
 
     Optional<const Symbol &> SemanticModelState::get_declared_symbol(const SyntaxNode &node)

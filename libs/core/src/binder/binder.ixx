@@ -18,9 +18,6 @@ import :util.ref;
 import :binder.lookup_result;
 import :semantic.constant_value;
 import :semantic.operations;
-import :semantic.bound.bound_node;
-import :semantic.bound.bound_expression;
-import :semantic.bound.bound_statement;
 
 namespace prism
 {
@@ -36,14 +33,25 @@ namespace prism
     class AssignmentExpressionSyntax;
     class BinaryExpressionSyntax;
     class IdentifierExpressionSyntax;
+    class BoundInvocationExpression;
+    class BoundConditionalExpression;
+    class BoundUnaryExpression;
+    class BoundAssignmentExpression;
+    class BoundBinaryExpression;
     class StatementSyntax;
     class ExpressionStatementSyntax;
     class BlockSyntax;
     class ReturnStatementSyntax;
+    class BoundReturnStatement;
+    class BoundExpressionStatement;
     class VariableDeclarationStatementSyntax;
+    class BoundVariableDeclaration;
+    class BoundBlock;
     class UsingDirectiveSyntax;
+    class BoundStatement;
     class TypeSyntax;
     class ExpressionSyntax;
+    class BoundExpression;
     class QualifiedNameSyntax;
     class SimpleNameSyntax;
     class NameSyntax;
@@ -118,27 +126,27 @@ namespace prism
 
         [[nodiscard]] virtual VariablesSpan get_declared_local_variables_for_scope(const SyntaxNode &designator) const;
 
-        [[nodiscard]] BoundPtr<BoundStatement> bind_statement(const StatementSyntax &syntax,
-                                                              const TypeSymbol &return_type,
-                                                              const LookupContext &context) const;
+        [[nodiscard]] const BoundStatement &bind_statement(const StatementSyntax &syntax,
+                                                           const TypeSymbol &return_type,
+                                                           const LookupContext &context) const;
 
-        [[nodiscard]] inline BoundPtr<BoundExpression> bind_expression(const ExpressionSyntax &syntax,
-                                                                       const LookupContext &context) const
+        [[nodiscard]] inline const BoundExpression &bind_expression(const ExpressionSyntax &syntax,
+                                                                    const LookupContext &context) const
         {
             return bind_expression(syntax, nullptr, context);
         }
 
-        [[nodiscard]] inline BoundPtr<BoundExpression> bind_expression(const ExpressionSyntax &node,
-                                                                       const TypeSymbol &target_type,
-                                                                       const LookupContext &context) const
+        [[nodiscard]] inline const BoundExpression &bind_expression(const ExpressionSyntax &node,
+                                                                    const TypeSymbol &target_type,
+                                                                    const LookupContext &context) const
         {
             return bind_expression(node, &target_type, context);
         }
 
       private:
-        [[nodiscard]] BoundPtr<BoundExpression> bind_expression(const ExpressionSyntax &syntax,
-                                                                const TypeSymbol *target_type,
-                                                                const LookupContext &context) const;
+        [[nodiscard]] const BoundExpression &bind_expression(const ExpressionSyntax &syntax,
+                                                             const TypeSymbol *target_type,
+                                                             const LookupContext &context) const;
 
       public:
         [[nodiscard]] const TypeSymbol &resolve_type(const TypeSyntax &syntax, const LookupContext &context) const;
@@ -181,52 +189,50 @@ namespace prism
                                                      const NameSyntax &syntax,
                                                      const LookupContext &context) const;
 
-        [[nodiscard]] BoundPtr<BoundBlock> bind_block(const BlockSyntax &syntax,
-                                                      const TypeSymbol &return_type,
-                                                      const LookupContext &context) const;
-        [[nodiscard]] BoundPtr<BoundVariableDeclaration> bind_variable_declaration_statement(
+        [[nodiscard]] const BoundBlock &bind_block(const BlockSyntax &syntax,
+                                                   const TypeSymbol &return_type,
+                                                   const LookupContext &context) const;
+        [[nodiscard]] const BoundVariableDeclaration &bind_variable_declaration_statement(
             const VariableDeclarationStatementSyntax &syntax,
             const LookupContext &context) const;
-        [[nodiscard]] BoundPtr<BoundExpressionStatement> bind_expression_statement(
-            const ExpressionStatementSyntax &syntax,
-            const LookupContext &context) const;
-        [[nodiscard]] BoundPtr<BoundReturnStatement> bind_return_statement(const ReturnStatementSyntax &syntax,
-                                                                           const TypeSymbol &return_type,
-                                                                           const LookupContext &context) const;
+        [[nodiscard]] const BoundExpressionStatement &bind_expression_statement(const ExpressionStatementSyntax &syntax,
+                                                                                const LookupContext &context) const;
+        [[nodiscard]] const BoundReturnStatement &bind_return_statement(const ReturnStatementSyntax &syntax,
+                                                                        const TypeSymbol &return_type,
+                                                                        const LookupContext &context) const;
 
-        [[nodiscard]] BoundPtr<BoundLiteral> bind_literal_expression(const LiteralExpressionSyntax &syntax,
-                                                                     const TypeSymbol *return_type,
-                                                                     const LookupContext &context) const;
-        [[nodiscard]] BoundPtr<BoundExpression> bind_identifier_expression(const IdentifierExpressionSyntax &syntax,
-                                                                           const LookupContext &context) const;
-        [[nodiscard]] BoundPtr<BoundBinaryExpression> bind_binary_expression(const BinaryExpressionSyntax &syntax,
-                                                                             const LookupContext &context) const;
-        [[nodiscard]] BoundPtr<BoundAssignmentExpression> bind_assignment_expression(
+        [[nodiscard]] const BoundLiteral &bind_literal_expression(const LiteralExpressionSyntax &syntax,
+                                                                  const TypeSymbol *return_type,
+                                                                  const LookupContext &context) const;
+        [[nodiscard]] const BoundExpression &bind_identifier_expression(const IdentifierExpressionSyntax &syntax,
+                                                                        const LookupContext &context) const;
+        [[nodiscard]] const BoundBinaryExpression &bind_binary_expression(const BinaryExpressionSyntax &syntax,
+                                                                          const LookupContext &context) const;
+        [[nodiscard]] const BoundAssignmentExpression &bind_assignment_expression(
             const AssignmentExpressionSyntax &syntax,
             const LookupContext &context) const;
-        [[nodiscard]] BoundPtr<BoundExpression> bind_prefix_expression(const PrefixExpressionSyntax &syntax,
-                                                                       const TypeSymbol *return_type,
-                                                                       const LookupContext &context) const;
-        [[nodiscard]] BoundPtr<BoundUnaryExpression> bind_postfix_expression(const PostfixExpressionSyntax &syntax,
-                                                                             const LookupContext &context) const;
-        [[nodiscard]] BoundPtr<BoundConditionalExpression> bind_ternary_expression(
-            const TernaryExpressionSyntax &syntax,
-            const TypeSymbol *target_type,
-            const LookupContext &context) const;
-        [[nodiscard]] BoundPtr<BoundInvocationExpression> bind_invocation_expression(
+        [[nodiscard]] const BoundExpression &bind_prefix_expression(const PrefixExpressionSyntax &syntax,
+                                                                    const TypeSymbol *return_type,
+                                                                    const LookupContext &context) const;
+        [[nodiscard]] const BoundUnaryExpression &bind_postfix_expression(const PostfixExpressionSyntax &syntax,
+                                                                          const LookupContext &context) const;
+        [[nodiscard]] const BoundConditionalExpression &bind_ternary_expression(const TernaryExpressionSyntax &syntax,
+                                                                                const TypeSymbol *target_type,
+                                                                                const LookupContext &context) const;
+        [[nodiscard]] const BoundInvocationExpression &bind_invocation_expression(
             const InvocationExpressionSyntax &syntax,
             const LookupContext &context) const;
 
-        [[nodiscard]] BoundPtr<BoundExpression> add_conversion_if_necessary(const ExpressionSyntax &syntax,
-                                                                            BoundPtr<BoundExpression> expression,
-                                                                            const TypeSymbol &type,
-                                                                            const LookupContext &context) const;
+        [[nodiscard]] const BoundExpression &add_conversion_if_necessary(const ExpressionSyntax &syntax,
+                                                                         const BoundExpression &expression,
+                                                                         const TypeSymbol &type,
+                                                                         const LookupContext &context) const;
 
-        [[nodiscard]] static BoundPtr<BoundExpression> add_conversion_if_necessary(const ExpressionSyntax &syntax,
-                                                                                   BoundPtr<BoundExpression> expression,
-                                                                                   const TypeSymbol &type,
-                                                                                   const Conversion &conversion,
-                                                                                   const LookupContext &context);
+        [[nodiscard]] const BoundExpression &add_conversion_if_necessary(const ExpressionSyntax &syntax,
+                                                                         const BoundExpression &expression,
+                                                                         const TypeSymbol &type,
+                                                                         const Conversion &conversion,
+                                                                         const LookupContext &context) const;
 
         [[nodiscard]] ConstantValue evaluate_constant_expression(const SyntaxToken &token,
                                                                  const TypeSymbol *return_type,
@@ -240,10 +246,10 @@ namespace prism
                                                                        const Location &location,
                                                                        const LookupContext &context);
 
-        [[nodiscard]] BoundPtr<BoundUnaryExpression> create_unary_operation(const ExpressionSyntax &syntax,
-                                                                            UnaryOperation operation,
-                                                                            BoundPtr<BoundExpression> operand,
-                                                                            const LookupContext &context) const;
+        [[nodiscard]] const BoundUnaryExpression &create_unary_operation(const ExpressionSyntax &syntax,
+                                                                         UnaryOperation operation,
+                                                                         Ref<const BoundExpression> operand,
+                                                                         const LookupContext &context) const;
 
         const Compilation &compilation_;
         const Binder *next_ = nullptr;
