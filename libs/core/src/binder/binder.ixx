@@ -22,33 +22,23 @@ import :semantic.bound.bound_node;
 
 namespace prism
 {
+    class IdentifierExpressionSyntax;
     class FunctionSymbol;
     class Conversion;
     struct FloatLiteralData;
     struct IntegerLiteralData;
     class LiteralExpressionSyntax;
-    class BoundLiteral;
     class InvocationExpressionSyntax;
     class TernaryExpressionSyntax;
     class PostfixExpressionSyntax;
     class PrefixExpressionSyntax;
     class AssignmentExpressionSyntax;
     class BinaryExpressionSyntax;
-    class IdentifierExpressionSyntax;
-    class BoundInvocationExpression;
-    class BoundConditionalExpression;
-    class BoundUnaryExpression;
-    class BoundAssignmentExpression;
-    class BoundBinaryExpression;
     class StatementSyntax;
     class ExpressionStatementSyntax;
     class BlockSyntax;
     class ReturnStatementSyntax;
-    class BoundReturnStatement;
-    class BoundExpressionStatement;
     class VariableDeclarationStatementSyntax;
-    class BoundVariableDeclaration;
-    class BoundBlock;
     class UsingDirectiveSyntax;
     class BoundStatement;
     class TypeSyntax;
@@ -191,39 +181,37 @@ namespace prism
                                                      const NameSyntax &syntax,
                                                      const LookupContext &context) const;
 
-        [[nodiscard]] const BoundBlock &bind_block(const BlockSyntax &syntax,
-                                                   const TypeSymbol &return_type,
-                                                   const LookupContext &context) const;
-        [[nodiscard]] const BoundVariableDeclaration &bind_variable_declaration_statement(
+        [[nodiscard]] const BoundStatement &bind_block(const BlockSyntax &syntax,
+                                                       const TypeSymbol &return_type,
+                                                       const LookupContext &context) const;
+        [[nodiscard]] const BoundStatement &bind_variable_declaration_statement(
             const VariableDeclarationStatementSyntax &syntax,
             const LookupContext &context) const;
-        [[nodiscard]] const BoundExpressionStatement &bind_expression_statement(const ExpressionStatementSyntax &syntax,
-                                                                                const LookupContext &context) const;
-        [[nodiscard]] const BoundReturnStatement &bind_return_statement(const ReturnStatementSyntax &syntax,
-                                                                        const TypeSymbol &return_type,
-                                                                        const LookupContext &context) const;
-
-        [[nodiscard]] const BoundLiteral &bind_literal_expression(const LiteralExpressionSyntax &syntax,
-                                                                  const TypeSymbol *return_type,
+        [[nodiscard]] const BoundStatement &bind_expression_statement(const ExpressionStatementSyntax &syntax,
+                                                                      const LookupContext &context) const;
+        [[nodiscard]] const BoundStatement &bind_return_statement(const ReturnStatementSyntax &syntax,
+                                                                  const TypeSymbol &return_type,
                                                                   const LookupContext &context) const;
+
+        [[nodiscard]] const BoundExpression &bind_literal_expression(const LiteralExpressionSyntax &syntax,
+                                                                     const TypeSymbol *return_type,
+                                                                     const LookupContext &context) const;
         [[nodiscard]] const BoundExpression &bind_identifier_expression(const IdentifierExpressionSyntax &syntax,
                                                                         const LookupContext &context) const;
-        [[nodiscard]] const BoundBinaryExpression &bind_binary_expression(const BinaryExpressionSyntax &syntax,
-                                                                          const LookupContext &context) const;
-        [[nodiscard]] const BoundAssignmentExpression &bind_assignment_expression(
-            const AssignmentExpressionSyntax &syntax,
-            const LookupContext &context) const;
+        [[nodiscard]] const BoundExpression &bind_binary_expression(const BinaryExpressionSyntax &syntax,
+                                                                    const LookupContext &context) const;
+        [[nodiscard]] const BoundExpression &bind_assignment_expression(const AssignmentExpressionSyntax &syntax,
+                                                                        const LookupContext &context) const;
         [[nodiscard]] const BoundExpression &bind_prefix_expression(const PrefixExpressionSyntax &syntax,
                                                                     const TypeSymbol *return_type,
                                                                     const LookupContext &context) const;
-        [[nodiscard]] const BoundUnaryExpression &bind_postfix_expression(const PostfixExpressionSyntax &syntax,
-                                                                          const LookupContext &context) const;
-        [[nodiscard]] const BoundConditionalExpression &bind_ternary_expression(const TernaryExpressionSyntax &syntax,
-                                                                                const TypeSymbol *target_type,
-                                                                                const LookupContext &context) const;
-        [[nodiscard]] const BoundInvocationExpression &bind_invocation_expression(
-            const InvocationExpressionSyntax &syntax,
-            const LookupContext &context) const;
+        [[nodiscard]] const BoundExpression &bind_postfix_expression(const PostfixExpressionSyntax &syntax,
+                                                                     const LookupContext &context) const;
+        [[nodiscard]] const BoundExpression &bind_ternary_expression(const TernaryExpressionSyntax &syntax,
+                                                                     const TypeSymbol *target_type,
+                                                                     const LookupContext &context) const;
+        [[nodiscard]] const BoundExpression &bind_invocation_expression(const InvocationExpressionSyntax &syntax,
+                                                                        const LookupContext &context) const;
 
         [[nodiscard]] const BoundExpression &add_conversion_if_necessary(const BoundExpression &expression,
                                                                          const TypeSymbol &type,
@@ -248,10 +236,10 @@ namespace prism
                                                                        const LookupContext &context,
                                                                        bool is_negative = false);
 
-        [[nodiscard]] const BoundUnaryExpression &create_unary_operation(const ExpressionSyntax &syntax,
-                                                                         UnaryOperation operation,
-                                                                         Ref<const BoundExpression> operand,
-                                                                         const LookupContext &context) const;
+        [[nodiscard]] const BoundExpression &create_unary_operation(const ExpressionSyntax &syntax,
+                                                                    UnaryOperation operation,
+                                                                    Ref<const BoundExpression> operand,
+                                                                    const LookupContext &context) const;
 
         [[nodiscard]] const FunctionSymbol &resolve_overload(const LookupResult &result,
                                                              std::span<Ref<const BoundExpression>> arguments,

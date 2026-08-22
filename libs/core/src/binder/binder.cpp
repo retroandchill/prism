@@ -584,9 +584,9 @@ namespace prism
         return create_error_type_symbol(containing_symbol(), compilation_, names);
     }
 
-    const BoundBlock &Binder::bind_block(const BlockSyntax &syntax,
-                                         const TypeSymbol &return_type,
-                                         const LookupContext &context) const
+    const BoundStatement &Binder::bind_block(const BlockSyntax &syntax,
+                                             const TypeSymbol &return_type,
+                                             const LookupContext &context) const
     {
         PooledVector<Ref<const BoundStatement>> statements;
         for (auto &statement : syntax.statements())
@@ -601,9 +601,8 @@ namespace prism
         return lifetime().create<BoundBlock>(syntax, interned);
     }
 
-    const BoundVariableDeclaration &Binder::bind_variable_declaration_statement(
-        const VariableDeclarationStatementSyntax &syntax,
-        const LookupContext &context) const
+    const BoundStatement &Binder::bind_variable_declaration_statement(const VariableDeclarationStatementSyntax &syntax,
+                                                                      const LookupContext &context) const
     {
         auto &semantic_model = compilation_.get_semantic_model(syntax.tree());
         auto &declaration = syntax.declaration();
@@ -620,16 +619,16 @@ namespace prism
         return lifetime().create<BoundVariableDeclaration>(syntax, variable, initializer.value_ptr());
     }
 
-    const BoundExpressionStatement &Binder::bind_expression_statement(const ExpressionStatementSyntax &syntax,
-                                                                      const LookupContext &context) const
+    const BoundStatement &Binder::bind_expression_statement(const ExpressionStatementSyntax &syntax,
+                                                            const LookupContext &context) const
     {
         auto &expression = bind_expression(syntax.expression(), context);
         return lifetime().create<BoundExpressionStatement>(syntax, expression);
     }
 
-    const BoundReturnStatement &Binder::bind_return_statement(const ReturnStatementSyntax &syntax,
-                                                              const TypeSymbol &return_type,
-                                                              const LookupContext &context) const
+    const BoundStatement &Binder::bind_return_statement(const ReturnStatementSyntax &syntax,
+                                                        const TypeSymbol &return_type,
+                                                        const LookupContext &context) const
     {
         auto *expression = syntax.expression()
                                .transform([&](const ExpressionSyntax &e) -> auto &
@@ -639,9 +638,9 @@ namespace prism
         return lifetime().create<BoundReturnStatement>(syntax, expression);
     }
 
-    const BoundLiteral &Binder::bind_literal_expression(const LiteralExpressionSyntax &syntax,
-                                                        const TypeSymbol *return_type,
-                                                        const LookupContext &context) const
+    const BoundExpression &Binder::bind_literal_expression(const LiteralExpressionSyntax &syntax,
+                                                           const TypeSymbol *return_type,
+                                                           const LookupContext &context) const
     {
         const auto token = syntax.value();
         auto value = evaluate_constant_expression(token, return_type, context);
@@ -673,8 +672,8 @@ namespace prism
         diagnose_lookup_failure(result, syntax.value(), LookupOptions::value, context);
     }
 
-    const BoundBinaryExpression &Binder::bind_binary_expression(const BinaryExpressionSyntax &syntax,
-                                                                const LookupContext &context) const
+    const BoundExpression &Binder::bind_binary_expression(const BinaryExpressionSyntax &syntax,
+                                                          const LookupContext &context) const
     {
         Ref left = bind_expression(syntax.left(), context);
         Ref right = bind_expression(syntax.right(), context);
@@ -703,8 +702,8 @@ namespace prism
                 .value_or_ref(unnamed_error_type));
     }
 
-    const BoundAssignmentExpression &Binder::bind_assignment_expression(const AssignmentExpressionSyntax &syntax,
-                                                                        const LookupContext &context) const
+    const BoundExpression &Binder::bind_assignment_expression(const AssignmentExpressionSyntax &syntax,
+                                                              const LookupContext &context) const
     {
         throw NotImplementedException{};
     }
@@ -747,8 +746,8 @@ namespace prism
         return create_unary_operation(syntax, op, operand, context);
     }
 
-    const BoundUnaryExpression &Binder::bind_postfix_expression(const PostfixExpressionSyntax &syntax,
-                                                                const LookupContext &context) const
+    const BoundExpression &Binder::bind_postfix_expression(const PostfixExpressionSyntax &syntax,
+                                                           const LookupContext &context) const
     {
         auto &operand = bind_expression(syntax.operand(), context);
         const auto op = to_postfix_operation(syntax.op().kind());
@@ -756,9 +755,9 @@ namespace prism
         return create_unary_operation(syntax, op, operand, context);
     }
 
-    const BoundConditionalExpression &Binder::bind_ternary_expression(const TernaryExpressionSyntax &syntax,
-                                                                      const TypeSymbol *target_type,
-                                                                      const LookupContext &context) const
+    const BoundExpression &Binder::bind_ternary_expression(const TernaryExpressionSyntax &syntax,
+                                                           const TypeSymbol *target_type,
+                                                           const LookupContext &context) const
     {
         auto &condition = add_conversion_if_necessary(bind_expression(syntax.condition(), context),
                                                       compilation_.get_special_type(SpecialType::bool_),
@@ -781,8 +780,8 @@ namespace prism
         return lifetime().create<BoundConditionalExpression>(syntax, condition, when_true, when_false, *target_type);
     }
 
-    const BoundInvocationExpression &Binder::bind_invocation_expression(const InvocationExpressionSyntax &syntax,
-                                                                        const LookupContext &context) const
+    const BoundExpression &Binder::bind_invocation_expression(const InvocationExpressionSyntax &syntax,
+                                                              const LookupContext &context) const
     {
         PooledVector<Ref<const BoundExpression>> arguments;
         for (auto &argument_syntax : syntax.arguments().arguments())
@@ -1011,10 +1010,10 @@ namespace prism
                 UNREACHABLE("Invalid input");
         }
     }
-    const BoundUnaryExpression &Binder::create_unary_operation(const ExpressionSyntax &syntax,
-                                                               UnaryOperation operation,
-                                                               Ref<const BoundExpression> operand,
-                                                               const LookupContext &context) const
+    const BoundExpression &Binder::create_unary_operation(const ExpressionSyntax &syntax,
+                                                          UnaryOperation operation,
+                                                          Ref<const BoundExpression> operand,
+                                                          const LookupContext &context) const
     {
         const auto result_type = conversion_classifier().classify_unary_operand_type(operation, operand->type());
         if (result_type.has_value())
