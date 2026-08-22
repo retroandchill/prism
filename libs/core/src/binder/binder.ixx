@@ -22,6 +22,7 @@ import :semantic.bound.bound_node;
 
 namespace prism
 {
+    class ExpressionBodySyntax;
     class IdentifierExpressionSyntax;
     class FunctionSymbol;
     class Conversion;
@@ -141,6 +142,10 @@ namespace prism
                                                              const LookupContext &context) const;
 
       public:
+        [[nodiscard]] const BoundStatement &bind_expression_body(const ExpressionBodySyntax &syntax,
+                                                                 const TypeSymbol &return_type,
+                                                                 const LookupContext &context) const;
+
         [[nodiscard]] const TypeSymbol &resolve_type(const TypeSyntax &syntax, const LookupContext &context) const;
 
         [[nodiscard]] LookupResult lookup_from_syntax(const NameSyntax &syntax,

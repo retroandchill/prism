@@ -12,6 +12,8 @@ import :util.lazy;
 
 namespace prism
 {
+    class BoundStatement;
+    class FunctionDeclarationSyntax;
     class Symbol;
     class ExpressionSyntax;
     class BoundExpression;
@@ -34,6 +36,9 @@ namespace prism
                                                               const Binder &binder,
                                                               const LookupContext &context);
 
+        const BoundStatement &get_bound_body(const FunctionDeclarationSyntax &declaration,
+                                             const LookupContext &context);
+
         [[nodiscard]] Optional<const Symbol &> get_declared_symbol(const SyntaxNode &node);
         void cache_symbol(const SyntaxNode &node, const Symbol &symbol);
 
@@ -43,6 +48,9 @@ namespace prism
 
         std::mutex bound_initializers_mutex_;
         std::unordered_map<const VariableDeclarationSyntax *, Lazy<const BoundExpression &>> bound_initializers_;
+
+        std::mutex bound_bodies_mutex_;
+        std::unordered_map<const FunctionDeclarationSyntax *, Lazy<const BoundStatement &>> bound_bodies_;
 
         std::shared_mutex symbol_mutex_;
         std::unordered_map<const SyntaxNode *, const Symbol *> symbols_;

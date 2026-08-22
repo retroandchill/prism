@@ -379,6 +379,20 @@ namespace prism
         return bound;
     }
 
+    const BoundStatement &Binder::bind_expression_body(const ExpressionBodySyntax &syntax,
+                                                       const TypeSymbol &return_type,
+                                                       const LookupContext &context) const
+    {
+        if (return_type.is_void())
+        {
+            auto &expression = bind_expression(syntax.expression(), context);
+            return lifetime().create<BoundExpressionStatement>(syntax, expression);
+        }
+
+        auto &expression = bind_expression(syntax.expression(), return_type, context);
+        return lifetime().create<BoundReturnStatement>(syntax, &expression);
+    }
+
     const TypeSymbol &Binder::resolve_type(const TypeSyntax &syntax, const LookupContext &context) const
     {
         return visit(syntax,
@@ -1135,6 +1149,8 @@ namespace prism
                                                    const Location &location,
                                                    const LookupContext &context) const
     {
+        // TODO: Right now we don't look at named parameters, despite the fact that the grammar says they're part of the
+        // language
         DEBUG_ASSERT(result.viable());
         if (result.symbols().size() == 1)
         {

@@ -16,8 +16,10 @@ import :semantic.compilation;
 import :syntax.node;
 import :binder.binder_factory;
 import :syntax.expressions;
+import :syntax.statements;
 import :syntax.declarations;
 import :syntax.clauses;
+import :symbols.function_symbol;
 
 namespace prism
 {
@@ -56,6 +58,31 @@ namespace prism
 
         return bound_expression->get_or_compute(
             [&] -> auto & { return binder.bind_expression(declaration.initializer()->value(), context); });
+    }
+
+    const BoundStatement &SemanticModelState::get_bound_body(const FunctionDeclarationSyntax &declaration,
+                                                             const LookupContext &context)
+    {
+        auto &binder = get_binder(declaration);
+        auto &symbol = get_declared_symbol(declaration).value().as_checked<FunctionSymbol>();
+        Lazy<const BoundStatement &> *bound_body;
+        {
+            std::scoped_lock lock{bound_bodies_mutex_};
+            bound_body = &bound_bodies_[&declaration];
+        }
+
+        return bound_body->get_or_compute(
+            [&] -> const auto &
+            {
+                if (declaration.body().has_value())
+                {
+                    DEBUG_ASSERT(!declaration.expression_body().has_value());
+                    return binder.bind_statement(*declaration.body(), symbol.return_type(), context);
+                }
+
+                DEBUG_ASSERT(declaration.expression_body().has_value());
+                return binder.bind_expression_body(*declaration.expression_body(), symbol.return_type(), context);
+            });
     }
 
     Optional<const Symbol &> SemanticModelState::get_declared_symbol(const SyntaxNode &node)
