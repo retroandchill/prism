@@ -241,6 +241,8 @@ namespace prism
                                                                     Ref<const BoundExpression> operand,
                                                                     const LookupContext &context) const;
 
+        [[nodiscard]] static bool is_assignment_valid(const TypeSymbol &type, const AssignmentOperation operation);
+
         [[nodiscard]] const FunctionSymbol &resolve_overload(const LookupResult &result,
                                                              std::span<Ref<const BoundExpression>> arguments,
                                                              const Location &location,

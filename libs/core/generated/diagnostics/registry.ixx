@@ -214,6 +214,17 @@ namespace prism::diagnostics
                                                                    ""sv,
                                                                    {}};
 
+    export constexpr DiagnosticDescriptor no_compound_assignment_operator{
+        to_string(DiagnosticCode::no_compound_assignment_operator),
+        "No compound assignment operator"sv,
+        "No compound assignment operator defined for type {}",
+        "Semantic"sv,
+        DiagnosticSeverity::error,
+        true,
+        ""sv,
+        ""sv,
+        {}};
+
     export constexpr DiagnosticDescriptor binary_operator_undefined{
         to_string(DiagnosticCode::binary_operator_undefined),
         "Binary operator undefined"sv,
@@ -301,6 +312,8 @@ namespace prism::diagnostics
                 return unary_operator_undefined;
             case DiagnosticCode::cannot_assign_expression:
                 return cannot_assign_expression;
+            case DiagnosticCode::no_compound_assignment_operator:
+                return no_compound_assignment_operator;
             case DiagnosticCode::binary_operator_undefined:
                 return binary_operator_undefined;
             case DiagnosticCode::no_overload_matching_arg_count:

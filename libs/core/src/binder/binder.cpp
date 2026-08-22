@@ -153,8 +153,43 @@ namespace prism
                     return BinaryOperation::shift_right;
                 case SyntaxKind::greater_greater_greater_token:
                     return BinaryOperation::unsigned_shift_right;
-                case SyntaxKind::question_question_token:
-                    return BinaryOperation::null_coalescing;
+                default:
+                    throw std::invalid_argument{"invalid binary operation"};
+            }
+        }
+
+        [[nodiscard]] AssignmentOperation to_assignment_operation(const SyntaxKind kind)
+        {
+            switch (kind)
+            {
+                case SyntaxKind::equal_token:
+                    return AssignmentOperation::simple;
+                case SyntaxKind::plus_equal_token:
+                    return AssignmentOperation::addition;
+                case SyntaxKind::minus_equal_token:
+                    return AssignmentOperation::subtraction;
+                case SyntaxKind::star_equal_token:
+                    return AssignmentOperation::multiplication;
+                case SyntaxKind::slash_equal_token:
+                    return AssignmentOperation::division;
+                case SyntaxKind::percent_equal_token:
+                    return AssignmentOperation::modulo;
+                case SyntaxKind::amp_equal_token:
+                    return AssignmentOperation::bitwise_and;
+                case SyntaxKind::pipe_equal_token:
+                    return AssignmentOperation::bitwise_or;
+                case SyntaxKind::caret_equal_token:
+                    return AssignmentOperation::bitwise_xor;
+                case SyntaxKind::amp_amp_equal_token:
+                    return AssignmentOperation::logical_and;
+                case SyntaxKind::pipe_pipe_equal_token:
+                    return AssignmentOperation::logical_or;
+                case SyntaxKind::less_less_equal_token:
+                    return AssignmentOperation::shift_left;
+                case SyntaxKind::greater_greater_equal_token:
+                    return AssignmentOperation::shift_right;
+                case SyntaxKind::greater_greater_greater_equal_token:
+                    return AssignmentOperation::unsigned_shift_right;
                 default:
                     throw std::invalid_argument{"invalid binary operation"};
             }
@@ -705,7 +740,28 @@ namespace prism
     const BoundExpression &Binder::bind_assignment_expression(const AssignmentExpressionSyntax &syntax,
                                                               const LookupContext &context) const
     {
-        throw NotImplementedException{};
+        auto &assignee = bind_expression(syntax.left(), context);
+        auto operation = to_assignment_operation(syntax.op().kind());
+        if (!is_assignment_valid(assignee.type(), operation))
+        {
+            context.report_diagnostic(
+                Diagnostic{DiagnosticInfo::create<DiagnosticCode::no_compound_assignment_operator>(
+                               assignee.type().to_display_string()),
+                           syntax.location()});
+        }
+        else if (!assignee.is_assignable())
+        {
+            context.report_diagnostic(
+                Diagnostic{DiagnosticInfo::create<DiagnosticCode::cannot_assign_expression>(), syntax.location()});
+        }
+
+        auto &assigned =
+            add_conversion_if_necessary(bind_expression(syntax.right(), context), assignee.type(), context);
+        return lifetime().create<BoundAssignmentExpression>(syntax,
+                                                            assignee,
+                                                            assigned,
+                                                            operation,
+                                                            compilation().get_special_type(SpecialType::void_));
     }
 
     const BoundExpression &Binder::bind_prefix_expression(const PrefixExpressionSyntax &syntax,
@@ -1038,6 +1094,35 @@ namespace prism
                                           { return operand_conversion.type; })
                                .value_or_ref(unnamed_error_type);
         return lifetime().create<BoundUnaryExpression>(syntax, operand, operation, final_type);
+    }
+
+    bool Binder::is_assignment_valid(const TypeSymbol &type, const AssignmentOperation operation)
+    {
+        switch (operation)
+        {
+            case AssignmentOperation::simple:
+                // Generally we can reassign
+                return true;
+            case AssignmentOperation::addition:
+            case AssignmentOperation::subtraction:
+            case AssignmentOperation::multiplication:
+            case AssignmentOperation::division:
+            case AssignmentOperation::modulo:
+                return is_numeric(type.special_type());
+            case AssignmentOperation::bitwise_and:
+            case AssignmentOperation::bitwise_or:
+            case AssignmentOperation::bitwise_xor:
+                return is_integer(type.special_type()) || type.special_type() == SpecialType::bool_;
+            case AssignmentOperation::logical_and:
+            case AssignmentOperation::logical_or:
+                return type.special_type() == SpecialType::bool_;
+            case AssignmentOperation::shift_left:
+            case AssignmentOperation::shift_right:
+            case AssignmentOperation::unsigned_shift_right:
+                return is_integer(type.special_type());
+            default:
+                UNREACHABLE("Invalid assignment operation");
+        }
     }
 
     const FunctionSymbol &Binder::resolve_overload(const LookupResult &result,

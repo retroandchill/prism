@@ -180,6 +180,10 @@
         "text": "&="
       },
       {
+        "name": "AmpAmpEqualToken",
+        "text": "&&="
+      },
+      {
         "name": "StarToken",
         "text": "*"
       },
@@ -302,6 +306,10 @@
       {
         "name": "PipeEqualToken",
         "text": "|="
+      },
+      {
+        "name": "PipePipeEqualToken",
+        "text": "||="
       },
       {
         "name": "QuestionToken",
@@ -866,6 +874,8 @@
                 "PipeEqualToken",
                 "AmpEqualToken",
                 "CaretEqualToken",
+                "PipePipeEqualToken",
+                "AmpAmpEqualToken",
                 "QuestionQuestionEqualToken"
               ]
             },
@@ -1622,6 +1632,17 @@
           "name": "CannotAssignExpression",
           "severity": "Error",
           "format": "Cannot assign value to expression"
+        },
+        {
+          "name": "NoCompoundAssignmentOperator",
+          "severity": "Error",
+          "format": "No compound assignment operator defined for type {Type}",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
         },
         {
           "name": "BinaryOperatorUndefined",

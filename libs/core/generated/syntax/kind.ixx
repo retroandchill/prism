@@ -71,49 +71,51 @@ namespace prism
         amp_token = 1208,
         amp_amp_token = 1209,
         amp_equal_token = 1210,
-        star_token = 1211,
-        star_equal_token = 1212,
-        plus_token = 1213,
-        plus_plus_token = 1214,
-        plus_equal_token = 1215,
-        minus_token = 1216,
-        minus_minus_token = 1217,
-        minus_equal_token = 1218,
-        tilde_token = 1219,
-        bang_token = 1220,
-        bang_equal_token = 1221,
-        slash_token = 1222,
-        slash_equal_token = 1223,
-        percent_token = 1224,
-        percent_equal_token = 1225,
-        less_token = 1226,
-        less_less_token = 1227,
-        less_equal_token = 1228,
-        less_less_equal_token = 1229,
-        spaceship_token = 1230,
-        greater_token = 1231,
-        greater_greater_token = 1232,
-        greater_greater_greater_token = 1233,
-        greater_equal_token = 1234,
-        greater_greater_equal_token = 1235,
-        greater_greater_greater_equal_token = 1236,
-        caret_token = 1237,
-        caret_equal_token = 1238,
-        pipe_token = 1239,
-        pipe_pipe_token = 1240,
-        pipe_equal_token = 1241,
-        question_token = 1242,
-        question_question_token = 1243,
-        question_question_equal_token = 1244,
-        question_period_token = 1245,
-        colon_token = 1246,
-        double_colon_token = 1247,
-        semicolon_token = 1248,
-        equal_token = 1249,
-        arrow_token = 1250,
-        equal_equal_token = 1251,
-        comma_token = 1252,
-        punctuation_end = 1252,
+        amp_amp_equal_token = 1211,
+        star_token = 1212,
+        star_equal_token = 1213,
+        plus_token = 1214,
+        plus_plus_token = 1215,
+        plus_equal_token = 1216,
+        minus_token = 1217,
+        minus_minus_token = 1218,
+        minus_equal_token = 1219,
+        tilde_token = 1220,
+        bang_token = 1221,
+        bang_equal_token = 1222,
+        slash_token = 1223,
+        slash_equal_token = 1224,
+        percent_token = 1225,
+        percent_equal_token = 1226,
+        less_token = 1227,
+        less_less_token = 1228,
+        less_equal_token = 1229,
+        less_less_equal_token = 1230,
+        spaceship_token = 1231,
+        greater_token = 1232,
+        greater_greater_token = 1233,
+        greater_greater_greater_token = 1234,
+        greater_equal_token = 1235,
+        greater_greater_equal_token = 1236,
+        greater_greater_greater_equal_token = 1237,
+        caret_token = 1238,
+        caret_equal_token = 1239,
+        pipe_token = 1240,
+        pipe_pipe_token = 1241,
+        pipe_equal_token = 1242,
+        pipe_pipe_equal_token = 1243,
+        question_token = 1244,
+        question_question_token = 1245,
+        question_question_equal_token = 1246,
+        question_period_token = 1247,
+        colon_token = 1248,
+        double_colon_token = 1249,
+        semicolon_token = 1250,
+        equal_token = 1251,
+        arrow_token = 1252,
+        equal_equal_token = 1253,
+        comma_token = 1254,
+        punctuation_end = 1254,
 #pragma endregion
 
 #pragma region Other tokens
@@ -294,6 +296,8 @@ namespace prism
                 return "&&";
             case SyntaxKind::amp_equal_token:
                 return "&=";
+            case SyntaxKind::amp_amp_equal_token:
+                return "&&=";
             case SyntaxKind::star_token:
                 return "*";
             case SyntaxKind::star_equal_token:
@@ -356,6 +360,8 @@ namespace prism
                 return "||";
             case SyntaxKind::pipe_equal_token:
                 return "|=";
+            case SyntaxKind::pipe_pipe_equal_token:
+                return "||=";
             case SyntaxKind::question_token:
                 return "?";
             case SyntaxKind::question_question_token:

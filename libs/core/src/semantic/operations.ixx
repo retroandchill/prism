@@ -49,8 +49,7 @@ namespace prism
         three_way_comparison,
         shift_left,
         shift_right,
-        unsigned_shift_right,
-        null_coalescing,
+        unsigned_shift_right
     };
 
     export enum class AssignmentOperation : std::uint8_t
@@ -66,16 +65,8 @@ namespace prism
         bitwise_xor,
         logical_and,
         logical_or,
-        equals,
-        not_equals,
-        less_than,
-        less_than_or_equals,
-        greater_than,
-        greater_than_or_equals,
-        three_way_comparison,
         shift_left,
         shift_right,
-        unsigned_shift_right,
-        null_coalescing,
+        unsigned_shift_right
     };
 } // namespace prism

@@ -130,6 +130,12 @@ namespace prism
     };
 
     template <>
+    struct DiagnosticTraits<DiagnosticCode::no_compound_assignment_operator>
+    {
+        using Args = std::tuple<std::string>;
+    };
+
+    template <>
     struct DiagnosticTraits<DiagnosticCode::binary_operator_undefined>
     {
         using Args = std::tuple<std::string, std::string>;

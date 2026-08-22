@@ -127,6 +127,8 @@ namespace prism
                 case SyntaxKind::amp_equal_token:
                 case SyntaxKind::pipe_equal_token:
                 case SyntaxKind::caret_equal_token:
+                case SyntaxKind::amp_amp_equal_token:
+                case SyntaxKind::pipe_pipe_equal_token:
                     return 10;
                 default:
                     return -1;

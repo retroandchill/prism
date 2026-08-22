@@ -58,6 +58,7 @@ namespace prism
                 make_ref_counted<GreenToken>(SyntaxKind::amp_token),
                 make_ref_counted<GreenToken>(SyntaxKind::amp_amp_token),
                 make_ref_counted<GreenToken>(SyntaxKind::amp_equal_token),
+                make_ref_counted<GreenToken>(SyntaxKind::amp_amp_equal_token),
                 make_ref_counted<GreenToken>(SyntaxKind::star_token),
                 make_ref_counted<GreenToken>(SyntaxKind::star_equal_token),
                 make_ref_counted<GreenToken>(SyntaxKind::plus_token),
@@ -89,6 +90,7 @@ namespace prism
                 make_ref_counted<GreenToken>(SyntaxKind::pipe_token),
                 make_ref_counted<GreenToken>(SyntaxKind::pipe_pipe_token),
                 make_ref_counted<GreenToken>(SyntaxKind::pipe_equal_token),
+                make_ref_counted<GreenToken>(SyntaxKind::pipe_pipe_equal_token),
                 make_ref_counted<GreenToken>(SyntaxKind::question_token),
                 make_ref_counted<GreenToken>(SyntaxKind::question_question_token),
                 make_ref_counted<GreenToken>(SyntaxKind::question_question_equal_token),
@@ -213,6 +215,11 @@ namespace prism
                 {
                     case '&':
                         cursor.advance();
+                        if (cursor.current() == '=')
+                        {
+                            cursor.advance();
+                            return SyntaxKind::amp_amp_equal_token;
+                        }
                         return SyntaxKind::amp_amp_token;
                     case '=':
                         cursor.advance();
@@ -394,6 +401,11 @@ namespace prism
                         return SyntaxKind::pipe_equal_token;
                     case '|':
                         cursor.advance();
+                        if (cursor.current() == '=')
+                        {
+                            cursor.advance();
+                            return SyntaxKind::pipe_pipe_equal_token;
+                        }
                         return SyntaxKind::pipe_pipe_token;
                 }
                 return SyntaxKind::pipe_token;

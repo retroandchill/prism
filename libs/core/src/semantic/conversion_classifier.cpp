@@ -179,8 +179,6 @@ namespace prism
                     return get_common_numeric_type(left, right).transform(get_numeric_conversion);
                 }
                 break;
-            case BinaryOperation::null_coalescing:
-                throw NotImplementedException{};
         }
 
         UNREACHABLE("Invalid binary operation");
