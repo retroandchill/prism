@@ -4,6 +4,10 @@
  * @date 8/8/2026
  * @brief
  */
+module;
+
+#include <libassert/assert-macros.hpp>
+
 export module prism.core:semantic.bound.bound_node;
 
 import :syntax.node;

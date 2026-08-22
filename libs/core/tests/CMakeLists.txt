@@ -9,7 +9,8 @@ set(PRISM_CORE_INTERNAL_TESTS name_test.cpp
         source_file_test.cpp
         lexer_test.cpp
         parser_test.cpp
-        symbol_creation_test.cpp)
+        symbol_creation_test.cpp
+        binder_test.cpp)
 
 add_executable(prism_core_tests ${PRISM_CORE_TESTS} ${PRISM_CORE_INTERNAL_TESTS})
 prism_add_boilerplate(prism_core_tests)
