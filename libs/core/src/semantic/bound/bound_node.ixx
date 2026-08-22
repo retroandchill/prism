@@ -24,7 +24,6 @@ namespace prism
         literal,
         variable_access,
         parameter_access,
-        overload_set,
         unary_expression,
         binary_expression,
         assignment_expression,

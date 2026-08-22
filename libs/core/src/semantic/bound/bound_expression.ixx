@@ -164,28 +164,6 @@ namespace prism
         const ParameterSymbol &symbol_;
     };
 
-    class BoundOverloadSet final : public BoundExpression
-    {
-      public:
-        constexpr BoundOverloadSet(const ExpressionSyntax &syntax, ImmutableArray<Ref<const FunctionSymbol>> functions)
-            : BoundExpression{BoundNodeKind::overload_set, syntax, unnamed_error_type}, functions_{std::move(functions)}
-        {
-        }
-
-        [[nodiscard]] constexpr std::span<const Ref<const FunctionSymbol>> functions() const noexcept
-        {
-            return functions_;
-        }
-
-        [[nodiscard]] constexpr static bool instance_of(const BoundNode &node)
-        {
-            return node.kind() == BoundNodeKind::overload_set;
-        }
-
-      private:
-        ImmutableArray<Ref<const FunctionSymbol>> functions_;
-    };
-
     class BoundUnaryExpression final : public BoundExpression
     {
       public:
