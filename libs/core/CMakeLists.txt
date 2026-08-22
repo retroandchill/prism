@@ -221,6 +221,8 @@ set(PRISM_MODULES
         src/semantic/bound/bound_expression.cpp
         src/collections/immutable_string.ixx
         generated/semantic/bound/visit.ixx
+        src/codegen/llvm_emitter.ixx
+        src/codegen/llvm_emitter.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})
@@ -230,6 +232,7 @@ target_include_directories(prism_core PUBLIC include
                                       PRIVATE src/inline
                                               src)
 
+find_package(LLVM REQUIRED CONFIG)
 target_link_libraries(prism_core
         PUBLIC Boost::cppm
                 uni-algo::cppm
