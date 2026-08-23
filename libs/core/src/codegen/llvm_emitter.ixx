@@ -21,12 +21,13 @@ namespace prism
     class LlvmEmitter final : NonCopyable
     {
       public:
-        explicit LlvmEmitter(LlvmCodeGenOptions options);
+        explicit LlvmEmitter(const Compilation &compilation, LlvmCodeGenOptions options);
         ~LlvmEmitter();
 
-        void emit(const Compilation &compilation);
+        void emit() const;
 
       private:
-        LlvmCodeGenOptions options_;
+        class Impl;
+        std::unique_ptr<Impl> impl_;
     };
 } // namespace prism

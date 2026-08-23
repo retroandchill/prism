@@ -233,11 +233,16 @@ target_include_directories(prism_core PUBLIC include
                                               src)
 
 find_package(LLVM REQUIRED CONFIG)
+
+target_include_directories(prism_core PRIVATE ${LLVM_INCLUDE_DIRS})
+llvm_map_components_to_libnames(llvm_libs Support Core)
+
 target_link_libraries(prism_core
         PUBLIC Boost::cppm
                 uni-algo::cppm
                 libassert::cppm
-        PRIVATE xxHash::cpp)
+        PRIVATE xxHash::cpp
+                ${llvm_libs})
 
 target_sources(prism_core PUBLIC
         FILE_SET CXX_MODULES
