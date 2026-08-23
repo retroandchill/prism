@@ -16,9 +16,138 @@ module prism.core:codegen.llvm_emitter.impl;
 import :codegen.llvm_emitter;
 import :semantic.compilation;
 import :symbols.visit;
+import :semantic.constant_value;
+import :syntax.visit;
+import :semantic.bound.visit;
 
 namespace prism
 {
+    namespace
+    {
+        [[nodiscard]] BinaryOperation to_binary_operation(const AssignmentOperation operation)
+        {
+            switch (operation)
+            {
+                case AssignmentOperation::addition:
+                    return BinaryOperation::addition;
+                case AssignmentOperation::subtraction:
+                    return BinaryOperation::subtraction;
+                case AssignmentOperation::multiplication:
+                    return BinaryOperation::multiplication;
+                case AssignmentOperation::division:
+                    return BinaryOperation::division;
+                case AssignmentOperation::modulo:
+                    return BinaryOperation::modulo;
+                case AssignmentOperation::bitwise_and:
+                    return BinaryOperation::bitwise_and;
+                case AssignmentOperation::bitwise_or:
+                    return BinaryOperation::bitwise_or;
+                case AssignmentOperation::bitwise_xor:
+                    return BinaryOperation::bitwise_xor;
+                case AssignmentOperation::logical_and:
+                    return BinaryOperation::logical_and;
+                case AssignmentOperation::logical_or:
+                    return BinaryOperation::logical_or;
+                case AssignmentOperation::shift_left:
+                    return BinaryOperation::shift_left;
+                case AssignmentOperation::shift_right:
+                    return BinaryOperation::shift_right;
+                case AssignmentOperation::unsigned_shift_right:
+                    return BinaryOperation::unsigned_shift_right;
+                default:
+                    UNREACHABLE("Doesn't correspond to an assignment operation");
+            }
+        }
+    } // namespace
+
+    struct ScopeFrame
+    {
+        std::unordered_map<const Symbol *, llvm::Value *> storage;
+    };
+
+    class FunctionEmissionContext
+    {
+      public:
+        FunctionEmissionContext(llvm::Function *function, llvm::BasicBlock *entry_block)
+            : function_{function}, entry_block_{entry_block}, scopes_{1}
+        {
+        }
+
+        [[nodiscard]] llvm::Function *function() const
+        {
+            return function_;
+        }
+
+        [[nodiscard]] llvm::BasicBlock *entry_block() const
+        {
+            return entry_block_;
+        }
+
+        void push_scope()
+        {
+            scopes_.emplace_back();
+        }
+
+        void pop_scope()
+        {
+            scopes_.pop_back();
+        }
+
+        void bind_storage(const Symbol &symbol, llvm::Value *storage)
+        {
+            scopes_.back().storage.emplace(&symbol, storage);
+        }
+
+        llvm::Value *lookup_storage(const Symbol &symbol)
+        {
+            for (auto &[storage] : scopes_ | std::views::reverse)
+            {
+                if (auto it = storage.find(&symbol); it != storage.end())
+                {
+                    return it->second;
+                }
+            }
+
+            return nullptr;
+        }
+
+      private:
+        llvm::Function *function_ = nullptr;
+        llvm::BasicBlock *entry_block_ = nullptr;
+        std::vector<ScopeFrame> scopes_;
+    };
+
+    class InsertPointScope final : NonCopyable
+    {
+      public:
+        explicit InsertPointScope(llvm::IRBuilder<> &builder, llvm::BasicBlock *block) noexcept
+            : builder_{builder}, old_insert_block_{builder.GetInsertBlock()}
+        {
+            builder_.SetInsertPoint(block);
+        }
+
+        ~InsertPointScope()
+        {
+            builder_.SetInsertPoint(old_insert_block_);
+        }
+
+      private:
+        llvm::IRBuilder<> &builder_;
+        llvm::BasicBlock *old_insert_block_ = nullptr;
+    };
+
+    enum class UnaryReturnType : std::uint8_t
+    {
+        prefix,
+        postfix
+    };
+
+    enum class UnaryArithmeticType : std::uint8_t
+    {
+        increment,
+        decrement
+    };
+
     class LlvmEmitter::Impl final : NonCopyable
     {
       public:
@@ -76,8 +205,12 @@ namespace prism
             auto *type = get_or_create_type(symbol.type());
 
             const auto name = mangle_global(symbol);
-            auto *variable =
-                new llvm::GlobalVariable(type, false, llvm::GlobalVariable::ExternalLinkage, nullptr, name);
+            auto *variable = new llvm::GlobalVariable(module_,
+                                                      type,
+                                                      false,
+                                                      llvm::GlobalVariable::ExternalLinkage,
+                                                      llvm::Constant::getNullValue(type),
+                                                      name);
             symbol_to_value_[&symbol] = variable;
             return variable;
         }
@@ -94,10 +227,46 @@ namespace prism
 
         void emit_global_initializer(const VariableSymbol &symbol)
         {
+            auto *variable = get_or_create_global(symbol);
+            if (!symbol.has_initializer())
+            {
+                return;
+            }
+
+            const auto initializer = CompilationInternal::get_bound_initializer(compilation_, symbol);
+            if (!initializer.has_value())
+            {
+                return;
+            }
+
+            auto &constant = initializer->constant_value();
+            if (!constant.has_value())
+                return;
+
+            variable->setInitializer(make_constant(*constant));
         }
 
         void emit_function_body(const FunctionSymbol &symbol)
         {
+            auto *function = get_or_create_function(symbol);
+            const auto body = CompilationInternal::get_bound_body(compilation_, symbol);
+            if (!body.has_value())
+            {
+                function->setLinkage(llvm::Function::AvailableExternallyLinkage);
+                return;
+            }
+
+            auto *entry = llvm::BasicBlock::Create(context_, "entry", function);
+            InsertPointScope scope{builder_, entry};
+            FunctionEmissionContext context{
+                function,
+                entry,
+            };
+            for (auto [symbol_param, llvm_param] : std::views::zip(symbol.parameters(), function->args()))
+            {
+                context.bind_storage(symbol_param, &llvm_param);
+            }
+            emit_statement(*body, context);
         }
 
         llvm::Type *create_type(const TypeSymbol &symbol)
@@ -274,6 +443,487 @@ namespace prism
         {
             auto view = name.as_string_view();
             std::format_to(std::back_inserter(out), "{}{}", view.size(), view);
+        }
+
+        llvm::Constant *make_constant(const ConstantValue &value)
+        {
+            switch (value.kind())
+            {
+                case ConstantValue::Kind::bool_:
+                    return value.as_boolean() ? llvm::ConstantInt::getTrue(context_)
+                                              : llvm::ConstantInt::getFalse(context_);
+                case ConstantValue::Kind::char_:
+                    return llvm::ConstantInt::get(llvm::Type::getInt8Ty(context_), value.as_character());
+                case ConstantValue::Kind::char16:
+                    return llvm::ConstantInt::get(llvm::Type::getInt16Ty(context_), value.as_character());
+                case ConstantValue::Kind::rune:
+                    return llvm::ConstantInt::get(llvm::Type::getInt32Ty(context_), value.as_character());
+                case ConstantValue::Kind::i8:
+                    return llvm::ConstantInt::get(llvm::Type::getInt8Ty(context_), value.as_i64(), true);
+                case ConstantValue::Kind::i16:
+                    return llvm::ConstantInt::get(llvm::Type::getInt16Ty(context_), value.as_i64(), true);
+                case ConstantValue::Kind::i32:
+                    return llvm::ConstantInt::get(llvm::Type::getInt32Ty(context_), value.as_i64(), true);
+                case ConstantValue::Kind::i64:
+                    return llvm::ConstantInt::get(llvm::Type::getInt64Ty(context_), value.as_i64(), true);
+                case ConstantValue::Kind::i128:
+                    return llvm::ConstantInt::get(llvm::Type::getInt128Ty(context_), value.as_i64(), true);
+                case ConstantValue::Kind::isize:
+                    switch (compilation_.target_settings().pointer_width)
+                    {
+                        case PointerWidth::x32:
+                            return llvm::ConstantInt::get(llvm::Type::getInt32Ty(context_), value.as_i64(), true);
+                        case PointerWidth::x64:
+                            return llvm::ConstantInt::get(llvm::Type::getInt64Ty(context_), value.as_i64(), true);
+                        default:
+                            UNREACHABLE("Invalid pointer size");
+                    }
+                case ConstantValue::Kind::u8:
+                    return llvm::ConstantInt::get(llvm::Type::getInt8Ty(context_), value.as_u64());
+                case ConstantValue::Kind::u16:
+                    return llvm::ConstantInt::get(llvm::Type::getInt16Ty(context_), value.as_u64());
+                case ConstantValue::Kind::u32:
+                    return llvm::ConstantInt::get(llvm::Type::getInt32Ty(context_), value.as_u64());
+                case ConstantValue::Kind::u64:
+                    return llvm::ConstantInt::get(llvm::Type::getInt64Ty(context_), value.as_u64());
+                case ConstantValue::Kind::u128:
+                    return llvm::ConstantInt::get(llvm::Type::getInt128Ty(context_), value.as_u128());
+                case ConstantValue::Kind::usize:
+                    switch (compilation_.target_settings().pointer_width)
+                    {
+                        case PointerWidth::x32:
+                            return llvm::ConstantInt::get(llvm::Type::getInt32Ty(context_), value.as_u64());
+                        case PointerWidth::x64:
+                            return llvm::ConstantInt::get(llvm::Type::getInt64Ty(context_), value.as_u64());
+                        default:
+                            UNREACHABLE("Invalid pointer size");
+                    }
+                case ConstantValue::Kind::f32:
+                    return llvm::ConstantFP::get(llvm::Type::getFloatTy(context_), value.as_f32());
+                case ConstantValue::Kind::f64:
+                    return llvm::ConstantFP::get(llvm::Type::getDoubleTy(context_), value.as_f64());
+                case ConstantValue::Kind::str:
+                    return builder_.CreateGlobalString(value.as_str().view());
+                default:
+                    UNREACHABLE("Invalid constant value kind");
+            }
+        }
+
+        void emit_statement(const BoundStatement &statement, FunctionEmissionContext &context)
+        {
+            visit(statement,
+                  Overload{[&](const BoundBlock &block) { emit_block(block, context); },
+                           [&](const BoundVariableDeclaration &declaration) { emit_local(declaration, context); },
+                           [&](const BoundExpressionStatement &expression)
+                           { emit_expression_statement(expression, context); },
+                           [&](const BoundReturnStatement &return_statement)
+                           {
+                               emit_return(return_statement, context);
+                           }});
+        }
+
+        void emit_block(const BoundBlock &block, FunctionEmissionContext &context)
+        {
+            context.push_scope();
+            for (auto statement : block.statements())
+            {
+                emit_statement(statement, context);
+            }
+
+            context.pop_scope();
+        }
+
+        void emit_local(const BoundVariableDeclaration &declaration, FunctionEmissionContext &context)
+        {
+            auto &symbol = declaration.symbol();
+            auto *type = get_or_create_type(symbol.type());
+            auto *slot = create_entry_alloca(type, symbol.name(), context);
+
+            context.bind_storage(symbol, slot);
+
+            if (declaration.initializer().has_value())
+            {
+                auto *value = emit_expression(*declaration.initializer(), context);
+                builder_.CreateStore(value, slot);
+            }
+        }
+
+        void emit_expression_statement(const BoundExpressionStatement &statement, FunctionEmissionContext &context)
+        {
+            std::ignore = emit_expression(statement.expression(), context);
+        }
+
+        void emit_return(const BoundReturnStatement &return_statement, FunctionEmissionContext &context)
+        {
+            if (!return_statement.expression().has_value())
+            {
+                builder_.CreateRetVoid();
+                return;
+            }
+
+            auto *expression = emit_expression(*return_statement.expression(), context);
+            builder_.CreateRet(expression);
+        }
+
+        llvm::AllocaInst *create_entry_alloca(llvm::Type *type, const Name name, FunctionEmissionContext &context)
+        {
+            auto &entry = context.function()->getEntryBlock();
+            llvm::IRBuilder entry_builder{context_};
+            entry_builder.SetInsertPoint(&entry, entry.begin());
+
+            return builder_.CreateAlloca(type, nullptr, name.as_string_view());
+        }
+
+        llvm::Value *emit_expression(const BoundExpression &expression, FunctionEmissionContext &context)
+        {
+            return visit(
+                expression,
+                Overload{[](const BoundBadExpression &bad) -> llvm::Value *
+                         { throw InvalidStateException{"Should only emit LLVM IR, if the compilation is valid."}; },
+                         [&](const BoundLiteral &literal) { return emit_literal(literal, context); },
+                         [&](const BoundVariableAccess &access) { return emit_access(access, context); },
+                         [&](const BoundParameterAccess &access) { return emit_access(access, context); },
+                         [&](const BoundUnaryExpression &unary) { return emit_operation(unary, context); },
+                         [&](const BoundBinaryExpression &binary) { return emit_operation(binary, context); },
+                         [&](const BoundAssignmentExpression &assignment)
+                         { return emit_assignment(assignment, context); },
+                         [&](const BoundConditionalExpression &conditional)
+                         { return emit_conditional(conditional, context); },
+                         [&](const BoundCallExpression &call) { return emit_call(call, context); },
+                         [&](const BoundConversionExpression &conversion)
+                         {
+                             return emit_conversion(conversion, context);
+                         }});
+        }
+
+        llvm::Value *emit_literal(const BoundLiteral &literal, FunctionEmissionContext &context)
+        {
+            return make_constant(literal.value());
+        }
+
+        llvm::Value *emit_access(const BoundVariableAccess &access, FunctionEmissionContext &context)
+        {
+            auto *addr = emit_address(access, context);
+            auto *type = get_or_create_type(access.symbol().type());
+            return builder_.CreateLoad(type, addr);
+        }
+
+        llvm::Value *emit_access(const BoundParameterAccess &access, FunctionEmissionContext &context)
+        {
+            auto *addr = emit_address(access, context);
+            auto *type = get_or_create_type(access.symbol().type());
+            return builder_.CreateLoad(type, addr);
+        }
+
+        llvm::Value *emit_operation(const BoundUnaryExpression &operation, FunctionEmissionContext &context)
+        {
+            switch (operation.operation())
+            {
+                case UnaryOperation::identity:
+                    return emit_expression(operation.operand(), context);
+                case UnaryOperation::negation:
+                    {
+                        auto *operand = emit_expression(operation.operand(), context);
+                        if (is_integer(operation.operand().type().special_type()))
+                            return builder_.CreateNeg(operand);
+
+                        return builder_.CreateFNeg(operand);
+                    }
+                case UnaryOperation::logical_not:
+                case UnaryOperation::bitwise_not:
+                    return builder_.CreateNot(emit_expression(operation.operand(), context));
+                case UnaryOperation::pre_increment:
+                    return emit_unary_increment_decrement(operation,
+                                                          UnaryReturnType::prefix,
+                                                          UnaryArithmeticType::increment,
+                                                          context);
+                case UnaryOperation::pre_decrement:
+                    return emit_unary_increment_decrement(operation,
+                                                          UnaryReturnType::prefix,
+                                                          UnaryArithmeticType::decrement,
+                                                          context);
+                case UnaryOperation::post_increment:
+                    return emit_unary_increment_decrement(operation,
+                                                          UnaryReturnType::postfix,
+                                                          UnaryArithmeticType::increment,
+                                                          context);
+                case UnaryOperation::post_decrement:
+                    return emit_unary_increment_decrement(operation,
+                                                          UnaryReturnType::postfix,
+                                                          UnaryArithmeticType::decrement,
+                                                          context);
+                default:
+                    UNREACHABLE("Invalid unary operation");
+            }
+        }
+
+        llvm::Value *emit_unary_increment_decrement(const BoundUnaryExpression &operation,
+                                                    UnaryReturnType return_type,
+                                                    UnaryArithmeticType direction,
+                                                    FunctionEmissionContext &context)
+        {
+            auto *operand = emit_address(operation.operand(), context);
+            auto *type = get_or_create_type(operation.operand().type());
+            auto *value = builder_.CreateLoad(type, operand);
+            llvm::Value *updated;
+            switch (direction)
+            {
+                case UnaryArithmeticType::increment:
+                    updated = builder_.CreateAdd(value, llvm::ConstantInt::get(value->getType(), 1));
+                    break;
+                case UnaryArithmeticType::decrement:
+                    updated = builder_.CreateSub(value, llvm::ConstantInt::get(value->getType(), 1));
+                    break;
+                default:
+                    UNREACHABLE("Invalid UnaryArithmeticType");
+            }
+            builder_.CreateStore(updated, operand);
+            switch (return_type)
+            {
+                case UnaryReturnType::prefix:
+                    return value;
+                case UnaryReturnType::postfix:
+                    return updated;
+                default:
+                    UNREACHABLE("Invalid UnaryReturnType");
+            }
+        }
+
+        llvm::Value *emit_operation(const BoundBinaryExpression &operation, FunctionEmissionContext &context)
+        {
+            auto *left = emit_expression(operation.left(), context);
+            auto *right = emit_expression(operation.right(), context);
+
+            return emit_binary_operation(operation.type(), left, right, operation.operation());
+        }
+
+        llvm::Value *emit_binary_operation(const TypeSymbol &type,
+                                           llvm::Value *left,
+                                           llvm::Value *right,
+                                           BinaryOperation operation)
+        {
+            switch (operation)
+            {
+                case BinaryOperation::addition:
+                    if (is_integer(type.special_type()))
+                        return builder_.CreateAdd(left, right);
+
+                    return builder_.CreateFAdd(left, right);
+                case BinaryOperation::subtraction:
+                    if (is_integer(type.special_type()))
+                        return builder_.CreateSub(left, right);
+
+                    return builder_.CreateFSub(left, right);
+                case BinaryOperation::multiplication:
+                    if (is_integer(type.special_type()))
+                        return builder_.CreateMul(left, right);
+
+                    return builder_.CreateFMul(left, right);
+                case BinaryOperation::division:
+                    if (is_signed_integer(type.special_type()))
+                        return builder_.CreateSDiv(left, right);
+
+                    if (is_unsigned_integer(type.special_type()))
+                        return builder_.CreateUDiv(left, right);
+
+                    return builder_.CreateFDiv(left, right);
+                case BinaryOperation::modulo:
+                    if (is_signed_integer(type.special_type()))
+                        return builder_.CreateSRem(left, right);
+
+                    if (is_unsigned_integer(type.special_type()))
+                        return builder_.CreateURem(left, right);
+
+                    return builder_.CreateFRem(left, right);
+                case BinaryOperation::bitwise_and:
+                    return builder_.CreateAnd(left, right);
+                case BinaryOperation::bitwise_or:
+                    return builder_.CreateOr(left, right);
+                case BinaryOperation::bitwise_xor:
+                    return builder_.CreateXor(left, right);
+                case BinaryOperation::logical_and:
+                    return builder_.CreateLogicalAnd(left, right);
+                case BinaryOperation::logical_or:
+                    return builder_.CreateLogicalOr(left, right);
+                case BinaryOperation::equals:
+                    return builder_.CreateICmpEQ(left, right);
+                case BinaryOperation::not_equals:
+                    return builder_.CreateICmpNE(left, right);
+                case BinaryOperation::less_than:
+                    if (is_signed_integer(type.special_type()))
+                        return builder_.CreateICmpSLT(left, right);
+
+                    if (is_unsigned_integer(type.special_type()))
+                        return builder_.CreateICmpULT(left, right);
+
+                    return builder_.CreateFCmpOLT(left, right);
+                case BinaryOperation::less_than_or_equals:
+                    if (is_signed_integer(type.special_type()))
+                        return builder_.CreateICmpSLE(left, right);
+
+                    if (is_unsigned_integer(type.special_type()))
+                        return builder_.CreateICmpULE(left, right);
+
+                    return builder_.CreateFCmpOLE(left, right);
+                case BinaryOperation::greater_than:
+                    if (is_signed_integer(type.special_type()))
+                        return builder_.CreateICmpSGT(left, right);
+
+                    if (is_unsigned_integer(type.special_type()))
+                        return builder_.CreateICmpUGT(left, right);
+
+                    return builder_.CreateFCmpOGT(left, right);
+                case BinaryOperation::greater_than_or_equals:
+                    if (is_signed_integer(type.special_type()))
+                        return builder_.CreateICmpSGE(left, right);
+
+                    if (is_unsigned_integer(type.special_type()))
+                        return builder_.CreateICmpUGE(left, right);
+
+                    return builder_.CreateFCmpOGE(left, right);
+                case BinaryOperation::three_way_comparison:
+                    // TODO: Three-way comparisons are not fully supported yet
+                    throw NotImplementedException{};
+                case BinaryOperation::shift_left:
+                    return builder_.CreateShl(left, right);
+                case BinaryOperation::shift_right:
+                    return builder_.CreateAShr(left, right);
+                case BinaryOperation::unsigned_shift_right:
+                    return builder_.CreateLShr(left, right);
+                default:
+                    UNREACHABLE("Unknown binary operation");
+            }
+        }
+
+        llvm::Value *emit_assignment(const BoundAssignmentExpression &operation, FunctionEmissionContext &context)
+        {
+            auto *assignee = emit_address(operation.left(), context);
+            auto &type = operation.left().type();
+            auto *value = emit_expression(operation, context);
+            if (operation.operation() == AssignmentOperation::simple)
+            {
+                builder_.CreateStore(value, assignee);
+            }
+            else
+            {
+                auto binary_op = to_binary_operation(operation.operation());
+                emit_assignment(assignee,
+                                type,
+                                value,
+                                [&](llvm::Value *left, llvm::Value *right)
+                                { return emit_binary_operation(type, left, right, binary_op); });
+            }
+
+            // Assignments do not return a value
+            return nullptr;
+        }
+
+        template <std::invocable<llvm::Value *, llvm::Value *> Functor>
+            requires std::convertible_to<std::invoke_result_t<Functor, llvm::Value *, llvm::Value *>, llvm::Value *>
+        void emit_assignment(llvm::Value *assignee,
+                             const TypeSymbol &assignee_type,
+                             llvm::Value *value,
+                             Functor &&functor)
+        {
+            auto *type = get_or_create_type(assignee_type);
+            auto *assignee_value = builder_.CreateLoad(type, assignee);
+            llvm::Value *result = std::invoke(std::forward<Functor>(functor), assignee_value, value);
+            builder_.CreateStore(result, assignee);
+        }
+
+        llvm::Value *emit_conditional(const BoundConditionalExpression &conditional, FunctionEmissionContext &context)
+        {
+            auto *function = context.function();
+            auto *then_block = llvm::BasicBlock::Create(context_, "cond.then", function);
+            auto *else_block = llvm::BasicBlock::Create(context_, "cond.else");
+            auto *merge_block = llvm::BasicBlock::Create(context_, "cond.merge");
+
+            auto *condition = emit_expression(conditional.condition(), context);
+            builder_.CreateCondBr(condition, then_block, else_block);
+
+            builder_.SetInsertPoint(then_block);
+            auto *then_value = emit_expression(conditional.when_true(), context);
+            auto *actual_then_block = builder_.GetInsertBlock();
+            builder_.CreateBr(merge_block);
+
+            function->insert(function->end(), else_block);
+            builder_.SetInsertPoint(else_block);
+            auto *else_value = emit_expression(conditional.when_false(), context);
+            auto *actual_else_block = builder_.GetInsertBlock();
+            builder_.CreateBr(merge_block);
+
+            function->insert(function->end(), merge_block); // if needed
+            builder_.SetInsertPoint(merge_block);
+
+            auto *result_type = get_or_create_type(conditional.type());
+            auto *phi = builder_.CreatePHI(result_type, 2);
+            phi->addIncoming(then_value, actual_then_block);
+            phi->addIncoming(else_value, actual_else_block);
+
+            return phi;
+        }
+
+        llvm::Value *emit_call(const BoundCallExpression &call, FunctionEmissionContext &context)
+        {
+            const auto &target = call.symbol();
+            auto *callee = get_or_create_function(target);
+
+            auto arguments =
+                call.arguments() |
+                std::views::transform([&](const auto &argument) { return emit_expression(argument, context); }) |
+                std::ranges::to<std::vector>();
+
+            return builder_.CreateCall(callee, arguments);
+        }
+
+        llvm::Value *emit_conversion(const BoundConversionExpression &conversion, FunctionEmissionContext &context)
+        {
+            auto *operand = emit_expression(conversion.operand(), context);
+
+            const auto &source_type = conversion.operand().type();
+            const auto &target_type = conversion.type();
+
+            if (&source_type == &target_type)
+                return operand;
+
+            return emit_scalar_conversion(operand, source_type, target_type);
+        }
+
+        llvm::Value *emit_scalar_conversion(llvm::Value *operand,
+                                            const TypeSymbol &source_type,
+                                            const TypeSymbol &target_type)
+        {
+            auto *source = get_or_create_type(source_type);
+            auto *target = get_or_create_type(target_type);
+
+            if (source == target)
+                return operand;
+
+            return builder_.CreateBitCast(operand, target);
+        }
+
+        llvm::Value *emit_address(const BoundExpression &expression, FunctionEmissionContext &context)
+        {
+            return visit(expression,
+                         Overload{
+                             [&](const BoundVariableAccess &access) { return emit_address(access, context); },
+                             [&](const BoundParameterAccess &access) { return emit_address(access, context); },
+                             [&](const BoundExpression &) -> llvm::Value *
+                             { throw std::invalid_argument{"Cannot take address of non-addressable expression"}; },
+                         });
+        }
+
+        llvm::Value *emit_address(const BoundVariableAccess &access, FunctionEmissionContext &context)
+        {
+            if (auto *local = context.lookup_storage(access.symbol()); local != nullptr)
+                return local;
+
+            return get_or_create_global(access.symbol());
+        }
+
+        static llvm::Value *emit_address(const BoundParameterAccess &access, FunctionEmissionContext &context)
+        {
+            return context.lookup_storage(access.symbol());
         }
 
         const Compilation &compilation_;

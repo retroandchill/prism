@@ -92,6 +92,11 @@ namespace prism
         }
     }
 
+    constexpr bool is_floating_point(const SpecialType type) noexcept
+    {
+        return type == SpecialType::f32 || type == SpecialType::f64;
+    }
+
     constexpr bool is_numeric(const SpecialType type) noexcept
     {
         switch (type)

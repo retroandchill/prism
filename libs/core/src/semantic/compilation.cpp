@@ -22,6 +22,8 @@ import :binder.terminal_binder;
 import :symbols.namespace_symbol;
 import :binder.binder_factory;
 import :symbols.visit;
+import :syntax.visit;
+import :binder.lookup_context;
 
 namespace prism
 {
@@ -370,5 +372,37 @@ namespace prism
     const ImmutableArray<Ref<const FunctionSymbol>> &Compilation::get_global_functions() const
     {
         return cache_.get_global_functions();
+    }
+
+    Optional<const BoundExpression &> Compilation::get_bound_initializer(const VariableSymbol &symbol) const
+    {
+        const LookupContext context{declaration_diagnostics_};
+        for (auto &ref : symbol.declaring_syntax_references())
+        {
+            auto &semantic_model = get_semantic_model(ref.tree());
+            auto declaration = ref.syntax().as<VariableDeclarationSyntax>();
+            if (!declaration.has_value())
+                continue;
+
+            return SemanticModelInternal::get_bound_initializer(semantic_model, *declaration, context);
+        }
+
+        return std::nullopt;
+    }
+
+    Optional<const BoundStatement &> Compilation::get_bound_body(const FunctionSymbol &symbol) const
+    {
+        const LookupContext context{declaration_diagnostics_};
+        for (auto &ref : symbol.declaring_syntax_references())
+        {
+            auto &semantic_model = get_semantic_model(ref.tree());
+            auto declaration = ref.syntax().as<FunctionDeclarationSyntax>();
+            if (!declaration.has_value())
+                continue;
+
+            return SemanticModelInternal::get_bound_body(semantic_model, *declaration, context);
+        }
+
+        return std::nullopt;
     }
 } // namespace prism

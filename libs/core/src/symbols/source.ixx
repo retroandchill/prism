@@ -102,6 +102,7 @@ namespace prism
 
         [[nodiscard]] const TypeSymbol &type() const final;
         [[nodiscard]] bool is_mutable() const noexcept final;
+        [[nodiscard]] bool has_initializer() const noexcept final;
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const final;
 
       protected:

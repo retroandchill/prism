@@ -78,6 +78,12 @@ namespace prism
         return state().get_bound_variable_initializer(declaration, binder, context);
     }
 
+    const BoundStatement &SemanticModel::get_bound_body(const FunctionDeclarationSyntax &declaration,
+                                                        const LookupContext &context) const
+    {
+        return state().get_bound_body(declaration, context);
+    }
+
     void SemanticModel::validate_is_part_of_compilation(const SyntaxNode &node) const
     {
         if (&node.tree() != tree_)

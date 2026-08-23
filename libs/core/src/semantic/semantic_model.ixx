@@ -17,6 +17,7 @@ import :util.lazy;
 
 namespace prism
 {
+    class BoundStatement;
     class Binder;
     class ExpressionSyntax;
     class BoundExpression;
@@ -87,6 +88,9 @@ namespace prism
                                                                    const Binder &binder,
                                                                    const LookupContext &context) const;
 
+        [[nodiscard]] const BoundStatement &get_bound_body(const FunctionDeclarationSyntax &declaration,
+                                                           const LookupContext &context) const;
+
         void validate_is_part_of_compilation(const SyntaxNode &node) const;
 
         const Compilation *compilation_;
@@ -123,6 +127,13 @@ namespace prism
             const LookupContext &context)
         {
             return model.get_bound_initializer(declaration, binder, context);
+        }
+
+        [[nodiscard]] static inline const BoundStatement &get_bound_body(const SemanticModel &model,
+                                                                         const FunctionDeclarationSyntax &declaration,
+                                                                         const LookupContext &context)
+        {
+            return model.get_bound_body(declaration, context);
         }
     };
 } // namespace prism

@@ -256,6 +256,11 @@ namespace prism
         return syntax_.mut_keyword().has_value();
     }
 
+    bool SourceVariableSymbol::has_initializer() const noexcept
+    {
+        return syntax_.initializer().has_value();
+    }
+
     std::span<const SyntaxReference> SourceVariableSymbol::declaring_syntax_references() const
     {
         return {&syntax_reference_, 1};

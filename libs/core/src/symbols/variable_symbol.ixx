@@ -34,6 +34,8 @@ namespace prism
          */
         [[nodiscard]] virtual bool is_mutable() const noexcept = 0;
 
+        [[nodiscard]] virtual bool has_initializer() const noexcept = 0;
+
         /**
          * @brief Check if the target symbol is a variable.
          * @param symbol The target symbol

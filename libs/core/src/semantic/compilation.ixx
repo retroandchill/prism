@@ -125,6 +125,9 @@ namespace prism
         [[nodiscard]] const ImmutableArray<Ref<const VariableSymbol>> &get_global_variables() const;
         [[nodiscard]] const ImmutableArray<Ref<const FunctionSymbol>> &get_global_functions() const;
 
+        [[nodicard]] Optional<const BoundExpression &> get_bound_initializer(const VariableSymbol &symbol) const;
+        [[nodicard]] Optional<const BoundStatement &> get_bound_body(const FunctionSymbol &symbol) const;
+
         friend struct CompilationInternal;
 
         SemanticLifetime &lifetime_;
@@ -217,6 +220,19 @@ namespace prism
             const Compilation &compilation)
         {
             return compilation.get_global_functions();
+        }
+
+        [[nodiscard]] static inline Optional<const BoundExpression &> get_bound_initializer(
+            const Compilation &compilation,
+            const VariableSymbol &symbol)
+        {
+            return compilation.get_bound_initializer(symbol);
+        }
+
+        [[nodiscard]] static inline Optional<const BoundStatement &> get_bound_body(const Compilation &compilation,
+                                                                                    const FunctionSymbol &symbol)
+        {
+            return compilation.get_bound_body(symbol);
         }
     };
 } // namespace prism
