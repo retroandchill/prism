@@ -21,6 +21,7 @@ import :symbols.source;
 import :binder.terminal_binder;
 import :symbols.namespace_symbol;
 import :binder.binder_factory;
+import :symbols.visit;
 
 namespace prism
 {
@@ -123,7 +124,61 @@ namespace prism
                                                { return compilation_.lifetime_.create<TerminalBinder>(compilation_); });
         }
 
+        [[nodiscard]] const ImmutableArray<Ref<const VariableSymbol>> &get_global_variables()
+        {
+            return top_level_variables_.get_or_compute(
+                [this]
+                {
+                    PooledVector<Ref<const VariableSymbol>> variables;
+                    collect_global_variables(compilation_.assembly().global_namespace(), variables);
+                    return ImmutableArray{std::from_range, variables};
+                });
+        }
+
+        [[nodiscard]] const ImmutableArray<Ref<const FunctionSymbol>> &get_global_functions()
+        {
+            return top_level_functions_.get_or_compute(
+                [this]
+                {
+                    PooledVector<Ref<const FunctionSymbol>> variables;
+                    collect_global_functions(compilation_.assembly().global_namespace(), variables);
+                    return ImmutableArray{std::from_range, variables};
+                });
+        }
+
       private:
+        static void collect_global_variables(const NamespaceSymbol &ns,
+                                             PooledVector<Ref<const VariableSymbol>> &variables)
+        {
+            for (auto member : ns.members())
+            {
+                visit(member,
+                      Overload{[&](const VariableSymbol &variable) { variables.push_back(variable); },
+                               [&](const NamespaceSymbol &namespace_)
+                               { collect_global_variables(namespace_, variables); },
+                               [](const Symbol &)
+                               {
+                                   // Ignore other symbols
+                               }});
+            }
+        }
+
+        static void collect_global_functions(const NamespaceSymbol &ns,
+                                             PooledVector<Ref<const FunctionSymbol>> &functions)
+        {
+            for (auto member : ns.members())
+            {
+                visit(member,
+                      Overload{[&](const FunctionSymbol &function) { functions.push_back(function); },
+                               [&](const NamespaceSymbol &namespace_)
+                               { collect_global_functions(namespace_, functions); },
+                               [](const Symbol &)
+                               {
+                                   // Ignore other symbols
+                               }});
+            }
+        }
+
         const Compilation &compilation_;
         std::mutex compilation_namespace_mutex_;
         std::unordered_map<const NamespaceSymbol *, const NamespaceSymbol *> compilation_namespaces_;
@@ -140,6 +195,9 @@ namespace prism
 
         std::mutex error_namespace_mutex_;
         std::unordered_map<SymbolLookupKey, const NamespaceSymbol *> error_namespaces_;
+
+        Lazy<ImmutableArray<Ref<const VariableSymbol>>> top_level_variables_;
+        Lazy<ImmutableArray<Ref<const FunctionSymbol>>> top_level_functions_;
     };
 
     Compilation::Compilation(CreateTag,
@@ -302,5 +360,15 @@ namespace prism
     const Binder &Compilation::root_binder() const
     {
         return cache_.root_binder();
+    }
+
+    const ImmutableArray<Ref<const VariableSymbol>> &Compilation::get_global_variables() const
+    {
+        return cache_.get_global_variables();
+    }
+
+    const ImmutableArray<Ref<const FunctionSymbol>> &Compilation::get_global_functions() const
+    {
+        return cache_.get_global_functions();
     }
 } // namespace prism

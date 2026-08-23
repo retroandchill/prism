@@ -122,6 +122,9 @@ namespace prism
         [[nodiscard]] const BinderFactory &get_binder_factory(const SyntaxTree &tree) const;
         [[nodiscard]] const Binder &root_binder() const;
 
+        [[nodiscard]] const ImmutableArray<Ref<const VariableSymbol>> &get_global_variables() const;
+        [[nodiscard]] const ImmutableArray<Ref<const FunctionSymbol>> &get_global_functions() const;
+
         friend struct CompilationInternal;
 
         SemanticLifetime &lifetime_;
@@ -202,6 +205,18 @@ namespace prism
         [[nodiscard]] static inline DiagnosticBag &get_declaration_diagnostics(const Compilation &compilation)
         {
             return compilation.declaration_diagnostics_;
+        }
+
+        [[nodiscard]] static inline const ImmutableArray<Ref<const VariableSymbol>> &get_global_variables(
+            const Compilation &compilation)
+        {
+            return compilation.get_global_variables();
+        }
+
+        [[nodiscard]] static inline const ImmutableArray<Ref<const FunctionSymbol>> &get_functions(
+            const Compilation &compilation)
+        {
+            return compilation.get_global_functions();
         }
     };
 } // namespace prism
