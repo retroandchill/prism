@@ -3,13 +3,14 @@ set(PRISM_CORE_TESTS
         immutable_array_test.cpp
         immutable_small_array_test.cpp
         immutable_hash_collections_test.cpp
-        immutable_string_test.cpp)
+        immutable_string_test.cpp
+        name_test.cpp
+        symbol_creation_test.cpp)
 
-set(PRISM_CORE_INTERNAL_TESTS name_test.cpp
+set(PRISM_CORE_INTERNAL_TESTS
         source_file_test.cpp
         lexer_test.cpp
         parser_test.cpp
-        symbol_creation_test.cpp
         binder_test.cpp)
 
 add_executable(prism_core_tests ${PRISM_CORE_TESTS} ${PRISM_CORE_INTERNAL_TESTS})

@@ -52,12 +52,16 @@ export import :syntax.trivia;
 export import :syntax.list;
 export import :syntax.node_or_token;
 export import :syntax.child_list;
+export import :syntax.tree;
 
-export import :symbols.symbol;
 export import :symbols.variable_symbol;
 export import :symbols.type_symbol;
 export import :symbols.function_symbol;
 export import :symbols.parameter_symbol;
+export import :symbols.assembly_symbol;
+export import :symbols.named_type_symbol;
+export import :symbols.namespace_symbol;
+export import :symbols.symbol;
 
 export import :semantic.compilation;
 export import :semantic.semantic_model;

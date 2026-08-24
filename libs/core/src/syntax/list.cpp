@@ -4,7 +4,7 @@
  * @date 7/21/2026
  * @brief
  */
-export module prism.core:syntax.list.impl;
+module prism.core:syntax.list.impl;
 
 import :syntax.list;
 import :syntax.lifetime;

@@ -76,3 +76,4 @@ endif()
 
 add_subdirectory(third_party)
 add_subdirectory(libs)
+add_subdirectory(compiler)

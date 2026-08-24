@@ -4,19 +4,10 @@
  * @date 8/2/2026
  * @brief
  */
-module;
-
 #include <catch2/catch_test_macros.hpp>
 
-module prism.core:tests.symbol_creation;
-
-import :syntax.tree;
-import :semantic.compilation;
-import :symbols.assembly_symbol;
-import :symbols.namespace_symbol;
-import :symbols.variable_symbol;
-import :symbols.function_symbol;
-import :symbols.parameter_symbol;
+import std;
+import prism.core;
 
 using namespace prism;
 
