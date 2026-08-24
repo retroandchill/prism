@@ -16,10 +16,21 @@ import :util.lazy_value;
 
 namespace prism
 {
-    class SingleRootNamespaceDeclaration;
-    class Compilation;
-
     using LazyRootNamespace = LazyValue<RefCountPtr<const SingleRootNamespaceDeclaration>>;
+
+    /*
+     * Struct to serve as a drop-in replacement for std::hash.
+     *
+     * @remarks This is because MSVC has an annoying bug that makes it hard to use partial
+     *          specializations of std::hash and std::format directly.
+     */
+    struct LazyRootNamespaceHash
+    {
+        constexpr std::size_t operator()(const LazyRootNamespace &lazy_root) const noexcept
+        {
+            return hash_value(lazy_root);
+        }
+    };
 
     class DeclarationTable final : public IntrusiveRefCounted
     {
@@ -28,6 +39,8 @@ namespace prism
         {
         };
         class Cache;
+
+        using OldRootSet = ImmutableOrderedSet<LazyRootNamespace, LazyRootNamespaceHash>;
 
         static constexpr ConstructTag construct_tag;
 
@@ -52,7 +65,7 @@ namespace prism
         };
 
         DeclarationTable(ConstructTag,
-                         ImmutableOrderedSet<LazyRootNamespace> old_roots,
+                         OldRootSet old_roots,
                          Optional<LazyRootNamespace> latest_lazy_root,
                          std::shared_ptr<Cache> cache);
 
@@ -77,7 +90,7 @@ namespace prism
         template <std::predicate<const Declaration &> Predicate>
         static ImmutableHashSet<Name> get_names(const Declaration &declaration, Predicate &&predicate);
 
-        ImmutableOrderedSet<LazyRootNamespace> old_roots_;
+        OldRootSet old_roots_;
         Optional<LazyRootNamespace> latest_lazy_root_declaration_;
         std::shared_ptr<Cache> cache_;
 

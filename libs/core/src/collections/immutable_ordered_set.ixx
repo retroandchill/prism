@@ -11,17 +11,18 @@ import :memory.buffer_pool;
 
 namespace prism
 {
-    template <typename T>
+    template <typename T, typename Hash = std::hash<T>, typename KeyEqual = std::equal_to<T>>
     class ImmutableOrderedSet final
     {
+        using SetType = ImmutableHashSet<T, Hash, KeyEqual>;
+
       public:
         using value_type = T;
 
         constexpr ImmutableOrderedSet() noexcept = default;
 
       private:
-        constexpr ImmutableOrderedSet(ImmutableArray<T> values, ImmutableHashSet<T> set) noexcept
-            : values_{values}, set_{set}
+        constexpr ImmutableOrderedSet(ImmutableArray<T> values, SetType set) noexcept : values_{values}, set_{set}
         {
         }
 
@@ -65,7 +66,7 @@ namespace prism
         {
             bool changed = false;
             PooledVector<T> values;
-            PooledSet<T> explored;
+            PooledSet<T, Hash, KeyEqual> explored;
 
             for (auto &&value : range)
             {
@@ -91,7 +92,7 @@ namespace prism
                 return *this;
 
             return ImmutableOrderedSet{make_immutable_array(values | std::views::as_rvalue),
-                                       make_immutable_hash_set(explored | std::views::as_rvalue)};
+                                       make_immutable_hash_set(explored | std::views::as_rvalue, Hash{}, KeyEqual{})};
         }
 
         [[nodiscard]] constexpr ImmutableOrderedSet remove(const T &value) const
@@ -128,7 +129,7 @@ namespace prism
                 return *this;
 
             return ImmutableOrderedSet{make_immutable_array(values | std::views::as_rvalue),
-                                       make_immutable_hash_set(set_)};
+                                       make_immutable_hash_set(set_, Hash{}, KeyEqual{})};
         }
 
         [[nodiscard]] constexpr auto begin() const noexcept
@@ -154,6 +155,6 @@ namespace prism
         }
 
         ImmutableArray<T> values_{};
-        ImmutableHashSet<T> set_{};
+        SetType set_{};
     };
 } // namespace prism

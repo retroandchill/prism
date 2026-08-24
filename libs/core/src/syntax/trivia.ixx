@@ -60,7 +60,7 @@ namespace prism
         std::uint32_t position_;
     };
 
-    class SyntaxTriviaList PRISM_CORE_API final : public SyntaxListView<SyntaxTrivia>
+    class PRISM_CORE_API SyntaxTriviaList final : public SyntaxListView<SyntaxTrivia>
     {
         constexpr explicit SyntaxTriviaList(SyntaxToken parent, const GreenNode *trivia_list)
             : parent_{std::move(parent)}, green_{trivia_list}, position_{SyntaxTokenInternal::get_position(parent)}

@@ -13,7 +13,7 @@ import boost;
 
 namespace prism
 {
-    class SyntaxTree;
+    export class SyntaxTree;
 
     class SyntaxLifetime final : public std::enable_shared_from_this<SyntaxLifetime>
     {

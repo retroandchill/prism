@@ -8,7 +8,7 @@
 
 #ifdef PRISM_SHARED
 #ifdef _WIN32
-#ifdef MODULIZER_EXPORT
+#ifdef PRISM_CORE_EXPORT
 #define PRISM_CORE_API __declspec(dllexport)
 #else
 #define PRISM_CORE_API __declspec(dllimport)

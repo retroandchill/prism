@@ -27,7 +27,7 @@ namespace prism
     class BinderFactory;
     class BoundStatement;
     class BoundExpression;
-    class NamedTypeSymbol;
+    export class NamedTypeSymbol;
     export class AssemblySymbol;
 
     struct SymbolLookupKey

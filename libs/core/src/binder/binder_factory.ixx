@@ -8,11 +8,10 @@
 export module prism.core:binder.binder_factory;
 
 import :binder;
+import :syntax.tree;
 
 namespace prism
 {
-    class SyntaxTree;
-
     class BinderFactory final : NonCopyable
     {
       public:

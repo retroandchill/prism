@@ -10,17 +10,15 @@ import std;
 import :memory.ref_counted_ptr;
 import :collections.immutable_array;
 import :syntax.list;
+import :syntax.tree;
 import :collections.immutable_hash_set;
+import :declarations.single_root_namespace_declaration;
 
 namespace prism
 {
-    class NamespaceDeclarationSyntax;
-    class CompilationUnitSyntax;
-    class GreenDeclaration;
-    class SingleDeclaration;
-    class SingleRootNamespaceDeclaration;
-    class SyntaxTree;
-    class DeclarationSyntax;
+    export class NamespaceDeclarationSyntax;
+    export class CompilationUnitSyntax;
+    export class DeclarationSyntax;
 
     class DeclarationTreeBuilder final
     {

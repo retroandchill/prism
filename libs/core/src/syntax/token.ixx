@@ -143,7 +143,7 @@ namespace prism
         }
     };
 
-    class SyntaxTokenList PRISM_CORE_API final : public SyntaxListView<SyntaxToken>
+    class PRISM_CORE_API SyntaxTokenList final : public SyntaxListView<SyntaxToken>
     {
       public:
         constexpr explicit SyntaxTokenList(const SyntaxNode *parent,

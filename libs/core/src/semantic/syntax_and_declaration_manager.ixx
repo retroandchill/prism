@@ -10,15 +10,12 @@ import std;
 import :collections.immutable_array;
 import :collections.immutable_hash_map;
 import :util.lazy;
+import :syntax.tree;
 import :declarations.declaration_table;
 import :memory.buffer_pool;
 
 namespace prism
 {
-    class DeclarationTable;
-    class SingleRootNamespaceDeclaration;
-    class SyntaxTree;
-
     class SyntaxAndDeclarationManager final : public IntrusiveRefCounted
     {
       public:

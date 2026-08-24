@@ -16,10 +16,11 @@ import :util.numerics;
 
 namespace prism
 {
-    class SourceLocation;
-    class SyntaxReference;
-    class Compilation;
-    class SyntaxTree;
+    export class SourceLocation;
+    export class SyntaxReference;
+    export class Compilation;
+    export class SyntaxTree;
+
     class LexicalSortKey final
     {
         struct NoCheck

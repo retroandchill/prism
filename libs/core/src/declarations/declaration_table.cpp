@@ -45,7 +45,7 @@ namespace prism
         }
 
       private:
-        ImmutableOrderedSet<LazyRootNamespace> old_roots_;
+        OldRootSet old_roots_;
         mutable Lazy<RefCountPtr<const MergedNamespaceDeclaration>> merged_root_;
         mutable Lazy<ImmutableHashSet<Name>> type_names_;
         mutable Lazy<ImmutableHashSet<Name>> namespace_names_;
@@ -154,7 +154,7 @@ namespace prism
     }
 
     DeclarationTable::DeclarationTable(ConstructTag,
-                                       ImmutableOrderedSet<LazyRootNamespace> old_roots,
+                                       OldRootSet old_roots,
                                        Optional<LazyRootNamespace> latest_lazy_root,
                                        std::shared_ptr<Cache> cache)
         : old_roots_{std::move(old_roots)}, latest_lazy_root_declaration_{std::move(latest_lazy_root)},
@@ -164,10 +164,8 @@ namespace prism
 
     const RefCountPtr<const DeclarationTable> &DeclarationTable::empty()
     {
-        static auto empty_table = make_ref_counted<const DeclarationTable>(construct_tag,
-                                                                           ImmutableOrderedSet<LazyRootNamespace>{},
-                                                                           std::nullopt,
-                                                                           nullptr);
+        static auto empty_table =
+            make_ref_counted<const DeclarationTable>(construct_tag, OldRootSet{}, std::nullopt, nullptr);
         return empty_table;
     }
 

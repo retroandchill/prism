@@ -4,6 +4,10 @@
  * @date 7/12/2026
  * @brief
  */
+module;
+
+#include "prism/core/exports.h"
+
 export module prism.core:syntax.tree;
 
 import :text.source_file;
@@ -19,7 +23,7 @@ namespace prism
 {
     class SyntaxTrivia;
 
-    export class SyntaxTree final : NonCopyable
+    export class PRISM_CORE_API SyntaxTree final : NonCopyable
     {
         struct ConstructTag
         {

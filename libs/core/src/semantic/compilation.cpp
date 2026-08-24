@@ -24,6 +24,7 @@ import :binder.binder_factory;
 import :symbols.visit;
 import :syntax.visit;
 import :binder.lookup_context;
+import :semantic.syntax_and_declaration_manager;
 
 namespace prism
 {

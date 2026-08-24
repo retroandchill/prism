@@ -13,16 +13,16 @@ import :util.lazy;
 namespace prism
 {
     class BoundStatement;
-    class FunctionDeclarationSyntax;
-    class Symbol;
-    class ExpressionSyntax;
+    export class FunctionDeclarationSyntax;
+    export class Symbol;
+    export class ExpressionSyntax;
     class BoundExpression;
-    class SyntaxNode;
+    export class SyntaxNode;
     class Binder;
-    class SyntaxTree;
-    class Compilation;
+    export class SyntaxTree;
+    export class Compilation;
     class LookupContext;
-    class VariableDeclarationSyntax;
+    export class VariableDeclarationSyntax;
 
     class SemanticModelState final : NonCopyable
     {
