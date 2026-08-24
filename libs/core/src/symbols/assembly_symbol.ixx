@@ -10,7 +10,7 @@ import :symbols.symbol;
 
 namespace prism
 {
-    class NamespaceSymbol;
+    export class NamespaceSymbol;
 
     export class AssemblySymbol : public Symbol
     {

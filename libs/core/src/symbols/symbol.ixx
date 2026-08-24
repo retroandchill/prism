@@ -23,11 +23,11 @@ import :syntax.reference;
 namespace prism
 {
     class DiagnosticBag;
-    class Compilation;
+    export class Compilation;
     export class Symbol;
-    class AssemblySymbol;
-    class NamespaceSymbol;
-    class TypeSymbol;
+    export class AssemblySymbol;
+    export class NamespaceSymbol;
+    export class TypeSymbol;
 
     export template <typename T>
     using SymbolSpan = std::span<const Ref<const T>>;

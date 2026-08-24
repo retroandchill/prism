@@ -16,9 +16,9 @@ import :diagnostics.location;
 
 namespace prism
 {
-    class SyntaxNode;
-    class SyntaxTriviaList;
-    class SyntaxTree;
+    export class SyntaxNode;
+    export class SyntaxTriviaList;
+    export class SyntaxTree;
     export class SyntaxTokenList;
 
     template <LiteralData T>

@@ -15,10 +15,10 @@ import :text.source_file;
 
 namespace prism
 {
-    class SyntaxToken;
-    class SyntaxNode;
-    class SyntaxTree;
-    class SyntaxReference;
+    export class SyntaxToken;
+    export class SyntaxNode;
+    export class SyntaxTree;
+    export class SyntaxReference;
 
     export class PRISM_CORE_API SourceLocation
     {

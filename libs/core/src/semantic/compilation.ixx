@@ -28,7 +28,7 @@ namespace prism
     class BoundStatement;
     class BoundExpression;
     class NamedTypeSymbol;
-    class AssemblySymbol;
+    export class AssemblySymbol;
 
     struct SymbolLookupKey
     {

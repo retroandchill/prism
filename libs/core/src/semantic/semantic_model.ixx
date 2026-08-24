@@ -19,22 +19,22 @@ namespace prism
 {
     class BoundStatement;
     class Binder;
-    class ExpressionSyntax;
+    export class ExpressionSyntax;
     class BoundExpression;
     class SemanticModelState;
-    class VariableDeclarationStatementSyntax;
-    class SourceVariableSymbol;
-    class NamespaceDeclarationSyntax;
-    class NamespaceSymbol;
-    class VariableDeclarationSyntax;
-    class FunctionDeclarationSyntax;
-    class Symbol;
-    class FunctionSymbol;
-    class ParameterSymbol;
-    class VariableSymbol;
-    class TypeSymbol;
-    class Compilation;
-    class SyntaxTree;
+    export class VariableDeclarationStatementSyntax;
+    export class SourceVariableSymbol;
+    export class NamespaceDeclarationSyntax;
+    export class NamespaceSymbol;
+    export class VariableDeclarationSyntax;
+    export class FunctionDeclarationSyntax;
+    export class Symbol;
+    export class FunctionSymbol;
+    export class ParameterSymbol;
+    export class VariableSymbol;
+    export class TypeSymbol;
+    export class Compilation;
+    export class SyntaxTree;
     class LookupContext;
 
     export class PRISM_CORE_API SemanticModel final : NonCopyable

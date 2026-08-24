@@ -21,7 +21,7 @@ import :util.lazy;
 
 namespace prism
 {
-    class SyntaxTree;
+    export class SyntaxTree;
     class SyntaxLifetime;
     class ChildSyntaxList;
     class SyntaxToken;

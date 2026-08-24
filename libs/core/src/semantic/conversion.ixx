@@ -17,7 +17,8 @@ import libassert;
 
 namespace prism
 {
-    class TypeSymbol;
+    export class TypeSymbol;
+
     enum class ConversionKind : std::uint8_t
     {
         no_conversion,

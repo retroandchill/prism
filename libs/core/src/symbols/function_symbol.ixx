@@ -10,8 +10,8 @@ import :symbols.symbol;
 
 namespace prism
 {
-    class TypeSymbol;
-    class ParameterSymbol;
+    export class TypeSymbol;
+    export class ParameterSymbol;
 
     export class FunctionSymbol : public Symbol
     {

@@ -17,8 +17,7 @@ import :binder.lookup_result;
 
 namespace prism
 {
-    class AssemblySymbol;
-    class Compilation;
+    export class AssemblySymbol;
 
     export enum class NamespaceKind : std::uint8_t
     {
