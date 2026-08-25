@@ -158,4 +158,28 @@ namespace prism
     {
         using Args = std::tuple<std::string>;
     };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::no_entry_point_defined>
+    {
+        using Args = std::tuple<>;
+    };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::ambiguous_entry_point>
+    {
+        using Args = std::tuple<std::string>;
+    };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::invalid_entry_point_return_type>
+    {
+        using Args = std::tuple<std::string, std::string>;
+    };
+
+    template <>
+    struct DiagnosticTraits<DiagnosticCode::invalid_entry_point_parameters>
+    {
+        using Args = std::tuple<std::string, std::string>;
+    };
 } // namespace prism

@@ -268,6 +268,48 @@ namespace prism::diagnostics
                                                                    ""sv,
                                                                    {}};
 
+    export constexpr DiagnosticDescriptor no_entry_point_defined{to_string(DiagnosticCode::no_entry_point_defined),
+                                                                 "No entry point defined"sv,
+                                                                 "No entry point defined",
+                                                                 "Semantic"sv,
+                                                                 DiagnosticSeverity::error,
+                                                                 true,
+                                                                 ""sv,
+                                                                 ""sv,
+                                                                 {}};
+
+    export constexpr DiagnosticDescriptor ambiguous_entry_point{to_string(DiagnosticCode::ambiguous_entry_point),
+                                                                "Ambiguous entry point"sv,
+                                                                "Ambiguous entry point, could be any of: {}",
+                                                                "Semantic"sv,
+                                                                DiagnosticSeverity::error,
+                                                                true,
+                                                                ""sv,
+                                                                ""sv,
+                                                                {}};
+
+    export constexpr DiagnosticDescriptor invalid_entry_point_return_type{
+        to_string(DiagnosticCode::invalid_entry_point_return_type),
+        "Invalid entry point return type"sv,
+        "Return type {} will main function {} not usable as an entry point",
+        "Semantic"sv,
+        DiagnosticSeverity::warning,
+        true,
+        ""sv,
+        ""sv,
+        {}};
+
+    export constexpr DiagnosticDescriptor invalid_entry_point_parameters{
+        to_string(DiagnosticCode::invalid_entry_point_parameters),
+        "Invalid entry point parameters"sv,
+        "Parameters ({}) will main function {} not usable as an entry point",
+        "Semantic"sv,
+        DiagnosticSeverity::warning,
+        true,
+        ""sv,
+        ""sv,
+        {}};
+
     export [[nodiscard]] constexpr Optional<const DiagnosticDescriptor &> get_descriptor(const DiagnosticCode code)
     {
         switch (code)
@@ -322,6 +364,14 @@ namespace prism::diagnostics
                 return no_overload_for_arg_types;
             case DiagnosticCode::no_call_operator_defined:
                 return no_call_operator_defined;
+            case DiagnosticCode::no_entry_point_defined:
+                return no_entry_point_defined;
+            case DiagnosticCode::ambiguous_entry_point:
+                return ambiguous_entry_point;
+            case DiagnosticCode::invalid_entry_point_return_type:
+                return invalid_entry_point_return_type;
+            case DiagnosticCode::invalid_entry_point_parameters:
+                return invalid_entry_point_parameters;
             default:
                 return std::nullopt;
         }

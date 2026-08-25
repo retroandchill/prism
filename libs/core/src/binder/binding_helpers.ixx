@@ -11,7 +11,7 @@ import :memory.buffer_pool;
 import :text.name;
 import :util.ref;
 import :symbols.type_symbol;
-import :context.target_settings;
+import :context.compilation_settings;
 import :util.numerics;
 
 namespace prism
@@ -70,5 +70,5 @@ namespace prism
 
     IntegerTargetKind get_integer_target_kind(const IntegerLiteralData &literal, const TypeSymbol *target_type);
 
-    bool fits_in(const BigInteger &value, IntegerTargetKind type, const TargetSettings &settings);
+    bool fits_in(const BigInteger &value, IntegerTargetKind type, const CompilationSettings &settings);
 } // namespace prism

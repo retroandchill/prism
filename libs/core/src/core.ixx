@@ -44,7 +44,7 @@ export import :util.function_ref;
 export import :diagnostics.descriptor;
 export import :diagnostics.registry;
 
-export import :context.target_settings;
+export import :context.compilation_settings;
 
 export import :syntax.kind;
 export import :syntax.literals;

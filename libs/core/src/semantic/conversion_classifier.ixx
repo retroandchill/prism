@@ -8,7 +8,7 @@ export module prism.core:semantic.conversion_classifier;
 
 import :semantic.conversion;
 import :symbols.type_symbol;
-import :context.target_settings;
+import :context.compilation_settings;
 import :semantic.operations;
 
 namespace prism

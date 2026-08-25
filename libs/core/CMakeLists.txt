@@ -171,7 +171,7 @@ set(PRISM_MODULES
         src/symbols/variable_symbol.cpp
         src/symbols/named_type_symbol.cpp
         src/semantic/conversion_classifier.ixx
-        src/context/target_settings.ixx
+        src/compilation/compilation_settings.ixx
         src/symbols/lexical_sort_key.ixx
         src/symbols/lexical_sort_key.cpp
         src/memory/default_allocator.ixx

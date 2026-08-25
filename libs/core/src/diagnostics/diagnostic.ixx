@@ -26,9 +26,9 @@ namespace prism
     {
       public:
         constexpr Diagnostic(std::shared_ptr<const DiagnosticInfo> info,
-                             const Location &location,
+                             Location location,
                              const bool is_suppressed = false)
-            : info_{std::move(info)}, location_{location}, is_suppressed_{is_suppressed}
+            : info_{std::move(info)}, location_{std::move(location)}, is_suppressed_{is_suppressed}
         {
             DEBUG_ASSERT(info_ != nullptr);
         }

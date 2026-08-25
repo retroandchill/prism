@@ -1691,6 +1691,52 @@
               "type": "String"
             }
           ]
+        },
+        {
+          "name": "NoEntryPointDefined",
+          "severity": "Error",
+          "format": "No entry point defined"
+        },
+        {
+          "name": "AmbiguousEntryPoint",
+          "severity": "Error",
+          "format": "Ambiguous entry point, could be any of: {Names}",
+          "args": [
+            {
+              "name": "Names",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "InvalidEntryPointReturnType",
+          "severity": "Warning",
+          "format": "Return type {Type} will main function {Name} not usable as an entry point",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            },
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "InvalidEntryPointParameters",
+          "severity": "Warning",
+          "format": "Parameters ({Types}) will main function {Name} not usable as an entry point",
+          "args": [
+            {
+              "name": "Types",
+              "type": "String"
+            },
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
         }
       ]
     }

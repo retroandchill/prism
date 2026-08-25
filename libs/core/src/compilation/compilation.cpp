@@ -207,7 +207,7 @@ namespace prism
     Compilation::Compilation(CreateTag,
                              SemanticLifetime &lifetime,
                              const Name assembly_name,
-                             const TargetSettings target_settings,
+                             const CompilationSettings target_settings,
                              RefCountPtr<SyntaxAndDeclarationManager> syntax_and_declarations) noexcept
         : lifetime_{lifetime}, assembly_name_{assembly_name}, target_settings_{target_settings},
           syntax_and_declaration_manager_{std::move(syntax_and_declarations)}, cache_{lifetime_.create<Cache>(*this)}
@@ -216,7 +216,7 @@ namespace prism
 
     std::shared_ptr<Compilation> Compilation::create(const Name assembly_name,
                                                      ImmutableArray<std::shared_ptr<const SyntaxTree>> trees,
-                                                     const TargetSettings target_settings)
+                                                     const CompilationSettings target_settings)
     {
         if (trees.empty())
             throw std::invalid_argument{"Cannot create a compilation with 0 syntax trees"};
@@ -290,6 +290,11 @@ namespace prism
     {
         const LlvmEmitter emitter(*this, {.output_directory = std::move(output_directory)});
         return emitter.emit();
+    }
+
+    Optional<const FunctionSymbol &> Compilation::get_entry_point() const
+    {
+        return get_entry_point_and_diagnostics().function_symbol;
     }
 
     std::shared_ptr<Compilation> Compilation::shared_from_this() noexcept
@@ -412,5 +417,113 @@ namespace prism
         }
 
         return std::nullopt;
+    }
+
+    const EntryPoint &Compilation::get_entry_point_and_diagnostics() const
+    {
+        return entry_point_.get_or_compute([this] { return compute_entry_point(); });
+    }
+
+    EntryPoint Compilation::compute_entry_point() const
+    {
+        if (!target_settings_.is_application())
+            return EntryPoint{};
+
+        DiagnosticBag diagnostics;
+        const auto function = find_entry_point(diagnostics);
+        return EntryPoint{
+            .function_symbol = function,
+            .diagnostics = std::move(diagnostics).move_to<ImmutableArray>(),
+        };
+    }
+
+    Optional<const FunctionSymbol &> Compilation::find_entry_point(DiagnosticBag &diagnostics) const
+    {
+        auto &global_namespace = assembly().global_namespace();
+
+        PooledVector<Ref<const FunctionSymbol>> candidates;
+        append_entry_points(global_namespace, candidates, diagnostics);
+        if (candidates.empty())
+        {
+            diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::no_entry_point_defined>(), no_location});
+            return std::nullopt;
+        }
+
+        if (candidates.size() > 1)
+        {
+            using namespace std::string_view_literals;
+            std::string names;
+            PooledVector<Location> all_locations;
+            StringWriter writer{names};
+            for (const auto candidate : candidates)
+            {
+                if (!names.empty())
+                    names += ", ";
+
+                candidate->write_display_string(writer);
+                all_locations.append_range(candidate->locations());
+            }
+
+            // TODO: We need to add all locations to the diagnostic
+            diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::ambiguous_entry_point>(std::move(names)),
+                                       all_locations.front()});
+            return std::nullopt;
+        }
+
+        return candidates.front();
+    }
+
+    void Compilation::append_entry_points(const NamespaceSymbol &ns,
+                                          PooledVector<Ref<const FunctionSymbol>> &entry_points,
+                                          DiagnosticBag &diagnostics)
+    {
+        for (auto member : ns.members())
+        {
+            visit(member,
+                  Overload{[&](const NamespaceSymbol &n) { append_entry_points(n, entry_points, diagnostics); },
+                           [&](const FunctionSymbol &f)
+                           {
+                               if (is_valid_entry_point(f, diagnostics))
+                                   entry_points.push_back(f);
+                           },
+                           [](const Symbol &)
+                           {
+                               // Other symbols cannot be, nor can they contain, entry points.
+                           }});
+        }
+    }
+
+    bool Compilation::is_valid_entry_point(const FunctionSymbol &entry_point, DiagnosticBag &diagnostics)
+    {
+        if (entry_point.name() != KnownName::main)
+            return false;
+
+        auto &declaration =
+            entry_point.declaring_syntax_references().front().syntax().as_checked<FunctionDeclarationSyntax>();
+
+        if (auto &return_type = entry_point.return_type();
+            !return_type.is_void() && return_type.special_type() != SpecialType::i32)
+        {
+            diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::invalid_entry_point_return_type>(
+                                           entry_point.return_type().to_display_string(),
+                                           entry_point.to_display_string()),
+                                       declaration.return_type().value().type().location()});
+            return false;
+        }
+
+        // TODO: For now we're going to take in no arguments, but eventually we'll allow one with a span of strings.
+        if (entry_point.parameters().empty())
+            return true;
+
+        using namespace std::string_view_literals;
+        auto param_types =
+            entry_point.parameters() |
+            std::views::transform([](const ParameterSymbol &param) { return param.type().to_display_string(); }) |
+            std::views::join_with(", "sv) | std::ranges::to<std::string>();
+        diagnostics.add(Diagnostic{
+            DiagnosticInfo::create<DiagnosticCode::invalid_entry_point_parameters>(std::move(param_types),
+                                                                                   entry_point.to_display_string()),
+            declaration.parameters().location()});
+        return false;
     }
 } // namespace prism

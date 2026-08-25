@@ -225,7 +225,7 @@ namespace prism
         UNREACHABLE("Invalid integer suffix");
     }
 
-    bool fits_in(const BigInteger &value, const IntegerTargetKind type, const TargetSettings &settings)
+    bool fits_in(const BigInteger &value, const IntegerTargetKind type, const CompilationSettings &settings)
     {
         switch (type)
         {

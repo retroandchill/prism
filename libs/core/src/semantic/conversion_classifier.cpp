@@ -275,10 +275,10 @@ namespace prism
 
             case SpecialType::isize:
                 {
-                    auto [pointer_width] = compilation().target_settings();
+                    auto settings = compilation().target_settings();
                     return {.family = NumericFamily::signed_integer,
-                            .width = bit_width(pointer_width),
-                            .precision = bit_width(pointer_width)};
+                            .width = bit_width(settings.pointer_width),
+                            .precision = bit_width(settings.pointer_width)};
                 }
 
             case SpecialType::u8:
@@ -298,10 +298,10 @@ namespace prism
 
             case SpecialType::usize:
                 {
-                    auto [pointer_width] = compilation().target_settings();
+                    auto settings = compilation().target_settings();
                     return {.family = NumericFamily::unsigned_integer,
-                            .width = bit_width(pointer_width),
-                            .precision = bit_width(pointer_width)};
+                            .width = bit_width(settings.pointer_width),
+                            .precision = bit_width(settings.pointer_width)};
                 }
 
             case SpecialType::f32:

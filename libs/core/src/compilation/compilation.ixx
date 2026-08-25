@@ -17,7 +17,7 @@ import :syntax.tree;
 import :semantic.semantic_lifetime;
 import :semantic.semantic_model;
 import :symbols.type_symbol;
-import :context.target_settings;
+import :context.compilation_settings;
 import :semantic.syntax_and_declaration_manager;
 import :diagnostics.diagnostic_bag;
 import :util.function_ref;
@@ -65,6 +65,12 @@ namespace prism
         compile
     };
 
+    struct EntryPoint
+    {
+        Optional<const FunctionSymbol &> function_symbol{};
+        ImmutableArray<Diagnostic> diagnostics{};
+    };
+
     export class PRISM_CORE_API Compilation final : NonCopyable
     {
         struct CreateTag
@@ -77,14 +83,14 @@ namespace prism
         Compilation(CreateTag,
                     SemanticLifetime &lifetime,
                     Name assembly_name,
-                    TargetSettings target_settings,
+                    CompilationSettings target_settings,
                     RefCountPtr<SyntaxAndDeclarationManager> syntax_and_declarations) noexcept;
 
         static std::shared_ptr<Compilation> create(Name assembly_name,
                                                    ImmutableArray<std::shared_ptr<const SyntaxTree>> trees = {},
-                                                   TargetSettings target_settings = TargetSettings::current_platform());
+                                                   CompilationSettings target_settings = {});
 
-        [[nodiscard]] constexpr const TargetSettings &target_settings() const noexcept
+        [[nodiscard]] constexpr const CompilationSettings &target_settings() const noexcept
         {
             return target_settings_;
         }
@@ -116,6 +122,8 @@ namespace prism
 
         [[nodiscard]] EmitResult emit(std::filesystem::path output_directory) const;
 
+        [[nodiscard]] Optional<const FunctionSymbol &> get_entry_point() const;
+
         [[nodiscard]] std::shared_ptr<Compilation> shared_from_this() noexcept;
 
         [[nodiscard]] std::shared_ptr<const Compilation> shared_from_this() const noexcept;
@@ -144,14 +152,23 @@ namespace prism
         [[nodiscard]] Optional<const BoundExpression &> get_bound_initializer(const VariableSymbol &symbol) const;
         [[nodiscard]] Optional<const BoundStatement &> get_bound_body(const FunctionSymbol &symbol) const;
 
+        [[nodiscard]] const EntryPoint &get_entry_point_and_diagnostics() const;
+        [[nodiscard]] EntryPoint compute_entry_point() const;
+        [[nodiscard]] Optional<const FunctionSymbol &> find_entry_point(DiagnosticBag &diagnostics) const;
+        static void append_entry_points(const NamespaceSymbol &ns,
+                                        PooledVector<Ref<const FunctionSymbol>> &entry_points,
+                                        DiagnosticBag &diagnostics);
+        [[nodiscard]] static bool is_valid_entry_point(const FunctionSymbol &entry_point, DiagnosticBag &diagnostics);
+
         friend struct CompilationInternal;
 
         SemanticLifetime &lifetime_;
         Name assembly_name_;
-        TargetSettings target_settings_;
+        CompilationSettings target_settings_;
         RefCountPtr<SyntaxAndDeclarationManager> syntax_and_declaration_manager_;
         mutable Lazy<const AssemblySymbol &> assembly_;
         mutable Lazy<const NamespaceSymbol &> global_namespace_;
+        mutable Lazy<EntryPoint> entry_point_;
         mutable DiagnosticBag declaration_diagnostics_;
         Cache &cache_;
     };

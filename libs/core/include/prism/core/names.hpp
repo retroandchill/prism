@@ -29,4 +29,5 @@
     X(char16, "Char16")                                                                                                \
     X(rune, "Rune")                                                                                                    \
     X(string_view, "StringView")                                                                                       \
-    X(std, "std")
+    X(std, "std")                                                                                                      \
+    X(main, "main")

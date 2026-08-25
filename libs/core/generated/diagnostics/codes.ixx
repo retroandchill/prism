@@ -36,6 +36,10 @@ namespace prism
         no_overload_matching_arg_count = 2016,
         no_overload_for_arg_types = 2017,
         no_call_operator_defined = 2018,
+        no_entry_point_defined = 2019,
+        ambiguous_entry_point = 2020,
+        invalid_entry_point_return_type = 2021,
+        invalid_entry_point_parameters = 2022,
     };
 
     export constexpr std::string_view to_string(const DiagnosticCode code)
@@ -92,6 +96,14 @@ namespace prism
                 return "E2017";
             case DiagnosticCode::no_call_operator_defined:
                 return "E2018";
+            case DiagnosticCode::no_entry_point_defined:
+                return "E2019";
+            case DiagnosticCode::ambiguous_entry_point:
+                return "E2020";
+            case DiagnosticCode::invalid_entry_point_return_type:
+                return "E2021";
+            case DiagnosticCode::invalid_entry_point_parameters:
+                return "E2022";
             default:
                 throw std::invalid_argument{"Invalid diagnostic code"};
         }

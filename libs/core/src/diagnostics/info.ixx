@@ -22,6 +22,7 @@ import :util.noncopyable;
 import :diagnostics.location;
 import libassert;
 import :text.writer;
+import :collections.immutable_array;
 
 namespace prism
 {
@@ -110,7 +111,7 @@ namespace prism
             return descriptor().category();
         }
 
-        [[nodiscard]] constexpr virtual const DiagnosticDescriptor &descriptor() const
+        [[nodiscard]] constexpr const DiagnosticDescriptor &descriptor() const
         {
             return descriptor_;
         }
@@ -154,7 +155,7 @@ namespace prism
 
         [[nodiscard]] std::string to_string() const;
 
-        [[nodiscard]] virtual std::span<const Location> additional_locations() const;
+        [[nodiscard]] virtual const ImmutableArray<Location> &additional_locations() const;
 
         [[nodiscard]] std::span<const std::string_view> custom_tags() const;
 

@@ -4,7 +4,7 @@
  * @date 8/9/2026
  * @brief
  */
-export module prism.core:context.target_settings;
+export module prism.core:context.compilation_settings;
 
 import std;
 
@@ -41,17 +41,27 @@ namespace prism
         }
     }
 
-    export struct TargetSettings
+    [[nodiscard]] constexpr PointerWidth current_platform_pointer_width() noexcept
     {
-        PointerWidth pointer_width = PointerWidth::x64;
+        static_assert(sizeof(void *) == 4 || sizeof(void *) == 8, "Unsupported host pointer width");
+        return to_pointer_width(sizeof(void *) * byte_size);
+    }
 
-        [[nodiscard]] constexpr static TargetSettings current_platform() noexcept
+    export enum class OutputKind : std::uint8_t
+    {
+        executable,
+        static_library,
+        shared_library
+    };
+
+    export struct CompilationSettings
+    {
+        PointerWidth pointer_width = current_platform_pointer_width();
+        OutputKind kind = OutputKind::executable;
+
+        [[nodiscard]] constexpr bool is_application() const noexcept
         {
-            static_assert(sizeof(void *) == 4 || sizeof(void *) == 8, "Unsupported host pointer width");
-
-            return TargetSettings{
-                .pointer_width = to_pointer_width(sizeof(void *) * byte_size),
-            };
+            return kind == OutputKind::executable;
         }
     };
 } // namespace prism

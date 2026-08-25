@@ -17,7 +17,7 @@ import libassert;
 import :util.numerics;
 import :symbols.type_symbol;
 import :collections.immutable_string;
-import :context.target_settings;
+import :context.compilation_settings;
 
 namespace prism
 {
@@ -303,7 +303,7 @@ namespace prism
             return str_value_;
         }
 
-        [[nodiscard]] constexpr Optional<ConstantValue> try_negate(const TargetSettings &target) const noexcept
+        [[nodiscard]] constexpr Optional<ConstantValue> try_negate(const CompilationSettings &target) const noexcept
         {
             switch (kind_)
             {
@@ -348,7 +348,7 @@ namespace prism
             }
         }
 
-        [[nodiscard]] constexpr ConstantValue negate(const TargetSettings &target) const noexcept
+        [[nodiscard]] constexpr ConstantValue negate(const CompilationSettings &target) const noexcept
         {
             auto negated = try_negate(target);
             if (!negated.has_value())
