@@ -393,7 +393,7 @@ namespace prism
             parameters.emplace_back(lifetime.create<SourceParameterSymbol>(name, this, syntax));
         }
 
-        return lifetime.create<SymbolSpan<ParameterSymbol>>(parameters);
+        return lifetime.copy_refs(parameters);
     }
 
     SourceParameterSymbol::SourceParameterSymbol(const Name &name,

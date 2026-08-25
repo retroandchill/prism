@@ -59,9 +59,9 @@ namespace prism
         if (index >= SyntaxNodeInternal::get_green(*node_).slot_count())
             throw std::out_of_range{"Index out of range"};
 
-        if (auto &green = SyntaxNodeInternal::get_green(*node_).get_required_slot<GreenToken>(index); green.is_token())
+        if (auto green = SyntaxNodeInternal::get_green(*node_).get_slot<GreenToken>(index); green.has_value())
         {
-            return SyntaxToken{green, parent().value_ptr(), SyntaxNodeInternal::get_slot_position(*node_, index)};
+            return SyntaxToken{*green, parent().value_ptr(), SyntaxNodeInternal::get_slot_position(*node_, index)};
         }
 
         return SyntaxNodeInternal::get_required_node_slot(*node_, index);

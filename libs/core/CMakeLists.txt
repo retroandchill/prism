@@ -223,6 +223,7 @@ set(PRISM_MODULES
         generated/semantic/bound/visit.ixx
         src/codegen/llvm_emitter.ixx
         src/codegen/llvm_emitter.cpp
+        src/util/function_ref.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

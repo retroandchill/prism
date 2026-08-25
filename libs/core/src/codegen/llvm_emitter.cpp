@@ -10,6 +10,9 @@ module;
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+#include <llvm/Support/Error.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/raw_ostream.h>
 
 module prism.core:codegen.llvm_emitter.impl;
 
@@ -174,8 +177,9 @@ namespace prism
             for (const auto &function : CompilationInternal::get_functions(compilation_))
                 emit_function_body(function);
 
+            auto result = write_ir();
             return {
-                .success = true,
+                .success = !result,
             };
         }
 
@@ -430,7 +434,7 @@ namespace prism
             out.push_back('N');
             PooledVector<Name> names;
             auto current = symbol.containing_symbol();
-            while (current.has_value())
+            while (current.has_value() && !current->is<AssemblySymbol>())
             {
                 names.push_back(current->name());
                 current = current->containing_symbol().value_ptr();
@@ -539,6 +543,13 @@ namespace prism
         void emit_local(const BoundVariableDeclaration &declaration, FunctionEmissionContext &context)
         {
             auto &symbol = declaration.symbol();
+            if (!symbol.is_mutable())
+            {
+                auto *value = emit_expression(*declaration.initializer(), context);
+                context.bind_storage(symbol, value);
+                return;
+            }
+
             auto *type = get_or_create_type(symbol.type());
             auto *slot = create_entry_alloca(type, symbol.name(), context);
 
@@ -606,16 +617,22 @@ namespace prism
 
         llvm::Value *emit_access(const BoundVariableAccess &access, FunctionEmissionContext &context)
         {
-            auto *addr = emit_address(access, context);
+            auto *val = emit_access_core(access, context);
+            if (!access.symbol().is_mutable())
+                return val;
+
             auto *type = get_or_create_type(access.symbol().type());
-            return builder_.CreateLoad(type, addr);
+            return builder_.CreateLoad(type, val);
         }
 
         llvm::Value *emit_access(const BoundParameterAccess &access, FunctionEmissionContext &context)
         {
-            auto *addr = emit_address(access, context);
+            auto *val = emit_access_core(access, context);
+            if (!access.symbol().is_mutable())
+                return val;
+
             auto *type = get_or_create_type(access.symbol().type());
-            return builder_.CreateLoad(type, addr);
+            return builder_.CreateLoad(type, val);
         }
 
         llvm::Value *emit_operation(const BoundUnaryExpression &operation, FunctionEmissionContext &context)
@@ -909,14 +926,14 @@ namespace prism
         {
             return visit(expression,
                          Overload{
-                             [&](const BoundVariableAccess &access) { return emit_address(access, context); },
-                             [&](const BoundParameterAccess &access) { return emit_address(access, context); },
+                             [&](const BoundVariableAccess &access) { return emit_access_core(access, context); },
+                             [&](const BoundParameterAccess &access) { return emit_access_core(access, context); },
                              [&](const BoundExpression &) -> llvm::Value *
                              { throw std::invalid_argument{"Cannot take address of non-addressable expression"}; },
                          });
         }
 
-        llvm::Value *emit_address(const BoundVariableAccess &access, FunctionEmissionContext &context)
+        llvm::Value *emit_access_core(const BoundVariableAccess &access, FunctionEmissionContext &context)
         {
             if (auto *local = context.lookup_storage(access.symbol()); local != nullptr)
                 return local;
@@ -924,9 +941,28 @@ namespace prism
             return get_or_create_global(access.symbol());
         }
 
-        static llvm::Value *emit_address(const BoundParameterAccess &access, FunctionEmissionContext &context)
+        static llvm::Value *emit_access_core(const BoundParameterAccess &access, FunctionEmissionContext &context)
         {
             return context.lookup_storage(access.symbol());
+        }
+
+        llvm::Error write_ir()
+        {
+            std::error_code ec;
+
+            auto target_path = options_.output_directory / "output.ll";
+            llvm::raw_fd_ostream output{target_path.string(), ec, llvm::sys::fs::OF_Text};
+            if (ec)
+                return llvm::make_error<llvm::StringError>(ec.message(), llvm::inconvertibleErrorCode());
+
+            if (ec)
+            {
+                return llvm::errorCodeToError(ec);
+            }
+
+            module_.print(output, nullptr);
+
+            return llvm::Error::success();
         }
 
         const Compilation &compilation_;

@@ -19,6 +19,7 @@ namespace prism
                                                     BoundBadExpression,
                                                     BoundLiteral,
                                                     BoundVariableAccess,
+                                                    BoundParameterAccess,
                                                     BoundUnaryExpression,
                                                     BoundBinaryExpression,
                                                     BoundAssignmentExpression,
@@ -45,6 +46,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundLiteral &>(node));
             case BoundNodeKind::variable_access:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundVariableAccess &>(node));
+            case BoundNodeKind::parameter_access:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundParameterAccess &>(node));
             case BoundNodeKind::unary_expression:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundUnaryExpression &>(node));
             case BoundNodeKind::binary_expression:
@@ -75,6 +78,7 @@ namespace prism
                                                               BoundBadExpression,
                                                               BoundLiteral,
                                                               BoundVariableAccess,
+                                                              BoundParameterAccess,
                                                               BoundUnaryExpression,
                                                               BoundBinaryExpression,
                                                               BoundAssignmentExpression,
@@ -101,6 +105,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundLiteral &>(node));
             case BoundNodeKind::variable_access:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundVariableAccess &>(node));
+            case BoundNodeKind::parameter_access:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundParameterAccess &>(node));
             case BoundNodeKind::unary_expression:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundUnaryExpression &>(node));
             case BoundNodeKind::binary_expression:
@@ -177,6 +183,7 @@ namespace prism
                                                           BoundBadExpression,
                                                           BoundLiteral,
                                                           BoundVariableAccess,
+                                                          BoundParameterAccess,
                                                           BoundUnaryExpression,
                                                           BoundBinaryExpression,
                                                           BoundAssignmentExpression,
@@ -195,6 +202,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundLiteral &>(node));
             case BoundNodeKind::variable_access:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundVariableAccess &>(node));
+            case BoundNodeKind::parameter_access:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundParameterAccess &>(node));
             case BoundNodeKind::unary_expression:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundUnaryExpression &>(node));
             case BoundNodeKind::binary_expression:
@@ -221,6 +230,7 @@ namespace prism
                                                                     BoundBadExpression,
                                                                     BoundLiteral,
                                                                     BoundVariableAccess,
+                                                                    BoundParameterAccess,
                                                                     BoundUnaryExpression,
                                                                     BoundBinaryExpression,
                                                                     BoundAssignmentExpression,
@@ -239,6 +249,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundLiteral &>(node));
             case BoundNodeKind::variable_access:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundVariableAccess &>(node));
+            case BoundNodeKind::parameter_access:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundParameterAccess &>(node));
             case BoundNodeKind::unary_expression:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundUnaryExpression &>(node));
             case BoundNodeKind::binary_expression:

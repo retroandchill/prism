@@ -136,7 +136,7 @@ namespace prism
     {
       public:
         constexpr BoundParameterAccess(const ExpressionSyntax &syntax, const ParameterSymbol &symbol)
-            : BoundExpression{BoundNodeKind::variable_access, syntax, symbol.type()}, symbol_{symbol}
+            : BoundExpression{BoundNodeKind::parameter_access, syntax, symbol.type()}, symbol_{symbol}
         {
         }
 

@@ -39,6 +39,7 @@ export import :util.enum_set;
 export import :util.lazy;
 export import :util.lazy_value;
 export import :util.exceptions;
+export import :util.function_ref;
 
 export import :diagnostics.descriptor;
 export import :diagnostics.registry;

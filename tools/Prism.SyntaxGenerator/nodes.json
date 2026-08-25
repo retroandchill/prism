@@ -1732,6 +1732,9 @@
               "name": "VariableAccess"
             },
             {
+              "name": "ParameterAccess"
+            },
+            {
               "name": "UnaryExpression"
             },
             {

@@ -20,6 +20,7 @@ import :symbols.type_symbol;
 import :context.target_settings;
 import :semantic.syntax_and_declaration_manager;
 import :diagnostics.diagnostic_bag;
+import :util.function_ref;
 
 namespace prism
 {
@@ -55,6 +56,13 @@ namespace prism
     {
         bool success = false;
         ImmutableArray<Diagnostic> diagnostics{};
+    };
+
+    enum class CompilationStage : std::uint8_t
+    {
+        parse,
+        declare,
+        compile
     };
 
     export class PRISM_CORE_API Compilation final : NonCopyable

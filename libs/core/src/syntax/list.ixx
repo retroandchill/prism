@@ -152,10 +152,10 @@ namespace prism
                 return static_cast<const T &>(*node);
             }
 
-            if (index >= SyntaxNodeInternal::get_green(*node).slot_count())
+            if (index >= size())
                 throw std::out_of_range{"index out of range"};
 
-            auto &target = SyntaxNodeInternal::get_required_node_slot(*node, index);
+            auto &target = SyntaxNodeInternal::get_required_node_slot(*node, index * 2);
             DEBUG_ASSERT(target.is<T>());
             return static_cast<const T &>(target);
         }
@@ -167,10 +167,10 @@ namespace prism
                 throw std::out_of_range{"index out of range"};
 
             DEBUG_ASSERT(SyntaxNodeInternal::get_green(*node).is_list(), "separator cannot appear in a non-list");
-            if (index >= SyntaxNodeInternal::get_green(*node).slot_count())
+            if (index >= separator_count())
                 throw std::out_of_range{"index out of range"};
 
-            auto &green = SyntaxNodeInternal::get_green(*node).get_required_slot(index);
+            auto &green = SyntaxNodeInternal::get_green(*node).get_required_slot(index * 2 + 1);
             DEBUG_ASSERT(green.is_token());
             return SyntaxToken{static_cast<const GreenToken &>(green),
                                node.value_ptr(),

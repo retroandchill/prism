@@ -610,6 +610,7 @@ namespace prism
             }
 
             builder.add_item(parse_argument());
+            next = &peek_token();
         }
 
         auto close_paren = expect_token(SyntaxKind::close_paren_token);

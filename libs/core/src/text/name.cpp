@@ -24,7 +24,7 @@ namespace prism
     {
         static std::uint32_t try_place(std::byte *, const std::uint32_t size, const std::string_view name)
         {
-            const auto bytes = get_default_size(static_cast<std::uint32_t>(name.size()));
+            const auto bytes = get_default_size(static_cast<std::uint32_t>(name.size() + 1));
             return bytes <= size + 1 ? bytes : 0;
         }
 

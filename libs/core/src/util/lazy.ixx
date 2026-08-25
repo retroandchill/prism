@@ -553,4 +553,7 @@ namespace prism
 
         std::atomic<std::uintptr_t> value_ = uninitialized;
     };
+
+    export template <typename T>
+    Lazy(T &&) -> Lazy<std::decay_t<T>>;
 } // namespace prism

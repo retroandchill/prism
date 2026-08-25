@@ -19,6 +19,7 @@ import :util.noncopyable;
 import :util.ref;
 import :text.string_writer;
 import :syntax.reference;
+import :util.function_ref;
 
 namespace prism
 {
@@ -187,7 +188,6 @@ namespace prism
 
       protected:
         [[nodiscard]] virtual Optional<const Compilation &> declaring_compilation() const;
-
         virtual void add_declaration_diagnostics(const DiagnosticBag &diagnostics) const;
 
       private:
