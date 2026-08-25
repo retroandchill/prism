@@ -283,7 +283,6 @@ namespace prism
                 case SpecialType::void_:
                     return llvm::Type::getVoidTy(context_);
                 case SpecialType::bool_:
-                    return llvm::Type::getInt1Ty(context_);
                 case SpecialType::i8:
                 case SpecialType::u8:
                 case SpecialType::char_:
@@ -859,6 +858,7 @@ namespace prism
             auto *merge_block = llvm::BasicBlock::Create(context_, "cond.merge");
 
             auto *condition = emit_expression(conditional.condition(), context);
+            condition = convert_byte_bool_to_i1_if_needed(condition);
             builder_.CreateCondBr(condition, then_block, else_block);
 
             builder_.SetInsertPoint(then_block);
@@ -881,6 +881,14 @@ namespace prism
             phi->addIncoming(else_value, actual_else_block);
 
             return phi;
+        }
+
+        llvm::Value *convert_byte_bool_to_i1_if_needed(llvm::Value *value)
+        {
+            if (value->getType()->isIntegerTy(8))
+                return builder_.CreateICmpNE(value, builder_.getInt8(0));
+
+            return value;
         }
 
         llvm::Value *emit_call(const BoundCallExpression &call, FunctionEmissionContext &context)
@@ -906,10 +914,11 @@ namespace prism
             if (&source_type == &target_type)
                 return operand;
 
-            return emit_scalar_conversion(operand, source_type, target_type);
+            return emit_scalar_conversion(operand, conversion.conversion(), source_type, target_type);
         }
 
         llvm::Value *emit_scalar_conversion(llvm::Value *operand,
+                                            const Conversion &conversion,
                                             const TypeSymbol &source_type,
                                             const TypeSymbol &target_type)
         {
@@ -919,7 +928,74 @@ namespace prism
             if (source == target)
                 return operand;
 
-            return builder_.CreateBitCast(operand, target);
+            if (conversion.is_numeric())
+            {
+                if (is_integer(source_type.special_type()) && is_integer(target_type.special_type()))
+                {
+                    const auto *source_int = llvm::cast<llvm::IntegerType>(source);
+                    const auto *dest_int = llvm::cast<llvm::IntegerType>(target);
+
+                    if (source_int->getBitWidth() < dest_int->getBitWidth())
+                    {
+                        if (is_signed_integer(source_type.special_type()))
+                            return builder_.CreateSExt(operand, target);
+
+                        return builder_.CreateZExt(operand, target);
+                    }
+
+                    DEBUG_ASSERT(source_int->getBitWidth() > dest_int->getBitWidth());
+                    return builder_.CreateTrunc(operand, target);
+                }
+
+                if (is_floating_point(source_type.special_type()) && is_floating_point(target_type.special_type()))
+                {
+                    if (source_type.special_type() == SpecialType::f32)
+                    {
+                        DEBUG_ASSERT(target_type.special_type() == SpecialType::f64);
+                        return builder_.CreateFPExt(operand, target);
+                    }
+
+                    DEBUG_ASSERT(source_type.special_type() == SpecialType::f64);
+                    DEBUG_ASSERT(target_type.special_type() == SpecialType::f32);
+                    return builder_.CreateFPTrunc(operand, target);
+                }
+
+                if (is_floating_point(source_type.special_type()) && is_integer(target_type.special_type()))
+                {
+                    if (is_signed_integer(target_type.special_type()))
+                    {
+                        return builder_.CreateFPToSI(operand, target);
+                    }
+
+                    return builder_.CreateFPToUI(operand, target);
+                }
+
+                if (is_integer(source_type.special_type()) && is_floating_point(target_type.special_type()))
+                {
+                    if (is_signed_integer(source_type.special_type()))
+                    {
+                        return builder_.CreateSIToFP(operand, target);
+                    }
+
+                    return builder_.CreateUIToFP(operand, target);
+                }
+            }
+
+            if (conversion.is_character())
+            {
+                const auto *source_int = llvm::cast<llvm::IntegerType>(source);
+                const auto *dest_int = llvm::cast<llvm::IntegerType>(target);
+
+                if (source_int->getBitWidth() < dest_int->getBitWidth())
+                {
+                    return builder_.CreateZExt(operand, target);
+                }
+
+                DEBUG_ASSERT(source_int->getBitWidth() > dest_int->getBitWidth());
+                return builder_.CreateTrunc(operand, target);
+            }
+
+            UNREACHABLE("If we get here, the conversion is invalid");
         }
 
         llvm::Value *emit_address(const BoundExpression &expression, FunctionEmissionContext &context)

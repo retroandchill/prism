@@ -432,7 +432,7 @@ namespace prism
         DEBUG_ASSERT(float_info.family == NumericFamily::floating_point);
         DEBUG_ASSERT(is_integer_family(integer_info.family));
 
-        if (float_info.precision <= integer_info.precision)
+        if (float_info.precision >= integer_info.precision)
             return float_type;
 
         if (float_type.special_type() == SpecialType::f32 &&

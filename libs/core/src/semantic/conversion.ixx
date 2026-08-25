@@ -78,6 +78,11 @@ namespace prism
             return kind_ == ConversionKind::implicit_numeric || kind_ == ConversionKind::explicit_numeric;
         }
 
+        [[nodiscard]] constexpr bool is_character() const noexcept
+        {
+            return kind_ == ConversionKind::implicit_character || kind_ == ConversionKind::explicit_character;
+        }
+
       private:
         friend constexpr Conversion get_trivial_conversion(ConversionKind kind);
 

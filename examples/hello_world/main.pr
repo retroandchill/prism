@@ -2,6 +2,18 @@
     return a + b;
 }
 
+func add(a: f32, b: i32): f64 {
+    return a + b;
+}
+
+func max(a: i32, b: i32): i32 {
+    return a > b ? a : b;
+}
+
+func if_true(c: bool, a: i32, b: i32): i32 {
+    return c ? a : b;
+}
+
 func main(): i32 {
     return add(1, 4);
 }
