@@ -9,7 +9,7 @@ module prism.core:binder.compilation_unit_binder.impl;
 import :binder.compilation_unit_binder;
 import :syntax.top_level;
 import :symbols.namespace_symbol;
-import :semantic.compilation;
+import :compilation;
 
 namespace prism
 {

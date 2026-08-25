@@ -14,7 +14,7 @@ import :symbols.symbol;
 import :symbols.assembly_symbol;
 import :symbols.namespace_symbol;
 import :symbols.named_type_symbol;
-import :semantic.compilation;
+import :compilation;
 import :diagnostics.diagnostic_bag;
 
 namespace prism

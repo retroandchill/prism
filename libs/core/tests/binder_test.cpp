@@ -11,7 +11,7 @@ module prism.core:tests.binder;
 
 import :syntax.tree;
 import :syntax.declarations;
-import :semantic.compilation;
+import :compilation;
 import :symbols.assembly_symbol;
 import :symbols.namespace_symbol;
 import :symbols.variable_symbol;

@@ -13,7 +13,7 @@ module prism.core:symbols.source.impl;
 import :symbols.source;
 import :syntax.declarations;
 import :syntax.clauses;
-import :semantic.compilation;
+import :compilation;
 import :declarations.visit;
 import :syntax.visit;
 import :binder.binding_helpers;

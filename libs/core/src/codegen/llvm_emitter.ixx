@@ -8,11 +8,10 @@ export module prism.core:codegen.llvm_emitter;
 
 import std;
 import :util.noncopyable;
+import :compilation;
 
 namespace prism
 {
-    class Compilation;
-
     struct LlvmCodeGenOptions
     {
         std::filesystem::path output_directory{};
@@ -24,7 +23,7 @@ namespace prism
         explicit LlvmEmitter(const Compilation &compilation, LlvmCodeGenOptions options);
         ~LlvmEmitter();
 
-        void emit() const;
+        EmitResult emit() const;
 
       private:
         class Impl;

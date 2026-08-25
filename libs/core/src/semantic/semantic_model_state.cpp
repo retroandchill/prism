@@ -12,7 +12,7 @@ module prism.core:semantic.semantic_model_state.impl;
 
 import libassert;
 import :semantic.semantic_model_state;
-import :semantic.compilation;
+import :compilation;
 import :syntax.node;
 import :binder.binder_factory;
 import :syntax.expressions;

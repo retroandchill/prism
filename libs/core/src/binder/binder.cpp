@@ -11,7 +11,7 @@ module;
 module prism.core:binder.impl;
 
 import :binder;
-import :semantic.compilation;
+import :compilation;
 import :semantic.conversion_classifier;
 import :syntax.visit;
 import :binder.binding_helpers;

@@ -144,8 +144,8 @@ set(PRISM_MODULES
         src/symbols/visit.ixx
         src/util/lazy.ixx
         src/symbols/source.cpp
-        src/semantic/compilation.ixx
-        src/semantic/compilation.cpp
+        src/compilation/compilation.ixx
+        src/compilation/compilation.cpp
         src/diagnostics/diagnostic.ixx
         src/diagnostics/diagnostic.cpp
         src/diagnostics/location.ixx

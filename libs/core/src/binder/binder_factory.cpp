@@ -12,7 +12,7 @@ module prism.core:binder.binder_factory.impl;
 
 import :binder.binder_factory;
 import :syntax.visit;
-import :semantic.compilation;
+import :compilation;
 import :binder.block_binder;
 import :binder.member_container_binder;
 import :binder.compilation_unit_binder;

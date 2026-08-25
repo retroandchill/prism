@@ -8,7 +8,7 @@ module prism.core:semantic.semantic_model.impl;
 
 import :semantic.semantic_model;
 import :syntax.tree;
-import :semantic.compilation;
+import :compilation;
 import :diagnostics.diagnostic;
 import :syntax.declarations;
 import :symbols.source;

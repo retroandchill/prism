@@ -13,7 +13,7 @@ module prism.core:binder.binding_helpers.impl;
 import std;
 import :binder.binding_helpers;
 import :syntax.visit;
-import :semantic.compilation;
+import :compilation;
 import :symbols.named_type_symbol;
 import :diagnostics.diagnostic_bag;
 import :diagnostics.info;

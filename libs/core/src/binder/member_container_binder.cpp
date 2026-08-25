@@ -9,7 +9,7 @@ module prism.core:binder.member_container_binder.impl;
 import :binder.member_container_binder;
 import :syntax.visit;
 import :binder.binding_helpers;
-import :semantic.compilation;
+import :compilation;
 import :binder.lookup_context;
 import :symbols.namespace_symbol;
 

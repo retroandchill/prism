@@ -7,7 +7,7 @@
 module prism.core:symbols.lexical_sort_key.impl;
 
 import :symbols.lexical_sort_key;
-import :semantic.compilation;
+import :compilation;
 import :syntax.tree;
 import :syntax.reference;
 import :diagnostics.location;

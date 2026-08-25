@@ -10,7 +10,7 @@ module;
 
 #include <libassert/assert-macros.hpp>
 
-export module prism.core:semantic.compilation;
+export module prism.core:compilation;
 
 import :util.noncopyable;
 import :syntax.tree;
@@ -51,6 +51,12 @@ struct std::hash<prism::SymbolLookupKey>
 
 namespace prism
 {
+    export struct EmitResult
+    {
+        bool success = false;
+        ImmutableArray<Diagnostic> diagnostics{};
+    };
+
     export class PRISM_CORE_API Compilation final : NonCopyable
     {
         struct CreateTag
@@ -100,6 +106,8 @@ namespace prism
         [[nodiscard]] const NamespaceSymbol &create_error_namespace_symbol(Optional<const NamespaceSymbol &> container,
                                                                            Name name) const;
 
+        [[nodiscard]] EmitResult emit(std::filesystem::path output_directory) const;
+
         [[nodiscard]] std::shared_ptr<Compilation> shared_from_this() noexcept;
 
         [[nodiscard]] std::shared_ptr<const Compilation> shared_from_this() const noexcept;
@@ -125,8 +133,8 @@ namespace prism
         [[nodiscard]] const ImmutableArray<Ref<const VariableSymbol>> &get_global_variables() const;
         [[nodiscard]] const ImmutableArray<Ref<const FunctionSymbol>> &get_global_functions() const;
 
-        [[nodicard]] Optional<const BoundExpression &> get_bound_initializer(const VariableSymbol &symbol) const;
-        [[nodicard]] Optional<const BoundStatement &> get_bound_body(const FunctionSymbol &symbol) const;
+        [[nodiscard]] Optional<const BoundExpression &> get_bound_initializer(const VariableSymbol &symbol) const;
+        [[nodiscard]] Optional<const BoundStatement &> get_bound_body(const FunctionSymbol &symbol) const;
 
         friend struct CompilationInternal;
 

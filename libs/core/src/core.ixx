@@ -63,6 +63,6 @@ export import :symbols.named_type_symbol;
 export import :symbols.namespace_symbol;
 export import :symbols.symbol;
 
-export import :semantic.compilation;
+export import :compilation;
 export import :semantic.semantic_model;
 export import :binder.lookup_result;

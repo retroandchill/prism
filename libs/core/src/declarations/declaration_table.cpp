@@ -9,7 +9,7 @@ module prism.core:declarations.declaration_table.impl;
 import :declarations.declaration_table;
 import :declarations.single_root_namespace_declaration;
 import :declarations.visit;
-import :semantic.compilation;
+import :compilation;
 
 namespace prism
 {

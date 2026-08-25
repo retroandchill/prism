@@ -14,7 +14,6 @@ module;
 module prism.core:codegen.llvm_emitter.impl;
 
 import :codegen.llvm_emitter;
-import :semantic.compilation;
 import :symbols.visit;
 import :semantic.constant_value;
 import :syntax.visit;
@@ -157,7 +156,7 @@ namespace prism
         {
         }
 
-        void emit()
+        EmitResult emit()
         {
             for (auto &global : CompilationInternal::get_global_variables(compilation_))
             {
@@ -174,6 +173,10 @@ namespace prism
 
             for (const auto &function : CompilationInternal::get_functions(compilation_))
                 emit_function_body(function);
+
+            return {
+                .success = true,
+            };
         }
 
       private:
@@ -943,7 +946,7 @@ namespace prism
 
     LlvmEmitter::~LlvmEmitter() = default;
 
-    void LlvmEmitter::emit() const
+    EmitResult LlvmEmitter::emit() const
     {
         return impl_->emit();
     }

@@ -12,7 +12,7 @@ module prism.core:semantic.conversion_classifier.impl;
 
 import :semantic.conversion_classifier;
 import :binder;
-import :semantic.compilation;
+import :compilation;
 import :symbols.named_type_symbol;
 
 namespace prism

@@ -11,7 +11,7 @@ module;
 module prism.core:symbols.merged_namespace_symbol.impl;
 
 import :symbols.merged_namespace_symbol;
-import :semantic.compilation;
+import :compilation;
 import :symbols.visit;
 
 namespace prism

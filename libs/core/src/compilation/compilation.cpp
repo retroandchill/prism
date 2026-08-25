@@ -8,9 +8,9 @@ module;
 
 #include <libassert/assert-macros.hpp>
 
-module prism.core:semantic.compilation.impl;
+module prism.core:compilation.impl;
 
-import :semantic.compilation;
+import :compilation;
 import :diagnostics.diagnostic_bag;
 import :symbols.assembly_symbol;
 import :symbols.merged_namespace_symbol;
@@ -25,6 +25,7 @@ import :symbols.visit;
 import :syntax.visit;
 import :binder.lookup_context;
 import :semantic.syntax_and_declaration_manager;
+import :codegen.llvm_emitter;
 
 namespace prism
 {
@@ -283,6 +284,12 @@ namespace prism
                                                                       const Name name) const
     {
         return cache_.create_error_namespace_symbol(container, name);
+    }
+
+    EmitResult Compilation::emit(std::filesystem::path output_directory) const
+    {
+        const LlvmEmitter emitter(*this, {.output_directory = std::move(output_directory)});
+        return emitter.emit();
     }
 
     std::shared_ptr<Compilation> Compilation::shared_from_this() noexcept
