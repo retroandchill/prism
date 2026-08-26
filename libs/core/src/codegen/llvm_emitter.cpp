@@ -7,6 +7,7 @@
 module;
 
 #include <libassert/assert-macros.hpp>
+#include <lld/Common/Driver.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/LLVMContext.h>
@@ -14,6 +15,7 @@ module;
 #include <llvm/MC/TargetRegistry.h>
 #include <llvm/Support/Error.h>
 #include <llvm/Support/FileSystem.h>
+#include <llvm/Support/raw_os_ostream.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Target/TargetMachine.h>
@@ -27,6 +29,16 @@ import :symbols.visit;
 import :semantic.constant_value;
 import :syntax.visit;
 import :semantic.bound.visit;
+
+extern "C++"
+{
+    LLD_HAS_DRIVER(coff)
+    LLD_HAS_DRIVER(elf)
+    LLD_HAS_DRIVER(mingw)
+    LLD_HAS_DRIVER(macho)
+    LLD_HAS_DRIVER(darwin)
+    LLD_HAS_DRIVER(wasm)
+}
 
 namespace prism
 {
@@ -1218,7 +1230,60 @@ namespace prism
             pass_manager.run(module_);
             output_stream.flush();
 
-            return EmitResult::success();
+            return link_binary(output_filename);
+        }
+
+        EmitResult link_binary(const std::filesystem::path &obj_file)
+        {
+            auto output_filename = options_.output_directory / compilation_.assembly_name().as_string_view();
+            std::vector<std::string> args_storage;
+            args_storage.emplace_back("lld-link");
+
+            auto &settings = compilation_.target_settings();
+            if (settings.is_application())
+            {
+                args_storage.emplace_back("/subsystem:console");
+                args_storage.emplace_back("/entry:main");
+                args_storage.push_back(std::format("/out:{}.exe", output_filename.string()));
+            }
+            else if (settings.is_shared_library())
+            {
+                args_storage.emplace_back("/dll");
+                args_storage.push_back(std::format("/out:{}.dll", output_filename.string()));
+            }
+            else
+            {
+                args_storage.push_back(std::format("/out:{}.lib", output_filename.string()));
+            }
+
+            // TODO: Add functionality to automatically decect MSVC and the Win32 SDK. This also only applied when
+            // compiler for Windows on Windows.
+            static constexpr std::string_view msvc_ver = "14.51.36231";
+            static constexpr std::string_view sdk_ver = "10.0.22621.0";
+
+            static const auto msvc_lib =
+                std::format("C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/{}/lib/x64", msvc_ver);
+            static const auto ucrt_lib = std::format("C:/Program Files (x86)/Windows Kits/10/Lib/{}/ucrt/x64", sdk_ver);
+            static const auto um_lib = std::format("C:/Program Files (x86)/Windows Kits/10/Lib/{}/um/x64", sdk_ver);
+
+            args_storage.emplace_back("/libpath:\"" + msvc_lib + "\"");
+            args_storage.emplace_back("/libpath:\"" + ucrt_lib + "\"");
+            args_storage.emplace_back("/libpath:\"" + um_lib + "\"");
+
+            args_storage.push_back(obj_file.string());
+            args_storage.emplace_back("libcmt.lib");
+            args_storage.emplace_back("ucrt.lib");
+            args_storage.emplace_back("kernel32.lib");
+
+            const auto args = args_storage | std::views::transform([](const std::string &s) { return s.c_str(); }) |
+                              std::ranges::to<std::vector>();
+
+            llvm::raw_os_ostream out(std::cout);
+            llvm::raw_os_ostream err(std::cerr);
+
+            auto [retCode, canRunAgain] = lld::lldMain(args, out, err, LLD_ALL_DRIVERS);
+
+            return EmitResult{.is_success = retCode == 0};
         }
 
         const Compilation &compilation_;

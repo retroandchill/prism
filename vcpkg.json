@@ -36,6 +36,8 @@
     "version>=" : "3.0.0"
   }, {
     "name" : "llvm",
-    "version>=" : "18.1.6#6"
+    "version>=" : "18.1.6#6",
+    "default-features": false,
+    "features" : [ "default-targets", "enable-bindings","enable-terminfo","enable-zlib","enable-zstd", "lld", "target-x86", "target-aarch64", "target-arm", "target-riscv", "target-webassembly" ]
   } ]
 }

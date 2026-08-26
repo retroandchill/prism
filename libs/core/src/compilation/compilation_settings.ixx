@@ -134,5 +134,15 @@ namespace prism
         {
             return kind == OutputKind::executable;
         }
+
+        [[nodiscard]] constexpr bool is_library() const noexcept
+        {
+            return kind == OutputKind::static_library || kind == OutputKind::shared_library;
+        }
+
+        [[nodiscard]] constexpr bool is_shared_library() const noexcept
+        {
+            return kind == OutputKind::shared_library;
+        }
     };
 } // namespace prism
