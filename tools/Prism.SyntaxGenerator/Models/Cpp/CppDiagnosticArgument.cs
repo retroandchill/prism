@@ -19,11 +19,20 @@ public sealed class CppDiagnosticArgument
 
     public string CppType { get; }
 
-    internal CppDiagnosticArgument(string name, string cppName, string type, string cppType)
+    public bool NeedsMove { get; }
+
+    internal CppDiagnosticArgument(
+        string name,
+        string cppName,
+        string type,
+        string cppType,
+        bool needsMove
+    )
     {
         Name = name;
         CppName = cppName;
         Type = type;
         CppType = cppType;
+        NeedsMove = needsMove;
     }
 }

@@ -13,6 +13,7 @@ export module prism.core:parser.language_parser;
 import :parser.syntax_parser;
 import :syntax.green.top_level;
 import :diagnostics.syntax_info;
+import :diagnostics.factories;
 
 namespace prism
 {
@@ -46,7 +47,8 @@ namespace prism
 
             auto mutable_copy = node->clone();
             mutable_copy->add_diagnostic(
-                SyntaxDiagnosticInfo::create<DiagnosticCode::unexpected_token>(list[0].to_string()));
+                SyntaxDiagnosticInfo{diagnostics::info::make_unexpected_token(list[0].to_string())});
+            ;
             add_trailing_skipped_syntax(*mutable_copy, list.node()->shared_from_this());
             return mutable_copy;
         }

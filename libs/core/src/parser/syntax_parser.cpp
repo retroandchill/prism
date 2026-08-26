@@ -12,6 +12,7 @@ import :syntax.green.view;
 import :syntax.green.structured_trivia;
 import :syntax.green.last_token_replacer;
 import :diagnostics.syntax_info;
+import :diagnostics.factories;
 
 namespace prism
 {
@@ -51,7 +52,8 @@ namespace prism
         }
 
         auto token = GreenToken::get_missing(kind)->clone();
-        token->add_diagnostic(SyntaxDiagnosticInfo::create<DiagnosticCode::unexpected_token>(next.to_string()));
+        token->add_diagnostic(SyntaxDiagnosticInfo{diagnostics::info::make_unexpected_token(next.to_string())});
+        ;
         return std::move(token);
     }
 
@@ -72,8 +74,8 @@ namespace prism
             current_offset = -target.leading_trivia_width() - skipped_syntax.full_width();
         }
 
-        std::shared_ptr<const SyntaxDiagnosticInfo> diagnostic;
-        std::uint32_t final_diagnostic_offset;
+        Optional<SyntaxDiagnosticInfo> diagnostic;
+        std::uint32_t final_diagnostic_offset = 0;
 
         for (auto &node : skipped_syntax.enumerate_nodes())
         {
@@ -92,8 +94,8 @@ namespace prism
                     auto it = token->diagnostics().begin();
                     if (it != token->diagnostics().end())
                     {
-                        diagnostic = static_pointer_cast<const SyntaxDiagnosticInfo>(*it);
-                        final_diagnostic_offset = current_offset + token->leading_trivia_width() + diagnostic->offset();
+                        diagnostic = *it;
+                        final_diagnostic_offset = current_offset + token->leading_trivia_width() + diagnostic->offset;
                     }
                 }
 
@@ -102,23 +104,20 @@ namespace prism
 
                 current_offset += token->full_width();
             }
-            else if (node.contains_diagnostics() && diagnostic == nullptr)
+            else if (node.contains_diagnostics() && !diagnostic.has_value())
             {
                 auto it = node.diagnostics().begin();
                 if (it != node.diagnostics().end())
                 {
-                    diagnostic = static_pointer_cast<const SyntaxDiagnosticInfo>(*it);
-                    final_diagnostic_offset = current_offset + node.leading_trivia_width() + diagnostic->offset();
+                    diagnostic = *it;
+                    final_diagnostic_offset = current_offset + node.leading_trivia_width() + diagnostic->offset;
                 }
             }
         }
 
-        if (diagnostic != nullptr)
+        if (diagnostic.has_value())
         {
-            target.add_diagnostic(std::make_shared<SyntaxDiagnosticInfo>(final_diagnostic_offset,
-                                                                         diagnostic->width(),
-                                                                         diagnostic->descriptor(),
-                                                                         diagnostic->arguments()));
+            target.add_diagnostic(SyntaxDiagnosticInfo{diagnostic->info, final_diagnostic_offset, diagnostic->width});
         }
 
         if (trailing)

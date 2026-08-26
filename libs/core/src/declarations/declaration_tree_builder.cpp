@@ -18,6 +18,7 @@ import :declarations.single_root_namespace_declaration;
 import :diagnostics.diagnostic_bag;
 import :memory.buffer_pool;
 import :binder.binding_helpers;
+import :diagnostics.factories;
 
 namespace prism
 {
@@ -111,13 +112,11 @@ namespace prism
         {
             if (is_instance<FileScopedNamespaceDeclarationSyntax>(node.parent()))
             {
-                diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::multiple_file_scoped_namespaces>(),
-                                           node.name().location()});
+                diagnostics.add(diagnostics::make_multiple_file_scoped_namespaces(node.name().location()));
             }
             else if (is_instance<NamespaceDeclarationSyntax>(node.parent()))
             {
-                diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::file_scoped_and_normal_namespace>(),
-                                           node.name().location()});
+                diagnostics.add(diagnostics::make_file_scoped_and_normal_namespace(node.name().location()));
             }
             else
             {
@@ -125,9 +124,8 @@ namespace prism
                 auto &compilation_unit = static_cast<const CompilationUnitSyntax &>(*node.parent());
                 if (&node != &compilation_unit.members()[0])
                 {
-                    diagnostics.add(Diagnostic{
-                        DiagnosticInfo::create<DiagnosticCode::file_scoped_namespace_not_before_all_members>(),
-                        node.name().location()});
+                    diagnostics.add(
+                        diagnostics::make_file_scoped_namespace_not_before_all_members(node.name().location()));
                 }
             }
         }
@@ -137,15 +135,13 @@ namespace prism
 
             if (is_instance<FileScopedNamespaceDeclarationSyntax>(node.parent()))
             {
-                diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::file_scoped_and_normal_namespace>(),
-                                           node.name().location()});
+                diagnostics.add(diagnostics::make_file_scoped_and_normal_namespace(node.name().location()));
             }
         }
 
         if (!node.modifiers().empty())
         {
-            diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::bad_modifiers_on_namespace>(),
-                                       node.modifiers()[0].location()});
+            diagnostics.add(diagnostics::make_bad_modifiers_on_namespace(node.modifiers()[0].location()));
         }
 
         DEBUG_ASSERT(name->is<SimpleNameSyntax>());

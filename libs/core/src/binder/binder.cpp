@@ -20,6 +20,7 @@ import :symbols.visit;
 import :semantic.bound.bound_statement;
 import :semantic.bound.bound_expression;
 import :symbols.error;
+import :diagnostics.factories;
 
 namespace prism
 {
@@ -603,8 +604,7 @@ namespace prism
                 current = compilation().create_error_namespace_symbol(current, name);
                 if (!is_error)
                 {
-                    diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::unresolved_symbol>(name),
-                                               simple->location()});
+                    diagnostics.add(diagnostics::make_unresolved_symbol(simple->location(), name));
                     is_error = true;
                 }
             }
@@ -740,10 +740,9 @@ namespace prism
         }
         else
         {
-            context.report_diagnostic(Diagnostic{
-                DiagnosticInfo::create<DiagnosticCode::binary_operator_undefined>(left->type().to_display_string(),
-                                                                                  right->type().to_display_string()),
-                syntax.location()});
+            context.report_diagnostic(diagnostics::make_binary_operator_undefined(syntax.location(),
+                                                                                  left->type().to_display_string(),
+                                                                                  right->type().to_display_string()));
         }
 
         return lifetime().create<BoundBinaryExpression>(
@@ -764,14 +763,12 @@ namespace prism
         if (!is_assignment_valid(assignee.type(), operation))
         {
             context.report_diagnostic(
-                Diagnostic{DiagnosticInfo::create<DiagnosticCode::no_compound_assignment_operator>(
-                               assignee.type().to_display_string()),
-                           syntax.location()});
+                diagnostics::make_no_compound_assignment_operator(syntax.location(),
+                                                                  assignee.type().to_display_string()));
         }
         else if (!assignee.is_assignable())
         {
-            context.report_diagnostic(
-                Diagnostic{DiagnosticInfo::create<DiagnosticCode::cannot_assign_expression>(), syntax.location()});
+            context.report_diagnostic(diagnostics::make_cannot_assign_expression(syntax.location()));
         }
 
         auto &assigned =
@@ -879,9 +876,8 @@ namespace prism
         arguments.insert(arguments.begin(), callee);
 
         // TODO: For now we don't have user-defined callable operators, so for now we just emit an error
-        context.report_diagnostic(Diagnostic{
-            DiagnosticInfo::create<DiagnosticCode::no_call_operator_defined>(callee.type().to_display_string()),
-            syntax.callee().location()});
+        context.report_diagnostic(
+            diagnostics::make_no_call_operator_defined(syntax.callee().location(), callee.type().to_display_string()));
         return lifetime().create<BoundCallExpression>(syntax, unnamed_error_function, arguments);
     }
 
@@ -902,19 +898,18 @@ namespace prism
         auto &syntax = expression.syntax().as_checked<ExpressionSyntax>();
         if (!conversion.exists())
         {
-            context.report_diagnostic(
-                Diagnostic{DiagnosticInfo::create<DiagnosticCode::no_conversion>(expression.type().to_display_string(),
-                                                                                 type.to_display_string()),
-                           syntax.location()});
+            context.report_diagnostic(diagnostics::make_no_conversion(syntax.location(),
+                                                                      expression.type().to_display_string(),
+                                                                      type.to_display_string()));
         }
         else if (!conversion.is_identity())
         {
             if (!conversion.is_implicit())
             {
-                context.report_diagnostic(Diagnostic{DiagnosticInfo::create<DiagnosticCode::conversion_is_explicit>(
-                                                         expression.type().to_display_string(),
-                                                         type.to_display_string()),
-                                                     syntax.location()});
+                context.report_diagnostic(
+                    diagnostics::make_conversion_is_explicit(syntax.location(),
+                                                             expression.type().to_display_string(),
+                                                             type.to_display_string()));
             }
 
             return lifetime().create<BoundConversionExpression>(syntax, expression, type, conversion);
@@ -978,8 +973,7 @@ namespace prism
         // If it doesn't fit, we're going to raise an error and then truncate the value
         if (!fits_in(data.value, target_type, compilation_.target_settings()))
         {
-            context.report_diagnostic(
-                Diagnostic{DiagnosticInfo::create<DiagnosticCode::literal_value_too_big>(), location});
+            context.report_diagnostic(diagnostics::make_literal_value_too_big(location));
         }
 
         switch (target_type)
@@ -1067,8 +1061,7 @@ namespace prism
             case SpecialType::f32:
                 if (!fits_in_finite_float_magnitude<float>(data.significand, data.exponent10))
                 {
-                    context.report_diagnostic(
-                        Diagnostic{DiagnosticInfo::create<DiagnosticCode::literal_value_too_big>(), location});
+                    context.report_diagnostic(diagnostics::make_literal_value_too_big(location));
                 }
 
                 return ConstantValue::f32(parse_decimal_float<float>(data.significand, data.exponent10, is_negative));
@@ -1076,8 +1069,7 @@ namespace prism
             case SpecialType::f64:
                 if (!fits_in_finite_float_magnitude<double>(data.significand, data.exponent10))
                 {
-                    context.report_diagnostic(
-                        Diagnostic{DiagnosticInfo::create<DiagnosticCode::literal_value_too_big>(), location});
+                    context.report_diagnostic(diagnostics::make_literal_value_too_big(location));
                 }
                 return ConstantValue::f64(parse_decimal_float<double>(data.significand, data.exponent10, is_negative));
 
@@ -1097,15 +1089,13 @@ namespace prism
         }
         else
         {
-            context.report_diagnostic(Diagnostic{
-                DiagnosticInfo::create<DiagnosticCode::unary_operator_undefined>(operand->type().to_display_string()),
-                syntax.location()});
+            context.report_diagnostic(
+                diagnostics::make_unary_operator_undefined(syntax.location(), operand->type().to_display_string()));
         }
 
         if (is_assigning_operation(operation) && !operand->is_assignable())
         {
-            context.report_diagnostic(
-                Diagnostic{DiagnosticInfo::create<DiagnosticCode::cannot_assign_expression>(), syntax.location()});
+            context.report_diagnostic(diagnostics::make_cannot_assign_expression(syntax.location()));
         }
 
         auto &final_type = result_type
@@ -1157,17 +1147,14 @@ namespace prism
             auto &symbol = result.symbol().as_checked<FunctionSymbol>();
             if (symbol.parameters().size() != arguments.size())
             {
-                context.report_diagnostic(
-                    Diagnostic{DiagnosticInfo::create<DiagnosticCode::no_overload_matching_arg_count>(arguments.size()),
-                               location});
+                context.report_diagnostic(diagnostics::make_no_overload_matching_arg_count(location, arguments.size()));
                 return symbol;
             }
 
             if (!try_match_overload(symbol, arguments, context))
             {
-                context.report_diagnostic(Diagnostic{
-                    DiagnosticInfo::create<DiagnosticCode::no_overload_for_arg_types>(get_type_names(arguments)),
-                    location});
+                context.report_diagnostic(
+                    diagnostics::make_no_overload_for_arg_types(location, get_type_names(arguments)));
             }
 
             return symbol;
@@ -1190,15 +1177,11 @@ namespace prism
 
         if (matches_arg_size)
         {
-            context.report_diagnostic(
-                Diagnostic{DiagnosticInfo::create<DiagnosticCode::no_overload_matching_arg_count>(arguments.size()),
-                           location});
+            context.report_diagnostic(diagnostics::make_no_overload_matching_arg_count(location, arguments.size()));
         }
         else
         {
-            context.report_diagnostic(
-                Diagnostic{DiagnosticInfo::create<DiagnosticCode::no_overload_for_arg_types>(get_type_names(arguments)),
-                           location});
+            context.report_diagnostic(diagnostics::make_no_overload_for_arg_types(location, get_type_names(arguments)));
         }
 
         return result.symbols().front()->as_checked<FunctionSymbol>();

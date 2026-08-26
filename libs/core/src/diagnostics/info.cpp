@@ -37,12 +37,6 @@ namespace prism
         return result;
     }
 
-    const ImmutableArray<Location> &DiagnosticInfo::additional_locations() const
-    {
-        static constexpr ImmutableArray<Location> empty_locations;
-        return empty_locations;
-    }
-
     std::span<const std::string_view> DiagnosticInfo::custom_tags() const
     {
         return descriptor().tags();

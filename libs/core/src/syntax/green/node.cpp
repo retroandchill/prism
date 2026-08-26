@@ -129,7 +129,7 @@ namespace prism
         return GreenNodeView{*this};
     }
 
-    void GreenNode::add_diagnostic(std::shared_ptr<const DiagnosticInfo> diagnostic)
+    void GreenNode::add_diagnostic(SyntaxDiagnosticInfo diagnostic)
     {
         diagnostics_ = diagnostics_.add(std::move(diagnostic));
         if (diagnostics_.size() > 1)

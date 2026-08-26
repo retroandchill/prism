@@ -110,8 +110,6 @@ set(PRISM_MODULES
         generated/diagnostics/codes.ixx
         generated/diagnostics/registry.ixx
         src/diagnostics/syntax_info.ixx
-        src/diagnostics/syntax_info.cpp
-        generated/diagnostics/traits.ixx
         src/text/writer.ixx
         src/text/string_writer.ixx
         src/syntax/green/last_token_replacer.ixx
@@ -224,6 +222,7 @@ set(PRISM_MODULES
         src/codegen/llvm_emitter.ixx
         src/codegen/llvm_emitter.cpp
         src/util/function_ref.ixx
+        generated/diagnostics/factories.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})

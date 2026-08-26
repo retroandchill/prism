@@ -20,6 +20,7 @@ import :diagnostics.info;
 import :symbols.visit;
 import :binder;
 import :binder.lookup_context;
+import :diagnostics.factories;
 
 namespace prism
 {
@@ -38,8 +39,7 @@ namespace prism
             case LookupResultKind::not_found:
                 {
                     const auto name = get_unqualified_name(syntax);
-                    context.report_diagnostic(
-                        Diagnostic{DiagnosticInfo::create<DiagnosticCode::unresolved_symbol>(name), syntax.location()});
+                    context.report_diagnostic(diagnostics::make_unresolved_symbol(syntax.location(), name));
 
                     break;
                 }
@@ -48,8 +48,7 @@ namespace prism
                     const auto name =
                         !result.symbols().empty() ? result.symbols().front()->name() : get_unqualified_name(syntax);
 
-                    context.report_diagnostic(
-                        Diagnostic{DiagnosticInfo::create<DiagnosticCode::ambiguous_symbol>(name), syntax.location()});
+                    context.report_diagnostic(diagnostics::make_ambiguous_symbol(syntax.location(), name));
                     break;
                 }
             case LookupResultKind::inaccessible:
@@ -58,9 +57,7 @@ namespace prism
                                           ? result.symbols().front()->name()
                                           : collect_names(syntax).back()->identifier().get_value<IdentifierData>().name;
 
-                    context.report_diagnostic(
-                        Diagnostic{DiagnosticInfo::create<DiagnosticCode::symbol_inaccessible>(name),
-                                   syntax.location()});
+                    context.report_diagnostic(diagnostics::make_symbol_inaccessible(syntax.location(), name));
                     break;
                 }
             case LookupResultKind::wrong_kind:
@@ -68,8 +65,7 @@ namespace prism
                     const auto name = get_unqualified_name(syntax);
 
                     context.report_diagnostic(
-                        Diagnostic{DiagnosticInfo::create<DiagnosticCode::invalid_symbol>(name, to_string(expected)),
-                                   syntax.location()});
+                        diagnostics::make_invalid_symbol(syntax.location(), name, to_string(expected)));
 
                     break;
                 }

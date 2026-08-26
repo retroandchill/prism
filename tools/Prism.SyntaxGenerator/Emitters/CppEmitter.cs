@@ -1867,42 +1867,145 @@ public static class CppEmitter
         }
         #endregion
 
-        #region Diagnostic Traits
+        #region Diagnostic Factories
 
-        public void EmitDiagnosticTraits(CppSyntaxModel model)
+        public void EmitDiagnosticFactories(CppSyntaxModel mode)
         {
-            writer.WriteLine($"export module {BaseModuleName}:diagnostics.traits;");
+            writer.WriteLine($"export module {BaseModuleName}:diagnostics.factories;");
             writer.WriteLine();
-            writer.WriteLine("import :diagnostics.code;");
+            writer.WriteLine("import :diagnostics.registry;");
             writer.WriteLine("import :syntax.kind;");
             writer.WriteLine("import :text.name;");
+            writer.WriteLine("import :diagnostics.diagnostic;");
             writer.WriteLine();
-            using var namespaceScope = writer.EnterNamespaceScope(PrismNamespace);
-            writer.WriteLine("template <DiagnosticCode Code>");
-            writer.WriteLine("struct DiagnosticTraits;");
+            using var namespaceScope = writer.EnterNamespaceScope($"{PrismNamespace}::diagnostics");
+            using (writer.EnterNamespaceScope("info"))
+            {
+                foreach (
+                    var (i, diagnostic) in mode
+                        .Diagnostics.AsValueEnumerable()
+                        .SelectMany(x => x.Diagnostics)
+                        .Index()
+                )
+                {
+                    if (i > 0)
+                        writer.WriteLine();
+
+                    writer.EmitDiagnosticInfoFactory(diagnostic, false);
+                    writer.WriteLine();
+                    writer.EmitDiagnosticInfoFactory(diagnostic, true);
+                }
+            }
 
             foreach (
-                var diagnostic in model
+                var diagnostic in mode
                     .Diagnostics.AsValueEnumerable()
                     .SelectMany(x => x.Diagnostics)
             )
             {
                 writer.WriteLine();
-
-                writer.WriteLine("template <>");
-                writer.WriteLine($"struct DiagnosticTraits<DiagnosticCode::{diagnostic.CppName}>");
-                using var scope = writer.EnterBlockScope(true);
-                writer.Write("using Args = std::tuple<");
-                foreach (var (i, arg) in diagnostic.Arguments.AsValueEnumerable().Index())
-                {
-                    if (i > 0)
-                        writer.Write(", ");
-
-                    writer.Write(arg.CppType);
-                }
-                writer.WriteLine(">;");
+                writer.EmitDiagnosticFactory(diagnostic, false, false);
+                writer.WriteLine();
+                writer.EmitDiagnosticFactory(diagnostic, true, false);
+                writer.WriteLine();
+                writer.EmitDiagnosticFactory(diagnostic, false, true);
+                writer.WriteLine();
+                writer.EmitDiagnosticFactory(diagnostic, true, true);
             }
         }
+
+        private void EmitDiagnosticInfoFactory(CppDiagnostic diagnostic, bool withSeverityOverride)
+        {
+            writer.Write($"constexpr RefCountPtr<DiagnosticInfo> make_{diagnostic.CppName}(");
+            if (withSeverityOverride)
+            {
+                writer.Write("const DiagnosticSeverity severity");
+            }
+            foreach (var (i, parameter) in diagnostic.Arguments.AsValueEnumerable().Index())
+            {
+                if (i > 0 || withSeverityOverride)
+                    writer.Write(", ");
+
+                writer.Write($"{parameter.CppType} {parameter.CppName}");
+            }
+            writer.WriteLine(")");
+            using var blockScope = writer.EnterBlockScope();
+            writer.Write($"return make_ref_counted<DiagnosticInfo>({diagnostic.CppName}");
+            if (withSeverityOverride)
+            {
+                writer.Write(", severity");
+            }
+            foreach (var parameter in diagnostic.Arguments)
+            {
+                if (parameter.NeedsMove)
+                    writer.Write($", std::move({parameter.CppName})");
+                else
+                {
+                    writer.Write($", {parameter.CppName}");
+                }
+            }
+            writer.WriteLine(");");
+        }
+
+        private void EmitDiagnosticFactory(
+            CppDiagnostic diagnostic,
+            bool withSeverityOverride,
+            bool withAdditionalLocations
+        )
+        {
+            writer.Write("export ");
+            if (withAdditionalLocations)
+            {
+                writer.WriteLine("template <std::ranges::input_range Range>");
+                using (writer.EnterIndentationScope())
+                {
+                    writer.WriteLine(
+                        "requires std::convertible_to<std::ranges::range_reference_t<Range>, Location>"
+                    );
+                }
+            }
+
+            writer.Write($"constexpr Diagnostic make_{diagnostic.CppName}(");
+            if (withSeverityOverride)
+            {
+                writer.Write("const DiagnosticSeverity severity, ");
+            }
+
+            writer.Write("Location location");
+
+            if (withAdditionalLocations)
+            {
+                writer.Write(", Range&& additional_locations");
+            }
+
+            foreach (var param in diagnostic.Arguments)
+            {
+                writer.Write($", {param.CppType} {param.CppName}");
+            }
+            writer.WriteLine(")");
+            using var blockScope = writer.EnterBlockScope();
+            writer.Write($"return Diagnostic{{{diagnostic.CppName}");
+            if (withSeverityOverride)
+            {
+                writer.Write(", severity");
+            }
+            writer.Write(", std::move(location)");
+            if (withAdditionalLocations)
+            {
+                writer.Write(", std::forward<Range>(additional_locations)");
+            }
+            foreach (var param in diagnostic.Arguments)
+            {
+                if (param.NeedsMove)
+                    writer.Write($", std::move({param.CppName})");
+                else
+                {
+                    writer.Write($", {param.CppName}");
+                }
+            }
+            writer.WriteLine("};");
+        }
+
         #endregion
 
         #region Bound Node Visitors

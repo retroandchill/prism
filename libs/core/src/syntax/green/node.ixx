@@ -18,6 +18,7 @@ import :util.exceptions;
 import libassert;
 import :text.string_writer;
 import :collections.immutable_array;
+import :diagnostics.syntax_info;
 
 namespace prism
 {
@@ -27,9 +28,8 @@ namespace prism
     class GreenChildList;
     class GreenNodeView;
     class GreenToken;
-    class DiagnosticInfo;
 
-    using DiagnosticInfoList = ImmutableArray<std::shared_ptr<const DiagnosticInfo>>;
+    using DiagnosticInfoList = ImmutableArray<SyntaxDiagnosticInfo>;
 
     class GreenTrivia;
     template <typename T, bool Owning = true>
@@ -271,10 +271,10 @@ namespace prism
             return diagnostics_;
         }
 
-        void add_diagnostic(std::shared_ptr<const DiagnosticInfo> diagnostic);
+        void add_diagnostic(SyntaxDiagnosticInfo diagnostic);
 
         template <std::ranges::input_range Range>
-            requires std::convertible_to<std::ranges::range_reference_t<Range>, RefCountPtr<const DiagnosticInfo>>
+            requires std::convertible_to<std::ranges::range_reference_t<Range>, SyntaxDiagnosticInfo>
         void add_diagnostics(Range &&range)
         {
             diagnostics_ = diagnostics_.add_range(std::forward<Range>(range));

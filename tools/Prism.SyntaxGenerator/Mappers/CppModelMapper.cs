@@ -172,6 +172,11 @@ public static partial class CppModelMapper
         nameof(CppDiagnosticArgument.CppType),
         Use = nameof(GetCppFormatArgType)
     )]
+    [MapProperty(
+        nameof(DiagnosticArgument.Type),
+        nameof(CppDiagnosticArgument.NeedsMove),
+        Use = nameof(GetNeedsMove)
+    )]
     private static partial CppDiagnosticArgument ToCpp(
         this DiagnosticArgument category,
         [ReferenceHandler] IReferenceHandler refHandler
@@ -276,6 +281,12 @@ public static partial class CppModelMapper
             "String" => "std::string",
             _ => name.Pascalize(),
         };
+    }
+
+    [UserMapping(Default = false)]
+    private static bool GetNeedsMove(string name)
+    {
+        return name == "String";
     }
 
     [UserMapping(Default = false)]

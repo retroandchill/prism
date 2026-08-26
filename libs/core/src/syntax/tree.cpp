@@ -144,12 +144,13 @@ namespace prism
             {
                 for (auto &info : node->diagnostics())
                 {
-                    auto &sdi = dynamic_cast<const SyntaxDiagnosticInfo &>(*info);
                     const auto leading_width_to_add = node->is_token() ? 0 : node->leading_trivia_width();
 
-                    const auto span_start = std::min(position + leading_width_to_add + sdi.offset(), full_tree_length);
-                    const auto span_end = std::min(span_start + sdi.width(), full_tree_length);
-                    co_yield Diagnostic{info, SourceLocation{*this, TextSpan::from_bounds(span_start, span_end)}};
+                    const auto span_start = std::min(position + leading_width_to_add + info.offset, full_tree_length);
+                    const auto span_end = std::min(span_start + info.width, full_tree_length);
+                    co_yield DiagnosticInternal::create(
+                        info.info,
+                        SourceLocation{*this, TextSpan::from_bounds(span_start, span_end)});
                 }
                 processed_diagnostics = true;
             }

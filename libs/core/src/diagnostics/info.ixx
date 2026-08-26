@@ -13,24 +13,17 @@ export module prism.core:diagnostics.info;
 import std;
 import :diagnostics.descriptor;
 import :diagnostics.registry;
-import :diagnostics.traits;
 import :memory.ref_counted_ptr;
 import :util.optional;
 import boost;
 import :text.name;
 import :util.noncopyable;
-import :diagnostics.location;
 import libassert;
 import :text.writer;
 import :collections.immutable_array;
 
 namespace prism
 {
-    template <DiagnosticCode Code, typename... Args>
-    concept CanCreateDiagnostic = std::constructible_from<typename DiagnosticTraits<Code>::Args, Args...> &&
-                                  sizeof...(Args) == std::tuple_size_v<typename DiagnosticTraits<Code>::Args> &&
-                                  (std::formattable<Args, char> && ...);
-
     class DiagnosticArguments : NonCopyable
     {
       public:
@@ -60,7 +53,7 @@ namespace prism
         std::tuple<Args...> args_;
     };
 
-    class DiagnosticInfo : public std::enable_shared_from_this<DiagnosticInfo>
+    class DiagnosticInfo final : public IntrusiveRefCounted
     {
       protected:
         struct CloneTag
@@ -78,6 +71,15 @@ namespace prism
         {
         }
 
+        template <std::formattable<char>... Args>
+        constexpr explicit DiagnosticInfo(const DiagnosticDescriptor &descriptor,
+                                          const DiagnosticSeverity severity,
+                                          Args &&...args)
+            : descriptor_{descriptor}, default_severity_{severity}, effective_severity_{default_severity_},
+              arguments_{DiagnosticArguments::create(std::forward<Args>(args)...)}
+        {
+        }
+
         constexpr explicit DiagnosticInfo(const DiagnosticDescriptor &descriptor,
                                           std::shared_ptr<DiagnosticArguments> arguments)
             : descriptor_{descriptor}, default_severity_{descriptor.default_severity()},
@@ -89,16 +91,6 @@ namespace prism
             : descriptor_{original.descriptor_}, default_severity_{original.default_severity_},
               effective_severity_{severity}, arguments_{original.arguments_}
         {
-        }
-
-        virtual ~DiagnosticInfo() = default;
-
-        template <DiagnosticCode Code, typename... Args>
-            requires CanCreateDiagnostic<Code, Args...>
-        constexpr static std::shared_ptr<DiagnosticInfo> create(Args &&...args)
-        {
-            return std::make_shared<DiagnosticInfo>(diagnostics::get_descriptor(Code).value(),
-                                                    std::forward<Args>(args)...);
         }
 
         [[nodiscard]] constexpr std::string_view id() const noexcept
@@ -154,8 +146,6 @@ namespace prism
         }
 
         [[nodiscard]] std::string to_string() const;
-
-        [[nodiscard]] virtual const ImmutableArray<Location> &additional_locations() const;
 
         [[nodiscard]] std::span<const std::string_view> custom_tags() const;
 

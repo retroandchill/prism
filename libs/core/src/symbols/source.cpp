@@ -24,6 +24,7 @@ import :semantic.bound.bound_expression;
 import :binder.binder_factory;
 import :semantic.semantic_model;
 import :semantic.semantic_model_state;
+import :diagnostics.factories;
 
 namespace prism
 {
@@ -293,8 +294,7 @@ namespace prism
 
         if (!syntax().initializer().has_value())
         {
-            diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::expected_type_specifier>(),
-                                       syntax().identifier().location()});
+            diagnostics.add(diagnostics::make_expected_type_specifier(syntax().identifier().location()));
             return unnamed_error_type;
         }
 
@@ -323,8 +323,7 @@ namespace prism
             return binder.resolve_type(syntax().type()->type(), context);
         }
 
-        diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::expected_type_specifier>(),
-                                   syntax().identifier().location()});
+        diagnostics.add(diagnostics::make_expected_type_specifier(syntax().identifier().location()));
         return unnamed_error_type;
     }
 

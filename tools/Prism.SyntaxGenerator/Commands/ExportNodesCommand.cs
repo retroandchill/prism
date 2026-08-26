@@ -139,8 +139,8 @@ public class ExportNodesCommand
         writer.EmitDiagnosticDescriptors(cppModel);
         await WriteCodeAsync(writer, Path.Join(diagnosticDir, "registry.ixx"), cancellationToken);
 
-        writer.EmitDiagnosticTraits(cppModel);
-        await WriteCodeAsync(writer, Path.Join(diagnosticDir, "traits.ixx"), cancellationToken);
+        writer.EmitDiagnosticFactories(cppModel);
+        await WriteCodeAsync(writer, Path.Join(diagnosticDir, "factories.ixx"), cancellationToken);
 
         writer.EmitBoundNodeVisitors(cppModel);
         await WriteCodeAsync(writer, Path.Join(boundNodesDir, "visit.ixx"), cancellationToken);

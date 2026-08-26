@@ -24,13 +24,61 @@ namespace prism
 
     export class PRISM_CORE_API Diagnostic final
     {
-      public:
-        constexpr Diagnostic(std::shared_ptr<const DiagnosticInfo> info,
-                             Location location,
-                             const bool is_suppressed = false)
-            : info_{std::move(info)}, location_{std::move(location)}, is_suppressed_{is_suppressed}
+        constexpr Diagnostic(RefCountPtr<const DiagnosticInfo> info, Location location)
+            : info_{std::move(info)}, location_{std::move(location)}
         {
             DEBUG_ASSERT(info_ != nullptr);
+        }
+
+        template <std::ranges::input_range Range>
+            requires std::convertible_to<std::ranges::range_reference_t<Range>, Location>
+        constexpr Diagnostic(RefCountPtr<const DiagnosticInfo> info, Location location, Range &&additional_locations)
+            : info_{std::move(info)}, location_{std::move(location)},
+              additional_locations_{std::from_range, std::forward<Range>(additional_locations)}
+        {
+            DEBUG_ASSERT(info_ != nullptr);
+        }
+
+      public:
+        template <std::formattable<char>... Args>
+        constexpr Diagnostic(const DiagnosticDescriptor &descriptor, Location location, Args &&...args)
+            : Diagnostic{prism::make_ref_counted<const DiagnosticInfo>(descriptor, std::forward<Args>(args)...),
+                         std::move(location)}
+        {
+        }
+
+        template <std::formattable<char>... Args>
+        constexpr Diagnostic(const DiagnosticDescriptor &descriptor,
+                             DiagnosticSeverity severity,
+                             Location location,
+                             Args &&...args)
+            : Diagnostic{
+                  prism::make_ref_counted<const DiagnosticInfo>(descriptor, severity, std::forward<Args>(args)...),
+                  std::move(location)}
+        {
+        }
+
+        template <std::ranges::input_range Range, std::formattable<char>... Args>
+            requires std::convertible_to<std::ranges::range_reference_t<Range>, Location>
+        constexpr Diagnostic(const DiagnosticDescriptor &descriptor, Location location, Range &&range, Args &&...args)
+            : Diagnostic{prism::make_ref_counted<const DiagnosticInfo>(descriptor, std::forward<Args>(args)...),
+                         std::move(location),
+                         std::forward<Range>(range)}
+        {
+        }
+
+        template <std::ranges::input_range Range, std::formattable<char>... Args>
+            requires std::convertible_to<std::ranges::range_reference_t<Range>, Location>
+        constexpr Diagnostic(const DiagnosticDescriptor &descriptor,
+                             DiagnosticSeverity severity,
+                             Location location,
+                             Range &&range,
+                             Args &&...args)
+            : Diagnostic{
+                  prism::make_ref_counted<const DiagnosticInfo>(descriptor, severity, std::forward<Args>(args)...),
+                  std::move(location),
+                  std::forward<Range>(range)}
+        {
         }
 
         [[nodiscard]] constexpr const DiagnosticDescriptor &descriptor() const
@@ -72,11 +120,6 @@ namespace prism
             return info_->severity();
         }
 
-        [[nodiscard]] constexpr bool is_suppressed() const
-        {
-            return is_suppressed_;
-        }
-
         [[nodiscard]] constexpr bool is_enabled_by_default() const
         {
             return info_->is_enabled_by_default();
@@ -89,9 +132,9 @@ namespace prism
             return location_;
         }
 
-        [[nodiscard]] constexpr std::span<const Location> additional_locations() const
+        [[nodiscard]] constexpr const ImmutableArray<Location> &additional_locations() const
         {
-            return info_->additional_locations();
+            return additional_locations_;
         }
 
         [[nodiscard]] constexpr DiagnosticCustomTags custom_tags() const
@@ -100,8 +143,19 @@ namespace prism
         }
 
       private:
-        std::shared_ptr<const DiagnosticInfo> info_{};
+        friend struct DiagnosticInternal;
+
+        RefCountPtr<const DiagnosticInfo> info_{};
         Location location_;
-        bool is_suppressed_;
+        ImmutableArray<Location> additional_locations_{};
+    };
+
+    struct DiagnosticInternal
+    {
+        [[nodiscard]] constexpr static Diagnostic create(RefCountPtr<const DiagnosticInfo> info,
+                                                         Location location) noexcept
+        {
+            return Diagnostic{std::move(info), std::move(location)};
+        }
     };
 } // namespace prism

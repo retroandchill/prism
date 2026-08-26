@@ -11,6 +11,7 @@ import uni_algo;
 import :memory.buffer_pool;
 import :syntax.lexing_utils;
 import :diagnostics.syntax_info;
+import :diagnostics.factories;
 
 namespace prism
 {
@@ -150,7 +151,7 @@ namespace prism
 
         auto ptr = make_ref_counted<GreenTrivia>(SyntaxKind::block_comment_trivia, ImmutableString{str});
         ptr->add_diagnostic(
-            SyntaxDiagnosticInfo::create<DiagnosticCode::unterminated_block_comment>(cursor_.position() - start, 0));
+            SyntaxDiagnosticInfo{diagnostics::info::make_unterminated_block_comment(), cursor_.position() - start});
         return std::move(ptr);
     }
 
@@ -285,7 +286,7 @@ namespace prism
 
     Optional<GreenPtr<GreenToken>> Lexer::match_character_literal(GreenTriviaList leading_trivia)
     {
-        std::vector<std::shared_ptr<const DiagnosticInfo>> diagnostics;
+        std::vector<SyntaxDiagnosticInfo> diagnostics;
         CharacterEncoding encoding;
         auto start = cursor_.position();
         auto remaining = cursor_.remaining();
@@ -331,19 +332,18 @@ namespace prism
                 character = cursor_.peek();
                 if (character != '\0')
                 {
-                    diagnostics.push_back(SyntaxDiagnosticInfo::create<DiagnosticCode::unexpected_escape>(
+                    diagnostics.push_back(SyntaxDiagnosticInfo{
+                        diagnostics::info::make_unexpected_escape(una::utf32to8(std::u32string_view{&character, 1})),
                         cursor_.position() - start,
-                        1,
-                        una::utf32to8(std::u32string_view{&character, 1})));
+                        1});
                     cursor_.advance();
                 }
                 else
                 {
                     using namespace std::string_view_literals;
-                    diagnostics.push_back(
-                        SyntaxDiagnosticInfo::create<DiagnosticCode::unexpected_escape>(cursor_.position() - start,
-                                                                                        1,
-                                                                                        ""));
+                    diagnostics.push_back(SyntaxDiagnosticInfo{diagnostics::info::make_unexpected_escape(""),
+                                                               cursor_.position() - start,
+                                                               1});
                     cursor_.advance(2);
                 }
             }
@@ -357,9 +357,9 @@ namespace prism
 
         if (!terminated)
         {
-            diagnostics.push_back(
-                SyntaxDiagnosticInfo::create<DiagnosticCode::unterminated_character_literal>(cursor_.position() - start,
-                                                                                             0));
+            diagnostics.push_back(SyntaxDiagnosticInfo{diagnostics::info::make_unterminated_character_literal(),
+                                                       cursor_.position() - start,
+                                                       0});
         }
 
         auto ptr = make_green_value(CharacterLiteralData{character, encoding},
@@ -377,7 +377,7 @@ namespace prism
 
         const auto start = cursor_.position();
         PooledString str;
-        std::vector<std::shared_ptr<const DiagnosticInfo>> diagnostics;
+        std::vector<SyntaxDiagnosticInfo> diagnostics;
         auto terminated = false;
         while (!cursor_.at_end())
         {
@@ -416,26 +416,25 @@ namespace prism
                 {
                     str.push_back(next);
                     diagnostics.push_back(
-                        SyntaxDiagnosticInfo::create<DiagnosticCode::unexpected_escape>(cursor_.position() - start,
-                                                                                        1,
-                                                                                        std::string{next}));
+                        SyntaxDiagnosticInfo{diagnostics::info::make_unexpected_escape(std::string{next}),
+                                             cursor_.position() - start,
+                                             1});
                 }
                 else
                 {
                     using namespace std::string_view_literals;
-                    diagnostics.push_back(
-                        SyntaxDiagnosticInfo::create<DiagnosticCode::unexpected_escape>(cursor_.position() - start,
-                                                                                        1,
-                                                                                        ""));
+                    diagnostics.push_back(SyntaxDiagnosticInfo{diagnostics::info::make_unexpected_escape(""),
+                                                               cursor_.position() - start,
+                                                               1});
                 }
             }
         }
 
         if (!terminated)
         {
-            diagnostics.push_back(
-                SyntaxDiagnosticInfo::create<DiagnosticCode::unterminated_string_literal>(cursor_.position() - start,
-                                                                                          0));
+            diagnostics.push_back(SyntaxDiagnosticInfo{diagnostics::info::make_unterminated_string_literal(),
+                                                       cursor_.position() - start,
+                                                       0});
         }
 
         const auto slice = cursor_.since(start);

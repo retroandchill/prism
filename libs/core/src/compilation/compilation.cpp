@@ -26,6 +26,7 @@ import :syntax.visit;
 import :binder.lookup_context;
 import :semantic.syntax_and_declaration_manager;
 import :codegen.llvm_emitter;
+import :diagnostics.factories;
 
 namespace prism
 {
@@ -445,7 +446,7 @@ namespace prism
         append_entry_points(global_namespace, candidates, diagnostics);
         if (candidates.empty())
         {
-            diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::no_entry_point_defined>(), no_location});
+            diagnostics.add(diagnostics::make_no_entry_point_defined(no_location));
             return std::nullopt;
         }
 
@@ -464,9 +465,9 @@ namespace prism
                 all_locations.append_range(candidate->locations());
             }
 
-            // TODO: We need to add all locations to the diagnostic
-            diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::ambiguous_entry_point>(std::move(names)),
-                                       all_locations.front()});
+            diagnostics.add(diagnostics::make_ambiguous_entry_point(all_locations.front(),
+                                                                    all_locations | std::views::drop(1),
+                                                                    std::move(names)));
             return std::nullopt;
         }
 
@@ -504,10 +505,10 @@ namespace prism
         if (auto &return_type = entry_point.return_type();
             !return_type.is_void() && return_type.special_type() != SpecialType::i32)
         {
-            diagnostics.add(Diagnostic{DiagnosticInfo::create<DiagnosticCode::invalid_entry_point_return_type>(
-                                           entry_point.return_type().to_display_string(),
-                                           entry_point.to_display_string()),
-                                       declaration.return_type().value().type().location()});
+            diagnostics.add(
+                diagnostics::make_invalid_entry_point_return_type(declaration.return_type().value().type().location(),
+                                                                  entry_point.return_type().to_display_string(),
+                                                                  entry_point.to_display_string()));
             return false;
         }
 
@@ -520,10 +521,9 @@ namespace prism
             entry_point.parameters() |
             std::views::transform([](const ParameterSymbol &param) { return param.type().to_display_string(); }) |
             std::views::join_with(", "sv) | std::ranges::to<std::string>();
-        diagnostics.add(Diagnostic{
-            DiagnosticInfo::create<DiagnosticCode::invalid_entry_point_parameters>(std::move(param_types),
-                                                                                   entry_point.to_display_string()),
-            declaration.parameters().location()});
+        diagnostics.add(diagnostics::make_invalid_entry_point_parameters(declaration.parameters().location(),
+                                                                         std::move(param_types),
+                                                                         entry_point.to_display_string()));
         return false;
     }
 } // namespace prism
