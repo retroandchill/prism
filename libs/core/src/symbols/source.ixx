@@ -115,6 +115,7 @@ namespace prism
         const VariableDeclarationSyntax &syntax_;
         SyntaxReference syntax_reference_;
         mutable Lazy<const TypeSymbol &> type_;
+        bool is_mutable_;
     };
 
     class SourceLocalVariableSymbol final : public SourceVariableSymbol

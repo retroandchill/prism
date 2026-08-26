@@ -32,7 +32,7 @@ namespace prism
         func_keyword = 1003,
         extern_keyword = 1004,
         return_keyword = 1005,
-        mut_keyword = 1006,
+        mutable_keyword = 1006,
         true_keyword = 1007,
         false_keyword = 1008,
         void_keyword = 1009,
@@ -228,8 +228,8 @@ namespace prism
                 return "extern";
             case SyntaxKind::return_keyword:
                 return "return";
-            case SyntaxKind::mut_keyword:
-                return "mut";
+            case SyntaxKind::mutable_keyword:
+                return "mutable";
             case SyntaxKind::true_keyword:
                 return "true";
             case SyntaxKind::false_keyword:

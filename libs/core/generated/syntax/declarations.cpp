@@ -193,32 +193,22 @@ namespace prism
             get_slot_position(1)};
     }
 
-    Optional<SyntaxToken> VariableDeclarationSyntax::mut_keyword() const
-    {
-        return static_cast<const GreenVariableDeclaration &>(SyntaxNodeInternal::get_green(*this))
-            .mut_keyword()
-            .transform(
-                [this](const GreenToken &g) {
-                    return SyntaxToken{g, this, get_slot_position(2)};
-                });
-    }
-
     SyntaxToken VariableDeclarationSyntax::identifier() const
     {
         return SyntaxToken{
             static_cast<const GreenVariableDeclaration &>(SyntaxNodeInternal::get_green(*this)).identifier(),
             this,
-            get_slot_position(3)};
+            get_slot_position(2)};
     }
 
     Optional<const TypeSpecifierSyntax &> VariableDeclarationSyntax::type() const
     {
-        return get_red(type_, 4);
+        return get_red(type_, 3);
     }
 
     Optional<const InitializerSyntax &> VariableDeclarationSyntax::initializer() const
     {
-        return get_red(initializer_, 5);
+        return get_red(initializer_, 4);
     }
 
     SyntaxToken VariableDeclarationSyntax::semicolon() const
@@ -226,17 +216,17 @@ namespace prism
         return SyntaxToken{
             static_cast<const GreenVariableDeclaration &>(SyntaxNodeInternal::get_green(*this)).semicolon(),
             this,
-            get_slot_position(6)};
+            get_slot_position(5)};
     }
 
     Optional<const SyntaxNode &> VariableDeclarationSyntax::get_node_slot(const std::size_t index) const
     {
         switch (index)
         {
+            case 3:
+                return get_red(type_, 3);
             case 4:
-                return get_red(type_, 4);
-            case 5:
-                return get_red(initializer_, 5);
+                return get_red(initializer_, 4);
             default:
                 return std::nullopt;
         }
@@ -246,9 +236,9 @@ namespace prism
     {
         switch (index)
         {
-            case 4:
+            case 3:
                 return type_.try_get_value(nullptr);
-            case 5:
+            case 4:
                 return initializer_.try_get_value(nullptr);
             default:
                 return std::nullopt;

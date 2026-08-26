@@ -42,8 +42,8 @@
         "text": "return"
       },
       {
-        "name": "MutKeyword",
-        "text": "mut"
+        "name": "MutableKeyword",
+        "text": "mutable"
       },
       {
         "name": "TrueKeyword",
@@ -680,11 +680,11 @@
           "properties": [
             {
               "$type": "item",
-              "name": "mut_keyword",
+              "name": "mutable_keyword",
               "type": "Token",
               "shape": "optional",
               "kinds": [
-                "MutKeyword"
+                "MutableKeyword"
               ]
             },
             {
@@ -1288,7 +1288,8 @@
               "type": "Token",
               "shape": "list",
               "kinds": [
-                "ExternKeyword"
+                "ExternKeyword",
+                "MutableKeyword"
               ]
             },
             {
@@ -1298,15 +1299,6 @@
               "shape": "single",
               "kinds": [
                 "VarKeyword"
-              ]
-            },
-            {
-              "$type": "item",
-              "name": "mut_keyword",
-              "type": "Token",
-              "shape": "optional",
-              "kinds": [
-                "MutKeyword"
               ]
             },
             {

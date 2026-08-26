@@ -448,17 +448,17 @@ namespace prism
         return make_ref_counted<GreenParameterList>(open_paren_, parameters_, close_paren_);
     }
 
-    GreenParameter::GreenParameter(GreenPtr<GreenToken> mut_keyword,
+    GreenParameter::GreenParameter(GreenPtr<GreenToken> mutable_keyword,
                                    GreenPtr<GreenToken> name,
                                    GreenPtr<GreenTypeSpecifier> type_specifier,
                                    GreenPtr<GreenInitializer> default_value,
                                    DiagnosticInfoList diagnostics)
-        : GreenNode{SyntaxKind::parameter, std::move(diagnostics)}, mut_keyword_{std::move(mut_keyword)},
+        : GreenNode{SyntaxKind::parameter, std::move(diagnostics)}, mutable_keyword_{std::move(mutable_keyword)},
           name_{std::move(name)}, type_specifier_{std::move(type_specifier)}, default_value_{std::move(default_value)}
     {
         set_slot_count(4);
-        if (mut_keyword_ != nullptr)
-            adjust_flags_and_width(*mut_keyword_);
+        if (mutable_keyword_ != nullptr)
+            adjust_flags_and_width(*mutable_keyword_);
         adjust_flags_and_width(*name_);
         if (type_specifier_ != nullptr)
             adjust_flags_and_width(*type_specifier_);
@@ -468,9 +468,9 @@ namespace prism
 
     GreenParameter::~GreenParameter() = default;
 
-    void GreenParameter::set_mut_keyword(GreenPtr<GreenToken> value) noexcept
+    void GreenParameter::set_mutable_keyword(GreenPtr<GreenToken> value) noexcept
     {
-        mut_keyword_ = std::move(value);
+        mutable_keyword_ = std::move(value);
     }
 
     void GreenParameter::set_name(GreenPtr<GreenToken> value) noexcept
@@ -493,7 +493,7 @@ namespace prism
         switch (index)
         {
             case 0:
-                return mut_keyword_.get();
+                return mutable_keyword_.get();
             case 1:
                 return *name_;
             case 2:
@@ -512,38 +512,39 @@ namespace prism
         return lifetime.add<ParameterSyntax>(*this, parent, position);
     }
 
-    [[nodiscard]] GreenPtr<GreenParameter> GreenParameter::with_mut_keyword(GreenPtr<GreenToken> mut_keyword) const
+    [[nodiscard]] GreenPtr<GreenParameter> GreenParameter::with_mutable_keyword(
+        GreenPtr<GreenToken> mutable_keyword) const
     {
-        return update(std::move(mut_keyword), name_, type_specifier_, default_value_);
+        return update(std::move(mutable_keyword), name_, type_specifier_, default_value_);
     }
 
     [[nodiscard]] GreenPtr<GreenParameter> GreenParameter::with_name(GreenPtr<GreenToken> name) const
     {
-        return update(mut_keyword_, std::move(name), type_specifier_, default_value_);
+        return update(mutable_keyword_, std::move(name), type_specifier_, default_value_);
     }
 
     [[nodiscard]] GreenPtr<GreenParameter> GreenParameter::with_type_specifier(
         GreenPtr<GreenTypeSpecifier> type_specifier) const
     {
-        return update(mut_keyword_, name_, std::move(type_specifier), default_value_);
+        return update(mutable_keyword_, name_, std::move(type_specifier), default_value_);
     }
 
     [[nodiscard]] GreenPtr<GreenParameter> GreenParameter::with_default_value(
         GreenPtr<GreenInitializer> default_value) const
     {
-        return update(mut_keyword_, name_, type_specifier_, std::move(default_value));
+        return update(mutable_keyword_, name_, type_specifier_, std::move(default_value));
     }
 
-    GreenPtr<GreenParameter> GreenParameter::update(GreenPtr<GreenToken> mut_keyword,
+    GreenPtr<GreenParameter> GreenParameter::update(GreenPtr<GreenToken> mutable_keyword,
                                                     GreenPtr<GreenToken> name,
                                                     GreenPtr<GreenTypeSpecifier> type_specifier,
                                                     GreenPtr<GreenInitializer> default_value) const
     {
-        if (mut_keyword == mut_keyword_ && name == name_ && type_specifier == type_specifier_ &&
+        if (mutable_keyword == mutable_keyword_ && name == name_ && type_specifier == type_specifier_ &&
             default_value == default_value_)
             return shared_from_this();
 
-        return make_ref_counted<const GreenParameter>(std::move(mut_keyword),
+        return make_ref_counted<const GreenParameter>(std::move(mutable_keyword),
                                                       std::move(name),
                                                       std::move(type_specifier),
                                                       std::move(default_value));
@@ -551,7 +552,7 @@ namespace prism
 
     RefCountPtr<GreenNode> GreenParameter::clone_internal() const
     {
-        return make_ref_counted<GreenParameter>(mut_keyword_, name_, type_specifier_, default_value_);
+        return make_ref_counted<GreenParameter>(mutable_keyword_, name_, type_specifier_, default_value_);
     }
 
     GreenExpressionBody::GreenExpressionBody(GreenPtr<GreenToken> arrow,

@@ -174,7 +174,6 @@ namespace prism
 
         [[nodiscard]] SyntaxTokenList modifiers() const override;
         [[nodiscard]] SyntaxToken var_keyword() const;
-        [[nodiscard]] Optional<SyntaxToken> mut_keyword() const;
         [[nodiscard]] SyntaxToken identifier() const;
         [[nodiscard]] Optional<const TypeSpecifierSyntax &> type() const;
         [[nodiscard]] Optional<const InitializerSyntax &> initializer() const;

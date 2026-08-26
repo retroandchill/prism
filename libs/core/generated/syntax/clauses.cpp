@@ -170,10 +170,10 @@ namespace prism
         return index == 1 ? Optional<const SyntaxNode &>{parameters_.try_get_value(nullptr)} : std::nullopt;
     }
 
-    Optional<SyntaxToken> ParameterSyntax::mut_keyword() const
+    Optional<SyntaxToken> ParameterSyntax::mutable_keyword() const
     {
         return static_cast<const GreenParameter &>(SyntaxNodeInternal::get_green(*this))
-            .mut_keyword()
+            .mutable_keyword()
             .transform(
                 [this](const GreenToken &g) {
                     return SyntaxToken{g, this, position()};

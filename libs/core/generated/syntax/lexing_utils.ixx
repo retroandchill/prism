@@ -16,7 +16,7 @@ namespace prism
                 make_ref_counted<GreenToken>(SyntaxKind::func_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::extern_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::return_keyword),
-                make_ref_counted<GreenToken>(SyntaxKind::mut_keyword),
+                make_ref_counted<GreenToken>(SyntaxKind::mutable_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::true_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::false_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::void_keyword),
@@ -131,8 +131,6 @@ namespace prism
                     return SyntaxKind::i32_keyword;
                 if (text == "i64")
                     return SyntaxKind::i64_keyword;
-                if (text == "mut")
-                    return SyntaxKind::mut_keyword;
                 if (text == "str")
                     return SyntaxKind::str_keyword;
                 if (text == "u16")
@@ -179,6 +177,10 @@ namespace prism
                     return SyntaxKind::extern_keyword;
                 if (text == "return")
                     return SyntaxKind::return_keyword;
+                break;
+            case 7:
+                if (text == "mutable")
+                    return SyntaxKind::mutable_keyword;
                 break;
             case 9:
                 if (text == "namespace")

@@ -190,7 +190,7 @@ namespace prism
         {
         }
 
-        [[nodiscard]] Optional<SyntaxToken> mut_keyword() const;
+        [[nodiscard]] Optional<SyntaxToken> mutable_keyword() const;
         [[nodiscard]] SyntaxToken name() const;
         [[nodiscard]] Optional<const TypeSpecifierSyntax &> type_specifier() const;
         [[nodiscard]] Optional<const InitializerSyntax &> default_value() const;

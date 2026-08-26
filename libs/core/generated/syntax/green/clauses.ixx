@@ -657,7 +657,7 @@ namespace prism
     class GreenParameter final : public GreenNode
     {
       public:
-        GreenParameter(GreenPtr<GreenToken> mut_keyword,
+        GreenParameter(GreenPtr<GreenToken> mutable_keyword,
                        GreenPtr<GreenToken> name,
                        GreenPtr<GreenTypeSpecifier> type_specifier,
                        GreenPtr<GreenInitializer> default_value,
@@ -665,12 +665,12 @@ namespace prism
 
         ~GreenParameter() override;
 
-        [[nodiscard]] constexpr Optional<const GreenToken &> mut_keyword() const noexcept
+        [[nodiscard]] constexpr Optional<const GreenToken &> mutable_keyword() const noexcept
         {
-            return mut_keyword_.get();
+            return mutable_keyword_.get();
         }
 
-        void set_mut_keyword(GreenPtr<GreenToken> value) noexcept;
+        void set_mutable_keyword(GreenPtr<GreenToken> value) noexcept;
 
         [[nodiscard]] constexpr const GreenToken &name() const noexcept
         {
@@ -704,7 +704,7 @@ namespace prism
                                              const SyntaxNode *parent,
                                              std::uint32_t position) const override;
 
-        [[nodiscard]] GreenPtr<GreenParameter> with_mut_keyword(GreenPtr<GreenToken> mut_keyword) const;
+        [[nodiscard]] GreenPtr<GreenParameter> with_mutable_keyword(GreenPtr<GreenToken> mutable_keyword) const;
 
         [[nodiscard]] GreenPtr<GreenParameter> with_name(GreenPtr<GreenToken> name) const;
 
@@ -712,14 +712,14 @@ namespace prism
 
         [[nodiscard]] GreenPtr<GreenParameter> with_default_value(GreenPtr<GreenInitializer> default_value) const;
 
-        [[nodiscard]] GreenPtr<GreenParameter> update(GreenPtr<GreenToken> mut_keyword,
+        [[nodiscard]] GreenPtr<GreenParameter> update(GreenPtr<GreenToken> mutable_keyword,
                                                       GreenPtr<GreenToken> name,
                                                       GreenPtr<GreenTypeSpecifier> type_specifier,
                                                       GreenPtr<GreenInitializer> default_value) const;
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
-        GreenPtr<GreenToken> mut_keyword_;
+        GreenPtr<GreenToken> mutable_keyword_;
         GreenPtr<GreenToken> name_;
         GreenPtr<GreenTypeSpecifier> type_specifier_;
         GreenPtr<GreenInitializer> default_value_;
@@ -738,7 +738,7 @@ namespace prism
         {
             if constexpr (N == 0)
             {
-                return node.mut_keyword();
+                return node.mutable_keyword();
             }
             else if constexpr (N == 1)
             {
@@ -761,7 +761,7 @@ namespace prism
         {
             if constexpr (N == 0)
             {
-                node.set_mut_keyword(std::forward<Arg>(value));
+                node.set_mutable_keyword(std::forward<Arg>(value));
             }
             else if constexpr (N == 1)
             {
@@ -784,7 +784,7 @@ namespace prism
         {
             if constexpr (N == 0)
             {
-                return node.with_mut_keyword(std::forward<Arg>(value));
+                return node.with_mutable_keyword(std::forward<Arg>(value));
             }
             else if constexpr (N == 1)
             {

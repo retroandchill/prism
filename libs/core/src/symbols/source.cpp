@@ -231,7 +231,10 @@ namespace prism
     SourceVariableSymbol::SourceVariableSymbol(const Name name,
                                                const Symbol *containing,
                                                const VariableDeclarationSyntax &syntax)
-        : VariableSymbol{name, containing}, syntax_{syntax}, syntax_reference_{syntax}
+        : VariableSymbol{name, containing}, syntax_{syntax}, syntax_reference_{syntax},
+          is_mutable_{std::ranges::any_of(syntax.modifiers(),
+                                          [](const SyntaxToken &token)
+                                          { return token.kind() == SyntaxKind::mutable_keyword; })}
     {
     }
 
@@ -254,7 +257,7 @@ namespace prism
 
     bool SourceVariableSymbol::is_mutable() const noexcept
     {
-        return syntax_.mut_keyword().has_value();
+        return is_mutable_;
     }
 
     bool SourceVariableSymbol::has_initializer() const noexcept
@@ -433,7 +436,7 @@ namespace prism
 
     bool SourceParameterSymbol::is_mutable() const noexcept
     {
-        return syntax_.mut_keyword().has_value();
+        return syntax_.mutable_keyword().has_value();
     }
 
     std::span<const SyntaxReference> SourceParameterSymbol::declaring_syntax_references() const

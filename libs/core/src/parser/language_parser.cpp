@@ -14,7 +14,7 @@ namespace prism
 
     namespace
     {
-        using ModifierKinds = EnumSet<SyntaxKind, SyntaxKind::extern_keyword>;
+        using ModifierKinds = EnumSet<SyntaxKind, SyntaxKind::extern_keyword, SyntaxKind::mutable_keyword>;
 
         using BuildInTypeKinds = EnumSet<SyntaxKind,
                                          SyntaxKind::void_keyword,
@@ -180,6 +180,12 @@ namespace prism
     {
         switch (auto &next = peek_token(); next.kind())
         {
+            case SyntaxKind::mutable_keyword:
+                {
+                    auto modifiers = parse_modifiers();
+                    auto declaration = parse_variable_declaration(std::move(modifiers));
+                    return make_ref_counted<GreenVariableDeclarationStatement>(std::move(declaration));
+                }
             case SyntaxKind::var_keyword:
                 {
                     auto declaration = parse_variable_declaration();
@@ -272,27 +278,24 @@ namespace prism
                                                                          std::move(usings),
                                                                          std::move(members));
         }
-        else
-        {
-            auto open_brace = expect_token(SyntaxKind::open_brace_token);
-            auto [usings, members] = parse_namespace_body([](const GreenToken &token)
-                                                          { return token.kind() != SyntaxKind::close_brace_token; });
-            auto close_brace = expect_token(SyntaxKind::close_brace_token);
-            return make_ref_counted<GreenBlockNamespaceDeclaration>(GreenSyntaxList<GreenToken>{},
-                                                                    std::move(namespace_keyword),
-                                                                    std::move(identifier),
-                                                                    std::move(open_brace),
-                                                                    std::move(usings),
-                                                                    std::move(members),
-                                                                    std::move(close_brace));
-        }
+
+        auto open_brace = expect_token(SyntaxKind::open_brace_token);
+        auto [usings, members] =
+            parse_namespace_body([](const GreenToken &token) { return token.kind() != SyntaxKind::close_brace_token; });
+        auto close_brace = expect_token(SyntaxKind::close_brace_token);
+        return make_ref_counted<GreenBlockNamespaceDeclaration>(GreenSyntaxList<GreenToken>{},
+                                                                std::move(namespace_keyword),
+                                                                std::move(identifier),
+                                                                std::move(open_brace),
+                                                                std::move(usings),
+                                                                std::move(members),
+                                                                std::move(close_brace));
     }
 
     GreenPtr<GreenVariableDeclaration> LanguageParser::parse_variable_declaration(GreenSyntaxList<GreenToken> modifiers)
     {
         auto var_keyword = expect_token(SyntaxKind::var_keyword);
 
-        auto mut_keyword = match_token(SyntaxKind::mut_keyword);
         auto identifier = expect_token(SyntaxKind::identifier_token);
         auto type_specifier = parse_type_specifier();
         auto initializer = parse_initializer();
@@ -300,7 +303,6 @@ namespace prism
 
         return make_ref_counted<const GreenVariableDeclaration>(std::move(modifiers),
                                                                 std::move(var_keyword),
-                                                                std::move(mut_keyword).value_or_default(),
                                                                 std::move(identifier),
                                                                 std::move(type_specifier).value_or_default(),
                                                                 std::move(initializer).value_or_default(),
@@ -424,7 +426,7 @@ namespace prism
                 builder.add_separator(expect_token(SyntaxKind::comma_token));
             }
 
-            auto mut_keyword = match_token(SyntaxKind::mut_keyword);
+            auto mut_keyword = match_token(SyntaxKind::mutable_keyword);
             auto name = expect_token(SyntaxKind::identifier_token);
             auto type = parse_required_type_specifier();
             auto default_value = parse_initializer();

@@ -376,22 +376,18 @@ namespace prism
 
     GreenVariableDeclaration::GreenVariableDeclaration(GreenSyntaxList<GreenToken> modifiers,
                                                        GreenPtr<GreenToken> var_keyword,
-                                                       GreenPtr<GreenToken> mut_keyword,
                                                        GreenPtr<GreenToken> identifier,
                                                        GreenPtr<GreenTypeSpecifier> type,
                                                        GreenPtr<GreenInitializer> initializer,
                                                        GreenPtr<GreenToken> semicolon,
                                                        DiagnosticInfoList diagnostics)
         : GreenDeclaration{SyntaxKind::variable_declaration, std::move(diagnostics)}, modifiers_{std::move(modifiers)},
-          var_keyword_{std::move(var_keyword)}, mut_keyword_{std::move(mut_keyword)},
-          identifier_{std::move(identifier)}, type_{std::move(type)}, initializer_{std::move(initializer)},
-          semicolon_{std::move(semicolon)}
+          var_keyword_{std::move(var_keyword)}, identifier_{std::move(identifier)}, type_{std::move(type)},
+          initializer_{std::move(initializer)}, semicolon_{std::move(semicolon)}
     {
-        set_slot_count(7);
+        set_slot_count(6);
         adjust_flags_and_width(modifiers_);
         adjust_flags_and_width(*var_keyword_);
-        if (mut_keyword_ != nullptr)
-            adjust_flags_and_width(*mut_keyword_);
         adjust_flags_and_width(*identifier_);
         if (type_ != nullptr)
             adjust_flags_and_width(*type_);
@@ -410,11 +406,6 @@ namespace prism
     void GreenVariableDeclaration::set_var_keyword(GreenPtr<GreenToken> value) noexcept
     {
         var_keyword_ = std::move(value);
-    }
-
-    void GreenVariableDeclaration::set_mut_keyword(GreenPtr<GreenToken> value) noexcept
-    {
-        mut_keyword_ = std::move(value);
     }
 
     void GreenVariableDeclaration::set_identifier(GreenPtr<GreenToken> value) noexcept
@@ -446,14 +437,12 @@ namespace prism
             case 1:
                 return *var_keyword_;
             case 2:
-                return mut_keyword_.get();
-            case 3:
                 return *identifier_;
-            case 4:
+            case 3:
                 return type_.get();
-            case 5:
+            case 4:
                 return initializer_.get();
-            case 6:
+            case 5:
                 return *semicolon_;
             default:
                 return std::nullopt;
@@ -470,60 +459,52 @@ namespace prism
     [[nodiscard]] GreenPtr<GreenDeclaration> GreenVariableDeclaration::with_modifiers_core(
         GreenSyntaxList<GreenToken> modifiers) const
     {
-        return update(std::move(modifiers), var_keyword_, mut_keyword_, identifier_, type_, initializer_, semicolon_);
+        return update(std::move(modifiers), var_keyword_, identifier_, type_, initializer_, semicolon_);
     }
 
     [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_var_keyword(
         GreenPtr<GreenToken> var_keyword) const
     {
-        return update(modifiers_, std::move(var_keyword), mut_keyword_, identifier_, type_, initializer_, semicolon_);
-    }
-
-    [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_mut_keyword(
-        GreenPtr<GreenToken> mut_keyword) const
-    {
-        return update(modifiers_, var_keyword_, std::move(mut_keyword), identifier_, type_, initializer_, semicolon_);
+        return update(modifiers_, std::move(var_keyword), identifier_, type_, initializer_, semicolon_);
     }
 
     [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_identifier(
         GreenPtr<GreenToken> identifier) const
     {
-        return update(modifiers_, var_keyword_, mut_keyword_, std::move(identifier), type_, initializer_, semicolon_);
+        return update(modifiers_, var_keyword_, std::move(identifier), type_, initializer_, semicolon_);
     }
 
     [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_type(
         GreenPtr<GreenTypeSpecifier> type) const
     {
-        return update(modifiers_, var_keyword_, mut_keyword_, identifier_, std::move(type), initializer_, semicolon_);
+        return update(modifiers_, var_keyword_, identifier_, std::move(type), initializer_, semicolon_);
     }
 
     [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_initializer(
         GreenPtr<GreenInitializer> initializer) const
     {
-        return update(modifiers_, var_keyword_, mut_keyword_, identifier_, type_, std::move(initializer), semicolon_);
+        return update(modifiers_, var_keyword_, identifier_, type_, std::move(initializer), semicolon_);
     }
 
     [[nodiscard]] GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::with_semicolon(
         GreenPtr<GreenToken> semicolon) const
     {
-        return update(modifiers_, var_keyword_, mut_keyword_, identifier_, type_, initializer_, std::move(semicolon));
+        return update(modifiers_, var_keyword_, identifier_, type_, initializer_, std::move(semicolon));
     }
 
     GreenPtr<GreenVariableDeclaration> GreenVariableDeclaration::update(GreenSyntaxList<GreenToken> modifiers,
                                                                         GreenPtr<GreenToken> var_keyword,
-                                                                        GreenPtr<GreenToken> mut_keyword,
                                                                         GreenPtr<GreenToken> identifier,
                                                                         GreenPtr<GreenTypeSpecifier> type,
                                                                         GreenPtr<GreenInitializer> initializer,
                                                                         GreenPtr<GreenToken> semicolon) const
     {
-        if (modifiers == modifiers_ && var_keyword == var_keyword_ && mut_keyword == mut_keyword_ &&
-            identifier == identifier_ && type == type_ && initializer == initializer_ && semicolon == semicolon_)
+        if (modifiers == modifiers_ && var_keyword == var_keyword_ && identifier == identifier_ && type == type_ &&
+            initializer == initializer_ && semicolon == semicolon_)
             return shared_from_this();
 
         return make_ref_counted<const GreenVariableDeclaration>(std::move(modifiers),
                                                                 std::move(var_keyword),
-                                                                std::move(mut_keyword),
                                                                 std::move(identifier),
                                                                 std::move(type),
                                                                 std::move(initializer),
@@ -534,7 +515,6 @@ namespace prism
     {
         return make_ref_counted<GreenVariableDeclaration>(modifiers_,
                                                           var_keyword_,
-                                                          mut_keyword_,
                                                           identifier_,
                                                           type_,
                                                           initializer_,

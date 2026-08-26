@@ -628,7 +628,6 @@ namespace prism
       public:
         GreenVariableDeclaration(GreenSyntaxList<GreenToken> modifiers,
                                  GreenPtr<GreenToken> var_keyword,
-                                 GreenPtr<GreenToken> mut_keyword,
                                  GreenPtr<GreenToken> identifier,
                                  GreenPtr<GreenTypeSpecifier> type,
                                  GreenPtr<GreenInitializer> initializer,
@@ -650,13 +649,6 @@ namespace prism
         }
 
         void set_var_keyword(GreenPtr<GreenToken> value) noexcept;
-
-        [[nodiscard]] constexpr Optional<const GreenToken &> mut_keyword() const noexcept
-        {
-            return mut_keyword_.get();
-        }
-
-        void set_mut_keyword(GreenPtr<GreenToken> value) noexcept;
 
         [[nodiscard]] constexpr const GreenToken &identifier() const noexcept
         {
@@ -702,8 +694,6 @@ namespace prism
 
         [[nodiscard]] GreenPtr<GreenVariableDeclaration> with_var_keyword(GreenPtr<GreenToken> var_keyword) const;
 
-        [[nodiscard]] GreenPtr<GreenVariableDeclaration> with_mut_keyword(GreenPtr<GreenToken> mut_keyword) const;
-
         [[nodiscard]] GreenPtr<GreenVariableDeclaration> with_identifier(GreenPtr<GreenToken> identifier) const;
 
         [[nodiscard]] GreenPtr<GreenVariableDeclaration> with_type(GreenPtr<GreenTypeSpecifier> type) const;
@@ -714,7 +704,6 @@ namespace prism
 
         [[nodiscard]] GreenPtr<GreenVariableDeclaration> update(GreenSyntaxList<GreenToken> modifiers,
                                                                 GreenPtr<GreenToken> var_keyword,
-                                                                GreenPtr<GreenToken> mut_keyword,
                                                                 GreenPtr<GreenToken> identifier,
                                                                 GreenPtr<GreenTypeSpecifier> type,
                                                                 GreenPtr<GreenInitializer> initializer,
@@ -724,7 +713,6 @@ namespace prism
       private:
         GreenSyntaxList<GreenToken> modifiers_;
         GreenPtr<GreenToken> var_keyword_;
-        GreenPtr<GreenToken> mut_keyword_;
         GreenPtr<GreenToken> identifier_;
         GreenPtr<GreenTypeSpecifier> type_;
         GreenPtr<GreenInitializer> initializer_;
@@ -734,10 +722,9 @@ namespace prism
     template <>
     struct GreenNodeTraits<GreenVariableDeclaration>
     {
-        static constexpr std::size_t slot_count = 7;
+        static constexpr std::size_t slot_count = 6;
 
         using ChildTypes = std::tuple<GreenSyntaxList<GreenToken>,
-                                      GreenToken,
                                       GreenToken,
                                       GreenToken,
                                       GreenTypeSpecifier,
@@ -758,23 +745,19 @@ namespace prism
             }
             else if constexpr (N == 2)
             {
-                return node.mut_keyword();
+                return node.identifier();
             }
             else if constexpr (N == 3)
             {
-                return node.identifier();
-            }
-            else if constexpr (N == 4)
-            {
                 return node.type();
             }
-            else if constexpr (N == 5)
+            else if constexpr (N == 4)
             {
                 return node.initializer();
             }
             else
             {
-                static_assert(N == 6);
+                static_assert(N == 5);
                 return node.semicolon();
             }
         }
@@ -793,23 +776,19 @@ namespace prism
             }
             else if constexpr (N == 2)
             {
-                node.set_mut_keyword(std::forward<Arg>(value));
+                node.set_identifier(std::forward<Arg>(value));
             }
             else if constexpr (N == 3)
             {
-                node.set_identifier(std::forward<Arg>(value));
-            }
-            else if constexpr (N == 4)
-            {
                 node.set_type(std::forward<Arg>(value));
             }
-            else if constexpr (N == 5)
+            else if constexpr (N == 4)
             {
                 node.set_initializer(std::forward<Arg>(value));
             }
             else
             {
-                static_assert(N == 6);
+                static_assert(N == 5);
                 node.set_semicolon(std::forward<Arg>(value));
             }
         }
@@ -828,23 +807,19 @@ namespace prism
             }
             else if constexpr (N == 2)
             {
-                return node.with_mut_keyword(std::forward<Arg>(value));
+                return node.with_identifier(std::forward<Arg>(value));
             }
             else if constexpr (N == 3)
             {
-                return node.with_identifier(std::forward<Arg>(value));
-            }
-            else if constexpr (N == 4)
-            {
                 return node.with_type(std::forward<Arg>(value));
             }
-            else if constexpr (N == 5)
+            else if constexpr (N == 4)
             {
                 return node.with_initializer(std::forward<Arg>(value));
             }
             else
             {
-                static_assert(N == 6);
+                static_assert(N == 5);
                 return node.with_semicolon(std::forward<Arg>(value));
             }
         }

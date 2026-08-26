@@ -23,8 +23,6 @@ TEST_CASE("Can parse variable declarations", "[parser]")
     REQUIRE(declaration->is<GreenVariableDeclaration>());
 
     auto &variable = *declaration->as<GreenVariableDeclaration>();
-    CHECK_FALSE(variable.mut_keyword().has_value());
-
     SyntaxToken identifier{variable.identifier(), 0};
     auto name = identifier.try_get_value<IdentifierData>();
     CHECK(name.has_value());
