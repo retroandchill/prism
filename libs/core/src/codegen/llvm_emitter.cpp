@@ -8,11 +8,16 @@ module;
 
 #include <libassert/assert-macros.hpp>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+#include <llvm/MC/TargetRegistry.h>
 #include <llvm/Support/Error.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
 #include <llvm/Transforms/Utils/ModuleUtils.h>
 
 module prism.core:codegen.llvm_emitter.impl;
@@ -60,6 +65,72 @@ namespace prism
                 default:
                     UNREACHABLE("Doesn't correspond to an assignment operation");
             }
+        }
+        [[nodiscard]] constexpr std::string_view to_llvm_arch_string(const CompilationSettings &settings)
+        {
+            switch (settings.architecture)
+            {
+                case Architecture::x86:
+                    return settings.pointer_width == PointerWidth::x64 ? "x86_64" : "i386";
+                case Architecture::arm:
+                    return settings.pointer_width == PointerWidth::x64 ? "aarch64" : "arm";
+                case Architecture::riscv:
+                    return settings.pointer_width == PointerWidth::x64 ? "riscv64" : "riscv32";
+                case Architecture::wasm:
+                    return settings.pointer_width == PointerWidth::x64 ? "wasm64" : "wasm32";
+                case Architecture::unknown:
+                default:
+                    return "unknown";
+            }
+        }
+
+        [[nodiscard]] constexpr std::string_view to_llvm_os_string(const OperatingSystem os)
+        {
+            switch (os)
+            {
+                case OperatingSystem::linux:
+                    return "linux";
+                case OperatingSystem::windows:
+                    return "windows";
+                case OperatingSystem::macos:
+                    return "darwin";
+                case OperatingSystem::freestanding:
+                    return "none";
+                default:
+                    return "unknown";
+            }
+        }
+
+        [[nodiscard]] constexpr std::string_view to_llvm_env_string(const Environment env) noexcept
+        {
+            switch (env)
+            {
+                case Environment::gnu:
+                    return "gnu";
+                case Environment::musl:
+                    return "musl";
+                case Environment::msvc:
+                    return "msvc";
+                case Environment::none:
+                default:
+                    return "";
+            }
+        }
+
+        [[nodiscard]] std::string get_llvm_triple(const CompilationSettings &settings)
+        {
+            std::string triple;
+
+            triple += to_llvm_arch_string(settings);
+            triple += "-unknown-";
+            triple += to_llvm_os_string(settings.operating_system);
+            if (const auto env = to_llvm_env_string(settings.environment); !env.empty())
+            {
+                triple += '-';
+                triple += env;
+            }
+
+            return triple;
         }
     } // namespace
 
@@ -187,13 +258,11 @@ namespace prism
 
             if (compilation_.target_settings().is_application() && !emit_entry_point())
             {
-                return {.success = false};
+                return {.is_success = false};
             }
 
             auto result = write_ir();
-            return {
-                .success = !result,
-            };
+            return output_binary();
         }
 
       private:
@@ -1094,6 +1163,62 @@ namespace prism
             module_.print(output, nullptr);
 
             return llvm::Error::success();
+        }
+
+        EmitResult output_binary()
+        {
+            llvm::InitializeAllTargetInfos();
+            llvm::InitializeAllTargets();
+            llvm::InitializeAllTargetMCs();
+            llvm::InitializeAllAsmParsers();
+            llvm::InitializeAllAsmPrinters();
+
+            const auto triple_string = get_llvm_triple(compilation_.target_settings());
+            std::string error;
+            auto *target = llvm::TargetRegistry::lookupTarget(triple_string, error);
+            if (target == nullptr)
+            {
+                // TODO: Emit a diagnostic
+                return EmitResult::failure();
+            }
+
+            constexpr static std::string_view cpu = "generic";
+            constexpr static std::string_view features = "";
+            llvm::TargetOptions options;
+            auto target_machine = std::unique_ptr<llvm::TargetMachine>{
+                target->createTargetMachine(triple_string, cpu, features, options, llvm::Reloc::PIC_)};
+
+            if (target_machine == nullptr)
+            {
+                // TODO: Emit diagnostic
+                return EmitResult::failure();
+            }
+
+            module_.setTargetTriple(triple_string);
+            module_.setDataLayout(target_machine->createDataLayout());
+
+            std::error_code ec;
+            const auto output_filename =
+                options_.output_directory / std::format("{}.obj", compilation_.assembly_name());
+            llvm::raw_fd_ostream output_stream(output_filename.string(), ec, llvm::sys::fs::OF_None);
+            if (ec)
+            {
+                llvm::errs() << "Compiler OS Error: Could not open output file: " << ec.message() << "\n";
+                return EmitResult::failure();
+            }
+
+            llvm::legacy::PassManager pass_manager;
+            static constexpr auto file_type = llvm::CodeGenFileType::ObjectFile;
+            if (target_machine->addPassesToEmitFile(pass_manager, output_stream, nullptr, file_type))
+            {
+                llvm::errs() << "LLVM Error: Target machine cannot emit an object file for this configuration.\n";
+                return EmitResult::failure();
+            }
+
+            pass_manager.run(module_);
+            output_stream.flush();
+
+            return EmitResult::success();
         }
 
         const Compilation &compilation_;

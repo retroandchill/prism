@@ -54,8 +54,18 @@ namespace prism
 {
     export struct EmitResult
     {
-        bool success = false;
+        bool is_success = false;
         ImmutableArray<Diagnostic> diagnostics{};
+
+        constexpr static EmitResult success(ImmutableArray<Diagnostic> diagnostics = {})
+        {
+            return {.is_success = true, .diagnostics = std::move(diagnostics)};
+        }
+
+        constexpr static EmitResult failure(ImmutableArray<Diagnostic> diagnostics = {})
+        {
+            return {.is_success = false, .diagnostics = std::move(diagnostics)};
+        }
     };
 
     enum class CompilationStage : std::uint8_t

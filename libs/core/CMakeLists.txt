@@ -235,7 +235,7 @@ target_include_directories(prism_core PUBLIC include
 find_package(LLVM REQUIRED CONFIG)
 
 target_include_directories(prism_core PRIVATE ${LLVM_INCLUDE_DIRS})
-llvm_map_components_to_libnames(llvm_libs Support Core TransformUtils)
+llvm_map_components_to_libnames(llvm_libs Support Core TransformUtils Target x86CodeGen x86AsmParser)
 
 target_link_libraries(prism_core
         PUBLIC Boost::cppm
