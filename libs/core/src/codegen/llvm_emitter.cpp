@@ -1077,11 +1077,11 @@ namespace prism
             return context.lookup_storage(access.symbol());
         }
 
-        llvm::Error write_ir()
+        llvm::Error write_ir() const
         {
             std::error_code ec;
 
-            auto target_path = options_.output_directory / "output.ll";
+            const auto target_path = options_.output_directory / std::format("{}.ll", compilation_.assembly_name());
             llvm::raw_fd_ostream output{target_path.string(), ec, llvm::sys::fs::OF_Text};
             if (ec)
                 return llvm::make_error<llvm::StringError>(ec.message(), llvm::inconvertibleErrorCode());
@@ -1102,8 +1102,8 @@ namespace prism
         llvm::Module module_;
         llvm::IRBuilder<> builder_{context_};
 
-        std::unordered_map<const Symbol *, llvm::Value *> symbol_to_value_;
-        std::unordered_map<const TypeSymbol *, llvm::Type *> symbol_to_type_;
+        std::unordered_map<const Symbol *, llvm::Value *> symbol_to_value_{};
+        std::unordered_map<const TypeSymbol *, llvm::Type *> symbol_to_type_{};
     };
 
     LlvmEmitter::LlvmEmitter(const Compilation &compilation, LlvmCodeGenOptions options)
