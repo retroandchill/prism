@@ -13,6 +13,7 @@ module;
 #include <llvm/Support/Error.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Transforms/Utils/ModuleUtils.h>
 
 module prism.core:codegen.llvm_emitter.impl;
 
@@ -171,11 +172,23 @@ namespace prism
                 get_or_create_function(function);
             }
 
+            Optional<FunctionEmissionContext> assembly_initializer_context;
             for (const auto &global : CompilationInternal::get_global_variables(compilation_))
-                emit_global_initializer(global);
+                emit_global_initializer(global, assembly_initializer_context);
+
+            if (assembly_initializer_context.has_value())
+            {
+                builder_.CreateRetVoid();
+                llvm::appendToGlobalCtors(module_, assembly_initializer_context->function(), 65535);
+            }
 
             for (const auto &function : CompilationInternal::get_functions(compilation_))
                 emit_function_body(function);
+
+            if (compilation_.target_settings().is_application() && !emit_entry_point())
+            {
+                return {.success = false};
+            }
 
             auto result = write_ir();
             return {
@@ -232,7 +245,8 @@ namespace prism
             return type;
         }
 
-        void emit_global_initializer(const VariableSymbol &symbol)
+        void emit_global_initializer(const VariableSymbol &symbol,
+                                     Optional<FunctionEmissionContext> &assembly_initializer_context)
         {
             auto *variable = get_or_create_global(symbol);
             if (!symbol.has_initializer())
@@ -246,11 +260,27 @@ namespace prism
                 return;
             }
 
-            auto &constant = initializer->constant_value();
-            if (!constant.has_value())
+            if (auto &constant = initializer->constant_value(); constant.has_value())
+            {
+                variable->setInitializer(make_constant(*constant));
                 return;
+            }
 
-            variable->setInitializer(make_constant(*constant));
+            if (!assembly_initializer_context.has_value())
+            {
+                auto *function_type = llvm::FunctionType::get(builder_.getVoidTy(), false);
+
+                const auto initializer_name = std::format("{}_<GlobalInitializer>", compilation_.assembly_name());
+                auto *assembly_initializer =
+                    llvm::Function::Create(function_type, llvm::Function::InternalLinkage, initializer_name, module_);
+                auto *block = llvm::BasicBlock::Create(context_, "entry", assembly_initializer);
+
+                assembly_initializer_context = FunctionEmissionContext{assembly_initializer, block};
+                builder_.SetInsertPoint(block);
+            }
+
+            auto *initialized_value = emit_expression(*initializer, *assembly_initializer_context);
+            builder_.CreateStore(initialized_value, variable);
         }
 
         void emit_function_body(const FunctionSymbol &symbol)
@@ -274,6 +304,31 @@ namespace prism
                 context.bind_storage(symbol_param, &llvm_param);
             }
             emit_statement(*body, context);
+        }
+
+        bool emit_entry_point()
+        {
+            DEBUG_ASSERT(compilation_.target_settings().is_application());
+            const auto entry_point = compilation_.get_entry_point();
+            if (!entry_point.has_value())
+                return false;
+
+            auto *function_type = llvm::FunctionType::get(builder_.getInt32Ty(), false);
+            auto *main_func = llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, "main", module_);
+            auto *entry = llvm::BasicBlock::Create(context_, "entry", main_func);
+            builder_.SetInsertPoint(entry);
+
+            auto *call_entry_point = builder_.CreateCall(get_or_create_function(*entry_point));
+            if (entry_point->returns_void())
+            {
+                builder_.CreateRet(builder_.getInt32(0));
+            }
+            else
+            {
+                builder_.CreateRet(call_entry_point);
+            }
+
+            return true;
         }
 
         llvm::Type *create_type(const TypeSymbol &symbol)
@@ -617,7 +672,7 @@ namespace prism
         llvm::Value *emit_access(const BoundVariableAccess &access, FunctionEmissionContext &context)
         {
             auto *val = emit_access_core(access, context);
-            if (!access.symbol().is_mutable())
+            if (!access.symbol().is_mutable() && !access.symbol().is_global())
                 return val;
 
             auto *type = get_or_create_type(access.symbol().type());

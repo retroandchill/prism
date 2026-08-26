@@ -126,6 +126,8 @@ namespace prism
                                   const Binder &scope_binder,
                                   const Binder *initializer_binder);
 
+        [[nodiscard]] bool is_global() const noexcept override;
+
       protected:
         [[nodiscard]] const TypeSymbol &compute_type(DiagnosticBag &diagnostics) const override;
 
@@ -137,6 +139,8 @@ namespace prism
     {
       public:
         SourceGlobalVariableSymbol(Name name, const Symbol *containing, const VariableDeclarationSyntax &syntax);
+
+        [[nodiscard]] bool is_global() const noexcept override;
 
       protected:
         [[nodiscard]] const TypeSymbol &compute_type(DiagnosticBag &diagnostics) const override;

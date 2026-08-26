@@ -284,6 +284,11 @@ namespace prism
         cache_symbol(declaring_compilation().value(), syntax, *this);
     }
 
+    bool SourceLocalVariableSymbol::is_global() const noexcept
+    {
+        return false;
+    }
+
     const TypeSymbol &SourceLocalVariableSymbol::compute_type(DiagnosticBag &diagnostics) const
     {
         const LookupContext context{diagnostics};
@@ -311,6 +316,11 @@ namespace prism
     {
         // ReSharper disable once CppVirtualFunctionCallInsideCtor
         cache_symbol(declaring_compilation().value(), syntax, *this);
+    }
+
+    bool SourceGlobalVariableSymbol::is_global() const noexcept
+    {
+        return true;
     }
 
     const TypeSymbol &SourceGlobalVariableSymbol::compute_type(DiagnosticBag &diagnostics) const

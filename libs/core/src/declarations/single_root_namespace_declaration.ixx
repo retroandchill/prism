@@ -18,7 +18,7 @@ namespace prism
                                                  MemberList members,
                                                  ImmutableHashSet<Name> member_names,
                                                  ImmutableArray<Diagnostic> diagnostics)
-            : SingleNamespaceDeclaration{KnownName::none,
+            : SingleNamespaceDeclaration{KnownName::global,
                                          has_usings,
                                          std::move(syntax_reference),
                                          SourceLocation{syntax_reference},

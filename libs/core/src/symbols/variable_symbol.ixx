@@ -34,6 +34,8 @@ namespace prism
          */
         [[nodiscard]] virtual bool is_mutable() const noexcept = 0;
 
+        [[nodiscard]] virtual bool is_global() const noexcept = 0;
+
         [[nodiscard]] virtual bool has_initializer() const noexcept = 0;
 
         /**
