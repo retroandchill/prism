@@ -6,10 +6,13 @@
 namespace Prism.Core.Syntax;
 
 [Flags]
-public enum SyntaxFlags
+internal enum SyntaxFlags
 {
     None = 0,
-    Missing = 1 << 0,
-    Unknown = 1 << 1,
-    ContainsDiagnostics = 1 << 2,
+    NotMissing = 1 << 0,
+    ContainsDiagnostics = 1 << 1,
+    ContainsSkippedText = 1 << 2,
+    ContainsStructuredTrivia = 1 << 3,
+
+    InheritMask = NotMissing | ContainsDiagnostics | ContainsSkippedText | ContainsStructuredTrivia,
 }

@@ -8,132 +8,176 @@ using Prism.Core.Diagnostics;
 
 namespace Prism.Core.Syntax.Green;
 
-internal abstract class GreenNode
+internal abstract class GreenNode(
+    SyntaxKind kind,
+    int fullWidth,
+    ImmutableArray<SyntaxDiagnosticInfo> diagnostics
+)
 {
-    public SyntaxKind Kind { get; }
+    protected GreenNode(SyntaxKind kind, int fullWidth = 0)
+        : this(kind, fullWidth, []) { }
 
-    public int FullWidth { get; }
+    protected GreenNode(SyntaxKind kind, ImmutableArray<SyntaxDiagnosticInfo> diagnostics)
+        : this(kind, 0, diagnostics) { }
+
+    public SyntaxKind Kind { get; } = kind;
+
+    public bool IsList => Kind == SyntaxKind.List;
+
+    public bool IsToken => Kind.IsToken;
+
+    public bool IsTrivia => Kind.IsTrivia;
+
+    public int FullWidth { get; private set; } = fullWidth;
 
     public virtual int Width => FullWidth - LeadingTriviaWidth - TrailingTriviaWidth;
 
-    public SyntaxFlags Flags { get; init; } = SyntaxFlags.None;
+    public SyntaxFlags Flags { get; private set; }
 
-    public bool IsMissing => Flags.HasFlag(SyntaxFlags.Missing);
+    protected void SetFlags(SyntaxFlags flags)
+    {
+        Flags |= flags;
+    }
+
+    protected void ClearFlags(SyntaxFlags flags)
+    {
+        Flags &= ~flags;
+    }
+
+    protected void AdjustFlagsAndWidth(GreenNode node)
+    {
+        SetFlags(node.Flags & SyntaxFlags.InheritMask);
+        FullWidth += node.FullWidth;
+    }
+
+    public bool IsMissing => !Flags.HasFlag(SyntaxFlags.NotMissing);
 
     public bool ContainsDiagnostics => Flags.HasFlag(SyntaxFlags.ContainsDiagnostics);
 
-    public virtual int LeadingTriviaWidth => FullWidth > 0 ? GetFirstLeaf()!.LeadingTriviaWidth : 0;
+    public virtual GreenNode? LeadingTrivia => FullWidth != 0 ? FirstTerminal!.LeadingTrivia : null;
+
+    public virtual int LeadingTriviaWidth => FullWidth > 0 ? FirstTerminal!.LeadingTriviaWidth : 0;
 
     public bool HasLeadingTrivia => LeadingTriviaWidth > 0;
 
-    public virtual int TrailingTriviaWidth =>
-        FullWidth > 0 ? GetLastLeaf()!.TrailingTriviaWidth : 0;
+    public virtual GreenNode? TrailingTrivia =>
+        FullWidth != 0 ? LastTerminal!.TrailingTrivia : null;
+
+    public virtual int TrailingTriviaWidth => FullWidth > 0 ? LastTerminal!.TrailingTriviaWidth : 0;
 
     public bool HasTrailingTrivia => TrailingTriviaWidth > 0;
 
-    public int ChildCount { get; protected init; }
-
-    public ImmutableArray<DiagnosticInfo> Diagnostics
+    public GreenNode? FirstTerminal
     {
-        get;
-        init
+        get
         {
-            field = !value.IsDefault ? value : [];
-            if (!field.IsEmpty)
+            var node = this;
+
+            do
             {
-                Flags |= SyntaxFlags.ContainsDiagnostics;
-            }
+                GreenNode? firstChild = null;
+
+                var slotCount = node.SlotCount;
+                for (var i = 0; i < slotCount; i++)
+                {
+                    var child = node.GetSlot(i);
+                    if (child is null)
+                        continue;
+
+                    firstChild = child;
+                    break;
+                }
+
+                node = firstChild;
+            } while (node is not null && node.SlotCount > 0);
+
+            return node;
         }
     }
 
-    protected GreenNode(SyntaxKind kind, int fullWidth)
+    public GreenNode? LastTerminal
     {
-        Kind = kind;
-        FullWidth = fullWidth;
-    }
-
-    public GreenNode? GetFirstLeaf()
-    {
-        var node = this;
-
-        do
+        get
         {
-            GreenNode? firstChild = null;
-            for (int i = 0, n = node.ChildCount; i < n; i++)
+            var node = this;
+
+            do
             {
-                var child = node.GetChild(i);
-                if (child is null)
-                    continue;
+                GreenNode? lastChild = null;
 
-                firstChild = child;
-                break;
-            }
+                for (var i = node.SlotCount - 1; i >= 0; i--)
+                {
+                    var child = node.GetSlot(i);
+                    if (child is null)
+                        continue;
 
-            node = firstChild;
-        } while (node?.ChildCount > 0);
+                    lastChild = child;
+                    break;
+                }
 
-        return node;
+                node = lastChild;
+            } while (node is not null && node.SlotCount > 0);
+
+            return node;
+        }
     }
 
-    public GreenNode? GetLastLeaf()
+    public int SlotCount { get; protected init; }
+
+    public abstract GreenNode? GetSlot(int index);
+
+    public T? GetSlot<T>(int index)
+        where T : GreenNode
     {
-        var node = this;
-
-        do
-        {
-            GreenNode? lastChild = null;
-
-            for (var i = node.ChildCount - 1; i >= 0; i--)
-            {
-                var child = GetChild(i);
-                if (child is null)
-                    continue;
-
-                lastChild = child;
-                break;
-            }
-
-            node = lastChild;
-        } while (node?.ChildCount > 0);
-
-        return node;
+        return GetSlot(index) as T;
     }
 
-    public abstract GreenNode? GetChild(int index);
+    public T GetRequiredSlot<T>(int index)
+        where T : GreenNode
+    {
+        var node = GetSlot<T>(index);
+        return node
+            ?? throw new InvalidOperationException($"Slot {index} is required but not found");
+    }
 
-    public int GetChildOffset(int index)
+    public int GetSlotOffset(int index)
     {
         var offset = 0;
         for (var i = 0; i < index; i++)
         {
-            var child = GetChild(i);
-            if (child is not null)
-            {
-                offset += child.FullWidth;
-            }
+            var child = GetSlot(i);
+            if (child is null)
+                continue;
+
+            offset += child.FullWidth;
         }
 
         return offset;
     }
 
-    public T? GetChild<T>(int index)
-        where T : GreenNode
+    public GreenChildList ChildNodesAndTokens => new(this);
+
+    public GreenNodeEnumerable EnumerateNodes() => new(this);
+
+    public ImmutableArray<SyntaxDiagnosticInfo> Diagnostics { get; } = diagnostics;
+
+    public abstract GreenNode WithDiagnostics(ImmutableArray<SyntaxDiagnosticInfo> diagnostics);
+
+    public abstract SyntaxNode CrateRed(SyntaxNode? parent, int positon = 0);
+
+    public virtual void WriteTo(TextWriter writer)
     {
-        return GetChild(index) as T;
+        for (var i = 0; i < SlotCount; i++)
+        {
+            var child = GetSlot(i);
+            child?.WriteTo(writer);
+        }
     }
 
-    public GreenNode GetRequiredChild(int index)
+    public override string ToString()
     {
-        return GetChild(index)
-            ?? throw new InvalidOperationException($"Child at index {index} is null");
-    }
-
-    public T GetRequiredChild<T>(int index)
-        where T : GreenNode
-    {
-        return GetChild<T>(index)
-            ?? throw new InvalidOperationException(
-                $"Child at index {index} is not an instance of {typeof(T)}"
-            );
+        using var writer = new StringWriter();
+        WriteTo(writer);
+        return writer.ToString();
     }
 }

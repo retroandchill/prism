@@ -3,44 +3,30 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Collections.Immutable;
-using System.Runtime.InteropServices;
-using Prism.Core.Parse;
-
 namespace Prism.Core.Diagnostics;
 
 public sealed class Diagnostic
 {
-    internal DiagnosticInfo Info { get; }
-    public DiagnosticDescriptor Descriptor => Info.Descriptor;
-    public Location Location { get; }
-
-    internal Diagnostic(DiagnosticInfo info, Location location)
+    internal Diagnostic(DiagnosticInfo info, Location location, bool isSuppressed = false)
     {
         Info = info;
         Location = location;
+        IsSuppressed = isSuppressed;
     }
 
-    public static Diagnostic Create(
-        DiagnosticDescriptor descriptor,
-        Location location,
-        params ImmutableArray<object?> arguments
-    )
-    {
-        return new Diagnostic(new DiagnosticInfo(descriptor, arguments), location);
-    }
+    internal DiagnosticInfo Info { get; }
 
-    public string GetMessage(IFormatProvider? provider = null)
-    {
-        return string.Format(
-            provider,
-            Descriptor.CompositeFormat,
-            ImmutableCollectionsMarshal.AsArray(Info.Arguments) ?? []
-        );
-    }
+    public Location Location { get; }
 
-    public override string ToString()
-    {
-        return $"{Descriptor.Id}: {GetMessage()}";
-    }
+    public bool IsSuppressed { get; }
+
+    public DiagnosticDescriptor Descriptor => Info.Descriptor;
+
+    public string Id => Descriptor.Id;
+
+    public string Category => Descriptor.Category;
+
+    public DiagnosticSeverity Severity => Info.Severity;
+
+    public string GetMessage() => Info.GetMessage();
 }

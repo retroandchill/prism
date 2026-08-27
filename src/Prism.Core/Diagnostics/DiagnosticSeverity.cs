@@ -5,10 +5,10 @@
 
 namespace Prism.Core.Diagnostics;
 
-public enum DiagnosticSeverity : byte
+public enum DiagnosticSeverity
 {
     Error,
     Warning,
-    Info,
+    Information,
     Hint,
 }
