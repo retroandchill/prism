@@ -18,6 +18,7 @@ namespace Prism.SyntaxGenerator.Commands;
 
 public enum OutputLanguage
 {
+    CSharp,
     Cpp,
 }
 
@@ -55,6 +56,9 @@ public class ExportNodesCommand
         var resolvedModel = builder.Build(syntax);
         switch (Language)
         {
+            case OutputLanguage.CSharp:
+                await EmitCSharpAsync(resolvedModel, context.CancellationToken);
+                break;
             case OutputLanguage.Cpp:
                 await EmitCppAsync(resolvedModel, context.CancellationToken);
                 break;
@@ -144,5 +148,18 @@ public class ExportNodesCommand
 
         writer.EmitBoundNodeVisitors(cppModel);
         await WriteCodeAsync(writer, Path.Join(boundNodesDir, "visit.ixx"), cancellationToken);
+    }
+
+    private async ValueTask EmitCSharpAsync(
+        SyntaxModel resolvedModel,
+        CancellationToken cancellationToken
+    )
+    {
+        var syntaxDir = Path.Combine(OutputPath, "Syntax");
+
+        var csharpModel = resolvedModel.ToCSharp();
+        using var writer = new CodeWriter();
+        writer.EmitSyntaxKinds(csharpModel);
+        await WriteCodeAsync(writer, Path.Join(syntaxDir, "SyntaxKind.cs"), cancellationToken);
     }
 }
