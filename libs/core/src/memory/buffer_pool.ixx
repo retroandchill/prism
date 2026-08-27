@@ -8,9 +8,12 @@ module;
 
 #include "prism/core/exports.h"
 
+#include <libassert/assert-macros.hpp>
+
 export module prism.core:memory.buffer_pool;
 
 import std;
+import libassert;
 import :util.make_array;
 import :type_traits.basic;
 
@@ -57,6 +60,7 @@ namespace prism
 
         constexpr void *allocate() noexcept
         {
+            DEBUG_ASSERT(buffers_.size() >= free_indices_.size());
             if (free_indices_.empty())
             {
                 auto new_index = buffers_.size();
@@ -72,8 +76,10 @@ namespace prism
 
         constexpr void deallocate(const void *buffer) noexcept
         {
+            DEBUG_ASSERT(allocated_indices_.contains(buffer));
             const auto index = allocated_indices_[buffer];
             free_indices_.push_back(index);
+            DEBUG_ASSERT(buffers_.size() >= free_indices_.size());
         }
 
       private:
@@ -163,7 +169,7 @@ namespace prism
 
             const auto byte_count = size * sizeof(T);
             auto [ptr, count] = pool_->allocate(byte_count);
-            return {static_cast<T *>(ptr), count};
+            return {static_cast<T *>(ptr), count / sizeof(T)};
         }
 
         void deallocate(T *ptr, const std::size_t size)

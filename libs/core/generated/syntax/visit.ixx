@@ -34,6 +34,7 @@ namespace prism
                                                      const ParameterListSyntax &,
                                                      const ParameterSyntax &,
                                                      const ExpressionBodySyntax &,
+                                                     const ElseClauseSyntax &,
                                                      const LiteralExpressionSyntax &,
                                                      const IdentifierExpressionSyntax &,
                                                      const ParenthesizedExpressionSyntax &,
@@ -44,11 +45,17 @@ namespace prism
                                                      const TernaryExpressionSyntax &,
                                                      const InvocationExpressionSyntax &,
                                                      const CastExpressionSyntax &,
+                                                     const EmptyStatementSyntax &,
                                                      const VariableDeclarationStatementSyntax &,
                                                      const BlockSyntax &,
                                                      const ReturnStatementSyntax &,
                                                      const ExpressionStatementSyntax &,
-                                                     const EmptyStatementSyntax &,
+                                                     const IfStatementSyntax &,
+                                                     const WhileStatementSyntax &,
+                                                     const LoopStatementSyntax &,
+                                                     const ForStatementSyntax &,
+                                                     const BreakStatementSyntax &,
+                                                     const ContinueStatementSyntax &,
                                                      const IncompleteDeclarationSyntax &,
                                                      const BlockNamespaceDeclarationSyntax &,
                                                      const FileScopedNamespaceDeclarationSyntax &,
@@ -90,6 +97,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const ParameterSyntax &>(node));
             case SyntaxKind::expression_body:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const ExpressionBodySyntax &>(node));
+            case SyntaxKind::else_clause:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const ElseClauseSyntax &>(node));
             case SyntaxKind::literal_expression:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const LiteralExpressionSyntax &>(node));
             case SyntaxKind::identifier_expression:
@@ -114,6 +123,8 @@ namespace prism
                                    static_cast<const InvocationExpressionSyntax &>(node));
             case SyntaxKind::cast_expression:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const CastExpressionSyntax &>(node));
+            case SyntaxKind::empty_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const EmptyStatementSyntax &>(node));
             case SyntaxKind::variable_declaration_statement:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const VariableDeclarationStatementSyntax &>(node));
@@ -124,8 +135,18 @@ namespace prism
             case SyntaxKind::expression_statement:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const ExpressionStatementSyntax &>(node));
-            case SyntaxKind::empty_statement:
-                return std::invoke(std::forward<Functor>(functor), static_cast<const EmptyStatementSyntax &>(node));
+            case SyntaxKind::if_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const IfStatementSyntax &>(node));
+            case SyntaxKind::while_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const WhileStatementSyntax &>(node));
+            case SyntaxKind::loop_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const LoopStatementSyntax &>(node));
+            case SyntaxKind::for_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const ForStatementSyntax &>(node));
+            case SyntaxKind::break_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BreakStatementSyntax &>(node));
+            case SyntaxKind::continue_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const ContinueStatementSyntax &>(node));
             case SyntaxKind::incomplete_declaration:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const IncompleteDeclarationSyntax &>(node));
@@ -165,6 +186,7 @@ namespace prism
                                                                const ParameterListSyntax &,
                                                                const ParameterSyntax &,
                                                                const ExpressionBodySyntax &,
+                                                               const ElseClauseSyntax &,
                                                                const LiteralExpressionSyntax &,
                                                                const IdentifierExpressionSyntax &,
                                                                const ParenthesizedExpressionSyntax &,
@@ -175,11 +197,17 @@ namespace prism
                                                                const TernaryExpressionSyntax &,
                                                                const InvocationExpressionSyntax &,
                                                                const CastExpressionSyntax &,
+                                                               const EmptyStatementSyntax &,
                                                                const VariableDeclarationStatementSyntax &,
                                                                const BlockSyntax &,
                                                                const ReturnStatementSyntax &,
                                                                const ExpressionStatementSyntax &,
-                                                               const EmptyStatementSyntax &,
+                                                               const IfStatementSyntax &,
+                                                               const WhileStatementSyntax &,
+                                                               const LoopStatementSyntax &,
+                                                               const ForStatementSyntax &,
+                                                               const BreakStatementSyntax &,
+                                                               const ContinueStatementSyntax &,
                                                                const IncompleteDeclarationSyntax &,
                                                                const BlockNamespaceDeclarationSyntax &,
                                                                const FileScopedNamespaceDeclarationSyntax &,
@@ -221,6 +249,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const ParameterSyntax &>(node));
             case SyntaxKind::expression_body:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const ExpressionBodySyntax &>(node));
+            case SyntaxKind::else_clause:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const ElseClauseSyntax &>(node));
             case SyntaxKind::literal_expression:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const LiteralExpressionSyntax &>(node));
             case SyntaxKind::identifier_expression:
@@ -245,6 +275,8 @@ namespace prism
                                    static_cast<const InvocationExpressionSyntax &>(node));
             case SyntaxKind::cast_expression:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const CastExpressionSyntax &>(node));
+            case SyntaxKind::empty_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const EmptyStatementSyntax &>(node));
             case SyntaxKind::variable_declaration_statement:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const VariableDeclarationStatementSyntax &>(node));
@@ -255,8 +287,18 @@ namespace prism
             case SyntaxKind::expression_statement:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const ExpressionStatementSyntax &>(node));
-            case SyntaxKind::empty_statement:
-                return std::invoke(std::forward<Functor>(functor), static_cast<const EmptyStatementSyntax &>(node));
+            case SyntaxKind::if_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const IfStatementSyntax &>(node));
+            case SyntaxKind::while_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const WhileStatementSyntax &>(node));
+            case SyntaxKind::loop_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const LoopStatementSyntax &>(node));
+            case SyntaxKind::for_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const ForStatementSyntax &>(node));
+            case SyntaxKind::break_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BreakStatementSyntax &>(node));
+            case SyntaxKind::continue_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const ContinueStatementSyntax &>(node));
             case SyntaxKind::incomplete_declaration:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const IncompleteDeclarationSyntax &>(node));
@@ -479,17 +521,25 @@ namespace prism
 
     export template <typename Functor>
     concept VisitorForStatementSyntax = ExhaustiveVisitor<Functor,
+                                                          const EmptyStatementSyntax &,
                                                           const VariableDeclarationStatementSyntax &,
                                                           const BlockSyntax &,
                                                           const ReturnStatementSyntax &,
                                                           const ExpressionStatementSyntax &,
-                                                          const EmptyStatementSyntax &>;
+                                                          const IfStatementSyntax &,
+                                                          const WhileStatementSyntax &,
+                                                          const LoopStatementSyntax &,
+                                                          const ForStatementSyntax &,
+                                                          const BreakStatementSyntax &,
+                                                          const ContinueStatementSyntax &>;
 
     export template <VisitorForStatementSyntax Functor>
     constexpr decltype(auto) visit(const StatementSyntax &node, Functor &&functor)
     {
         switch (node.kind())
         {
+            case SyntaxKind::empty_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const EmptyStatementSyntax &>(node));
             case SyntaxKind::variable_declaration_statement:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const VariableDeclarationStatementSyntax &>(node));
@@ -500,8 +550,18 @@ namespace prism
             case SyntaxKind::expression_statement:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const ExpressionStatementSyntax &>(node));
-            case SyntaxKind::empty_statement:
-                return std::invoke(std::forward<Functor>(functor), static_cast<const EmptyStatementSyntax &>(node));
+            case SyntaxKind::if_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const IfStatementSyntax &>(node));
+            case SyntaxKind::while_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const WhileStatementSyntax &>(node));
+            case SyntaxKind::loop_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const LoopStatementSyntax &>(node));
+            case SyntaxKind::for_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const ForStatementSyntax &>(node));
+            case SyntaxKind::break_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BreakStatementSyntax &>(node));
+            case SyntaxKind::continue_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const ContinueStatementSyntax &>(node));
             default:
                 UNREACHABLE("Invalid node type passed into visit");
         }
@@ -510,17 +570,25 @@ namespace prism
     export template <typename Functor, typename R>
     concept VisitorForStatementSyntaxReturning = ConvertibleVisitor<Functor,
                                                                     R,
+                                                                    const EmptyStatementSyntax &,
                                                                     const VariableDeclarationStatementSyntax &,
                                                                     const BlockSyntax &,
                                                                     const ReturnStatementSyntax &,
                                                                     const ExpressionStatementSyntax &,
-                                                                    const EmptyStatementSyntax &>;
+                                                                    const IfStatementSyntax &,
+                                                                    const WhileStatementSyntax &,
+                                                                    const LoopStatementSyntax &,
+                                                                    const ForStatementSyntax &,
+                                                                    const BreakStatementSyntax &,
+                                                                    const ContinueStatementSyntax &>;
 
     export template <typename R, VisitorForStatementSyntaxReturning<R> Functor>
     constexpr R visit(const StatementSyntax &node, Functor &&functor)
     {
         switch (node.kind())
         {
+            case SyntaxKind::empty_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const EmptyStatementSyntax &>(node));
             case SyntaxKind::variable_declaration_statement:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const VariableDeclarationStatementSyntax &>(node));
@@ -531,8 +599,18 @@ namespace prism
             case SyntaxKind::expression_statement:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const ExpressionStatementSyntax &>(node));
-            case SyntaxKind::empty_statement:
-                return std::invoke(std::forward<Functor>(functor), static_cast<const EmptyStatementSyntax &>(node));
+            case SyntaxKind::if_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const IfStatementSyntax &>(node));
+            case SyntaxKind::while_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const WhileStatementSyntax &>(node));
+            case SyntaxKind::loop_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const LoopStatementSyntax &>(node));
+            case SyntaxKind::for_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const ForStatementSyntax &>(node));
+            case SyntaxKind::break_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BreakStatementSyntax &>(node));
+            case SyntaxKind::continue_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const ContinueStatementSyntax &>(node));
             default:
                 UNREACHABLE("Invalid node type passed into visit");
         }
@@ -733,6 +811,12 @@ namespace prism
         return std::invoke(std::forward<Functor>(functor), node);
     }
 
+    template <std::invocable<const ElseClauseSyntax &> Functor>
+    constexpr decltype(auto) visit(const ElseClauseSyntax &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
     template <std::invocable<const LiteralExpressionSyntax &> Functor>
     constexpr decltype(auto) visit(const LiteralExpressionSyntax &node, Functor &&functor)
     {
@@ -793,6 +877,12 @@ namespace prism
         return std::invoke(std::forward<Functor>(functor), node);
     }
 
+    template <std::invocable<const EmptyStatementSyntax &> Functor>
+    constexpr decltype(auto) visit(const EmptyStatementSyntax &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
     template <std::invocable<const VariableDeclarationStatementSyntax &> Functor>
     constexpr decltype(auto) visit(const VariableDeclarationStatementSyntax &node, Functor &&functor)
     {
@@ -817,8 +907,38 @@ namespace prism
         return std::invoke(std::forward<Functor>(functor), node);
     }
 
-    template <std::invocable<const EmptyStatementSyntax &> Functor>
-    constexpr decltype(auto) visit(const EmptyStatementSyntax &node, Functor &&functor)
+    template <std::invocable<const IfStatementSyntax &> Functor>
+    constexpr decltype(auto) visit(const IfStatementSyntax &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<const WhileStatementSyntax &> Functor>
+    constexpr decltype(auto) visit(const WhileStatementSyntax &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<const LoopStatementSyntax &> Functor>
+    constexpr decltype(auto) visit(const LoopStatementSyntax &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<const ForStatementSyntax &> Functor>
+    constexpr decltype(auto) visit(const ForStatementSyntax &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<const BreakStatementSyntax &> Functor>
+    constexpr decltype(auto) visit(const BreakStatementSyntax &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<const ContinueStatementSyntax &> Functor>
+    constexpr decltype(auto) visit(const ContinueStatementSyntax &node, Functor &&functor)
     {
         return std::invoke(std::forward<Functor>(functor), node);
     }
@@ -885,6 +1005,7 @@ namespace prism
         virtual R operator()(const ParameterListSyntax &node) const = 0;
         virtual R operator()(const ParameterSyntax &node) const = 0;
         virtual R operator()(const ExpressionBodySyntax &node) const = 0;
+        virtual R operator()(const ElseClauseSyntax &node) const = 0;
         virtual R operator()(const LiteralExpressionSyntax &node) const = 0;
         virtual R operator()(const IdentifierExpressionSyntax &node) const = 0;
         virtual R operator()(const ParenthesizedExpressionSyntax &node) const = 0;
@@ -895,11 +1016,17 @@ namespace prism
         virtual R operator()(const TernaryExpressionSyntax &node) const = 0;
         virtual R operator()(const InvocationExpressionSyntax &node) const = 0;
         virtual R operator()(const CastExpressionSyntax &node) const = 0;
+        virtual R operator()(const EmptyStatementSyntax &node) const = 0;
         virtual R operator()(const VariableDeclarationStatementSyntax &node) const = 0;
         virtual R operator()(const BlockSyntax &node) const = 0;
         virtual R operator()(const ReturnStatementSyntax &node) const = 0;
         virtual R operator()(const ExpressionStatementSyntax &node) const = 0;
-        virtual R operator()(const EmptyStatementSyntax &node) const = 0;
+        virtual R operator()(const IfStatementSyntax &node) const = 0;
+        virtual R operator()(const WhileStatementSyntax &node) const = 0;
+        virtual R operator()(const LoopStatementSyntax &node) const = 0;
+        virtual R operator()(const ForStatementSyntax &node) const = 0;
+        virtual R operator()(const BreakStatementSyntax &node) const = 0;
+        virtual R operator()(const ContinueStatementSyntax &node) const = 0;
         virtual R operator()(const IncompleteDeclarationSyntax &node) const = 0;
         virtual R operator()(const BlockNamespaceDeclarationSyntax &node) const = 0;
         virtual R operator()(const FileScopedNamespaceDeclarationSyntax &node) const = 0;
@@ -1081,6 +1208,18 @@ namespace prism
             }
         }
 
+        constexpr R operator()(const ElseClauseSyntax &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
         constexpr R operator()(const LiteralExpressionSyntax &node) const override
         {
             if constexpr (!std::same_as<R, void>)
@@ -1201,6 +1340,18 @@ namespace prism
             }
         }
 
+        constexpr R operator()(const EmptyStatementSyntax &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
         constexpr R operator()(const VariableDeclarationStatementSyntax &node) const override
         {
             if constexpr (!std::same_as<R, void>)
@@ -1249,7 +1400,67 @@ namespace prism
             }
         }
 
-        constexpr R operator()(const EmptyStatementSyntax &node) const override
+        constexpr R operator()(const IfStatementSyntax &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(const WhileStatementSyntax &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(const LoopStatementSyntax &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(const ForStatementSyntax &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(const BreakStatementSyntax &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(const ContinueStatementSyntax &node) const override
         {
             if constexpr (!std::same_as<R, void>)
             {

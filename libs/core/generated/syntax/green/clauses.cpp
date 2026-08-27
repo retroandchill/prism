@@ -4,6 +4,7 @@ import :syntax.lifetime;
 import :syntax.green.clauses;
 import :syntax.clauses;
 import :syntax.green.expressions;
+import :syntax.green.statements;
 import :syntax.green.types;
 
 namespace prism
@@ -621,5 +622,72 @@ namespace prism
     RefCountPtr<GreenNode> GreenExpressionBody::clone_internal() const
     {
         return make_ref_counted<GreenExpressionBody>(arrow_, expression_);
+    }
+
+    GreenElseClause::GreenElseClause(GreenPtr<GreenToken> else_keyword,
+                                     GreenPtr<GreenStatement> statement,
+                                     DiagnosticInfoList diagnostics)
+        : GreenNode{SyntaxKind::else_clause, std::move(diagnostics)}, else_keyword_{std::move(else_keyword)},
+          statement_{std::move(statement)}
+    {
+        set_slot_count(2);
+        adjust_flags_and_width(*else_keyword_);
+        adjust_flags_and_width(*statement_);
+    }
+
+    GreenElseClause::~GreenElseClause() = default;
+
+    void GreenElseClause::set_else_keyword(GreenPtr<GreenToken> value) noexcept
+    {
+        else_keyword_ = std::move(value);
+    }
+
+    void GreenElseClause::set_statement(GreenPtr<GreenStatement> value) noexcept
+    {
+        statement_ = std::move(value);
+    }
+
+    Optional<const GreenNode &> GreenElseClause::get_slot(std::size_t index) const
+    {
+        switch (index)
+        {
+            case 0:
+                return *else_keyword_;
+            case 1:
+                return *statement_;
+            default:
+                return std::nullopt;
+        }
+    }
+
+    [[nodiscard]] SyntaxNode &GreenElseClause::create_red(SyntaxLifetime &lifetime,
+                                                          const SyntaxNode *parent,
+                                                          std::uint32_t position) const
+    {
+        return lifetime.add<ElseClauseSyntax>(*this, parent, position);
+    }
+
+    [[nodiscard]] GreenPtr<GreenElseClause> GreenElseClause::with_else_keyword(GreenPtr<GreenToken> else_keyword) const
+    {
+        return update(std::move(else_keyword), statement_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenElseClause> GreenElseClause::with_statement(GreenPtr<GreenStatement> statement) const
+    {
+        return update(else_keyword_, std::move(statement));
+    }
+
+    GreenPtr<GreenElseClause> GreenElseClause::update(GreenPtr<GreenToken> else_keyword,
+                                                      GreenPtr<GreenStatement> statement) const
+    {
+        if (else_keyword == else_keyword_ && statement == statement_)
+            return shared_from_this();
+
+        return make_ref_counted<const GreenElseClause>(std::move(else_keyword), std::move(statement));
+    }
+
+    RefCountPtr<GreenNode> GreenElseClause::clone_internal() const
+    {
+        return make_ref_counted<GreenElseClause>(else_keyword_, statement_);
     }
 } // namespace prism

@@ -7,6 +7,7 @@ import :syntax.green.separated_list;
 
 namespace prism
 {
+    class GreenElseClause;
     class GreenExpression;
     class GreenVariableDeclaration;
 
@@ -21,9 +22,84 @@ namespace prism
       public:
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
-            return node.kind() == SyntaxKind::variable_declaration_statement || node.kind() == SyntaxKind::block ||
+            return node.kind() == SyntaxKind::empty_statement ||
+                   node.kind() == SyntaxKind::variable_declaration_statement || node.kind() == SyntaxKind::block ||
                    node.kind() == SyntaxKind::return_statement || node.kind() == SyntaxKind::expression_statement ||
-                   node.kind() == SyntaxKind::empty_statement;
+                   node.kind() == SyntaxKind::if_statement || node.kind() == SyntaxKind::while_statement ||
+                   node.kind() == SyntaxKind::loop_statement || node.kind() == SyntaxKind::for_statement ||
+                   node.kind() == SyntaxKind::break_statement || node.kind() == SyntaxKind::continue_statement;
+        }
+    };
+
+    class GreenEmptyStatement final : public GreenStatement
+    {
+      public:
+        explicit GreenEmptyStatement(GreenPtr<GreenToken> semicolon, DiagnosticInfoList diagnostics = {});
+
+        ~GreenEmptyStatement() override;
+
+        [[nodiscard]] constexpr const GreenToken &semicolon() const noexcept
+        {
+            return *semicolon_;
+        }
+
+        void set_semicolon(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::empty_statement;
+        }
+
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
+
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
+
+        [[nodiscard]] GreenPtr<GreenEmptyStatement> with_semicolon(GreenPtr<GreenToken> semicolon) const;
+
+        [[nodiscard]] GreenPtr<GreenEmptyStatement> update(GreenPtr<GreenToken> semicolon) const;
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
+
+      private:
+        GreenPtr<GreenToken> semicolon_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenEmptyStatement>
+    {
+        static constexpr std::size_t slot_count = 1;
+
+        using ChildTypes = std::tuple<GreenToken>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenEmptyStatement &node)
+        {
+            {
+                static_assert(N == 0);
+                return node.semicolon();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenEmptyStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenEmptyStatement &node, Arg &&value)
+        {
+            {
+                static_assert(N == 0);
+                node.set_semicolon(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenEmptyStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenEmptyStatement> with(const GreenEmptyStatement &node, Arg &&value)
+        {
+            {
+                static_assert(N == 0);
+                return node.with_semicolon(std::forward<Arg>(value));
+            }
         }
     };
 
@@ -451,12 +527,793 @@ namespace prism
         }
     };
 
-    class GreenEmptyStatement final : public GreenStatement
+    class GreenIfStatement final : public GreenStatement
     {
       public:
-        explicit GreenEmptyStatement(GreenPtr<GreenToken> semicolon, DiagnosticInfoList diagnostics = {});
+        GreenIfStatement(GreenPtr<GreenToken> if_keyword,
+                         GreenPtr<GreenToken> open_paren,
+                         GreenPtr<GreenExpression> condition,
+                         GreenPtr<GreenToken> close_paren,
+                         GreenPtr<GreenBlock> block,
+                         GreenPtr<GreenElseClause> else_clause,
+                         DiagnosticInfoList diagnostics = {});
 
-        ~GreenEmptyStatement() override;
+        ~GreenIfStatement() override;
+
+        [[nodiscard]] constexpr const GreenToken &if_keyword() const noexcept
+        {
+            return *if_keyword_;
+        }
+
+        void set_if_keyword(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenToken &open_paren() const noexcept
+        {
+            return *open_paren_;
+        }
+
+        void set_open_paren(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenExpression &condition() const noexcept
+        {
+            return *condition_;
+        }
+
+        void set_condition(GreenPtr<GreenExpression> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenToken &close_paren() const noexcept
+        {
+            return *close_paren_;
+        }
+
+        void set_close_paren(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenBlock &block() const noexcept
+        {
+            return *block_;
+        }
+
+        void set_block(GreenPtr<GreenBlock> value) noexcept;
+
+        [[nodiscard]] constexpr Optional<const GreenElseClause &> else_clause() const noexcept
+        {
+            return else_clause_.get();
+        }
+
+        void set_else_clause(GreenPtr<GreenElseClause> value) noexcept;
+
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::if_statement;
+        }
+
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
+
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
+
+        [[nodiscard]] GreenPtr<GreenIfStatement> with_if_keyword(GreenPtr<GreenToken> if_keyword) const;
+
+        [[nodiscard]] GreenPtr<GreenIfStatement> with_open_paren(GreenPtr<GreenToken> open_paren) const;
+
+        [[nodiscard]] GreenPtr<GreenIfStatement> with_condition(GreenPtr<GreenExpression> condition) const;
+
+        [[nodiscard]] GreenPtr<GreenIfStatement> with_close_paren(GreenPtr<GreenToken> close_paren) const;
+
+        [[nodiscard]] GreenPtr<GreenIfStatement> with_block(GreenPtr<GreenBlock> block) const;
+
+        [[nodiscard]] GreenPtr<GreenIfStatement> with_else_clause(GreenPtr<GreenElseClause> else_clause) const;
+
+        [[nodiscard]] GreenPtr<GreenIfStatement> update(GreenPtr<GreenToken> if_keyword,
+                                                        GreenPtr<GreenToken> open_paren,
+                                                        GreenPtr<GreenExpression> condition,
+                                                        GreenPtr<GreenToken> close_paren,
+                                                        GreenPtr<GreenBlock> block,
+                                                        GreenPtr<GreenElseClause> else_clause) const;
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
+
+      private:
+        GreenPtr<GreenToken> if_keyword_;
+        GreenPtr<GreenToken> open_paren_;
+        GreenPtr<GreenExpression> condition_;
+        GreenPtr<GreenToken> close_paren_;
+        GreenPtr<GreenBlock> block_;
+        GreenPtr<GreenElseClause> else_clause_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenIfStatement>
+    {
+        static constexpr std::size_t slot_count = 6;
+
+        using ChildTypes = std::tuple<GreenToken, GreenToken, GreenExpression, GreenToken, GreenBlock, GreenElseClause>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenIfStatement &node)
+        {
+            if constexpr (N == 0)
+            {
+                return node.if_keyword();
+            }
+            else if constexpr (N == 1)
+            {
+                return node.open_paren();
+            }
+            else if constexpr (N == 2)
+            {
+                return node.condition();
+            }
+            else if constexpr (N == 3)
+            {
+                return node.close_paren();
+            }
+            else if constexpr (N == 4)
+            {
+                return node.block();
+            }
+            else
+            {
+                static_assert(N == 5);
+                return node.else_clause();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenIfStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenIfStatement &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                node.set_if_keyword(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                node.set_open_paren(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 2)
+            {
+                node.set_condition(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 3)
+            {
+                node.set_close_paren(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 4)
+            {
+                node.set_block(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 5);
+                node.set_else_clause(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenIfStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenIfStatement> with(const GreenIfStatement &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                return node.with_if_keyword(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                return node.with_open_paren(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 2)
+            {
+                return node.with_condition(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 3)
+            {
+                return node.with_close_paren(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 4)
+            {
+                return node.with_block(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 5);
+                return node.with_else_clause(std::forward<Arg>(value));
+            }
+        }
+    };
+
+    class GreenWhileStatement final : public GreenStatement
+    {
+      public:
+        GreenWhileStatement(GreenPtr<GreenToken> while_keyword,
+                            GreenPtr<GreenToken> open_paren,
+                            GreenPtr<GreenExpression> condition,
+                            GreenPtr<GreenToken> close_paren,
+                            GreenPtr<GreenBlock> block,
+                            DiagnosticInfoList diagnostics = {});
+
+        ~GreenWhileStatement() override;
+
+        [[nodiscard]] constexpr const GreenToken &while_keyword() const noexcept
+        {
+            return *while_keyword_;
+        }
+
+        void set_while_keyword(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenToken &open_paren() const noexcept
+        {
+            return *open_paren_;
+        }
+
+        void set_open_paren(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenExpression &condition() const noexcept
+        {
+            return *condition_;
+        }
+
+        void set_condition(GreenPtr<GreenExpression> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenToken &close_paren() const noexcept
+        {
+            return *close_paren_;
+        }
+
+        void set_close_paren(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenBlock &block() const noexcept
+        {
+            return *block_;
+        }
+
+        void set_block(GreenPtr<GreenBlock> value) noexcept;
+
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::while_statement;
+        }
+
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
+
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
+
+        [[nodiscard]] GreenPtr<GreenWhileStatement> with_while_keyword(GreenPtr<GreenToken> while_keyword) const;
+
+        [[nodiscard]] GreenPtr<GreenWhileStatement> with_open_paren(GreenPtr<GreenToken> open_paren) const;
+
+        [[nodiscard]] GreenPtr<GreenWhileStatement> with_condition(GreenPtr<GreenExpression> condition) const;
+
+        [[nodiscard]] GreenPtr<GreenWhileStatement> with_close_paren(GreenPtr<GreenToken> close_paren) const;
+
+        [[nodiscard]] GreenPtr<GreenWhileStatement> with_block(GreenPtr<GreenBlock> block) const;
+
+        [[nodiscard]] GreenPtr<GreenWhileStatement> update(GreenPtr<GreenToken> while_keyword,
+                                                           GreenPtr<GreenToken> open_paren,
+                                                           GreenPtr<GreenExpression> condition,
+                                                           GreenPtr<GreenToken> close_paren,
+                                                           GreenPtr<GreenBlock> block) const;
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
+
+      private:
+        GreenPtr<GreenToken> while_keyword_;
+        GreenPtr<GreenToken> open_paren_;
+        GreenPtr<GreenExpression> condition_;
+        GreenPtr<GreenToken> close_paren_;
+        GreenPtr<GreenBlock> block_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenWhileStatement>
+    {
+        static constexpr std::size_t slot_count = 5;
+
+        using ChildTypes = std::tuple<GreenToken, GreenToken, GreenExpression, GreenToken, GreenBlock>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenWhileStatement &node)
+        {
+            if constexpr (N == 0)
+            {
+                return node.while_keyword();
+            }
+            else if constexpr (N == 1)
+            {
+                return node.open_paren();
+            }
+            else if constexpr (N == 2)
+            {
+                return node.condition();
+            }
+            else if constexpr (N == 3)
+            {
+                return node.close_paren();
+            }
+            else
+            {
+                static_assert(N == 4);
+                return node.block();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenWhileStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenWhileStatement &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                node.set_while_keyword(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                node.set_open_paren(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 2)
+            {
+                node.set_condition(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 3)
+            {
+                node.set_close_paren(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 4);
+                node.set_block(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenWhileStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenWhileStatement> with(const GreenWhileStatement &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                return node.with_while_keyword(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                return node.with_open_paren(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 2)
+            {
+                return node.with_condition(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 3)
+            {
+                return node.with_close_paren(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 4);
+                return node.with_block(std::forward<Arg>(value));
+            }
+        }
+    };
+
+    class GreenLoopStatement final : public GreenStatement
+    {
+      public:
+        GreenLoopStatement(GreenPtr<GreenToken> loop_keyword,
+                           GreenPtr<GreenBlock> block,
+                           DiagnosticInfoList diagnostics = {});
+
+        ~GreenLoopStatement() override;
+
+        [[nodiscard]] constexpr const GreenToken &loop_keyword() const noexcept
+        {
+            return *loop_keyword_;
+        }
+
+        void set_loop_keyword(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenBlock &block() const noexcept
+        {
+            return *block_;
+        }
+
+        void set_block(GreenPtr<GreenBlock> value) noexcept;
+
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::loop_statement;
+        }
+
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
+
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
+
+        [[nodiscard]] GreenPtr<GreenLoopStatement> with_loop_keyword(GreenPtr<GreenToken> loop_keyword) const;
+
+        [[nodiscard]] GreenPtr<GreenLoopStatement> with_block(GreenPtr<GreenBlock> block) const;
+
+        [[nodiscard]] GreenPtr<GreenLoopStatement> update(GreenPtr<GreenToken> loop_keyword,
+                                                          GreenPtr<GreenBlock> block) const;
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
+
+      private:
+        GreenPtr<GreenToken> loop_keyword_;
+        GreenPtr<GreenBlock> block_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenLoopStatement>
+    {
+        static constexpr std::size_t slot_count = 2;
+
+        using ChildTypes = std::tuple<GreenToken, GreenBlock>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenLoopStatement &node)
+        {
+            if constexpr (N == 0)
+            {
+                return node.loop_keyword();
+            }
+            else
+            {
+                static_assert(N == 1);
+                return node.block();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenLoopStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenLoopStatement &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                node.set_loop_keyword(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 1);
+                node.set_block(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenLoopStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenLoopStatement> with(const GreenLoopStatement &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                return node.with_loop_keyword(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 1);
+                return node.with_block(std::forward<Arg>(value));
+            }
+        }
+    };
+
+    class GreenForStatement final : public GreenStatement
+    {
+      public:
+        GreenForStatement(GreenPtr<GreenToken> for_keyword,
+                          GreenPtr<GreenToken> open_paren,
+                          GreenPtr<GreenVariableDeclarationStatement> declaration,
+                          GreenSeparatedList<GreenExpression> initializers,
+                          GreenPtr<GreenToken> first_semicolon,
+                          GreenPtr<GreenExpression> condition,
+                          GreenPtr<GreenToken> second_semicolon,
+                          GreenSeparatedList<GreenExpression> incrementors,
+                          GreenPtr<GreenToken> close_paren,
+                          GreenPtr<GreenBlock> block,
+                          DiagnosticInfoList diagnostics = {});
+
+        ~GreenForStatement() override;
+
+        [[nodiscard]] constexpr const GreenToken &for_keyword() const noexcept
+        {
+            return *for_keyword_;
+        }
+
+        void set_for_keyword(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenToken &open_paren() const noexcept
+        {
+            return *open_paren_;
+        }
+
+        void set_open_paren(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] constexpr Optional<const GreenVariableDeclarationStatement &> declaration() const noexcept
+        {
+            return declaration_.get();
+        }
+
+        void set_declaration(GreenPtr<GreenVariableDeclarationStatement> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenSeparatedList<GreenExpression> &initializers() const noexcept
+        {
+            return initializers_;
+        }
+
+        void set_initializers(GreenSeparatedList<GreenExpression> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenToken &first_semicolon() const noexcept
+        {
+            return *first_semicolon_;
+        }
+
+        void set_first_semicolon(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] constexpr Optional<const GreenExpression &> condition() const noexcept
+        {
+            return condition_.get();
+        }
+
+        void set_condition(GreenPtr<GreenExpression> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenToken &second_semicolon() const noexcept
+        {
+            return *second_semicolon_;
+        }
+
+        void set_second_semicolon(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenSeparatedList<GreenExpression> &incrementors() const noexcept
+        {
+            return incrementors_;
+        }
+
+        void set_incrementors(GreenSeparatedList<GreenExpression> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenToken &close_paren() const noexcept
+        {
+            return *close_paren_;
+        }
+
+        void set_close_paren(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenBlock &block() const noexcept
+        {
+            return *block_;
+        }
+
+        void set_block(GreenPtr<GreenBlock> value) noexcept;
+
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::for_statement;
+        }
+
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
+
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
+
+        [[nodiscard]] GreenPtr<GreenForStatement> with_for_keyword(GreenPtr<GreenToken> for_keyword) const;
+
+        [[nodiscard]] GreenPtr<GreenForStatement> with_open_paren(GreenPtr<GreenToken> open_paren) const;
+
+        [[nodiscard]] GreenPtr<GreenForStatement> with_declaration(
+            GreenPtr<GreenVariableDeclarationStatement> declaration) const;
+
+        [[nodiscard]] GreenPtr<GreenForStatement> with_initializers(
+            GreenSeparatedList<GreenExpression> initializers) const;
+
+        [[nodiscard]] GreenPtr<GreenForStatement> with_first_semicolon(GreenPtr<GreenToken> first_semicolon) const;
+
+        [[nodiscard]] GreenPtr<GreenForStatement> with_condition(GreenPtr<GreenExpression> condition) const;
+
+        [[nodiscard]] GreenPtr<GreenForStatement> with_second_semicolon(GreenPtr<GreenToken> second_semicolon) const;
+
+        [[nodiscard]] GreenPtr<GreenForStatement> with_incrementors(
+            GreenSeparatedList<GreenExpression> incrementors) const;
+
+        [[nodiscard]] GreenPtr<GreenForStatement> with_close_paren(GreenPtr<GreenToken> close_paren) const;
+
+        [[nodiscard]] GreenPtr<GreenForStatement> with_block(GreenPtr<GreenBlock> block) const;
+
+        [[nodiscard]] GreenPtr<GreenForStatement> update(GreenPtr<GreenToken> for_keyword,
+                                                         GreenPtr<GreenToken> open_paren,
+                                                         GreenPtr<GreenVariableDeclarationStatement> declaration,
+                                                         GreenSeparatedList<GreenExpression> initializers,
+                                                         GreenPtr<GreenToken> first_semicolon,
+                                                         GreenPtr<GreenExpression> condition,
+                                                         GreenPtr<GreenToken> second_semicolon,
+                                                         GreenSeparatedList<GreenExpression> incrementors,
+                                                         GreenPtr<GreenToken> close_paren,
+                                                         GreenPtr<GreenBlock> block) const;
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
+
+      private:
+        GreenPtr<GreenToken> for_keyword_;
+        GreenPtr<GreenToken> open_paren_;
+        GreenPtr<GreenVariableDeclarationStatement> declaration_;
+        GreenSeparatedList<GreenExpression> initializers_;
+        GreenPtr<GreenToken> first_semicolon_;
+        GreenPtr<GreenExpression> condition_;
+        GreenPtr<GreenToken> second_semicolon_;
+        GreenSeparatedList<GreenExpression> incrementors_;
+        GreenPtr<GreenToken> close_paren_;
+        GreenPtr<GreenBlock> block_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenForStatement>
+    {
+        static constexpr std::size_t slot_count = 10;
+
+        using ChildTypes = std::tuple<GreenToken,
+                                      GreenToken,
+                                      GreenVariableDeclarationStatement,
+                                      GreenSeparatedList<GreenExpression>,
+                                      GreenToken,
+                                      GreenExpression,
+                                      GreenToken,
+                                      GreenSeparatedList<GreenExpression>,
+                                      GreenToken,
+                                      GreenBlock>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenForStatement &node)
+        {
+            if constexpr (N == 0)
+            {
+                return node.for_keyword();
+            }
+            else if constexpr (N == 1)
+            {
+                return node.open_paren();
+            }
+            else if constexpr (N == 2)
+            {
+                return node.declaration();
+            }
+            else if constexpr (N == 3)
+            {
+                return node.initializers();
+            }
+            else if constexpr (N == 4)
+            {
+                return node.first_semicolon();
+            }
+            else if constexpr (N == 5)
+            {
+                return node.condition();
+            }
+            else if constexpr (N == 6)
+            {
+                return node.second_semicolon();
+            }
+            else if constexpr (N == 7)
+            {
+                return node.incrementors();
+            }
+            else if constexpr (N == 8)
+            {
+                return node.close_paren();
+            }
+            else
+            {
+                static_assert(N == 9);
+                return node.block();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenForStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenForStatement &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                node.set_for_keyword(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                node.set_open_paren(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 2)
+            {
+                node.set_declaration(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 3)
+            {
+                node.set_initializers(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 4)
+            {
+                node.set_first_semicolon(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 5)
+            {
+                node.set_condition(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 6)
+            {
+                node.set_second_semicolon(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 7)
+            {
+                node.set_incrementors(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 8)
+            {
+                node.set_close_paren(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 9);
+                node.set_block(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenForStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenForStatement> with(const GreenForStatement &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                return node.with_for_keyword(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                return node.with_open_paren(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 2)
+            {
+                return node.with_declaration(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 3)
+            {
+                return node.with_initializers(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 4)
+            {
+                return node.with_first_semicolon(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 5)
+            {
+                return node.with_condition(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 6)
+            {
+                return node.with_second_semicolon(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 7)
+            {
+                return node.with_incrementors(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 8)
+            {
+                return node.with_close_paren(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 9);
+                return node.with_block(std::forward<Arg>(value));
+            }
+        }
+    };
+
+    class GreenBreakStatement final : public GreenStatement
+    {
+      public:
+        GreenBreakStatement(GreenPtr<GreenToken> keyword,
+                            GreenPtr<GreenToken> semicolon,
+                            DiagnosticInfoList diagnostics = {});
+
+        ~GreenBreakStatement() override;
+
+        [[nodiscard]] constexpr const GreenToken &keyword() const noexcept
+        {
+            return *keyword_;
+        }
+
+        void set_keyword(GreenPtr<GreenToken> value) noexcept;
 
         [[nodiscard]] constexpr const GreenToken &semicolon() const noexcept
         {
@@ -467,7 +1324,7 @@ namespace prism
 
         [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
         {
-            return node.kind() == SyntaxKind::empty_statement;
+            return node.kind() == SyntaxKind::break_statement;
         }
 
         [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
@@ -476,48 +1333,167 @@ namespace prism
                                              const SyntaxNode *parent,
                                              std::uint32_t position) const override;
 
-        [[nodiscard]] GreenPtr<GreenEmptyStatement> with_semicolon(GreenPtr<GreenToken> semicolon) const;
+        [[nodiscard]] GreenPtr<GreenBreakStatement> with_keyword(GreenPtr<GreenToken> keyword) const;
 
-        [[nodiscard]] GreenPtr<GreenEmptyStatement> update(GreenPtr<GreenToken> semicolon) const;
+        [[nodiscard]] GreenPtr<GreenBreakStatement> with_semicolon(GreenPtr<GreenToken> semicolon) const;
+
+        [[nodiscard]] GreenPtr<GreenBreakStatement> update(GreenPtr<GreenToken> keyword,
+                                                           GreenPtr<GreenToken> semicolon) const;
         [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
 
       private:
+        GreenPtr<GreenToken> keyword_;
         GreenPtr<GreenToken> semicolon_;
     };
 
     template <>
-    struct GreenNodeTraits<GreenEmptyStatement>
+    struct GreenNodeTraits<GreenBreakStatement>
     {
-        static constexpr std::size_t slot_count = 1;
+        static constexpr std::size_t slot_count = 2;
 
-        using ChildTypes = std::tuple<GreenToken>;
+        using ChildTypes = std::tuple<GreenToken, GreenToken>;
 
         template <std::size_t N>
             requires(N < slot_count)
-        static constexpr decltype(auto) get(const GreenEmptyStatement &node)
+        static constexpr decltype(auto) get(const GreenBreakStatement &node)
         {
+            if constexpr (N == 0)
             {
-                static_assert(N == 0);
+                return node.keyword();
+            }
+            else
+            {
+                static_assert(N == 1);
                 return node.semicolon();
             }
         }
 
-        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenEmptyStatement>> Arg>
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenBreakStatement>> Arg>
             requires(N < slot_count)
-        static constexpr void set(GreenEmptyStatement &node, Arg &&value)
+        static constexpr void set(GreenBreakStatement &node, Arg &&value)
         {
+            if constexpr (N == 0)
             {
-                static_assert(N == 0);
+                node.set_keyword(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 1);
                 node.set_semicolon(std::forward<Arg>(value));
             }
         }
 
-        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenEmptyStatement>> Arg>
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenBreakStatement>> Arg>
             requires(N < slot_count)
-        static constexpr GreenPtr<GreenEmptyStatement> with(const GreenEmptyStatement &node, Arg &&value)
+        static constexpr GreenPtr<GreenBreakStatement> with(const GreenBreakStatement &node, Arg &&value)
         {
+            if constexpr (N == 0)
             {
-                static_assert(N == 0);
+                return node.with_keyword(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 1);
+                return node.with_semicolon(std::forward<Arg>(value));
+            }
+        }
+    };
+
+    class GreenContinueStatement final : public GreenStatement
+    {
+      public:
+        GreenContinueStatement(GreenPtr<GreenToken> keyword,
+                               GreenPtr<GreenToken> semicolon,
+                               DiagnosticInfoList diagnostics = {});
+
+        ~GreenContinueStatement() override;
+
+        [[nodiscard]] constexpr const GreenToken &keyword() const noexcept
+        {
+            return *keyword_;
+        }
+
+        void set_keyword(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenToken &semicolon() const noexcept
+        {
+            return *semicolon_;
+        }
+
+        void set_semicolon(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::continue_statement;
+        }
+
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
+
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
+
+        [[nodiscard]] GreenPtr<GreenContinueStatement> with_keyword(GreenPtr<GreenToken> keyword) const;
+
+        [[nodiscard]] GreenPtr<GreenContinueStatement> with_semicolon(GreenPtr<GreenToken> semicolon) const;
+
+        [[nodiscard]] GreenPtr<GreenContinueStatement> update(GreenPtr<GreenToken> keyword,
+                                                              GreenPtr<GreenToken> semicolon) const;
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
+
+      private:
+        GreenPtr<GreenToken> keyword_;
+        GreenPtr<GreenToken> semicolon_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenContinueStatement>
+    {
+        static constexpr std::size_t slot_count = 2;
+
+        using ChildTypes = std::tuple<GreenToken, GreenToken>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenContinueStatement &node)
+        {
+            if constexpr (N == 0)
+            {
+                return node.keyword();
+            }
+            else
+            {
+                static_assert(N == 1);
+                return node.semicolon();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenContinueStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenContinueStatement &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                node.set_keyword(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 1);
+                node.set_semicolon(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenContinueStatement>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenContinueStatement> with(const GreenContinueStatement &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                return node.with_keyword(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 1);
                 return node.with_semicolon(std::forward<Arg>(value));
             }
         }

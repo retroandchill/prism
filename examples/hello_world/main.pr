@@ -21,6 +21,22 @@ func cast_check(a: i64): i32 {
     return a as i32;
 }
 
+func min(a: i32, b: i32): i32 {
+    mutable var result: i32;
+    if (a < b) {
+        result = a;
+    } else {
+        result = b;
+    }
+
+    return result;
+}
+
+func compound_assign(mutable a: i32, b: i32): i32 {
+    a += b;
+    return a;
+}
+
 func main(): i32 {
     return add(1, 4);
 }

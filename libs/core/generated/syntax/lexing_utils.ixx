@@ -18,6 +18,13 @@ namespace prism
                 make_ref_counted<GreenToken>(SyntaxKind::return_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::mutable_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::as_keyword),
+                make_ref_counted<GreenToken>(SyntaxKind::if_keyword),
+                make_ref_counted<GreenToken>(SyntaxKind::else_keyword),
+                make_ref_counted<GreenToken>(SyntaxKind::while_keyword),
+                make_ref_counted<GreenToken>(SyntaxKind::loop_keyword),
+                make_ref_counted<GreenToken>(SyntaxKind::for_keyword),
+                make_ref_counted<GreenToken>(SyntaxKind::break_keyword),
+                make_ref_counted<GreenToken>(SyntaxKind::continue_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::true_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::false_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::void_keyword),
@@ -120,6 +127,8 @@ namespace prism
                     return SyntaxKind::as_keyword;
                 if (text == "i8")
                     return SyntaxKind::i8_keyword;
+                if (text == "if")
+                    return SyntaxKind::if_keyword;
                 if (text == "u8")
                     return SyntaxKind::u8_keyword;
                 break;
@@ -128,6 +137,8 @@ namespace prism
                     return SyntaxKind::f32_keyword;
                 if (text == "f64")
                     return SyntaxKind::f64_keyword;
+                if (text == "for")
+                    return SyntaxKind::for_keyword;
                 if (text == "i16")
                     return SyntaxKind::i16_keyword;
                 if (text == "i32")
@@ -150,10 +161,14 @@ namespace prism
                     return SyntaxKind::bool_keyword;
                 if (text == "char")
                     return SyntaxKind::char_keyword;
+                if (text == "else")
+                    return SyntaxKind::else_keyword;
                 if (text == "func")
                     return SyntaxKind::func_keyword;
                 if (text == "i128")
                     return SyntaxKind::i128_keyword;
+                if (text == "loop")
+                    return SyntaxKind::loop_keyword;
                 if (text == "rune")
                     return SyntaxKind::rune_keyword;
                 if (text == "true")
@@ -164,6 +179,8 @@ namespace prism
                     return SyntaxKind::void_keyword;
                 break;
             case 5:
+                if (text == "break")
+                    return SyntaxKind::break_keyword;
                 if (text == "false")
                     return SyntaxKind::false_keyword;
                 if (text == "isize")
@@ -172,6 +189,8 @@ namespace prism
                     return SyntaxKind::using_keyword;
                 if (text == "usize")
                     return SyntaxKind::usize_keyword;
+                if (text == "while")
+                    return SyntaxKind::while_keyword;
                 break;
             case 6:
                 if (text == "char16")
@@ -184,6 +203,10 @@ namespace prism
             case 7:
                 if (text == "mutable")
                     return SyntaxKind::mutable_keyword;
+                break;
+            case 8:
+                if (text == "continue")
+                    return SyntaxKind::continue_keyword;
                 break;
             case 9:
                 if (text == "namespace")

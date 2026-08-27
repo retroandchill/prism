@@ -382,7 +382,16 @@ namespace prism
             };
             for (auto [symbol_param, llvm_param] : std::views::zip(symbol.parameters(), function->args()))
             {
-                context.bind_storage(symbol_param, &llvm_param);
+                if (symbol_param->is_mutable())
+                {
+                    auto *slot = create_entry_alloca(llvm_param.getType(), symbol_param->name(), context);
+                    builder_.CreateStore(&llvm_param, slot);
+                    context.bind_storage(symbol_param, slot);
+                }
+                else
+                {
+                    context.bind_storage(symbol_param, &llvm_param);
+                }
             }
             emit_statement(*body, context);
         }
@@ -653,15 +662,21 @@ namespace prism
 
         void emit_statement(const BoundStatement &statement, FunctionEmissionContext &context)
         {
-            visit(statement,
-                  Overload{[&](const BoundBlock &block) { emit_block(block, context); },
-                           [&](const BoundVariableDeclaration &declaration) { emit_local(declaration, context); },
-                           [&](const BoundExpressionStatement &expression)
-                           { emit_expression_statement(expression, context); },
-                           [&](const BoundReturnStatement &return_statement)
-                           {
-                               emit_return(return_statement, context);
-                           }});
+            visit(
+                statement,
+                Overload{
+                    [&](const BoundBlock &block) { emit_block(block, context); },
+                    [&](const BoundVariableDeclaration &declaration) { emit_local(declaration, context); },
+                    [&](const BoundExpressionStatement &expression) { emit_expression_statement(expression, context); },
+                    [&](const BoundReturnStatement &return_statement) { emit_return(return_statement, context); },
+                    [&](const BoundIfStatement &if_statement) { emit_if_statement(if_statement, context); },
+                    [&](const BoundWhileStatement &while_statement) { emit_while_statement(while_statement, context); },
+                    [&](const BoundLoopStatement &loop) { emit_loop_statement(loop, context); },
+                    [&](const BoundForStatement &loop) { emit_for_loop(loop, context); },
+                    [&](const BoundBreakStatement &break_statement) { emit_break_statement(break_statement, context); },
+                    [&](const BoundContinueStatement &continue_statement)
+                    { emit_continue_statement(continue_statement, context); },
+                });
         }
 
         void emit_block(const BoundBlock &block, FunctionEmissionContext &context)
@@ -712,6 +727,59 @@ namespace prism
 
             auto *expression = emit_expression(*return_statement.expression(), context);
             builder_.CreateRet(expression);
+        }
+
+        void emit_if_statement(const BoundIfStatement &statement, FunctionEmissionContext &context)
+        {
+            auto *function = context.function();
+            auto *then_block = llvm::BasicBlock::Create(context_, "cond.then", function);
+            auto *else_block =
+                statement.else_statement().has_value() ? llvm::BasicBlock::Create(context_, "cond.else") : nullptr;
+            auto *merge_block = llvm::BasicBlock::Create(context_, "cond.merge");
+
+            auto *condition = emit_expression(statement.condition(), context);
+            condition = convert_byte_bool_to_i1_if_needed(condition);
+            builder_.CreateCondBr(condition, then_block, else_block != nullptr ? else_block : merge_block);
+
+            builder_.SetInsertPoint(then_block);
+            emit_statement(statement.then_statement(), context);
+            builder_.CreateBr(merge_block);
+
+            if (else_block != nullptr)
+            {
+                function->insert(function->end(), else_block);
+                builder_.SetInsertPoint(else_block);
+                emit_statement(*statement.else_statement(), context);
+                builder_.CreateBr(merge_block);
+            }
+
+            function->insert(function->end(), merge_block); // if needed
+            builder_.SetInsertPoint(merge_block);
+        }
+
+        void emit_while_statement(const BoundWhileStatement &statement, FunctionEmissionContext &contex)
+        {
+            throw NotImplementedException{};
+        }
+
+        void emit_loop_statement(const BoundLoopStatement &loop, FunctionEmissionContext &contex)
+        {
+            throw NotImplementedException{};
+        }
+
+        void emit_for_loop(const BoundForStatement &loop, FunctionEmissionContext &context)
+        {
+            throw NotImplementedException{};
+        }
+
+        void emit_break_statement(const BoundBreakStatement &statement, FunctionEmissionContext &context)
+        {
+            throw NotImplementedException{};
+        }
+
+        void emit_continue_statement(const BoundContinueStatement &statement, FunctionEmissionContext &context)
+        {
+            throw NotImplementedException{};
         }
 
         llvm::AllocaInst *create_entry_alloca(llvm::Type *type, const Name name, FunctionEmissionContext &context)
@@ -954,7 +1022,7 @@ namespace prism
         {
             auto *assignee = emit_address(operation.left(), context);
             auto &type = operation.left().type();
-            auto *value = emit_expression(operation, context);
+            auto *value = emit_expression(operation.right(), context);
             if (operation.operation() == AssignmentOperation::simple)
             {
                 builder_.CreateStore(value, assignee);

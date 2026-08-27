@@ -15,6 +15,7 @@ namespace prism
     export class ArgumentSyntax;
     class ExpressionSyntax;
     export class ParameterSyntax;
+    class StatementSyntax;
     class TypeSyntax;
 
     export class PRISM_CORE_API InitializerSyntax final : public SyntaxNode
@@ -234,5 +235,32 @@ namespace prism
 
       private:
         mutable Lazy<const ExpressionSyntax *> expression_;
+    };
+
+    export class PRISM_CORE_API ElseClauseSyntax final : public SyntaxNode
+    {
+      public:
+        constexpr ElseClauseSyntax(SyntaxLifetime &lifetime,
+                                   const GreenElseClause &node,
+                                   const SyntaxNode *parent,
+                                   const std::uint32_t position)
+            : SyntaxNode{lifetime, node, parent, position}
+        {
+        }
+
+        [[nodiscard]] SyntaxToken else_keyword() const;
+        [[nodiscard]] const StatementSyntax &statement() const;
+
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::else_clause;
+        }
+
+      protected:
+        [[nodiscard]] Optional<const SyntaxNode &> get_node_slot(std::size_t index) const override;
+        [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
+
+      private:
+        mutable Lazy<const StatementSyntax *> statement_;
     };
 } // namespace prism

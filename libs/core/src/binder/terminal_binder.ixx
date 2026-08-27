@@ -25,6 +25,8 @@ namespace prism
         [[nodiscard]] VariablesSpan get_declared_local_variables_for_scope(const SyntaxNode &designator) const override;
 
       protected:
+        void ensure_locals() const override;
+
         [[nodiscard]] LookupResult lookup_local(Name name,
                                                 LookupOptions options,
                                                 const LookupContext &context) const override;

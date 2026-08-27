@@ -28,11 +28,29 @@ namespace prism
         return local_variables_.get_or_compute([this] { return build_local_variables_impl(); });
     }
 
+    void LocalScopeBinder::ensure_locals() const
+    {
+        std::ignore = local_variables();
+        Binder::ensure_locals();
+    }
+
     std::span<Ref<const VariableSymbol>> LocalScopeBinder::build_local_variables(SyntaxList<StatementSyntax> statements,
                                                                                  const Binder &enclosing_binder) const
     {
         PooledVector<Ref<const VariableSymbol>> local_variables;
         for (auto &statement : statements)
+        {
+            build_local_variables(enclosing_binder, statement, local_variables);
+        }
+        return lifetime().copy_refs(local_variables);
+    }
+
+    std::span<Ref<const VariableSymbol>> LocalScopeBinder::build_local_variables(
+        const std::span<Ref<const StatementSyntax>> statements,
+        const Binder &enclosing_binder) const
+    {
+        PooledVector<Ref<const VariableSymbol>> local_variables;
+        for (const auto statement : statements)
         {
             build_local_variables(enclosing_binder, statement, local_variables);
         }

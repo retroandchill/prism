@@ -340,6 +340,19 @@ namespace prism
                               { return bind_return_statement(statement, return_type, context); },
                               [&](const VariableDeclarationStatementSyntax &variable) -> const BoundStatement &
                               { return bind_variable_declaration_statement(variable, context); },
+                              [&](const IfStatementSyntax &if_statement) -> const BoundStatement &
+                              { return bind_if_statement(if_statement, return_type, context); },
+                              [&](const WhileStatementSyntax &while_statement_syntax) -> const BoundStatement &
+                              { return bind_while_statement(while_statement_syntax, return_type, context); },
+                              [&](const LoopStatementSyntax &loop_statement_syntax) -> const BoundStatement &
+                              { return bind_loop_statement(loop_statement_syntax, return_type, context); },
+                              [&](const ForStatementSyntax &for_statement_syntax) -> const BoundStatement &
+                              { return bind_for_statement(for_statement_syntax, return_type, context); },
+                              [&](const BreakStatementSyntax &break_statement_syntax) -> const BoundStatement &
+                              { return bind_break_statement(break_statement_syntax, context); },
+                              [&](const ContinueStatementSyntax &continue_statement_syntax) -> const BoundStatement &
+                              { return bind_continue_statement(continue_statement_syntax, context); },
+
                               [&](const EmptyStatementSyntax &) -> const BoundStatement &
                               {
                                   UNREACHABLE("We should guard against entering into this context");
@@ -515,6 +528,12 @@ namespace prism
         return make_lookup_result(std::move(symbols), options);
     }
 
+    void Binder::ensure_locals() const
+    {
+        DEBUG_ASSERT(next_ != nullptr);
+        next_->ensure_locals();
+    }
+
     SemanticLifetime &Binder::lifetime() const noexcept
     {
         return CompilationInternal::get_lifetime(compilation_);
@@ -635,9 +654,9 @@ namespace prism
         return create_error_type_symbol(containing_symbol(), compilation_, names);
     }
 
-    const BoundStatement &Binder::bind_block(const BlockSyntax &syntax,
-                                             const TypeSymbol &return_type,
-                                             const LookupContext &context) const
+    const BoundBlock &Binder::bind_block(const BlockSyntax &syntax,
+                                         const TypeSymbol &return_type,
+                                         const LookupContext &context) const
     {
         PooledVector<Ref<const BoundStatement>> statements;
         auto &semantic_model = compilation_.get_semantic_model(syntax.tree());
@@ -654,11 +673,13 @@ namespace prism
         return lifetime().create<BoundBlock>(syntax, interned);
     }
 
-    const BoundStatement &Binder::bind_variable_declaration_statement(const VariableDeclarationStatementSyntax &syntax,
-                                                                      const LookupContext &context) const
+    const BoundVariableDeclaration &Binder::bind_variable_declaration_statement(
+        const VariableDeclarationStatementSyntax &syntax,
+        const LookupContext &context) const
     {
         auto &semantic_model = compilation_.get_semantic_model(syntax.tree());
         auto &declaration = syntax.declaration();
+        ensure_locals();
         auto &variable = semantic_model.get_declared_symbol(declaration).value();
 
         const auto initializer = declaration.initializer().transform(
@@ -692,6 +713,76 @@ namespace prism
                                .value_ptr();
 
         return lifetime().create<BoundReturnStatement>(syntax, expression);
+    }
+
+    const BoundStatement &Binder::bind_if_statement(const IfStatementSyntax &syntax,
+                                                    const TypeSymbol &return_type,
+                                                    const LookupContext &context) const
+    {
+        auto &condition =
+            bind_expression(syntax.condition(), compilation_.get_special_type(SpecialType::bool_), context);
+        auto &then_statement = bind_block(syntax.block(), return_type, context);
+        auto *else_statement = syntax.else_clause()
+                                   .transform([&](const ElseClauseSyntax &e) -> auto &
+                                              { return bind_statement(e.statement(), return_type, context); })
+                                   .value_ptr();
+        return lifetime().create<BoundIfStatement>(syntax, condition, then_statement, else_statement);
+    }
+
+    const BoundStatement &Binder::bind_while_statement(const WhileStatementSyntax &syntax,
+                                                       const TypeSymbol &return_type,
+                                                       const LookupContext &context) const
+    {
+        auto &condition =
+            bind_expression(syntax.condition(), compilation_.get_special_type(SpecialType::bool_), context);
+        auto &body = bind_block(syntax.block(), return_type, context);
+        return lifetime().create<BoundWhileStatement>(syntax, condition, body);
+    }
+
+    const BoundStatement &Binder::bind_loop_statement(const LoopStatementSyntax &syntax,
+                                                      const TypeSymbol &return_type,
+                                                      const LookupContext &context) const
+    {
+        auto &body = bind_block(syntax.block(), return_type, context);
+        return lifetime().create<BoundLoopStatement>(syntax, body);
+    }
+
+    const BoundStatement &Binder::bind_for_statement(const ForStatementSyntax &syntax,
+                                                     const TypeSymbol &return_type,
+                                                     const LookupContext &context) const
+    {
+        auto &semantic_model = compilation_.get_semantic_model(syntax.tree());
+        auto &binder = SemanticModelInternal::get_binder(semantic_model, syntax);
+        auto *variable = syntax.declaration()
+                             .transform([&](const VariableDeclarationStatementSyntax &d) -> auto &
+                                        { return binder.bind_variable_declaration_statement(d, context); })
+                             .value_ptr();
+        auto initializers =
+            binder.bind_range(syntax.initializers(),
+                              [&](const ExpressionSyntax &e) -> auto & { return bind_expression(e, context); });
+        auto *condition =
+            syntax.condition()
+                .transform(
+                    [&](const ExpressionSyntax &e) -> auto &
+                    { return binder.bind_expression(e, compilation_.get_special_type(SpecialType::bool_), context); })
+                .value_ptr();
+        auto incrementors =
+            binder.bind_range(syntax.incrementors(),
+                              [&](const ExpressionSyntax &e) -> auto & { return bind_expression(e, context); });
+        auto &body = binder.bind_block(syntax.block(), return_type, context);
+        return lifetime().create<BoundForStatement>(syntax, variable, initializers, condition, incrementors, body);
+    }
+
+    const BoundStatement &Binder::bind_break_statement(const BreakStatementSyntax &syntax,
+                                                       const LookupContext &context) const
+    {
+        return lifetime().create<BoundBreakStatement>(syntax);
+    }
+
+    const BoundStatement &Binder::bind_continue_statement(const ContinueStatementSyntax &syntax,
+                                                          const LookupContext &context) const
+    {
+        return lifetime().create<BoundContinueStatement>(syntax);
     }
 
     const BoundExpression &Binder::bind_literal_expression(const LiteralExpressionSyntax &syntax,
@@ -1223,6 +1314,26 @@ namespace prism
         }
 
         return true;
+    }
+
+    template <std::ranges::input_range Range,
+              std::invocable<std::ranges::range_reference_t<Range>> Predicate,
+              typename R>
+        requires std::is_lvalue_reference_v<R>
+    BoundSpan<std::decay_t<R>> Binder::bind_range(Range &&range, Predicate functor) const
+    {
+        PooledVector<Ref<const std::decay_t<R>>> result;
+        if constexpr (std::ranges::sized_range<Range>)
+        {
+            result.reserve(std::ranges::size(range));
+        }
+
+        for (auto &&element : std::forward<Range>(range))
+        {
+            result.emplace_back(std::invoke(functor, element));
+        }
+
+        return lifetime().copy_refs(result);
     }
 
 } // namespace prism

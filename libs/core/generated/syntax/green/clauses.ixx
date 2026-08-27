@@ -10,6 +10,7 @@ namespace prism
     class GreenArgument;
     class GreenExpression;
     class GreenParameter;
+    class GreenStatement;
     class GreenType;
 
     class GreenInitializer final : public GreenNode
@@ -898,6 +899,106 @@ namespace prism
             {
                 static_assert(N == 1);
                 return node.with_expression(std::forward<Arg>(value));
+            }
+        }
+    };
+
+    class GreenElseClause final : public GreenNode
+    {
+      public:
+        GreenElseClause(GreenPtr<GreenToken> else_keyword,
+                        GreenPtr<GreenStatement> statement,
+                        DiagnosticInfoList diagnostics = {});
+
+        ~GreenElseClause() override;
+
+        [[nodiscard]] constexpr const GreenToken &else_keyword() const noexcept
+        {
+            return *else_keyword_;
+        }
+
+        void set_else_keyword(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenStatement &statement() const noexcept
+        {
+            return *statement_;
+        }
+
+        void set_statement(GreenPtr<GreenStatement> value) noexcept;
+
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::else_clause;
+        }
+
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
+
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
+
+        [[nodiscard]] GreenPtr<GreenElseClause> with_else_keyword(GreenPtr<GreenToken> else_keyword) const;
+
+        [[nodiscard]] GreenPtr<GreenElseClause> with_statement(GreenPtr<GreenStatement> statement) const;
+
+        [[nodiscard]] GreenPtr<GreenElseClause> update(GreenPtr<GreenToken> else_keyword,
+                                                       GreenPtr<GreenStatement> statement) const;
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
+
+      private:
+        GreenPtr<GreenToken> else_keyword_;
+        GreenPtr<GreenStatement> statement_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenElseClause>
+    {
+        static constexpr std::size_t slot_count = 2;
+
+        using ChildTypes = std::tuple<GreenToken, GreenStatement>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenElseClause &node)
+        {
+            if constexpr (N == 0)
+            {
+                return node.else_keyword();
+            }
+            else
+            {
+                static_assert(N == 1);
+                return node.statement();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenElseClause>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenElseClause &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                node.set_else_keyword(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 1);
+                node.set_statement(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenElseClause>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenElseClause> with(const GreenElseClause &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                return node.with_else_keyword(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 1);
+                return node.with_statement(std::forward<Arg>(value));
             }
         }
     };

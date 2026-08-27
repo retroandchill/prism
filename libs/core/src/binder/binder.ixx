@@ -22,6 +22,14 @@ import :semantic.bound.bound_node;
 
 namespace prism
 {
+    class ContinueStatementSyntax;
+    class BreakStatementSyntax;
+    class BoundVariableDeclaration;
+    class BoundBlock;
+    class ForStatementSyntax;
+    class LoopStatementSyntax;
+    class WhileStatementSyntax;
+    class IfStatementSyntax;
     class CastExpressionSyntax;
     class ExpressionBodySyntax;
     class IdentifierExpressionSyntax;
@@ -162,6 +170,8 @@ namespace prism
                                                          LookupOptions options) const;
 
       protected:
+        virtual void ensure_locals() const;
+
         [[nodiscard]] SemanticLifetime &lifetime() const noexcept;
 
         [[nodiscard]] virtual LookupResult lookup_local(Name name,
@@ -187,10 +197,10 @@ namespace prism
                                                      const NameSyntax &syntax,
                                                      const LookupContext &context) const;
 
-        [[nodiscard]] const BoundStatement &bind_block(const BlockSyntax &syntax,
-                                                       const TypeSymbol &return_type,
-                                                       const LookupContext &context) const;
-        [[nodiscard]] const BoundStatement &bind_variable_declaration_statement(
+        [[nodiscard]] const BoundBlock &bind_block(const BlockSyntax &syntax,
+                                                   const TypeSymbol &return_type,
+                                                   const LookupContext &context) const;
+        [[nodiscard]] const BoundVariableDeclaration &bind_variable_declaration_statement(
             const VariableDeclarationStatementSyntax &syntax,
             const LookupContext &context) const;
         [[nodiscard]] const BoundStatement &bind_expression_statement(const ExpressionStatementSyntax &syntax,
@@ -198,6 +208,22 @@ namespace prism
         [[nodiscard]] const BoundStatement &bind_return_statement(const ReturnStatementSyntax &syntax,
                                                                   const TypeSymbol &return_type,
                                                                   const LookupContext &context) const;
+        [[nodiscard]] const BoundStatement &bind_if_statement(const IfStatementSyntax &syntax,
+                                                              const TypeSymbol &return_type,
+                                                              const LookupContext &context) const;
+        [[nodiscard]] const BoundStatement &bind_while_statement(const WhileStatementSyntax &syntax,
+                                                                 const TypeSymbol &return_type,
+                                                                 const LookupContext &context) const;
+        [[nodiscard]] const BoundStatement &bind_loop_statement(const LoopStatementSyntax &syntax,
+                                                                const TypeSymbol &return_type,
+                                                                const LookupContext &context) const;
+        [[nodiscard]] const BoundStatement &bind_for_statement(const ForStatementSyntax &syntax,
+                                                               const TypeSymbol &return_type,
+                                                               const LookupContext &context) const;
+        [[nodiscard]] const BoundStatement &bind_break_statement(const BreakStatementSyntax &syntax,
+                                                                 const LookupContext &context) const;
+        [[nodiscard]] const BoundStatement &bind_continue_statement(const ContinueStatementSyntax &syntax,
+                                                                    const LookupContext &context) const;
 
         [[nodiscard]] const BoundExpression &bind_literal_expression(const LiteralExpressionSyntax &syntax,
                                                                      const TypeSymbol *return_type,
@@ -261,6 +287,12 @@ namespace prism
         [[nodiscard]] bool try_match_overload(const FunctionSymbol &overload,
                                               std::span<Ref<const BoundExpression>> arguments,
                                               const LookupContext &context) const;
+
+        template <std::ranges::input_range Range,
+                  std::invocable<std::ranges::range_reference_t<Range>> Functor,
+                  typename R = std::invoke_result_t<Functor, std::ranges::range_reference_t<Range>>>
+            requires std::is_lvalue_reference_v<R>
+        [[nodiscard]] BoundSpan<std::decay_t<R>> bind_range(Range &&range, Functor functor) const;
 
         const Compilation &compilation_;
         const Binder *next_ = nullptr;

@@ -223,6 +223,9 @@ set(PRISM_MODULES
         src/codegen/llvm_emitter.cpp
         src/util/function_ref.ixx
         generated/diagnostics/factories.ixx
+        src/binder/for_loop_binder.ixx
+        src/binder/loop_binder.ixx
+        src/binder/for_loop_binder.cpp
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})
@@ -257,7 +260,7 @@ target_sources(prism_core PUBLIC
         FILES
         ${PRISM_MODULES})
 
-target_compile_definitions(prism_core PRIVATE PRISM_CORE_EXPORT)
+target_compile_definitions(prism_core PRIVATE PRISM_CORE_EXPORT LIBASSERT_BREAK_ON_FAIL)
 
 if (PRISM_BUILD_TESTS)
     add_subdirectory(tests)

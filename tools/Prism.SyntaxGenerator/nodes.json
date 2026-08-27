@@ -50,6 +50,34 @@
         "text": "as"
       },
       {
+        "name": "IfKeyword",
+        "text": "if"
+      },
+      {
+        "name": "ElseKeyword",
+        "text": "else"
+      },
+      {
+        "name": "WhileKeyword",
+        "text": "while"
+      },
+      {
+        "name": "LoopKeyword",
+        "text": "loop"
+      },
+      {
+        "name": "ForKeyword",
+        "text": "for"
+      },
+      {
+        "name": "BreakKeyword",
+        "text": "break"
+      },
+      {
+        "name": "ContinueKeyword",
+        "text": "continue"
+      },
+      {
         "name": "TrueKeyword",
         "text": "true"
       },
@@ -733,6 +761,26 @@
               "shape": "single"
             }
           ]
+        },
+        {
+          "name": "ElseClause",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "else_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ElseKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "statement",
+              "type": "Statement",
+              "shape": "single"
+            }
+          ]
         }
       ]
     },
@@ -1036,6 +1084,21 @@
           "properties": []
         },
         {
+          "name": "EmptyStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "semicolon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "SemicolonToken"
+              ]
+            }
+          ]
+        },
+        {
           "name": "VariableDeclarationStatement",
           "base": "Statement",
           "properties": [
@@ -1129,9 +1192,246 @@
           ]
         },
         {
-          "name": "EmptyStatement",
+          "name": "IfStatement",
           "base": "Statement",
           "properties": [
+            {
+              "$type": "item",
+              "name": "if_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IfKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "open_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "condition",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "close_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "block",
+              "type": "Block",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "else_clause",
+              "type": "ElseClause",
+              "shape": "optional"
+            }
+          ]
+        },
+        {
+          "name": "WhileStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "while_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "WhileKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "open_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "condition",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "close_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "block",
+              "type": "Block",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "LoopStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "loop_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "LoopKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "block",
+              "type": "Block",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "ForStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "for_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ForKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "open_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "declaration",
+              "type": "VariableDeclarationStatement",
+              "shape": "optional"
+            },
+            {
+              "$type": "item",
+              "name": "initializers",
+              "type": "Expression",
+              "shape": "separated_list",
+              "separators": [
+                "CommaToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "first_semicolon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "SemicolonToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "condition",
+              "type": "Expression",
+              "shape": "optional"
+            },
+            {
+              "$type": "item",
+              "name": "second_semicolon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "SemicolonToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "incrementors",
+              "type": "Expression",
+              "shape": "separated_list",
+              "separators": [
+                "CommaToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "close_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "block",
+              "type": "Block",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "BreakStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "BreakKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "semicolon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "SemicolonToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ContinueStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ContinueKeyword"
+              ]
+            },
             {
               "$type": "item",
               "name": "semicolon",
@@ -1784,6 +2084,24 @@
             },
             {
               "name": "ReturnStatement"
+            },
+            {
+              "name": "IfStatement"
+            },
+            {
+              "name": "WhileStatement"
+            },
+            {
+              "name": "LoopStatement"
+            },
+            {
+              "name": "ForStatement"
+            },
+            {
+              "name": "BreakStatement"
+            },
+            {
+              "name": "ContinueStatement"
             }
           ]
         },

@@ -30,10 +30,16 @@ namespace prism
         [[nodiscard]] std::span<Ref<const VariableSymbol>> local_variables() const;
 
       protected:
+        void ensure_locals() const override;
+
         [[nodiscard]] virtual [[nodiscard]] std::span<Ref<const VariableSymbol>> build_local_variables_impl() const = 0;
 
         [[nodiscard]] std::span<Ref<const VariableSymbol>> build_local_variables(SyntaxList<StatementSyntax> statements,
                                                                                  const Binder &enclosing_binder) const;
+
+        [[nodiscard]] std::span<Ref<const VariableSymbol>> build_local_variables(
+            std::span<Ref<const StatementSyntax>> statements,
+            const Binder &enclosing_binder) const;
 
         void build_local_variables(const Binder &enclosing_binder,
                                    const StatementSyntax &statement,

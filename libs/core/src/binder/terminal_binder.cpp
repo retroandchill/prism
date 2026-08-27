@@ -35,6 +35,11 @@ namespace prism
         return {};
     }
 
+    void TerminalBinder::ensure_locals() const
+    {
+        // Do nothing
+    }
+
     LookupResult TerminalBinder::lookup_local(Name, LookupOptions, const LookupContext &) const
     {
         return LookupResult::not_found();

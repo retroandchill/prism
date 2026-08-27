@@ -2,6 +2,7 @@ module prism.core:syntax.clauses.impl;
 
 import :syntax.clauses;
 import :syntax.expressions;
+import :syntax.statements;
 import :syntax.types;
 
 namespace prism
@@ -243,5 +244,27 @@ namespace prism
     Optional<const SyntaxNode &> ExpressionBodySyntax::get_cached_slot(const std::size_t index) const
     {
         return index == 1 ? Optional<const SyntaxNode &>{expression_.try_get_value(nullptr)} : std::nullopt;
+    }
+
+    SyntaxToken ElseClauseSyntax::else_keyword() const
+    {
+        return SyntaxToken{static_cast<const GreenElseClause &>(SyntaxNodeInternal::get_green(*this)).else_keyword(),
+                           this,
+                           position()};
+    }
+
+    const StatementSyntax &ElseClauseSyntax::statement() const
+    {
+        return *get_red(statement_, 1);
+    }
+
+    Optional<const SyntaxNode &> ElseClauseSyntax::get_node_slot(const std::size_t index) const
+    {
+        return index == 1 ? get_red(statement_) : std::nullopt;
+    }
+
+    Optional<const SyntaxNode &> ElseClauseSyntax::get_cached_slot(const std::size_t index) const
+    {
+        return index == 1 ? Optional<const SyntaxNode &>{statement_.try_get_value(nullptr)} : std::nullopt;
     }
 } // namespace prism

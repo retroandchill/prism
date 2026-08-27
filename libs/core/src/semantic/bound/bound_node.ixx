@@ -23,6 +23,12 @@ namespace prism
         variable_declaration,
         expression_statement,
         return_statement,
+        if_statement,
+        while_statement,
+        loop_statement,
+        for_statement,
+        break_statement,
+        continue_statement,
 
         bad_expression,
         literal,

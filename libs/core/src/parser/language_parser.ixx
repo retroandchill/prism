@@ -83,8 +83,15 @@ namespace prism
         [[nodiscard]] GreenPtr<GreenExpressionBody> parse_expression_body();
 
         [[nodiscard]] GreenPtr<GreenReturnStatement> parse_return_statement();
+        [[nodiscard]] Optional<GreenPtr<GreenVariableDeclarationStatement>> parse_variable_declaration_statement();
         [[nodiscard]] GreenPtr<GreenExpressionStatement> parse_expression_statement();
         [[nodiscard]] GreenPtr<GreenBlock> parse_block();
+        [[nodiscard]] GreenPtr<GreenIfStatement> parse_if_statement();
+        [[nodiscard]] GreenPtr<GreenWhileStatement> parse_while_statement();
+        [[nodiscard]] GreenPtr<GreenLoopStatement> parse_loop_statement();
+        [[nodiscard]] GreenPtr<GreenForStatement> parse_for_statement();
+        [[nodiscard]] GreenPtr<GreenBreakStatement> parse_break_statement();
+        [[nodiscard]] GreenPtr<GreenContinueStatement> parse_continue_statement();
 
         [[nodiscard]] GreenPtr<GreenExpression> parse_expression(GreenPtr<GreenExpression> left,
                                                                  std::int32_t min_precedence);
@@ -98,5 +105,7 @@ namespace prism
 
         [[nodiscard]] GreenPtr<GreenArgument> parse_argument();
         [[nodiscard]] Optional<GreenPtr<GreenNamedParameter>> parse_named_parameter();
+
+        [[nodiscard]] Optional<GreenPtr<GreenElseClause>> parse_else_clause();
     };
 } // namespace prism

@@ -4,6 +4,10 @@
  * @date 8/23/2026
  * @brief
  */
+#ifdef _MSC_VER
+#include <crtdbg.h>
+#endif
+
 import std;
 import prism.core;
 
@@ -11,6 +15,14 @@ constexpr auto *program_path = SAMPLE_PROGRAM;
 
 int main()
 {
+#ifdef _MSC_VER
+    // Direct standard assertions (assert) to the debugger output
+    _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG);
+
+    // Direct CRT errors and runtime checks to the debugger output
+    _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
+#endif
+
     std::string program;
     {
         const std::ifstream file{program_path};

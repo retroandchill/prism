@@ -178,19 +178,12 @@ namespace prism
 
     GreenPtr<GreenStatement> LanguageParser::parse_statement()
     {
+        if (auto variable_declaration = parse_variable_declaration_statement(); variable_declaration.has_value())
+        {
+            return *std::move(variable_declaration);
+        }
         switch (auto &next = peek_token(); next.kind())
         {
-            case SyntaxKind::mutable_keyword:
-                {
-                    auto modifiers = parse_modifiers();
-                    auto declaration = parse_variable_declaration(std::move(modifiers));
-                    return make_ref_counted<GreenVariableDeclarationStatement>(std::move(declaration));
-                }
-            case SyntaxKind::var_keyword:
-                {
-                    auto declaration = parse_variable_declaration();
-                    return make_ref_counted<GreenVariableDeclarationStatement>(std::move(declaration));
-                }
             case SyntaxKind::return_keyword:
                 return parse_return_statement();
             case SyntaxKind::open_brace_token:
@@ -200,6 +193,18 @@ namespace prism
                     auto semicolon = consume_token();
                     return make_ref_counted<GreenEmptyStatement>(std::move(semicolon));
                 }
+            case SyntaxKind::if_keyword:
+                return parse_if_statement();
+            case SyntaxKind::break_keyword:
+                return parse_break_statement();
+            case SyntaxKind::continue_keyword:
+                return parse_continue_statement();
+            case SyntaxKind::while_keyword:
+                return parse_while_statement();
+            case SyntaxKind::loop_keyword:
+                return parse_loop_statement();
+            case SyntaxKind::for_keyword:
+                return parse_for_statement();
             default:
                 return parse_expression_statement();
         }
@@ -458,6 +463,26 @@ namespace prism
                                                             std::move(semicolon));
     }
 
+    Optional<GreenPtr<GreenVariableDeclarationStatement>> LanguageParser::parse_variable_declaration_statement()
+    {
+        switch (auto &next = peek_token(); next.kind())
+        {
+            case SyntaxKind::mutable_keyword:
+                {
+                    auto modifiers = parse_modifiers();
+                    auto declaration = parse_variable_declaration(std::move(modifiers));
+                    return make_ref_counted<GreenVariableDeclarationStatement>(std::move(declaration));
+                }
+            case SyntaxKind::var_keyword:
+                {
+                    auto declaration = parse_variable_declaration();
+                    return make_ref_counted<GreenVariableDeclarationStatement>(std::move(declaration));
+                }
+            default:
+                return std::nullopt;
+        }
+    }
+
     GreenPtr<GreenExpressionStatement> LanguageParser::parse_expression_statement()
     {
         auto expression = parse_expression();
@@ -478,6 +503,112 @@ namespace prism
 
         auto end = expect_token(SyntaxKind::close_brace_token);
         return make_ref_counted<const GreenBlock>(std::move(start), std::move(builder).build(), std::move(end));
+    }
+
+    GreenPtr<GreenIfStatement> LanguageParser::parse_if_statement()
+    {
+        auto if_keyword = expect_token(SyntaxKind::if_keyword);
+        auto open_paren = expect_token(SyntaxKind::open_paren_token);
+        auto condition = parse_expression();
+        auto close_paren = expect_token(SyntaxKind::close_paren_token);
+        auto block = parse_block();
+        auto else_clause = parse_else_clause();
+        return make_ref_counted<const GreenIfStatement>(std::move(if_keyword),
+                                                        std::move(open_paren),
+                                                        std::move(condition),
+                                                        std::move(close_paren),
+                                                        std::move(block),
+                                                        std::move(else_clause).value_or_default());
+    }
+
+    GreenPtr<GreenWhileStatement> LanguageParser::parse_while_statement()
+    {
+        auto while_keyword = expect_token(SyntaxKind::while_keyword);
+        auto open_paren = expect_token(SyntaxKind::open_paren_token);
+        auto condition = parse_expression();
+        auto close_paren = expect_token(SyntaxKind::close_paren_token);
+        auto block = parse_block();
+        return make_ref_counted<const GreenWhileStatement>(std::move(while_keyword),
+                                                           std::move(open_paren),
+                                                           std::move(condition),
+                                                           std::move(close_paren),
+                                                           std::move(block));
+    }
+
+    GreenPtr<GreenLoopStatement> LanguageParser::parse_loop_statement()
+    {
+        auto loop_keyword = expect_token(SyntaxKind::loop_keyword);
+        auto block = parse_block();
+        return make_ref_counted<const GreenLoopStatement>(std::move(loop_keyword), std::move(block));
+    }
+
+    GreenPtr<GreenForStatement> LanguageParser::parse_for_statement()
+    {
+        auto for_keyword = expect_token(SyntaxKind::for_keyword);
+        auto open_paren = expect_token(SyntaxKind::open_paren_token);
+        auto declaration = parse_variable_declaration_statement();
+        GreenSeparatedListBuilder<GreenExpression> initializers;
+        if (!declaration.has_value())
+        {
+            while (true)
+            {
+                auto expression = parse_expression();
+                initializers.add_item(std::move(expression));
+
+                auto comma = match_token(SyntaxKind::comma_token);
+                if (!comma.has_value())
+                    break;
+
+                initializers.add_separator(*std::move(comma));
+            }
+        }
+
+        auto first_semicolon = expect_token(SyntaxKind::semicolon_token);
+        GreenPtr<GreenExpression> condition;
+        if (peek_token().kind() != SyntaxKind::semicolon_token)
+        {
+            condition = parse_expression();
+        }
+        auto second_semicolon = expect_token(SyntaxKind::semicolon_token);
+        GreenSeparatedListBuilder<GreenExpression> incrementors;
+        while (true)
+        {
+            auto expression = parse_expression();
+            incrementors.add_item(std::move(expression));
+
+            auto comma = match_token(SyntaxKind::comma_token);
+            if (!comma.has_value())
+                break;
+
+            incrementors.add_separator(*std::move(comma));
+        }
+
+        auto close_paren = expect_token(SyntaxKind::close_paren_token);
+        auto block = parse_block();
+        return make_ref_counted<const GreenForStatement>(std::move(for_keyword),
+                                                         std::move(open_paren),
+                                                         std::move(declaration).value_or_default(),
+                                                         std::move(initializers).build(),
+                                                         std::move(first_semicolon),
+                                                         std::move(condition),
+                                                         std::move(second_semicolon),
+                                                         std::move(incrementors).build(),
+                                                         std::move(close_paren),
+                                                         std::move(block));
+    }
+
+    GreenPtr<GreenBreakStatement> LanguageParser::parse_break_statement()
+    {
+        auto break_keyword = expect_token(SyntaxKind::break_keyword);
+        auto semicolon = expect_token(SyntaxKind::semicolon_token);
+        return make_ref_counted<const GreenBreakStatement>(std::move(break_keyword), std::move(semicolon));
+    }
+
+    GreenPtr<GreenContinueStatement> LanguageParser::parse_continue_statement()
+    {
+        auto break_keyword = expect_token(SyntaxKind::break_keyword);
+        auto semicolon = expect_token(SyntaxKind::semicolon_token);
+        return make_ref_counted<const GreenContinueStatement>(std::move(break_keyword), std::move(semicolon));
     }
 
     GreenPtr<GreenExpression> LanguageParser::parse_expression(GreenPtr<GreenExpression> left,
@@ -647,5 +778,20 @@ namespace prism
         auto identifier = consume_token();
         auto colon = consume_token();
         return make_ref_counted<GreenNamedParameter>(std::move(identifier), std::move(colon));
+    }
+
+    Optional<GreenPtr<GreenElseClause>> LanguageParser::parse_else_clause()
+    {
+        return match_token(SyntaxKind::else_keyword)
+            .transform(
+                [this](GreenPtr<GreenToken> &&token)
+                {
+                    if (peek_token().kind() == SyntaxKind::if_keyword)
+                    {
+                        return make_ref_counted<const GreenElseClause>(std::move(token), parse_if_statement());
+                    }
+
+                    return make_ref_counted<const GreenElseClause>(std::move(token), parse_block());
+                });
     }
 } // namespace prism

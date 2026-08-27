@@ -14,6 +14,7 @@ import :binder.binder_factory;
 import :syntax.visit;
 import :compilation;
 import :binder.block_binder;
+import :binder.for_loop_binder;
 import :binder.member_container_binder;
 import :binder.compilation_unit_binder;
 import :symbols.namespace_symbol;
@@ -50,8 +51,11 @@ namespace prism
 
     bool BinderFactory::introduces_new_scope(const SyntaxNode &node)
     {
-        return node
-            .is_any_of<FunctionDeclarationSyntax, BlockSyntax, NamespaceDeclarationSyntax, CompilationUnitSyntax>();
+        return node.is_any_of<FunctionDeclarationSyntax,
+                              BlockSyntax,
+                              NamespaceDeclarationSyntax,
+                              CompilationUnitSyntax,
+                              ForStatementSyntax>();
     }
 
     Lazy<const Binder &> &BinderFactory::get_slot(const SyntaxNode &node) const
@@ -90,6 +94,8 @@ namespace prism
                 [&](const BlockSyntax &block_syntax) -> const Binder & {
                     return CompilationInternal::get_lifetime(compilation_).create<BlockBinder>(enclosing, block_syntax);
                 },
+                [&](const ForStatementSyntax &syntax) -> const Binder &
+                { return CompilationInternal::get_lifetime(compilation_).create<ForLoopBinder>(enclosing, syntax); },
                 [](const SyntaxNode &) -> const Binder &
                 {
                     throw std::invalid_argument("Unsupported syntax node type");

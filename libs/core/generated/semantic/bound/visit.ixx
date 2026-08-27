@@ -16,6 +16,12 @@ namespace prism
                                                     BoundVariableDeclaration,
                                                     BoundExpressionStatement,
                                                     BoundReturnStatement,
+                                                    BoundIfStatement,
+                                                    BoundWhileStatement,
+                                                    BoundLoopStatement,
+                                                    BoundForStatement,
+                                                    BoundBreakStatement,
+                                                    BoundContinueStatement,
                                                     BoundBadExpression,
                                                     BoundLiteral,
                                                     BoundVariableAccess,
@@ -40,6 +46,18 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundExpressionStatement &>(node));
             case BoundNodeKind::return_statement:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundReturnStatement &>(node));
+            case BoundNodeKind::if_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundIfStatement &>(node));
+            case BoundNodeKind::while_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundWhileStatement &>(node));
+            case BoundNodeKind::loop_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundLoopStatement &>(node));
+            case BoundNodeKind::for_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundForStatement &>(node));
+            case BoundNodeKind::break_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundBreakStatement &>(node));
+            case BoundNodeKind::continue_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundContinueStatement &>(node));
             case BoundNodeKind::bad_expression:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundBadExpression &>(node));
             case BoundNodeKind::literal:
@@ -75,6 +93,12 @@ namespace prism
                                                               BoundVariableDeclaration,
                                                               BoundExpressionStatement,
                                                               BoundReturnStatement,
+                                                              BoundIfStatement,
+                                                              BoundWhileStatement,
+                                                              BoundLoopStatement,
+                                                              BoundForStatement,
+                                                              BoundBreakStatement,
+                                                              BoundContinueStatement,
                                                               BoundBadExpression,
                                                               BoundLiteral,
                                                               BoundVariableAccess,
@@ -99,6 +123,18 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundExpressionStatement &>(node));
             case BoundNodeKind::return_statement:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundReturnStatement &>(node));
+            case BoundNodeKind::if_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundIfStatement &>(node));
+            case BoundNodeKind::while_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundWhileStatement &>(node));
+            case BoundNodeKind::loop_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundLoopStatement &>(node));
+            case BoundNodeKind::for_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundForStatement &>(node));
+            case BoundNodeKind::break_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundBreakStatement &>(node));
+            case BoundNodeKind::continue_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundContinueStatement &>(node));
             case BoundNodeKind::bad_expression:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundBadExpression &>(node));
             case BoundNodeKind::literal:
@@ -132,7 +168,13 @@ namespace prism
                                                          BoundBlock,
                                                          BoundVariableDeclaration,
                                                          BoundExpressionStatement,
-                                                         BoundReturnStatement>;
+                                                         BoundReturnStatement,
+                                                         BoundIfStatement,
+                                                         BoundWhileStatement,
+                                                         BoundLoopStatement,
+                                                         BoundForStatement,
+                                                         BoundBreakStatement,
+                                                         BoundContinueStatement>;
 
     template <VisitorForBoundStatement Functor>
     constexpr decltype(auto) visit(const BoundStatement &node, Functor &&functor)
@@ -147,6 +189,18 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundExpressionStatement &>(node));
             case BoundNodeKind::return_statement:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundReturnStatement &>(node));
+            case BoundNodeKind::if_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundIfStatement &>(node));
+            case BoundNodeKind::while_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundWhileStatement &>(node));
+            case BoundNodeKind::loop_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundLoopStatement &>(node));
+            case BoundNodeKind::for_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundForStatement &>(node));
+            case BoundNodeKind::break_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundBreakStatement &>(node));
+            case BoundNodeKind::continue_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundContinueStatement &>(node));
             default:
                 UNREACHABLE("Invalid node type passed into visit");
         }
@@ -158,7 +212,13 @@ namespace prism
                                                                    BoundBlock,
                                                                    BoundVariableDeclaration,
                                                                    BoundExpressionStatement,
-                                                                   BoundReturnStatement>;
+                                                                   BoundReturnStatement,
+                                                                   BoundIfStatement,
+                                                                   BoundWhileStatement,
+                                                                   BoundLoopStatement,
+                                                                   BoundForStatement,
+                                                                   BoundBreakStatement,
+                                                                   BoundContinueStatement>;
 
     template <typename R, VisitorForBoundStatementReturning<R> Functor>
     constexpr R visit(const BoundStatement &node, Functor &&functor)
@@ -173,6 +233,18 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundExpressionStatement &>(node));
             case BoundNodeKind::return_statement:
                 return std::invoke(std::forward<Functor>(functor), static_cast<const BoundReturnStatement &>(node));
+            case BoundNodeKind::if_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundIfStatement &>(node));
+            case BoundNodeKind::while_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundWhileStatement &>(node));
+            case BoundNodeKind::loop_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundLoopStatement &>(node));
+            case BoundNodeKind::for_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundForStatement &>(node));
+            case BoundNodeKind::break_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundBreakStatement &>(node));
+            case BoundNodeKind::continue_statement:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const BoundContinueStatement &>(node));
             default:
                 UNREACHABLE("Invalid node type passed into visit");
         }

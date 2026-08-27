@@ -34,29 +34,36 @@ namespace prism
         return_keyword = 1005,
         mutable_keyword = 1006,
         as_keyword = 1007,
-        true_keyword = 1008,
-        false_keyword = 1009,
-        void_keyword = 1010,
-        bool_keyword = 1011,
-        i8_keyword = 1012,
-        i16_keyword = 1013,
-        i32_keyword = 1014,
-        i64_keyword = 1015,
-        i128_keyword = 1016,
-        u8_keyword = 1017,
-        u16_keyword = 1018,
-        u32_keyword = 1019,
-        u64_keyword = 1020,
-        u128_keyword = 1021,
-        isize_keyword = 1022,
-        usize_keyword = 1023,
-        f32_keyword = 1024,
-        f64_keyword = 1025,
-        char_keyword = 1026,
-        char16_keyword = 1027,
-        rune_keyword = 1028,
-        str_keyword = 1029,
-        keyword_end = 1029,
+        if_keyword = 1008,
+        else_keyword = 1009,
+        while_keyword = 1010,
+        loop_keyword = 1011,
+        for_keyword = 1012,
+        break_keyword = 1013,
+        continue_keyword = 1014,
+        true_keyword = 1015,
+        false_keyword = 1016,
+        void_keyword = 1017,
+        bool_keyword = 1018,
+        i8_keyword = 1019,
+        i16_keyword = 1020,
+        i32_keyword = 1021,
+        i64_keyword = 1022,
+        i128_keyword = 1023,
+        u8_keyword = 1024,
+        u16_keyword = 1025,
+        u32_keyword = 1026,
+        u64_keyword = 1027,
+        u128_keyword = 1028,
+        isize_keyword = 1029,
+        usize_keyword = 1030,
+        f32_keyword = 1031,
+        f64_keyword = 1032,
+        char_keyword = 1033,
+        char16_keyword = 1034,
+        rune_keyword = 1035,
+        str_keyword = 1036,
+        keyword_end = 1036,
 #pragma endregion
 
 #pragma region Punctuations
@@ -161,7 +168,8 @@ namespace prism
         parameter_list = 5005,
         parameter = 5006,
         expression_body = 5007,
-        clause_end = 5007,
+        else_clause = 5008,
+        clause_end = 5008,
 #pragma endregion
 
 #pragma region Expressions
@@ -181,12 +189,18 @@ namespace prism
 
 #pragma region Statements
         statement_start = 7000,
-        variable_declaration_statement = 7000,
-        block = 7001,
-        return_statement = 7002,
-        expression_statement = 7003,
-        empty_statement = 7004,
-        statement_end = 7004,
+        empty_statement = 7000,
+        variable_declaration_statement = 7001,
+        block = 7002,
+        return_statement = 7003,
+        expression_statement = 7004,
+        if_statement = 7005,
+        while_statement = 7006,
+        loop_statement = 7007,
+        for_statement = 7008,
+        break_statement = 7009,
+        continue_statement = 7010,
+        statement_end = 7010,
 #pragma endregion
 
 #pragma region Declarations
@@ -234,6 +248,20 @@ namespace prism
                 return "mutable";
             case SyntaxKind::as_keyword:
                 return "as";
+            case SyntaxKind::if_keyword:
+                return "if";
+            case SyntaxKind::else_keyword:
+                return "else";
+            case SyntaxKind::while_keyword:
+                return "while";
+            case SyntaxKind::loop_keyword:
+                return "loop";
+            case SyntaxKind::for_keyword:
+                return "for";
+            case SyntaxKind::break_keyword:
+                return "break";
+            case SyntaxKind::continue_keyword:
+                return "continue";
             case SyntaxKind::true_keyword:
                 return "true";
             case SyntaxKind::false_keyword:
@@ -430,6 +458,8 @@ namespace prism
                 return "Parameter";
             case SyntaxKind::expression_body:
                 return "ExpressionBody";
+            case SyntaxKind::else_clause:
+                return "ElseClause";
             case SyntaxKind::literal_expression:
                 return "LiteralExpression";
             case SyntaxKind::identifier_expression:
@@ -450,6 +480,8 @@ namespace prism
                 return "InvocationExpression";
             case SyntaxKind::cast_expression:
                 return "CastExpression";
+            case SyntaxKind::empty_statement:
+                return "EmptyStatement";
             case SyntaxKind::variable_declaration_statement:
                 return "VariableDeclarationStatement";
             case SyntaxKind::block:
@@ -458,8 +490,18 @@ namespace prism
                 return "ReturnStatement";
             case SyntaxKind::expression_statement:
                 return "ExpressionStatement";
-            case SyntaxKind::empty_statement:
-                return "EmptyStatement";
+            case SyntaxKind::if_statement:
+                return "IfStatement";
+            case SyntaxKind::while_statement:
+                return "WhileStatement";
+            case SyntaxKind::loop_statement:
+                return "LoopStatement";
+            case SyntaxKind::for_statement:
+                return "ForStatement";
+            case SyntaxKind::break_statement:
+                return "BreakStatement";
+            case SyntaxKind::continue_statement:
+                return "ContinueStatement";
             case SyntaxKind::incomplete_declaration:
                 return "IncompleteDeclaration";
             case SyntaxKind::block_namespace_declaration:
