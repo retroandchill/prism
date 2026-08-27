@@ -1,0 +1,10 @@
+﻿{
+  "$schema": "https://schemastore.org",
+  "profiles": {
+    "HelloWorld": {
+      "commandName": "Project",
+      "commandLineArgs": "main.pr --output main.exe",
+      "workingDirectory": "../../examples/hello_world"
+    }
+  }
+}
