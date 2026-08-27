@@ -22,6 +22,7 @@ import :semantic.bound.bound_node;
 
 namespace prism
 {
+    class CastExpressionSyntax;
     class ExpressionBodySyntax;
     class IdentifierExpressionSyntax;
     class FunctionSymbol;
@@ -217,15 +218,19 @@ namespace prism
                                                                      const LookupContext &context) const;
         [[nodiscard]] const BoundExpression &bind_invocation_expression(const InvocationExpressionSyntax &syntax,
                                                                         const LookupContext &context) const;
+        [[nodiscard]] const BoundExpression &bind_cast_expression(const CastExpressionSyntax &syntax,
+                                                                  const LookupContext &context) const;
 
         [[nodiscard]] const BoundExpression &add_conversion_if_necessary(const BoundExpression &expression,
                                                                          const TypeSymbol &type,
-                                                                         const LookupContext &context) const;
+                                                                         const LookupContext &context,
+                                                                         bool is_explicit = false) const;
 
         [[nodiscard]] const BoundExpression &add_conversion_if_necessary(const BoundExpression &expression,
                                                                          const TypeSymbol &type,
                                                                          const Conversion &conversion,
-                                                                         const LookupContext &context) const;
+                                                                         const LookupContext &context,
+                                                                         bool is_explicit = false) const;
 
         [[nodiscard]] ConstantValue evaluate_constant_expression(const SyntaxToken &token,
                                                                  const TypeSymbol *return_type,

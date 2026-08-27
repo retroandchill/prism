@@ -579,6 +579,13 @@ namespace prism
             return make_ref_counted<GreenInvocationExpression>(std::move(expression), std::move(arguments));
         }
 
+        if (kind == SyntaxKind::as_keyword)
+        {
+            auto as = consume_token();
+            auto type = parse_type();
+            return make_ref_counted<GreenCastExpression>(std::move(expression), std::move(as), std::move(type));
+        }
+
         if (is_postfix_operator(kind))
         {
             auto op = consume_token();

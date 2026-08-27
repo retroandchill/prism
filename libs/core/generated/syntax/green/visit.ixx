@@ -44,6 +44,7 @@ namespace prism
                                                     const GreenPostfixExpression &,
                                                     const GreenTernaryExpression &,
                                                     const GreenInvocationExpression &,
+                                                    const GreenCastExpression &,
                                                     const GreenVariableDeclarationStatement &,
                                                     const GreenBlock &,
                                                     const GreenReturnStatement &,
@@ -113,6 +114,8 @@ namespace prism
             case SyntaxKind::invocation_expression:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const GreenInvocationExpression &>(node));
+            case SyntaxKind::cast_expression:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenCastExpression &>(node));
             case SyntaxKind::variable_declaration_statement:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const GreenVariableDeclarationStatement &>(node));
@@ -180,6 +183,7 @@ namespace prism
                                                            GreenPostfixExpression &,
                                                            GreenTernaryExpression &,
                                                            GreenInvocationExpression &,
+                                                           GreenCastExpression &,
                                                            GreenVariableDeclarationStatement &,
                                                            GreenBlock &,
                                                            GreenReturnStatement &,
@@ -245,6 +249,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenTernaryExpression &>(node));
             case SyntaxKind::invocation_expression:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenInvocationExpression &>(node));
+            case SyntaxKind::cast_expression:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenCastExpression &>(node));
             case SyntaxKind::variable_declaration_statement:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<GreenVariableDeclarationStatement &>(node));
@@ -311,6 +317,7 @@ namespace prism
                                                               const GreenPostfixExpression &,
                                                               const GreenTernaryExpression &,
                                                               const GreenInvocationExpression &,
+                                                              const GreenCastExpression &,
                                                               const GreenVariableDeclarationStatement &,
                                                               const GreenBlock &,
                                                               const GreenReturnStatement &,
@@ -380,6 +387,8 @@ namespace prism
             case SyntaxKind::invocation_expression:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const GreenInvocationExpression &>(node));
+            case SyntaxKind::cast_expression:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenCastExpression &>(node));
             case SyntaxKind::variable_declaration_statement:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const GreenVariableDeclarationStatement &>(node));
@@ -448,6 +457,7 @@ namespace prism
                                                                      GreenPostfixExpression &,
                                                                      GreenTernaryExpression &,
                                                                      GreenInvocationExpression &,
+                                                                     GreenCastExpression &,
                                                                      GreenVariableDeclarationStatement &,
                                                                      GreenBlock &,
                                                                      GreenReturnStatement &,
@@ -513,6 +523,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenTernaryExpression &>(node));
             case SyntaxKind::invocation_expression:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenInvocationExpression &>(node));
+            case SyntaxKind::cast_expression:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenCastExpression &>(node));
             case SyntaxKind::variable_declaration_statement:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<GreenVariableDeclarationStatement &>(node));
@@ -763,7 +775,8 @@ namespace prism
                                                           const GreenPrefixExpression &,
                                                           const GreenPostfixExpression &,
                                                           const GreenTernaryExpression &,
-                                                          const GreenInvocationExpression &>;
+                                                          const GreenInvocationExpression &,
+                                                          const GreenCastExpression &>;
 
     template <VisitorForGreenExpression Functor>
     constexpr decltype(auto) visit(const GreenExpression &node, Functor &&functor)
@@ -792,6 +805,8 @@ namespace prism
             case SyntaxKind::invocation_expression:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const GreenInvocationExpression &>(node));
+            case SyntaxKind::cast_expression:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenCastExpression &>(node));
             default:
                 UNREACHABLE("Invalid node type passed into visit");
         }
@@ -807,7 +822,8 @@ namespace prism
                                                                  GreenPrefixExpression &,
                                                                  GreenPostfixExpression &,
                                                                  GreenTernaryExpression &,
-                                                                 GreenInvocationExpression &>;
+                                                                 GreenInvocationExpression &,
+                                                                 GreenCastExpression &>;
 
     template <MutableVisitorForGreenExpression Functor>
     constexpr decltype(auto) visit(GreenExpression &node, Functor &&functor)
@@ -832,6 +848,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenTernaryExpression &>(node));
             case SyntaxKind::invocation_expression:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenInvocationExpression &>(node));
+            case SyntaxKind::cast_expression:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenCastExpression &>(node));
             default:
                 UNREACHABLE("Invalid node type passed into visit");
         }
@@ -848,7 +866,8 @@ namespace prism
                                                                     const GreenPrefixExpression &,
                                                                     const GreenPostfixExpression &,
                                                                     const GreenTernaryExpression &,
-                                                                    const GreenInvocationExpression &>;
+                                                                    const GreenInvocationExpression &,
+                                                                    const GreenCastExpression &>;
 
     template <typename R, VisitorForGreenExpressionReturning<R> Functor>
     constexpr R visit(const GreenExpression &node, Functor &&functor)
@@ -877,6 +896,8 @@ namespace prism
             case SyntaxKind::invocation_expression:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const GreenInvocationExpression &>(node));
+            case SyntaxKind::cast_expression:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const GreenCastExpression &>(node));
             default:
                 UNREACHABLE("Invalid node type passed into visit");
         }
@@ -893,7 +914,8 @@ namespace prism
                                                                            GreenPrefixExpression &,
                                                                            GreenPostfixExpression &,
                                                                            GreenTernaryExpression &,
-                                                                           GreenInvocationExpression &>;
+                                                                           GreenInvocationExpression &,
+                                                                           GreenCastExpression &>;
 
     template <typename R, MutableVisitorForGreenExpressionReturning<R> Functor>
     constexpr R visit(GreenExpression &node, Functor &&functor)
@@ -918,6 +940,8 @@ namespace prism
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenTernaryExpression &>(node));
             case SyntaxKind::invocation_expression:
                 return std::invoke(std::forward<Functor>(functor), static_cast<GreenInvocationExpression &>(node));
+            case SyntaxKind::cast_expression:
+                return std::invoke(std::forward<Functor>(functor), static_cast<GreenCastExpression &>(node));
             default:
                 UNREACHABLE("Invalid node type passed into visit");
         }
@@ -1520,6 +1544,18 @@ namespace prism
         return std::invoke(std::forward<Functor>(functor), node);
     }
 
+    template <std::invocable<const GreenCastExpression &> Functor>
+    constexpr decltype(auto) visit(const GreenCastExpression &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
+    template <std::invocable<GreenCastExpression &> Functor>
+    constexpr decltype(auto) visit(GreenCastExpression &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
     template <std::invocable<const GreenVariableDeclarationStatement &> Functor>
     constexpr decltype(auto) visit(const GreenVariableDeclarationStatement &node, Functor &&functor)
     {
@@ -1690,6 +1726,7 @@ namespace prism
         virtual R operator()(const GreenPostfixExpression &node) const = 0;
         virtual R operator()(const GreenTernaryExpression &node) const = 0;
         virtual R operator()(const GreenInvocationExpression &node) const = 0;
+        virtual R operator()(const GreenCastExpression &node) const = 0;
         virtual R operator()(const GreenVariableDeclarationStatement &node) const = 0;
         virtual R operator()(const GreenBlock &node) const = 0;
         virtual R operator()(const GreenReturnStatement &node) const = 0;
@@ -2020,6 +2057,18 @@ namespace prism
             }
         }
 
+        constexpr R operator()(const GreenCastExpression &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
         constexpr R operator()(const GreenVariableDeclarationStatement &node) const override
         {
             if constexpr (!std::same_as<R, void>)
@@ -2191,6 +2240,7 @@ namespace prism
         virtual R operator()(GreenPostfixExpression &node) const = 0;
         virtual R operator()(GreenTernaryExpression &node) const = 0;
         virtual R operator()(GreenInvocationExpression &node) const = 0;
+        virtual R operator()(GreenCastExpression &node) const = 0;
         virtual R operator()(GreenVariableDeclarationStatement &node) const = 0;
         virtual R operator()(GreenBlock &node) const = 0;
         virtual R operator()(GreenReturnStatement &node) const = 0;
@@ -2510,6 +2560,18 @@ namespace prism
         }
 
         constexpr R operator()(GreenInvocationExpression &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(GreenCastExpression &node) const override
         {
             if constexpr (!std::same_as<R, void>)
             {

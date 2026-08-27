@@ -33,29 +33,30 @@ namespace prism
         extern_keyword = 1004,
         return_keyword = 1005,
         mutable_keyword = 1006,
-        true_keyword = 1007,
-        false_keyword = 1008,
-        void_keyword = 1009,
-        bool_keyword = 1010,
-        i8_keyword = 1011,
-        i16_keyword = 1012,
-        i32_keyword = 1013,
-        i64_keyword = 1014,
-        i128_keyword = 1015,
-        u8_keyword = 1016,
-        u16_keyword = 1017,
-        u32_keyword = 1018,
-        u64_keyword = 1019,
-        u128_keyword = 1020,
-        isize_keyword = 1021,
-        usize_keyword = 1022,
-        f32_keyword = 1023,
-        f64_keyword = 1024,
-        char_keyword = 1025,
-        char16_keyword = 1026,
-        rune_keyword = 1027,
-        str_keyword = 1028,
-        keyword_end = 1028,
+        as_keyword = 1007,
+        true_keyword = 1008,
+        false_keyword = 1009,
+        void_keyword = 1010,
+        bool_keyword = 1011,
+        i8_keyword = 1012,
+        i16_keyword = 1013,
+        i32_keyword = 1014,
+        i64_keyword = 1015,
+        i128_keyword = 1016,
+        u8_keyword = 1017,
+        u16_keyword = 1018,
+        u32_keyword = 1019,
+        u64_keyword = 1020,
+        u128_keyword = 1021,
+        isize_keyword = 1022,
+        usize_keyword = 1023,
+        f32_keyword = 1024,
+        f64_keyword = 1025,
+        char_keyword = 1026,
+        char16_keyword = 1027,
+        rune_keyword = 1028,
+        str_keyword = 1029,
+        keyword_end = 1029,
 #pragma endregion
 
 #pragma region Punctuations
@@ -174,7 +175,8 @@ namespace prism
         postfix_expression = 6006,
         ternary_expression = 6007,
         invocation_expression = 6008,
-        expression_end = 6008,
+        cast_expression = 6009,
+        expression_end = 6009,
 #pragma endregion
 
 #pragma region Statements
@@ -230,6 +232,8 @@ namespace prism
                 return "return";
             case SyntaxKind::mutable_keyword:
                 return "mutable";
+            case SyntaxKind::as_keyword:
+                return "as";
             case SyntaxKind::true_keyword:
                 return "true";
             case SyntaxKind::false_keyword:
@@ -444,6 +448,8 @@ namespace prism
                 return "TernaryExpression";
             case SyntaxKind::invocation_expression:
                 return "InvocationExpression";
+            case SyntaxKind::cast_expression:
+                return "CastExpression";
             case SyntaxKind::variable_declaration_statement:
                 return "VariableDeclarationStatement";
             case SyntaxKind::block:

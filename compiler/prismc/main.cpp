@@ -26,10 +26,10 @@ int main()
     }
 
     auto syntax_tree = prism::SyntaxTree::parse(std::move(program));
-    auto compilation = prism::Compilation::create("test", {std::move(syntax_tree)});
+    const auto compilation = prism::Compilation::create("test", {std::move(syntax_tree)});
 
-    auto result = compilation->emit(std::filesystem::current_path());
-    if (!result.is_success)
+    if (auto [is_success, diagnostics] = compilation->emit(std::filesystem::path{program_path}.parent_path());
+        !is_success)
     {
         std::println("Compilation failed");
         return 1;

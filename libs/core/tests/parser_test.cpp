@@ -171,3 +171,13 @@ TEST_CASE("Assignment works as expected", "[parser]")
     REQUIRE(assignment.left().is<GreenIdentifierExpression>());
     REQUIRE(assignment.right().is<GreenBinaryExpression>());
 }
+
+TEST_CASE("Cast works as expected", "[parser]")
+{
+    LanguageParser parser{"x as i32"};
+    const auto expression = parser.parse_expression();
+    REQUIRE(expression->is<GreenCastExpression>());
+    auto &cast = *expression->as<GreenCastExpression>();
+    CHECK(cast.type().is<GreenPredefinedType>());
+    REQUIRE(cast.operand().is<GreenIdentifierExpression>());
+}

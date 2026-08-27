@@ -14,6 +14,7 @@ namespace prism
 {
     class ArgumentListSyntax;
     class NameSyntax;
+    class TypeSyntax;
 
     export class PRISM_CORE_API ExpressionSyntax : public SyntaxNode
     {
@@ -35,7 +36,8 @@ namespace prism
                    node.kind() == SyntaxKind::parenthesized_expression ||
                    node.kind() == SyntaxKind::binary_expression || node.kind() == SyntaxKind::assignment_expression ||
                    node.kind() == SyntaxKind::prefix_expression || node.kind() == SyntaxKind::postfix_expression ||
-                   node.kind() == SyntaxKind::ternary_expression || node.kind() == SyntaxKind::invocation_expression;
+                   node.kind() == SyntaxKind::ternary_expression || node.kind() == SyntaxKind::invocation_expression ||
+                   node.kind() == SyntaxKind::cast_expression;
         }
     };
 
@@ -286,5 +288,34 @@ namespace prism
       private:
         mutable Lazy<const ExpressionSyntax *> callee_;
         mutable Lazy<const ArgumentListSyntax *> arguments_;
+    };
+
+    export class PRISM_CORE_API CastExpressionSyntax final : public ExpressionSyntax
+    {
+      public:
+        constexpr CastExpressionSyntax(SyntaxLifetime &lifetime,
+                                       const GreenCastExpression &node,
+                                       const SyntaxNode *parent,
+                                       const std::uint32_t position)
+            : ExpressionSyntax{lifetime, node, parent, position}
+        {
+        }
+
+        [[nodiscard]] const ExpressionSyntax &operand() const;
+        [[nodiscard]] SyntaxToken as() const;
+        [[nodiscard]] const TypeSyntax &type() const;
+
+        [[nodiscard]] static constexpr bool instance_of(const SyntaxNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::cast_expression;
+        }
+
+      protected:
+        [[nodiscard]] Optional<const SyntaxNode &> get_node_slot(std::size_t index) const override;
+        [[nodiscard]] Optional<const SyntaxNode &> get_cached_slot(std::size_t index) const override;
+
+      private:
+        mutable Lazy<const ExpressionSyntax *> operand_;
+        mutable Lazy<const TypeSyntax *> type_;
     };
 } // namespace prism

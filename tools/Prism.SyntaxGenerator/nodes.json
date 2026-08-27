@@ -46,6 +46,10 @@
         "text": "mutable"
       },
       {
+        "name": "AsKeyword",
+        "text": "as"
+      },
+      {
         "name": "TrueKeyword",
         "text": "true"
       },
@@ -991,6 +995,33 @@
               "$type": "item",
               "name": "arguments",
               "type": "ArgumentList",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "CastExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "operand",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "as",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "AsKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "type",
+              "type": "Type",
               "shape": "single"
             }
           ]

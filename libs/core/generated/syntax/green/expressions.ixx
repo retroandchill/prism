@@ -9,6 +9,7 @@ namespace prism
 {
     class GreenArgumentList;
     class GreenName;
+    class GreenType;
 
     class GreenExpression : public GreenNode
     {
@@ -25,7 +26,8 @@ namespace prism
                    node.kind() == SyntaxKind::parenthesized_expression ||
                    node.kind() == SyntaxKind::binary_expression || node.kind() == SyntaxKind::assignment_expression ||
                    node.kind() == SyntaxKind::prefix_expression || node.kind() == SyntaxKind::postfix_expression ||
-                   node.kind() == SyntaxKind::ternary_expression || node.kind() == SyntaxKind::invocation_expression;
+                   node.kind() == SyntaxKind::ternary_expression || node.kind() == SyntaxKind::invocation_expression ||
+                   node.kind() == SyntaxKind::cast_expression;
         }
     };
 
@@ -1015,6 +1017,130 @@ namespace prism
             {
                 static_assert(N == 1);
                 return node.with_arguments(std::forward<Arg>(value));
+            }
+        }
+    };
+
+    class GreenCastExpression final : public GreenExpression
+    {
+      public:
+        GreenCastExpression(GreenPtr<GreenExpression> operand,
+                            GreenPtr<GreenToken> as,
+                            GreenPtr<GreenType> type,
+                            DiagnosticInfoList diagnostics = {});
+
+        ~GreenCastExpression() override;
+
+        [[nodiscard]] constexpr const GreenExpression &operand() const noexcept
+        {
+            return *operand_;
+        }
+
+        void set_operand(GreenPtr<GreenExpression> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenToken &as() const noexcept
+        {
+            return *as_;
+        }
+
+        void set_as(GreenPtr<GreenToken> value) noexcept;
+
+        [[nodiscard]] constexpr const GreenType &type() const noexcept
+        {
+            return *type_;
+        }
+
+        void set_type(GreenPtr<GreenType> value) noexcept;
+
+        [[nodiscard]] static constexpr bool instance_of(const GreenNode &node) noexcept
+        {
+            return node.kind() == SyntaxKind::cast_expression;
+        }
+
+        [[nodiscard]] Optional<const GreenNode &> get_slot(std::size_t index) const override;
+
+        [[nodiscard]] SyntaxNode &create_red(SyntaxLifetime &lifetime,
+                                             const SyntaxNode *parent,
+                                             std::uint32_t position) const override;
+
+        [[nodiscard]] GreenPtr<GreenCastExpression> with_operand(GreenPtr<GreenExpression> operand) const;
+
+        [[nodiscard]] GreenPtr<GreenCastExpression> with_as(GreenPtr<GreenToken> as) const;
+
+        [[nodiscard]] GreenPtr<GreenCastExpression> with_type(GreenPtr<GreenType> type) const;
+
+        [[nodiscard]] GreenPtr<GreenCastExpression> update(GreenPtr<GreenExpression> operand,
+                                                           GreenPtr<GreenToken> as,
+                                                           GreenPtr<GreenType> type) const;
+        [[nodiscard]] RefCountPtr<GreenNode> clone_internal() const override;
+
+      private:
+        GreenPtr<GreenExpression> operand_;
+        GreenPtr<GreenToken> as_;
+        GreenPtr<GreenType> type_;
+    };
+
+    template <>
+    struct GreenNodeTraits<GreenCastExpression>
+    {
+        static constexpr std::size_t slot_count = 3;
+
+        using ChildTypes = std::tuple<GreenExpression, GreenToken, GreenType>;
+
+        template <std::size_t N>
+            requires(N < slot_count)
+        static constexpr decltype(auto) get(const GreenCastExpression &node)
+        {
+            if constexpr (N == 0)
+            {
+                return node.operand();
+            }
+            else if constexpr (N == 1)
+            {
+                return node.as();
+            }
+            else
+            {
+                static_assert(N == 2);
+                return node.type();
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenCastExpression>> Arg>
+            requires(N < slot_count)
+        static constexpr void set(GreenCastExpression &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                node.set_operand(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                node.set_as(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 2);
+                node.set_type(std::forward<Arg>(value));
+            }
+        }
+
+        template <std::size_t N, std::convertible_to<GreenSetterParam<N, GreenCastExpression>> Arg>
+            requires(N < slot_count)
+        static constexpr GreenPtr<GreenCastExpression> with(const GreenCastExpression &node, Arg &&value)
+        {
+            if constexpr (N == 0)
+            {
+                return node.with_operand(std::forward<Arg>(value));
+            }
+            else if constexpr (N == 1)
+            {
+                return node.with_as(std::forward<Arg>(value));
+            }
+            else
+            {
+                static_assert(N == 2);
+                return node.with_type(std::forward<Arg>(value));
             }
         }
     };

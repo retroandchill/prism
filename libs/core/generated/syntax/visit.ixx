@@ -43,6 +43,7 @@ namespace prism
                                                      const PostfixExpressionSyntax &,
                                                      const TernaryExpressionSyntax &,
                                                      const InvocationExpressionSyntax &,
+                                                     const CastExpressionSyntax &,
                                                      const VariableDeclarationStatementSyntax &,
                                                      const BlockSyntax &,
                                                      const ReturnStatementSyntax &,
@@ -111,6 +112,8 @@ namespace prism
             case SyntaxKind::invocation_expression:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const InvocationExpressionSyntax &>(node));
+            case SyntaxKind::cast_expression:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const CastExpressionSyntax &>(node));
             case SyntaxKind::variable_declaration_statement:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const VariableDeclarationStatementSyntax &>(node));
@@ -171,6 +174,7 @@ namespace prism
                                                                const PostfixExpressionSyntax &,
                                                                const TernaryExpressionSyntax &,
                                                                const InvocationExpressionSyntax &,
+                                                               const CastExpressionSyntax &,
                                                                const VariableDeclarationStatementSyntax &,
                                                                const BlockSyntax &,
                                                                const ReturnStatementSyntax &,
@@ -239,6 +243,8 @@ namespace prism
             case SyntaxKind::invocation_expression:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const InvocationExpressionSyntax &>(node));
+            case SyntaxKind::cast_expression:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const CastExpressionSyntax &>(node));
             case SyntaxKind::variable_declaration_statement:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const VariableDeclarationStatementSyntax &>(node));
@@ -386,7 +392,8 @@ namespace prism
                                                            const PrefixExpressionSyntax &,
                                                            const PostfixExpressionSyntax &,
                                                            const TernaryExpressionSyntax &,
-                                                           const InvocationExpressionSyntax &>;
+                                                           const InvocationExpressionSyntax &,
+                                                           const CastExpressionSyntax &>;
 
     export template <VisitorForExpressionSyntax Functor>
     constexpr decltype(auto) visit(const ExpressionSyntax &node, Functor &&functor)
@@ -415,6 +422,8 @@ namespace prism
             case SyntaxKind::invocation_expression:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const InvocationExpressionSyntax &>(node));
+            case SyntaxKind::cast_expression:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const CastExpressionSyntax &>(node));
             default:
                 UNREACHABLE("Invalid node type passed into visit");
         }
@@ -431,7 +440,8 @@ namespace prism
                                                                      const PrefixExpressionSyntax &,
                                                                      const PostfixExpressionSyntax &,
                                                                      const TernaryExpressionSyntax &,
-                                                                     const InvocationExpressionSyntax &>;
+                                                                     const InvocationExpressionSyntax &,
+                                                                     const CastExpressionSyntax &>;
 
     export template <typename R, VisitorForExpressionSyntaxReturning<R> Functor>
     constexpr R visit(const ExpressionSyntax &node, Functor &&functor)
@@ -460,6 +470,8 @@ namespace prism
             case SyntaxKind::invocation_expression:
                 return std::invoke(std::forward<Functor>(functor),
                                    static_cast<const InvocationExpressionSyntax &>(node));
+            case SyntaxKind::cast_expression:
+                return std::invoke(std::forward<Functor>(functor), static_cast<const CastExpressionSyntax &>(node));
             default:
                 UNREACHABLE("Invalid node type passed into visit");
         }
@@ -775,6 +787,12 @@ namespace prism
         return std::invoke(std::forward<Functor>(functor), node);
     }
 
+    template <std::invocable<const CastExpressionSyntax &> Functor>
+    constexpr decltype(auto) visit(const CastExpressionSyntax &node, Functor &&functor)
+    {
+        return std::invoke(std::forward<Functor>(functor), node);
+    }
+
     template <std::invocable<const VariableDeclarationStatementSyntax &> Functor>
     constexpr decltype(auto) visit(const VariableDeclarationStatementSyntax &node, Functor &&functor)
     {
@@ -876,6 +894,7 @@ namespace prism
         virtual R operator()(const PostfixExpressionSyntax &node) const = 0;
         virtual R operator()(const TernaryExpressionSyntax &node) const = 0;
         virtual R operator()(const InvocationExpressionSyntax &node) const = 0;
+        virtual R operator()(const CastExpressionSyntax &node) const = 0;
         virtual R operator()(const VariableDeclarationStatementSyntax &node) const = 0;
         virtual R operator()(const BlockSyntax &node) const = 0;
         virtual R operator()(const ReturnStatementSyntax &node) const = 0;
@@ -1159,6 +1178,18 @@ namespace prism
         }
 
         constexpr R operator()(const InvocationExpressionSyntax &node) const override
+        {
+            if constexpr (!std::same_as<R, void>)
+            {
+                return R{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        constexpr R operator()(const CastExpressionSyntax &node) const override
         {
             if constexpr (!std::same_as<R, void>)
             {

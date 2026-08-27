@@ -368,8 +368,10 @@ namespace prism
                                      [&](const TernaryExpressionSyntax &e) -> const BoundExpression &
                                      { return bind_ternary_expression(e, target_type, context); },
                                      [&](const InvocationExpressionSyntax &e) -> const BoundExpression &
+                                     { return bind_invocation_expression(e, context); },
+                                     [&](const CastExpressionSyntax &e) -> const BoundExpression &
                                      {
-                                         return bind_invocation_expression(e, context);
+                                         return bind_cast_expression(e, context);
                                      }});
 
         if (target_type != nullptr)
@@ -881,19 +883,29 @@ namespace prism
         return lifetime().create<BoundCallExpression>(syntax, unnamed_error_function, arguments);
     }
 
+    const BoundExpression &Binder::bind_cast_expression(const CastExpressionSyntax &syntax,
+                                                        const LookupContext &context) const
+    {
+        auto &operand = bind_expression(syntax.operand(), context);
+        auto &target_type = resolve_type(syntax.type(), context);
+        return add_conversion_if_necessary(operand, target_type, context, true);
+    }
+
     const BoundExpression &Binder::add_conversion_if_necessary(const BoundExpression &expression,
                                                                const TypeSymbol &type,
-                                                               const LookupContext &context) const
+                                                               const LookupContext &context,
+                                                               const bool is_explicit) const
     {
         auto &conversions = conversion_classifier();
         const auto conversion = conversions.classify_conversion(expression.type(), type);
-        return add_conversion_if_necessary(expression, type, conversion, context);
+        return add_conversion_if_necessary(expression, type, conversion, context, is_explicit);
     }
 
     const BoundExpression &Binder::add_conversion_if_necessary(const BoundExpression &expression,
                                                                const TypeSymbol &type,
                                                                const Conversion &conversion,
-                                                               const LookupContext &context) const
+                                                               const LookupContext &context,
+                                                               bool is_explicit) const
     {
         auto &syntax = expression.syntax().as_checked<ExpressionSyntax>();
         if (!conversion.exists())
@@ -904,7 +916,7 @@ namespace prism
         }
         else if (!conversion.is_identity())
         {
-            if (!conversion.is_implicit())
+            if (!conversion.is_implicit() && !is_explicit)
             {
                 context.report_diagnostic(
                     diagnostics::make_conversion_is_explicit(syntax.location(),

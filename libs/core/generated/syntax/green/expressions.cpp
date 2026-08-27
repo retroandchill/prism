@@ -5,6 +5,7 @@ import :syntax.green.expressions;
 import :syntax.expressions;
 import :syntax.green.clauses;
 import :syntax.green.names;
+import :syntax.green.types;
 
 namespace prism
 {
@@ -688,5 +689,88 @@ namespace prism
     RefCountPtr<GreenNode> GreenInvocationExpression::clone_internal() const
     {
         return make_ref_counted<GreenInvocationExpression>(callee_, arguments_);
+    }
+
+    GreenCastExpression::GreenCastExpression(GreenPtr<GreenExpression> operand,
+                                             GreenPtr<GreenToken> as,
+                                             GreenPtr<GreenType> type,
+                                             DiagnosticInfoList diagnostics)
+        : GreenExpression{SyntaxKind::cast_expression, std::move(diagnostics)}, operand_{std::move(operand)},
+          as_{std::move(as)}, type_{std::move(type)}
+    {
+        set_slot_count(3);
+        adjust_flags_and_width(*operand_);
+        adjust_flags_and_width(*as_);
+        adjust_flags_and_width(*type_);
+    }
+
+    GreenCastExpression::~GreenCastExpression() = default;
+
+    void GreenCastExpression::set_operand(GreenPtr<GreenExpression> value) noexcept
+    {
+        operand_ = std::move(value);
+    }
+
+    void GreenCastExpression::set_as(GreenPtr<GreenToken> value) noexcept
+    {
+        as_ = std::move(value);
+    }
+
+    void GreenCastExpression::set_type(GreenPtr<GreenType> value) noexcept
+    {
+        type_ = std::move(value);
+    }
+
+    Optional<const GreenNode &> GreenCastExpression::get_slot(std::size_t index) const
+    {
+        switch (index)
+        {
+            case 0:
+                return *operand_;
+            case 1:
+                return *as_;
+            case 2:
+                return *type_;
+            default:
+                return std::nullopt;
+        }
+    }
+
+    [[nodiscard]] SyntaxNode &GreenCastExpression::create_red(SyntaxLifetime &lifetime,
+                                                              const SyntaxNode *parent,
+                                                              std::uint32_t position) const
+    {
+        return lifetime.add<CastExpressionSyntax>(*this, parent, position);
+    }
+
+    [[nodiscard]] GreenPtr<GreenCastExpression> GreenCastExpression::with_operand(
+        GreenPtr<GreenExpression> operand) const
+    {
+        return update(std::move(operand), as_, type_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenCastExpression> GreenCastExpression::with_as(GreenPtr<GreenToken> as) const
+    {
+        return update(operand_, std::move(as), type_);
+    }
+
+    [[nodiscard]] GreenPtr<GreenCastExpression> GreenCastExpression::with_type(GreenPtr<GreenType> type) const
+    {
+        return update(operand_, as_, std::move(type));
+    }
+
+    GreenPtr<GreenCastExpression> GreenCastExpression::update(GreenPtr<GreenExpression> operand,
+                                                              GreenPtr<GreenToken> as,
+                                                              GreenPtr<GreenType> type) const
+    {
+        if (operand == operand_ && as == as_ && type == type_)
+            return shared_from_this();
+
+        return make_ref_counted<const GreenCastExpression>(std::move(operand), std::move(as), std::move(type));
+    }
+
+    RefCountPtr<GreenNode> GreenCastExpression::clone_internal() const
+    {
+        return make_ref_counted<GreenCastExpression>(operand_, as_, type_);
     }
 } // namespace prism

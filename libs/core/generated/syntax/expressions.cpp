@@ -3,6 +3,7 @@ module prism.core:syntax.expressions.impl;
 import :syntax.expressions;
 import :syntax.clauses;
 import :syntax.names;
+import :syntax.types;
 
 namespace prism
 {
@@ -290,6 +291,49 @@ namespace prism
                 return callee_.try_get_value(nullptr);
             case 1:
                 return arguments_.try_get_value(nullptr);
+            default:
+                return std::nullopt;
+        }
+    }
+
+    const ExpressionSyntax &CastExpressionSyntax::operand() const
+    {
+        return *get_red(operand_);
+    }
+
+    SyntaxToken CastExpressionSyntax::as() const
+    {
+        return SyntaxToken{static_cast<const GreenCastExpression &>(SyntaxNodeInternal::get_green(*this)).as(),
+                           this,
+                           get_slot_position(1)};
+    }
+
+    const TypeSyntax &CastExpressionSyntax::type() const
+    {
+        return *get_red(type_, 2);
+    }
+
+    Optional<const SyntaxNode &> CastExpressionSyntax::get_node_slot(const std::size_t index) const
+    {
+        switch (index)
+        {
+            case 0:
+                return get_red(operand_);
+            case 2:
+                return get_red(type_, 2);
+            default:
+                return std::nullopt;
+        }
+    }
+
+    Optional<const SyntaxNode &> CastExpressionSyntax::get_cached_slot(const std::size_t index) const
+    {
+        switch (index)
+        {
+            case 0:
+                return operand_.try_get_value(nullptr);
+            case 2:
+                return type_.try_get_value(nullptr);
             default:
                 return std::nullopt;
         }

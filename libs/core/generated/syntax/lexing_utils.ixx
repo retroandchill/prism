@@ -17,6 +17,7 @@ namespace prism
                 make_ref_counted<GreenToken>(SyntaxKind::extern_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::return_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::mutable_keyword),
+                make_ref_counted<GreenToken>(SyntaxKind::as_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::true_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::false_keyword),
                 make_ref_counted<GreenToken>(SyntaxKind::void_keyword),
@@ -115,6 +116,8 @@ namespace prism
         switch (text.size())
         {
             case 2:
+                if (text == "as")
+                    return SyntaxKind::as_keyword;
                 if (text == "i8")
                     return SyntaxKind::i8_keyword;
                 if (text == "u8")
