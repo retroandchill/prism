@@ -66,6 +66,11 @@ namespace prism
                                                           : std::nullopt;
         }
 
+        [[nodiscard]] constexpr bool intersects_with(TextSpan other) const
+        {
+            return other.start <= end() && other.end() >= start;
+        }
+
         [[nodiscard]] static constexpr TextSpan from_bounds(const std::uint32_t start, const std::uint32_t end)
         {
             if (end < start)

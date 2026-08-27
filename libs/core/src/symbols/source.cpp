@@ -25,6 +25,8 @@ import :binder.binder_factory;
 import :semantic.semantic_model;
 import :semantic.semantic_model_state;
 import :diagnostics.factories;
+import :syntax.syntax_utils;
+import :util.deferred;
 
 namespace prism
 {
@@ -76,6 +78,47 @@ namespace prism
     Optional<const Compilation &> SourceAssemblySymbol::declaring_compilation() const
     {
         return declaring_compilation_;
+    }
+
+    bool SourceAssemblySymbol::needs_completion() const noexcept
+    {
+        return true;
+    }
+
+    void SourceAssemblySymbol::force_complete(const Optional<SourceLocation> &location,
+                                              const Optional<SymbolPredicate> &filter) const
+    {
+        while (true)
+        {
+            const auto incomplete_part = completion_state_.next_incomplete_part();
+            switch (incomplete_part)
+            {
+                case CompletionPart::members:
+                    SymbolInternal::force_complete(global_namespace(), location, filter);
+                    if (SymbolInternal::is_complete(global_namespace(), CompletionPart::members_completed))
+                    {
+                        completion_state_.mark_part_complete(CompletionPart::members);
+                        break;
+                    }
+
+                    DEBUG_ASSERT(!location.has_value() || !filter.has_value(),
+                                 "If no location or filter is provided, the global namespace should be complete");
+                    return;
+                case CompletionPart::none:
+                    return;
+                default:
+                    // Any other values are for other kinds of symbols
+                    completion_state_.mark_part_complete(CompletionPart::all & ~CompletionPart::assembly_all);
+                    break;
+            }
+
+            completion_state_.wait_part_complete(incomplete_part);
+        }
+    }
+
+    bool SourceAssemblySymbol::is_complete(const CompletionPart part) const noexcept
+    {
+        return completion_state_.has_complete(part);
     }
 
     SourceNamespaceSymbol::SourceNamespaceSymbol(RefCountPtr<const MergedNamespaceDeclaration> declaration,
@@ -132,6 +175,94 @@ namespace prism
             });
     }
 
+    bool SourceNamespaceSymbol::is_defined_in_source_tree(const SyntaxTree &tree,
+                                                          Optional<TextSpan> defined_within) const
+    {
+        if (is_global())
+            return true;
+
+        for (auto &declaration : merged_declaration_->declarations())
+        {
+            auto &ref = declaration->syntax_reference();
+            if (&ref.tree() != &tree)
+                continue;
+
+            if (!defined_within.has_value())
+                return true;
+
+            if (auto &syntax = get_namespace_declaration_syntax(ref);
+                syntax.full_span().intersects_with(*defined_within))
+                return true;
+        }
+
+        return false;
+    }
+
+    bool SourceNamespaceSymbol::needs_completion() const noexcept
+    {
+        return true;
+    }
+
+    void SourceNamespaceSymbol::force_complete(const Optional<SourceLocation> &location,
+                                               const Optional<SymbolPredicate> &filter) const
+    {
+        if (filter.has_value() && !(*filter)(*this))
+            return;
+
+        const auto wait_complete = [&]
+        {
+            const auto all_parts = (!location.has_value() && !filter.has_value())
+                                       ? CompletionPart::namespace_all
+                                       : CompletionPart::namespace_all & ~CompletionPart::members_completed;
+            completion_state_.mark_part_complete(all_parts);
+        };
+
+        while (true)
+        {
+            const auto incomplete_part = completion_state_.next_incomplete_part();
+            switch (incomplete_part)
+            {
+                case CompletionPart::members:
+                    std::ignore = get_name_to_members_map();
+                    break;
+                case CompletionPart::members_completed:
+                    {
+                        auto members = this->members();
+                        bool all_completed = true;
+
+                        for (auto member : members)
+                        {
+                            force_complete_member_conditionally(location, filter, member);
+                            all_completed = all_completed && SymbolInternal::is_complete(member, CompletionPart::all);
+                        }
+
+                        if (all_completed)
+                        {
+                            completion_state_.mark_part_complete(CompletionPart::members_completed);
+                            break;
+                        }
+
+                        wait_complete();
+                        return;
+                    }
+                case CompletionPart::none:
+                    return;
+                default:
+                    completion_state_.mark_part_complete(CompletionPart::all & ~CompletionPart::namespace_all);
+                    break;
+            }
+
+            completion_state_.wait_part_complete(incomplete_part);
+        }
+
+        wait_complete();
+    }
+
+    bool SourceNamespaceSymbol::is_complete(const CompletionPart part) const noexcept
+    {
+        return completion_state_.has_complete(part);
+    }
+
     const std::unordered_map<Name, ImmutableArray<Ref<const Symbol>>> &SourceNamespaceSymbol::get_name_to_members_map()
         const
     {
@@ -181,6 +312,7 @@ namespace prism
                            }});
         }
 
+        completion_state_.mark_part_complete(CompletionPart::members);
         return result |
                std::views::transform(
                    [](const auto &pair)
@@ -251,6 +383,7 @@ namespace prism
                 DiagnosticBag diagnostics;
                 auto &type = compute_type(diagnostics);
                 add_declaration_diagnostics(diagnostics);
+                completion_state_.mark_part_complete(CompletionPart::type);
                 return type;
             });
     }
@@ -270,9 +403,66 @@ namespace prism
         return {&syntax_reference_, 1};
     }
 
+    const Optional<ConstantValue> &SourceVariableSymbol::constant_value() const noexcept
+    {
+        return constant_value_.get_or_compute(
+            [this]
+            {
+                DiagnosticBag diagnostics;
+                auto value = compute_constant_value(diagnostics);
+                add_declaration_diagnostics(diagnostics);
+                completion_state_.mark_part_complete(CompletionPart::type);
+                return value;
+            });
+    }
+
+    bool SourceVariableSymbol::is_defined_in_source_tree(const SyntaxTree &tree,
+                                                         Optional<TextSpan> defined_within) const
+    {
+        return Symbol::is_defined_in_source_tree(syntax_reference_, tree, defined_within);
+    }
+
     const VariableDeclarationSyntax &SourceVariableSymbol::syntax() const noexcept
     {
         return syntax_;
+    }
+
+    bool SourceVariableSymbol::needs_completion() const noexcept
+    {
+        return true;
+    }
+
+    void SourceVariableSymbol::force_complete(const Optional<SourceLocation> &location,
+                                              const Optional<SymbolPredicate> &filter) const
+    {
+        if (filter.has_value() && !(*filter)(*this))
+            return;
+
+        while (true)
+        {
+            const auto incomplete_part = completion_state_.next_incomplete_part();
+            switch (incomplete_part)
+            {
+                case CompletionPart::none:
+                    return;
+                case CompletionPart::type:
+                    std::ignore = type();
+                    break;
+                case CompletionPart::constant_value:
+                    std::ignore = constant_value();
+                    break;
+                default:
+                    completion_state_.mark_part_complete(CompletionPart::all & ~CompletionPart::variable_all);
+                    break;
+            }
+
+            completion_state_.wait_part_complete(incomplete_part);
+        }
+    }
+
+    bool SourceVariableSymbol::is_complete(const CompletionPart part) const noexcept
+    {
+        return completion_state_.has_complete(part);
     }
 
     SourceLocalVariableSymbol::SourceLocalVariableSymbol(const Name name,
@@ -312,6 +502,21 @@ namespace prism
         return initializer.type();
     }
 
+    Optional<ConstantValue> SourceLocalVariableSymbol::compute_constant_value(DiagnosticBag &diagnostics) const
+    {
+        const LookupContext context{diagnostics};
+        if (!syntax().initializer().has_value())
+        {
+            return std::nullopt;
+            ;
+        }
+
+        auto &semantic_model = declaring_compilation()->get_semantic_model(syntax().tree());
+        auto &initializer =
+            SemanticModelInternal::get_bound_initializer(semantic_model, syntax(), *initializer_binder_, context);
+        return initializer.constant_value();
+    }
+
     SourceGlobalVariableSymbol::SourceGlobalVariableSymbol(const Name name,
                                                            const Symbol *containing,
                                                            const VariableDeclarationSyntax &syntax)
@@ -338,6 +543,19 @@ namespace prism
 
         diagnostics.add(diagnostics::make_expected_type_specifier(syntax().identifier().location()));
         return unnamed_error_type;
+    }
+
+    Optional<ConstantValue> SourceGlobalVariableSymbol::compute_constant_value(DiagnosticBag &diagnostics) const
+    {
+        if (!syntax().initializer().has_value())
+        {
+            return std::nullopt;
+        }
+
+        const LookupContext context{diagnostics};
+        auto &semantic_model = declaring_compilation()->get_semantic_model(syntax().tree());
+        auto &initializer = SemanticModelInternal::get_bound_initializer(semantic_model, syntax(), context);
+        return initializer.constant_value();
     }
 
     SourceFunctionSymbol::SourceFunctionSymbol(const Name &name,
@@ -376,6 +594,84 @@ namespace prism
         return {&syntax_reference_, 1};
     }
 
+    bool SourceFunctionSymbol::needs_completion() const noexcept
+    {
+        return true;
+    }
+
+    void SourceFunctionSymbol::force_complete(const Optional<SourceLocation> &location,
+                                              const Optional<SymbolPredicate> &filter) const
+    {
+        if (filter.has_value() && !(*filter)(*this))
+            return;
+
+        const auto wait_for_completion = [this]
+        {
+            constexpr auto all_parts = CompletionPart::function_all;
+            completion_state_.wait_part_complete(all_parts);
+        };
+
+        while (true)
+        {
+            const auto incomplete_part = completion_state_.next_incomplete_part();
+            switch (incomplete_part)
+            {
+                case CompletionPart::type:
+                    std::ignore = return_type();
+                    break;
+                case CompletionPart::parameters:
+                    for (auto parameter : parameters())
+                    {
+                        SymbolInternal::force_complete(parameter, location, std::nullopt);
+                    }
+
+                    completion_state_.mark_part_complete(CompletionPart::parameters);
+                    break;
+                case CompletionPart::start_checks:
+                case CompletionPart::finish_checks:
+                    lazy_function_checks();
+                    break;
+                case CompletionPart::none:
+                    return;
+                default:
+                    completion_state_.wait_part_complete(CompletionPart::function_all);
+                    break;
+            }
+
+            completion_state_.wait_part_complete(CompletionPart::function_all);
+        }
+
+        wait_for_completion();
+    }
+
+    bool SourceFunctionSymbol::is_complete(const CompletionPart part) const noexcept
+    {
+        return completion_state_.has_complete(part);
+    }
+
+    void SourceFunctionSymbol::lazy_function_checks() const
+    {
+        if (completion_state_.has_complete(CompletionPart::finish_checks))
+        {
+            return;
+        }
+
+        std::scoped_lock lock{function_checks_mutex_};
+        if (completion_state_.mark_part_complete(CompletionPart::start_checks))
+        {
+            DiagnosticBag diagnostics;
+            Deferred deferred([this] noexcept { completion_state_.mark_part_complete(CompletionPart::finish_checks); });
+
+            function_checks(diagnostics);
+            add_declaration_diagnostics(diagnostics);
+        }
+    }
+
+    void SourceFunctionSymbol::function_checks(DiagnosticBag &bag) const
+    {
+        // TODO: Perform function validation
+    }
+
     const TypeSymbol &SourceFunctionSymbol::compute_return_type(DiagnosticBag &diagnostics) const
     {
         const LookupContext context{diagnostics};
@@ -383,7 +679,9 @@ namespace prism
         {
             auto &semantic_model = declaring_compilation()->get_semantic_model(syntax_.tree());
             auto &binder = SemanticModelInternal::get_binder(semantic_model, syntax_);
-            return binder.resolve_type(syntax_.return_type()->type(), context);
+            auto &type = binder.resolve_type(syntax_.return_type()->type(), context);
+            completion_state_.mark_part_complete(CompletionPart::type);
+            return type;
         }
 
         // Omitting the return type just results in void
@@ -405,6 +703,7 @@ namespace prism
             parameters.emplace_back(lifetime.create<SourceParameterSymbol>(name, this, syntax));
         }
 
+        completion_state_.mark_part_complete(CompletionPart::parameters);
         return lifetime.copy_refs(parameters);
     }
 
@@ -430,6 +729,7 @@ namespace prism
                 DiagnosticBag diagnostics;
                 auto &type = compute_type(diagnostics);
                 add_declaration_diagnostics(diagnostics);
+                completion_state_.mark_part_complete(CompletionPart::type);
                 return type;
             });
     }
@@ -452,5 +752,37 @@ namespace prism
 
         // TODO: When we add support for lambdas we need to ensure we can infer a type from the context
         return binder.resolve_type(syntax_.type_specifier()->type(), context);
+    }
+
+    bool SourceParameterSymbol::needs_completion() const noexcept
+    {
+        return true;
+    }
+
+    void SourceParameterSymbol::force_complete(const Optional<SourceLocation> &,
+                                               const Optional<SymbolPredicate> &) const
+    {
+        while (true)
+        {
+            const auto incomplete_part = completion_state_.next_incomplete_part();
+            switch (incomplete_part)
+            {
+                case CompletionPart::type:
+                    std::ignore = type();
+                    break;
+                case CompletionPart::none:
+                    return;
+                default:
+                    completion_state_.mark_part_complete(CompletionPart::all & ~CompletionPart::parameter_all);
+                    break;
+            }
+
+            completion_state_.wait_part_complete(incomplete_part);
+        }
+    }
+
+    bool SourceParameterSymbol::is_complete(const CompletionPart part) const noexcept
+    {
+        return completion_state_.has_complete(part);
     }
 } // namespace prism

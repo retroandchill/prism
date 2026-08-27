@@ -7,6 +7,7 @@
 export module prism.core:symbols.variable_symbol;
 
 import :symbols.symbol;
+import :semantic.constant_value;
 
 namespace prism
 {
@@ -37,6 +38,8 @@ namespace prism
         [[nodiscard]] virtual bool is_global() const noexcept = 0;
 
         [[nodiscard]] virtual bool has_initializer() const noexcept = 0;
+
+        [[nodiscard]] virtual const Optional<ConstantValue> &constant_value() const noexcept = 0;
 
         /**
          * @brief Check if the target symbol is a variable.

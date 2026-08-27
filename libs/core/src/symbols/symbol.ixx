@@ -20,6 +20,7 @@ import :util.ref;
 import :text.string_writer;
 import :syntax.reference;
 import :util.function_ref;
+import :symbols.completion_part;
 
 namespace prism
 {
@@ -39,6 +40,8 @@ namespace prism
                                  T::instance_of(symbol)
                              } -> std::convertible_to<bool>;
                          });
+
+    using SymbolPredicate = FunctionRef<bool(const Symbol &)>;
 
     export enum class DeclaredVisibility : std::uint8_t
     {
@@ -84,6 +87,8 @@ namespace prism
 
         [[nodiscard]] virtual const ImmutableArray<Location> &locations() const = 0;
 
+        [[nodiscard]] virtual bool is_implicitly_declared() const noexcept;
+
         [[nodiscard]] Optional<Location> try_get_first_location() const;
 
         [[nodiscard]] Location first_location() const;
@@ -123,6 +128,15 @@ namespace prism
          */
         [[nodiscard]] virtual std::span<const SyntaxReference> declaring_syntax_references() const = 0;
 
+        [[nodiscard]] virtual bool is_defined_in_source_tree(const SyntaxTree &tree,
+                                                             Optional<TextSpan> defined_within) const;
+
+      protected:
+        [[nodiscard]] static bool is_defined_in_source_tree(const SyntaxReference &reference,
+                                                            const SyntaxTree &tree,
+                                                            Optional<TextSpan> defined_within);
+
+      public:
         /**
          * @brief Checks if this object is an instance of the target type.
          * @tparam T The target type
@@ -188,11 +202,42 @@ namespace prism
 
       protected:
         [[nodiscard]] virtual Optional<const Compilation &> declaring_compilation() const;
-        virtual void add_declaration_diagnostics(const DiagnosticBag &diagnostics) const;
+        void add_declaration_diagnostics(const DiagnosticBag &diagnostics) const;
+
+        [[nodiscard]] virtual bool needs_completion() const noexcept;
+        virtual void force_complete(const Optional<SourceLocation> &location,
+                                    const Optional<SymbolPredicate> &filter) const;
+        [[nodiscard]] virtual bool is_complete(CompletionPart part) const noexcept;
+
+        static void force_complete_member_conditionally(const Optional<SourceLocation> &location,
+                                                        const Optional<SymbolPredicate> &filter,
+                                                        const Symbol &member);
 
       private:
+        friend struct SymbolInternal;
+
         SymbolKind kind_;
         Name name_;
         const Symbol *containing_symbol_ = nullptr;
+    };
+
+    struct SymbolInternal
+    {
+        [[nodiscard]] static inline bool needs_completion(const Symbol &symbol) noexcept
+        {
+            return symbol.needs_completion();
+        }
+
+        static inline void force_complete(const Symbol &symbol,
+                                          const Optional<SourceLocation> &location,
+                                          const Optional<SymbolPredicate> &filter) noexcept
+        {
+            symbol.force_complete(location, filter);
+        }
+
+        [[nodiscard]] static inline bool is_complete(const Symbol &symbol, CompletionPart part) noexcept
+        {
+            return symbol.is_complete(part);
+        }
     };
 } // namespace prism

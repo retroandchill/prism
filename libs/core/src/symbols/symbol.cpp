@@ -26,6 +26,11 @@ namespace prism
         return DeclaredVisibility::not_applicable;
     }
 
+    bool Symbol::is_implicitly_declared() const noexcept
+    {
+        return false;
+    }
+
     Optional<Location> Symbol::try_get_first_location() const
     {
         const auto locations = this->locations();
@@ -79,6 +84,30 @@ namespace prism
         return container->containing_type();
     }
 
+    bool Symbol::is_defined_in_source_tree(const SyntaxTree &tree, Optional<TextSpan> defined_within) const
+    {
+        auto declaring_references = declaring_syntax_references();
+        if (is_implicitly_declared() && declaring_syntax_references().empty())
+        {
+            return containing_symbol().value().is_defined_in_source_tree(tree, defined_within);
+        }
+
+        for (auto &ref : declaring_references)
+        {
+            if (is_defined_in_source_tree(ref, tree, defined_within))
+                return true;
+        }
+        return false;
+    }
+
+    bool Symbol::is_defined_in_source_tree(const SyntaxReference &reference,
+                                           const SyntaxTree &tree,
+                                           Optional<TextSpan> defined_within)
+    {
+        return &reference.tree() == &tree &&
+               (!defined_within.has_value() || reference.span().intersects_with(defined_within.value()));
+    }
+
     Optional<const Compilation &> Symbol::declaring_compilation() const
     {
         return containing_assembly().and_then([](const AssemblySymbol &assembly)
@@ -90,5 +119,32 @@ namespace prism
         const auto compilation = declaring_compilation();
         DEBUG_ASSERT(compilation.has_value());
         CompilationInternal::get_declaration_diagnostics(*compilation).add_range(diagnostics);
+    }
+
+    bool Symbol::needs_completion() const noexcept
+    {
+        return false;
+    }
+
+    void Symbol::force_complete(const Optional<SourceLocation> &location, const Optional<SymbolPredicate> &filter) const
+    {
+        DEBUG_ASSERT(!needs_completion(), "Need to override force_complete");
+    }
+
+    bool Symbol::is_complete(CompletionPart part) const noexcept
+    {
+        DEBUG_ASSERT(!needs_completion(), "Need to override is_complete");
+        return true;
+    }
+
+    void Symbol::force_complete_member_conditionally(const Optional<SourceLocation> &location,
+                                                     const Optional<SymbolPredicate> &filter,
+                                                     const Symbol &member)
+    {
+        if ((!location.has_value() || member.is_defined_in_source_tree(location->tree(), location->source_span())) &&
+            (!filter.has_value() || (*filter)(member)))
+        {
+            member.force_complete(location, filter);
+        }
     }
 } // namespace prism

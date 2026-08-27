@@ -46,6 +46,11 @@ namespace prism
             return name() == KnownName::global;
         }
 
+        [[nodiscard]] constexpr bool is_implicitly_declared() const noexcept final
+        {
+            return true;
+        }
+
         [[nodiscard]] virtual NamespaceKind namespace_kind() const noexcept = 0;
 
         [[nodiscard]] virtual Optional<const Compilation &> containing_compilation() const noexcept = 0;

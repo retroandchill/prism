@@ -110,6 +110,15 @@ namespace prism
         return lazy_array->get_or_compute([this, name] { return compute_members(name); });
     }
 
+    void MergedNamespaceSymbol::force_complete(const Optional<SourceLocation> &location,
+                                               const Optional<SymbolPredicate> &filter) const
+    {
+        for (auto part : namespaces_)
+        {
+            SymbolInternal::force_complete(part, location, filter);
+        }
+    }
+
     ImmutableArray<Ref<const Symbol>> MergedNamespaceSymbol::compute_members(const Name name) const
     {
         return namespaces_ | std::views::transform([&](const NamespaceSymbol &n) { return n.members(name); }) |

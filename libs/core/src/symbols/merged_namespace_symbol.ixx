@@ -38,6 +38,10 @@ namespace prism
         [[nodiscard]] SymbolSpan<Symbol> members() const override;
         [[nodiscard]] SymbolSpan<Symbol> members(Name name) const override;
 
+      protected:
+        void force_complete(const Optional<SourceLocation> &location,
+                            const Optional<SymbolPredicate> &filter) const override;
+
       private:
         [[nodiscard]] ImmutableArray<Ref<const Symbol>> compute_members(Name name) const;
 

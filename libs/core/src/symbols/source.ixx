@@ -19,6 +19,7 @@ import :symbols.function_symbol;
 import :symbols.parameter_symbol;
 import :symbols.named_type_symbol;
 import :declarations.merged_namespace_declaration;
+import :symbols.symbol_completion_state;
 
 namespace prism
 {
@@ -40,9 +41,14 @@ namespace prism
 
       protected:
         [[nodiscard]] Optional<const Compilation &> declaring_compilation() const override;
+        [[nodiscard]] bool needs_completion() const noexcept override;
+        void force_complete(const Optional<SourceLocation> &location,
+                            const Optional<SymbolPredicate> &filter) const override;
+        [[nodiscard]] bool is_complete(CompletionPart part) const noexcept override;
 
       private:
         const Compilation &declaring_compilation_;
+        mutable SymbolCompletionState completion_state_;
         mutable Lazy<ImmutableArray<Location>> locations_;
         mutable Lazy<const NamespaceSymbol &> global_namespace_;
     };
@@ -71,6 +77,15 @@ namespace prism
 
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
 
+        [[nodiscard]] bool is_defined_in_source_tree(const SyntaxTree &tree,
+                                                     Optional<TextSpan> defined_within) const override;
+
+      protected:
+        [[nodiscard]] bool needs_completion() const noexcept override;
+        void force_complete(const Optional<SourceLocation> &location,
+                            const Optional<SymbolPredicate> &filter) const override;
+        [[nodiscard]] bool is_complete(CompletionPart part) const noexcept override;
+
       private:
         [[nodiscard]] const std::unordered_map<Name, ImmutableArray<Ref<const Symbol>>> &get_name_to_members_map()
             const;
@@ -83,6 +98,7 @@ namespace prism
         [[nodiscard]] ImmutableArray<Ref<const Symbol>> compute_members() const;
 
         const AssemblySymbol &containing_assembly_;
+        mutable SymbolCompletionState completion_state_;
         RefCountPtr<const MergedNamespaceDeclaration> merged_declaration_;
         mutable Lazy<ImmutableArray<Location>> locations_;
         mutable Lazy<std::unordered_map<Name, ImmutableArray<Ref<const Symbol>>>> name_to_members_map_;
@@ -105,17 +121,28 @@ namespace prism
         [[nodiscard]] bool has_initializer() const noexcept final;
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const final;
 
+        [[nodiscard]] const Optional<ConstantValue> &constant_value() const noexcept override;
+        [[nodiscard]] bool is_defined_in_source_tree(const SyntaxTree &tree,
+                                                     Optional<TextSpan> defined_within) const override;
+
       protected:
         [[nodiscard]] const VariableDeclarationSyntax &syntax() const noexcept;
         [[nodiscard]] virtual const TypeSymbol &compute_type(DiagnosticBag &diagnostics) const = 0;
+        [[nodiscard]] virtual Optional<ConstantValue> compute_constant_value(DiagnosticBag &diagnostics) const = 0;
+
+        [[nodiscard]] bool needs_completion() const noexcept override;
+        void force_complete(const Optional<SourceLocation> &location,
+                            const Optional<SymbolPredicate> &filter) const override;
+        [[nodiscard]] bool is_complete(CompletionPart part) const noexcept override;
 
       private:
         mutable Lazy<ImmutableArray<Location>> locations_;
-
         const VariableDeclarationSyntax &syntax_;
         SyntaxReference syntax_reference_;
         mutable Lazy<const TypeSymbol &> type_;
+        mutable Lazy<Optional<ConstantValue>> constant_value_;
         bool is_mutable_;
+        mutable SymbolCompletionState completion_state_;
     };
 
     class SourceLocalVariableSymbol final : public SourceVariableSymbol
@@ -131,7 +158,9 @@ namespace prism
 
       protected:
         [[nodiscard]] const TypeSymbol &compute_type(DiagnosticBag &diagnostics) const override;
+        [[nodiscard]] Optional<ConstantValue> compute_constant_value(DiagnosticBag &diagnostics) const override;
 
+      private:
         const Binder &scope_binder_;
         const Binder *initializer_binder_;
     };
@@ -145,6 +174,7 @@ namespace prism
 
       protected:
         [[nodiscard]] const TypeSymbol &compute_type(DiagnosticBag &diagnostics) const override;
+        [[nodiscard]] Optional<ConstantValue> compute_constant_value(DiagnosticBag &diagnostics) const override;
     };
 
     class SourceFunctionSymbol final : public FunctionSymbol
@@ -160,9 +190,17 @@ namespace prism
 
         [[nodiscard]] std::span<const SyntaxReference> declaring_syntax_references() const override;
 
-      private:
-        [[nodiscard]] const TypeSymbol &compute_return_type(DiagnosticBag &diagnostics) const;
+      protected:
+        [[nodiscard]] bool needs_completion() const noexcept override;
+        void force_complete(const Optional<SourceLocation> &location,
+                            const Optional<SymbolPredicate> &filter) const override;
+        [[nodiscard]] bool is_complete(CompletionPart part) const noexcept override;
 
+      private:
+        void lazy_function_checks() const;
+        void function_checks(DiagnosticBag &bag) const;
+
+        [[nodiscard]] const TypeSymbol &compute_return_type(DiagnosticBag &diagnostics) const;
         [[nodiscard]] SymbolSpan<ParameterSymbol> compute_parameters() const;
 
         const FunctionDeclarationSyntax &syntax_;
@@ -170,6 +208,8 @@ namespace prism
         mutable Lazy<SymbolSpan<ParameterSymbol>> parameters_;
         mutable Lazy<const TypeSymbol &> return_type_;
         mutable Lazy<ImmutableArray<Location>> locations_;
+        mutable SymbolCompletionState completion_state_;
+        mutable std::mutex function_checks_mutex_;
     };
 
     class SourceParameterSymbol final : public ParameterSymbol
@@ -185,10 +225,15 @@ namespace prism
 
       private:
         [[nodiscard]] const TypeSymbol &compute_type(DiagnosticBag &diagnostics) const;
+        [[nodiscard]] bool needs_completion() const noexcept override;
+        void force_complete(const Optional<SourceLocation> &location,
+                            const Optional<SymbolPredicate> &filter) const override;
+        [[nodiscard]] bool is_complete(CompletionPart part) const noexcept override;
 
         const ParameterSyntax &syntax_;
         SyntaxReference syntax_reference_;
         mutable Lazy<const TypeSymbol &> type_;
         mutable Lazy<ImmutableArray<Location>> locations_;
+        mutable SymbolCompletionState completion_state_;
     };
 } // namespace prism

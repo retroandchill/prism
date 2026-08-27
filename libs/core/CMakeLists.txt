@@ -226,6 +226,12 @@ set(PRISM_MODULES
         src/binder/for_loop_binder.ixx
         src/binder/loop_binder.ixx
         src/binder/for_loop_binder.cpp
+        src/symbols/completion_part.ixx
+        src/symbols/symbol_completion_state.ixx
+        src/symbols/symbol_completion_state.cpp
+        src/syntax/syntax_utils.ixx
+        src/syntax/syntax_utils.cpp
+        src/util/deferred.ixx
 )
 
 add_library(prism_core ${PRISM_HEADERS} ${PRISM_MODULES})
