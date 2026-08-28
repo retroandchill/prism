@@ -41,9 +41,9 @@ internal sealed class GreenListNode : GreenNode
         return new GreenListNode(_children) { Diagnostics = diagnostics };
     }
 
-    public override SyntaxNode CreateRed(SyntaxNode? parent, int positon = 0)
+    public override SyntaxNode CreateRed(SyntaxNode? parent = null, int positon = 0)
     {
-        throw new NotImplementedException();
+        return new SyntaxList(this, parent, positon);
     }
 
     public readonly struct Builder()

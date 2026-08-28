@@ -36,7 +36,7 @@ internal sealed class GreenTrivia(SyntaxKind kind, string text) : GreenNode(kind
         return new GreenTrivia(Kind, Text) { Diagnostics = diagnostics };
     }
 
-    public override SyntaxNode CreateRed(SyntaxNode? parent, int positon = 0)
+    public override SyntaxNode CreateRed(SyntaxNode? parent = null, int positon = 0)
     {
         throw new InvalidOperationException("Cannot create a red node from a Green Trivia");
     }

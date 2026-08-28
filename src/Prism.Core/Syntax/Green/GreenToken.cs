@@ -85,7 +85,7 @@ internal class GreenToken : GreenNode
             : UpdateInternal(LeadingTrivia, TrailingTrivia, diagnostics);
     }
 
-    public override SyntaxNode CreateRed(SyntaxNode? parent, int positon = 0)
+    public override SyntaxNode CreateRed(SyntaxNode? parent = null, int positon = 0)
     {
         throw new InvalidOperationException("Cannot create a red node from a Green Token");
     }
