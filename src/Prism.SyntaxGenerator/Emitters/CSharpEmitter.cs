@@ -515,22 +515,36 @@ public static class CSharpEmitter
             writer.WriteLine();
             writer.WriteLine("public static partial class TokenReplacer");
             using var classBlock = writer.EnterBlockScope();
-            const string replaceFirstToken = "ReplaceFirstToken";
+            writer.GenerateTokenReplacerMethods(model, "ReplaceFirstToken", false);
+            writer.WriteLine();
+            writer.GenerateTokenReplacerMethods(model, "ReplaceLastToken", true);
+        }
+
+        private void GenerateTokenReplacerMethods(
+            CSharpSyntaxModel model,
+            string methodName,
+            bool isReversed
+        )
+        {
             foreach (var group in model.DispatchGroups)
             {
-                writer.EmitTokenReplacerMethod(
-                    group,
-                    replaceFirstToken,
-                    true,
-                    group.GreenClassName
-                );
+                writer.EmitTokenReplacerMethod(group, methodName, true, group.GreenClassName);
                 writer.WriteLine();
             }
 
-            writer.EmitTokenReplacerPartial(replaceFirstToken, GreenTokenClass);
-            writer.EmitTokenReplacerPartial(replaceFirstToken, GreenTriviaClass);
-            writer.EmitTokenReplacerPartial(replaceFirstToken, GreenListNodeClass);
+            writer.EmitTokenReplacerPartial(methodName, GreenTokenClass);
+            writer.EmitTokenReplacerPartial(methodName, GreenTriviaClass);
+            writer.EmitTokenReplacerPartial(methodName, GreenListNodeClass);
 
+            writer.EmitConcreteReplaceMethod(model, methodName, isReversed);
+        }
+
+        private void EmitConcreteReplaceMethod(
+            CSharpSyntaxModel model,
+            string methodName,
+            bool isReversed = false
+        )
+        {
             foreach (
                 var node in model
                     .Modules.AsValueEnumerable()
@@ -543,7 +557,7 @@ public static class CSharpEmitter
                 writer.WriteLine("[return: NotNullIfNotNull(nameof(node))]");
                 var className = node.GreenClassName;
                 writer.WriteLine(
-                    $"internal static {className}? {replaceFirstToken}({className}? node, {GreenTokenClass} newToken)"
+                    $"internal static {className}? {methodName}({className}? node, {GreenTokenClass} newToken)"
                 );
                 using var functionScope = writer.EnterBlockScope();
                 writer.WriteLine("if (node is null)");
@@ -553,24 +567,37 @@ public static class CSharpEmitter
                 }
                 writer.WriteLine();
 
-                foreach (var prop in node.Properties)
+                if (isReversed)
                 {
-                    writer.WriteLine($"var old{prop.PropertyName} = node.{prop.PropertyName};");
-                    writer.WriteLine(
-                        $"var new{prop.PropertyName} = {replaceFirstToken}(old{prop.PropertyName}, newToken);"
-                    );
-                    writer.WriteLine($"if (new{prop.PropertyName} != old{prop.PropertyName})");
-                    using (writer.EnterBlockScope())
+                    foreach (var prop in node.Properties.AsValueEnumerable().Reverse())
                     {
-                        writer.WriteLine(
-                            $"return node.With{prop.PropertyName}(new{prop.PropertyName});"
-                        );
+                        writer.EmitTryRepleceNodeProperty(methodName, prop);
                     }
-                    writer.WriteLine();
+                }
+                else
+                {
+                    foreach (var prop in node.Properties)
+                    {
+                        writer.EmitTryRepleceNodeProperty(methodName, prop);
+                    }
                 }
 
                 writer.WriteLine("return node;");
             }
+        }
+
+        private void EmitTryRepleceNodeProperty(string methodName, CSharpProperty prop)
+        {
+            writer.WriteLine($"var old{prop.PropertyName} = node.{prop.PropertyName};");
+            writer.WriteLine(
+                $"var new{prop.PropertyName} = {methodName}(old{prop.PropertyName}, newToken);"
+            );
+            writer.WriteLine($"if (new{prop.PropertyName} != old{prop.PropertyName})");
+            using (writer.EnterBlockScope())
+            {
+                writer.WriteLine($"return node.With{prop.PropertyName}(new{prop.PropertyName});");
+            }
+            writer.WriteLine();
         }
 
         private void EmitTokenReplacerMethod(
