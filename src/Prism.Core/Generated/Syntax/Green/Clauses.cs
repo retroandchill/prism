@@ -6,7 +6,7 @@ namespace Prism.Core.Syntax.Green;
 
 internal sealed class GreenInitializer : GreenNode
 {
-    GreenInitializer(GreenToken equalSign, GreenExpression value)
+    public GreenInitializer(GreenToken equalSign, GreenExpression value)
         : base(SyntaxKind.Initializer)
     {
         EqualSign = equalSign;
@@ -70,7 +70,7 @@ internal sealed class GreenInitializer : GreenNode
 
 internal sealed class GreenTypeSpecifier : GreenNode
 {
-    GreenTypeSpecifier(GreenToken colon, GreenType type)
+    public GreenTypeSpecifier(GreenToken colon, GreenType type)
         : base(SyntaxKind.TypeSpecifier)
     {
         Colon = colon;
@@ -134,7 +134,7 @@ internal sealed class GreenTypeSpecifier : GreenNode
 
 internal sealed class GreenNamedParameter : GreenNode
 {
-    GreenNamedParameter(GreenToken name, GreenToken colon)
+    public GreenNamedParameter(GreenToken name, GreenToken colon)
         : base(SyntaxKind.NamedParameter)
     {
         Name = name;
@@ -198,7 +198,7 @@ internal sealed class GreenNamedParameter : GreenNode
 
 internal sealed class GreenArgumentList : GreenNode
 {
-    GreenArgumentList(
+    public GreenArgumentList(
         GreenToken openParen,
         GreenSeparatedList<GreenArgument> arguments,
         GreenToken closeParen
@@ -296,7 +296,7 @@ internal sealed class GreenArgumentList : GreenNode
 
 internal sealed class GreenArgument : GreenNode
 {
-    GreenArgument(GreenNamedParameter? name, GreenExpression value)
+    public GreenArgument(GreenNamedParameter? name, GreenExpression value)
         : base(SyntaxKind.Argument)
     {
         Name = name;
@@ -358,7 +358,7 @@ internal sealed class GreenArgument : GreenNode
 
 internal sealed class GreenParameterList : GreenNode
 {
-    GreenParameterList(
+    public GreenParameterList(
         GreenToken openParen,
         GreenSeparatedList<GreenParameter> parameters,
         GreenToken closeParen
@@ -456,7 +456,7 @@ internal sealed class GreenParameterList : GreenNode
 
 internal sealed class GreenParameter : GreenNode
 {
-    GreenParameter(
+    public GreenParameter(
         GreenToken? mutableKeyword,
         GreenToken name,
         GreenTypeSpecifier? typeSpecifier,
@@ -573,7 +573,7 @@ internal sealed class GreenParameter : GreenNode
 
 internal sealed class GreenExpressionBody : GreenNode
 {
-    GreenExpressionBody(GreenToken arrow, GreenExpression expression)
+    public GreenExpressionBody(GreenToken arrow, GreenExpression expression)
         : base(SyntaxKind.ExpressionBody)
     {
         Arrow = arrow;
@@ -637,7 +637,7 @@ internal sealed class GreenExpressionBody : GreenNode
 
 internal sealed class GreenElseClause : GreenNode
 {
-    GreenElseClause(GreenToken elseKeyword, GreenStatement statement)
+    public GreenElseClause(GreenToken elseKeyword, GreenStatement statement)
         : base(SyntaxKind.ElseClause)
     {
         ElseKeyword = elseKeyword;

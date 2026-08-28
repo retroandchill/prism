@@ -16,7 +16,7 @@ internal abstract class GreenDeclaration : GreenNode
 
 internal sealed class GreenIncompleteDeclaration : GreenDeclaration
 {
-    GreenIncompleteDeclaration(GreenSyntaxList<GreenToken> modifiers)
+    public GreenIncompleteDeclaration(GreenSyntaxList<GreenToken> modifiers)
         : base(SyntaxKind.IncompleteDeclaration)
     {
         Modifiers = modifiers;
@@ -89,7 +89,7 @@ internal abstract class GreenNamespaceDeclaration : GreenDeclaration
 
 internal sealed class GreenBlockNamespaceDeclaration : GreenNamespaceDeclaration
 {
-    GreenBlockNamespaceDeclaration(
+    public GreenBlockNamespaceDeclaration(
         GreenSyntaxList<GreenToken> modifiers,
         GreenToken namespaceToken,
         GreenName name,
@@ -337,7 +337,7 @@ internal sealed class GreenBlockNamespaceDeclaration : GreenNamespaceDeclaration
 
 internal sealed class GreenFileScopedNamespaceDeclaration : GreenNamespaceDeclaration
 {
-    GreenFileScopedNamespaceDeclaration(
+    public GreenFileScopedNamespaceDeclaration(
         GreenSyntaxList<GreenToken> modifiers,
         GreenToken namespaceToken,
         GreenName name,
@@ -554,7 +554,7 @@ internal sealed class GreenFileScopedNamespaceDeclaration : GreenNamespaceDeclar
 
 internal sealed class GreenVariableDeclaration : GreenDeclaration
 {
-    GreenVariableDeclaration(
+    public GreenVariableDeclaration(
         GreenSyntaxList<GreenToken> modifiers,
         GreenToken varKeyword,
         GreenToken identifier,
@@ -763,7 +763,7 @@ internal sealed class GreenVariableDeclaration : GreenDeclaration
 
 internal sealed class GreenFunctionDeclaration : GreenDeclaration
 {
-    GreenFunctionDeclaration(
+    public GreenFunctionDeclaration(
         GreenSyntaxList<GreenToken> modifiers,
         GreenToken funcKeyword,
         GreenToken identifier,

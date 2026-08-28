@@ -48,6 +48,8 @@ internal readonly struct GreenSyntaxList<T>(GreenNode? children)
 
     public GreenNode? Node { get; } = children;
 
+    public static implicit operator GreenSyntaxList<T>(T? node) => new(node);
+
     public override bool Equals(object? obj)
     {
         return obj is GreenSyntaxList<T> other && Equals(other);

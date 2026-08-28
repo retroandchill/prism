@@ -6,7 +6,7 @@ namespace Prism.Core.Syntax.Green;
 
 internal sealed class GreenCompilationUnit : GreenNode
 {
-    GreenCompilationUnit(
+    public GreenCompilationUnit(
         GreenSyntaxList<GreenUsingDirective> usings,
         GreenSyntaxList<GreenDeclaration> members
     )

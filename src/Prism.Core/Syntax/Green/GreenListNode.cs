@@ -63,6 +63,14 @@ internal sealed class GreenListNode : GreenNode
             _children.AddRange(nodes);
         }
 
+        public void AddRange(GreenSyntaxList<GreenNode> nodes)
+        {
+            foreach (var node in nodes)
+            {
+                _children.Add(node);
+            }
+        }
+
         public GreenListNode Build()
         {
             return new GreenListNode(_children.ToImmutable());

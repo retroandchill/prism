@@ -6,7 +6,7 @@ namespace Prism.Core.Syntax.Green;
 
 internal sealed class GreenUsingDirective : GreenNode
 {
-    GreenUsingDirective(GreenToken usingKeyword, GreenName name, GreenToken semicolon)
+    public GreenUsingDirective(GreenToken usingKeyword, GreenName name, GreenToken semicolon)
         : base(SyntaxKind.UsingDirective)
     {
         UsingKeyword = usingKeyword;

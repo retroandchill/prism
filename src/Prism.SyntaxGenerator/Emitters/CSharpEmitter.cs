@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics;
 using Prism.SyntaxGenerator.Models.CSharp;
 using Prism.SyntaxGenerator.Models.Resolved;
 using Prism.SyntaxGenerator.Models.Spec;
@@ -14,6 +15,14 @@ namespace Prism.SyntaxGenerator.Emitters;
 
 public static class CSharpEmitter
 {
+    private enum SpecialNodeKind
+    {
+        None,
+        List,
+        Token,
+        Trivia,
+    }
+
     extension(CodeWriter writer)
     {
         #region Syntax Kinds
@@ -288,7 +297,7 @@ public static class CSharpEmitter
 
         private void EmitGreenNodeConcreteClassBody(CSharpNode node)
         {
-            writer.Write($"{node.GreenClassName}(");
+            writer.Write($"public {node.GreenClassName}(");
             foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
             {
                 if (i > 0)
@@ -489,6 +498,203 @@ public static class CSharpEmitter
                 using var initializer = writer.EnterBlockScope(true);
                 writer.WriteLine("Diagnostics = Diagnostics");
             }
+        }
+
+        #endregion
+
+        #region Green Token Visitors
+
+        public void EmitGreenVisitorClass(CSharpSyntaxModel model)
+        {
+            writer.WriteLine("// Generated file, do not edit");
+            writer.WriteLine("namespace Prism.Core.Syntax.Green;");
+            writer.WriteLine();
+            writer.EmitSyntaxVisitorClass(model, true, false);
+            writer.WriteLine();
+            writer.EmitSyntaxVisitorClass(model, true, true);
+        }
+
+        #endregion
+
+        #region Syntax Visitors
+
+        private void EmitSyntaxVisitor(CSharpDispatchGroup group, bool isGreen, string? returnType)
+        {
+            var baseName = isGreen ? group.GreenClassName : group.RedClassName;
+
+            var isReturning = returnType is not null;
+            var returnValueType = returnType ?? "void";
+            writer.WriteLine($"public {returnValueType} Visit({baseName} node)");
+            using var functionScope = writer.EnterBlockScope();
+            writer.WriteLine(isReturning ? "return node switch " : "switch (node)");
+            using var switchScope = writer.EnterBlockScope(isReturning);
+            if (group.IncludesListNode && isGreen)
+            {
+                writer.EmitNodeTypeCase("GreenListNode", "list", isReturning);
+                writer.EmitNodeTypeCase("GreenToken", "token", isReturning);
+                writer.EmitNodeTypeCase("GreenTrivia", "trivia", isReturning);
+            }
+
+            foreach (var node in group.Nodes)
+            {
+                writer.EmitNodeTypeCase(node.GreenClassName, node.CSharpVariableName, isReturning);
+            }
+
+            const string exceptionLine =
+                "throw new InvalidOperationException(\"Invalid node type passed into visit\")";
+            if (isReturning)
+            {
+                writer.WriteLine($"_ => {exceptionLine}");
+            }
+            else
+            {
+                writer.WriteLine("default:");
+                using var defaultScope = writer.EnterIndentationScope();
+                writer.WriteLine($"{exceptionLine};");
+            }
+        }
+
+        private void EmitNodeTypeCase(string className, string variableName, bool isReturning)
+        {
+            if (isReturning)
+            {
+                writer.WriteLine($"{className} {variableName} => Visit({variableName}),");
+            }
+            else
+            {
+                writer.WriteLine($"case {className} {variableName}:");
+                using (writer.EnterIndentationScope())
+                {
+                    writer.WriteLine($"Visit({variableName});");
+                    writer.WriteLine("break;");
+                }
+            }
+        }
+
+        private void EmitSyntaxVisitorClass(CSharpSyntaxModel model, bool isGreen, bool isGeneric)
+        {
+            var accessSpecifier = isGreen ? "internal" : "public";
+            var className = isGreen ? "GreenSyntaxVisitor" : "SyntaxVisitor";
+            var genericSuffix = isGeneric ? "<TResult>" : "";
+            writer.WriteLine(
+                $"{accessSpecifier} abstract partial class {className}{genericSuffix}"
+            );
+            using var classScope = writer.EnterBlockScope();
+            foreach (var group in model.DispatchGroups)
+            {
+                writer.EmitSyntaxVisitor(group, true, isGeneric ? "TResult" : null);
+                writer.WriteLine();
+            }
+
+            writer.EmitVisitorMethodList(
+                model,
+                isGreen,
+                true,
+                isGeneric ? "TResult" : "void",
+                "public abstract ",
+                ";"
+            );
+        }
+
+        private void EmitVisitorMethodList(
+            CSharpSyntaxModel model,
+            bool isGreen,
+            bool includeSpecial,
+            string? returnType,
+            string prefix,
+            string suffix,
+            Action<CodeWriter, CSharpNode?, SpecialNodeKind>? emitBody = null,
+            Action<CodeWriter>? optionalLineBreak = null
+        )
+        {
+            if (isGreen && includeSpecial)
+            {
+                writer.WriteLine(
+                    $"{prefix}{returnType ?? GreenListNodeClass} Visit({GreenListNodeClass} node){suffix}"
+                );
+                emitBody?.Invoke(writer, null, SpecialNodeKind.List);
+                optionalLineBreak?.Invoke(writer);
+                writer.WriteLine(
+                    $"{prefix}{returnType ?? GreenTokenClass} Visit({GreenTokenClass} node){suffix}"
+                );
+                emitBody?.Invoke(writer, null, SpecialNodeKind.Token);
+                optionalLineBreak?.Invoke(writer);
+                writer.WriteLine(
+                    $"{prefix}{returnType ?? GreenTriviaClass} Visit({GreenTriviaClass} node){suffix}"
+                );
+                emitBody?.Invoke(writer, null, SpecialNodeKind.Trivia);
+            }
+
+            foreach (
+                var node in model
+                    .Modules.AsValueEnumerable()
+                    .SelectMany(m => m.Nodes)
+                    .Where(n => !n.IsAbstract)
+            )
+            {
+                optionalLineBreak?.Invoke(writer);
+                var className = isGreen ? node.GreenClassName : node.RedClassName;
+                writer.WriteLine(
+                    $"{prefix}{returnType ?? className} Visit({className} node){suffix}"
+                );
+                emitBody?.Invoke(writer, node, SpecialNodeKind.None);
+            }
+        }
+
+        #endregion
+
+        #region Token Replacers
+
+        public void EmitGreenTokenReplacer(CSharpSyntaxModel model)
+        {
+            writer.WriteLine("// Generated file, do not edit");
+            writer.WriteLine("namespace Prism.Core.Syntax.Green;");
+            writer.WriteLine();
+            writer.WriteLine($"internal abstract partial class GreenTokenReplacer");
+            using var classBlock = writer.EnterBlockScope();
+            foreach (var group in model.DispatchGroups)
+            {
+                writer.EmitSyntaxVisitor(group, true, group.GreenClassName);
+                writer.WriteLine();
+            }
+
+            writer.EmitVisitorMethodList(
+                model,
+                true,
+                false,
+                null,
+                "public ",
+                "",
+                static (w, node, _) =>
+                {
+                    Debug.Assert(node is not null);
+                    using var scope = w.EnterBlockScope();
+                    w.Write("return node.Update(");
+                    foreach (var (i, prop) in node.Properties.AsValueEnumerable().Index())
+                    {
+                        if (i > 0)
+                            w.Write(", ");
+
+                        switch (prop.Shape)
+                        {
+                            case PropertyShape.Single:
+                            case PropertyShape.List:
+                            case PropertyShape.SeparatedList:
+                                w.Write($"Visit(node.{prop.PropertyName})");
+                                break;
+                            case PropertyShape.Optional:
+                                w.Write(
+                                    $"node.{prop.PropertyName} is not null ? Visit(node.{prop.PropertyName}) : null"
+                                );
+                                break;
+                            default:
+                                throw new InvalidOperationException("Invalid shape");
+                        }
+                    }
+                    w.WriteLine(");");
+                },
+                static w => w.WriteLine()
+            );
         }
 
         #endregion

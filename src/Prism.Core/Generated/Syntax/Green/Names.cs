@@ -12,7 +12,7 @@ internal abstract class GreenName : GreenNode
 
 internal sealed class GreenSimpleName : GreenName
 {
-    GreenSimpleName(GreenToken identifier)
+    public GreenSimpleName(GreenToken identifier)
         : base(SyntaxKind.SimpleName)
     {
         Identifier = identifier;
@@ -61,7 +61,7 @@ internal sealed class GreenSimpleName : GreenName
 
 internal sealed class GreenQualifiedName : GreenName
 {
-    GreenQualifiedName(GreenName left, GreenToken separator, GreenSimpleName right)
+    public GreenQualifiedName(GreenName left, GreenToken separator, GreenSimpleName right)
         : base(SyntaxKind.QualifiedName)
     {
         Left = left;

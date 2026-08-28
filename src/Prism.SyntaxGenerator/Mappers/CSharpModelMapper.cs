@@ -68,6 +68,11 @@ public static partial class CSharpModelMapper
         nameof(CSharpNode.RedClassName),
         Use = nameof(GetRedCSharpName)
     )]
+    [MapProperty(
+        nameof(SyntaxNode.Name),
+        nameof(CSharpNode.CSharpVariableName),
+        Use = nameof(GetCSharpParameterName)
+    )]
     private static partial CSharpNode ToCSharp(
         this SyntaxNode node,
         [ReferenceHandler] IReferenceHandler refHandler

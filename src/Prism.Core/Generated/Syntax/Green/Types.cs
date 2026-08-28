@@ -12,7 +12,7 @@ internal abstract class GreenType : GreenNode
 
 internal sealed class GreenPredefinedType : GreenType
 {
-    GreenPredefinedType(GreenToken keyword)
+    public GreenPredefinedType(GreenToken keyword)
         : base(SyntaxKind.PredefinedType)
     {
         Keyword = keyword;
@@ -61,7 +61,7 @@ internal sealed class GreenPredefinedType : GreenType
 
 internal sealed class GreenNamedType : GreenType
 {
-    GreenNamedType(GreenName identifier)
+    public GreenNamedType(GreenName identifier)
         : base(SyntaxKind.NamedType)
     {
         Identifier = identifier;

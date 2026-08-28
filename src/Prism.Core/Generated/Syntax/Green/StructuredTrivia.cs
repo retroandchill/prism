@@ -6,7 +6,7 @@ namespace Prism.Core.Syntax.Green;
 
 internal sealed class GreenSkippedTokensTrivia : GreenStructuredTrivia
 {
-    GreenSkippedTokensTrivia(GreenSyntaxList<GreenToken> tokens)
+    public GreenSkippedTokensTrivia(GreenSyntaxList<GreenToken> tokens)
         : base(SyntaxKind.SkippedTokensTrivia)
     {
         Tokens = tokens;

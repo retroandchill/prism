@@ -176,6 +176,20 @@ public class ExportNodesCommand
             );
         }
 
+        writer.EmitGreenVisitorClass(csharpModel);
+        await WriteCodeAsync(
+            writer,
+            Path.Join(greenDir, "GreenSyntaxVisitor.cs"),
+            cancellationToken
+        );
+
+        writer.EmitGreenTokenReplacer(csharpModel);
+        await WriteCodeAsync(
+            writer,
+            Path.Join(greenDir, "GreenTokenReplacer.cs"),
+            cancellationToken
+        );
+
         writer.EmitDiagnosticCodes(csharpModel);
         await WriteCodeAsync(
             writer,

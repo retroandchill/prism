@@ -12,7 +12,7 @@ internal abstract class GreenExpression : GreenNode
 
 internal sealed class GreenLiteralExpression : GreenExpression
 {
-    GreenLiteralExpression(GreenToken value)
+    public GreenLiteralExpression(GreenToken value)
         : base(SyntaxKind.LiteralExpression)
     {
         Value = value;
@@ -61,7 +61,7 @@ internal sealed class GreenLiteralExpression : GreenExpression
 
 internal sealed class GreenIdentifierExpression : GreenExpression
 {
-    GreenIdentifierExpression(GreenName value)
+    public GreenIdentifierExpression(GreenName value)
         : base(SyntaxKind.IdentifierExpression)
     {
         Value = value;
@@ -110,7 +110,11 @@ internal sealed class GreenIdentifierExpression : GreenExpression
 
 internal sealed class GreenParenthesizedExpression : GreenExpression
 {
-    GreenParenthesizedExpression(GreenToken open, GreenExpression expression, GreenToken close)
+    public GreenParenthesizedExpression(
+        GreenToken open,
+        GreenExpression expression,
+        GreenToken close
+    )
         : base(SyntaxKind.ParenthesizedExpression)
     {
         Open = open;
@@ -204,7 +208,7 @@ internal sealed class GreenParenthesizedExpression : GreenExpression
 
 internal sealed class GreenBinaryExpression : GreenExpression
 {
-    GreenBinaryExpression(GreenExpression left, GreenToken op, GreenExpression right)
+    public GreenBinaryExpression(GreenExpression left, GreenToken op, GreenExpression right)
         : base(SyntaxKind.BinaryExpression)
     {
         Left = left;
@@ -279,7 +283,7 @@ internal sealed class GreenBinaryExpression : GreenExpression
 
 internal sealed class GreenAssignmentExpression : GreenExpression
 {
-    GreenAssignmentExpression(GreenExpression left, GreenToken op, GreenExpression right)
+    public GreenAssignmentExpression(GreenExpression left, GreenToken op, GreenExpression right)
         : base(SyntaxKind.AssignmentExpression)
     {
         Left = left;
@@ -358,7 +362,7 @@ internal sealed class GreenAssignmentExpression : GreenExpression
 
 internal sealed class GreenPrefixExpression : GreenExpression
 {
-    GreenPrefixExpression(GreenToken op, GreenExpression operand)
+    public GreenPrefixExpression(GreenToken op, GreenExpression operand)
         : base(SyntaxKind.PrefixExpression)
     {
         Op = op;
@@ -422,7 +426,7 @@ internal sealed class GreenPrefixExpression : GreenExpression
 
 internal sealed class GreenPostfixExpression : GreenExpression
 {
-    GreenPostfixExpression(GreenExpression operand, GreenToken op)
+    public GreenPostfixExpression(GreenExpression operand, GreenToken op)
         : base(SyntaxKind.PostfixExpression)
     {
         Operand = operand;
@@ -486,7 +490,7 @@ internal sealed class GreenPostfixExpression : GreenExpression
 
 internal sealed class GreenTernaryExpression : GreenExpression
 {
-    GreenTernaryExpression(
+    public GreenTernaryExpression(
         GreenExpression condition,
         GreenToken questionMark,
         GreenExpression whenTrue,
@@ -622,7 +626,7 @@ internal sealed class GreenTernaryExpression : GreenExpression
 
 internal sealed class GreenInvocationExpression : GreenExpression
 {
-    GreenInvocationExpression(GreenExpression callee, GreenArgumentList arguments)
+    public GreenInvocationExpression(GreenExpression callee, GreenArgumentList arguments)
         : base(SyntaxKind.InvocationExpression)
     {
         Callee = callee;
@@ -686,7 +690,7 @@ internal sealed class GreenInvocationExpression : GreenExpression
 
 internal sealed class GreenCastExpression : GreenExpression
 {
-    GreenCastExpression(GreenExpression operand, GreenToken asKeyword, GreenType type)
+    public GreenCastExpression(GreenExpression operand, GreenToken asKeyword, GreenType type)
         : base(SyntaxKind.CastExpression)
     {
         Operand = operand;

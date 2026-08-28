@@ -93,6 +93,8 @@ internal abstract class GreenNode(SyntaxKind kind, int fullWidth = 0)
         }
     }
 
+    public GreenToken? FirstToken => FirstTerminal as GreenToken;
+
     public GreenNode? LastTerminal
     {
         get
@@ -119,6 +121,8 @@ internal abstract class GreenNode(SyntaxKind kind, int fullWidth = 0)
             return node;
         }
     }
+
+    public GreenToken? LastToken => LastTerminal as GreenToken;
 
     public int SlotCount { get; protected init; }
 

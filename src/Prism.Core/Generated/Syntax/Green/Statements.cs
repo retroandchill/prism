@@ -12,7 +12,7 @@ internal abstract class GreenStatement : GreenNode
 
 internal sealed class GreenEmptyStatement : GreenStatement
 {
-    GreenEmptyStatement(GreenToken semicolon)
+    public GreenEmptyStatement(GreenToken semicolon)
         : base(SyntaxKind.EmptyStatement)
     {
         Semicolon = semicolon;
@@ -61,7 +61,7 @@ internal sealed class GreenEmptyStatement : GreenStatement
 
 internal sealed class GreenVariableDeclarationStatement : GreenStatement
 {
-    GreenVariableDeclarationStatement(GreenVariableDeclaration declaration)
+    public GreenVariableDeclarationStatement(GreenVariableDeclaration declaration)
         : base(SyntaxKind.VariableDeclarationStatement)
     {
         Declaration = declaration;
@@ -110,7 +110,7 @@ internal sealed class GreenVariableDeclarationStatement : GreenStatement
 
 internal sealed class GreenBlock : GreenStatement
 {
-    GreenBlock(
+    public GreenBlock(
         GreenToken openBrace,
         GreenSyntaxList<GreenStatement> statements,
         GreenToken closeBrace
@@ -191,7 +191,7 @@ internal sealed class GreenBlock : GreenStatement
 
 internal sealed class GreenReturnStatement : GreenStatement
 {
-    GreenReturnStatement(
+    public GreenReturnStatement(
         GreenToken returnKeyword,
         GreenExpression? expression,
         GreenToken semicolon
@@ -289,7 +289,7 @@ internal sealed class GreenReturnStatement : GreenStatement
 
 internal sealed class GreenExpressionStatement : GreenStatement
 {
-    GreenExpressionStatement(GreenExpression expression, GreenToken semicolon)
+    public GreenExpressionStatement(GreenExpression expression, GreenToken semicolon)
         : base(SyntaxKind.ExpressionStatement)
     {
         Expression = expression;
@@ -353,7 +353,7 @@ internal sealed class GreenExpressionStatement : GreenStatement
 
 internal sealed class GreenIfStatement : GreenStatement
 {
-    GreenIfStatement(
+    public GreenIfStatement(
         GreenToken ifKeyword,
         GreenToken openParen,
         GreenExpression condition,
@@ -506,7 +506,7 @@ internal sealed class GreenIfStatement : GreenStatement
 
 internal sealed class GreenWhileStatement : GreenStatement
 {
-    GreenWhileStatement(
+    public GreenWhileStatement(
         GreenToken whileKeyword,
         GreenToken openParen,
         GreenExpression condition,
@@ -642,7 +642,7 @@ internal sealed class GreenWhileStatement : GreenStatement
 
 internal sealed class GreenLoopStatement : GreenStatement
 {
-    GreenLoopStatement(GreenToken loopKeyword, GreenBlock block)
+    public GreenLoopStatement(GreenToken loopKeyword, GreenBlock block)
         : base(SyntaxKind.LoopStatement)
     {
         LoopKeyword = loopKeyword;
@@ -706,7 +706,7 @@ internal sealed class GreenLoopStatement : GreenStatement
 
 internal sealed class GreenForStatement : GreenStatement
 {
-    GreenForStatement(
+    public GreenForStatement(
         GreenToken forKeyword,
         GreenToken openParen,
         GreenVariableDeclarationStatement? declaration,
@@ -1059,7 +1059,7 @@ internal sealed class GreenForStatement : GreenStatement
 
 internal sealed class GreenBreakStatement : GreenStatement
 {
-    GreenBreakStatement(GreenToken keyword, GreenToken semicolon)
+    public GreenBreakStatement(GreenToken keyword, GreenToken semicolon)
         : base(SyntaxKind.BreakStatement)
     {
         Keyword = keyword;
@@ -1123,7 +1123,7 @@ internal sealed class GreenBreakStatement : GreenStatement
 
 internal sealed class GreenContinueStatement : GreenStatement
 {
-    GreenContinueStatement(GreenToken keyword, GreenToken semicolon)
+    public GreenContinueStatement(GreenToken keyword, GreenToken semicolon)
         : base(SyntaxKind.ContinueStatement)
     {
         Keyword = keyword;
