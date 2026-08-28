@@ -4,9 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
-using System.Numerics;
 using Cysharp.Text;
-using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 using Prism.Core.Syntax.Green;
 using Prism.Core.Utils;

@@ -4,7 +4,6 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using NetEscapades.EnumGenerators;
-using Prism.Core.Parse;
 
 namespace Prism.Core.Syntax;
 

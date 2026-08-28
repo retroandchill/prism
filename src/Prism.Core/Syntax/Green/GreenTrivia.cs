@@ -21,5 +21,5 @@ internal sealed class GreenTrivia(SyntaxKind kind, string text) : GreenNode(kind
 
     public string Text { get; } = text;
 
-    public override GreenNode? GetChild(int index) => null;
+    public override GreenNode? GetSlot(int index) => null;
 }

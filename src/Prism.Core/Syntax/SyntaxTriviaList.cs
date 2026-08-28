@@ -11,7 +11,7 @@ public readonly struct SyntaxTriviaList : IReadOnlyList<SyntaxTrivia>
     private readonly GreenTriviaList _list;
     private readonly int _position;
 
-    public int Count => _list.ChildCount;
+    public int Count => _list.SlotCount;
 
     public SyntaxTrivia this[int index]
     {
@@ -19,7 +19,7 @@ public readonly struct SyntaxTriviaList : IReadOnlyList<SyntaxTrivia>
         {
             var element = _list.GetChild(index);
             return element is not null
-                ? new SyntaxTrivia(_token, element, _position + element.GetChildOffset(index))
+                ? new SyntaxTrivia(_token, element, _position + element.GetSlotOffset(index))
                 : throw new ArgumentOutOfRangeException(nameof(index));
         }
     }

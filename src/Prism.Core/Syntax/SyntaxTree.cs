@@ -1,5 +1,4 @@
-﻿using Prism.Core.Parse;
-using Prism.Core.Syntax.Green;
+﻿using Prism.Core.Syntax.Green;
 
 namespace Prism.Core.Syntax;
 

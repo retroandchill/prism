@@ -8,6 +8,7 @@ using Cysharp.Text;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 using Prism.Core.Syntax.Green;
+using Prism.Core.Text;
 using Prism.Core.Utils;
 
 namespace Prism.Core.Parse;

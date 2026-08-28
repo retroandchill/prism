@@ -18,14 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference
-      Include="..\Prism.SourceGenerator\Prism.SourceGenerator.csproj"
-      OutputItemType="Analyzer"
-      ReferenceOutputAssembly="false"
-    />
+    <InternalsVisibleTo Include="Prism.Core.Tests" />
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Prism.Core.Tests" />
+    <Folder Include="Semantic\" />
   </ItemGroup>
 </Project>

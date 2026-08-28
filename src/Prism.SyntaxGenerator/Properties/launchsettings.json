@@ -1,0 +1,20 @@
+﻿{
+  "$schema": "https://schemastore.org",
+  "profiles": {
+    "ExportSchema": {
+      "commandName": "Project",
+      "commandLineArgs": "schema --export schema.json",
+      "workingDirectory": "."
+    },
+    "EmitCppNodes": {
+      "commandName": "Project",
+      "commandLineArgs": "generate --input nodes.json --language Cpp --output ../../libs/core/generated",
+      "workingDirectory": "."
+    },
+    "EmitCSharpNodes": {
+      "commandName": "Project",
+      "commandLineArgs": "generate --input nodes.json --language CSharp --output ../Prism.Core/Generated",
+      "workingDirectory": "."
+    }
+  }
+}
