@@ -6,6 +6,7 @@
 using Prism.Core.Diagnostics;
 using Prism.Core.Parse;
 using Prism.Core.Syntax.Green;
+using ZLinq;
 
 namespace Prism.Core.Syntax;
 
@@ -128,7 +129,7 @@ public abstract class SyntaxNode
     {
         foreach (var child in ChildNodesAndTokens())
         {
-            if (child is SyntaxNode node)
+            if (child.TryGetValue(out SyntaxNode? node))
                 yield return node;
         }
     }
@@ -137,11 +138,42 @@ public abstract class SyntaxNode
     {
         foreach (var child in ChildNodesAndTokens())
         {
-            if (child is SyntaxToken token)
+            if (child.TryGetValue(out SyntaxToken token))
                 yield return token;
         }
     }
 
-    public SyntaxToken FirstToken => throw new NotImplementedException();
-    public SyntaxToken LastToken => throw new NotImplementedException();
+    public SyntaxToken FirstToken
+    {
+        get
+        {
+            var first = ChildNodesAndTokens().AsValueEnumerable().First();
+            SyntaxToken token;
+            while (!first.TryGetValue(out token))
+            {
+                first = first.AsSyntaxNode().ChildNodesAndTokens().AsValueEnumerable().First();
+            }
+
+            return token;
+        }
+    }
+
+    public SyntaxToken LastToken
+    {
+        get
+        {
+            var last = ChildNodesAndTokens().Reverse().AsValueEnumerable().First();
+            SyntaxToken token;
+            while (!last.TryGetValue(out token))
+            {
+                last = last.AsSyntaxNode()
+                    .ChildNodesAndTokens()
+                    .Reverse()
+                    .AsValueEnumerable()
+                    .First();
+            }
+
+            return token;
+        }
+    }
 }

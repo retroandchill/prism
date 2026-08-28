@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Prism.Core.Syntax.Green;
 using ZLinq;
 
@@ -122,6 +123,12 @@ public readonly struct ChildSyntaxList(SyntaxNode node)
     public ValueEnumerable<Enumerator, SyntaxNodeOrToken> AsValueEnumerable() =>
         new(GetEnumerator());
 
+    public Reversed Reverse()
+    {
+        Debug.Assert(_node is not null);
+        return new Reversed(_node, Count);
+    }
+
     public struct Enumerator : IEnumerator<SyntaxNodeOrToken>, IValueEnumerator<SyntaxNodeOrToken>
     {
         private readonly SyntaxNode? _node;
@@ -190,6 +197,106 @@ public readonly struct ChildSyntaxList(SyntaxNode node)
         public void Reset()
         {
             _childIndex = -1;
+        }
+
+        public void Dispose()
+        {
+            // Nothing to dispose
+        }
+    }
+
+    public readonly struct Reversed
+        : IReadOnlyCollection<SyntaxNodeOrToken>,
+            IValueEnumerable<ReverseEnumerator, SyntaxNodeOrToken>
+    {
+        private readonly SyntaxNode? _node;
+        public int Count { get; }
+
+        internal Reversed(SyntaxNode node, int count)
+        {
+            _node = node;
+            Count = count;
+        }
+
+        public ReverseEnumerator GetEnumerator()
+        {
+            Debug.Assert(_node is not null);
+            return new ReverseEnumerator(_node, Count);
+        }
+
+        IEnumerator<SyntaxNodeOrToken> IEnumerable<SyntaxNodeOrToken>.GetEnumerator() =>
+            GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        public ValueEnumerable<ReverseEnumerator, SyntaxNodeOrToken> AsValueEnumerable() =>
+            new(GetEnumerator());
+    }
+
+    public struct ReverseEnumerator
+        : IEnumerator<SyntaxNodeOrToken>,
+            IValueEnumerator<SyntaxNodeOrToken>
+    {
+        private readonly SyntaxNode? _node;
+        private readonly int _count;
+        private int _childIndex;
+
+        internal ReverseEnumerator(SyntaxNode node, int count)
+        {
+            _node = node;
+            _count = count;
+            _childIndex = count;
+        }
+
+        public SyntaxNodeOrToken Current
+        {
+            get
+            {
+                Debug.Assert(_node is not null);
+                return GetItem(_node, _childIndex);
+            }
+        }
+
+        object IEnumerator.Current => Current;
+
+        [MemberNotNullWhen(true, nameof(_node))]
+        public bool MoveNext()
+        {
+            return --_childIndex >= 0;
+        }
+
+        public bool TryGetNext(out SyntaxNodeOrToken current)
+        {
+            if (!MoveNext())
+            {
+                current = default;
+                return false;
+            }
+
+            current = Current;
+            return true;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = _count;
+            return true;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<SyntaxNodeOrToken> span)
+        {
+            span = [];
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<SyntaxNodeOrToken> destination, Index offset)
+        {
+            return false;
+        }
+
+        public void Reset()
+        {
+            _childIndex = _count;
         }
 
         public void Dispose()
