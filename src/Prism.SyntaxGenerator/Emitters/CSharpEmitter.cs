@@ -5,6 +5,7 @@
 
 using Prism.SyntaxGenerator.Models.CSharp;
 using Prism.SyntaxGenerator.Models.Resolved;
+using Prism.SyntaxGenerator.Models.Spec;
 using Prism.SyntaxGenerator.Output;
 using ZLinq;
 using static Prism.SyntaxGenerator.Metadata.CommonNames;
@@ -15,6 +16,8 @@ public static class CSharpEmitter
 {
     extension(CodeWriter writer)
     {
+        #region Syntax Kinds
+
         public void EmitSyntaxKinds(CSharpSyntaxModel model)
         {
             writer.WriteLine("// Generated file, do not edit");
@@ -47,7 +50,7 @@ public static class CSharpEmitter
             {
                 writer.WriteLine($"extension ({SyntaxKindClass} kind)");
                 using var extensionScope = writer.EnterBlockScope();
-                writer.WriteLine("public string Name");
+                writer.WriteLine("public string DisplayText");
                 using (writer.EnterBlockScope())
                 {
                     writer.WriteLine("get");
@@ -114,5 +117,272 @@ public static class CSharpEmitter
 
             writer.WriteLine(';');
         }
+
+        #endregion
+
+        #region Green Nodes
+
+        public void EmitGreenNodeClass(CSharpModule module)
+        {
+            writer.WriteLine("// Generated file, do not edit");
+            writer.WriteLine("using System.Collections.Immutable;");
+            writer.WriteLine("using Prism.Core.Diagnostics;");
+            writer.WriteLine();
+
+            writer.WriteLine("namespace Prism.Core.Syntax.Green;");
+            writer.WriteLine();
+
+            foreach (var (i, node) in module.Nodes.AsValueEnumerable().Index())
+            {
+                if (i > 0)
+                    writer.WriteLine();
+
+                writer.EmitGreenNodeClass(node);
+            }
+        }
+
+        private void EmitGreenNodeClass(CSharpNode node)
+        {
+            var qualifier = node.IsAbstract ? "abstract " : "sealed";
+            var baseName =
+                node.Base?.GreenClassName
+                ?? node.Module.Kind switch
+                {
+                    ModuleKind.Node => GreenNodeClass,
+                    ModuleKind.StructuredTrivia => GreenStructuredTriviaClass,
+                    _ => throw new InvalidOperationException("Invalid module kind"),
+                };
+
+            writer.WriteLine($"internal {qualifier} class {node.GreenClassName} : {baseName}");
+            using var blockScope = writer.EnterBlockScope();
+            if (node.IsAbstract)
+            {
+                writer.EmitGreenNodeAbstractClassBody(node, baseName);
+            }
+            else
+            {
+                writer.EmitGreenNodeConcreteClassBody(node);
+            }
+        }
+
+        private void EmitGreenNodeAbstractClassBody(CSharpNode node, string baseName)
+        {
+            writer.WriteLine(
+                $"protected {node.GreenClassName}({SyntaxKindClass} kind) : " + $"base(kind) {{ }}"
+            );
+
+            foreach (var property in node.Properties)
+            {
+                writer.WriteLine();
+                writer.Write("public abstract ");
+                writer.EmitGreenPropertyType(property);
+                writer.WriteLine($" {property.PropertyName} {{ get; }}");
+                writer.WriteLine();
+                writer.Write($"public abstract {node.GreenClassName} With{property.PropertyName}(");
+                writer.EmitGreenPropertyType(property);
+                writer.WriteLine(" value);");
+            }
+        }
+
+        private void EmitGreenNodeConcreteClassBody(CSharpNode node)
+        {
+            writer.Write($"{node.GreenClassName}(");
+            foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
+            {
+                if (i > 0)
+                    writer.Write(", ");
+
+                writer.EmitGreenPropertyType(property);
+                writer.Write($" {property.ParameterName}");
+            }
+
+            writer.WriteLine($") : base({SyntaxKindClass}.{node.Kind!.CSharpName})");
+            using (writer.EnterBlockScope())
+            {
+                foreach (var property in node.Properties)
+                {
+                    writer.WriteLine($"{property.PropertyName} = {property.ParameterName};");
+                }
+            }
+
+            foreach (var property in node.Properties)
+            {
+                writer.WriteLine();
+                var @override = property.IsOverride ? " override" : "";
+                writer.Write($"public{@override} ");
+                writer.EmitGreenPropertyType(property);
+                writer.Write($" {property.PropertyName} {{ get; }}");
+            }
+
+            writer.WriteLine();
+            writer.EmitGreenGetSlotMethod(node);
+
+            writer.WriteLine();
+            writer.EmitGreenCreateRedMethod(node);
+
+            writer.EmitGreenMutationMethods(node);
+        }
+
+        private void EmitGreenPropertyType(CSharpProperty property)
+        {
+            switch (property.Shape)
+            {
+                case PropertyShape.Single:
+                    writer.Write(property.Type.GreenClassName);
+                    break;
+                case PropertyShape.Optional:
+                    writer.Write($"{property.Type.GreenClassName}?");
+                    break;
+                case PropertyShape.List:
+                    writer.Write($"GreenSyntaxList<{property.Type.GreenClassName}>");
+                    break;
+                case PropertyShape.SeparatedList:
+                    writer.Write($"GreenSeparatedList<{property.Type.GreenClassName}>");
+                    break;
+                default:
+                    throw new InvalidOperationException("Unknown shape");
+            }
+        }
+
+        private void EmitGreenGetSlotMethod(CSharpNode node)
+        {
+            writer.WriteLine($"public override {GreenNodeClass}? GetSlot(int index)");
+            using var scope = writer.EnterBlockScope();
+            if (node.Properties.Length == 1)
+            {
+                var prop = node.Properties[0];
+                var isList = prop.Shape is PropertyShape.List or PropertyShape.SeparatedList;
+                var nodeSuffix = isList ? ".Node" : "";
+
+                writer.WriteLine($"return index == 0 ? {prop.PropertyName}{nodeSuffix} : null;");
+                return;
+            }
+
+            writer.WriteLine("return index switch");
+            using var switchScope = writer.EnterBlockScope(true);
+            foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
+            {
+                var isList = property.Shape is PropertyShape.List or PropertyShape.SeparatedList;
+                var nodeSuffix = isList ? ".Node" : "";
+                writer.WriteLine($"{i} => {property.PropertyName}{nodeSuffix},");
+            }
+            writer.WriteLine("_ => null");
+        }
+
+        private void EmitGreenCreateRedMethod(CSharpNode node)
+        {
+            writer.WriteLine(
+                $"public override {SyntaxNodeClass} CreateRed("
+                    + $"{SyntaxNodeClass}? parent = null, int position = 0)"
+            );
+            using var scope = writer.EnterBlockScope();
+            writer.WriteLine("throw new NotImplementedException();");
+        }
+
+        private void EmitGreenMutationMethods(CSharpNode node)
+        {
+            foreach (var property in node.Properties)
+            {
+                var @override = property.IsOverride ? " override" : "";
+                writer.Write(
+                    $"public{@override} {node.GreenClassName} " + $"With{property.PropertyName}("
+                );
+                writer.EmitGreenPropertyType(property);
+                writer.Write($" {property.ParameterName})");
+                using (writer.EnterBlockScope())
+                {
+                    writer.WriteLine($"if ({property.PropertyName} == {property.ParameterName})");
+                    using (writer.EnterIndentationScope())
+                    {
+                        writer.WriteLine("return this;");
+                    }
+
+                    writer.WriteLine();
+                    writer.Write($"return new {node.GreenClassName}(");
+                    foreach (var (i, prop) in node.Properties.AsValueEnumerable().Index())
+                    {
+                        if (i > 0)
+                            writer.Write(", ");
+
+                        writer.Write(
+                            ReferenceEquals(prop, property) ? prop.ParameterName : prop.PropertyName
+                        );
+                    }
+                    writer.WriteLine(')');
+                    using var initializer = writer.EnterBlockScope(true);
+                    writer.WriteLine("Diagnostics = Diagnostics");
+                }
+            }
+
+            writer.WriteLine();
+            writer.WriteLine(
+                $"public override {node.GreenClassName} WithDiagnostics("
+                    + $"ImmutableArray<SyntaxDiagnosticInfo> diagnostics)"
+            );
+            using (writer.EnterBlockScope())
+            {
+                writer.WriteLine("if (Diagnostics == diagnostics)");
+                using (writer.EnterIndentationScope())
+                {
+                    writer.WriteLine("return this;");
+                }
+
+                writer.WriteLine();
+                writer.Write($"return new {node.GreenClassName}(");
+                foreach (var (i, prop) in node.Properties.AsValueEnumerable().Index())
+                {
+                    if (i > 0)
+                        writer.Write(", ");
+
+                    writer.Write(prop.PropertyName);
+                }
+                writer.WriteLine(')');
+                using var initializer = writer.EnterBlockScope(true);
+                writer.WriteLine("Diagnostics = diagnostics");
+            }
+
+            writer.WriteLine();
+            writer.Write($"public {node.GreenClassName} Update(");
+            foreach (var (i, prop) in node.Properties.AsValueEnumerable().Index())
+            {
+                if (i > 0)
+                    writer.WriteLine(", ");
+
+                writer.EmitGreenPropertyType(prop);
+                writer.Write($" {prop.ParameterName}");
+            }
+            writer.WriteLine(")");
+            using (writer.EnterBlockScope())
+            {
+                writer.Write("if (");
+                foreach (var (i, prop) in node.Properties.AsValueEnumerable().Index())
+                {
+                    if (i > 0)
+                        writer.Write(" && ");
+
+                    writer.Write($"{prop.PropertyName} == {prop.ParameterName}");
+                }
+                writer.WriteLine(')');
+                using (writer.EnterBlockScope())
+                {
+                    writer.WriteLine("return this;");
+                }
+
+                writer.WriteLine();
+                writer.Write($"return new {node.GreenClassName}(");
+                foreach (var (i, prop) in node.Properties.AsValueEnumerable().Index())
+                {
+                    if (i > 0)
+                        writer.Write(", ");
+
+                    writer.Write(prop.ParameterName);
+                }
+                writer.WriteLine(')');
+                using var initializer = writer.EnterBlockScope(true);
+                writer.WriteLine("Diagnostics = Diagnostics");
+            }
+        }
+
+        #endregion
     }
 }

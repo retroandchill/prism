@@ -47,7 +47,7 @@ internal readonly struct GreenSeparatedList<T>
 
     public GreenSyntaxList<GreenNode> WithSeparators() => _list;
 
-    GreenNode? IGreenNodeWrapper.Node => ((IGreenNodeWrapper)_list).Node;
+    public GreenNode? Node => _list.Node;
 
     public override bool Equals(object? obj)
     {

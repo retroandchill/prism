@@ -155,11 +155,32 @@ public class ExportNodesCommand
         CancellationToken cancellationToken
     )
     {
+        ClearDirectories();
+
         var syntaxDir = Path.Combine(OutputPath, "Syntax");
+        var greenDir = Path.Combine(syntaxDir, "Green");
 
         var csharpModel = resolvedModel.ToCSharp();
         using var writer = new CodeWriter();
         writer.EmitSyntaxKinds(csharpModel);
         await WriteCodeAsync(writer, Path.Join(syntaxDir, "SyntaxKind.cs"), cancellationToken);
+
+        foreach (var module in csharpModel.Modules)
+        {
+            writer.EmitGreenNodeClass(module);
+            await WriteCodeAsync(
+                writer,
+                Path.Join(greenDir, $"{module.CSharpName}.cs"),
+                cancellationToken
+            );
+        }
+    }
+
+    private void ClearDirectories()
+    {
+        foreach (var file in Directory.GetFiles(OutputPath, "*", SearchOption.AllDirectories))
+        {
+            File.Delete(file);
+        }
     }
 }

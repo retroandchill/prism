@@ -1059,7 +1059,7 @@
             },
             {
               "$type": "item",
-              "name": "as",
+              "name": "as_keyword",
               "type": "Token",
               "shape": "single",
               "kinds": [
