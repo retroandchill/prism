@@ -492,6 +492,246 @@ public static class CSharpEmitter
         }
 
         #endregion
+
+        #region Diagnostic Codes
+
+        public void EmitDiagnosticCodes(CSharpSyntaxModel model)
+        {
+            writer.WriteLine("// Generated file, do not edit");
+            writer.WriteLine("using NetEscapades.EnumGenerators;");
+            writer.WriteLine("using System.Runtime.Serialization;");
+            writer.WriteLine();
+            writer.WriteLine("namespace Prism.Core.Diagnostics;");
+            writer.EmitDiagnosticCodeEnum(model);
+        }
+
+        private void EmitDiagnosticCodeEnum(CSharpSyntaxModel model)
+        {
+            writer.WriteLine("[EnumExtensions]");
+            writer.WriteLine("public enum DiagnosticCode : uint");
+            using var scope = writer.EnterBlockScope();
+            writer.WriteLine("Unknown = 0,");
+            foreach (var category in model.Diagnostics)
+            {
+                writer.WriteLine();
+                writer.WriteLine(
+                    $"// -- {category.DisplayName} ({category.Start}-{category.End}) ---"
+                );
+                foreach (var diagnostic in category.Diagnostics)
+                {
+                    writer.WriteLine($"[EnumMember(Value = \"E{diagnostic.Value:D4}\")]");
+                    writer.WriteLine($"{diagnostic.CSharpName} = {diagnostic.Value},");
+                }
+            }
+        }
+
+        #endregion
+
+        #region DiagnosticDescriptors
+
+        public void EmitDiagnosticDescriptors(CSharpSyntaxModel model)
+        {
+            writer.WriteLine("// Generated file, do not edit");
+            writer.WriteLine("namespace Prism.Core.Diagnostics;");
+            writer.WriteLine();
+            writer.WriteLine("public static class DiagnosticDescriptors");
+            using var classScope = writer.EnterBlockScope();
+
+            foreach (
+                var diagnostic in model
+                    .Diagnostics.AsValueEnumerable()
+                    .SelectMany(x => x.Diagnostics)
+            )
+            {
+                writer.EmitDiagnosticDescriptorConstant(diagnostic);
+                writer.WriteLine();
+            }
+            writer.EmitDescriptorLookupFunction(model);
+        }
+
+        private void EmitDiagnosticDescriptorConstant(CSharpDiagnostic diagnostic)
+        {
+            writer.Write(
+                $"public static readonly DiagnosticDescriptor {diagnostic.CSharpName} = new()"
+            );
+            using var scope = writer.EnterBlockScope(true);
+            writer.WriteLine($"Id = DiagnosticCode.{diagnostic.CSharpName}.ToStringFast(),");
+            writer.WriteLine($"Title = \"{diagnostic.Title}\",");
+            writer.Write($"MessageFormat = \"{diagnostic.Format}\",");
+            writer.WriteLine($"Category = \"{diagnostic.Category.Name}\",");
+            writer.WriteLine(
+                $"DefaultSeverity = DiagnosticSeverity.{GetCSharpSeverity(diagnostic.Severity)},"
+            );
+            if (!string.IsNullOrEmpty(diagnostic.Explanation))
+            {
+                writer.WriteLine($" = Explanation\"{diagnostic.Explanation}\",");
+            }
+
+            if (!string.IsNullOrEmpty(diagnostic.HelpLink))
+            {
+                writer.WriteLine($"HelpLink = \"{diagnostic.HelpLink}\",");
+            }
+
+            if (diagnostic.Tags.IsEmpty)
+                return;
+            writer.WriteLine($"Tags = [");
+            using (writer.EnterIndentationScope())
+            {
+                foreach (var tag in diagnostic.Tags)
+                {
+                    writer.WriteLine($"\"{tag}\",");
+                }
+            }
+            writer.WriteLine("],");
+        }
+
+        private void EmitDescriptorLookupFunction(CSharpSyntaxModel model)
+        {
+            writer.WriteLine("public static DiagnosticDescriptor? Find(DiagnosticCode code)");
+            using var scope = writer.EnterBlockScope();
+            writer.WriteLine("return code switch");
+            using var switchScope = writer.EnterBlockScope(true);
+            foreach (
+                var diagnostic in model
+                    .Diagnostics.AsValueEnumerable()
+                    .SelectMany(x => x.Diagnostics)
+            )
+            {
+                writer.WriteLine(
+                    $"DiagnosticCode.{diagnostic.CSharpName} => {diagnostic.CSharpName},"
+                );
+            }
+            writer.WriteLine("_ => null");
+        }
+        #endregion
+
+        #region Diagnostic Factories
+
+        public void EmitDiagnosticFactories(CSharpSyntaxModel mode)
+        {
+            writer.WriteLine("// Generated file, do not edit");
+            writer.WriteLine("namespace Prism.Core.Diagnostics;");
+            writer.WriteLine();
+
+            writer.WriteLine("public static class DiagnosticExtensions");
+            using var classScope = writer.EnterBlockScope();
+            writer.WriteLine("extension (DiagnosticInfo)");
+            using (writer.EnterBlockScope())
+            {
+                foreach (
+                    var (i, diagnostic) in mode
+                        .Diagnostics.AsValueEnumerable()
+                        .SelectMany(x => x.Diagnostics)
+                        .Index()
+                )
+                {
+                    if (i > 0)
+                        writer.WriteLine();
+
+                    writer.EmitDiagnosticInfoFactory(diagnostic, false);
+                    writer.WriteLine();
+                    writer.EmitDiagnosticInfoFactory(diagnostic, true);
+                }
+            }
+
+            writer.WriteLine();
+            writer.WriteLine("extension (Diagnostic)");
+            using (writer.EnterBlockScope())
+            {
+                foreach (
+                    var diagnostic in mode
+                        .Diagnostics.AsValueEnumerable()
+                        .SelectMany(x => x.Diagnostics)
+                )
+                {
+                    writer.WriteLine();
+                    writer.EmitDiagnosticFactory(diagnostic, false, false);
+                    writer.WriteLine();
+                    writer.EmitDiagnosticFactory(diagnostic, true, false);
+                    writer.WriteLine();
+                    writer.EmitDiagnosticFactory(diagnostic, false, true);
+                    writer.WriteLine();
+                    writer.EmitDiagnosticFactory(diagnostic, true, true);
+                }
+            }
+        }
+
+        private void EmitDiagnosticInfoFactory(
+            CSharpDiagnostic diagnostic,
+            bool withSeverityOverride
+        )
+        {
+            writer.Write($"internal static DiagnosticInfo {diagnostic.CSharpName}(");
+            if (withSeverityOverride)
+            {
+                writer.Write("DiagnosticSeverity severity");
+            }
+            foreach (var (i, parameter) in diagnostic.Arguments.AsValueEnumerable().Index())
+            {
+                if (i > 0 || withSeverityOverride)
+                    writer.Write(", ");
+
+                writer.Write($"{parameter.CSharpType} {parameter.CSharpName}");
+            }
+            writer.WriteLine(")");
+            using var blockScope = writer.EnterBlockScope();
+            writer.Write(
+                $"return new DiagnosticInfo(DiagnosticDescriptors.{diagnostic.CSharpName}"
+            );
+            if (withSeverityOverride)
+            {
+                writer.Write(", severity");
+            }
+            foreach (var parameter in diagnostic.Arguments)
+            {
+                writer.Write($", {parameter.CSharpName}");
+            }
+            writer.WriteLine(");");
+        }
+
+        private void EmitDiagnosticFactory(
+            CSharpDiagnostic diagnostic,
+            bool withSeverityOverride,
+            bool withAdditionalLocations
+        )
+        {
+            writer.Write($"public static Diagnostic {diagnostic.CSharpName}(");
+            if (withSeverityOverride)
+            {
+                writer.Write("DiagnosticSeverity severity, ");
+            }
+
+            writer.Write("Location location");
+
+            if (withAdditionalLocations)
+            {
+                writer.Write(", IEnumerable<Location> additionalLocations");
+            }
+
+            foreach (var param in diagnostic.Arguments)
+            {
+                writer.Write($", {param.CSharpType} {param.CSharpName}");
+            }
+            writer.WriteLine(")");
+            using var blockScope = writer.EnterBlockScope();
+            writer.Write($"return new Diagnostic(DiagnosticDescriptors.{diagnostic.CSharpName}");
+            if (withSeverityOverride)
+            {
+                writer.Write(", severity");
+            }
+            writer.Write(", location");
+            if (withAdditionalLocations)
+            {
+                writer.Write(", additionalLocations");
+            }
+            foreach (var param in diagnostic.Arguments)
+            {
+                writer.Write($", {param.CSharpName}");
+            }
+            writer.WriteLine(");");
+        }
+
+        #endregion
     }
 
     private sealed class TrieNode
@@ -529,5 +769,17 @@ public static class CSharpEmitter
         }
 
         return node;
+    }
+
+    private static string GetCSharpSeverity(DiagnosticSeverity severity)
+    {
+        return severity switch
+        {
+            DiagnosticSeverity.Error => "Error",
+            DiagnosticSeverity.Warning => "Warning",
+            DiagnosticSeverity.Info => "Info",
+            DiagnosticSeverity.Hint => "Hint",
+            _ => throw new ArgumentOutOfRangeException(nameof(severity), severity, null),
+        };
     }
 }

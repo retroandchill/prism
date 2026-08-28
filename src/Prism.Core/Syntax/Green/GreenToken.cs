@@ -71,11 +71,21 @@ internal class GreenToken : GreenNode
             : UpdateInternal(leadingTrivia, TrailingTrivia, Diagnostics);
     }
 
+    public GreenToken WithLeadingTrivia(GreenSyntaxList<GreenTrivia> leadingTrivia)
+    {
+        return WithLeadingTrivia(leadingTrivia.Node);
+    }
+
     public GreenToken WithTrailingTrivia(GreenNode? trailingTrivia)
     {
         return trailingTrivia == TrailingTrivia
             ? this
             : UpdateInternal(LeadingTrivia, trailingTrivia, Diagnostics);
+    }
+
+    public GreenToken WithTrailingTrivia(GreenSyntaxList<GreenTrivia> trailingTrivia)
+    {
+        return WithLeadingTrivia(trailingTrivia.Node);
     }
 
     public sealed override GreenToken WithDiagnostics(
@@ -97,6 +107,14 @@ internal class GreenToken : GreenNode
         return leadingTrivia == LeadingTrivia && trailingTrivia == TrailingTrivia
             ? this
             : UpdateInternal(leadingTrivia, trailingTrivia, Diagnostics);
+    }
+
+    public GreenToken Update(
+        GreenSyntaxList<GreenTrivia> leadingTrivia,
+        GreenSyntaxList<GreenTrivia> trailingTrivia
+    )
+    {
+        return Update(leadingTrivia.Node, trailingTrivia.Node);
     }
 
     protected virtual GreenToken UpdateInternal(

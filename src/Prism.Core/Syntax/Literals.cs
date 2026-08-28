@@ -7,14 +7,17 @@ namespace Prism.Core.Syntax;
 public interface ISyntaxData
 {
     SyntaxKind Kind { get; }
+    string Text { get; }
 }
 
-public readonly record struct BoolData(bool Value) : ISyntaxData
+public readonly record struct BoolLiteralData(bool Value) : ISyntaxData
 {
     public SyntaxKind Kind => Value ? SyntaxKind.TrueKeyword : SyntaxKind.FalseKeyword;
 
-    public static BoolData True => new(true);
-    public static BoolData False => new(false);
+    public string Text => Value ? "true" : "false";
+
+    public static BoolLiteralData True => new(true);
+    public static BoolLiteralData False => new(false);
 }
 
 public enum IntegerBase : byte
@@ -41,10 +44,11 @@ public enum IntegerSuffix : byte
     USize,
 }
 
-public readonly record struct IntegerDataValue(
+public readonly record struct IntegerLiteralData(
+    string Text,
     BigInteger Value,
-    IntegerBase Base,
-    IntegerSuffix Suffix
+    IntegerBase Base = IntegerBase.Decimal,
+    IntegerSuffix Suffix = IntegerSuffix.None
 ) : ISyntaxData
 {
     public SyntaxKind Kind => SyntaxKind.IntegerLiteralToken;
@@ -53,12 +57,16 @@ public readonly record struct IntegerDataValue(
 public enum FloatSuffix : byte
 {
     None,
-    F16,
     F32,
     F64,
 }
 
-public readonly record struct FloatDataValue(BigDecimal Value, FloatSuffix Suffix) : ISyntaxData
+public readonly record struct FloatLiteralData(
+    string Text,
+    BigInteger Significand,
+    int Exponent10 = 0,
+    FloatSuffix Suffix = FloatSuffix.None
+) : ISyntaxData
 {
     public SyntaxKind Kind => SyntaxKind.FloatingPointLiteralToken;
 }
@@ -70,14 +78,35 @@ public enum CharacterEncoding : byte
     Utf32,
 }
 
-public readonly record struct CharacterDataValue(Rune Value, CharacterEncoding Encoding)
-    : ISyntaxData
+public readonly record struct CharacterLiteralData(
+    string Text,
+    Rune Value,
+    CharacterEncoding Encoding = CharacterEncoding.Utf8
+) : ISyntaxData
 {
     public SyntaxKind Kind => SyntaxKind.CharacterLiteralToken;
 }
 
-public readonly record struct StringDataValue(string Value, CharacterEncoding Encoding)
-    : ISyntaxData
+public readonly record struct StringLiteralData(
+    string Text,
+    string Value,
+    CharacterEncoding Encoding = CharacterEncoding.Utf8
+) : ISyntaxData
 {
     public SyntaxKind Kind => SyntaxKind.StringLiteralToken;
+}
+
+public readonly record struct IdentifierData : ISyntaxData
+{
+    public string Text { get; }
+    public string Value { get; }
+    public bool IsEscaped { get; }
+    public SyntaxKind Kind => SyntaxKind.IdentifierToken;
+
+    public IdentifierData(string text)
+    {
+        Text = text;
+        IsEscaped = text.StartsWith('@');
+        Value = IsEscaped ? text[1..] : text;
+    }
 }

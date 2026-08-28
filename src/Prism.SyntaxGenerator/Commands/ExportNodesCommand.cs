@@ -159,6 +159,7 @@ public class ExportNodesCommand
 
         var syntaxDir = Path.Combine(OutputPath, "Syntax");
         var greenDir = Path.Combine(syntaxDir, "Green");
+        var diagnosticDir = Path.Combine(OutputPath, "Diagnostics");
 
         var csharpModel = resolvedModel.ToCSharp();
         using var writer = new CodeWriter();
@@ -174,6 +175,27 @@ public class ExportNodesCommand
                 cancellationToken
             );
         }
+
+        writer.EmitDiagnosticCodes(csharpModel);
+        await WriteCodeAsync(
+            writer,
+            Path.Join(diagnosticDir, "DiagnosticCode.cs"),
+            cancellationToken
+        );
+
+        writer.EmitDiagnosticDescriptors(csharpModel);
+        await WriteCodeAsync(
+            writer,
+            Path.Join(diagnosticDir, "DiagnosticDescriptors.cs"),
+            cancellationToken
+        );
+
+        writer.EmitDiagnosticFactories(csharpModel);
+        await WriteCodeAsync(
+            writer,
+            Path.Join(diagnosticDir, "DiagnosticExtensions.cs"),
+            cancellationToken
+        );
     }
 
     private void ClearDirectories()

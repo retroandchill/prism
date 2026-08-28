@@ -169,7 +169,7 @@ public static partial class CSharpModelMapper
     [MapProperty(
         nameof(DiagnosticArgument.Name),
         nameof(CSharpDiagnosticArgument.CSharpName),
-        Use = nameof(GetPublicCSharpMemberName)
+        Use = nameof(GetCSharpParameterName)
     )]
     [MapProperty(
         nameof(DiagnosticArgument.Type),
@@ -263,8 +263,8 @@ public static partial class CSharpModelMapper
     {
         return name switch
         {
-            "Int32" => "std::int32_t",
-            "String" => "std::string",
+            "Int32" or "SizeT" => "int",
+            "String" or "Name" => "string",
             _ => GetPascalizedName(name),
         };
     }

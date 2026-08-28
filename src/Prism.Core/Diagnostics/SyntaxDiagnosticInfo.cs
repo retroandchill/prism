@@ -7,9 +7,18 @@ using Prism.Core.Text;
 
 namespace Prism.Core.Diagnostics;
 
-internal readonly record struct SyntaxDiagnosticInfo(TextSpan RelativeSpan, DiagnosticInfo Info)
+internal readonly record struct SyntaxDiagnosticInfo(
+    DiagnosticInfo Info,
+    TextSpan RelativeSpan = default
+)
 {
     public int Offset => RelativeSpan.Start;
 
     public int Width => RelativeSpan.Length;
+
+    public SyntaxDiagnosticInfo(DiagnosticInfo info, int offset)
+        : this(info, new TextSpan(offset, 0)) { }
+
+    public SyntaxDiagnosticInfo(DiagnosticInfo info, int offset, int width)
+        : this(info, new TextSpan(offset, width)) { }
 }

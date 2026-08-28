@@ -15,6 +15,8 @@ public sealed record DiagnosticDescriptor
 
     public string Explanation { get; init; } = "";
 
+    public string HelpLink { get; init; } = "";
+
     public required string MessageFormat { get; init; }
 
     public required string Category { get; init; }
