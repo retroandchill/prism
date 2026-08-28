@@ -1,6 +1,10 @@
 // Generated file, do not edit
+using NetEscapades.EnumGenerators;
+using Prism.Core.Text;
+
 namespace Prism.Core.Syntax;
 
+[EnumExtensions]
 public enum SyntaxKind : ushort
 {
     None = 0,
@@ -191,7 +195,7 @@ public enum SyntaxKind : ushort
     #endregion
 }
 
-public static class SyntaxKindExtensions
+public static partial class SyntaxKindExtensions
 {
     extension(SyntaxKind kind)
     {
@@ -351,29 +355,68 @@ public static class SyntaxKindExtensions
             }
         }
 
+        public static SyntaxKind TriviaStart => (SyntaxKind)100;
+        public static SyntaxKind TriviaEnd => (SyntaxKind)103;
+
         public bool IsTrivia => (ushort)kind >= 100 && (ushort)kind <= 103;
+
+        public static SyntaxKind StructuredTriviumStart => (SyntaxKind)200;
+        public static SyntaxKind StructuredTriviumEnd => (SyntaxKind)200;
 
         public bool IsStructuredTrivium => (ushort)kind >= 200 && (ushort)kind <= 200;
 
+        public static SyntaxKind KeywordStart => (SyntaxKind)1000;
+        public static SyntaxKind KeywordEnd => (SyntaxKind)1036;
+
         public bool IsKeyword => (ushort)kind >= 1000 && (ushort)kind <= 1036;
+
+        public static SyntaxKind PunctuationStart => (SyntaxKind)1200;
+        public static SyntaxKind PunctuationEnd => (SyntaxKind)1254;
 
         public bool IsPunctuation => (ushort)kind >= 1200 && (ushort)kind <= 1254;
 
+        public static SyntaxKind OtherTokenStart => (SyntaxKind)1300;
+        public static SyntaxKind OtherTokenEnd => (SyntaxKind)1306;
+
         public bool IsOtherToken => (ushort)kind >= 1300 && (ushort)kind <= 1306;
+
+        public static SyntaxKind TopLevelStart => (SyntaxKind)2000;
+        public static SyntaxKind TopLevelEnd => (SyntaxKind)2000;
 
         public bool IsTopLevel => (ushort)kind >= 2000 && (ushort)kind <= 2000;
 
+        public static SyntaxKind TypeStart => (SyntaxKind)3000;
+        public static SyntaxKind TypeEnd => (SyntaxKind)3001;
+
         public bool IsType => (ushort)kind >= 3000 && (ushort)kind <= 3001;
+
+        public static SyntaxKind NameStart => (SyntaxKind)4000;
+        public static SyntaxKind NameEnd => (SyntaxKind)4001;
 
         public bool IsName => (ushort)kind >= 4000 && (ushort)kind <= 4001;
 
+        public static SyntaxKind ClauseStart => (SyntaxKind)5000;
+        public static SyntaxKind ClauseEnd => (SyntaxKind)5008;
+
         public bool IsClause => (ushort)kind >= 5000 && (ushort)kind <= 5008;
+
+        public static SyntaxKind ExpressionStart => (SyntaxKind)6000;
+        public static SyntaxKind ExpressionEnd => (SyntaxKind)6009;
 
         public bool IsExpression => (ushort)kind >= 6000 && (ushort)kind <= 6009;
 
+        public static SyntaxKind StatementStart => (SyntaxKind)7000;
+        public static SyntaxKind StatementEnd => (SyntaxKind)7010;
+
         public bool IsStatement => (ushort)kind >= 7000 && (ushort)kind <= 7010;
 
+        public static SyntaxKind DeclarationStart => (SyntaxKind)8000;
+        public static SyntaxKind DeclarationEnd => (SyntaxKind)8004;
+
         public bool IsDeclaration => (ushort)kind >= 8000 && (ushort)kind <= 8004;
+
+        public static SyntaxKind DirectiveStart => (SyntaxKind)9000;
+        public static SyntaxKind DirectiveEnd => (SyntaxKind)9000;
 
         public bool IsDirective => (ushort)kind >= 9000 && (ushort)kind <= 9000;
 
@@ -390,5 +433,334 @@ public static class SyntaxKindExtensions
             || kind.IsStatement
             || kind.IsDeclaration
             || kind.IsDirective;
+
+        internal static SyntaxKind? MatchKeyword(scoped ReadOnlySpan<char> text)
+        {
+            switch (text.Length)
+            {
+                case 2:
+                    if (text.Equals("as", StringComparison.Ordinal))
+                        return SyntaxKind.AsKeyword;
+                    if (text.Equals("i8", StringComparison.Ordinal))
+                        return SyntaxKind.I8Keyword;
+                    if (text.Equals("if", StringComparison.Ordinal))
+                        return SyntaxKind.IfKeyword;
+                    if (text.Equals("u8", StringComparison.Ordinal))
+                        return SyntaxKind.U8Keyword;
+                    break;
+                case 3:
+                    if (text.Equals("f32", StringComparison.Ordinal))
+                        return SyntaxKind.F32Keyword;
+                    if (text.Equals("f64", StringComparison.Ordinal))
+                        return SyntaxKind.F64Keyword;
+                    if (text.Equals("for", StringComparison.Ordinal))
+                        return SyntaxKind.ForKeyword;
+                    if (text.Equals("i16", StringComparison.Ordinal))
+                        return SyntaxKind.I16Keyword;
+                    if (text.Equals("i32", StringComparison.Ordinal))
+                        return SyntaxKind.I32Keyword;
+                    if (text.Equals("i64", StringComparison.Ordinal))
+                        return SyntaxKind.I64Keyword;
+                    if (text.Equals("str", StringComparison.Ordinal))
+                        return SyntaxKind.StrKeyword;
+                    if (text.Equals("u16", StringComparison.Ordinal))
+                        return SyntaxKind.U16Keyword;
+                    if (text.Equals("u32", StringComparison.Ordinal))
+                        return SyntaxKind.U32Keyword;
+                    if (text.Equals("u64", StringComparison.Ordinal))
+                        return SyntaxKind.U64Keyword;
+                    if (text.Equals("var", StringComparison.Ordinal))
+                        return SyntaxKind.VarKeyword;
+                    break;
+                case 4:
+                    if (text.Equals("bool", StringComparison.Ordinal))
+                        return SyntaxKind.BoolKeyword;
+                    if (text.Equals("char", StringComparison.Ordinal))
+                        return SyntaxKind.CharKeyword;
+                    if (text.Equals("else", StringComparison.Ordinal))
+                        return SyntaxKind.ElseKeyword;
+                    if (text.Equals("func", StringComparison.Ordinal))
+                        return SyntaxKind.FuncKeyword;
+                    if (text.Equals("i128", StringComparison.Ordinal))
+                        return SyntaxKind.I128Keyword;
+                    if (text.Equals("loop", StringComparison.Ordinal))
+                        return SyntaxKind.LoopKeyword;
+                    if (text.Equals("rune", StringComparison.Ordinal))
+                        return SyntaxKind.RuneKeyword;
+                    if (text.Equals("true", StringComparison.Ordinal))
+                        return SyntaxKind.TrueKeyword;
+                    if (text.Equals("u128", StringComparison.Ordinal))
+                        return SyntaxKind.U128Keyword;
+                    if (text.Equals("void", StringComparison.Ordinal))
+                        return SyntaxKind.VoidKeyword;
+                    break;
+                case 5:
+                    if (text.Equals("break", StringComparison.Ordinal))
+                        return SyntaxKind.BreakKeyword;
+                    if (text.Equals("false", StringComparison.Ordinal))
+                        return SyntaxKind.FalseKeyword;
+                    if (text.Equals("isize", StringComparison.Ordinal))
+                        return SyntaxKind.ISizeKeyword;
+                    if (text.Equals("using", StringComparison.Ordinal))
+                        return SyntaxKind.UsingKeyword;
+                    if (text.Equals("usize", StringComparison.Ordinal))
+                        return SyntaxKind.USizeKeyword;
+                    if (text.Equals("while", StringComparison.Ordinal))
+                        return SyntaxKind.WhileKeyword;
+                    break;
+                case 6:
+                    if (text.Equals("char16", StringComparison.Ordinal))
+                        return SyntaxKind.Char16Keyword;
+                    if (text.Equals("extern", StringComparison.Ordinal))
+                        return SyntaxKind.ExternKeyword;
+                    if (text.Equals("return", StringComparison.Ordinal))
+                        return SyntaxKind.ReturnKeyword;
+                    break;
+                case 7:
+                    if (text.Equals("mutable", StringComparison.Ordinal))
+                        return SyntaxKind.MutableKeyword;
+                    break;
+                case 8:
+                    if (text.Equals("continue", StringComparison.Ordinal))
+                        return SyntaxKind.ContinueKeyword;
+                    break;
+                case 9:
+                    if (text.Equals("namespace", StringComparison.Ordinal))
+                        return SyntaxKind.NamespaceKeyword;
+                    break;
+            }
+            return null;
+        }
+
+        internal static SyntaxKind? MatchPunctuation(TextCursor cursor)
+        {
+            switch (cursor.Current)
+            {
+                case '!':
+                    cursor.Advance();
+                    if (cursor.Current == '=')
+                    {
+                        cursor.Advance();
+                        return SyntaxKind.BangEqualToken;
+                    }
+                    return SyntaxKind.BangToken;
+                case '%':
+                    cursor.Advance();
+                    if (cursor.Current == '=')
+                    {
+                        cursor.Advance();
+                        return SyntaxKind.PercentEqualToken;
+                    }
+                    return SyntaxKind.PercentToken;
+                case '&':
+                    cursor.Advance();
+                    switch (cursor.Current)
+                    {
+                        case '&':
+                            cursor.Advance();
+                            if (cursor.Current == '=')
+                            {
+                                cursor.Advance();
+                                return SyntaxKind.AmpAmpEqualToken;
+                            }
+                            return SyntaxKind.AmpAmpToken;
+                        case '=':
+                            cursor.Advance();
+                            return SyntaxKind.AmpEqualToken;
+                    }
+                    return SyntaxKind.AmpToken;
+                case '(':
+                    cursor.Advance();
+                    return SyntaxKind.OpenParenToken;
+                case ')':
+                    cursor.Advance();
+                    return SyntaxKind.CloseParenToken;
+                case '*':
+                    cursor.Advance();
+                    if (cursor.Current == '=')
+                    {
+                        cursor.Advance();
+                        return SyntaxKind.StarEqualToken;
+                    }
+                    return SyntaxKind.StarToken;
+                case '+':
+                    cursor.Advance();
+                    switch (cursor.Current)
+                    {
+                        case '+':
+                            cursor.Advance();
+                            return SyntaxKind.PlusPlusToken;
+                        case '=':
+                            cursor.Advance();
+                            return SyntaxKind.PlusEqualToken;
+                    }
+                    return SyntaxKind.PlusToken;
+                case ',':
+                    cursor.Advance();
+                    return SyntaxKind.CommaToken;
+                case '-':
+                    cursor.Advance();
+                    switch (cursor.Current)
+                    {
+                        case '-':
+                            cursor.Advance();
+                            return SyntaxKind.MinusMinusToken;
+                        case '=':
+                            cursor.Advance();
+                            return SyntaxKind.MinusEqualToken;
+                    }
+                    return SyntaxKind.MinusToken;
+                case '.':
+                    cursor.Advance();
+                    if (cursor.Current == '.')
+                    {
+                        cursor.Advance();
+                        if (cursor.Current == '.')
+                        {
+                            cursor.Advance();
+                            return SyntaxKind.EllipsisToken;
+                        }
+                    }
+                    return SyntaxKind.PeriodToken;
+                case '/':
+                    cursor.Advance();
+                    if (cursor.Current == '=')
+                    {
+                        cursor.Advance();
+                        return SyntaxKind.SlashEqualToken;
+                    }
+                    return SyntaxKind.SlashToken;
+                case ':':
+                    cursor.Advance();
+                    if (cursor.Current == ':')
+                    {
+                        cursor.Advance();
+                        return SyntaxKind.DoubleColonToken;
+                    }
+                    return SyntaxKind.ColonToken;
+                case ';':
+                    cursor.Advance();
+                    return SyntaxKind.SemicolonToken;
+                case '<':
+                    cursor.Advance();
+                    switch (cursor.Current)
+                    {
+                        case '<':
+                            cursor.Advance();
+                            if (cursor.Current == '=')
+                            {
+                                cursor.Advance();
+                                return SyntaxKind.LessLessEqualToken;
+                            }
+                            return SyntaxKind.LessLessToken;
+                        case '=':
+                            cursor.Advance();
+                            if (cursor.Current == '>')
+                            {
+                                cursor.Advance();
+                                return SyntaxKind.SpaceshipToken;
+                            }
+                            return SyntaxKind.LessEqualToken;
+                    }
+                    return SyntaxKind.LessToken;
+                case '=':
+                    cursor.Advance();
+                    switch (cursor.Current)
+                    {
+                        case '=':
+                            cursor.Advance();
+                            return SyntaxKind.EqualEqualToken;
+                        case '>':
+                            cursor.Advance();
+                            return SyntaxKind.ArrowToken;
+                    }
+                    return SyntaxKind.EqualToken;
+                case '>':
+                    cursor.Advance();
+                    switch (cursor.Current)
+                    {
+                        case '=':
+                            cursor.Advance();
+                            return SyntaxKind.GreaterEqualToken;
+                        case '>':
+                            cursor.Advance();
+                            switch (cursor.Current)
+                            {
+                                case '=':
+                                    cursor.Advance();
+                                    return SyntaxKind.GreaterGreaterEqualToken;
+                                case '>':
+                                    cursor.Advance();
+                                    if (cursor.Current == '=')
+                                    {
+                                        cursor.Advance();
+                                        return SyntaxKind.GreaterGreaterGreaterEqualToken;
+                                    }
+                                    return SyntaxKind.GreaterGreaterGreaterToken;
+                            }
+                            return SyntaxKind.GreaterGreaterToken;
+                    }
+                    return SyntaxKind.GreaterToken;
+                case '?':
+                    cursor.Advance();
+                    switch (cursor.Current)
+                    {
+                        case '.':
+                            cursor.Advance();
+                            return SyntaxKind.QuestionPeriodToken;
+                        case '?':
+                            cursor.Advance();
+                            if (cursor.Current == '=')
+                            {
+                                cursor.Advance();
+                                return SyntaxKind.QuestionQuestionEqualToken;
+                            }
+                            return SyntaxKind.QuestionQuestionToken;
+                    }
+                    return SyntaxKind.QuestionToken;
+                case '[':
+                    cursor.Advance();
+                    return SyntaxKind.OpenBracketToken;
+                case ']':
+                    cursor.Advance();
+                    return SyntaxKind.CloseBracketToken;
+                case '^':
+                    cursor.Advance();
+                    if (cursor.Current == '=')
+                    {
+                        cursor.Advance();
+                        return SyntaxKind.CaretEqualToken;
+                    }
+                    return SyntaxKind.CaretToken;
+                case '{':
+                    cursor.Advance();
+                    return SyntaxKind.OpenBraceToken;
+                case '|':
+                    cursor.Advance();
+                    switch (cursor.Current)
+                    {
+                        case '=':
+                            cursor.Advance();
+                            return SyntaxKind.PipeEqualToken;
+                        case '|':
+                            cursor.Advance();
+                            if (cursor.Current == '=')
+                            {
+                                cursor.Advance();
+                                return SyntaxKind.PipePipeEqualToken;
+                            }
+                            return SyntaxKind.PipePipeToken;
+                    }
+                    return SyntaxKind.PipeToken;
+                case '}':
+                    cursor.Advance();
+                    return SyntaxKind.CloseBraceToken;
+                case '~':
+                    cursor.Advance();
+                    return SyntaxKind.TildeToken;
+            }
+
+            return null;
+        }
     }
 }

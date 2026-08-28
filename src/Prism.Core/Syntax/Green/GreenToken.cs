@@ -4,7 +4,9 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using Prism.Core.Diagnostics;
 
 namespace Prism.Core.Syntax.Green;
@@ -114,5 +116,103 @@ internal class GreenToken : GreenNode
         LeadingTrivia?.WriteTo(writer);
         writer.Write(Text);
         TrailingTrivia?.WriteTo(writer);
+    }
+
+    public static GreenToken EOF { get; } = new(SyntaxKind.EofToken);
+    public static GreenToken BadToken { get; } = new(SyntaxKind.BadToken);
+
+    private static ImmutableArray<GreenToken> GetMissingTokenList(SyntaxKind start, SyntaxKind end)
+    {
+        var size = end.AsUnderlyingType() - start.AsUnderlyingType();
+        Debug.Assert(size > 0);
+        var result = new GreenToken[size];
+        for (var i = 0; i < size; i++)
+        {
+            result[i] = new GreenMissingToken((SyntaxKind)(start.AsUnderlyingType() + i));
+        }
+
+        return ImmutableCollectionsMarshal.AsImmutableArray(result);
+    }
+
+    private static ImmutableArray<GreenToken> GetStaticTokenList(SyntaxKind start, SyntaxKind end)
+    {
+        var size = end.AsUnderlyingType() - start.AsUnderlyingType();
+        Debug.Assert(size > 0);
+        var result = new GreenToken[size];
+        for (var i = 0; i < size; i++)
+        {
+            result[i] = new GreenToken((SyntaxKind)(start.AsUnderlyingType() + i));
+        }
+
+        return ImmutableCollectionsMarshal.AsImmutableArray(result);
+    }
+
+    private static readonly ImmutableArray<GreenToken> Keywords = GetStaticTokenList(
+        SyntaxKind.KeywordStart,
+        SyntaxKind.KeywordEnd
+    );
+    private static readonly ImmutableArray<GreenToken> Punctuators = GetStaticTokenList(
+        SyntaxKind.PunctuationStart,
+        SyntaxKind.PunctuationEnd
+    );
+
+    private static readonly ImmutableArray<GreenToken> MissingKeywords = GetMissingTokenList(
+        SyntaxKind.KeywordStart,
+        SyntaxKind.KeywordEnd
+    );
+    private static readonly ImmutableArray<GreenToken> MissingPunctuators = GetMissingTokenList(
+        SyntaxKind.PunctuationStart,
+        SyntaxKind.PunctuationEnd
+    );
+    private static readonly ImmutableArray<GreenToken> MissingOperators = GetMissingTokenList(
+        SyntaxKind.OtherTokenStart,
+        SyntaxKind.OtherTokenEnd
+    );
+
+    public static GreenToken? From(SyntaxKind kind)
+    {
+        // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
+        switch (kind)
+        {
+            case SyntaxKind.EofToken:
+                return EOF;
+            case SyntaxKind.BadToken:
+                return BadToken;
+            default:
+                if (kind.IsKeyword)
+                {
+                    return Keywords[
+                        kind.AsUnderlyingType() - SyntaxKind.KeywordStart.AsUnderlyingType()
+                    ];
+                }
+
+                return kind.IsPunctuation
+                    ? Punctuators[
+                        kind.AsUnderlyingType() - SyntaxKind.PunctuationStart.AsUnderlyingType()
+                    ]
+                    : null;
+        }
+    }
+
+    public static GreenToken GetMissing(SyntaxKind kind)
+    {
+        if (kind.IsKeyword)
+        {
+            return MissingKeywords[
+                kind.AsUnderlyingType() - SyntaxKind.KeywordStart.AsUnderlyingType()
+            ];
+        }
+
+        if (kind.IsPunctuation)
+        {
+            return MissingPunctuators[
+                kind.AsUnderlyingType() - SyntaxKind.PunctuationStart.AsUnderlyingType()
+            ];
+        }
+
+        Debug.Assert(kind.IsOtherToken);
+        return MissingOperators[
+            kind.AsUnderlyingType() - SyntaxKind.OtherTokenStart.AsUnderlyingType()
+        ];
     }
 }

@@ -21,9 +21,14 @@ public static class CSharpEmitter
         public void EmitSyntaxKinds(CSharpSyntaxModel model)
         {
             writer.WriteLine("// Generated file, do not edit");
+            writer.WriteLine("using NetEscapades.EnumGenerators;");
+            writer.WriteLine("using Prism.Core.Text;");
+            writer.WriteLine();
+
             writer.WriteLine("namespace Prism.Core.Syntax;");
             writer.WriteLine();
 
+            writer.WriteLine($"[EnumExtensions]");
             writer.WriteLine($"public enum {SyntaxKindClass} : ushort");
             using (writer.EnterBlockScope())
             {
@@ -39,12 +44,12 @@ public static class CSharpEmitter
                         writer.WriteLine($"{kind.CSharpName} = {kind.Value},");
                     }
 
-                    writer.WriteLineUnindented("#endregion");
+                    writer.WriteLine("#endregion");
                 }
             }
 
             writer.WriteLine();
-            writer.WriteLine($"public static class {SyntaxKindClass}Extensions");
+            writer.WriteLine($"public static partial class {SyntaxKindClass}Extensions");
 
             using (writer.EnterBlockScope())
             {
@@ -71,8 +76,17 @@ public static class CSharpEmitter
 
                 foreach (var group in model.KindGroups)
                 {
-                    writer.WriteLine();
                     var groupName = group.CSharpName;
+
+                    writer.WriteLine();
+                    writer.WriteLine(
+                        $"public static {SyntaxKindClass} {groupName}Start => ({SyntaxKindClass}){group.StartValue};"
+                    );
+                    writer.WriteLine(
+                        $"public static {SyntaxKindClass} {groupName}End => ({SyntaxKindClass}){group.EndValue};"
+                    );
+
+                    writer.WriteLine();
                     writer.WriteLine(
                         $"public bool Is{groupName} => (ushort)kind >= {group.StartValue} && (ushort)kind <= {group.EndValue};"
                     );
@@ -88,6 +102,11 @@ public static class CSharpEmitter
                 writer.EmitIsSyntaxCategory(model, "Token", k => k.Kind == SyntaxGroupKind.Token);
                 writer.WriteLine();
                 writer.EmitIsSyntaxCategory(model, "Node", k => k.Kind == SyntaxGroupKind.Node);
+
+                writer.WriteLine();
+                writer.EmitKeywordLookup(model);
+                writer.WriteLine();
+                writer.EmitPunctuationTrie(model);
             }
         }
 
@@ -116,6 +135,89 @@ public static class CSharpEmitter
             }
 
             writer.WriteLine(';');
+        }
+
+        private void EmitKeywordLookup(CSharpSyntaxModel model)
+        {
+            writer.WriteLine(
+                "internal static SyntaxKind? MatchKeyword(scoped ReadOnlySpan<char> text)"
+            );
+            using var scope = writer.EnterBlockScope();
+            writer.WriteLine("switch (text.Length)");
+            using (writer.EnterBlockScope())
+            {
+                foreach (
+                    var sizeClass in model
+                        .Tokens.AsValueEnumerable()
+                        .Where(t => t.Category == TokenCategory.Keyword)
+                        .GroupBy(t => t.Text!.Length)
+                        .OrderBy(t => t.Key)
+                )
+                {
+                    writer.WriteLine($"case {sizeClass.Key}:");
+                    using var indent = writer.EnterIndentationScope();
+                    foreach (var keyword in sizeClass.AsValueEnumerable().OrderBy(k => k.Text))
+                    {
+                        writer.WriteLine(
+                            $"if (text.Equals(\"{keyword.Text!}\", StringComparison.Ordinal)) return {SyntaxKindClass}.{keyword.Kind.CSharpName};"
+                        );
+                    }
+
+                    writer.WriteLine("break;");
+                }
+            }
+
+            writer.WriteLine("return null;");
+        }
+
+        private void EmitPunctuationTrie(CSharpSyntaxModel model)
+        {
+            var trie = ConstructPunctuationTrie(model);
+            writer.WriteLine(
+                $"internal static {SyntaxKindClass}? MatchPunctuation(TextCursor cursor)"
+            );
+            using var block = writer.EnterBlockScope();
+            writer.WriteTrie(trie);
+            writer.WriteLine();
+            writer.WriteLine("return null;");
+        }
+
+        private void WriteTrie(TrieNode node)
+        {
+            switch (node.Children.Count)
+            {
+                case 1:
+                {
+                    var (character, child) = node.Children.Single();
+                    writer.WriteLine($"if (cursor.Current == '{character}')");
+                    using var block = writer.EnterBlockScope();
+                    writer.WriteLine("cursor.Advance();");
+                    writer.WriteTrie(child);
+                    break;
+                }
+                case > 1:
+                {
+                    writer.WriteLine("switch (cursor.Current)");
+                    using var block = writer.EnterBlockScope();
+                    // Sort by the key to ensure consistent output
+                    foreach (var (character, child) in node.Children.OrderBy(x => x.Key))
+                    {
+                        writer.WriteLine($"case '{character}':");
+                        using var unmarkedBlock = writer.EnterIndentationScope();
+                        writer.WriteLine("cursor.Advance();");
+                        writer.WriteTrie(child);
+                        if (child.Value is null)
+                            writer.WriteLine("break;");
+                    }
+
+                    break;
+                }
+            }
+
+            if (node.Value is { } terminal)
+            {
+                writer.WriteLine($"return SyntaxKind.{terminal.Kind.CSharpName};");
+            }
         }
 
         #endregion
@@ -157,7 +259,7 @@ public static class CSharpEmitter
             using var blockScope = writer.EnterBlockScope();
             if (node.IsAbstract)
             {
-                writer.EmitGreenNodeAbstractClassBody(node, baseName);
+                writer.EmitGreenNodeAbstractClassBody(node);
             }
             else
             {
@@ -165,7 +267,7 @@ public static class CSharpEmitter
             }
         }
 
-        private void EmitGreenNodeAbstractClassBody(CSharpNode node, string baseName)
+        private void EmitGreenNodeAbstractClassBody(CSharpNode node)
         {
             writer.WriteLine(
                 $"protected {node.GreenClassName}({SyntaxKindClass} kind) : " + $"base(kind) {{ }}"
@@ -266,6 +368,7 @@ public static class CSharpEmitter
                 var nodeSuffix = isList ? ".Node" : "";
                 writer.WriteLine($"{i} => {property.PropertyName}{nodeSuffix},");
             }
+
             writer.WriteLine("_ => null");
         }
 
@@ -308,6 +411,7 @@ public static class CSharpEmitter
                             ReferenceEquals(prop, property) ? prop.ParameterName : prop.PropertyName
                         );
                     }
+
                     writer.WriteLine(')');
                     using var initializer = writer.EnterBlockScope(true);
                     writer.WriteLine("Diagnostics = Diagnostics");
@@ -336,6 +440,7 @@ public static class CSharpEmitter
 
                     writer.Write(prop.PropertyName);
                 }
+
                 writer.WriteLine(')');
                 using var initializer = writer.EnterBlockScope(true);
                 writer.WriteLine("Diagnostics = diagnostics");
@@ -351,6 +456,7 @@ public static class CSharpEmitter
                 writer.EmitGreenPropertyType(prop);
                 writer.Write($" {prop.ParameterName}");
             }
+
             writer.WriteLine(")");
             using (writer.EnterBlockScope())
             {
@@ -362,6 +468,7 @@ public static class CSharpEmitter
 
                     writer.Write($"{prop.PropertyName} == {prop.ParameterName}");
                 }
+
                 writer.WriteLine(')');
                 using (writer.EnterBlockScope())
                 {
@@ -377,6 +484,7 @@ public static class CSharpEmitter
 
                     writer.Write(prop.ParameterName);
                 }
+
                 writer.WriteLine(')');
                 using var initializer = writer.EnterBlockScope(true);
                 writer.WriteLine("Diagnostics = Diagnostics");
@@ -384,5 +492,42 @@ public static class CSharpEmitter
         }
 
         #endregion
+    }
+
+    private sealed class TrieNode
+    {
+        public Dictionary<char, TrieNode> Children { get; } = new();
+        public CSharpToken? Value { get; set; }
+    }
+
+    private static TrieNode ConstructPunctuationTrie(CSharpSyntaxModel model)
+    {
+        var node = new TrieNode();
+        foreach (
+            var production in model
+                .Tokens.AsValueEnumerable()
+                .Where(t => t.Category == TokenCategory.Punctuation)
+        )
+        {
+            var current = node;
+
+            foreach (var c in production.Text!)
+            {
+                if (current.Children.TryGetValue(c, out var child))
+                {
+                    current = child;
+                }
+                else
+                {
+                    child = new TrieNode();
+                    current.Children[c] = child;
+                    current = child;
+                }
+            }
+
+            current.Value = production;
+        }
+
+        return node;
     }
 }
