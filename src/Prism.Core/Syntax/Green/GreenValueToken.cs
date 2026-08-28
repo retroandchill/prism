@@ -9,7 +9,7 @@ internal sealed class GreenValueToken<T>(
     GreenNode? leadingTrivia,
     GreenNode? trailingTrivia
 ) : GreenToken(data.Kind, text.Length, leadingTrivia, trailingTrivia)
-    where T : ISyntaxData
+    where T : struct, ISyntaxData
 {
     public T Value { get; } = data;
 

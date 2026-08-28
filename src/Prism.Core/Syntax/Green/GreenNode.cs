@@ -40,6 +40,14 @@ internal abstract class GreenNode(SyntaxKind kind, int fullWidth = 0)
         FullWidth += node.FullWidth;
     }
 
+    protected void AdjustFlagsAndWidth<T>(T wrapper)
+        where T : IGreenNodeWrapper
+    {
+        var node = wrapper.Node;
+        if (node is not null)
+            AdjustFlagsAndWidth(node);
+    }
+
     public bool IsMissing => !Flags.HasFlag(SyntaxFlags.NotMissing);
 
     public bool ContainsDiagnostics => Flags.HasFlag(SyntaxFlags.ContainsDiagnostics);
@@ -153,7 +161,7 @@ internal abstract class GreenNode(SyntaxKind kind, int fullWidth = 0)
 
     public abstract GreenNode WithDiagnostics(ImmutableArray<SyntaxDiagnosticInfo> diagnostics);
 
-    public abstract SyntaxNode CrateRed(SyntaxNode? parent, int positon = 0);
+    public abstract SyntaxNode CreateRed(SyntaxNode? parent, int positon = 0);
 
     public virtual void WriteTo(TextWriter writer)
     {

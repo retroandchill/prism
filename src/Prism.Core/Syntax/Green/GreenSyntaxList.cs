@@ -4,7 +4,7 @@ using ZLinq;
 
 namespace Prism.Core.Syntax.Green;
 
-internal readonly struct GreenSyntaxList<T>
+internal readonly struct GreenSyntaxList<T>(GreenNode? children)
     : IGreenNodeWrapper,
         IEquatable<GreenSyntaxList<T>>,
         IEqualityOperators<GreenSyntaxList<T>, GreenSyntaxList<T>, bool>,
@@ -12,15 +12,10 @@ internal readonly struct GreenSyntaxList<T>
         IValueEnumerable<GreenSyntaxList<T>.Enumerator, T>
     where T : GreenNode
 {
-    private readonly GreenNode? _children;
-
-    public GreenSyntaxList(GreenNode? children)
-    {
-        _children = children;
-    }
+    public static GreenSyntaxList<T> Empty => new(null);
 
     public int Count =>
-        _children switch
+        Node switch
         {
             GreenListNode list => list.SlotCount,
             null => 0,
@@ -33,14 +28,14 @@ internal readonly struct GreenSyntaxList<T>
         {
             ArgumentOutOfRangeException.ThrowIfNegative(index);
 
-            if (_children is null)
+            if (Node is null)
                 throw new IndexOutOfRangeException("List is empty");
 
-            if (_children is not GreenListNode list)
+            if (Node is not GreenListNode list)
             {
                 if (index != 0)
                     throw new IndexOutOfRangeException("Index out of range");
-                return (T)_children;
+                return (T)Node;
             }
 
             var child = list.GetSlot(index);
@@ -51,7 +46,7 @@ internal readonly struct GreenSyntaxList<T>
         }
     }
 
-    GreenNode? IGreenNodeWrapper.Node => _children;
+    public GreenNode? Node { get; } = children;
 
     public override bool Equals(object? obj)
     {
@@ -60,12 +55,12 @@ internal readonly struct GreenSyntaxList<T>
 
     public bool Equals(GreenSyntaxList<T> other)
     {
-        return _children == other._children;
+        return Node == other.Node;
     }
 
     public override int GetHashCode()
     {
-        return _children?.GetHashCode() ?? 0;
+        return Node?.GetHashCode() ?? 0;
     }
 
     public static bool operator ==(GreenSyntaxList<T> left, GreenSyntaxList<T> right)
@@ -80,7 +75,7 @@ internal readonly struct GreenSyntaxList<T>
 
     public void WriteTo(TextWriter writer)
     {
-        _children?.WriteTo(writer);
+        Node?.WriteTo(writer);
     }
 
     public Enumerator GetEnumerator()

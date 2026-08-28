@@ -49,6 +49,19 @@ internal class GreenToken : GreenNode
         throw new InvalidOperationException("Tokens don't have indexable slots");
     }
 
+    public T GetValue<T>()
+        where T : struct, ISyntaxData
+    {
+        return TryGetValue<T>()
+            ?? throw new InvalidOperationException("Token does not have a value");
+    }
+
+    public T? TryGetValue<T>()
+        where T : struct, ISyntaxData
+    {
+        return this is GreenValueToken<T> valueToken ? valueToken.Value : default;
+    }
+
     public GreenToken WithLeadingTrivia(GreenNode? leadingTrivia)
     {
         return leadingTrivia == LeadingTrivia
@@ -72,7 +85,7 @@ internal class GreenToken : GreenNode
             : UpdateInternal(LeadingTrivia, TrailingTrivia, diagnostics);
     }
 
-    public override SyntaxNode CrateRed(SyntaxNode? parent, int positon = 0)
+    public override SyntaxNode CreateRed(SyntaxNode? parent, int positon = 0)
     {
         throw new InvalidOperationException("Cannot create a red node from a Green Token");
     }

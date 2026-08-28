@@ -110,7 +110,6 @@ public static partial class KnownNames
                 BuiltInType.U64 => KnownName.U64,
                 BuiltInType.U128 => KnownName.U128,
                 BuiltInType.USize => KnownName.USize,
-                BuiltInType.F16 => KnownName.F16,
                 BuiltInType.F32 => KnownName.F32,
                 BuiltInType.F64 => KnownName.F64,
                 BuiltInType.Char => KnownName.Char,

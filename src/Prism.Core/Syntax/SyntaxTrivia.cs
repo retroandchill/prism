@@ -8,10 +8,10 @@ using Prism.Core.Syntax.Green;
 
 namespace Prism.Core.Syntax;
 
-public readonly struct SyntaxTrivia : ISyntaxElement
+public readonly struct SyntaxTrivia
 {
     public SyntaxToken Parent { get; }
-    internal GreenTrivia Green { get; }
+    internal GreenNode Green { get; }
     internal int Position { get; }
 
     public SyntaxKind Kind => Green.Kind;
@@ -21,7 +21,7 @@ public readonly struct SyntaxTrivia : ISyntaxElement
 
     public bool ContainsDiagnostics => Green.ContainsDiagnostics;
 
-    internal SyntaxTrivia(SyntaxToken parent, GreenTrivia green, int position)
+    internal SyntaxTrivia(in SyntaxToken parent, GreenNode green, int position)
     {
         Parent = parent;
         Green = green;

@@ -41,7 +41,7 @@ internal sealed class GreenListNode : GreenNode
         return new GreenListNode(_children) { Diagnostics = diagnostics };
     }
 
-    public override SyntaxNode CrateRed(SyntaxNode? parent, int positon = 0)
+    public override SyntaxNode CreateRed(SyntaxNode? parent, int positon = 0)
     {
         throw new NotImplementedException();
     }

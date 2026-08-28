@@ -1,56 +1,53 @@
 ﻿using System.Collections;
 using Prism.Core.Syntax.Green;
+using ZLinq;
 
 namespace Prism.Core.Syntax;
 
 public readonly struct SyntaxTriviaList : IReadOnlyList<SyntaxTrivia>
 {
-    public static SyntaxTriviaList Empty => new(default, GreenTriviaList.Empty);
+    public static SyntaxTriviaList Empty => new(default, null);
 
-    private readonly SyntaxToken _token;
-    private readonly GreenTriviaList _list;
+    private readonly SyntaxToken _parent;
+    private readonly GreenSyntaxList<GreenNode> _green;
     private readonly int _position;
 
-    public int Count => _list.SlotCount;
+    public int Count => _green.Count;
 
     public SyntaxTrivia this[int index]
     {
         get
         {
-            var element = _list.GetChild(index);
-            return element is not null
-                ? new SyntaxTrivia(_token, element, _position + element.GetSlotOffset(index))
-                : throw new ArgumentOutOfRangeException(nameof(index));
+            if (index < 0 || index >= Count)
+                throw new IndexOutOfRangeException();
+
+            var element = _green[index];
+            var position = _parent.Position + _green.Node?.GetSlotOffset(index) ?? 0;
+            return new SyntaxTrivia(in _parent, element, position);
         }
     }
 
-    internal SyntaxTriviaList(in SyntaxToken token, GreenTriviaList list)
+    internal SyntaxTriviaList(in SyntaxToken parent, GreenNode? green)
     {
-        _token = token;
-        _list = list;
-        _position = token.Position;
+        _parent = parent;
+        _green = new GreenSyntaxList<GreenNode>(green);
+        _position = parent.Position;
     }
 
-    internal SyntaxTriviaList(in SyntaxToken token, GreenTriviaList list, int position)
+    internal SyntaxTriviaList(in SyntaxToken parent, GreenNode? green, int position)
     {
-        _token = token;
-        _list = list;
+        _parent = parent;
+        _green = new GreenSyntaxList<GreenNode>(green);
         _position = position;
     }
 
     public Enumerator GetEnumerator() => new(this);
 
-    IEnumerator<SyntaxTrivia> IEnumerable<SyntaxTrivia>.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
+    IEnumerator<SyntaxTrivia> IEnumerable<SyntaxTrivia>.GetEnumerator() => GetEnumerator();
 
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public struct Enumerator : IEnumerator<SyntaxTrivia>
+    public struct Enumerator : IEnumerator<SyntaxTrivia>, IValueEnumerator<SyntaxTrivia>
     {
         private readonly SyntaxTriviaList _list;
         private int _index;
@@ -75,6 +72,35 @@ public readonly struct SyntaxTriviaList : IReadOnlyList<SyntaxTrivia>
 
             Current = _list[_index];
             return true;
+        }
+
+        public bool TryGetNext(out SyntaxTrivia current)
+        {
+            if (!MoveNext())
+            {
+                current = default;
+                return false;
+            }
+
+            current = Current;
+            return true;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = _list.Count;
+            return true;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<SyntaxTrivia> span)
+        {
+            span = [];
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<SyntaxTrivia> destination, Index offset)
+        {
+            return false;
         }
 
         public void Reset()

@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics.CodeAnalysis;
+using Prism.Core.Diagnostics;
 using Prism.Core.Parse;
 using Prism.Core.Strings;
 using Prism.Core.Syntax.Green;
@@ -20,66 +21,67 @@ public readonly record struct IdentifierInfo(Name Identifier, bool IsEscaped = f
     }
 }
 
-public readonly struct SyntaxToken : ISyntaxElement
+public readonly struct SyntaxToken
 {
-    public SyntaxNode? Parent { get; }
+    internal SyntaxToken(GreenToken token, int position)
+    {
+        Green = token;
+        Position = position;
+    }
+
+    internal SyntaxToken(GreenToken token, SyntaxNode? parent, int position)
+    {
+        Green = token;
+        Parent = parent;
+        Position = position;
+    }
+
     internal GreenToken Green { get; }
-    internal int Position { get; }
 
     public SyntaxKind Kind => Green.Kind;
+    internal int Position { get; }
+    internal int Width => Green.Width;
+    internal int FullWidth => Green.FullWidth;
     public TextSpan FullSpan => new(Position, Green.FullWidth);
+    public TextSpan Span => new(Position + Green.LeadingTriviaWidth, Green.Width);
 
-    public TextSpan Span => new(Position, Green.Width);
-
-    public string Text => Green.Text;
+    public SyntaxNode? Parent { get; }
+    public SyntaxTree? SyntaxTree => Parent?.SyntaxTree;
+    public Location Location => throw new NotImplementedException();
 
     public bool IsMissing => Green.IsMissing;
-
     public bool ContainsDiagnostics => Green.ContainsDiagnostics;
 
-    public SyntaxTriviaList LeadingTrivia => new(in this, Green.LeadingTrivia);
-
+    public SyntaxTriviaList LeadingTrivia => new(in this, Green.LeadingTrivia, Position);
     public bool HasLeadingTrivia => Green.HasLeadingTrivia;
 
-    public SyntaxTriviaList TrailingTrivia => new(in this, Green.TrailingTrivia);
+    public SyntaxTriviaList TrailingTrivia
+    {
+        get
+        {
+            var trailingGreen = Green.TrailingTrivia;
+            var trailingPosition = Position + FullWidth;
+            if (trailingGreen is not null)
+            {
+                trailingPosition -= trailingGreen.FullWidth;
+            }
+
+            return new SyntaxTriviaList(in this, Green.TrailingTrivia, trailingPosition);
+        }
+    }
 
     public bool HasTrailingTrivia => Green.HasTrailingTrivia;
 
-    internal SyntaxToken(SyntaxNode parent, GreenToken green, int position)
+    public T GetValue<T>()
+        where T : struct, ISyntaxData
     {
-        Parent = parent;
-        Green = green;
-        Position = position;
+        return TryGetValue<T>()
+            ?? throw new InvalidOperationException("Token does not have a value");
     }
 
-    internal SyntaxToken(GreenToken green, int position)
+    public T? TryGetValue<T>()
+        where T : struct, ISyntaxData
     {
-        Green = green;
-        Position = position;
-    }
-
-    public bool TryGetIdentifierInfo(out IdentifierInfo info)
-    {
-        if (Green is GreenIdentifierToken identifierToken)
-        {
-            info = identifierToken.IdentifierInfo;
-            return true;
-        }
-
-        info = default;
-        return false;
-    }
-
-    public bool TryGetLiteralValue<T>([NotNullWhen(true)] out T? value)
-        where T : ISyntaxData
-    {
-        if (Green is GreenLiteralToken<T> literalToken)
-        {
-            value = literalToken.Value;
-            return true;
-        }
-
-        value = default;
-        return false;
+        return Green.TryGetValue<T>();
     }
 }

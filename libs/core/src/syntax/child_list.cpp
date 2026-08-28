@@ -56,7 +56,7 @@ namespace prism
         DEBUG_ASSERT(index > slot_data.preceding_occupant_slot_count);
         auto idx = index - slot_data.preceding_occupant_slot_count;
         auto slot_index = slot_data.slot_index;
-        auto position = slot_data.slot_index;
+        auto position = slot_data.position_at_slot_index;
 
         while (true)
         {

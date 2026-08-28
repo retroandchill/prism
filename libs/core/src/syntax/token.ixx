@@ -65,7 +65,7 @@ namespace prism
             return green_->is_missing();
         }
 
-        [[nodiscard]] constexpr std::uint32_t contains_diagnostics() const noexcept
+        [[nodiscard]] constexpr bool contains_diagnostics() const noexcept
         {
             return green_->contains_diagnostics();
         }

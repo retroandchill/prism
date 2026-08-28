@@ -9,13 +9,6 @@ public interface ISyntaxData
     SyntaxKind Kind { get; }
 }
 
-public interface ISyntaxDataWithoutText : ISyntaxData;
-
-public interface ISyntaxDataWithString : ISyntaxData
-{
-    string Text { get; }
-}
-
 public readonly record struct BoolData(bool Value) : ISyntaxData
 {
     public SyntaxKind Kind => Value ? SyntaxKind.TrueKeyword : SyntaxKind.FalseKeyword;
