@@ -34,7 +34,7 @@ public sealed class SourceText
         _lineOffsets = builder.DrainToImmutable();
     }
 
-    public SourcePosition Positionof(int index)
+    public SourcePosition PositionOf(int index)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Text.Length);

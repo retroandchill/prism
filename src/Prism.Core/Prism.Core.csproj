@@ -20,4 +20,8 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Prism.Core.Tests" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Parse\" />
+  </ItemGroup>
 </Project>

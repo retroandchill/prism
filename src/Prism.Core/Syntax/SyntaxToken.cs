@@ -5,9 +5,9 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Prism.Core.Diagnostics;
-using Prism.Core.Parse;
 using Prism.Core.Strings;
 using Prism.Core.Syntax.Green;
+using Prism.Core.Text;
 
 namespace Prism.Core.Syntax;
 

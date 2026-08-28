@@ -157,11 +157,29 @@ internal abstract class GreenNode(SyntaxKind kind, int fullWidth = 0)
 
     public GreenNodeEnumerable EnumerateNodes() => new(this);
 
-    public ImmutableArray<SyntaxDiagnosticInfo> Diagnostics { get; init; } = [];
+    public ImmutableArray<SyntaxDiagnosticInfo> Diagnostics
+    {
+        get;
+        init
+        {
+            if (field == value)
+                return;
+
+            field = value;
+            if (field.IsEmpty)
+            {
+                ClearFlags(SyntaxFlags.ContainsDiagnostics);
+            }
+            else
+            {
+                SetFlags(SyntaxFlags.ContainsDiagnostics);
+            }
+        }
+    } = [];
 
     public abstract GreenNode WithDiagnostics(ImmutableArray<SyntaxDiagnosticInfo> diagnostics);
 
-    public abstract SyntaxNode CreateRed(SyntaxNode? parent, int positon = 0);
+    public abstract SyntaxNode CreateRed(SyntaxNode? parent = null, int positon = 0);
 
     public virtual void WriteTo(TextWriter writer)
     {

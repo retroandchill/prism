@@ -3,9 +3,10 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics;
 using Prism.Core.Diagnostics;
-using Prism.Core.Parse;
 using Prism.Core.Syntax.Green;
+using Prism.Core.Text;
 using ZLinq;
 
 namespace Prism.Core.Syntax;
@@ -39,9 +40,78 @@ public abstract class SyntaxNode
 
     public SyntaxTriviaList TrailingTrivia => LastToken.TrailingTrivia;
 
-    public SyntaxTree SyntaxTree => throw new NotImplementedException();
+    private SyntaxTree? _syntaxTree;
+    public SyntaxTree SyntaxTree
+    {
+        get
+        {
+            var result = _syntaxTree ?? ComputeSyntaxTree(this);
+            Debug.Assert(result is not null);
+            return result;
+        }
+        internal init => _syntaxTree = value;
+    }
 
-    public Location Location => throw new NotImplementedException();
+    private static SyntaxTree ComputeSyntaxTree(SyntaxNode node)
+    {
+        List<SyntaxNode>? nodes = null;
+        SyntaxTree? tree;
+
+        while (true)
+        {
+            tree = node._syntaxTree;
+            if (tree is not null)
+                break;
+
+            var parent = node.Parent;
+            if (parent is null)
+            {
+                Interlocked.CompareExchange(ref node._syntaxTree, new SyntaxTree(node), null);
+                tree = node._syntaxTree;
+                break;
+            }
+
+            tree = parent._syntaxTree;
+            if (tree is not null)
+            {
+                node._syntaxTree = tree;
+                break;
+            }
+
+            nodes ??= [node];
+            node = parent;
+        }
+
+        if (nodes is null)
+            return tree;
+
+        Debug.Assert(tree is not null);
+
+        foreach (var n in nodes)
+        {
+            var existingTree = n._syntaxTree;
+            if (existingTree is not null)
+            {
+                Debug.Assert(existingTree == tree, "This should not happen");
+                break;
+            }
+            n._syntaxTree = tree;
+        }
+
+        return tree;
+    }
+
+    public Location Location
+    {
+        get
+        {
+            if (field is not null)
+                return field;
+
+            Interlocked.Exchange(ref field, new SourceLocation(this));
+            return field;
+        }
+    }
 
     internal abstract SyntaxNode? GetNodeSlot(int index);
 
@@ -118,9 +188,27 @@ public abstract class SyntaxNode
 
     internal abstract SyntaxNode? GetCachedSlot(int index);
 
-    internal virtual int GetSlotPosition(int index)
+    internal int GetSlotPosition(int index)
     {
-        throw new NotImplementedException();
+        var cached = GetCachedSlot(index);
+        if (cached is not null)
+            return cached.Position;
+
+        var offset = 0;
+        var green = Green;
+        while (index > 0)
+        {
+            index--;
+            var prevSibling = GetCachedSlot(index);
+            if (prevSibling is not null)
+                return prevSibling.Position + offset;
+
+            var greenChild = green.GetSlot(index);
+            if (greenChild is not null)
+                offset += greenChild.FullWidth;
+        }
+
+        return Position + offset;
     }
 
     public ChildSyntaxList ChildNodesAndTokens() => new(this);
