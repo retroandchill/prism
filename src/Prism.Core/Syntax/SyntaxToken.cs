@@ -71,7 +71,7 @@ public readonly struct SyntaxToken : ISyntaxElement
     }
 
     public bool TryGetLiteralValue<T>([NotNullWhen(true)] out T? value)
-        where T : ISyntaxLiteral
+        where T : ISyntaxData
     {
         if (Green is GreenLiteralToken<T> literalToken)
         {

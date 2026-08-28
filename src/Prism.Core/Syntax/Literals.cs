@@ -4,17 +4,24 @@ using Singulink.Numerics;
 
 namespace Prism.Core.Syntax;
 
-public interface ISyntaxLiteral
+public interface ISyntaxData
 {
     SyntaxKind Kind { get; }
 }
 
-public readonly record struct BoolLiteral(bool Value) : ISyntaxLiteral
+public interface ISyntaxDataWithoutText : ISyntaxData;
+
+public interface ISyntaxDataWithString : ISyntaxData
+{
+    string Text { get; }
+}
+
+public readonly record struct BoolData(bool Value) : ISyntaxData
 {
     public SyntaxKind Kind => Value ? SyntaxKind.TrueKeyword : SyntaxKind.FalseKeyword;
 
-    public static BoolLiteral True => new(true);
-    public static BoolLiteral False => new(false);
+    public static BoolData True => new(true);
+    public static BoolData False => new(false);
 }
 
 public enum IntegerBase : byte
@@ -41,11 +48,11 @@ public enum IntegerSuffix : byte
     USize,
 }
 
-public readonly record struct IntegerLiteralValue(
+public readonly record struct IntegerDataValue(
     BigInteger Value,
     IntegerBase Base,
     IntegerSuffix Suffix
-) : ISyntaxLiteral
+) : ISyntaxData
 {
     public SyntaxKind Kind => SyntaxKind.IntegerLiteralToken;
 }
@@ -58,8 +65,7 @@ public enum FloatSuffix : byte
     F64,
 }
 
-public readonly record struct FloatLiteralValue(BigDecimal Value, FloatSuffix Suffix)
-    : ISyntaxLiteral
+public readonly record struct FloatDataValue(BigDecimal Value, FloatSuffix Suffix) : ISyntaxData
 {
     public SyntaxKind Kind => SyntaxKind.FloatingPointLiteralToken;
 }
@@ -71,14 +77,14 @@ public enum CharacterEncoding : byte
     Utf32,
 }
 
-public readonly record struct CharacterLiteralValue(Rune Value, CharacterEncoding Encoding)
-    : ISyntaxLiteral
+public readonly record struct CharacterDataValue(Rune Value, CharacterEncoding Encoding)
+    : ISyntaxData
 {
     public SyntaxKind Kind => SyntaxKind.CharacterLiteralToken;
 }
 
-public readonly record struct StringLiteralValue(string Value, CharacterEncoding Encoding)
-    : ISyntaxLiteral
+public readonly record struct StringDataValue(string Value, CharacterEncoding Encoding)
+    : ISyntaxData
 {
     public SyntaxKind Kind => SyntaxKind.StringLiteralToken;
 }

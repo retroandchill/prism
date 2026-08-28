@@ -458,8 +458,8 @@ public sealed class Lexer(SourceFile sourceFile)
             diagnostics.Add(ParseDiagnostics.UnterminatedStringLiteral());
         }
 
-        var literal = new StringLiteralValue(builder.ToString(), CharacterEncoding.Utf8);
-        return new GreenLiteralToken<StringLiteralValue>(
+        var literal = new StringDataValue(builder.ToString(), CharacterEncoding.Utf8);
+        return new GreenLiteralToken<StringDataValue>(
             literal,
             _cursor.Since(start).ToString(),
             leadingTrivia,

@@ -3,75 +3,103 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using Prism.Core.Diagnostics;
+
 namespace Prism.Core.Syntax.Green;
 
 internal class GreenToken : GreenNode
 {
-    public virtual string Text => Kind.GetTokenText();
+    public virtual string Text => Kind.DisplayText;
 
-    public GreenTriviaList LeadingTrivia { get; }
-    public sealed override int LeadingTriviaWidth => LeadingTrivia.FullWidth;
-    public GreenTriviaList TrailingTrivia { get; }
-    public sealed override int TrailingTriviaWidth => TrailingTrivia.FullWidth;
-
-    public GreenToken(
-        SyntaxKind kind,
-        GreenTriviaList? leadingTrivia = null,
-        GreenTriviaList? trailingTrivia = null
-    )
-        : this(kind, kind.GetTokenText().Length, leadingTrivia, trailingTrivia) { }
+    public sealed override GreenNode? LeadingTrivia { get; }
+    public sealed override int LeadingTriviaWidth => LeadingTrivia?.FullWidth ?? 0;
+    public sealed override GreenNode? TrailingTrivia { get; }
+    public sealed override int TrailingTriviaWidth => TrailingTrivia?.FullWidth ?? 0;
 
     public GreenToken(
         SyntaxKind kind,
-        int codeWidth,
-        GreenTriviaList? leadingTrivia = null,
-        GreenTriviaList? trailingTrivia = null
+        GreenNode? leadingTrivia = null,
+        GreenNode? trailingTrivia = null
     )
-        : base(kind, codeWidth + (leadingTrivia?.FullWidth ?? 0) + (trailingTrivia?.FullWidth ?? 0))
+        : this(kind, kind.DisplayText.Length, leadingTrivia, trailingTrivia) { }
+
+    public GreenToken(
+        SyntaxKind kind,
+        int width,
+        GreenNode? leadingTrivia = null,
+        GreenNode? trailingTrivia = null
+    )
+        : base(kind, width)
     {
-        LeadingTrivia = leadingTrivia ?? GreenTriviaList.Empty;
-        TrailingTrivia = trailingTrivia ?? GreenTriviaList.Empty;
-        ChildCount = (!LeadingTrivia.IsEmpty ? 1 : 0) + (!TrailingTrivia.IsEmpty ? 1 : 0);
+        LeadingTrivia = leadingTrivia;
+        TrailingTrivia = trailingTrivia;
+
+        SetFlags(SyntaxFlags.NotMissing);
+        if (leadingTrivia is not null)
+            AdjustFlagsAndWidth(leadingTrivia);
+        if (trailingTrivia is not null)
+            AdjustFlagsAndWidth(trailingTrivia);
     }
 
-    public override GreenTriviaList? GetChild(int index)
+    [DoesNotReturn]
+    public override GreenNode GetSlot(int index)
     {
-        switch (index)
-        {
-            case 0:
-                if (!LeadingTrivia.IsEmpty)
-                    return LeadingTrivia;
-                if (!TrailingTrivia.IsEmpty)
-                    return TrailingTrivia;
-                break;
-            case 1 when !LeadingTrivia.IsEmpty:
-                return !TrailingTrivia.IsEmpty ? TrailingTrivia : null;
-        }
-
-        return null;
+        throw new InvalidOperationException("Tokens don't have indexable slots");
     }
 
-    public virtual GreenToken WithLeadingTrivia(GreenTriviaList leadingTrivia)
+    public GreenToken WithLeadingTrivia(GreenNode? leadingTrivia)
     {
         return leadingTrivia == LeadingTrivia
             ? this
-            : new GreenToken(Kind, Width, leadingTrivia, TrailingTrivia);
+            : UpdateInternal(leadingTrivia, TrailingTrivia, Diagnostics);
     }
 
-    public virtual GreenToken WithTrailingTrivia(GreenTriviaList trailingTrivia)
+    public GreenToken WithTrailingTrivia(GreenNode? trailingTrivia)
     {
         return trailingTrivia == TrailingTrivia
             ? this
-            : new GreenToken(Kind, Width, LeadingTrivia, trailingTrivia);
+            : UpdateInternal(LeadingTrivia, trailingTrivia, Diagnostics);
     }
 
-    public virtual GreenToken WithLeadingAndTrailingTrivia(
-        GreenTriviaList leadingTrivia,
-        GreenTriviaList trailingTrivia
+    public sealed override GreenToken WithDiagnostics(
+        ImmutableArray<SyntaxDiagnosticInfo> diagnostics
     )
+    {
+        return diagnostics == Diagnostics
+            ? this
+            : UpdateInternal(LeadingTrivia, TrailingTrivia, diagnostics);
+    }
+
+    public override SyntaxNode CrateRed(SyntaxNode? parent, int positon = 0)
+    {
+        throw new InvalidOperationException("Cannot create a red node from a Green Token");
+    }
+
+    public GreenToken Update(GreenNode? leadingTrivia, GreenNode? trailingTrivia)
     {
         return leadingTrivia == LeadingTrivia && trailingTrivia == TrailingTrivia
             ? this
-            : new GreenToken(Kind, Width, leadingTrivia, trailingTrivia);
+            : UpdateInternal(leadingTrivia, trailingTrivia, Diagnostics);
+    }
+
+    protected virtual GreenToken UpdateInternal(
+        GreenNode? leadingTrivia,
+        GreenNode? trailingTrivia,
+        ImmutableArray<SyntaxDiagnosticInfo> diagnostics
+    )
+    {
+        return new GreenToken(Kind, Width, leadingTrivia, trailingTrivia)
+        {
+            Diagnostics = diagnostics,
+        };
+    }
+
+    public override void WriteTo(TextWriter writer)
+    {
+        LeadingTrivia?.WriteTo(writer);
+        writer.Write(Text);
+        TrailingTrivia?.WriteTo(writer);
     }
 }

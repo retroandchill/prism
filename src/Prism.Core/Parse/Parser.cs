@@ -459,7 +459,7 @@ public sealed class Parser(SourceDocument sourceDocument)
                 return new BooleanLiteralExpressionSyntax { Value = true, Range = next.Span };
             case SyntaxKind.IntegerLiteralToken:
             {
-                next.TryGetLiteralValue<IntegerLiteralValue>(out var info);
+                next.TryGetLiteralValue<IntegerDataValue>(out var info);
                 _stream.Advance();
                 return new IntegerLiteralExpressionSyntax
                 {
@@ -471,7 +471,7 @@ public sealed class Parser(SourceDocument sourceDocument)
             }
             case SyntaxKind.FloatingPointLiteralToken:
             {
-                next.TryGetLiteralValue<FloatLiteralValue>(out var info);
+                next.TryGetLiteralValue<FloatDataValue>(out var info);
                 _stream.Advance();
                 return new FloatLiteralExpressionSyntax
                 {
@@ -483,7 +483,7 @@ public sealed class Parser(SourceDocument sourceDocument)
             case SyntaxKind.StringLiteralToken:
             {
                 _stream.Advance();
-                next.TryGetLiteralValue<StringLiteralValue>(out var value);
+                next.TryGetLiteralValue<StringDataValue>(out var value);
                 return new StringLiteralExpressionSyntax { Value = value.Value, Range = next.Span };
             }
             case SyntaxKind.IdentifierToken:

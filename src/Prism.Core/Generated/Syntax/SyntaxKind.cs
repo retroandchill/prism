@@ -195,7 +195,7 @@ public static class SyntaxKindExtensions
 {
     extension(SyntaxKind kind)
     {
-        public string Name
+        public string DisplayText
         {
             get
             {

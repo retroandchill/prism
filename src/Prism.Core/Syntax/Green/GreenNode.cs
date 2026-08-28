@@ -8,18 +8,8 @@ using Prism.Core.Diagnostics;
 
 namespace Prism.Core.Syntax.Green;
 
-internal abstract class GreenNode(
-    SyntaxKind kind,
-    int fullWidth,
-    ImmutableArray<SyntaxDiagnosticInfo> diagnostics
-)
+internal abstract class GreenNode(SyntaxKind kind, int fullWidth = 0)
 {
-    protected GreenNode(SyntaxKind kind, int fullWidth = 0)
-        : this(kind, fullWidth, []) { }
-
-    protected GreenNode(SyntaxKind kind, ImmutableArray<SyntaxDiagnosticInfo> diagnostics)
-        : this(kind, 0, diagnostics) { }
-
     public SyntaxKind Kind { get; } = kind;
 
     public bool IsList => Kind == SyntaxKind.List;
@@ -159,7 +149,7 @@ internal abstract class GreenNode(
 
     public GreenNodeEnumerable EnumerateNodes() => new(this);
 
-    public ImmutableArray<SyntaxDiagnosticInfo> Diagnostics { get; } = diagnostics;
+    public ImmutableArray<SyntaxDiagnosticInfo> Diagnostics { get; init; } = [];
 
     public abstract GreenNode WithDiagnostics(ImmutableArray<SyntaxDiagnosticInfo> diagnostics);
 
