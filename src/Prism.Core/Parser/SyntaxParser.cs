@@ -59,7 +59,7 @@ internal abstract class SyntaxParser(string text)
         var firstToken = node.FirstToken;
         Debug.Assert(firstToken is not null);
         firstToken = AddSkippedSyntax(firstToken, skippedSyntax, false);
-        throw new NotImplementedException();
+        return (T)TokenReplacer.ReplaceFirstToken(node, firstToken);
     }
 
     protected static T AddTrailingSkippedSyntax<T>(T node, GreenNode skippedSyntax)

@@ -502,128 +502,34 @@ public static class CSharpEmitter
 
         #endregion
 
-        #region Green Token Visitors
+        #region Token Replacers
 
-        public void EmitGreenVisitorClass(CSharpSyntaxModel model)
+        public void EmitGreenTokenReplacer(CSharpSyntaxModel model)
         {
             writer.WriteLine("// Generated file, do not edit");
-            writer.WriteLine("namespace Prism.Core.Syntax.Green;");
+            writer.WriteLine("using Prism.Core.Syntax.Green;");
+            writer.WriteLine("using System.Diagnostics.CodeAnalysis;");
             writer.WriteLine();
-            writer.EmitSyntaxVisitorClass(model, true, false);
+
+            writer.WriteLine("namespace Prism.Core.Syntax;");
             writer.WriteLine();
-            writer.EmitSyntaxVisitorClass(model, true, true);
-        }
-
-        #endregion
-
-        #region Syntax Visitors
-
-        private void EmitSyntaxVisitor(CSharpDispatchGroup group, bool isGreen, string? returnType)
-        {
-            var baseName = isGreen ? group.GreenClassName : group.RedClassName;
-
-            var isReturning = returnType is not null;
-            var returnValueType = returnType ?? "void";
-            writer.WriteLine($"public {returnValueType} Visit({baseName} node)");
-            using var functionScope = writer.EnterBlockScope();
-            writer.WriteLine(isReturning ? "return node switch " : "switch (node)");
-            using var switchScope = writer.EnterBlockScope(isReturning);
-            if (group.IncludesListNode && isGreen)
-            {
-                writer.EmitNodeTypeCase("GreenListNode", "list", isReturning);
-                writer.EmitNodeTypeCase("GreenToken", "token", isReturning);
-                writer.EmitNodeTypeCase("GreenTrivia", "trivia", isReturning);
-            }
-
-            foreach (var node in group.Nodes)
-            {
-                writer.EmitNodeTypeCase(node.GreenClassName, node.CSharpVariableName, isReturning);
-            }
-
-            const string exceptionLine =
-                "throw new InvalidOperationException(\"Invalid node type passed into visit\")";
-            if (isReturning)
-            {
-                writer.WriteLine($"_ => {exceptionLine}");
-            }
-            else
-            {
-                writer.WriteLine("default:");
-                using var defaultScope = writer.EnterIndentationScope();
-                writer.WriteLine($"{exceptionLine};");
-            }
-        }
-
-        private void EmitNodeTypeCase(string className, string variableName, bool isReturning)
-        {
-            if (isReturning)
-            {
-                writer.WriteLine($"{className} {variableName} => Visit({variableName}),");
-            }
-            else
-            {
-                writer.WriteLine($"case {className} {variableName}:");
-                using (writer.EnterIndentationScope())
-                {
-                    writer.WriteLine($"Visit({variableName});");
-                    writer.WriteLine("break;");
-                }
-            }
-        }
-
-        private void EmitSyntaxVisitorClass(CSharpSyntaxModel model, bool isGreen, bool isGeneric)
-        {
-            var accessSpecifier = isGreen ? "internal" : "public";
-            var className = isGreen ? "GreenSyntaxVisitor" : "SyntaxVisitor";
-            var genericSuffix = isGeneric ? "<TResult>" : "";
-            writer.WriteLine(
-                $"{accessSpecifier} abstract partial class {className}{genericSuffix}"
-            );
-            using var classScope = writer.EnterBlockScope();
+            writer.WriteLine("public static partial class TokenReplacer");
+            using var classBlock = writer.EnterBlockScope();
+            const string replaceFirstToken = "ReplaceFirstToken";
             foreach (var group in model.DispatchGroups)
             {
-                writer.EmitSyntaxVisitor(group, true, isGeneric ? "TResult" : null);
+                writer.EmitTokenReplacerMethod(
+                    group,
+                    replaceFirstToken,
+                    true,
+                    group.GreenClassName
+                );
                 writer.WriteLine();
             }
 
-            writer.EmitVisitorMethodList(
-                model,
-                isGreen,
-                true,
-                isGeneric ? "TResult" : "void",
-                "public abstract ",
-                ";"
-            );
-        }
-
-        private void EmitVisitorMethodList(
-            CSharpSyntaxModel model,
-            bool isGreen,
-            bool includeSpecial,
-            string? returnType,
-            string prefix,
-            string suffix,
-            Action<CodeWriter, CSharpNode?, SpecialNodeKind>? emitBody = null,
-            Action<CodeWriter>? optionalLineBreak = null
-        )
-        {
-            if (isGreen && includeSpecial)
-            {
-                writer.WriteLine(
-                    $"{prefix}{returnType ?? GreenListNodeClass} Visit({GreenListNodeClass} node){suffix}"
-                );
-                emitBody?.Invoke(writer, null, SpecialNodeKind.List);
-                optionalLineBreak?.Invoke(writer);
-                writer.WriteLine(
-                    $"{prefix}{returnType ?? GreenTokenClass} Visit({GreenTokenClass} node){suffix}"
-                );
-                emitBody?.Invoke(writer, null, SpecialNodeKind.Token);
-                optionalLineBreak?.Invoke(writer);
-                writer.WriteLine(
-                    $"{prefix}{returnType ?? GreenTriviaClass} Visit({GreenTriviaClass} node){suffix}"
-                );
-                emitBody?.Invoke(writer, null, SpecialNodeKind.Trivia);
-            }
+            writer.EmitTokenReplacerPartial(replaceFirstToken, GreenTokenClass);
+            writer.EmitTokenReplacerPartial(replaceFirstToken, GreenTriviaClass);
+            writer.EmitTokenReplacerPartial(replaceFirstToken, GreenListNodeClass);
 
             foreach (
                 var node in model
@@ -632,68 +538,88 @@ public static class CSharpEmitter
                     .Where(n => !n.IsAbstract)
             )
             {
-                optionalLineBreak?.Invoke(writer);
-                var className = isGreen ? node.GreenClassName : node.RedClassName;
+                writer.WriteLine();
+
+                writer.WriteLine("[return: NotNullIfNotNull(nameof(node))]");
+                var className = node.GreenClassName;
                 writer.WriteLine(
-                    $"{prefix}{returnType ?? className} Visit({className} node){suffix}"
+                    $"internal static {className}? {replaceFirstToken}({className}? node, {GreenTokenClass} newToken)"
                 );
-                emitBody?.Invoke(writer, node, SpecialNodeKind.None);
+                using var functionScope = writer.EnterBlockScope();
+                writer.WriteLine("if (node is null)");
+                using (writer.EnterIndentationScope())
+                {
+                    writer.WriteLine("return null;");
+                }
+                writer.WriteLine();
+
+                foreach (var prop in node.Properties)
+                {
+                    writer.WriteLine($"var old{prop.PropertyName} = node.{prop.PropertyName};");
+                    writer.WriteLine(
+                        $"var new{prop.PropertyName} = {replaceFirstToken}(old{prop.PropertyName}, newToken);"
+                    );
+                    writer.WriteLine($"if (new{prop.PropertyName} != old{prop.PropertyName})");
+                    using (writer.EnterBlockScope())
+                    {
+                        writer.WriteLine(
+                            $"return node.With{prop.PropertyName}(new{prop.PropertyName});"
+                        );
+                    }
+                    writer.WriteLine();
+                }
+
+                writer.WriteLine("return node;");
             }
         }
 
-        #endregion
-
-        #region Token Replacers
-
-        public void EmitGreenTokenReplacer(CSharpSyntaxModel model)
+        private void EmitTokenReplacerMethod(
+            CSharpDispatchGroup group,
+            string methodName,
+            bool isGreen,
+            string returnType
+        )
         {
-            writer.WriteLine("// Generated file, do not edit");
-            writer.WriteLine("namespace Prism.Core.Syntax.Green;");
-            writer.WriteLine();
-            writer.WriteLine($"internal abstract partial class GreenTokenReplacer");
-            using var classBlock = writer.EnterBlockScope();
-            foreach (var group in model.DispatchGroups)
+            writer.WriteLine("[return: NotNullIfNotNull(nameof(node))]");
+            var baseName = isGreen ? group.GreenClassName : group.RedClassName;
+
+            var visibility = isGreen ? "internal" : "public";
+            writer.WriteLine(
+                $"{visibility} static {returnType}? {methodName}({baseName}? node, {GreenTokenClass} newToken)"
+            );
+            using var functionScope = writer.EnterBlockScope();
+            writer.WriteLine("return node switch ");
+            using var switchScope = writer.EnterBlockScope(true);
+            writer.WriteLine("null => null,");
+            if (group.IncludesListNode && isGreen)
             {
-                writer.EmitSyntaxVisitor(group, true, group.GreenClassName);
-                writer.WriteLine();
+                writer.EmitNodeTypeCase(methodName, "GreenListNode", "list");
+                writer.EmitNodeTypeCase(methodName, "GreenToken", "token");
+                writer.EmitNodeTypeCase(methodName, "GreenTrivia", "trivia");
             }
 
-            writer.EmitVisitorMethodList(
-                model,
-                true,
-                false,
-                null,
-                "public ",
-                "",
-                static (w, node, _) =>
-                {
-                    Debug.Assert(node is not null);
-                    using var scope = w.EnterBlockScope();
-                    w.Write("return node.Update(");
-                    foreach (var (i, prop) in node.Properties.AsValueEnumerable().Index())
-                    {
-                        if (i > 0)
-                            w.Write(", ");
+            foreach (var node in group.Nodes)
+            {
+                writer.EmitNodeTypeCase(methodName, node.GreenClassName, node.CSharpVariableName);
+            }
 
-                        switch (prop.Shape)
-                        {
-                            case PropertyShape.Single:
-                            case PropertyShape.List:
-                            case PropertyShape.SeparatedList:
-                                w.Write($"Visit(node.{prop.PropertyName})");
-                                break;
-                            case PropertyShape.Optional:
-                                w.Write(
-                                    $"node.{prop.PropertyName} is not null ? Visit(node.{prop.PropertyName}) : null"
-                                );
-                                break;
-                            default:
-                                throw new InvalidOperationException("Invalid shape");
-                        }
-                    }
-                    w.WriteLine(");");
-                },
-                static w => w.WriteLine()
+            const string exceptionLine =
+                "throw new InvalidOperationException(\"Invalid node type passed into visit\")";
+            writer.WriteLine($"_ => {exceptionLine}");
+        }
+
+        private void EmitTokenReplacerPartial(string methodName, string className)
+        {
+            writer.WriteLine("[return: NotNullIfNotNull(nameof(node))]");
+            writer.WriteLine(
+                $"internal static partial {className}? {methodName}({className}? node, GreenToken newToken);"
+            );
+        }
+
+        private void EmitNodeTypeCase(string methodName, string className, string variableName)
+        {
+            writer.WriteLine(
+                $"{className} {variableName} => {methodName}({variableName}, newToken),"
             );
         }
 
