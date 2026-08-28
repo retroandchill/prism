@@ -1,15 +1,24 @@
-﻿using System.Diagnostics;
+﻿using System.Collections;
+using System.Diagnostics;
 using Prism.Core.Syntax.Green;
+using ZLinq;
 
 namespace Prism.Core.Syntax;
 
 public readonly struct ChildSyntaxList(SyntaxNode node)
+    : IReadOnlyList<SyntaxNodeOrToken>,
+        IValueEnumerable<ChildSyntaxList.Enumerator, SyntaxNodeOrToken>
 {
     private readonly record struct SlotData(
         int SlotIndex = 0,
         int PrecedingOccupantSlotCount = 0,
         int PositionAtSlotIndex = 0
-    );
+    )
+    {
+        public SlotData(SyntaxNode node)
+            : this(SlotIndex: 0, PrecedingOccupantSlotCount: 0, PositionAtSlotIndex: node.Position)
+        { }
+    }
 
     private readonly SyntaxNode? _node = node;
     public int Count { get; } = CountNodes(node.Green);
@@ -101,5 +110,91 @@ public readonly struct ChildSyntaxList(SyntaxNode node)
     private static int Occupancy(GreenNode node)
     {
         return node.IsList ? node.SlotCount : 1;
+    }
+
+    public Enumerator GetEnumerator() => new(_node!, Count);
+
+    IEnumerator<SyntaxNodeOrToken> IEnumerable<SyntaxNodeOrToken>.GetEnumerator() =>
+        GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public ValueEnumerable<Enumerator, SyntaxNodeOrToken> AsValueEnumerable() =>
+        new(GetEnumerator());
+
+    public struct Enumerator : IEnumerator<SyntaxNodeOrToken>, IValueEnumerator<SyntaxNodeOrToken>
+    {
+        private readonly SyntaxNode? _node;
+        private readonly int _count;
+        private int _childIndex;
+        private SlotData _slotData;
+
+        internal Enumerator(SyntaxNode node, int count)
+        {
+            _node = node;
+            _count = count;
+            _childIndex = -1;
+            _slotData = new SlotData(node);
+        }
+
+        public SyntaxNodeOrToken Current
+        {
+            get
+            {
+                Debug.Assert(_node is not null);
+                return GetItem(_node, _childIndex, ref _slotData);
+            }
+        }
+
+        object IEnumerator.Current => Current;
+
+        public bool MoveNext()
+        {
+            var newIndex = _childIndex + 1;
+            if (newIndex >= _count)
+                return false;
+            _childIndex = newIndex;
+            Debug.Assert(_node is not null);
+            return true;
+        }
+
+        public bool TryGetNext(out SyntaxNodeOrToken current)
+        {
+            if (!MoveNext())
+            {
+                current = default;
+                return false;
+            }
+
+            current = Current;
+            return true;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = _count;
+            return true;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<SyntaxNodeOrToken> span)
+        {
+            span = [];
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<SyntaxNodeOrToken> destination, Index offset)
+        {
+            return false;
+        }
+
+        public void Reset()
+        {
+            _childIndex = -1;
+        }
+
+        public void Dispose()
+        {
+            // Nothing to dispose
+        }
     }
 }

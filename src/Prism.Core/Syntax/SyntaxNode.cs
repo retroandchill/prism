@@ -126,12 +126,20 @@ public abstract class SyntaxNode
 
     public IEnumerable<SyntaxNode> ChildNodes()
     {
-        throw new NotImplementedException();
+        foreach (var child in ChildNodesAndTokens())
+        {
+            if (child is SyntaxNode node)
+                yield return node;
+        }
     }
 
     public IEnumerable<SyntaxToken> ChildTokens()
     {
-        throw new NotImplementedException();
+        foreach (var child in ChildNodesAndTokens())
+        {
+            if (child is SyntaxToken token)
+                yield return token;
+        }
     }
 
     public SyntaxToken FirstToken => throw new NotImplementedException();
