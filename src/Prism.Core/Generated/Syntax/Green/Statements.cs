@@ -27,7 +27,7 @@ internal sealed class GreenEmptyStatement : GreenStatement
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new EmptyStatementSyntax(this, parent, position);
     }
 
     public GreenEmptyStatement WithSemicolon(GreenToken semicolon)
@@ -76,7 +76,7 @@ internal sealed class GreenVariableDeclarationStatement : GreenStatement
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new VariableDeclarationStatementSyntax(this, parent, position);
     }
 
     public GreenVariableDeclarationStatement WithDeclaration(GreenVariableDeclaration declaration)
@@ -139,7 +139,7 @@ internal sealed class GreenBlock : GreenStatement
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new BlockSyntax(this, parent, position);
     }
 
     public GreenBlock WithOpenBrace(GreenToken openBrace)
@@ -220,7 +220,7 @@ internal sealed class GreenReturnStatement : GreenStatement
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new ReturnStatementSyntax(this, parent, position);
     }
 
     public GreenReturnStatement WithReturnKeyword(GreenToken returnKeyword)
@@ -311,7 +311,7 @@ internal sealed class GreenExpressionStatement : GreenStatement
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new ExpressionStatementSyntax(this, parent, position);
     }
 
     public GreenExpressionStatement WithExpression(GreenExpression expression)
@@ -394,7 +394,7 @@ internal sealed class GreenIfStatement : GreenStatement
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new IfStatementSyntax(this, parent, position);
     }
 
     public GreenIfStatement WithIfKeyword(GreenToken ifKeyword)
@@ -543,7 +543,7 @@ internal sealed class GreenWhileStatement : GreenStatement
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new WhileStatementSyntax(this, parent, position);
     }
 
     public GreenWhileStatement WithWhileKeyword(GreenToken whileKeyword)
@@ -664,7 +664,7 @@ internal sealed class GreenLoopStatement : GreenStatement
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new LoopStatementSyntax(this, parent, position);
     }
 
     public GreenLoopStatement WithLoopKeyword(GreenToken loopKeyword)
@@ -763,7 +763,7 @@ internal sealed class GreenForStatement : GreenStatement
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new ForStatementSyntax(this, parent, position);
     }
 
     public GreenForStatement WithForKeyword(GreenToken forKeyword)
@@ -1081,7 +1081,7 @@ internal sealed class GreenBreakStatement : GreenStatement
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new BreakStatementSyntax(this, parent, position);
     }
 
     public GreenBreakStatement WithKeyword(GreenToken keyword)
@@ -1145,7 +1145,7 @@ internal sealed class GreenContinueStatement : GreenStatement
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new ContinueStatementSyntax(this, parent, position);
     }
 
     public GreenContinueStatement WithKeyword(GreenToken keyword)

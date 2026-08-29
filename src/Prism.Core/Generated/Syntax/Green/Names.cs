@@ -27,7 +27,7 @@ internal sealed class GreenSimpleName : GreenName
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new SimpleNameSyntax(this, parent, position);
     }
 
     public GreenSimpleName WithIdentifier(GreenToken identifier)
@@ -86,7 +86,7 @@ internal sealed class GreenQualifiedName : GreenName
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new QualifiedNameSyntax(this, parent, position);
     }
 
     public GreenQualifiedName WithLeft(GreenName left)

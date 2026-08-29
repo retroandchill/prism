@@ -174,6 +174,13 @@ public class ExportNodesCommand
                 Path.Join(greenDir, $"{module.CSharpName}.cs"),
                 cancellationToken
             );
+
+            writer.EmitRedNodeClass(module);
+            await WriteCodeAsync(
+                writer,
+                Path.Join(syntaxDir, $"{module.CSharpName}.cs"),
+                cancellationToken
+            );
         }
 
         writer.EmitGreenTokenReplacer(csharpModel);

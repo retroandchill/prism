@@ -21,7 +21,7 @@ internal sealed class GreenSkippedTokensTrivia : GreenStructuredTrivia
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new SkippedTokensTriviaSyntax(this, parent, position);
     }
 
     public GreenSkippedTokensTrivia WithTokens(GreenSyntaxList<GreenToken> tokens)

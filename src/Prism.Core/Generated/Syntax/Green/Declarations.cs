@@ -31,7 +31,7 @@ internal sealed class GreenIncompleteDeclaration : GreenDeclaration
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new IncompleteDeclarationSyntax(this, parent, position);
     }
 
     public override GreenIncompleteDeclaration WithModifiers(GreenSyntaxList<GreenToken> modifiers)
@@ -134,7 +134,7 @@ internal sealed class GreenBlockNamespaceDeclaration : GreenNamespaceDeclaration
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new BlockNamespaceDeclarationSyntax(this, parent, position);
     }
 
     public override GreenBlockNamespaceDeclaration WithModifiers(
@@ -378,7 +378,7 @@ internal sealed class GreenFileScopedNamespaceDeclaration : GreenNamespaceDeclar
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new FileScopedNamespaceDeclarationSyntax(this, parent, position);
     }
 
     public override GreenFileScopedNamespaceDeclaration WithModifiers(
@@ -595,7 +595,7 @@ internal sealed class GreenVariableDeclaration : GreenDeclaration
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new VariableDeclarationSyntax(this, parent, position);
     }
 
     public override GreenVariableDeclaration WithModifiers(GreenSyntaxList<GreenToken> modifiers)
@@ -812,7 +812,7 @@ internal sealed class GreenFunctionDeclaration : GreenDeclaration
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new FunctionDeclarationSyntax(this, parent, position);
     }
 
     public override GreenFunctionDeclaration WithModifiers(GreenSyntaxList<GreenToken> modifiers)

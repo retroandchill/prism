@@ -27,7 +27,7 @@ internal sealed class GreenPredefinedType : GreenType
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new PredefinedTypeSyntax(this, parent, position);
     }
 
     public GreenPredefinedType WithKeyword(GreenToken keyword)
@@ -76,7 +76,7 @@ internal sealed class GreenNamedType : GreenType
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new NamedTypeSyntax(this, parent, position);
     }
 
     public GreenNamedType WithIdentifier(GreenName identifier)

@@ -28,7 +28,7 @@ internal sealed class GreenInitializer : GreenNode
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new InitializerSyntax(this, parent, position);
     }
 
     public GreenInitializer WithEqualSign(GreenToken equalSign)
@@ -92,7 +92,7 @@ internal sealed class GreenTypeSpecifier : GreenNode
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new TypeSpecifierSyntax(this, parent, position);
     }
 
     public GreenTypeSpecifier WithColon(GreenToken colon)
@@ -156,7 +156,7 @@ internal sealed class GreenNamedParameter : GreenNode
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new NamedParameterSyntax(this, parent, position);
     }
 
     public GreenNamedParameter WithName(GreenToken name)
@@ -227,7 +227,7 @@ internal sealed class GreenArgumentList : GreenNode
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new ArgumentListSyntax(this, parent, position);
     }
 
     public GreenArgumentList WithOpenParen(GreenToken openParen)
@@ -318,7 +318,7 @@ internal sealed class GreenArgument : GreenNode
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new ArgumentSyntax(this, parent, position);
     }
 
     public GreenArgument WithName(GreenNamedParameter? name)
@@ -387,7 +387,7 @@ internal sealed class GreenParameterList : GreenNode
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new ParameterListSyntax(this, parent, position);
     }
 
     public GreenParameterList WithOpenParen(GreenToken openParen)
@@ -489,7 +489,7 @@ internal sealed class GreenParameter : GreenNode
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new ParameterSyntax(this, parent, position);
     }
 
     public GreenParameter WithMutableKeyword(GreenToken? mutableKeyword)
@@ -595,7 +595,7 @@ internal sealed class GreenExpressionBody : GreenNode
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new ExpressionBodySyntax(this, parent, position);
     }
 
     public GreenExpressionBody WithArrow(GreenToken arrow)
@@ -659,7 +659,7 @@ internal sealed class GreenElseClause : GreenNode
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new ElseClauseSyntax(this, parent, position);
     }
 
     public GreenElseClause WithElseKeyword(GreenToken elseKeyword)

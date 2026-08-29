@@ -15,14 +15,6 @@ namespace Prism.SyntaxGenerator.Emitters;
 
 public static class CSharpEmitter
 {
-    private enum SpecialNodeKind
-    {
-        None,
-        List,
-        Token,
-        Trivia,
-    }
-
     extension(CodeWriter writer)
     {
         #region Syntax Kinds
@@ -388,7 +380,7 @@ public static class CSharpEmitter
                     + $"{SyntaxNodeClass}? parent = null, int position = 0)"
             );
             using var scope = writer.EnterBlockScope();
-            writer.WriteLine("throw new NotImplementedException();");
+            writer.WriteLine($"return new {node.RedClassName}(this, parent, position);");
         }
 
         private void EmitGreenMutationMethods(CSharpNode node)
@@ -498,6 +490,298 @@ public static class CSharpEmitter
                 using var initializer = writer.EnterBlockScope(true);
                 writer.WriteLine("Diagnostics = Diagnostics");
             }
+        }
+
+        #endregion
+
+        #region Red Nodes
+
+        public void EmitRedNodeClass(CSharpModule module)
+        {
+            writer.WriteLine("// Generated file, do not edit");
+            writer.WriteLine("using System.Collections.Immutable;");
+            writer.WriteLine("using Prism.Core.Diagnostics;");
+            writer.WriteLine("using Prism.Core.Syntax.Green;");
+            writer.WriteLine();
+
+            writer.WriteLine("namespace Prism.Core.Syntax;");
+            writer.WriteLine();
+            foreach (var (i, node) in module.Nodes.AsValueEnumerable().Index())
+            {
+                if (i > 0)
+                    writer.WriteLine();
+
+                writer.EmitRedNodeClass(node);
+            }
+        }
+
+        private void EmitRedNodeClass(CSharpNode node)
+        {
+            var qualified = node.IsAbstract ? "abstract" : "sealed";
+            var baseName =
+                node.Base?.RedClassName
+                ?? node.Module.Kind switch
+                {
+                    ModuleKind.Node => SyntaxNodeClass,
+                    ModuleKind.StructuredTrivia => StructuredTriviaSyntaxClass,
+                    _ => throw new InvalidOperationException("Invalid module kind"),
+                };
+            writer.WriteLine($"public {qualified} class {node.RedClassName} : {baseName}");
+            using var scope = writer.EnterBlockScope(true);
+            var constructorSpecifier = node.IsAbstract ? "private protected" : "internal";
+
+            writer.WriteLine(
+                $"{constructorSpecifier} {node.RedClassName}({node.GreenClassName} node, {SyntaxNodeClass}? parent, int position) : "
+                    + $"base(node, parent, position) {{ }}"
+            );
+            writer.WriteLine();
+
+            foreach (var (i, property) in node.Properties.AsValueEnumerable().Index())
+            {
+                if (!node.IsAbstract && property.Type.Name != "Token")
+                {
+                    var className = property.Shape is PropertyShape.Single or PropertyShape.Optional
+                        ? property.Type.RedClassName
+                        : SyntaxNodeClass;
+                    writer.WriteLine($"private {className}? {property.FieldName};");
+                }
+                writer.EmitRedNodePropertyGetter(property, i);
+            }
+
+            if (node.IsAbstract)
+                return;
+
+            writer.WriteLine();
+            writer.EmitGetNodeSlot(node);
+
+            writer.WriteLine();
+            writer.EmitGetCachedSlot(node);
+        }
+
+        private void EmitRedPropertyType(CSharpProperty property)
+        {
+            if (property.Type.Name == "Token")
+            {
+                switch (property.Shape)
+                {
+                    case PropertyShape.Single:
+                        writer.Write(SyntaxTokenClass);
+                        break;
+                    case PropertyShape.Optional:
+                        writer.Write($"{SyntaxTokenClass}?");
+                        break;
+                    case PropertyShape.List:
+                        writer.Write("SyntaxTokenList");
+                        break;
+                    case PropertyShape.SeparatedList:
+                        throw new InvalidOperationException(
+                            "Cannot generate getter for separated list or tokens"
+                        );
+                    default:
+                        throw new InvalidOperationException("Unknown shape");
+                }
+            }
+            else
+            {
+                switch (property.Shape)
+                {
+                    case PropertyShape.Single:
+                        writer.Write(property.Type.RedClassName);
+                        break;
+                    case PropertyShape.Optional:
+                        writer.Write($"{property.Type.RedClassName}?");
+                        break;
+                    case PropertyShape.List:
+                        writer.Write($"SyntaxList<{property.Type.RedClassName}>");
+                        break;
+                    case PropertyShape.SeparatedList:
+                        writer.Write($"SeparatedSyntaxList<{property.Type.RedClassName}>");
+                        break;
+                    default:
+                        throw new InvalidOperationException("Unknown shape");
+                }
+            }
+        }
+
+        private void EmitRedNodePropertyGetter(CSharpProperty property, int index)
+        {
+            var node = property.Owner;
+            var @abstract = node.IsAbstract ? " abstract " : "";
+            var @override = property.IsOverride ? " override" : "";
+            writer.Write($"public{@abstract}{@override} ");
+            writer.EmitRedPropertyType(property);
+            writer.Write($" {property.PropertyName}");
+            if (node.IsAbstract)
+            {
+                writer.WriteLine("{ get; }");
+                return;
+            }
+
+            writer.WriteLine();
+            using var propertyScope = writer.EnterBlockScope();
+            writer.WriteLine("get");
+            using var getterScope = writer.EnterBlockScope();
+
+            if (property.Type.Name == "Token")
+            {
+                switch (property.Shape)
+                {
+                    case PropertyShape.Single:
+                        writer.Write($"return new {SyntaxTokenClass}(");
+                        writer.EmitInvokeGreenGetter(property);
+                        writer.Write(", this, ");
+                        if (index == 0)
+                            writer.WriteLine("Position);");
+                        else
+                            writer.WriteLine($"GetSlotPosition({index}));");
+                        break;
+                    case PropertyShape.Optional:
+                        writer.Write("var green = ");
+                        writer.EmitInvokeGreenGetter(property);
+                        writer.WriteLine(';');
+                        writer.Write(
+                            $"return green is not null ? new {SyntaxTokenClass}(green, this, "
+                        );
+                        if (index == 0)
+                            writer.WriteLine("Position) : null;");
+                        else
+                            writer.WriteLine($"GetSlotPosition({index})) : null;");
+                        break;
+                    case PropertyShape.List:
+                        writer.Write($"return new SyntaxTokenList(this, ");
+                        writer.EmitInvokeGreenGetter(property);
+                        if (index == 0)
+                            writer.WriteLine(", Position);");
+                        else
+                            writer.WriteLine($", GetSlotPosition({index}));");
+                        break;
+                    case PropertyShape.SeparatedList:
+                        throw new InvalidOperationException(
+                            "Cannot have a separated list of tokens"
+                        );
+                    default:
+                        throw new InvalidOperationException("Unknown shape");
+                }
+            }
+            else
+            {
+                switch (property.Shape)
+                {
+                    case PropertyShape.Single or PropertyShape.Optional:
+                        writer.Write($"return GetRed(ref {property.FieldName}");
+                        if (index > 0)
+                            writer.Write($", {index}");
+                        writer.WriteLine(");");
+                        break;
+                    case PropertyShape.List:
+                        writer.Write($"var red = GetRed(ref {property.FieldName}");
+                        if (index > 0)
+                            writer.Write($", {index}");
+                        writer.WriteLine(");");
+                        writer.WriteLine(
+                            $"return new SyntaxList<{property.Type.RedClassName}>(red);"
+                        );
+                        break;
+                    case PropertyShape.SeparatedList:
+                        writer.Write($"var red = GetRed(ref {property.FieldName}");
+                        if (index > 0)
+                            writer.Write($", {index}");
+                        writer.WriteLine(");");
+                        writer.WriteLine(
+                            $"return new SeparatedSyntaxList<{property.Type.RedClassName}>(red);"
+                        );
+                        break;
+                    default:
+                        throw new InvalidOperationException("Unknown shape");
+                }
+            }
+            writer.WriteLine();
+        }
+
+        private void EmitGetNodeSlot(CSharpNode node)
+        {
+            using var targetNodes = node
+                .Properties.AsValueEnumerable()
+                .Index()
+                .Where(p => p.Item.Type.Name != "Token")
+                .ToArrayPool();
+            var targetSpan = targetNodes.Span;
+            writer.WriteLine($"internal override {SyntaxNodeClass}? GetNodeSlot(int index)");
+            using var scope = writer.EnterBlockScope();
+            switch (targetSpan.Length)
+            {
+                case 0:
+                    writer.WriteLine("return null;");
+                    break;
+                case 1:
+                {
+                    var (i, property) = targetSpan[0];
+                    writer.WriteLine(
+                        $"return index == {i} ? GetRed(ref {property.FieldName}) : null;"
+                    );
+                    break;
+                }
+                default:
+                {
+                    writer.WriteLine("return index switch");
+                    using var switchScope = writer.EnterBlockScope(true);
+                    foreach (var (i, property) in targetNodes.Span)
+                    {
+                        writer.Write($"{i} => ");
+                        if (i == 0)
+                        {
+                            writer.WriteLine($"GetRed(ref {property.FieldName}),");
+                        }
+                        else
+                        {
+                            writer.WriteLine($"GetRed(ref {property.FieldName}, {i}),");
+                        }
+                    }
+
+                    writer.WriteLine("_ => null");
+                    break;
+                }
+            }
+        }
+
+        private void EmitGetCachedSlot(CSharpNode node)
+        {
+            using var targetNodes = node
+                .Properties.AsValueEnumerable()
+                .Index()
+                .Where(p => p.Item.Type.Name != "Token")
+                .ToArrayPool();
+            var targetSpan = targetNodes.Span;
+            writer.WriteLine($"internal override {SyntaxNodeClass}? GetCachedSlot(int index)");
+            using var scope = writer.EnterBlockScope();
+            switch (targetSpan.Length)
+            {
+                case 0:
+                    writer.WriteLine("return null;");
+                    break;
+                case 1:
+                {
+                    var (i, property) = targetSpan[0];
+                    writer.WriteLine($"return index == {i} ? {property.FieldName} : null;");
+                    break;
+                }
+                default:
+                {
+                    writer.WriteLine("return index switch");
+                    using var switchScope = writer.EnterBlockScope(true);
+                    foreach (var (i, property) in targetSpan)
+                    {
+                        writer.WriteLine($"{i} => {property.FieldName},");
+                    }
+                    writer.WriteLine("_ => null");
+                    break;
+                }
+            }
+        }
+
+        private void EmitInvokeGreenGetter(CSharpProperty property)
+        {
+            writer.Write($"(({property.Owner.GreenClassName}) Green).{property.PropertyName}");
         }
 
         #endregion

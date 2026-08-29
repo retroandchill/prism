@@ -4,7 +4,9 @@ using ZLinq;
 
 namespace Prism.Core.Syntax;
 
-public readonly struct SyntaxTriviaList : IReadOnlyList<SyntaxTrivia>
+public readonly struct SyntaxTriviaList
+    : IReadOnlyList<SyntaxTrivia>,
+        IValueEnumerable<SyntaxTriviaList.Enumerator, SyntaxTrivia>
 {
     public static SyntaxTriviaList Empty => new(default, null);
 
@@ -46,6 +48,8 @@ public readonly struct SyntaxTriviaList : IReadOnlyList<SyntaxTrivia>
     IEnumerator<SyntaxTrivia> IEnumerable<SyntaxTrivia>.GetEnumerator() => GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public ValueEnumerable<Enumerator, SyntaxTrivia> AsValueEnumerable() => new(GetEnumerator());
 
     public struct Enumerator : IEnumerator<SyntaxTrivia>, IValueEnumerator<SyntaxTrivia>
     {

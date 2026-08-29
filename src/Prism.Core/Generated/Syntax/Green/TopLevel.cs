@@ -31,7 +31,7 @@ internal sealed class GreenCompilationUnit : GreenNode
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new CompilationUnitSyntax(this, parent, position);
     }
 
     public GreenCompilationUnit WithUsings(GreenSyntaxList<GreenUsingDirective> usings)

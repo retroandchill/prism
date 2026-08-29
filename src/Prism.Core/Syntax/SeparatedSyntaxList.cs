@@ -1,54 +1,38 @@
 ﻿using System.Collections;
+using System.Diagnostics;
 using Prism.Core.Syntax.Green;
 using ZLinq;
 
 namespace Prism.Core.Syntax;
 
-internal sealed class SyntaxList : SyntaxNode
-{
-    private readonly SyntaxNode?[] _children;
-
-    internal int Count => _children.Length;
-
-    public SyntaxList(GreenListNode node, SyntaxNode? parent, int position)
-        : base(node, parent, position)
-    {
-        _children = new SyntaxNode?[node.SlotCount];
-    }
-
-    internal override SyntaxNode? GetNodeSlot(int index)
-    {
-        return index == 0 ? GetRed(ref _children[index]) : GetRed(ref _children[index], index);
-    }
-
-    internal override SyntaxNode? GetCachedSlot(int index)
-    {
-        return _children[index];
-    }
-}
-
-public readonly struct SyntaxList<T>
+public readonly struct SeparatedSyntaxList<T>
     : IReadOnlyList<T>,
-        IValueEnumerable<SyntaxList<T>.Enumerator, T>
+        IValueEnumerable<SeparatedSyntaxList<T>.Enumerator, T>
     where T : SyntaxNode
 {
-    private readonly SyntaxNode? _node;
+    private readonly SyntaxNodeOrTokenList _list;
 
-    internal SyntaxList(SyntaxNode? node)
+    internal SeparatedSyntaxList(SyntaxNodeOrTokenList list)
     {
-        _node = node;
+        Validate(list);
+        _list = list;
     }
 
-    public int Count
-    {
-        get
-        {
-            if (_node is null)
-                return 0;
+    internal SeparatedSyntaxList(SyntaxNode? node)
+        : this(new SyntaxNodeOrTokenList(node)) { }
 
-            return _node.Green.IsList ? _node.Green.SlotCount : 1;
+    [Conditional("DEBUG")]
+    private static void Validate(SyntaxNodeOrTokenList list)
+    {
+        foreach (var (i, item) in list.AsValueEnumerable().Index())
+        {
+            Debug.Assert(i % 2 == 0 ? item.IsNode : item.IsToken);
         }
     }
+
+    public int Count => (_list.Count + 1) / 2;
+
+    public int SeparatorCount => _list.Count / 2;
 
     public T this[int index]
     {
@@ -57,20 +41,43 @@ public readonly struct SyntaxList<T>
             if (index < 0)
                 throw new IndexOutOfRangeException("Index must be non-negative");
 
-            switch (_node)
+            var node = _list.Node;
+            if (node is null)
+                throw new IndexOutOfRangeException("List is empty");
+
+            if (!node.Green.IsList)
             {
-                case null:
-                case { Green.IsList: true } when index >= _node.Green.SlotCount:
-                    throw new IndexOutOfRangeException();
-                case { Green.IsList: true }:
-                    return (T)_node.GetRequiredNodeSlot(index);
+                if (index != 0)
+                    throw new IndexOutOfRangeException(
+                        "Index must be 0 for non-list separated syntax lists"
+                    );
+
+                return (T)node;
             }
 
-            if (index != 0)
-                throw new IndexOutOfRangeException();
+            if (index >= Count)
+                throw new IndexOutOfRangeException("Index out of range");
 
-            return (T)_node;
+            return (T)node.GetRequiredNodeSlot(index * 2);
         }
+    }
+
+    public SyntaxToken GetSeparator(int index)
+    {
+        if (index < 0)
+            throw new IndexOutOfRangeException("Index must be non-negative");
+
+        var node = _list.Node;
+        if (node is null)
+            throw new IndexOutOfRangeException("List is empty");
+
+        Debug.Assert(node.Green.IsList, "separator cannot appear in a non-list");
+        if (index >= SeparatorCount)
+            throw new IndexOutOfRangeException("Index out of range");
+
+        var green = node.Green.GetRequiredSlot<GreenToken>(index * 2 + 1);
+        Debug.Assert(green is not null);
+        return new SyntaxToken(green, node, node.GetSlotPosition(index * 2 + 1));
     }
 
     public Enumerator GetEnumerator() => new(this);
@@ -83,7 +90,7 @@ public readonly struct SyntaxList<T>
 
     public struct Enumerator : IEnumerator<T>, IValueEnumerator<T>
     {
-        private readonly SyntaxList<T> _list;
+        private readonly SeparatedSyntaxList<T> _list;
         private readonly int _count;
         private int _index;
 
@@ -94,7 +101,7 @@ public readonly struct SyntaxList<T>
         }
         object IEnumerator.Current => Current;
 
-        public Enumerator(SyntaxList<T> list)
+        public Enumerator(SeparatedSyntaxList<T> list)
         {
             _list = list;
             _count = list.Count;

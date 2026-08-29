@@ -27,7 +27,7 @@ internal sealed class GreenLiteralExpression : GreenExpression
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new LiteralExpressionSyntax(this, parent, position);
     }
 
     public GreenLiteralExpression WithValue(GreenToken value)
@@ -76,7 +76,7 @@ internal sealed class GreenIdentifierExpression : GreenExpression
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new IdentifierExpressionSyntax(this, parent, position);
     }
 
     public GreenIdentifierExpression WithValue(GreenName value)
@@ -139,7 +139,7 @@ internal sealed class GreenParenthesizedExpression : GreenExpression
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new ParenthesizedExpressionSyntax(this, parent, position);
     }
 
     public GreenParenthesizedExpression WithOpen(GreenToken open)
@@ -233,7 +233,7 @@ internal sealed class GreenBinaryExpression : GreenExpression
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new BinaryExpressionSyntax(this, parent, position);
     }
 
     public GreenBinaryExpression WithLeft(GreenExpression left)
@@ -308,7 +308,7 @@ internal sealed class GreenAssignmentExpression : GreenExpression
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new AssignmentExpressionSyntax(this, parent, position);
     }
 
     public GreenAssignmentExpression WithLeft(GreenExpression left)
@@ -384,7 +384,7 @@ internal sealed class GreenPrefixExpression : GreenExpression
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new PrefixExpressionSyntax(this, parent, position);
     }
 
     public GreenPrefixExpression WithOp(GreenToken op)
@@ -448,7 +448,7 @@ internal sealed class GreenPostfixExpression : GreenExpression
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new PostfixExpressionSyntax(this, parent, position);
     }
 
     public GreenPostfixExpression WithOperand(GreenExpression operand)
@@ -527,7 +527,7 @@ internal sealed class GreenTernaryExpression : GreenExpression
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new TernaryExpressionSyntax(this, parent, position);
     }
 
     public GreenTernaryExpression WithCondition(GreenExpression condition)
@@ -648,7 +648,7 @@ internal sealed class GreenInvocationExpression : GreenExpression
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new InvocationExpressionSyntax(this, parent, position);
     }
 
     public GreenInvocationExpression WithCallee(GreenExpression callee)
@@ -715,7 +715,7 @@ internal sealed class GreenCastExpression : GreenExpression
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new CastExpressionSyntax(this, parent, position);
     }
 
     public GreenCastExpression WithOperand(GreenExpression operand)

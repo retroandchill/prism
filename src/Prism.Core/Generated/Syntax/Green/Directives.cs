@@ -31,7 +31,7 @@ internal sealed class GreenUsingDirective : GreenNode
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        throw new NotImplementedException();
+        return new UsingDirectiveSyntax(this, parent, position);
     }
 
     public GreenUsingDirective WithUsingKeyword(GreenToken usingKeyword)

@@ -93,6 +93,11 @@ public static partial class CSharpModelMapper
         nameof(CSharpProperty.ParameterName),
         Use = nameof(GetCSharpParameterName)
     )]
+    [MapProperty(
+        nameof(SyntaxProperty.Name),
+        nameof(CSharpProperty.FieldName),
+        Use = nameof(GetCSharpFieldName)
+    )]
     private static partial CSharpProperty ToCSharp(
         this SyntaxProperty node,
         [ReferenceHandler] IReferenceHandler refHandler
@@ -213,6 +218,12 @@ public static partial class CSharpModelMapper
     private static string GetCSharpParameterName(string source)
     {
         return source.Camelize();
+    }
+
+    [UserMapping(Default = false)]
+    private static string GetCSharpFieldName(string source)
+    {
+        return $"_{source.Camelize()}";
     }
 
     [UserMapping(Default = false)]
