@@ -310,7 +310,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     {
         var next = PeekToken();
         var precedence = next.Kind.OperatorPrecedence;
-        while (precedence > minPrecedence)
+        while (precedence >= minPrecedence)
         {
             if (next.Kind == SyntaxKind.QuestionToken)
             {
@@ -321,14 +321,13 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 var op = ConsumeToken();
                 var right = ParsePrefixExpression();
                 next = PeekToken();
-                var innerPrecedence = right.Kind.OperatorPrecedence;
+                var innerPrecedence = next.Kind.OperatorPrecedence;
                 while (innerPrecedence >= precedence)
                 {
                     right = ParseExpression(
                         right,
                         innerPrecedence > precedence ? precedence + 1 : precedence
                     );
-                    next = PeekToken();
                     innerPrecedence = right.Kind.OperatorPrecedence;
                 }
 
