@@ -30,6 +30,8 @@ internal sealed class DeclarationTable
         null
     );
 
+    public Builder ToBuilder() => new(this);
+
     public MergedNamespaceDeclaration GetMergedRoot(Compilation compilation)
     {
         if (_mergedRoot is not null)
@@ -200,6 +202,108 @@ internal sealed class DeclarationTable
                 Interlocked.CompareExchange(ref field, GetNamespaceNames(MergedRoot), null);
                 return field;
             }
+        }
+    }
+
+    public sealed class Builder(DeclarationTable? table)
+    {
+        private DeclarationTable _table = table ?? Empty;
+        private List<Lazy<SingleRootNamespaceDeclaration>>? _pendingAdds;
+        private List<Lazy<SingleRootNamespaceDeclaration>>? _pendingRemoves;
+
+        public void AddRootDeclaration(Lazy<SingleRootNamespaceDeclaration> declaration)
+        {
+            RealizeRemoves();
+            _pendingAdds ??= [];
+            _pendingAdds.Add(declaration);
+        }
+
+        public void RemoveRootDeclaration(Lazy<SingleRootNamespaceDeclaration> declaration)
+        {
+            RealizeAdds();
+            _pendingRemoves ??= [];
+            _pendingRemoves.Add(declaration);
+        }
+
+        public DeclarationTable Build()
+        {
+            RealizeAdds();
+            RealizeRemoves();
+            return _table;
+        }
+
+        private void RealizeAdds()
+        {
+            if (_pendingAdds is null || _pendingAdds.Count == 0)
+            {
+                return;
+            }
+
+            var lastDeclaration = _pendingAdds[^1];
+            if (_pendingAdds.Count == 1)
+            {
+                if (_table._latestRoot is null)
+                {
+                    _table = new DeclarationTable(_table._oldRoots, lastDeclaration, _table._cache);
+                }
+                else
+                {
+                    _table = new DeclarationTable(
+                        _table._oldRoots.Add(_table._latestRoot),
+                        lastDeclaration,
+                        _table._cache
+                    );
+                }
+            }
+            else
+            {
+                _pendingAdds.RemoveAt(_pendingAdds.Count - 1);
+
+                if (_table._latestRoot is not null)
+                {
+                    _pendingAdds.Insert(0, _table._latestRoot);
+                }
+
+                var newOldRoots = _table._oldRoots.AddRange(_pendingAdds);
+                _table = new DeclarationTable(newOldRoots, lastDeclaration, cache: null);
+            }
+
+            _pendingAdds.Clear();
+        }
+
+        private void RealizeRemoves()
+        {
+            if (_pendingRemoves is null || _pendingRemoves.Count == 0)
+                return;
+
+            if (_pendingRemoves.Count == 1)
+            {
+                var firstDeclaration = _pendingRemoves[0];
+                if (_table._latestRoot == firstDeclaration)
+                {
+                    _table = new DeclarationTable(_table._oldRoots, null, _table._cache);
+                }
+                else
+                {
+                    _table = new DeclarationTable(
+                        _table._oldRoots.Remove(firstDeclaration),
+                        firstDeclaration,
+                        _table._cache
+                    );
+                }
+            }
+            else
+            {
+                var isLatestRemoved =
+                    _table._latestRoot is not null && _pendingRemoves.Contains(_table._latestRoot);
+
+                var newOldRoots = _table._oldRoots.RemoveRange(_pendingRemoves);
+                var newLatest = !isLatestRemoved ? _table._latestRoot : null;
+
+                _table = new DeclarationTable(newOldRoots, newLatest, _table._cache);
+            }
+
+            _pendingRemoves.Clear();
         }
     }
 }
