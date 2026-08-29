@@ -7,6 +7,16 @@ namespace Prism.Core.Declarations;
 
 internal sealed class DiagnosticBag
 {
+    private DiagnosticBag()
+    {
+        // We may want to pool this later so we'll use a factory to hide that detail
+    }
+
+    public static DiagnosticBag Create()
+    {
+        return new DiagnosticBag();
+    }
+
     private ConcurrentQueue<Diagnostic>? _diagnostics;
 
     private ConcurrentQueue<Diagnostic> Diagnostics

@@ -16,5 +16,5 @@ public class Compilation
         throw new NotImplementedException();
     }
 
-    internal DiagnosticBag DeclarationDiagnostics { get; } = new();
+    internal DiagnosticBag DeclarationDiagnostics { get; } = DiagnosticBag.Create();
 }
