@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Prism.Core.Declarations;
 using Prism.Core.Syntax;
 
 namespace Prism.Core.Compiling;
@@ -14,4 +15,6 @@ public class Compilation
     {
         throw new NotImplementedException();
     }
+
+    internal DiagnosticBag DeclarationDiagnostics { get; } = new();
 }

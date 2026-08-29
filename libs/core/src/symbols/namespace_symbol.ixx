@@ -48,7 +48,7 @@ namespace prism
 
         [[nodiscard]] constexpr bool is_implicitly_declared() const noexcept final
         {
-            return true;
+            return is_global();
         }
 
         [[nodiscard]] virtual NamespaceKind namespace_kind() const noexcept = 0;

@@ -8,7 +8,15 @@ using Prism.Core.Text;
 
 namespace Prism.Core.Diagnostics;
 
-public abstract record Location;
+public abstract record Location
+{
+    public static readonly NoLocation None = new();
+}
+
+public sealed record NoLocation : Location
+{
+    internal NoLocation() { }
+}
 
 public sealed record SourceLocation(SyntaxTree SyntaxTree, TextSpan SourceSpan) : Location
 {
