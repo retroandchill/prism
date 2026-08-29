@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using ZLinq;
 
@@ -22,6 +23,7 @@ internal readonly struct GreenSyntaxList<T>(GreenNode? children)
             _ => 1,
         };
 
+    [MemberNotNull(nameof(Node))]
     public T this[int index]
     {
         get

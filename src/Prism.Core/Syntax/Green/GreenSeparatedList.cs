@@ -94,9 +94,14 @@ internal readonly struct GreenSeparatedList<T>
 
         public int SeparatorsCount => _builder.Count / 2;
 
-        public void Add(T item)
+        public void AddItem(T item)
         {
             _builder.Add(item);
+        }
+
+        public void AddSeparator(GreenToken separator)
+        {
+            _builder.Add(separator);
         }
 
         public GreenSeparatedList<T> Build()
