@@ -4,7 +4,7 @@ public abstract class NamedTypeSymbol : TypeSymbol
 {
     private protected NamedTypeSymbol(
         string name,
-        Symbol? containingSymbol = null,
+        Symbol? containingSymbol,
         SpecialType specialType = SpecialType.None
     )
         : base(name, containingSymbol, specialType) { }
