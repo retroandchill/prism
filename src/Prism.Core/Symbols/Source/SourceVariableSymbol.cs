@@ -11,12 +11,10 @@ namespace Prism.Core.Symbols.Source;
 
 internal abstract class SourceVariableSymbol : VariableSymbol
 {
-    private sealed record ConstantValueWrapper(ConstantValue? Value);
-
     private SymbolCompletionState _completionState;
     protected VariableDeclarationSyntax Syntax { get; }
 
-    private ConstantValueWrapper? _constantValue;
+    private Lazy<ConstantValue?>? _constantValue;
 
     protected SourceVariableSymbol(
         string name,
@@ -89,7 +87,10 @@ internal abstract class SourceVariableSymbol : VariableSymbol
             if (
                 Interlocked.CompareExchange(
                     ref _constantValue,
-                    new ConstantValueWrapper(ComputeConstantValue(diagnostics)),
+                    new Lazy<ConstantValue?>(
+                        () => ComputeConstantValue(diagnostics),
+                        LazyThreadSafetyMode.PublicationOnly
+                    ),
                     null
                 )
                 is not null

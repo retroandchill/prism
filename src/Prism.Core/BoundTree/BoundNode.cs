@@ -1,3 +1,8 @@
-﻿namespace Prism.Core.BoundTree;
+﻿using Prism.Core.Syntax;
 
-internal abstract class BoundNode { }
+namespace Prism.Core.BoundTree;
+
+internal abstract class BoundNode(SyntaxNode syntax)
+{
+    public SyntaxNode Syntax { get; } = syntax;
+}
