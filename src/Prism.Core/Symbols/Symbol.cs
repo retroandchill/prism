@@ -129,7 +129,11 @@ public abstract class Symbol
 
     internal virtual bool NeedsCompletion => false;
 
-    internal virtual void ForceComplete(SourceLocation? location, Predicate<Symbol>? predicate)
+    internal virtual void ForceComplete(
+        SourceLocation? location,
+        Predicate<Symbol>? filter,
+        CancellationToken cancellationToken
+    )
     {
         Debug.Assert(!NeedsCompletion, $"Need to override {nameof(ForceComplete)}");
     }
@@ -143,7 +147,8 @@ public abstract class Symbol
     private protected static void ForceCompleteMemberConditionally(
         SourceLocation? location,
         Predicate<Symbol>? predicate,
-        Symbol member
+        Symbol member,
+        CancellationToken cancellationToken
     )
     {
         if (
@@ -152,7 +157,7 @@ public abstract class Symbol
                 && predicate?.Invoke(member) != false
         )
         {
-            member.ForceComplete(location, predicate);
+            member.ForceComplete(location, predicate, cancellationToken);
         }
     }
 }

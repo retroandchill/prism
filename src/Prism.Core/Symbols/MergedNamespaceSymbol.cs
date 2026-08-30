@@ -126,11 +126,15 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
     public override NamespaceKind NamespaceKind => NamespaceKind.Compilation;
     public override Compilation ContainingCompilation { get; }
 
-    internal override void ForceComplete(SourceLocation? location, Predicate<Symbol>? predicate)
+    internal override void ForceComplete(
+        SourceLocation? location,
+        Predicate<Symbol>? filter,
+        CancellationToken cancellationToken
+    )
     {
         foreach (var ns in _namespaces)
         {
-            ns.ForceComplete(location, predicate);
+            ns.ForceComplete(location, filter, cancellationToken);
         }
     }
 }

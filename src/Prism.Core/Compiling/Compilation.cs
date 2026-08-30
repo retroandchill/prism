@@ -109,8 +109,7 @@ public class Compilation
 
     internal DeclarationTable Declarations => _syntaxAndDeclarationManager.State.Declarations;
 
-    internal MergedNamespaceDeclaration MergedNamespaceDeclaration =>
-        Declarations.GetMergedRoot(this);
+    internal MergedNamespaceDeclaration MergedRootDeclaration => Declarations.GetMergedRoot(this);
 
     internal int CompareSourceLocations(Location x, Location y)
     {

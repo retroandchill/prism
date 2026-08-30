@@ -1,6 +1,9 @@
-﻿namespace Prism.Core.Symbols;
+﻿using NetEscapades.EnumGenerators;
+
+namespace Prism.Core.Symbols;
 
 [Flags]
+[EnumExtensions]
 internal enum CompletionPart : uint
 {
     None = 0,
