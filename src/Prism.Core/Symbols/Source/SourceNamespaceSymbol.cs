@@ -8,6 +8,7 @@ using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 using Prism.Core.Text;
 using Prism.Core.Utils;
+using ZLinq;
 
 namespace Prism.Core.Symbols.Source;
 
@@ -76,7 +77,8 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
 
         foreach (
             var reference in _mergedDeclaration
-                .Declarations.Select(declaration => declaration.SyntaxReference)
+                .Declarations.AsValueEnumerable()
+                .Select(declaration => declaration.SyntaxReference)
                 .Where(reference => ReferenceEquals(reference.SyntaxTree, tree))
         )
         {

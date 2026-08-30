@@ -4,7 +4,9 @@ using ZLinq;
 
 namespace Prism.Core.Syntax;
 
-public readonly struct SyntaxTokenList : IReadOnlyList<SyntaxToken>
+public readonly struct SyntaxTokenList
+    : IReadOnlyList<SyntaxToken>,
+        IValueEnumerable<SyntaxTokenList.Enumerator, SyntaxToken>
 {
     private readonly SyntaxNode _parent;
     private readonly GreenSyntaxList<GreenToken> _green;
@@ -26,6 +28,8 @@ public readonly struct SyntaxTokenList : IReadOnlyList<SyntaxToken>
     IEnumerator<SyntaxToken> IEnumerable<SyntaxToken>.GetEnumerator() => GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public ValueEnumerable<Enumerator, SyntaxToken> AsValueEnumerable() => new(GetEnumerator());
 
     public struct Enumerator : IEnumerator<SyntaxToken>, IValueEnumerator<SyntaxToken>
     {

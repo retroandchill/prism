@@ -411,7 +411,7 @@ namespace prism
                 DiagnosticBag diagnostics;
                 auto value = compute_constant_value(diagnostics);
                 add_declaration_diagnostics(diagnostics);
-                completion_state_.mark_part_complete(CompletionPart::type);
+                completion_state_.mark_part_complete(CompletionPart::constant_value);
                 return value;
             });
     }
@@ -605,12 +605,6 @@ namespace prism
         if (filter.has_value() && !(*filter)(*this))
             return;
 
-        const auto wait_for_completion = [this]
-        {
-            constexpr auto all_parts = CompletionPart::function_all;
-            completion_state_.wait_part_complete(all_parts);
-        };
-
         while (true)
         {
             const auto incomplete_part = completion_state_.next_incomplete_part();
@@ -634,14 +628,12 @@ namespace prism
                 case CompletionPart::none:
                     return;
                 default:
-                    completion_state_.wait_part_complete(CompletionPart::function_all);
+                    completion_state_.mark_part_complete(CompletionPart::all & ~CompletionPart::function_all);
                     break;
             }
 
-            completion_state_.wait_part_complete(CompletionPart::function_all);
+            completion_state_.wait_part_complete(incomplete_part);
         }
-
-        wait_for_completion();
     }
 
     bool SourceFunctionSymbol::is_complete(const CompletionPart part) const noexcept
@@ -703,7 +695,6 @@ namespace prism
             parameters.emplace_back(lifetime.create<SourceParameterSymbol>(name, this, syntax));
         }
 
-        completion_state_.mark_part_complete(CompletionPart::parameters);
         return lifetime.copy_refs(parameters);
     }
 
