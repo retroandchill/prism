@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
 using Prism.Core.Configuration;
+using Prism.Core.Mappers;
 using Prism.Core.Symbols;
 
 namespace Prism.Core.Semantic;
@@ -178,35 +179,7 @@ public readonly struct ConstantValue
         return new ConstantValue(value);
     }
 
-    public SpecialType SpecialType
-    {
-        get
-        {
-            return Kind switch
-            {
-                ConstantKind.Bool => SpecialType.Bool,
-                ConstantKind.Char => SpecialType.Char,
-                ConstantKind.Char16 => SpecialType.Char16,
-                ConstantKind.Rune => SpecialType.Rune,
-                ConstantKind.I8 => SpecialType.I8,
-                ConstantKind.I16 => SpecialType.I16,
-                ConstantKind.I32 => SpecialType.I32,
-                ConstantKind.I64 => SpecialType.I64,
-                ConstantKind.I128 => SpecialType.I128,
-                ConstantKind.ISize => SpecialType.ISize,
-                ConstantKind.U8 => SpecialType.U8,
-                ConstantKind.U16 => SpecialType.U16,
-                ConstantKind.U32 => SpecialType.U32,
-                ConstantKind.U64 => SpecialType.U64,
-                ConstantKind.U128 => SpecialType.U128,
-                ConstantKind.USize => SpecialType.USize,
-                ConstantKind.F32 => SpecialType.F32,
-                ConstantKind.F64 => SpecialType.F64,
-                ConstantKind.Str => SpecialType.Str,
-                _ => throw new InvalidOperationException("Unsupported constant kind"),
-            };
-        }
-    }
+    public SpecialType SpecialType => Kind.ToSpecialType();
 
     public bool IsNumeric => IsSignedInteger || IsUnsignedInteger || IsFloat;
 
