@@ -5,6 +5,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using Prism.Core.Binding;
 using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
@@ -69,7 +70,14 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
 
     private TypeSymbol ComputeType(DiagnosticBag diagnostics)
     {
-        throw new NotImplementedException();
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        var factory = compilation.GetBinderFactory(_syntax.SyntaxTree);
+        var binder = factory.GetBinder(_syntax);
+
+        var context = LookupContext.Create(diagnostics);
+        Debug.Assert(_syntax.TypeSpecifier is not null);
+        return binder.ResolveType(_syntax.TypeSpecifier.Type, context);
     }
 
     public override bool IsMutable => _syntax.MutableKeyword is not null;

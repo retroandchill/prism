@@ -1,8 +1,11 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using Prism.Core.Binding;
+using Prism.Core.BoundTree;
 using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
 using Prism.Core.Semantic;
+using Prism.Core.Symbols.Error;
 using Prism.Core.Syntax;
 using Prism.Core.Text;
 using ZLinq;
@@ -152,6 +155,69 @@ internal abstract class SourceVariableSymbol : VariableSymbol
     }
 }
 
+internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
+{
+    private readonly Binder _scopeBinder;
+    private readonly Binder? _initializerBinder;
+
+    public SourceLocalVariableSymbol(
+        string name,
+        Symbol? containingSymbol,
+        VariableDeclarationSyntax syntax,
+        Binder scopeBinder,
+        Binder? initializerBinder
+    )
+        : base(name, containingSymbol, syntax)
+    {
+        _scopeBinder = scopeBinder;
+        _initializerBinder = initializerBinder;
+    }
+
+    public override bool IsGlobal => false;
+
+    protected override TypeSymbol ComputeType(DiagnosticBag diagnostics)
+    {
+        var context = LookupContext.Create(diagnostics);
+        if (Syntax.Type is not null)
+        {
+            return _scopeBinder.ResolveType(Syntax.Type.Type, context);
+        }
+
+        if (Syntax.Initializer is null)
+        {
+            diagnostics.Add(Diagnostic.ExpectedTypeSpecifier(Syntax.Identifier.Location));
+            return ErrorTypeSymbol.Unnamed;
+        }
+
+        var initializer = GetInitializer(context);
+        return initializer.Type;
+    }
+
+    protected override ConstantValue? ComputeConstantValue(DiagnosticBag diagnostics)
+    {
+        if (Syntax.Initializer is null)
+            return null;
+
+        var context = LookupContext.Create(diagnostics);
+        var initializer = GetInitializer(context);
+        return initializer.ConstantValue;
+    }
+
+    private BoundExpression GetInitializer(LookupContext context)
+    {
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        var semanticModel = compilation.GetSemanticModel(Syntax.SyntaxTree);
+        Debug.Assert(_initializerBinder is not null);
+        var initializer = semanticModel.GetBoundVariableInitializer(
+            Syntax,
+            _initializerBinder,
+            context
+        );
+        return initializer;
+    }
+}
+
 internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
 {
     public SourceGlobalVariableSymbol(
@@ -170,11 +236,30 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
 
     protected override TypeSymbol ComputeType(DiagnosticBag diagnostics)
     {
-        throw new NotImplementedException();
+        if (Syntax.Type is null)
+        {
+            diagnostics.Add(Diagnostic.ExpectedTypeSpecifier(Syntax.Identifier.Location));
+            return ErrorTypeSymbol.Unnamed;
+        }
+
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        var factory = compilation.GetBinderFactory(Syntax.SyntaxTree);
+        var binder = factory.GetBinder(Syntax);
+        var context = LookupContext.Create(diagnostics);
+        return binder.ResolveType(Syntax.Type.Type, context);
     }
 
     protected override ConstantValue? ComputeConstantValue(DiagnosticBag diagnostics)
     {
-        throw new NotImplementedException();
+        if (Syntax.Initializer is null)
+            return null;
+
+        var context = LookupContext.Create(diagnostics);
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        var semanticModel = compilation.GetSemanticModel(Syntax.SyntaxTree);
+        var initializer = semanticModel.GetBoundVariableInitializer(Syntax, context);
+        return initializer.ConstantValue;
     }
 }

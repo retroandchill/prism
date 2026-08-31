@@ -508,7 +508,6 @@ namespace prism
         if (!syntax().initializer().has_value())
         {
             return std::nullopt;
-            ;
         }
 
         auto &semantic_model = declaring_compilation()->get_semantic_model(syntax().tree());
@@ -671,9 +670,7 @@ namespace prism
         {
             auto &semantic_model = declaring_compilation()->get_semantic_model(syntax_.tree());
             auto &binder = SemanticModelInternal::get_binder(semantic_model, syntax_);
-            auto &type = binder.resolve_type(syntax_.return_type()->type(), context);
-            completion_state_.mark_part_complete(CompletionPart::type);
-            return type;
+            return binder.resolve_type(syntax_.return_type()->type(), context);
         }
 
         // Omitting the return type just results in void

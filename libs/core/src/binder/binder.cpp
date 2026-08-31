@@ -550,7 +550,7 @@ namespace prism
         for (auto &directive : usings)
         {
             auto &resolved = resolve_using_namespace(directive.name());
-            if (auto [it, inserted] = seen.insert(&resolved); inserted)
+            if (auto [it, inserted] = seen.insert(&resolved); !inserted)
                 continue;
 
             result.push_back(resolved);

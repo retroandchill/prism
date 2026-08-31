@@ -75,7 +75,19 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
 
     private TypeSymbol ComputeReturnType(DiagnosticBag bag)
     {
-        throw new NotImplementedException();
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+
+        if (_syntax.ReturnType is null)
+        {
+            // Omitting the return type just results in void
+            return compilation.GetSpecialType(SpecialType.Void);
+        }
+
+        var context = LookupContext.Create(bag);
+        var semanticModel = compilation.GetSemanticModel(_syntax.SyntaxTree);
+        var binder = semanticModel.GetBinder(_syntax);
+        return binder.ResolveType(_syntax.ReturnType.Type, context);
     }
 
     public override ImmutableArray<ParameterSymbol> Parameters
