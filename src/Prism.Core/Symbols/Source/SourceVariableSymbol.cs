@@ -39,7 +39,11 @@ internal abstract class SourceVariableSymbol : VariableSymbol
             if (!field.IsDefault)
                 return field;
 
-            Interlocked.CompareExchange(ref field, [Syntax.Identifier.Location], default);
+            ImmutableInterlocked.InterlockedCompareExchange(
+                ref field,
+                [Syntax.Identifier.Location],
+                default
+            );
             return field;
         }
     }
@@ -74,7 +78,11 @@ internal abstract class SourceVariableSymbol : VariableSymbol
             if (!field.IsDefault)
                 return field;
 
-            Interlocked.CompareExchange(ref field, [new SyntaxReference(Syntax)], default);
+            ImmutableInterlocked.InterlockedCompareExchange(
+                ref field,
+                [new SyntaxReference(Syntax)],
+                default
+            );
             return field;
         }
     }

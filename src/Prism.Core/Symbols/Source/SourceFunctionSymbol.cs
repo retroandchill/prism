@@ -36,7 +36,11 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
             if (!field.IsDefault)
                 return field;
 
-            Interlocked.CompareExchange(ref field, [_syntax.Identifier.Location], default);
+            ImmutableInterlocked.InterlockedCompareExchange(
+                ref field,
+                [_syntax.Identifier.Location],
+                default
+            );
             return field;
         }
     }
@@ -48,7 +52,11 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
             if (!field.IsDefault)
                 return field;
 
-            Interlocked.CompareExchange(ref field, [new SyntaxReference(_syntax)], default);
+            ImmutableInterlocked.InterlockedCompareExchange(
+                ref field,
+                [new SyntaxReference(_syntax)],
+                default
+            );
             return field;
         }
     }
@@ -97,7 +105,11 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
             if (!field.IsDefault)
                 return field;
 
-            Interlocked.CompareExchange(ref field, ComputeParameters(), default);
+            ImmutableInterlocked.InterlockedCompareExchange(
+                ref field,
+                ComputeParameters(),
+                default
+            );
             return field;
         }
     }

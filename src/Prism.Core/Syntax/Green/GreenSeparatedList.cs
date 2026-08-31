@@ -128,6 +128,7 @@ internal readonly struct GreenSeparatedList<T>
         {
             if (_index >= _list.Count - 1)
                 return false;
+
             _index++;
             Current = _list[_index];
             return true;

@@ -84,7 +84,7 @@ internal sealed class DeclarationTreeBuilder
             };
 
             memberNames = ImmutableHashSet<string>.Empty;
-            children = [];
+            children = [ns];
             name = qualified.Left;
             currentNode = name;
             hasUsings = false;

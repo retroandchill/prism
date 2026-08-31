@@ -34,7 +34,11 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
             if (!field.IsDefault)
                 return field;
 
-            Interlocked.CompareExchange(ref field, [_syntax.Name.Location], default);
+            ImmutableInterlocked.InterlockedCompareExchange(
+                ref field,
+                [_syntax.Name.Location],
+                default
+            );
             return field;
         }
     }
@@ -46,7 +50,11 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
             if (!field.IsDefault)
                 return field;
 
-            Interlocked.CompareExchange(ref field, [new SyntaxReference(_syntax)], default);
+            ImmutableInterlocked.InterlockedCompareExchange(
+                ref field,
+                [new SyntaxReference(_syntax)],
+                default
+            );
             return field;
         }
     }

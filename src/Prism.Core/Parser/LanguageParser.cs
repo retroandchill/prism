@@ -78,7 +78,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         else
         {
             var openBrace = ExpectToken(SyntaxKind.OpenBraceToken);
-            var (usings, members) = ParseNamespaceBody();
+            var (usings, members) = ParseNamespaceBody(t => t.Kind != SyntaxKind.CloseBraceToken);
             return new GreenBlockNamespaceDeclaration(
                 modifiers,
                 namespaceKeyword,

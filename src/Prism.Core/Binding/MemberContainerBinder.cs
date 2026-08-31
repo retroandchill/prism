@@ -36,7 +36,11 @@ internal sealed class MemberContainerBinder(
         if (!_usingNamespaces.IsDefault)
             return _usingNamespaces;
 
-        Interlocked.CompareExchange(ref _usingNamespaces, ComputeUsingNamespaces(), default);
+        ImmutableInterlocked.InterlockedCompareExchange(
+            ref _usingNamespaces,
+            ComputeUsingNamespaces(),
+            default
+        );
         return _usingNamespaces;
     }
 

@@ -164,7 +164,7 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
         if (!_members.IsDefault)
             return _members;
 
-        Interlocked.CompareExchange(ref _members, ComputeMembers(), default);
+        ImmutableInterlocked.InterlockedCompareExchange(ref _members, ComputeMembers(), default);
         return _members;
     }
 

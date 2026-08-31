@@ -103,7 +103,7 @@ public readonly struct SyntaxList<T>
 
         public bool MoveNext()
         {
-            if (_index >= _count)
+            if (_index + 1 >= _count)
                 return false;
 
             _index++;

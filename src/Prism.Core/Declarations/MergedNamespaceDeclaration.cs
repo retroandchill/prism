@@ -57,7 +57,7 @@ internal sealed class MergedNamespaceDeclaration : MergedDeclaration
                 return field;
             }
 
-            Interlocked.CompareExchange(ref field, MakeChildren(), default);
+            ImmutableInterlocked.InterlockedCompareExchange(ref field, MakeChildren(), default);
             return field;
         }
     }

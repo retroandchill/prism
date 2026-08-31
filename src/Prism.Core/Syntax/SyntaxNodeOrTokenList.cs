@@ -84,7 +84,7 @@ public readonly struct SyntaxNodeOrTokenList
 
         public bool MoveNext()
         {
-            if (_index >= _count)
+            if (_index + 1 >= _count)
                 return false;
 
             _index++;
@@ -96,7 +96,7 @@ public readonly struct SyntaxNodeOrTokenList
         {
             if (!MoveNext())
             {
-                current = null!;
+                current = default;
                 return false;
             }
 

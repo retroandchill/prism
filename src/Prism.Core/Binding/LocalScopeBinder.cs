@@ -17,7 +17,11 @@ internal abstract class LocalScopeBinder(Binder next) : Binder(next)
             if (!field.IsDefault)
                 return field;
 
-            Interlocked.CompareExchange(ref field, BuildLocalVariables(), default);
+            ImmutableInterlocked.InterlockedCompareExchange(
+                ref field,
+                BuildLocalVariables(),
+                default
+            );
             return field;
         }
     }

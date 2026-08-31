@@ -121,7 +121,11 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
             mergedMembers.Add(member);
         }
 
-        Interlocked.CompareExchange(ref _members, mergedMembers.DrainToImmutable(), default);
+        ImmutableInterlocked.InterlockedCompareExchange(
+            ref _members,
+            mergedMembers.DrainToImmutable(),
+            default
+        );
         return _members;
     }
 

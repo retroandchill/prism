@@ -43,7 +43,7 @@ public abstract class Symbol
 
     public Symbol? ContainingSymbol { get; }
 
-    public virtual AssemblySymbol? ContainingAssembly => ContainingSymbol as AssemblySymbol;
+    public virtual AssemblySymbol? ContainingAssembly => ContainingSymbol?.ContainingAssembly;
 
     public virtual NamespaceSymbol? ContainingNamespace
     {

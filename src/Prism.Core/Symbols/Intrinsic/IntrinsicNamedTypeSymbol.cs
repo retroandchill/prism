@@ -8,7 +8,7 @@ namespace Prism.Core.Symbols.Intrinsic;
 internal sealed class IntrinsicNamedTypeSymbol : NamedTypeSymbol
 {
     internal IntrinsicNamedTypeSymbol(SpecialType type, NamespaceSymbol containing)
-        : base(GetBuiltInTypeName(type), containing) { }
+        : base(GetBuiltInTypeName(type), containing, type) { }
 
     private static string GetBuiltInTypeName(SpecialType type)
     {
