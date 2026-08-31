@@ -7,6 +7,25 @@ using Prism.Core.Syntax;
 
 namespace Prism.Core.Binding;
 
+internal enum IntegerTargetKind
+{
+    I8,
+    I16,
+    I32,
+    I64,
+    I128,
+    ISize,
+    U8,
+    U16,
+    U32,
+    U64,
+    U128,
+    USize,
+    F32,
+    F64,
+    BestFit,
+}
+
 internal static class BindingHelpers
 {
     public static void DiagnoseLookupFailure(
@@ -148,5 +167,54 @@ internal static class BindingHelpers
                     and not IntegerSuffix.U64
                     and not IntegerSuffix.U128
                     and not IntegerSuffix.USize;
+    }
+
+    public static IntegerTargetKind GetIntegerTargetKind(TypeSymbol? targetType)
+    {
+        if (targetType is null)
+            return IntegerTargetKind.BestFit;
+
+        return targetType.SpecialType switch
+        {
+            SpecialType.I8 => IntegerTargetKind.I8,
+            SpecialType.I16 => IntegerTargetKind.I16,
+            SpecialType.I32 => IntegerTargetKind.I32,
+            SpecialType.I64 => IntegerTargetKind.I64,
+            SpecialType.I128 => IntegerTargetKind.I128,
+            SpecialType.ISize => IntegerTargetKind.ISize,
+            SpecialType.U8 => IntegerTargetKind.U8,
+            SpecialType.U16 => IntegerTargetKind.U16,
+            SpecialType.U32 => IntegerTargetKind.U32,
+            SpecialType.U64 => IntegerTargetKind.U64,
+            SpecialType.U128 => IntegerTargetKind.U128,
+            SpecialType.USize => IntegerTargetKind.USize,
+            SpecialType.F32 => IntegerTargetKind.F32,
+            SpecialType.F64 => IntegerTargetKind.F64,
+            _ => throw new ArgumentException("Invalid target type", nameof(targetType)),
+        };
+    }
+
+    public static IntegerTargetKind GetIntegerTargetKind(
+        in IntegerLiteralData literal,
+        TypeSymbol? targetType
+    )
+    {
+        return literal.Suffix switch
+        {
+            IntegerSuffix.None => GetIntegerTargetKind(targetType),
+            IntegerSuffix.I8 => IntegerTargetKind.I8,
+            IntegerSuffix.I16 => IntegerTargetKind.I16,
+            IntegerSuffix.I32 => IntegerTargetKind.I32,
+            IntegerSuffix.I64 => IntegerTargetKind.I64,
+            IntegerSuffix.I128 => IntegerTargetKind.I128,
+            IntegerSuffix.ISize => IntegerTargetKind.ISize,
+            IntegerSuffix.U8 => IntegerTargetKind.U8,
+            IntegerSuffix.U16 => IntegerTargetKind.U16,
+            IntegerSuffix.U32 => IntegerTargetKind.U32,
+            IntegerSuffix.U64 => IntegerTargetKind.U64,
+            IntegerSuffix.U128 => IntegerTargetKind.U128,
+            IntegerSuffix.USize => IntegerTargetKind.USize,
+            _ => throw new ArgumentException("Invalid integer suffix", nameof(literal)),
+        };
     }
 }

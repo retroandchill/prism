@@ -49,7 +49,7 @@ internal sealed class BoundExpressionStatement : BoundStatement
 
 internal sealed class BoundReturnStatement : BoundStatement
 {
-    public BoundReturnStatement(ExpressionStatementSyntax syntax, BoundExpression? expression)
+    public BoundReturnStatement(ReturnStatementSyntax syntax, BoundExpression? expression)
         : base(syntax)
     {
         Expression = expression;

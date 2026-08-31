@@ -1,4 +1,5 @@
-﻿using Prism.Core.Semantic;
+﻿using Prism.Core.Binding;
+using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Syntax;
 using Riok.Mapperly.Abstractions;
