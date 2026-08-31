@@ -815,8 +815,6 @@ namespace prism
                     throw InvalidStateException{
                         "We must have added a symbol type that can hold a value that we haven't accounted for yet."};
                 }});
-
-        diagnose_lookup_failure(result, syntax.value(), LookupOptions::value, context);
     }
 
     const BoundExpression &Binder::bind_binary_expression(const BinaryExpressionSyntax &syntax,
@@ -1112,9 +1110,9 @@ namespace prism
                 throw_if_negative(is_negative);
                 return ConstantValue::usize(data.value.convert_to<std::uint64_t>());
             case IntegerTargetKind::f32:
-                return ConstantValue::usize(data.value.convert_to<float>());
+                return ConstantValue::f32(data.value.convert_to<float>());
             case IntegerTargetKind::f64:
-                return ConstantValue::usize(data.value.convert_to<double>());
+                return ConstantValue::f64(data.value.convert_to<double>());
             case IntegerTargetKind::best_fit:
                 {
                     auto value = maybe_negate(data.value, is_negative);

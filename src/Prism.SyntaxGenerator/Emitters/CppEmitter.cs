@@ -959,7 +959,7 @@ public static class CppEmitter
             foreach (
                 var node in model
                     .Modules.AsValueEnumerable()
-                    .SelectMany(m => m.Nodes)
+                    .SelectMany(m => m.Nodes.AsValueEnumerable())
                     .Where(n => !n.IsAbstract)
             )
             {
@@ -1189,7 +1189,7 @@ public static class CppEmitter
             foreach (
                 var node in model
                     .Modules.AsValueEnumerable()
-                    .SelectMany(m => m.Nodes)
+                    .SelectMany(m => m.Nodes.AsValueEnumerable())
                     .Where(n => !n.IsAbstract)
             )
             {
@@ -1677,7 +1677,7 @@ public static class CppEmitter
             foreach (
                 var node in model
                     .Modules.AsValueEnumerable()
-                    .SelectMany(m => m.Nodes)
+                    .SelectMany(m => m.Nodes.AsValueEnumerable())
                     .Where(n => !n.IsAbstract)
             )
             {
@@ -1746,7 +1746,7 @@ public static class CppEmitter
             foreach (
                 var diagnostic in model
                     .Diagnostics.AsValueEnumerable()
-                    .SelectMany(c => c.Diagnostics)
+                    .SelectMany(c => c.Diagnostics.AsValueEnumerable())
             )
             {
                 writer.WriteLine($"case DiagnosticCode::{diagnostic.CppName}: ");
@@ -1779,7 +1779,7 @@ public static class CppEmitter
             foreach (
                 var diagnostic in model
                     .Diagnostics.AsValueEnumerable()
-                    .SelectMany(x => x.Diagnostics)
+                    .SelectMany(x => x.Diagnostics.AsValueEnumerable())
             )
             {
                 writer.EmitDiagnosticDescriptorConstant(diagnostic);
@@ -1854,7 +1854,7 @@ public static class CppEmitter
             foreach (
                 var diagnostic in model
                     .Diagnostics.AsValueEnumerable()
-                    .SelectMany(x => x.Diagnostics)
+                    .SelectMany(x => x.Diagnostics.AsValueEnumerable())
             )
             {
                 writer.WriteLine($"case DiagnosticCode::{diagnostic.CppName}:");
@@ -1884,7 +1884,7 @@ public static class CppEmitter
                 foreach (
                     var (i, diagnostic) in mode
                         .Diagnostics.AsValueEnumerable()
-                        .SelectMany(x => x.Diagnostics)
+                        .SelectMany(x => x.Diagnostics.AsValueEnumerable())
                         .Index()
                 )
                 {
@@ -1900,7 +1900,7 @@ public static class CppEmitter
             foreach (
                 var diagnostic in mode
                     .Diagnostics.AsValueEnumerable()
-                    .SelectMany(x => x.Diagnostics)
+                    .SelectMany(x => x.Diagnostics.AsValueEnumerable())
             )
             {
                 writer.WriteLine();

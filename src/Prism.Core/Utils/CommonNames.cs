@@ -26,4 +26,6 @@ internal static class CommonNames
     public const string Char16 = "Char16";
     public const string Rune = "Rune";
     public const string Str = "StringView";
+
+    public const string Main = "main";
 }

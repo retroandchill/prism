@@ -53,3 +53,16 @@ public enum AssignmentOperation : byte
     ShiftRight,
     UnsignedShiftRight,
 };
+
+public static class OperationExtensions
+{
+    extension(UnaryOperation op)
+    {
+        public bool IsAssigning =>
+            op
+                is UnaryOperation.PreIncrement
+                    or UnaryOperation.PreDecrement
+                    or UnaryOperation.PostIncrement
+                    or UnaryOperation.PostDecrement;
+    }
+}

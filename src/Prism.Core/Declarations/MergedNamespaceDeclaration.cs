@@ -73,7 +73,7 @@ internal sealed class MergedNamespaceDeclaration : MergedDeclaration
 
             Interlocked.CompareExchange(
                 ref field,
-                [.. Declarations.SelectMany(d => d.MemberNames)],
+                [.. Declarations.AsValueEnumerable().SelectMany(d => d.MemberNames)],
                 null
             );
             return field;
@@ -90,7 +90,11 @@ internal sealed class MergedNamespaceDeclaration : MergedDeclaration
         var namespaces = ImmutableArray.CreateBuilder<SingleNamespaceDeclaration>();
         var allNamespacesHaveSameName = true;
 
-        foreach (var child in Declarations.AsValueEnumerable().SelectMany(d => d.Members))
+        foreach (
+            var child in Declarations
+                .AsValueEnumerable()
+                .SelectMany(d => d.Members.AsValueEnumerable())
+        )
         {
             if (child is not SingleNamespaceDeclaration asNamespace)
                 continue;

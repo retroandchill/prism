@@ -47,7 +47,7 @@ public readonly struct SyntaxToken
 
     public SyntaxNode? Parent { get; }
     public SyntaxTree? SyntaxTree => Parent?.SyntaxTree;
-    public Location Location => throw new NotImplementedException();
+    public Location Location => SyntaxTree is not null ? new SourceLocation(this) : Location.None;
 
     public bool IsMissing => Green.IsMissing;
     public bool ContainsDiagnostics => Green.ContainsDiagnostics;

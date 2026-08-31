@@ -54,7 +54,11 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
 
             Interlocked.CompareExchange(
                 ref field,
-                [.. _namespaces.SelectMany(x => x.Locations)],
+                [
+                    .. _namespaces
+                        .AsValueEnumerable()
+                        .SelectMany(x => x.Locations.AsValueEnumerable()),
+                ],
                 default
             );
             return field;
@@ -70,7 +74,11 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
 
             Interlocked.CompareExchange(
                 ref field,
-                [.. _namespaces.SelectMany(x => x.DeclaringSyntaxReferences)],
+                [
+                    .. _namespaces
+                        .AsValueEnumerable()
+                        .SelectMany(x => x.DeclaringSyntaxReferences.AsValueEnumerable()),
+                ],
                 default
             );
             return field;
@@ -84,7 +92,7 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
 
         var namespaceGroups = _namespaces
             .AsValueEnumerable()
-            .SelectMany(x => x.GetMembers())
+            .SelectMany(x => x.GetMembers().AsValueEnumerable())
             .OfType<NamespaceSymbol>()
             .GroupBy(x => x.Name)
             .ToDictionary(x => x.Key, x => x.ToImmutableArray());
@@ -92,7 +100,11 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
         var emittedNamespaces = new HashSet<string>();
         var mergedMembers = ImmutableArray.CreateBuilder<Symbol>();
 
-        foreach (var member in _namespaces.AsValueEnumerable().SelectMany(x => x.GetMembers()))
+        foreach (
+            var member in _namespaces
+                .AsValueEnumerable()
+                .SelectMany(x => x.GetMembers().AsValueEnumerable())
+        )
         {
             if (member is NamespaceSymbol ns)
             {
@@ -120,7 +132,12 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
 
     private ImmutableArray<Symbol> ComputeMembers(string name)
     {
-        return [.. _namespaces.SelectMany(x => x.GetMembers(name))];
+        return
+        [
+            .. _namespaces
+                .AsValueEnumerable()
+                .SelectMany(x => x.GetMembers(name).AsValueEnumerable()),
+        ];
     }
 
     public override NamespaceKind NamespaceKind => NamespaceKind.Compilation;

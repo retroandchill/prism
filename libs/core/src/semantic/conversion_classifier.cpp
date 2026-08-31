@@ -159,7 +159,7 @@ namespace prism
                     return get_common_numeric_type(left, right).transform(get_numeric_conversion);
                 }
 
-                if (is_character_type(left) && is_numeric_type(right))
+                if (is_character_type(left) && is_character_type(right))
                 {
                     auto &promoted = get_common_character_type(left, right);
                     return BinaryOperandConversion{
@@ -181,7 +181,7 @@ namespace prism
                 break;
         }
 
-        UNREACHABLE("Invalid binary operation");
+        return std::nullopt;
     }
 
     const Compilation &ConversionClassifier::compilation() const noexcept
@@ -237,7 +237,7 @@ namespace prism
         if (source_info.family == NumericFamily::unsigned_integer &&
             destination_info.family == NumericFamily::signed_integer)
         {
-            return source_info.width <= destination_info.width;
+            return source_info.width < destination_info.width;
         }
 
         if (is_integer_family(source_info.family) && destination_info.family == NumericFamily::floating_point)

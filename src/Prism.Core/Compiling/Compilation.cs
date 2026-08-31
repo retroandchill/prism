@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using Cysharp.Text;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Codegen;
@@ -9,15 +10,22 @@ using Prism.Core.Diagnostics;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Intrinsic;
+using Prism.Core.Symbols.Source;
 using Prism.Core.Syntax;
+using Prism.Core.Utils;
+using ZLinq;
 
 namespace Prism.Core.Compiling;
 
-internal sealed record EntryPoint(FunctionSymbol? Function, ImmutableArray<Diagnostic> Diagnostics);
+internal sealed record EntryPoint(FunctionSymbol? Function, ImmutableArray<Diagnostic> Diagnostics)
+{
+    public static readonly EntryPoint Empty = new(null, []);
+}
 
 public class Compilation
 {
     private readonly SyntaxAndDeclarationManager _syntaxAndDeclarationManager;
+    private EntryPoint? _entryPoint;
 
     internal Compilation(
         string assemblyName,
@@ -52,12 +60,31 @@ public class Compilation
 
     public AssemblySymbol Assembly
     {
-        get { throw new NotImplementedException(); }
+        get
+        {
+            if (field is not null)
+                return field;
+
+            Interlocked.CompareExchange(ref field, new SourceAssemblySymbol(this), null);
+            return field;
+        }
     }
 
     public NamespaceSymbol GlobalNamespace
     {
-        get { throw new NotImplementedException(); }
+        get
+        {
+            if (field is not null)
+                return field;
+
+            var mergedNamespace = MergedNamespaceSymbol.Create(
+                this,
+                null,
+                [Assembly.GlobalNamespace, IntrinsicSymbols.GlobalNamespace]
+            );
+            Interlocked.CompareExchange(ref field, mergedNamespace, null);
+            return field;
+        }
     }
 
     public NamespaceSymbol? GetCompilationNamespace(NamespaceSymbol assemblyNamespace)
@@ -160,8 +187,6 @@ public class Compilation
         return Cache.GetBinderFactory(tree);
     }
 
-    internal Binder RootBinder => Cache.RootBinder;
-
     internal ImmutableArray<VariableSymbol> GetGlobalVariables()
     {
         return Cache.GetGlobalVariables();
@@ -174,41 +199,142 @@ public class Compilation
 
     internal BoundExpression? GetBoundInitializer(VariableSymbol variable)
     {
-        throw new NotImplementedException();
+        var context = LookupContext.Create(DeclarationDiagnostics);
+        foreach (var reference in variable.DeclaringSyntaxReferences)
+        {
+            var semanticModel = GetSemanticModel(reference.SyntaxTree);
+            if (reference.Syntax is not VariableDeclarationSyntax declaration)
+                continue;
+
+            return semanticModel.GetBoundVariableInitializer(declaration, context);
+        }
+
+        return null;
     }
 
     internal BoundStatement? GetBoundBody(FunctionSymbol function)
     {
-        throw new NotImplementedException();
+        var context = LookupContext.Create(DeclarationDiagnostics);
+        foreach (var reference in function.DeclaringSyntaxReferences)
+        {
+            var semanticModel = GetSemanticModel(reference.SyntaxTree);
+            if (reference.Syntax is not FunctionDeclarationSyntax declaration)
+                continue;
+
+            return semanticModel.GetBoundFunctionBody(declaration, context);
+        }
+
+        return null;
     }
 
     private EntryPoint GetEntryPointAndDiagnostics()
     {
-        throw new NotImplementedException();
+        if (_entryPoint is not null)
+            return _entryPoint;
+
+        Interlocked.CompareExchange(ref _entryPoint, ComputeEntryPoint(), null);
+        return _entryPoint;
     }
 
     private EntryPoint ComputeEntryPoint()
     {
-        throw new NotImplementedException();
+        if (!Settings.IsApplication)
+            return EntryPoint.Empty;
+
+        var diagnostics = DiagnosticBag.Create();
+        var function = FindEntryPoint(diagnostics);
+        return new EntryPoint(function, diagnostics.ToImmutableAndClear());
     }
 
     private FunctionSymbol? FindEntryPoint(DiagnosticBag diagnostics)
     {
-        throw new NotImplementedException();
+        var globalNamespace = Assembly.GlobalNamespace;
+
+        var candidates = new List<FunctionSymbol>();
+        AppendEntryPoints(globalNamespace, candidates, diagnostics);
+        if (candidates.Count == 0)
+        {
+            diagnostics.Add(Diagnostic.NoEntryPointDefined(Location.None));
+            return null;
+        }
+
+        if (candidates.Count == 1)
+            return candidates[0];
+
+        var writer = new ZStringWriter();
+        var locations = new List<Location>();
+        foreach (var (i, candidate) in candidates.AsValueEnumerable().Index())
+        {
+            if (i > 0)
+                writer.Write(", ");
+
+            candidate.WriteDisplayString(writer);
+            locations.AddRange(candidate.Locations.AsSpan());
+        }
+
+        diagnostics.Add(
+            Diagnostic.AmbiguousEntryPoint(locations[0], locations.Skip(1), writer.ToString())
+        );
+        return null;
     }
 
     private static void AppendEntryPoints(
         NamespaceSymbol ns,
-        IList<FunctionSymbol> entryPoints,
+        List<FunctionSymbol> entryPoints,
         DiagnosticBag diagnostics
     )
     {
-        throw new NotImplementedException();
+        foreach (var member in ns.GetMembers())
+        {
+            switch (member)
+            {
+                case NamespaceSymbol n:
+                    AppendEntryPoints(n, entryPoints, diagnostics);
+                    break;
+                case FunctionSymbol f:
+                    if (IsValidEntryPoint(f, diagnostics))
+                        entryPoints.Add(f);
+                    break;
+            }
+        }
     }
 
     private static bool IsValidEntryPoint(FunctionSymbol function, DiagnosticBag diagnostics)
     {
-        throw new NotImplementedException();
+        if (function.Name != CommonNames.Main)
+            return false;
+
+        var declaration = (FunctionDeclarationSyntax)function.DeclaringSyntaxReferences[0].Syntax;
+
+        var returnType = function.ReturnType;
+        if (!returnType.IsVoid && returnType.SpecialType != SpecialType.I32)
+        {
+            diagnostics.Add(
+                Diagnostic.InvalidEntryPointReturnType(
+                    declaration.ReturnType!.Type.Location,
+                    function.ReturnType.ToDisplayString(),
+                    function.ToDisplayString()
+                )
+            );
+            return false;
+        }
+
+        // TODO: For now we're going to take in no arguments, but eventually we'll allow one with a span of strings.
+        if (function.Parameters.IsEmpty)
+            return true;
+
+        var paramTypes = string.Join(
+            ", ",
+            function.Parameters.Select(p => p.Type.ToDisplayString())
+        );
+        diagnostics.Add(
+            Diagnostic.InvalidEntryPointParameters(
+                declaration.Parameters.Location,
+                paramTypes,
+                function.ToDisplayString()
+            )
+        );
+        return false;
     }
 
     internal DiagnosticBag DeclarationDiagnostics { get; } = DiagnosticBag.Create();

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Prism.Core.Diagnostics;
+using Prism.Core.Parser;
 using Prism.Core.Syntax.Green;
 using Prism.Core.Text;
 
@@ -30,7 +31,9 @@ public sealed class SyntaxTree
 
     public static SyntaxTree Parse(SourceText text)
     {
-        throw new NotImplementedException();
+        var parser = new LanguageParser(text.Text);
+        var root = parser.ParseCompilationUnit();
+        return new SyntaxTree(text, root);
     }
 
     public string Path { get; } = "";

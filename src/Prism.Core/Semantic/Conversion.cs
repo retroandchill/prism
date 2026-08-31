@@ -13,7 +13,7 @@ public readonly struct Conversion
 
     public static Conversion None => new(ConversionKind.NoConversion);
 
-    internal static Conversion GetTrivia(ConversionKind kind)
+    internal static Conversion GetTrivial(ConversionKind kind)
     {
         Debug.Assert(kind.IsTrivial);
         return new Conversion(kind);

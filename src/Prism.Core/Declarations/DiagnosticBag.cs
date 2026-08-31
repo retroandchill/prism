@@ -50,6 +50,12 @@ internal sealed class DiagnosticBag
             Diagnostics.Enqueue(diagnostic);
     }
 
+    public void AddRange(ImmutableArray<Diagnostic> diagnostics)
+    {
+        foreach (var diagnostic in diagnostics)
+            Diagnostics.Enqueue(diagnostic);
+    }
+
     public void AddRange(DiagnosticBag other)
     {
         if (other._diagnostics is null)

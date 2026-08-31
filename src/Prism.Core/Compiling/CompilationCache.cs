@@ -4,13 +4,14 @@ using System.Diagnostics;
 using Prism.Core.Binding;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
+using Prism.Core.Symbols.Error;
 using Prism.Core.Syntax;
 
 namespace Prism.Core.Compiling;
 
 internal sealed class CompilationCache(Compilation compilation)
 {
-    private readonly record struct SymbolLookupKey(Symbol? Containing, string Name);
+    private readonly record struct SymbolLookupKey(Symbol? Container, string Name);
 
     private readonly ConcurrentDictionary<
         NamespaceSymbol,
@@ -25,6 +26,9 @@ internal sealed class CompilationCache(Compilation compilation)
     private readonly ConcurrentDictionary<SymbolLookupKey, NamedTypeSymbol> _errorTypes = new();
     private readonly ConcurrentDictionary<SymbolLookupKey, NamespaceSymbol> _errorNamespaces =
         new();
+
+    private ImmutableArray<VariableSymbol> _topLevelVariables;
+    private ImmutableArray<FunctionSymbol> _topLevelFunctions;
 
     public NamespaceSymbol? GetCompilationNamespace(NamespaceSymbol symbol)
     {
@@ -58,36 +62,94 @@ internal sealed class CompilationCache(Compilation compilation)
 
     public SemanticModel GetSemanticModel(SyntaxTree syntaxTree)
     {
-        throw new NotImplementedException();
+        return _semanticModels.GetOrAdd(
+            syntaxTree,
+            static (t, c) => new SemanticModel(c, t),
+            compilation
+        );
     }
 
-    public NamedTypeSymbol CreateErrorTypeSymbol(Symbol? symbol, string name)
+    public NamedTypeSymbol CreateErrorTypeSymbol(Symbol? container, string name)
     {
-        throw new NotImplementedException();
+        var key = new SymbolLookupKey(container, name);
+        return _errorTypes.GetOrAdd(key, static k => new ErrorTypeSymbol(k.Name, k.Container));
     }
 
-    public NamespaceSymbol CreateErrorNamespaceSymbol(NamespaceSymbol? symbol, string name)
+    public NamespaceSymbol CreateErrorNamespaceSymbol(NamespaceSymbol? container, string name)
     {
-        throw new NotImplementedException();
+        var key = new SymbolLookupKey(container, name);
+        return _errorNamespaces.GetOrAdd(
+            key,
+            static k => new ErrorNamespaceSymbol(k.Name, k.Container)
+        );
     }
 
     public BinderFactory GetBinderFactory(SyntaxTree syntaxTree)
     {
-        throw new NotImplementedException();
-    }
-
-    public Binder RootBinder
-    {
-        get { throw new NotImplementedException(); }
+        return _binderFactories.GetOrAdd(
+            syntaxTree,
+            static (t, c) => new BinderFactory(c, t),
+            compilation
+        );
     }
 
     public ImmutableArray<VariableSymbol> GetGlobalVariables()
     {
-        throw new NotImplementedException();
+        if (!_topLevelVariables.IsDefault)
+            return _topLevelVariables;
+
+        var variables = ImmutableArray.CreateBuilder<VariableSymbol>();
+        CollectGlobalVariables(compilation.Assembly.GlobalNamespace, variables);
+        Interlocked.CompareExchange(ref _topLevelVariables, variables.DrainToImmutable(), default);
+        return _topLevelVariables;
+    }
+
+    private static void CollectGlobalVariables(
+        NamespaceSymbol namespaceSymbol,
+        ImmutableArray<VariableSymbol>.Builder variables
+    )
+    {
+        foreach (var member in namespaceSymbol.GetMembers())
+        {
+            switch (member)
+            {
+                case VariableSymbol variable:
+                    variables.Add(variable);
+                    break;
+                case NamespaceSymbol nestedNamespace:
+                    CollectGlobalVariables(nestedNamespace, variables);
+                    break;
+            }
+        }
     }
 
     public ImmutableArray<FunctionSymbol> GetGlobalFunctions()
     {
-        throw new NotImplementedException();
+        if (!_topLevelVariables.IsDefault)
+            return _topLevelFunctions;
+
+        var functions = ImmutableArray.CreateBuilder<FunctionSymbol>();
+        CollectGlobalFunctions(compilation.Assembly.GlobalNamespace, functions);
+        Interlocked.CompareExchange(ref _topLevelFunctions, functions.DrainToImmutable(), default);
+        return _topLevelFunctions;
+    }
+
+    private static void CollectGlobalFunctions(
+        NamespaceSymbol namespaceSymbol,
+        ImmutableArray<FunctionSymbol>.Builder functions
+    )
+    {
+        foreach (var member in namespaceSymbol.GetMembers())
+        {
+            switch (member)
+            {
+                case FunctionSymbol function:
+                    functions.Add(function);
+                    break;
+                case NamespaceSymbol nestedNamespace:
+                    CollectGlobalFunctions(nestedNamespace, functions);
+                    break;
+            }
+        }
     }
 }

@@ -175,7 +175,10 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
 
     private ImmutableArray<Symbol> ComputeMembers()
     {
-        var members = GetNameToMembersMap().Values.SelectMany(v => v).ToArray();
+        var members = GetNameToMembersMap()
+            .Values.AsValueEnumerable()
+            .SelectMany(v => v.AsValueEnumerable())
+            .ToArray();
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
         Array.Sort(members, SymbolLocationComparer.Get(compilation));
@@ -201,7 +204,11 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
             result.GetOrAdd(symbol.Name, ImmutableArray.CreateBuilder<Symbol>).Add(symbol);
         }
 
-        foreach (var syntax in _mergedDeclaration.Declarations.SelectMany(x => GetSyntaxMembers(x)))
+        foreach (
+            var syntax in _mergedDeclaration
+                .Declarations.AsValueEnumerable()
+                .SelectMany(x => GetSyntaxMembers(x).AsValueEnumerable())
+        )
         {
             var symbol = syntax switch
             {

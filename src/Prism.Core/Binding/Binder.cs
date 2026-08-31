@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using NetEscapades.EnumGenerators;
 using Prism.Core.BoundTree;
@@ -9,8 +10,11 @@ using Prism.Core.Diagnostics;
 using Prism.Core.Mappers;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
+using Prism.Core.Symbols.Error;
 using Prism.Core.Syntax;
+using Prism.Core.Utils;
 using ZLinq;
+using static Prism.Core.Binding.BindingHelpers;
 
 namespace Prism.Core.Binding;
 
@@ -55,7 +59,7 @@ internal abstract class Binder
         return Next.GetBinder(node);
     }
 
-    public Binder GetBinderChecked(SyntaxNode node)
+    public Binder GetRequiredBinder(SyntaxNode node)
     {
         return GetBinder(node) ?? throw new InvalidOperationException("No binder");
     }
@@ -102,9 +106,9 @@ internal abstract class Binder
             return typeSymbol;
         }
 
-        BindingHelpers.DiagnoseLookupFailure(result, syntax, LookupOptions.Type, context);
-        var names = BindingHelpers.CollectNames(syntax);
-        return BindingHelpers.CreateErrorTypeSymbol(
+        DiagnoseLookupFailure(result, syntax, LookupOptions.Type, context);
+        var names = CollectNames(syntax);
+        return CreateErrorTypeSymbol(
             ContainingSymbol,
             Compilation,
             CollectionsMarshal.AsSpan(names)
@@ -238,7 +242,7 @@ internal abstract class Binder
         LookupContext context
     );
 
-    private static LookupResult MakeLookupResult(
+    protected static LookupResult MakeLookupResult(
         ImmutableArray<Symbol> symbols,
         LookupOptions options
     )
@@ -276,7 +280,7 @@ internal abstract class Binder
     private NamespaceSymbol ResolveUsingNamespace(NameSyntax syntax)
     {
         var diagnostics = DiagnosticBag.Create();
-        var names = BindingHelpers.CollectNames(syntax);
+        var names = CollectNames(syntax);
         var current = Compilation.GlobalNamespace;
         var isError = false;
         foreach (var simple in names)
@@ -399,7 +403,7 @@ internal abstract class Binder
     private BoundBlock BindBlock(BlockSyntax syntax, TypeSymbol returnType, LookupContext context)
     {
         var builder = ImmutableArray.CreateBuilder<BoundStatement>(syntax.Statements.Count);
-        var binder = GetBinder(syntax) ?? this;
+        var binder = GetRequiredBinder(syntax);
         foreach (
             var statement in syntax
                 .Statements.AsValueEnumerable()
@@ -509,7 +513,7 @@ internal abstract class Binder
         LookupContext context
     )
     {
-        var binder = GetBinder(syntax) ?? this;
+        var binder = GetRequiredBinder(syntax);
         var variable = syntax.Declaration switch
         {
             not null => binder.BindVariableDeclaration(syntax.Declaration, context),
@@ -572,16 +576,52 @@ internal abstract class Binder
         LookupContext context
     )
     {
-        throw new NotImplementedException();
+        var bound = syntax switch
+        {
+            LiteralExpressionSyntax literal => BindLiteralExpression(literal, targetType, context),
+            IdentifierExpressionSyntax identifier => BindIdentifierExpression(
+                identifier,
+                targetType,
+                context
+            ),
+            ParenthesizedExpressionSyntax parenthesized => BindExpression(
+                parenthesized.Expression,
+                targetType,
+                context
+            ),
+            BinaryExpressionSyntax binary => BindBinaryExpression(binary, targetType, context),
+            AssignmentExpressionSyntax assignment => BindAssignmentExpression(
+                assignment,
+                targetType,
+                context
+            ),
+            PrefixExpressionSyntax prefix => BindPrefixExpression(prefix, targetType, context),
+            PostfixExpressionSyntax postfix => BindPostfixExpression(postfix, targetType, context),
+            TernaryExpressionSyntax ternary => BindTernaryExpression(ternary, targetType, context),
+            InvocationExpressionSyntax invocation => BindInvocationExpression(
+                invocation,
+                targetType,
+                context
+            ),
+            CastExpressionSyntax cast => BindCastExpression(cast, targetType, context),
+            _ => throw new ArgumentException("Invalid expression syntax", nameof(syntax)),
+        };
+
+        return targetType is not null
+            ? AddConversionIfNecessary(bound, targetType, context)
+            : bound;
     }
 
-    private BoundExpression BindLiteralExpression(
+    private BoundLiteral BindLiteralExpression(
         LiteralExpressionSyntax syntax,
         TypeSymbol? returnType,
         LookupContext context
     )
     {
-        throw new NotImplementedException();
+        var token = syntax.Value;
+        var value = EvaluateConstantExpression(token, returnType, context);
+        var type = Compilation.GetSpecialType(value.SpecialType);
+        return new BoundLiteral(syntax, type, value);
     }
 
     private BoundExpression BindIdentifierExpression(
@@ -590,25 +630,89 @@ internal abstract class Binder
         LookupContext context
     )
     {
-        throw new NotImplementedException();
+        var result = LookupFromSyntax(syntax.Value, LookupOptions.Value, context);
+        if (!result.IsViable)
+            return new BoundBadExpression(syntax, ErrorTypeSymbol.Unnamed);
+
+        return result.Symbol switch
+        {
+            VariableSymbol v => new BoundVariableAccess(syntax, v),
+            ParameterSymbol p => new BoundParameterAccess(syntax, p),
+            _ => throw new InvalidOperationException(
+                "We must have added a symbol type that can hold a value that we haven't accounted for yet."
+            ),
+        };
     }
 
-    private BoundExpression BindBinaryExpression(
+    private BoundBinaryOperation BindBinaryExpression(
         BinaryExpressionSyntax syntax,
         TypeSymbol? returnType,
         LookupContext context
     )
     {
-        throw new NotImplementedException();
+        var left = BindExpression(syntax.Left, context);
+        var right = BindExpression(syntax.Right, context);
+        var operation = syntax.Op.Kind.ToBinaryOperation();
+        var conversion = ConversionClassifier.ClassifyBinaryOperand(
+            operation,
+            left.Type,
+            right.Type
+        );
+        if (conversion is var (leftConversion, rightConversion, commonType))
+        {
+            left = AddConversionIfNecessary(left, commonType, leftConversion, context);
+            right = AddConversionIfNecessary(right, commonType, rightConversion, context);
+        }
+        else
+        {
+            context.ReportDiagnostic(
+                Diagnostic.BinaryOperatorUndefined(
+                    syntax.Location,
+                    left.Type.ToDisplayString(),
+                    right.Type.ToDisplayString()
+                )
+            );
+        }
+
+        return new BoundBinaryOperation(
+            syntax,
+            conversion?.Type ?? ErrorTypeSymbol.Unnamed,
+            left,
+            right,
+            operation
+        );
     }
 
-    private BoundExpression BindAssignmentExpression(
+    private BoundAssignmentOperation BindAssignmentExpression(
         AssignmentExpressionSyntax syntax,
         TypeSymbol? returnType,
         LookupContext context
     )
     {
-        throw new NotImplementedException();
+        var assignee = BindExpression(syntax.Left, context);
+        var operation = syntax.Op.Kind.ToAssignmentOperation();
+        if (!IsAssignmentValid(assignee.Type, operation))
+        {
+            context.ReportDiagnostic(
+                Diagnostic.NoCompoundAssignmentOperator(
+                    syntax.Location,
+                    assignee.Type.ToDisplayString()
+                )
+            );
+        }
+        else if (!assignee.IsAssignable)
+        {
+            context.ReportDiagnostic(Diagnostic.CannotAssignExpression(syntax.Location));
+        }
+
+        var assigned = BindExpression(syntax.Right, context);
+        return new BoundAssignmentOperation(
+            syntax,
+            Compilation.GetSpecialType(SpecialType.Void),
+            assignee,
+            assigned,
+            operation
+        );
     }
 
     private BoundExpression BindPrefixExpression(
@@ -617,25 +721,94 @@ internal abstract class Binder
         LookupContext context
     )
     {
-        throw new NotImplementedException();
+        var op = syntax.Op.Kind.ToPrefixOperation();
+
+        if (op == UnaryOperation.Negation)
+        {
+            if (syntax.Operand is LiteralExpressionSyntax literal)
+            {
+                if (
+                    literal.Value.TryGetValue<IntegerLiteralData>() is
+                    { Suffix.CanBeSigned: true } intData
+                )
+                {
+                    var negated = EvaluateNumericExpression(
+                        in intData,
+                        returnType,
+                        syntax.Location,
+                        context,
+                        true
+                    );
+                    return new BoundLiteral(
+                        syntax,
+                        Compilation.GetSpecialType(negated.SpecialType),
+                        negated
+                    );
+                }
+
+                if (literal.Value.TryGetValue<FloatLiteralData>() is { } floatData)
+                {
+                    var negated = EvaluateNumericExpression(
+                        in floatData,
+                        returnType,
+                        syntax.Location,
+                        context,
+                        true
+                    );
+                    return new BoundLiteral(
+                        syntax,
+                        Compilation.GetSpecialType(negated.SpecialType),
+                        negated
+                    );
+                }
+            }
+        }
+
+        var operand = BindExpression(syntax.Operand, returnType, context);
+        return CreateUnaryOperation(syntax, op, operand, context);
     }
 
-    private BoundExpression BindPostfixExpression(
+    private BoundUnaryOperation BindPostfixExpression(
         PostfixExpressionSyntax syntax,
         TypeSymbol? returnType,
         LookupContext context
     )
     {
-        throw new NotImplementedException();
+        var operand = BindExpression(syntax.Operand, returnType, context);
+        var op = syntax.Op.Kind.ToPostfixOperation();
+        return CreateUnaryOperation(syntax, op, operand, context);
     }
 
-    private BoundExpression BindTernaryExpression(
+    private BoundConditional BindTernaryExpression(
         TernaryExpressionSyntax syntax,
         TypeSymbol? returnType,
         LookupContext context
     )
     {
-        throw new NotImplementedException();
+        var condition = AddConversionIfNecessary(
+            BindExpression(syntax.Condition, context),
+            Compilation.GetSpecialType(SpecialType.Bool),
+            context
+        );
+
+        var whenTrue = BindExpression(syntax.WhenTrue, context);
+        var whenFalse = BindExpression(syntax.WhenFalse, context);
+        if (returnType is not null)
+        {
+            whenTrue = AddConversionIfNecessary(whenTrue, returnType, context);
+            whenFalse = AddConversionIfNecessary(whenFalse, returnType, context);
+        }
+        else
+        {
+            whenFalse = AddConversionIfNecessary(
+                whenFalse,
+                Compilation.GetSpecialType(SpecialType.Void),
+                context
+            );
+            returnType = whenTrue.Type;
+        }
+
+        return new BoundConditional(syntax, returnType, condition, whenTrue, whenFalse);
     }
 
     private BoundExpression BindInvocationExpression(
@@ -644,7 +817,37 @@ internal abstract class Binder
         LookupContext context
     )
     {
-        throw new NotImplementedException();
+        var arguments = new BoundExpression[syntax.Arguments.Arguments.Count];
+        foreach (var (i, argumentSyntax) in syntax.Arguments.Arguments.AsValueEnumerable().Index())
+        {
+            arguments[i] = BindExpression(argumentSyntax.Value, context);
+        }
+
+        if (syntax.Callee is IdentifierExpressionSyntax nameSyntax)
+        {
+            var overloads = LookupFromSyntax(nameSyntax.Value, LookupOptions.Callable, context);
+            if (overloads.IsViable)
+            {
+                var overload = ResolveOverload(
+                    overloads,
+                    arguments,
+                    syntax.Callee.Location,
+                    context
+                );
+                return new BoundInvocation(
+                    syntax,
+                    overload,
+                    ImmutableCollectionsMarshal.AsImmutableArray(arguments)
+                );
+            }
+        }
+
+        var callee = BindExpression(syntax.Callee, context);
+
+        context.ReportDiagnostic(
+            Diagnostic.NoCallOperatorDefined(syntax.Callee.Location, callee.Type.ToDisplayString())
+        );
+        return new BoundInvocation(syntax, ErrorFunctionSymbol.Unnamed, [callee, .. arguments]);
     }
 
     private BoundExpression BindCastExpression(
@@ -653,7 +856,9 @@ internal abstract class Binder
         LookupContext context
     )
     {
-        throw new NotImplementedException();
+        var operand = BindExpression(syntax.Operand, context);
+        var targetType = ResolveType(syntax.Type, context);
+        return AddConversionIfNecessary(operand, targetType, context, isExplicit: true);
     }
 
     private BoundExpression AddConversionIfNecessary(
@@ -746,24 +951,277 @@ internal abstract class Binder
     }
 
     private ConstantValue EvaluateNumericExpression(
-        IntegerLiteralData data,
+        in IntegerLiteralData data,
         TypeSymbol? returnType,
         Location location,
         LookupContext context,
         bool isNegative = false
     )
     {
-        throw new NotImplementedException();
+        var targetType = GetIntegerTargetKind(in data, returnType);
+        if (!data.Value.FitsIn(targetType, Compilation.Settings))
+        {
+            context.ReportDiagnostic(Diagnostic.LiteralValueTooBig(location));
+        }
+
+        switch (targetType)
+        {
+            case IntegerTargetKind.I8:
+                return ConstantValue.I8((sbyte)MaybeNegative(data.Value, isNegative));
+            case IntegerTargetKind.I16:
+                return ConstantValue.I16((short)MaybeNegative(data.Value, isNegative));
+            case IntegerTargetKind.I32:
+                return ConstantValue.I32((int)MaybeNegative(data.Value, isNegative));
+            case IntegerTargetKind.I64:
+                return ConstantValue.I64((long)MaybeNegative(data.Value, isNegative));
+            case IntegerTargetKind.I128:
+                return ConstantValue.I128((Int128)MaybeNegative(data.Value, isNegative));
+            case IntegerTargetKind.ISize:
+                return ConstantValue.ISize((long)MaybeNegative(data.Value, isNegative));
+            case IntegerTargetKind.U8:
+                ThrowIfNegative(isNegative);
+                return ConstantValue.U8((byte)MaybeNegative(data.Value, isNegative));
+            case IntegerTargetKind.U16:
+                ThrowIfNegative(isNegative);
+                return ConstantValue.U16((ushort)MaybeNegative(data.Value, isNegative));
+            case IntegerTargetKind.U32:
+                ThrowIfNegative(isNegative);
+                return ConstantValue.U32((uint)MaybeNegative(data.Value, isNegative));
+            case IntegerTargetKind.U64:
+                ThrowIfNegative(isNegative);
+                return ConstantValue.U64((ulong)MaybeNegative(data.Value, isNegative));
+            case IntegerTargetKind.U128:
+                ThrowIfNegative(isNegative);
+                return ConstantValue.U128((UInt128)MaybeNegative(data.Value, isNegative));
+            case IntegerTargetKind.USize:
+                ThrowIfNegative(isNegative);
+                return ConstantValue.USize((ulong)MaybeNegative(data.Value, isNegative));
+            case IntegerTargetKind.F32:
+                return ConstantValue.F32((float)MaybeNegative(data.Value, isNegative));
+            case IntegerTargetKind.F64:
+                return ConstantValue.F64((double)MaybeNegative(data.Value, isNegative));
+            case IntegerTargetKind.BestFit:
+            {
+                var value = MaybeNegative(data.Value, isNegative);
+                if (value.FitsIn<int>())
+                    return ConstantValue.I32((int)value);
+
+                if (value.FitsIn<uint>())
+                    return ConstantValue.U32((uint)value);
+
+                if (value.FitsIn<long>())
+                    return ConstantValue.I64((long)value);
+
+                if (value.FitsIn<ulong>())
+                    return ConstantValue.U64((ulong)value);
+
+                return value.FitsIn<Int128>()
+                    ? ConstantValue.I128((Int128)value)
+                    : ConstantValue.U128((UInt128)value);
+            }
+            default:
+                throw new InvalidOperationException("Invalid target type");
+        }
     }
 
-    private ConstantValue EvaluateNumericExpression(
-        FloatLiteralData data,
+    private static ConstantValue EvaluateNumericExpression(
+        in FloatLiteralData data,
         TypeSymbol? returnType,
         Location location,
         LookupContext context,
         bool isNegative = false
     )
     {
-        throw new NotImplementedException();
+        var target = data.Suffix switch
+        {
+            FloatSuffix.None => returnType?.SpecialType ?? SpecialType.F64,
+            FloatSuffix.F32 => SpecialType.F32,
+            FloatSuffix.F64 => SpecialType.F64,
+            _ => throw new ArgumentOutOfRangeException(nameof(data), data.Suffix, null),
+        };
+
+        switch (target)
+        {
+            case SpecialType.F32:
+                if (float.FitsInFiniteFloatMagnitude(data.Significand, data.Exponent10))
+                {
+                    context.ReportDiagnostic(Diagnostic.LiteralValueTooBig(location));
+                }
+
+                return ConstantValue.F32(
+                    float.ParseDecimalFloat(data.Significand, data.Exponent10, isNegative)
+                );
+            case SpecialType.F64:
+                if (double.FitsInFiniteFloatMagnitude(data.Significand, data.Exponent10))
+                {
+                    context.ReportDiagnostic(Diagnostic.LiteralValueTooBig(location));
+                }
+
+                return ConstantValue.F64(
+                    double.ParseDecimalFloat(data.Significand, data.Exponent10, isNegative)
+                );
+            default:
+                throw new InvalidOperationException("Invalid target type");
+        }
+    }
+
+    private static void ThrowIfNegative(bool isNegative)
+    {
+        if (isNegative)
+            throw new InvalidOperationException("Invalid unary operation");
+    }
+
+    private static BigInteger MaybeNegative(BigInteger value, bool isNegative)
+    {
+        return isNegative ? -value : value;
+    }
+
+    private BoundUnaryOperation CreateUnaryOperation(
+        ExpressionSyntax syntax,
+        UnaryOperation operation,
+        BoundExpression operand,
+        LookupContext context
+    )
+    {
+        var resultType = ConversionClassifier.ClassifyUnaryOperand(operation, operand.Type);
+        if (resultType is var (conversion, type))
+        {
+            operand = AddConversionIfNecessary(operand, type, conversion, context);
+        }
+        else
+        {
+            context.ReportDiagnostic(
+                Diagnostic.UnaryOperatorUndefined(syntax.Location, operand.Type.ToDisplayString())
+            );
+        }
+
+        if (operation.IsAssigning && !operand.IsAssignable)
+        {
+            context.ReportDiagnostic(Diagnostic.CannotAssignExpression(syntax.Location));
+        }
+
+        var finalType = resultType?.Type ?? ErrorTypeSymbol.Unnamed;
+        return new BoundUnaryOperation(syntax, finalType, operand, operation);
+    }
+
+    private static bool IsAssignmentValid(TypeSymbol type, AssignmentOperation operation)
+    {
+        return operation switch
+        {
+            AssignmentOperation.Simple => true,
+            AssignmentOperation.Addition
+            or AssignmentOperation.Subtraction
+            or AssignmentOperation.Multiplication
+            or AssignmentOperation.Division
+            or AssignmentOperation.Modulo => type.SpecialType.IsNumeric,
+            AssignmentOperation.BitwiseAnd
+            or AssignmentOperation.BitwiseOr
+            or AssignmentOperation.BitwiseXor
+            or AssignmentOperation.ShiftLeft
+            or AssignmentOperation.ShiftRight
+            or AssignmentOperation.UnsignedShiftRight => type.SpecialType.IsInteger,
+            AssignmentOperation.LogicalAnd or AssignmentOperation.LogicalOr => type.SpecialType
+                == SpecialType.Bool,
+            _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
+        };
+    }
+
+    private FunctionSymbol ResolveOverload(
+        LookupResult result,
+        BoundExpression[] arguments,
+        Location location,
+        LookupContext context
+    )
+    {
+        // TODO: We need to eventually actually resolve named/default parameters
+        Debug.Assert(result.IsViable);
+        if (result.Symbols.Length == 1)
+        {
+            var symbol = (FunctionSymbol)result.Symbol;
+            if (symbol.Parameters.Length != arguments.Length)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.NoOverloadMatchingArgCount(location, arguments.Length)
+                );
+                return symbol;
+            }
+
+            if (!TryMatchOverload(symbol, arguments, context))
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.NoOverloadForArgTypes(location, GetTypeNames(arguments))
+                );
+            }
+
+            return symbol;
+        }
+
+        var matchesArgSize = false;
+        foreach (var symbol in result.Symbols.AsValueEnumerable().Cast<FunctionSymbol>())
+        {
+            if (symbol.Parameters.Length == arguments.Length)
+            {
+                matchesArgSize = true;
+            }
+
+            if (!TryMatchOverload(symbol, arguments, context))
+                continue;
+
+            // TODO: We need to figure out disambiguating cases where we get multiple overloads via implicit conversions
+            return symbol;
+        }
+
+        if (matchesArgSize)
+        {
+            context.ReportDiagnostic(
+                Diagnostic.NoOverloadForArgTypes(location, GetTypeNames(arguments))
+            );
+        }
+        else
+        {
+            context.ReportDiagnostic(
+                Diagnostic.NoOverloadMatchingArgCount(location, arguments.Length)
+            );
+        }
+
+        return (FunctionSymbol)result.Symbols[0];
+    }
+
+    private bool TryMatchOverload(
+        FunctionSymbol overload,
+        BoundExpression[] arguments,
+        LookupContext context
+    )
+    {
+        Debug.Assert(overload.Parameters.Length == arguments.Length);
+        var conversions = new Conversion[overload.Parameters.Length];
+
+        var classifier = ConversionClassifier;
+        for (var i = 0; i < overload.Parameters.Length; i++)
+        {
+            var param = overload.Parameters[i];
+            var arg = arguments[i];
+            var conversion = classifier.ClassifyConversion(arg.Type, param.Type);
+            if (!conversion.IsImplicit)
+                return false;
+
+            conversions[i] = conversion;
+        }
+
+        for (var i = 0; i < overload.Parameters.Length; i++)
+        {
+            var param = overload.Parameters[i];
+            ref var arg = ref arguments[i];
+            var conversion = conversions[i];
+
+            arg = AddConversionIfNecessary(arg, param.Type, conversion, context);
+        }
+
+        return true;
+    }
+
+    private static string GetTypeNames(BoundExpression[] arguments)
+    {
+        return string.Join(", ", arguments.Select(a => a.Type.Name));
     }
 }

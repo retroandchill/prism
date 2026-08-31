@@ -1,9 +1,12 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Numerics;
 using Prism.Core.Compiling;
+using Prism.Core.Configuration;
 using Prism.Core.Diagnostics;
 using Prism.Core.Symbols;
 using Prism.Core.Syntax;
+using Prism.Core.Utils;
 
 namespace Prism.Core.Binding;
 
@@ -215,6 +218,43 @@ internal static class BindingHelpers
             IntegerSuffix.U128 => IntegerTargetKind.U128,
             IntegerSuffix.USize => IntegerTargetKind.USize,
             _ => throw new ArgumentException("Invalid integer suffix", nameof(literal)),
+        };
+    }
+
+    public static bool FitsIn(
+        this BigInteger value,
+        IntegerTargetKind kind,
+        CompilationSettings settings
+    )
+    {
+        return kind switch
+        {
+            IntegerTargetKind.I8 => value.FitsIn<sbyte>(),
+            IntegerTargetKind.I16 => value.FitsIn<short>(),
+            IntegerTargetKind.I32 => value.FitsIn<int>(),
+            IntegerTargetKind.I64 => value.FitsIn<long>(),
+            IntegerTargetKind.I128 => value.FitsIn<Int128>(),
+            IntegerTargetKind.ISize => settings.PointerWidth switch
+            {
+                PointerWidth.X32 => value.FitsIn<int>(),
+                PointerWidth.X64 => value.FitsIn<long>(),
+                _ => throw new ArgumentException("Invalid pointer width", nameof(settings)),
+            },
+            IntegerTargetKind.U8 => value.FitsIn<byte>(),
+            IntegerTargetKind.U16 => value.FitsIn<ushort>(),
+            IntegerTargetKind.U32 => value.FitsIn<uint>(),
+            IntegerTargetKind.U64 => value.FitsIn<ulong>(),
+            IntegerTargetKind.U128 => value.FitsIn<UInt128>(),
+            IntegerTargetKind.USize => settings.PointerWidth switch
+            {
+                PointerWidth.X32 => value.FitsIn<uint>(),
+                PointerWidth.X64 => value.FitsIn<ulong>(),
+                _ => throw new ArgumentException("Invalid pointer width", nameof(settings)),
+            },
+            IntegerTargetKind.F32 => value.FitsIn<float>(),
+            IntegerTargetKind.F64 => value.FitsIn<double>(),
+            IntegerTargetKind.BestFit => value.FitsIn<UInt128>() || value.FitsIn<Int128>(),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
     }
 }

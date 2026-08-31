@@ -38,7 +38,7 @@ internal abstract class BoundExpression(ExpressionSyntax syntax, TypeSymbol type
     protected virtual ConstantValue? ComputeConstantValue() => null;
 }
 
-internal sealed class BoundBagExpression(ExpressionSyntax syntax, TypeSymbol type)
+internal sealed class BoundBadExpression(ExpressionSyntax syntax, TypeSymbol type)
     : BoundExpression(syntax, type);
 
 internal sealed class BoundLiteral(ExpressionSyntax syntax, TypeSymbol type, ConstantValue value)
@@ -122,10 +122,9 @@ internal sealed class BoundConditional(
 
 internal sealed class BoundInvocation(
     ExpressionSyntax syntax,
-    TypeSymbol type,
     FunctionSymbol function,
     ImmutableArray<BoundExpression> arguments
-) : BoundExpression(syntax, type)
+) : BoundExpression(syntax, function.ReturnType)
 {
     public FunctionSymbol Function { get; } = function;
 
