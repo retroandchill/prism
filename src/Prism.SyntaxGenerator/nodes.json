@@ -1,0 +1,2147 @@
+{
+  "$schema": "./schema.json",
+  "version": 1,
+  "trivia": [
+    {
+      "name": "WhitespaceTrivia"
+    },
+    {
+      "name": "NewLineTrivia"
+    },
+    {
+      "name": "LineCommentTrivia"
+    },
+    {
+      "name": "BlockCommentTrivia"
+    }
+  ],
+  "tokens": {
+    "keywords": [
+      {
+        "name": "NamespaceKeyword",
+        "text": "namespace"
+      },
+      {
+        "name": "UsingKeyword",
+        "text": "using"
+      },
+      {
+        "name": "VarKeyword",
+        "text": "var"
+      },
+      {
+        "name": "FuncKeyword",
+        "text": "func"
+      },
+      {
+        "name": "ExternKeyword",
+        "text": "extern"
+      },
+      {
+        "name": "ReturnKeyword",
+        "text": "return"
+      },
+      {
+        "name": "MutableKeyword",
+        "text": "mutable"
+      },
+      {
+        "name": "AsKeyword",
+        "text": "as"
+      },
+      {
+        "name": "IfKeyword",
+        "text": "if"
+      },
+      {
+        "name": "ElseKeyword",
+        "text": "else"
+      },
+      {
+        "name": "WhileKeyword",
+        "text": "while"
+      },
+      {
+        "name": "LoopKeyword",
+        "text": "loop"
+      },
+      {
+        "name": "ForKeyword",
+        "text": "for"
+      },
+      {
+        "name": "BreakKeyword",
+        "text": "break"
+      },
+      {
+        "name": "ContinueKeyword",
+        "text": "continue"
+      },
+      {
+        "name": "TrueKeyword",
+        "text": "true"
+      },
+      {
+        "name": "FalseKeyword",
+        "text": "false"
+      },
+      {
+        "name": "VoidKeyword",
+        "text": "void"
+      },
+      {
+        "name": "BoolKeyword",
+        "text": "bool"
+      },
+      {
+        "name": "I8Keyword",
+        "text": "i8"
+      },
+      {
+        "name": "I16Keyword",
+        "text": "i16"
+      },
+      {
+        "name": "I32Keyword",
+        "text": "i32"
+      },
+      {
+        "name": "I64Keyword",
+        "text": "i64"
+      },
+      {
+        "name": "I128Keyword",
+        "text": "i128"
+      },
+      {
+        "name": "U8Keyword",
+        "text": "u8"
+      },
+      {
+        "name": "U16Keyword",
+        "text": "u16"
+      },
+      {
+        "name": "U32Keyword",
+        "text": "u32"
+      },
+      {
+        "name": "U64Keyword",
+        "text": "u64"
+      },
+      {
+        "name": "U128Keyword",
+        "text": "u128"
+      },
+      {
+        "name": "IsizeKeyword",
+        "text": "isize"
+      },
+      {
+        "name": "UsizeKeyword",
+        "text": "usize"
+      },
+      {
+        "name": "F32Keyword",
+        "text": "f32"
+      },
+      {
+        "name": "F64Keyword",
+        "text": "f64"
+      },
+      {
+        "name": "CharKeyword",
+        "text": "char"
+      },
+      {
+        "name": "Char16Keyword",
+        "text": "char16"
+      },
+      {
+        "name": "RuneKeyword",
+        "text": "rune"
+      },
+      {
+        "name": "StrKeyword",
+        "text": "str"
+      }
+    ],
+    "punctuations": [
+      {
+        "name": "OpenBracketToken",
+        "text": "["
+      },
+      {
+        "name": "CloseBracketToken",
+        "text": "]"
+      },
+      {
+        "name": "OpenParenToken",
+        "text": "("
+      },
+      {
+        "name": "CloseParenToken",
+        "text": ")"
+      },
+      {
+        "name": "OpenBraceToken",
+        "text": "{"
+      },
+      {
+        "name": "CloseBraceToken",
+        "text": "}"
+      },
+      {
+        "name": "PeriodToken",
+        "text": "."
+      },
+      {
+        "name": "EllipsisToken",
+        "text": "..."
+      },
+      {
+        "name": "AmpToken",
+        "text": "&"
+      },
+      {
+        "name": "AmpAmpToken",
+        "text": "&&"
+      },
+      {
+        "name": "AmpEqualToken",
+        "text": "&="
+      },
+      {
+        "name": "AmpAmpEqualToken",
+        "text": "&&="
+      },
+      {
+        "name": "StarToken",
+        "text": "*"
+      },
+      {
+        "name": "StarEqualToken",
+        "text": "*="
+      },
+      {
+        "name": "PlusToken",
+        "text": "+"
+      },
+      {
+        "name": "PlusPlusToken",
+        "text": "++"
+      },
+      {
+        "name": "PlusEqualToken",
+        "text": "+="
+      },
+      {
+        "name": "MinusToken",
+        "text": "-"
+      },
+      {
+        "name": "MinusMinusToken",
+        "text": "--"
+      },
+      {
+        "name": "MinusEqualToken",
+        "text": "-="
+      },
+      {
+        "name": "TildeToken",
+        "text": "~"
+      },
+      {
+        "name": "BangToken",
+        "text": "!"
+      },
+      {
+        "name": "BangEqualToken",
+        "text": "!="
+      },
+      {
+        "name": "SlashToken",
+        "text": "/"
+      },
+      {
+        "name": "SlashEqualToken",
+        "text": "/="
+      },
+      {
+        "name": "PercentToken",
+        "text": "%"
+      },
+      {
+        "name": "PercentEqualToken",
+        "text": "%="
+      },
+      {
+        "name": "LessToken",
+        "text": "<"
+      },
+      {
+        "name": "LessLessToken",
+        "text": "<<"
+      },
+      {
+        "name": "LessEqualToken",
+        "text": "<="
+      },
+      {
+        "name": "LessLessEqualToken",
+        "text": "<<="
+      },
+      {
+        "name": "SpaceshipToken",
+        "text": "<=>"
+      },
+      {
+        "name": "GreaterToken",
+        "text": ">"
+      },
+      {
+        "name": "GreaterGreaterToken",
+        "text": ">>"
+      },
+      {
+        "name": "GreaterGreaterGreaterToken",
+        "text": ">>>"
+      },
+      {
+        "name": "GreaterEqualToken",
+        "text": ">="
+      },
+      {
+        "name": "GreaterGreaterEqualToken",
+        "text": ">>="
+      },
+      {
+        "name": "GreaterGreaterGreaterEqualToken",
+        "text": ">>>="
+      },
+      {
+        "name": "CaretToken",
+        "text": "^"
+      },
+      {
+        "name": "CaretEqualToken",
+        "text": "^="
+      },
+      {
+        "name": "PipeToken",
+        "text": "|"
+      },
+      {
+        "name": "PipePipeToken",
+        "text": "||"
+      },
+      {
+        "name": "PipeEqualToken",
+        "text": "|="
+      },
+      {
+        "name": "PipePipeEqualToken",
+        "text": "||="
+      },
+      {
+        "name": "QuestionToken",
+        "text": "?"
+      },
+      {
+        "name": "QuestionQuestionToken",
+        "text": "??"
+      },
+      {
+        "name": "QuestionQuestionEqualToken",
+        "text": "??="
+      },
+      {
+        "name": "QuestionPeriodToken",
+        "text": "?."
+      },
+      {
+        "name": "ColonToken",
+        "text": ":"
+      },
+      {
+        "name": "DoubleColonToken",
+        "text": "::"
+      },
+      {
+        "name": "SemicolonToken",
+        "text": ";"
+      },
+      {
+        "name": "EqualToken",
+        "text": "="
+      },
+      {
+        "name": "ArrowToken",
+        "text": "=>"
+      },
+      {
+        "name": "EqualEqualToken",
+        "text": "=="
+      },
+      {
+        "name": "CommaToken",
+        "text": ","
+      }
+    ],
+    "other": [
+      {
+        "name": "EofToken",
+        "displayName": "EOF"
+      },
+      {
+        "name": "BadToken",
+        "displayName": "<unrecognized>"
+      },
+      {
+        "name": "IdentifierToken"
+      },
+      {
+        "name": "IntegerLiteralToken"
+      },
+      {
+        "name": "FloatingPointLiteralToken"
+      },
+      {
+        "name": "CharacterLiteralToken"
+      },
+      {
+        "name": "StringLiteralToken"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "StructuredTrivia",
+      "kind": "StructuredTrivia",
+      "nodes": [
+        {
+          "name": "SkippedTokensTrivia",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "tokens",
+              "type": "Token",
+              "shape": "list"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TopLevel",
+      "nodes": [
+        {
+          "name": "CompilationUnit",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "usings",
+              "type": "UsingDirective",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "members",
+              "type": "Declaration",
+              "shape": "list"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Types",
+      "nodes": [
+        {
+          "name": "Type",
+          "properties": []
+        },
+        {
+          "name": "PredefinedType",
+          "base": "Type",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "VoidKeyword",
+                "BoolKeyword",
+                "I8Keyword",
+                "I16Keyword",
+                "I32Keyword",
+                "I64Keyword",
+                "I128Keyword",
+                "IsizeKeyword",
+                "U8Keyword",
+                "U16Keyword",
+                "U32Keyword",
+                "U64Keyword",
+                "U128Keyword",
+                "UsizeKeyword",
+                "F32Keyword",
+                "F64Keyword",
+                "CharKeyword",
+                "Char16Keyword",
+                "RuneKeyword",
+                "StrKeyword"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "NamedType",
+          "base": "Type",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "identifier",
+              "type": "Name",
+              "shape": "single"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Names",
+      "nodes": [
+        {
+          "name": "Name",
+          "properties": []
+        },
+        {
+          "name": "SimpleName",
+          "base": "Name",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "identifier",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "QualifiedName",
+          "base": "Name",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "left",
+              "type": "Name",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "separator",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "DoubleColonToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "right",
+              "type": "SimpleName",
+              "shape": "single"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Clauses",
+      "nodes": [
+        {
+          "name": "Initializer",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "equal_sign",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "EqualToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "value",
+              "type": "Expression",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "TypeSpecifier",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "colon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ColonToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "type",
+              "type": "Type",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "NamedParameter",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "name",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "colon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ColonToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ArgumentList",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "open_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "arguments",
+              "type": "Argument",
+              "shape": "separated_list",
+              "separators": [
+                "CommaToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "close_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseParenToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Argument",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "name",
+              "type": "NamedParameter",
+              "shape": "optional"
+            },
+            {
+              "$type": "item",
+              "name": "value",
+              "type": "Expression",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "ParameterList",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "open_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "parameters",
+              "type": "Parameter",
+              "shape": "separated_list",
+              "separators": [
+                "CommaToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "close_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseParenToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Parameter",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "mutable_keyword",
+              "type": "Token",
+              "shape": "optional",
+              "kinds": [
+                "MutableKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "name",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "type_specifier",
+              "type": "TypeSpecifier",
+              "shape": "optional"
+            },
+            {
+              "$type": "item",
+              "name": "default_value",
+              "type": "Initializer",
+              "shape": "optional"
+            }
+          ]
+        },
+        {
+          "name": "ExpressionBody",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "arrow",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ArrowToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "expression",
+              "type": "Expression",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "ElseClause",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "else_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ElseKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "statement",
+              "type": "Statement",
+              "shape": "single"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "expressions",
+      "nodes": [
+        {
+          "name": "Expression",
+          "properties": []
+        },
+        {
+          "name": "LiteralExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "value",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "TrueKeyword",
+                "FalseKeyword",
+                "NumericLiteralToken",
+                "CharacterLiteralToken",
+                "StringLiteralToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "IdentifierExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "value",
+              "type": "Name",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "ParenthesizedExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "open",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "expression",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "close",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseParenToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "BinaryExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "left",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "op",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "PlusToken",
+                "MinusToken",
+                "StarToken",
+                "SlashToken",
+                "PercentToken",
+                "LessLessToken",
+                "GreaterGreaterToken",
+                "GreaterGreaterGreaterToken",
+                "PipePipeToken",
+                "AmpAmpToken",
+                "PipeToken",
+                "AmpToken",
+                "CaretToken",
+                "EqualEqualToken",
+                "BangEqualToken",
+                "LessToken",
+                "LessEqualToken",
+                "GreaterToken",
+                "GreaterEqualToken",
+                "QuestionQuestionToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "right",
+              "type": "Expression",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "AssignmentExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "left",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "op",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "EqualToken",
+                "PlusEqualToken",
+                "MinusEqualToken",
+                "StarEqualToken",
+                "SlashEqualToken",
+                "PercentEqualToken",
+                "LessLessEqualToken",
+                "GreaterGreaterEqualToken",
+                "GreaterGreaterGreaterEqualToken",
+                "PipeEqualToken",
+                "AmpEqualToken",
+                "CaretEqualToken",
+                "PipePipeEqualToken",
+                "AmpAmpEqualToken",
+                "QuestionQuestionEqualToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "right",
+              "type": "Expression",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "PrefixExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "op",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "PlusToken",
+                "MinusToken",
+                "BangToken",
+                "TildeToken",
+                "PlusPlusToken",
+                "MinusMinusToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "operand",
+              "type": "Expression",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "PostfixExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "operand",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "op",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "PlusPlusToken",
+                "MinusMinusToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "TernaryExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "condition",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "question_mark",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "QuestionToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "when_true",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "colon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ColonToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "when_false",
+              "type": "Expression",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "InvocationExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "callee",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "arguments",
+              "type": "ArgumentList",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "CastExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "operand",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "as_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "AsKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "type",
+              "type": "Type",
+              "shape": "single"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "statements",
+      "nodes": [
+        {
+          "name": "Statement",
+          "properties": []
+        },
+        {
+          "name": "EmptyStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "semicolon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "SemicolonToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "VariableDeclarationStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "declaration",
+              "type": "VariableDeclaration",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "Block",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "open_brace",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenBraceToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "statements",
+              "type": "Statement",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "close_brace",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseBraceToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ReturnStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "return_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ReturnKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "expression",
+              "type": "Expression",
+              "shape": "optional"
+            },
+            {
+              "$type": "item",
+              "name": "semicolon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "SemicolonToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ExpressionStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "expression",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "semicolon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "SemicolonToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "IfStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "if_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IfKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "open_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "condition",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "close_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "block",
+              "type": "Block",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "else_clause",
+              "type": "ElseClause",
+              "shape": "optional"
+            }
+          ]
+        },
+        {
+          "name": "WhileStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "while_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "WhileKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "open_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "condition",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "close_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "block",
+              "type": "Block",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "LoopStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "loop_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "LoopKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "block",
+              "type": "Block",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "ForStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "for_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ForKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "open_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "declaration",
+              "type": "VariableDeclarationStatement",
+              "shape": "optional"
+            },
+            {
+              "$type": "item",
+              "name": "initializers",
+              "type": "Expression",
+              "shape": "separated_list",
+              "separators": [
+                "CommaToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "first_semicolon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "SemicolonToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "condition",
+              "type": "Expression",
+              "shape": "optional"
+            },
+            {
+              "$type": "item",
+              "name": "second_semicolon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "SemicolonToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "incrementors",
+              "type": "Expression",
+              "shape": "separated_list",
+              "separators": [
+                "CommaToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "close_paren",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseParenToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "block",
+              "type": "Block",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "BreakStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "BreakKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "semicolon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "SemicolonToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ContinueStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ContinueKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "semicolon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "SemicolonToken"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "declarations",
+      "nodes": [
+        {
+          "name": "Declaration",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "modifiers",
+              "type": "Token",
+              "shape": "list"
+            }
+          ]
+        },
+        {
+          "name": "IncompleteDeclaration",
+          "base": "Declaration",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "modifiers",
+              "type": "Token",
+              "shape": "list"
+            }
+          ]
+        },
+        {
+          "name": "NamespaceDeclaration",
+          "base": "Declaration",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "namespace_token",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "NamespaceKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "name",
+              "type": "Name",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "usings",
+              "type": "UsingDirective",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "members",
+              "type": "Declaration",
+              "shape": "list"
+            }
+          ]
+        },
+        {
+          "name": "BlockNamespaceDeclaration",
+          "base": "NamespaceDeclaration",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "modifiers",
+              "type": "Token",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "namespace_token",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "NamespaceKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "name",
+              "type": "Name",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "open_brace",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenBraceToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "usings",
+              "type": "UsingDirective",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "members",
+              "type": "Declaration",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "close_brace",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseBraceToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "FileScopedNamespaceDeclaration",
+          "base": "NamespaceDeclaration",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "modifiers",
+              "type": "Token",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "namespace_token",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "NamespaceKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "name",
+              "type": "Name",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "semicolon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "SemicolonToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "usings",
+              "type": "UsingDirective",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "members",
+              "type": "Declaration",
+              "shape": "list"
+            }
+          ]
+        },
+        {
+          "name": "VariableDeclaration",
+          "base": "Declaration",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "modifiers",
+              "type": "Token",
+              "shape": "list",
+              "kinds": [
+                "ExternKeyword",
+                "MutableKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "var_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "VarKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "identifier",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "type",
+              "type": "TypeSpecifier",
+              "shape": "optional"
+            },
+            {
+              "$type": "item",
+              "name": "initializer",
+              "type": "Initializer",
+              "shape": "optional"
+            },
+            {
+              "$type": "item",
+              "name": "semicolon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "SemicolonToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "FunctionDeclaration",
+          "base": "Declaration",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "modifiers",
+              "type": "Token",
+              "shape": "list",
+              "kinds": [
+                "ExternKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "func_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "FuncKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "identifier",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "parameters",
+              "type": "ParameterList",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "return_type",
+              "type": "TypeSpecifier",
+              "shape": "optional"
+            },
+            {
+              "$type": "choice",
+              "choices": [
+                {
+                  "$type": "item",
+                  "name": "body",
+                  "type": "Block",
+                  "shape": "single"
+                },
+                {
+                  "$type": "sequence",
+                  "elements": [
+                    {
+                      "$type": "item",
+                      "name": "expression_body",
+                      "type": "ExpressionBody",
+                      "shape": "single"
+                    },
+                    {
+                      "$type": "item",
+                      "name": "semicolon",
+                      "type": "Token",
+                      "shape": "single",
+                      "kinds": [
+                        "SemicolonToken"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "$type": "reference",
+                  "name": "semicolon"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "directives",
+      "nodes": [
+        {
+          "name": "UsingDirective",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "using_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "UsingKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "name",
+              "type": "Name",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "semicolon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "SemicolonToken"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "diagnostics": [
+    {
+      "name": "Syntax",
+      "diagnostics": [
+        {
+          "name": "UnexpectedToken",
+          "severity": "Error",
+          "format": "Unexpected token {Token}",
+          "args": [
+            {
+              "name": "Token",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "UnexpectedEOF",
+          "severity": "Error",
+          "format": "Unexpected end of file"
+        },
+        {
+          "name": "UnexpectedEscape",
+          "severity": "Error",
+          "format": "Unexpected escape sequence: '{Sequence}'",
+          "args": [
+            {
+              "name": "Sequence",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "UnterminatedStringLiteral",
+          "severity": "Error",
+          "format": "Unterminated string literal"
+        },
+        {
+          "name": "UnterminatedCharacterLiteral",
+          "severity": "Error",
+          "format": "Unterminated character literal"
+        },
+        {
+          "name": "UnterminatedBlockComment",
+          "severity": "Error",
+          "format": "Unterminated block comment"
+        }
+      ]
+    },
+    {
+      "name": "Semantic",
+      "diagnostics": [
+        {
+          "name": "UnresolvedSymbol",
+          "severity": "Error",
+          "format": "Unresolved symbol {Symbol}",
+          "args": [
+            {
+              "name": "Symbol",
+              "type": "Name"
+            }
+          ]
+        },
+        {
+          "name": "InvalidSymbol",
+          "severity": "Error",
+          "format": "Unexpected symbol {Symbol}, expected a {Expected}",
+          "args": [
+            {
+              "name": "Symbol",
+              "type": "Name"
+            },
+            {
+              "name": "Expected",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "ExpectedTypeSpecifier",
+          "severity": "Error",
+          "format": "Type specifier expected"
+        },
+        {
+          "name": "AmbiguousSymbol",
+          "severity": "Error",
+          "format": "Ambiguous symbol reference {Symbol}",
+          "args": [
+            {
+              "name": "Symbol",
+              "type": "Name"
+            }
+          ]
+        },
+        {
+          "name": "SymbolInaccessible",
+          "severity": "Error",
+          "format": "Symbol {Symbol} is inaccessible",
+          "args": [
+            {
+              "name": "Symbol",
+              "type": "Name"
+            }
+          ]
+        },
+        {
+          "name": "NoConversion",
+          "severity": "Error",
+          "format": "No conversion exists between type {FromType} and type {ToType}",
+          "args": [
+            {
+              "name": "FromType",
+              "type": "String"
+            },
+            {
+              "name": "ToType",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "ConversionIsExplicit",
+          "severity": "Error",
+          "format": "Conversion from {FromType} to type {ToType} is explicit",
+          "args": [
+            {
+              "name": "FromType",
+              "type": "String"
+            },
+            {
+              "name": "ToType",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "MultipleFileScopedNamespaces",
+          "severity": "Error",
+          "format": "Multiple file-scoped namespaces are not allowed"
+        },
+        {
+          "name": "FileScopedAndNormalNamespace",
+          "severity": "Error",
+          "format": "Cannot mix file-scoped and block-scoped namespaces"
+        },
+        {
+          "name": "FileScopedNamespaceNotBeforeAllMembers",
+          "severity": "Error",
+          "format": "File-scoped namespace must be declared before all other members"
+        },
+        {
+          "name": "BadModifiersOnNamespace",
+          "severity": "Error",
+          "format": "Namespaces cannot have modifiers"
+        },
+        {
+          "name": "LiteralValueTooBig",
+          "severity": "Error",
+          "format": "Literal value is too big for its type"
+        },
+        {
+          "name": "UnaryOperatorUndefined",
+          "severity": "Error",
+          "format": "Unary operator not defined for type {Type}",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "CannotAssignExpression",
+          "severity": "Error",
+          "format": "Cannot assign value to expression"
+        },
+        {
+          "name": "NoCompoundAssignmentOperator",
+          "severity": "Error",
+          "format": "No compound assignment operator defined for type {Type}",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "BinaryOperatorUndefined",
+          "severity": "Error",
+          "format": "Unary operator not defined for types {Type1} and {Type2}",
+          "args": [
+            {
+              "name": "Type1",
+              "type": "String"
+            },
+            {
+              "name": "Type2",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NoOverloadMatchingArgCount",
+          "severity": "Error",
+          "format": "No overload that accepts {ArgCount} arguments",
+          "args": [
+            {
+              "name": "ArgCount",
+              "type": "SizeT"
+            }
+          ]
+        },
+        {
+          "name": "NoOverloadForArgTypes",
+          "severity": "Error",
+          "format": "No overload for argument types {ArgTypes}",
+          "args": [
+            {
+              "name": "ArgTypes",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NoCallOperatorDefined",
+          "severity": "Error",
+          "format": "Type {Type} is not callable",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NoEntryPointDefined",
+          "severity": "Error",
+          "format": "No entry point defined"
+        },
+        {
+          "name": "AmbiguousEntryPoint",
+          "severity": "Error",
+          "format": "Ambiguous entry point, could be any of: {Names}",
+          "args": [
+            {
+              "name": "Names",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "InvalidEntryPointReturnType",
+          "severity": "Warning",
+          "format": "Return type {Type} will main function {Name} not usable as an entry point",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            },
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "InvalidEntryPointParameters",
+          "severity": "Warning",
+          "format": "Parameters ({Types}) will main function {Name} not usable as an entry point",
+          "args": [
+            {
+              "name": "Types",
+              "type": "String"
+            },
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "boundNodes": [
+    {
+      "name": "Node",
+      "hasModule": true,
+      "children": [
+        {
+          "name": "Statement",
+          "hasModule": true,
+          "children": [
+            {
+              "name": "Block"
+            },
+            {
+              "name": "VariableDeclaration"
+            },
+            {
+              "name": "ExpressionStatement"
+            },
+            {
+              "name": "ReturnStatement"
+            },
+            {
+              "name": "IfStatement"
+            },
+            {
+              "name": "WhileStatement"
+            },
+            {
+              "name": "LoopStatement"
+            },
+            {
+              "name": "ForStatement"
+            },
+            {
+              "name": "BreakStatement"
+            },
+            {
+              "name": "ContinueStatement"
+            }
+          ]
+        },
+        {
+          "name": "Expression",
+          "hasModule": true,
+          "children": [
+            {
+              "name": "BadExpression"
+            },
+            {
+              "name": "Literal"
+            },
+            {
+              "name": "VariableAccess"
+            },
+            {
+              "name": "ParameterAccess"
+            },
+            {
+              "name": "UnaryExpression"
+            },
+            {
+              "name": "BinaryExpression"
+            },
+            {
+              "name": "AssignmentExpression"
+            },
+            {
+              "name": "ConditionalExpression"
+            },
+            {
+              "name": "CallExpression"
+            },
+            {
+              "name": "ConversionExpression"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

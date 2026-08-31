@@ -1,0 +1,30 @@
+﻿// @file SyntaxTrivia.cs
+//
+// @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+using Prism.Core.Syntax.Green;
+using Prism.Core.Text;
+
+namespace Prism.Core.Syntax;
+
+public readonly struct SyntaxTrivia
+{
+    public SyntaxToken Parent { get; }
+    internal GreenNode Green { get; }
+    internal int Position { get; }
+
+    public SyntaxKind Kind => Green.Kind;
+    public TextSpan FullSpan => new(Position, Green.FullWidth);
+
+    public TextSpan Span => new(Position, Green.Width);
+
+    public bool ContainsDiagnostics => Green.ContainsDiagnostics;
+
+    internal SyntaxTrivia(in SyntaxToken parent, GreenNode green, int position)
+    {
+        Parent = parent;
+        Green = green;
+        Position = position;
+    }
+}

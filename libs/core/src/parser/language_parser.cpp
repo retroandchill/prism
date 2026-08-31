@@ -34,7 +34,6 @@ namespace prism
                                          SyntaxKind::f32_keyword,
                                          SyntaxKind::f64_keyword,
                                          SyntaxKind::char_keyword,
-                                         SyntaxKind::char_keyword,
                                          SyntaxKind::char16_keyword,
                                          SyntaxKind::rune_keyword,
                                          SyntaxKind::str_keyword>;
@@ -59,9 +58,7 @@ namespace prism
                                             SyntaxKind::bang_token,
                                             SyntaxKind::tilde_token,
                                             SyntaxKind::plus_plus_token,
-                                            SyntaxKind::minus_minus_token,
-                                            SyntaxKind::amp_token,
-                                            SyntaxKind::star_token>;
+                                            SyntaxKind::minus_minus_token>;
 
         using PostfixOperatorKinds = EnumSet<SyntaxKind, SyntaxKind::plus_plus_token, SyntaxKind::minus_minus_token>;
 
@@ -769,7 +766,6 @@ namespace prism
     Optional<GreenPtr<GreenNamedParameter>> LanguageParser::parse_named_parameter()
     {
         auto &next = peek_token();
-        GreenPtr<GreenNamedParameter> named_param = nullptr;
         if (next.kind() != SyntaxKind::identifier_token || peek_token(2).kind() != SyntaxKind::colon_token)
         {
             return std::nullopt;

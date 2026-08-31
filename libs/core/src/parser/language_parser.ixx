@@ -48,7 +48,6 @@ namespace prism
             auto mutable_copy = node->clone();
             mutable_copy->add_diagnostic(
                 SyntaxDiagnosticInfo{diagnostics::info::make_unexpected_token(list[0].to_string())});
-            ;
             add_trailing_skipped_syntax(*mutable_copy, list.node()->shared_from_this());
             return mutable_copy;
         }

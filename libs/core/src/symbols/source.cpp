@@ -411,7 +411,7 @@ namespace prism
                 DiagnosticBag diagnostics;
                 auto value = compute_constant_value(diagnostics);
                 add_declaration_diagnostics(diagnostics);
-                completion_state_.mark_part_complete(CompletionPart::type);
+                completion_state_.mark_part_complete(CompletionPart::constant_value);
                 return value;
             });
     }
@@ -508,7 +508,6 @@ namespace prism
         if (!syntax().initializer().has_value())
         {
             return std::nullopt;
-            ;
         }
 
         auto &semantic_model = declaring_compilation()->get_semantic_model(syntax().tree());
@@ -605,12 +604,6 @@ namespace prism
         if (filter.has_value() && !(*filter)(*this))
             return;
 
-        const auto wait_for_completion = [this]
-        {
-            constexpr auto all_parts = CompletionPart::function_all;
-            completion_state_.wait_part_complete(all_parts);
-        };
-
         while (true)
         {
             const auto incomplete_part = completion_state_.next_incomplete_part();
@@ -634,14 +627,12 @@ namespace prism
                 case CompletionPart::none:
                     return;
                 default:
-                    completion_state_.wait_part_complete(CompletionPart::function_all);
+                    completion_state_.mark_part_complete(CompletionPart::all & ~CompletionPart::function_all);
                     break;
             }
 
-            completion_state_.wait_part_complete(CompletionPart::function_all);
+            completion_state_.wait_part_complete(incomplete_part);
         }
-
-        wait_for_completion();
     }
 
     bool SourceFunctionSymbol::is_complete(const CompletionPart part) const noexcept
@@ -679,9 +670,7 @@ namespace prism
         {
             auto &semantic_model = declaring_compilation()->get_semantic_model(syntax_.tree());
             auto &binder = SemanticModelInternal::get_binder(semantic_model, syntax_);
-            auto &type = binder.resolve_type(syntax_.return_type()->type(), context);
-            completion_state_.mark_part_complete(CompletionPart::type);
-            return type;
+            return binder.resolve_type(syntax_.return_type()->type(), context);
         }
 
         // Omitting the return type just results in void
@@ -703,7 +692,6 @@ namespace prism
             parameters.emplace_back(lifetime.create<SourceParameterSymbol>(name, this, syntax));
         }
 
-        completion_state_.mark_part_complete(CompletionPart::parameters);
         return lifetime.copy_refs(parameters);
     }
 

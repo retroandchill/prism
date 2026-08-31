@@ -88,7 +88,7 @@ namespace prism
         }
         else if constexpr (std::same_as<T, GreenListNode>)
         {
-            for (auto i : std::views::iota(0uz, node->slot_count()) | std::views::reverse)
+            for (auto i : std::views::iota(0uz, node->slot_count()))
             {
                 if (auto copy = node->get_slot_unchecked(i).shared_from_this();
                     replace_first_token_core(copy, std::move(token)))
