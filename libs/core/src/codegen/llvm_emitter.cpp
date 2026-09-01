@@ -618,7 +618,7 @@ namespace prism
                 case ConstantValue::Kind::i64:
                     return llvm::ConstantInt::get(llvm::Type::getInt64Ty(context_), value.as_i64(), true);
                 case ConstantValue::Kind::i128:
-                    return llvm::ConstantInt::get(llvm::Type::getInt128Ty(context_), value.as_i64(), true);
+                    return llvm::ConstantInt::get(llvm::Type::getInt128Ty(context_), value.as_i128(), true);
                 case ConstantValue::Kind::isize:
                     switch (compilation_.target_settings().pointer_width)
                     {
@@ -788,7 +788,7 @@ namespace prism
             llvm::IRBuilder entry_builder{context_};
             entry_builder.SetInsertPoint(&entry, entry.begin());
 
-            return builder_.CreateAlloca(type, nullptr, name.as_string_view());
+            return entry_builder.CreateAlloca(type, nullptr, name.as_string_view());
         }
 
         llvm::Value *emit_expression(const BoundExpression &expression, FunctionEmissionContext &context)
