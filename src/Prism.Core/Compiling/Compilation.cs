@@ -126,7 +126,11 @@ public class Compilation
 
     public EmitResult Emit(string filepath)
     {
-        throw new NotImplementedException();
+        using var emitter = new LlvmCodeEmitter(
+            this,
+            new CodeGenOptions { OutputDirectory = filepath }
+        );
+        return emitter.Emit();
     }
 
     public FunctionSymbol? GetEntryPoint()

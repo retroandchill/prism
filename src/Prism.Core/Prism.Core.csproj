@@ -4,9 +4,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>14</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="LLVMSharp" />
     <PackageReference Include="NetEscapades.EnumGenerators" />
     <PackageReference Include="Nito.Collections.Deque" />
     <PackageReference Include="Riok.Mapperly" />
