@@ -37,6 +37,39 @@ func compound_assign(mutable a: i32, b: i32): i32 {
     return a;
 }
 
+func while_loop(a: i32): i32 {
+    mutable var i = 0;
+
+    while (i < a) {
+        i++;
+    }
+
+    return i;
+}
+
+func unconditional_loop(a: i32): i32 {
+    mutable var i = 0;
+
+    loop {
+        /*
+        // We need to apply control-flow analysis to this in order for it to not crash
+        if (i == a) {
+            break;
+        }
+        */
+
+        i++;
+    }
+
+    return i;
+}
+
+func for_loop(a: i32) {
+    for (mutable var i = 0; i < a; i++) {
+        // Do nothing
+    }
+}
+
 func main(): i32 {
     return add(1, 4);
 }

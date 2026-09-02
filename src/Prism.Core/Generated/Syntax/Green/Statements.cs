@@ -1105,17 +1105,21 @@ internal sealed class GreenForStatement : GreenStatement
 
 internal sealed class GreenBreakStatement : GreenStatement
 {
-    public GreenBreakStatement(GreenToken keyword, GreenToken semicolon)
+    public GreenBreakStatement(GreenToken keyword, GreenToken? label, GreenToken semicolon)
         : base(SyntaxKind.BreakStatement)
     {
-        SlotCount = 2;
+        SlotCount = 3;
         Keyword = keyword;
         AdjustFlagsAndWidth(Keyword);
+        Label = label;
+        if (Label is not null)
+            AdjustFlagsAndWidth(Label);
         Semicolon = semicolon;
         AdjustFlagsAndWidth(Semicolon);
     }
 
     public GreenToken Keyword { get; }
+    public GreenToken? Label { get; }
     public GreenToken Semicolon { get; }
 
     public override GreenNode? GetSlot(int index)
@@ -1123,7 +1127,8 @@ internal sealed class GreenBreakStatement : GreenStatement
         return index switch
         {
             0 => Keyword,
-            1 => Semicolon,
+            1 => Label,
+            2 => Semicolon,
             _ => null,
         };
     }
@@ -1138,7 +1143,15 @@ internal sealed class GreenBreakStatement : GreenStatement
         if (Keyword == keyword)
             return this;
 
-        return new GreenBreakStatement(keyword, Semicolon) { Diagnostics = Diagnostics };
+        return new GreenBreakStatement(keyword, Label, Semicolon) { Diagnostics = Diagnostics };
+    }
+
+    public GreenBreakStatement WithLabel(GreenToken? label)
+    {
+        if (Label == label)
+            return this;
+
+        return new GreenBreakStatement(Keyword, label, Semicolon) { Diagnostics = Diagnostics };
     }
 
     public GreenBreakStatement WithSemicolon(GreenToken semicolon)
@@ -1146,7 +1159,7 @@ internal sealed class GreenBreakStatement : GreenStatement
         if (Semicolon == semicolon)
             return this;
 
-        return new GreenBreakStatement(Keyword, semicolon) { Diagnostics = Diagnostics };
+        return new GreenBreakStatement(Keyword, Label, semicolon) { Diagnostics = Diagnostics };
     }
 
     public override GreenBreakStatement WithDiagnostics(
@@ -1156,33 +1169,37 @@ internal sealed class GreenBreakStatement : GreenStatement
         if (Diagnostics == diagnostics)
             return this;
 
-        return new GreenBreakStatement(Keyword, Semicolon) { Diagnostics = diagnostics };
+        return new GreenBreakStatement(Keyword, Label, Semicolon) { Diagnostics = diagnostics };
     }
 
-    public GreenBreakStatement Update(GreenToken keyword, GreenToken semicolon)
+    public GreenBreakStatement Update(GreenToken keyword, GreenToken? label, GreenToken semicolon)
     {
-        if (Keyword == keyword && Semicolon == semicolon)
+        if (Keyword == keyword && Label == label && Semicolon == semicolon)
         {
             return this;
         }
 
-        return new GreenBreakStatement(keyword, semicolon) { Diagnostics = Diagnostics };
+        return new GreenBreakStatement(keyword, label, semicolon) { Diagnostics = Diagnostics };
     }
 }
 
 internal sealed class GreenContinueStatement : GreenStatement
 {
-    public GreenContinueStatement(GreenToken keyword, GreenToken semicolon)
+    public GreenContinueStatement(GreenToken keyword, GreenToken? label, GreenToken semicolon)
         : base(SyntaxKind.ContinueStatement)
     {
-        SlotCount = 2;
+        SlotCount = 3;
         Keyword = keyword;
         AdjustFlagsAndWidth(Keyword);
+        Label = label;
+        if (Label is not null)
+            AdjustFlagsAndWidth(Label);
         Semicolon = semicolon;
         AdjustFlagsAndWidth(Semicolon);
     }
 
     public GreenToken Keyword { get; }
+    public GreenToken? Label { get; }
     public GreenToken Semicolon { get; }
 
     public override GreenNode? GetSlot(int index)
@@ -1190,7 +1207,8 @@ internal sealed class GreenContinueStatement : GreenStatement
         return index switch
         {
             0 => Keyword,
-            1 => Semicolon,
+            1 => Label,
+            2 => Semicolon,
             _ => null,
         };
     }
@@ -1205,7 +1223,15 @@ internal sealed class GreenContinueStatement : GreenStatement
         if (Keyword == keyword)
             return this;
 
-        return new GreenContinueStatement(keyword, Semicolon) { Diagnostics = Diagnostics };
+        return new GreenContinueStatement(keyword, Label, Semicolon) { Diagnostics = Diagnostics };
+    }
+
+    public GreenContinueStatement WithLabel(GreenToken? label)
+    {
+        if (Label == label)
+            return this;
+
+        return new GreenContinueStatement(Keyword, label, Semicolon) { Diagnostics = Diagnostics };
     }
 
     public GreenContinueStatement WithSemicolon(GreenToken semicolon)
@@ -1213,7 +1239,7 @@ internal sealed class GreenContinueStatement : GreenStatement
         if (Semicolon == semicolon)
             return this;
 
-        return new GreenContinueStatement(Keyword, semicolon) { Diagnostics = Diagnostics };
+        return new GreenContinueStatement(Keyword, Label, semicolon) { Diagnostics = Diagnostics };
     }
 
     public override GreenContinueStatement WithDiagnostics(
@@ -1223,16 +1249,118 @@ internal sealed class GreenContinueStatement : GreenStatement
         if (Diagnostics == diagnostics)
             return this;
 
-        return new GreenContinueStatement(Keyword, Semicolon) { Diagnostics = diagnostics };
+        return new GreenContinueStatement(Keyword, Label, Semicolon) { Diagnostics = diagnostics };
     }
 
-    public GreenContinueStatement Update(GreenToken keyword, GreenToken semicolon)
+    public GreenContinueStatement Update(
+        GreenToken keyword,
+        GreenToken? label,
+        GreenToken semicolon
+    )
     {
-        if (Keyword == keyword && Semicolon == semicolon)
+        if (Keyword == keyword && Label == label && Semicolon == semicolon)
         {
             return this;
         }
 
-        return new GreenContinueStatement(keyword, semicolon) { Diagnostics = Diagnostics };
+        return new GreenContinueStatement(keyword, label, semicolon) { Diagnostics = Diagnostics };
+    }
+}
+
+internal sealed class GreenLabeledStatement : GreenStatement
+{
+    public GreenLabeledStatement(GreenToken identifier, GreenToken colon, GreenStatement statement)
+        : base(SyntaxKind.LabeledStatement)
+    {
+        SlotCount = 3;
+        Identifier = identifier;
+        AdjustFlagsAndWidth(Identifier);
+        Colon = colon;
+        AdjustFlagsAndWidth(Colon);
+        Statement = statement;
+        AdjustFlagsAndWidth(Statement);
+    }
+
+    public GreenToken Identifier { get; }
+    public GreenToken Colon { get; }
+    public GreenStatement Statement { get; }
+
+    public override GreenNode? GetSlot(int index)
+    {
+        return index switch
+        {
+            0 => Identifier,
+            1 => Colon,
+            2 => Statement,
+            _ => null,
+        };
+    }
+
+    public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
+    {
+        return new LabeledStatementSyntax(this, parent, position);
+    }
+
+    public GreenLabeledStatement WithIdentifier(GreenToken identifier)
+    {
+        if (Identifier == identifier)
+            return this;
+
+        return new GreenLabeledStatement(identifier, Colon, Statement)
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public GreenLabeledStatement WithColon(GreenToken colon)
+    {
+        if (Colon == colon)
+            return this;
+
+        return new GreenLabeledStatement(Identifier, colon, Statement)
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public GreenLabeledStatement WithStatement(GreenStatement statement)
+    {
+        if (Statement == statement)
+            return this;
+
+        return new GreenLabeledStatement(Identifier, Colon, statement)
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public override GreenLabeledStatement WithDiagnostics(
+        ImmutableArray<SyntaxDiagnosticInfo> diagnostics
+    )
+    {
+        if (Diagnostics == diagnostics)
+            return this;
+
+        return new GreenLabeledStatement(Identifier, Colon, Statement)
+        {
+            Diagnostics = diagnostics,
+        };
+    }
+
+    public GreenLabeledStatement Update(
+        GreenToken identifier,
+        GreenToken colon,
+        GreenStatement statement
+    )
+    {
+        if (Identifier == identifier && Colon == colon && Statement == statement)
+        {
+            return this;
+        }
+
+        return new GreenLabeledStatement(identifier, colon, statement)
+        {
+            Diagnostics = Diagnostics,
+        };
     }
 }

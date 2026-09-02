@@ -34,4 +34,6 @@ internal sealed class TerminalBinder(Compilation compilation) : Binder(compilati
     {
         return LookupResult.NotFound();
     }
+
+    public override LabelSymbol? LookupLoopLabel(string name, LookupContext context) => null;
 }

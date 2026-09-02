@@ -180,6 +180,7 @@ public enum SyntaxKind : ushort
     ForStatement = 7008,
     BreakStatement = 7009,
     ContinueStatement = 7010,
+    LabeledStatement = 7011,
     #endregion
 
     #region Declarations
@@ -344,6 +345,7 @@ public static partial class SyntaxKindExtensions
                     SyntaxKind.ForStatement => "ForStatement",
                     SyntaxKind.BreakStatement => "BreakStatement",
                     SyntaxKind.ContinueStatement => "ContinueStatement",
+                    SyntaxKind.LabeledStatement => "LabeledStatement",
                     SyntaxKind.IncompleteDeclaration => "IncompleteDeclaration",
                     SyntaxKind.BlockNamespaceDeclaration => "BlockNamespaceDeclaration",
                     SyntaxKind.FileScopedNamespaceDeclaration => "FileScopedNamespaceDeclaration",
@@ -406,9 +408,9 @@ public static partial class SyntaxKindExtensions
         public bool IsExpression => (ushort)kind >= 6000 && (ushort)kind <= 6009;
 
         public static SyntaxKind StatementStart => (SyntaxKind)7000;
-        public static SyntaxKind StatementEnd => (SyntaxKind)7010;
+        public static SyntaxKind StatementEnd => (SyntaxKind)7011;
 
-        public bool IsStatement => (ushort)kind >= 7000 && (ushort)kind <= 7010;
+        public bool IsStatement => (ushort)kind >= 7000 && (ushort)kind <= 7011;
 
         public static SyntaxKind DeclarationStart => (SyntaxKind)8000;
         public static SyntaxKind DeclarationEnd => (SyntaxKind)8004;

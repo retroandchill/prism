@@ -397,6 +397,36 @@ public static class DiagnosticExtensions
                 name
             );
         }
+
+        internal static DiagnosticInfo InvalidUseOfLabel()
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.InvalidUseOfLabel);
+        }
+
+        internal static DiagnosticInfo InvalidUseOfLabel(DiagnosticSeverity severity)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.InvalidUseOfLabel, severity);
+        }
+
+        internal static DiagnosticInfo InvalidUseOfBreak()
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.InvalidUseOfBreak);
+        }
+
+        internal static DiagnosticInfo InvalidUseOfBreak(DiagnosticSeverity severity)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.InvalidUseOfBreak, severity);
+        }
+
+        internal static DiagnosticInfo InvalidUseOfContinue()
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.InvalidUseOfContinue);
+        }
+
+        internal static DiagnosticInfo InvalidUseOfContinue(DiagnosticSeverity severity)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.InvalidUseOfContinue, severity);
+        }
     }
 
     extension(Diagnostic)
@@ -1796,6 +1826,117 @@ public static class DiagnosticExtensions
                 additionalLocations,
                 types,
                 name
+            );
+        }
+
+        public static Diagnostic InvalidUseOfLabel(Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.InvalidUseOfLabel, location);
+        }
+
+        public static Diagnostic InvalidUseOfLabel(DiagnosticSeverity severity, Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.InvalidUseOfLabel, severity, location);
+        }
+
+        public static Diagnostic InvalidUseOfLabel(
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.InvalidUseOfLabel,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic InvalidUseOfLabel(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.InvalidUseOfLabel,
+                severity,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic InvalidUseOfBreak(Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.InvalidUseOfBreak, location);
+        }
+
+        public static Diagnostic InvalidUseOfBreak(DiagnosticSeverity severity, Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.InvalidUseOfBreak, severity, location);
+        }
+
+        public static Diagnostic InvalidUseOfBreak(
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.InvalidUseOfBreak,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic InvalidUseOfBreak(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.InvalidUseOfBreak,
+                severity,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic InvalidUseOfContinue(Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.InvalidUseOfContinue, location);
+        }
+
+        public static Diagnostic InvalidUseOfContinue(
+            DiagnosticSeverity severity,
+            Location location
+        )
+        {
+            return new Diagnostic(DiagnosticDescriptors.InvalidUseOfContinue, severity, location);
+        }
+
+        public static Diagnostic InvalidUseOfContinue(
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.InvalidUseOfContinue,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic InvalidUseOfContinue(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.InvalidUseOfContinue,
+                severity,
+                location,
+                additionalLocations
             );
         }
     }

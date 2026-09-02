@@ -107,4 +107,10 @@ internal abstract class LocalScopeBinder(Binder next) : Binder(next)
             .ToImmutableArray();
         return MakeLookupResult(ImmutableArray<Symbol>.CastUp(found), LookupOptions.Value);
     }
+
+    public override LabelSymbol? LookupLoopLabel(string name, LookupContext context)
+    {
+        Debug.Assert(Next is not null);
+        return Next.LookupLoopLabel(name, context);
+    }
 }

@@ -1,4 +1,7 @@
 ﻿using System.Collections.Frozen;
+using Prism.Core.Symbols;
+using Prism.Core.Symbols.Source;
+using Prism.Core.Symbols.Synthesized;
 using Prism.Core.Syntax;
 
 namespace Prism.Core.Binding;
@@ -18,6 +21,8 @@ internal sealed class ExecutableCodeBinder(Binder next, SyntaxNode syntax) : Bin
     {
         return LookupResult.NotFound();
     }
+
+    public override LabelSymbol? LookupLoopLabel(string name, LookupContext context) => null;
 
     private FrozenDictionary<SyntaxNode, Binder> BinderMappings
     {
@@ -39,7 +44,7 @@ internal sealed class ExecutableCodeBinder(Binder next, SyntaxNode syntax) : Bin
     }
 
     // ReSharper disable TailRecursiveCall
-    private static void CollectScopes(
+    private void CollectScopes(
         SyntaxNode node,
         Binder enclosingBinder,
         Dictionary<SyntaxNode, Binder> mappings
@@ -71,21 +76,44 @@ internal sealed class ExecutableCodeBinder(Binder next, SyntaxNode syntax) : Bin
             }
             case WhileStatementSyntax whileStatement:
             {
-                CollectScopes(whileStatement.Block, enclosingBinder, mappings);
+                var label = CreateLabel(whileStatement);
+                var binder = new DefaultLoopBinder(enclosingBinder, label);
+                mappings.Add(whileStatement, binder);
+                CollectScopes(whileStatement.Block, binder, mappings);
                 break;
             }
             case LoopStatementSyntax loopStatement:
             {
-                CollectScopes(loopStatement.Block, enclosingBinder, mappings);
+                var label = CreateLabel(loopStatement);
+                var binder = new DefaultLoopBinder(enclosingBinder, label);
+                mappings.Add(loopStatement, binder);
+                CollectScopes(loopStatement.Block, binder, mappings);
                 break;
             }
             case ForStatementSyntax forStatement:
             {
-                var binder = new ForLoopBinder(enclosingBinder, forStatement);
-                CollectScopes(forStatement, binder, mappings);
+                var label = CreateLabel(forStatement);
+                var binder = new ForLoopBinder(enclosingBinder, forStatement, label);
+                mappings.Add(forStatement, binder);
+                CollectScopes(forStatement.Block, binder, mappings);
                 break;
             }
         }
     }
+
     // ReSharper restore TailRecursiveCall
+
+    private LabelSymbol CreateLabel(StatementSyntax statement)
+    {
+        if (ContainingSymbol is not FunctionSymbol function)
+        {
+            throw new InvalidOperationException(
+                "Cannot create a label for a statement outside of a function."
+            );
+        }
+
+        return statement.Parent is not LabeledStatementSyntax labeledStatement
+            ? new SynthesizedLabelSymbol(function)
+            : new SourceLabelSymbol(function, labeledStatement);
+    }
 }

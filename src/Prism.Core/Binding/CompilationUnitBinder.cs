@@ -41,4 +41,6 @@ internal sealed class CompilationUnitBinder(Binder next, CompilationUnitSyntax s
         );
         return _usingNamespaces;
     }
+
+    public override LabelSymbol? LookupLoopLabel(string name, LookupContext context) => null;
 }

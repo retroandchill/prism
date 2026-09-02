@@ -265,6 +265,33 @@ public static class DiagnosticDescriptors
         DefaultSeverity = DiagnosticSeverity.Warning,
     };
 
+    public static readonly DiagnosticDescriptor InvalidUseOfLabel = new()
+    {
+        Id = DiagnosticCode.InvalidUseOfLabel.ToStringFast(),
+        Title = "Invalid use of label",
+        MessageFormat = "Labels may only be used on loops",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
+    public static readonly DiagnosticDescriptor InvalidUseOfBreak = new()
+    {
+        Id = DiagnosticCode.InvalidUseOfBreak.ToStringFast(),
+        Title = "Invalid use of break",
+        MessageFormat = "Break may only be used inside loops",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
+    public static readonly DiagnosticDescriptor InvalidUseOfContinue = new()
+    {
+        Id = DiagnosticCode.InvalidUseOfContinue.ToStringFast(),
+        Title = "Invalid use of continue",
+        MessageFormat = "Continue may only be used inside loops",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
     public static DiagnosticDescriptor? Find(DiagnosticCode code)
     {
         return code switch
@@ -299,6 +326,9 @@ public static class DiagnosticDescriptors
             DiagnosticCode.AmbiguousEntryPoint => AmbiguousEntryPoint,
             DiagnosticCode.InvalidEntryPointReturnType => InvalidEntryPointReturnType,
             DiagnosticCode.InvalidEntryPointParameters => InvalidEntryPointParameters,
+            DiagnosticCode.InvalidUseOfLabel => InvalidUseOfLabel,
+            DiagnosticCode.InvalidUseOfBreak => InvalidUseOfBreak,
+            DiagnosticCode.InvalidUseOfContinue => InvalidUseOfContinue,
             _ => null,
         };
     }

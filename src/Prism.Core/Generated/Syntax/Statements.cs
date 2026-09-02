@@ -432,6 +432,14 @@ public sealed class BreakStatementSyntax : StatementSyntax
     {
         get { return new SyntaxToken(((GreenBreakStatement)Green).Keyword, this, Position); }
     }
+    public SyntaxToken? Label
+    {
+        get
+        {
+            var green = ((GreenBreakStatement)Green).Label;
+            return green is not null ? new SyntaxToken(green, this, GetSlotPosition(1)) : null;
+        }
+    }
     public SyntaxToken Semicolon
     {
         get
@@ -439,7 +447,7 @@ public sealed class BreakStatementSyntax : StatementSyntax
             return new SyntaxToken(
                 ((GreenBreakStatement)Green).Semicolon,
                 this,
-                GetSlotPosition(1)
+                GetSlotPosition(2)
             );
         }
     }
@@ -464,6 +472,14 @@ public sealed class ContinueStatementSyntax : StatementSyntax
     {
         get { return new SyntaxToken(((GreenContinueStatement)Green).Keyword, this, Position); }
     }
+    public SyntaxToken? Label
+    {
+        get
+        {
+            var green = ((GreenContinueStatement)Green).Label;
+            return green is not null ? new SyntaxToken(green, this, GetSlotPosition(1)) : null;
+        }
+    }
     public SyntaxToken Semicolon
     {
         get
@@ -471,7 +487,7 @@ public sealed class ContinueStatementSyntax : StatementSyntax
             return new SyntaxToken(
                 ((GreenContinueStatement)Green).Semicolon,
                 this,
-                GetSlotPosition(1)
+                GetSlotPosition(2)
             );
         }
     }
@@ -484,5 +500,38 @@ public sealed class ContinueStatementSyntax : StatementSyntax
     internal override SyntaxNode? GetCachedSlot(int index)
     {
         return null;
+    }
+};
+
+public sealed class LabeledStatementSyntax : StatementSyntax
+{
+    internal LabeledStatementSyntax(GreenLabeledStatement node, SyntaxNode? parent, int position)
+        : base(node, parent, position) { }
+
+    public SyntaxToken Identifier
+    {
+        get { return new SyntaxToken(((GreenLabeledStatement)Green).Identifier, this, Position); }
+    }
+    public SyntaxToken Colon
+    {
+        get
+        {
+            return new SyntaxToken(((GreenLabeledStatement)Green).Colon, this, GetSlotPosition(1));
+        }
+    }
+    private StatementSyntax? _statement;
+    public StatementSyntax Statement
+    {
+        get { return GetRed(ref _statement, 2); }
+    }
+
+    internal override SyntaxNode? GetNodeSlot(int index)
+    {
+        return index == 2 ? GetRed(ref _statement) : null;
+    }
+
+    internal override SyntaxNode? GetCachedSlot(int index)
+    {
+        return index == 2 ? _statement : null;
     }
 };

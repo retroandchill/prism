@@ -84,6 +84,7 @@ public static partial class TokenReplacer
                 continueStatement,
                 newToken
             ),
+            GreenLabeledStatement labeledStatement => ReplaceFirstToken(labeledStatement, newToken),
             GreenIncompleteDeclaration incompleteDeclaration => ReplaceFirstToken(
                 incompleteDeclaration,
                 newToken
@@ -217,6 +218,7 @@ public static partial class TokenReplacer
                 continueStatement,
                 newToken
             ),
+            GreenLabeledStatement labeledStatement => ReplaceFirstToken(labeledStatement, newToken),
             _ => throw new InvalidOperationException("Invalid node type passed into visit"),
         };
     }
@@ -1307,6 +1309,13 @@ public static partial class TokenReplacer
             return node.WithKeyword(newKeyword);
         }
 
+        var oldLabel = node.Label;
+        var newLabel = ReplaceFirstToken(oldLabel, newToken);
+        if (newLabel != oldLabel)
+        {
+            return node.WithLabel(newLabel);
+        }
+
         var oldSemicolon = node.Semicolon;
         var newSemicolon = ReplaceFirstToken(oldSemicolon, newToken);
         if (newSemicolon != oldSemicolon)
@@ -1333,11 +1342,51 @@ public static partial class TokenReplacer
             return node.WithKeyword(newKeyword);
         }
 
+        var oldLabel = node.Label;
+        var newLabel = ReplaceFirstToken(oldLabel, newToken);
+        if (newLabel != oldLabel)
+        {
+            return node.WithLabel(newLabel);
+        }
+
         var oldSemicolon = node.Semicolon;
         var newSemicolon = ReplaceFirstToken(oldSemicolon, newToken);
         if (newSemicolon != oldSemicolon)
         {
             return node.WithSemicolon(newSemicolon);
+        }
+
+        return node;
+    }
+
+    [return: NotNullIfNotNull(nameof(node))]
+    internal static GreenLabeledStatement? ReplaceFirstToken(
+        GreenLabeledStatement? node,
+        GreenToken newToken
+    )
+    {
+        if (node is null)
+            return null;
+
+        var oldIdentifier = node.Identifier;
+        var newIdentifier = ReplaceFirstToken(oldIdentifier, newToken);
+        if (newIdentifier != oldIdentifier)
+        {
+            return node.WithIdentifier(newIdentifier);
+        }
+
+        var oldColon = node.Colon;
+        var newColon = ReplaceFirstToken(oldColon, newToken);
+        if (newColon != oldColon)
+        {
+            return node.WithColon(newColon);
+        }
+
+        var oldStatement = node.Statement;
+        var newStatement = ReplaceFirstToken(oldStatement, newToken);
+        if (newStatement != oldStatement)
+        {
+            return node.WithStatement(newStatement);
         }
 
         return node;
@@ -1710,6 +1759,7 @@ public static partial class TokenReplacer
                 continueStatement,
                 newToken
             ),
+            GreenLabeledStatement labeledStatement => ReplaceLastToken(labeledStatement, newToken),
             GreenIncompleteDeclaration incompleteDeclaration => ReplaceLastToken(
                 incompleteDeclaration,
                 newToken
@@ -1843,6 +1893,7 @@ public static partial class TokenReplacer
                 continueStatement,
                 newToken
             ),
+            GreenLabeledStatement labeledStatement => ReplaceLastToken(labeledStatement, newToken),
             _ => throw new InvalidOperationException("Invalid node type passed into visit"),
         };
     }
@@ -2933,6 +2984,13 @@ public static partial class TokenReplacer
             return node.WithSemicolon(newSemicolon);
         }
 
+        var oldLabel = node.Label;
+        var newLabel = ReplaceLastToken(oldLabel, newToken);
+        if (newLabel != oldLabel)
+        {
+            return node.WithLabel(newLabel);
+        }
+
         var oldKeyword = node.Keyword;
         var newKeyword = ReplaceLastToken(oldKeyword, newToken);
         if (newKeyword != oldKeyword)
@@ -2959,11 +3017,51 @@ public static partial class TokenReplacer
             return node.WithSemicolon(newSemicolon);
         }
 
+        var oldLabel = node.Label;
+        var newLabel = ReplaceLastToken(oldLabel, newToken);
+        if (newLabel != oldLabel)
+        {
+            return node.WithLabel(newLabel);
+        }
+
         var oldKeyword = node.Keyword;
         var newKeyword = ReplaceLastToken(oldKeyword, newToken);
         if (newKeyword != oldKeyword)
         {
             return node.WithKeyword(newKeyword);
+        }
+
+        return node;
+    }
+
+    [return: NotNullIfNotNull(nameof(node))]
+    internal static GreenLabeledStatement? ReplaceLastToken(
+        GreenLabeledStatement? node,
+        GreenToken newToken
+    )
+    {
+        if (node is null)
+            return null;
+
+        var oldStatement = node.Statement;
+        var newStatement = ReplaceLastToken(oldStatement, newToken);
+        if (newStatement != oldStatement)
+        {
+            return node.WithStatement(newStatement);
+        }
+
+        var oldColon = node.Colon;
+        var newColon = ReplaceLastToken(oldColon, newToken);
+        if (newColon != oldColon)
+        {
+            return node.WithColon(newColon);
+        }
+
+        var oldIdentifier = node.Identifier;
+        var newIdentifier = ReplaceLastToken(oldIdentifier, newToken);
+        if (newIdentifier != oldIdentifier)
+        {
+            return node.WithIdentifier(newIdentifier);
         }
 
         return node;

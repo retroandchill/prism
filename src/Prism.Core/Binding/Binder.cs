@@ -242,6 +242,8 @@ internal abstract class Binder
         LookupContext context
     );
 
+    public abstract LabelSymbol? LookupLoopLabel(string name, LookupContext context);
+
     protected static LookupResult MakeLookupResult(
         ImmutableArray<Symbol> symbols,
         LookupOptions options
@@ -488,13 +490,16 @@ internal abstract class Binder
         LookupContext context
     )
     {
-        var condition = BindExpression(
+        var binder = GetRequiredBinder(syntax);
+        var condition = binder.BindExpression(
             syntax.Condition,
             Compilation.GetSpecialType(SpecialType.Bool),
             context
         );
-        var loopBody = BindBlock(syntax.Block, returnType, context);
-        return new BoundWhileStatement(syntax, condition, loopBody);
+        var loopBody = binder.BindBlock(syntax.Block, returnType, context);
+        var label = binder.LookupLoopLabel("", context);
+        Debug.Assert(label is not null);
+        return new BoundWhileStatement(syntax, condition, loopBody, label);
     }
 
     private BoundLoopStatement BindLoopStatement(
@@ -503,8 +508,11 @@ internal abstract class Binder
         LookupContext context
     )
     {
-        var loopBody = BindBlock(syntax.Block, returnType, context);
-        return new BoundLoopStatement(syntax, loopBody);
+        var binder = GetRequiredBinder(syntax);
+        var loopBody = binder.BindBlock(syntax.Block, returnType, context);
+        var label = binder.LookupLoopLabel("", context);
+        Debug.Assert(label is not null);
+        return new BoundLoopStatement(syntax, loopBody, label);
     }
 
     private BoundForStatement BindForStatement(
@@ -539,13 +547,16 @@ internal abstract class Binder
             .ToImmutableArray();
 
         var loopBody = binder.BindBlock(syntax.Block, returnType, context);
+        var label = binder.LookupLoopLabel("", context);
+        Debug.Assert(label is not null);
         return new BoundForStatement(
             syntax,
             variable,
             initializers,
             condition,
             incrementors,
-            loopBody
+            loopBody,
+            label
         );
     }
 
@@ -554,7 +565,16 @@ internal abstract class Binder
         LookupContext context
     )
     {
-        return new BoundBreakStatement(syntax);
+        var labelName = syntax.Label?.IdentifierName ?? "";
+        var label = LookupLoopLabel(labelName, context);
+        if (label is not null)
+            return new BoundBreakStatement(syntax, label);
+
+        context.ReportDiagnostic(Diagnostic.InvalidUseOfBreak(syntax.Location));
+        var enclosingFunction = ContainingSymbol as FunctionSymbol ?? ErrorFunctionSymbol.Unnamed;
+        label = new ErrorLabelSymbol(labelName, enclosingFunction);
+
+        return new BoundBreakStatement(syntax, label);
     }
 
     private BoundContinueStatement BindContinueStatement(
@@ -562,7 +582,35 @@ internal abstract class Binder
         LookupContext context
     )
     {
-        return new BoundContinueStatement(syntax);
+        var labelName = syntax.Label?.IdentifierName ?? "";
+        var label = LookupLoopLabel(labelName, context);
+        if (label is not null)
+            return new BoundContinueStatement(syntax, label);
+
+        context.ReportDiagnostic(Diagnostic.InvalidUseOfBreak(syntax.Location));
+        var enclosingFunction = ContainingSymbol as FunctionSymbol ?? ErrorFunctionSymbol.Unnamed;
+        label = new ErrorLabelSymbol(labelName, enclosingFunction);
+
+        return new BoundContinueStatement(syntax, label);
+    }
+
+    private BoundStatement BindLabelStatement(
+        LabeledStatementSyntax syntax,
+        TypeSymbol returnValue,
+        LookupContext context
+    )
+    {
+        if (
+            syntax.Statement
+            is not WhileStatementSyntax
+                or LoopStatementSyntax
+                or ForStatementSyntax
+        )
+        {
+            context.ReportDiagnostic(Diagnostic.InvalidUseOfLabel(syntax.Identifier.Location));
+        }
+
+        return BindStatement(syntax.Statement, returnValue, context);
     }
 
     public BoundExpression BindExpression(ExpressionSyntax syntax, LookupContext context)
@@ -586,11 +634,7 @@ internal abstract class Binder
                 context
             ),
             BinaryExpressionSyntax binary => BindBinaryExpression(binary, targetType, context),
-            AssignmentExpressionSyntax assignment => BindAssignmentExpression(
-                assignment,
-                targetType,
-                context
-            ),
+            AssignmentExpressionSyntax assignment => BindAssignmentExpression(assignment, context),
             PrefixExpressionSyntax prefix => BindPrefixExpression(prefix, targetType, context),
             PostfixExpressionSyntax postfix => BindPostfixExpression(postfix, targetType, context),
             TernaryExpressionSyntax ternary => BindTernaryExpression(ternary, targetType, context),
@@ -680,7 +724,6 @@ internal abstract class Binder
 
     private BoundAssignmentOperation BindAssignmentExpression(
         AssignmentExpressionSyntax syntax,
-        TypeSymbol? returnType,
         LookupContext context
     )
     {

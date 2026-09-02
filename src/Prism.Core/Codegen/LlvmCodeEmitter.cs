@@ -216,6 +216,11 @@ internal sealed class LlvmCodeEmitter : IDisposable
             }
         }
         EmitStatement(body, context);
+
+        if (symbol.ReturnsVoid)
+        {
+            _builder.BuildRetVoid();
+        }
     }
 
     private LLVMTypeRef GetOrCreateType(TypeSymbol symbol)
@@ -461,22 +466,97 @@ internal sealed class LlvmCodeEmitter : IDisposable
 
     private void EmitWhileStatement(BoundWhileStatement statement, FunctionEmissionContext context)
     {
-        throw new NotImplementedException();
+        var function = context.Function;
+        var loopHead = function.AppendBasicBlock("loop.head");
+        var loopBody = LLVMBasicBlockRef.CreateInContext(_context, "loop.body");
+        var loopTail = LLVMBasicBlockRef.CreateInContext(_context, "loop.tail");
+        context.PushScope();
+        context.BindLabel(statement.Label, loopTail, loopHead);
+
+        _builder.BuildBr(loopHead);
+        _builder.PositionAtEnd(loopHead);
+        var condition = ConvertByteBoolToI1IfNeeded(EmitExpression(statement.Condition, context));
+        _builder.BuildCondBr(condition, loopBody, loopTail);
+
+        function.AppendExistingBasicBlock(loopBody);
+        _builder.PositionAtEnd(loopBody);
+        EmitStatement(statement.Body, context);
+        _builder.BuildBr(loopHead);
+
+        function.AppendExistingBasicBlock(loopTail);
+        _builder.PositionAtEnd(loopTail);
+        context.PopScope();
     }
 
     private void EmitLoopStatement(BoundLoopStatement loop, FunctionEmissionContext context)
     {
-        throw new NotImplementedException();
+        context.PushScope();
+        var function = context.Function;
+        var loopHead = function.AppendBasicBlock("loop.head");
+        var loopTail = LLVMBasicBlockRef.CreateInContext(_context, "loop.tail");
+        context.BindLabel(loop.Label, loopTail, loopHead);
+
+        _builder.BuildBr(loopHead);
+        _builder.PositionAtEnd(loopHead);
+        EmitStatement(loop.Body, context);
+        _builder.BuildBr(loopHead);
+
+        function.AppendExistingBasicBlock(loopTail);
+        _builder.PositionAtEnd(loopTail);
+        context.PopScope();
     }
 
     private void EmitForLoop(BoundForStatement loop, FunctionEmissionContext context)
     {
-        throw new NotImplementedException();
+        context.PushScope();
+        if (loop.Variable is not null)
+        {
+            EmitLocal(loop.Variable, context);
+        }
+        foreach (var initializer in loop.Initializers)
+        {
+            EmitExpression(initializer, context);
+        }
+
+        var function = context.Function;
+        var loopHead = function.AppendBasicBlock("loop.head");
+        var loopBody = loop.Condition is not null
+            ? LLVMBasicBlockRef.CreateInContext(_context, "loop.body")
+            : (LLVMBasicBlockRef?)null;
+        var loopTail = LLVMBasicBlockRef.CreateInContext(_context, "loop.tail");
+        context.BindLabel(loop.Label, loopTail, loopHead);
+
+        _builder.BuildBr(loopHead);
+        _builder.PositionAtEnd(loopHead);
+        if (loopBody is not null)
+        {
+            Debug.Assert(loop.Condition is not null);
+            var condition = ConvertByteBoolToI1IfNeeded(EmitExpression(loop.Condition, context));
+            _builder.BuildCondBr(condition, loopBody.Value, loopTail);
+
+            function.AppendExistingBasicBlock(loopBody.Value);
+            _builder.PositionAtEnd(loopBody.Value);
+        }
+
+        EmitStatement(loop.Body, context);
+        foreach (var incrementor in loop.Incrementors)
+        {
+            EmitExpression(incrementor, context);
+        }
+
+        _builder.BuildBr(loopHead);
+
+        function.AppendExistingBasicBlock(loopTail);
+        _builder.PositionAtEnd(loopTail);
+        context.PopScope();
     }
 
     private void EmitBreakStatement(BoundBreakStatement statement, FunctionEmissionContext context)
     {
-        throw new NotImplementedException();
+        var (breakLabel, _) =
+            context.LookupLabels(statement.Label)
+            ?? throw new InvalidOperationException("This shouldn't happen");
+        _builder.BuildBr(breakLabel);
     }
 
     private void EmitContinueStatement(
@@ -484,7 +564,10 @@ internal sealed class LlvmCodeEmitter : IDisposable
         FunctionEmissionContext context
     )
     {
-        throw new NotImplementedException();
+        var (_, continueLabel) =
+            context.LookupLabels(statement.Label)
+            ?? throw new InvalidOperationException("This shouldn't happen");
+        _builder.BuildBr(continueLabel);
     }
 
     private LLVMValueRef CreateEntryAlloca(

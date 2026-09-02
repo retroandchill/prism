@@ -52,4 +52,6 @@ internal sealed class MemberContainerBinder(
             _ => [],
         };
     }
+
+    public override LabelSymbol? LookupLoopLabel(string name, LookupContext context) => null;
 }

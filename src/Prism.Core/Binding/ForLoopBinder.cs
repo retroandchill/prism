@@ -4,7 +4,8 @@ using Prism.Core.Syntax;
 
 namespace Prism.Core.Binding;
 
-internal sealed class ForLoopBinder(Binder next, ForStatementSyntax syntax) : LoopBinder(next)
+internal sealed class ForLoopBinder(Binder next, ForStatementSyntax syntax, LabelSymbol label)
+    : LoopBinder(next, label)
 {
     protected override ImmutableArray<VariableSymbol> BuildLocalVariables()
     {

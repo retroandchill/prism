@@ -32,4 +32,6 @@ internal sealed class FunctionSignatureBinder(
             LookupOptions.Value
         );
     }
+
+    public override LabelSymbol? LookupLoopLabel(string name, LookupContext context) => null;
 }

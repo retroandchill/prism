@@ -1410,6 +1410,15 @@
             },
             {
               "$type": "item",
+              "name": "label",
+              "type": "Token",
+              "shape": "optional",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            },
+            {
+              "$type": "item",
               "name": "semicolon",
               "type": "Token",
               "shape": "single",
@@ -1434,12 +1443,51 @@
             },
             {
               "$type": "item",
+              "name": "label",
+              "type": "Token",
+              "shape": "optional",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            },
+            {
+              "$type": "item",
               "name": "semicolon",
               "type": "Token",
               "shape": "single",
               "kinds": [
                 "SemicolonToken"
               ]
+            }
+          ]
+        },
+        {
+          "name": "LabeledStatement",
+          "base": "Statement",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "identifier",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "colon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ColonToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "statement",
+              "type": "Statement",
+              "shape": "single"
             }
           ]
         }
@@ -2060,6 +2108,21 @@
               "type": "String"
             }
           ]
+        },
+        {
+          "name": "InvalidUseOfLabel",
+          "severity": "Error",
+          "format": "Labels may only be used on loops"
+        },
+        {
+          "name": "InvalidUseOfBreak",
+          "severity": "Error",
+          "format": "Break may only be used inside loops"
+        },
+        {
+          "name": "InvalidUseOfContinue",
+          "severity": "Error",
+          "format": "Continue may only be used inside loops"
         }
       ]
     }

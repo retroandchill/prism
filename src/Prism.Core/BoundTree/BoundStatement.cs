@@ -78,22 +78,32 @@ internal sealed class BoundIfStatement(
     public BoundStatement? ElseStatement { get; } = elseStatement;
 }
 
+internal abstract class BoundLoopBase(
+    StatementSyntax syntax,
+    BoundStatement loopBody,
+    LabelSymbol label
+) : BoundStatement(syntax)
+{
+    public BoundStatement Body { get; } = loopBody;
+
+    public LabelSymbol Label { get; } = label;
+}
+
 internal sealed class BoundWhileStatement(
     WhileStatementSyntax syntax,
     BoundExpression condition,
-    BoundStatement loopBody
-) : BoundStatement(syntax)
+    BoundStatement body,
+    LabelSymbol label
+) : BoundLoopBase(syntax, body, label)
 {
     public BoundExpression Condition { get; } = condition;
-
-    public BoundStatement ThenStatement { get; } = loopBody;
 }
 
-internal sealed class BoundLoopStatement(LoopStatementSyntax syntax, BoundStatement loopBody)
-    : BoundStatement(syntax)
-{
-    public BoundStatement ThenStatement { get; } = loopBody;
-}
+internal sealed class BoundLoopStatement(
+    LoopStatementSyntax syntax,
+    BoundStatement loopBody,
+    LabelSymbol label
+) : BoundLoopBase(syntax, loopBody, label);
 
 internal sealed class BoundForStatement(
     ForStatementSyntax syntax,
@@ -101,8 +111,9 @@ internal sealed class BoundForStatement(
     ImmutableArray<BoundExpression> initializers,
     BoundExpression? condition,
     ImmutableArray<BoundExpression> incrementors,
-    BoundStatement loopBody
-) : BoundStatement(syntax)
+    BoundStatement body,
+    LabelSymbol label
+) : BoundLoopBase(syntax, body, label)
 {
     public BoundVariableDeclaration? Variable { get; } = variable;
 
@@ -111,11 +122,16 @@ internal sealed class BoundForStatement(
     public BoundExpression? Condition { get; } = condition;
 
     public ImmutableArray<BoundExpression> Incrementors { get; } = incrementors;
-
-    public BoundStatement LoopBody { get; } = loopBody;
 }
 
-internal sealed class BoundBreakStatement(BreakStatementSyntax syntax) : BoundStatement(syntax);
+internal sealed class BoundBreakStatement(BreakStatementSyntax syntax, LabelSymbol label)
+    : BoundStatement(syntax)
+{
+    public LabelSymbol Label { get; } = label;
+}
 
-internal sealed class BoundContinueStatement(ContinueStatementSyntax syntax)
-    : BoundStatement(syntax);
+internal sealed class BoundContinueStatement(ContinueStatementSyntax syntax, LabelSymbol label)
+    : BoundStatement(syntax)
+{
+    public LabelSymbol Label { get; } = label;
+}

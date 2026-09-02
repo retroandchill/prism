@@ -97,4 +97,13 @@ public enum DiagnosticCode : uint
 
     [EnumMember(Value = "E2022")]
     InvalidEntryPointParameters = 2022,
+
+    [EnumMember(Value = "E2023")]
+    InvalidUseOfLabel = 2023,
+
+    [EnumMember(Value = "E2024")]
+    InvalidUseOfBreak = 2024,
+
+    [EnumMember(Value = "E2025")]
+    InvalidUseOfContinue = 2025,
 }

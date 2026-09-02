@@ -156,6 +156,8 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             SyntaxKind.WhileKeyword => ParseWhileStatement(),
             SyntaxKind.LoopKeyword => ParseLoopStatement(),
             SyntaxKind.ForKeyword => ParseForStatement(),
+            SyntaxKind.IdentifierToken when PeekToken(1).Kind == SyntaxKind.ColonToken =>
+                ParseLabeledStatement(),
             _ => ParseExpressionStatement(),
         };
     }
@@ -289,6 +291,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     {
         return new GreenBreakStatement(
             ExpectToken(SyntaxKind.BreakKeyword),
+            MatchToken(SyntaxKind.IdentifierToken),
             ExpectToken(SyntaxKind.SemicolonToken)
         );
     }
@@ -297,7 +300,17 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     {
         return new GreenContinueStatement(
             ExpectToken(SyntaxKind.ContinueKeyword),
+            MatchToken(SyntaxKind.IdentifierToken),
             ExpectToken(SyntaxKind.SemicolonToken)
+        );
+    }
+
+    private GreenLabeledStatement ParseLabeledStatement()
+    {
+        return new GreenLabeledStatement(
+            ExpectToken(SyntaxKind.IdentifierToken),
+            ExpectToken(SyntaxKind.ColonToken),
+            ParseStatement()
         );
     }
 
