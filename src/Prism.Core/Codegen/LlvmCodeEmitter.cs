@@ -908,7 +908,48 @@ internal sealed class LlvmCodeEmitter : IDisposable
 
     private EmitResult OutputBinary()
     {
-        // TODO: Implement binary output
+        LLVM.InitializeNativeTarget();
+        LLVM.InitializeNativeAsmPrinter();
+        LLVM.InitializeNativeAsmParser();
+
+        var tripleString = _compilation.Settings.GetLlvmTriple();
+        if (!Target.TryGetTargetFromTriple(tripleString, out var target, out _))
+        {
+            // TODO: Emit a diagnostic
+            return new EmitResult(false, []);
+        }
+
+        const string cpu = "generic";
+        const string features = "";
+        var targetMachine = target.CreateTargetMachine(
+            tripleString,
+            cpu,
+            features,
+            LLVMCodeGenOptLevel.LLVMCodeGenLevelNone,
+            LLVMRelocMode.LLVMRelocPIC,
+            LLVMCodeModel.LLVMCodeModelDefault
+        );
+
+        _module.TargetTriple = tripleString;
+        var moduleHandle = _module.Handle;
+        moduleHandle.DataLayoutObject = targetMachine.CreateTargetDataLayout().Handle;
+
+        var outputFilename = Path.Combine(
+            _options.OutputDirectory,
+            $"{_compilation.AssemblyName}.obj"
+        );
+
+        if (
+            !targetMachine.TryEmitToFile(
+                _module,
+                outputFilename,
+                LLVMCodeGenFileType.LLVMObjectFile,
+                out _
+            )
+        )
+        {
+            return new EmitResult(false, []);
+        }
 
         return new EmitResult(true, []);
     }

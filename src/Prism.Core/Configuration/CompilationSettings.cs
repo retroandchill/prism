@@ -5,7 +5,10 @@ namespace Prism.Core.Configuration;
 // TODO: Fill-Me Out
 public sealed record CompilationSettings
 {
-    public PointerWidth PointerWidth { get; init; } = PointerWidth.X64;
+    public TargetArchitecture Architecture { get; init; } = TargetArchitecture.CurrentPlatform;
+    public OperatingSystem OperatingSystem { get; init; } = OperatingSystem.CurrentPlatform;
+    public RuntimeEnvironment Environment { get; init; } = RuntimeEnvironment.CurrentPlatform;
+    public PointerWidth PointerWidth { get; init; } = PointerWidth.CurrentPlatform;
 
     public OutputKind OutputKind { get; init; } = OutputKind.Executable;
 
