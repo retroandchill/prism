@@ -17,11 +17,13 @@ internal sealed class SourceAssemblySymbol(Compilation compilation)
             if (!field.IsDefault)
                 return field;
 
-            Interlocked.CompareExchange(
+            ImmutableInterlocked.InterlockedCompareExchange(
                 ref field,
-                DeclaringCompilation
-                    .MergedRootDeclaration.Declarations.Select(Location (d) => d.Location)
-                    .ToImmutableArray(),
+                [
+                    .. DeclaringCompilation.MergedRootDeclaration.Declarations.Select(
+                        Location (d) => d.Location
+                    ),
+                ],
                 default
             );
             return field;

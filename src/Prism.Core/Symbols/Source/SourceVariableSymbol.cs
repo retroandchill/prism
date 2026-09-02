@@ -179,6 +179,10 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
     {
         _scopeBinder = scopeBinder;
         _initializerBinder = initializerBinder;
+
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        compilation.CacheSymbol(Syntax, this);
     }
 
     public override bool IsGlobal => false;

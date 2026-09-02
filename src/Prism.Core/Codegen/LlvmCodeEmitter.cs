@@ -908,12 +908,6 @@ internal sealed class LlvmCodeEmitter : IDisposable
 
     private EmitResult OutputBinary()
     {
-        LLVM.InitializeAllTargetInfos();
-        LLVM.InitializeAllTargets();
-        LLVM.InitializeAllTargetMCs();
-        LLVM.InitializeAllAsmParsers();
-        LLVM.InitializeAllAsmPrinters();
-
         // TODO: Implement binary output
 
         return new EmitResult(true, []);

@@ -27,6 +27,8 @@ public static partial class ConversionKindExtensions
         public bool IsTrivial =>
             kind
                 is ConversionKind.Identity
+                    or ConversionKind.ImplicitNumeric
+                    or ConversionKind.ImplicitCharacter
                     or ConversionKind.ExplicitCharacter
                     or ConversionKind.ExplicitNumeric;
     }

@@ -129,7 +129,7 @@ internal sealed class CompilationCache(Compilation compilation)
 
     public ImmutableArray<FunctionSymbol> GetGlobalFunctions()
     {
-        if (!_topLevelVariables.IsDefault)
+        if (!_topLevelFunctions.IsDefault)
             return _topLevelFunctions;
 
         var functions = ImmutableArray.CreateBuilder<FunctionSymbol>();

@@ -18,12 +18,12 @@ internal static class LlvmConstantHelpers
     {
         public static Constant GetNullValue(Type type)
         {
-            return Create(LLVMValueRef.CreateConstNull(type.Handle));
+            return Create(null, LLVMValueRef.CreateConstNull(type.Handle));
         }
     }
 
-    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "Create")]
-    private static extern Constant Create(LLVMValueRef handle);
+    [UnsafeAccessor(UnsafeAccessorKind.StaticMethod, Name = "Create")]
+    private static extern Constant Create(Constant? dummy, LLVMValueRef handle);
 
     extension(ConstantInt)
     {

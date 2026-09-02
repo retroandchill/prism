@@ -52,7 +52,7 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
             if (!field.IsDefault)
                 return field;
 
-            Interlocked.CompareExchange(
+            ImmutableInterlocked.InterlockedCompareExchange(
                 ref field,
                 [
                     .. _namespaces
@@ -72,7 +72,7 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
             if (!field.IsDefault)
                 return field;
 
-            Interlocked.CompareExchange(
+            ImmutableInterlocked.InterlockedCompareExchange(
                 ref field,
                 [
                     .. _namespaces

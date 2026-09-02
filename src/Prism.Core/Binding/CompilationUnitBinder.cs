@@ -34,7 +34,7 @@ internal sealed class CompilationUnitBinder(Binder next, CompilationUnitSyntax s
         if (!_usingNamespaces.IsDefault)
             return _usingNamespaces;
 
-        Interlocked.CompareExchange(
+        ImmutableInterlocked.InterlockedCompareExchange(
             ref _usingNamespaces,
             BuildUsingNamespaces(syntax.Usings),
             default

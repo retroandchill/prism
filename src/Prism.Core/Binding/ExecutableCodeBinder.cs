@@ -33,10 +33,7 @@ internal sealed class ExecutableCodeBinder(Binder next, SyntaxNode syntax) : Bin
 
     private FrozenDictionary<SyntaxNode, Binder> ComputeBinderMappings()
     {
-        var mappings = new Dictionary<SyntaxNode, Binder>(ReferenceEqualityComparer.Instance)
-        {
-            [syntax] = this,
-        };
+        var mappings = new Dictionary<SyntaxNode, Binder>(ReferenceEqualityComparer.Instance);
         CollectScopes(syntax, this, mappings);
         return mappings.ToFrozenDictionary(ReferenceEqualityComparer.Instance);
     }

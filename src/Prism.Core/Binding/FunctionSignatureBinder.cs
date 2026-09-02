@@ -20,7 +20,7 @@ internal sealed class FunctionSignatureBinder(
         LookupContext context
     )
     {
-        if (options.HasFlag(LookupOptions.Value))
+        if (!options.HasFlag(LookupOptions.Value))
             return LookupResult.NotFound();
 
         var validParameters = symbol

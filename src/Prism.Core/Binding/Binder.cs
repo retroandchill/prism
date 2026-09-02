@@ -579,11 +579,7 @@ internal abstract class Binder
         var bound = syntax switch
         {
             LiteralExpressionSyntax literal => BindLiteralExpression(literal, targetType, context),
-            IdentifierExpressionSyntax identifier => BindIdentifierExpression(
-                identifier,
-                targetType,
-                context
-            ),
+            IdentifierExpressionSyntax identifier => BindIdentifierExpression(identifier, context),
             ParenthesizedExpressionSyntax parenthesized => BindExpression(
                 parenthesized.Expression,
                 targetType,
@@ -626,7 +622,6 @@ internal abstract class Binder
 
     private BoundExpression BindIdentifierExpression(
         IdentifierExpressionSyntax syntax,
-        TypeSymbol? returnType,
         LookupContext context
     )
     {

@@ -43,7 +43,7 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
             if (!field.IsDefault)
                 return field;
 
-            Interlocked.CompareExchange(
+            ImmutableInterlocked.InterlockedCompareExchange(
                 ref field,
                 [.. _mergedDeclaration.Declarations.Select(Location (d) => d.NameLocation)],
                 default
@@ -61,7 +61,7 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
             if (!field.IsDefault)
                 return field;
 
-            Interlocked.CompareExchange(
+            ImmutableInterlocked.InterlockedCompareExchange(
                 ref field,
                 [.. _mergedDeclaration.Declarations.Select(d => d.SyntaxReference)],
                 default
