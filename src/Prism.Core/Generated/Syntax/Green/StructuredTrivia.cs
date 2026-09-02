@@ -9,7 +9,9 @@ internal sealed class GreenSkippedTokensTrivia : GreenStructuredTrivia
     public GreenSkippedTokensTrivia(GreenSyntaxList<GreenToken> tokens)
         : base(SyntaxKind.SkippedTokensTrivia)
     {
+        SlotCount = 1;
         Tokens = tokens;
+        AdjustFlagsAndWidth(Tokens);
     }
 
     public GreenSyntaxList<GreenToken> Tokens { get; }

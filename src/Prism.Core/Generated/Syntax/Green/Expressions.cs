@@ -15,7 +15,9 @@ internal sealed class GreenLiteralExpression : GreenExpression
     public GreenLiteralExpression(GreenToken value)
         : base(SyntaxKind.LiteralExpression)
     {
+        SlotCount = 1;
         Value = value;
+        AdjustFlagsAndWidth(Value);
     }
 
     public GreenToken Value { get; }
@@ -64,7 +66,9 @@ internal sealed class GreenIdentifierExpression : GreenExpression
     public GreenIdentifierExpression(GreenName value)
         : base(SyntaxKind.IdentifierExpression)
     {
+        SlotCount = 1;
         Value = value;
+        AdjustFlagsAndWidth(Value);
     }
 
     public GreenName Value { get; }
@@ -117,9 +121,13 @@ internal sealed class GreenParenthesizedExpression : GreenExpression
     )
         : base(SyntaxKind.ParenthesizedExpression)
     {
+        SlotCount = 3;
         Open = open;
+        AdjustFlagsAndWidth(Open);
         Expression = expression;
+        AdjustFlagsAndWidth(Expression);
         Close = close;
+        AdjustFlagsAndWidth(Close);
     }
 
     public GreenToken Open { get; }
@@ -211,9 +219,13 @@ internal sealed class GreenBinaryExpression : GreenExpression
     public GreenBinaryExpression(GreenExpression left, GreenToken op, GreenExpression right)
         : base(SyntaxKind.BinaryExpression)
     {
+        SlotCount = 3;
         Left = left;
+        AdjustFlagsAndWidth(Left);
         Op = op;
+        AdjustFlagsAndWidth(Op);
         Right = right;
+        AdjustFlagsAndWidth(Right);
     }
 
     public GreenExpression Left { get; }
@@ -286,9 +298,13 @@ internal sealed class GreenAssignmentExpression : GreenExpression
     public GreenAssignmentExpression(GreenExpression left, GreenToken op, GreenExpression right)
         : base(SyntaxKind.AssignmentExpression)
     {
+        SlotCount = 3;
         Left = left;
+        AdjustFlagsAndWidth(Left);
         Op = op;
+        AdjustFlagsAndWidth(Op);
         Right = right;
+        AdjustFlagsAndWidth(Right);
     }
 
     public GreenExpression Left { get; }
@@ -365,8 +381,11 @@ internal sealed class GreenPrefixExpression : GreenExpression
     public GreenPrefixExpression(GreenToken op, GreenExpression operand)
         : base(SyntaxKind.PrefixExpression)
     {
+        SlotCount = 2;
         Op = op;
+        AdjustFlagsAndWidth(Op);
         Operand = operand;
+        AdjustFlagsAndWidth(Operand);
     }
 
     public GreenToken Op { get; }
@@ -429,8 +448,11 @@ internal sealed class GreenPostfixExpression : GreenExpression
     public GreenPostfixExpression(GreenExpression operand, GreenToken op)
         : base(SyntaxKind.PostfixExpression)
     {
+        SlotCount = 2;
         Operand = operand;
+        AdjustFlagsAndWidth(Operand);
         Op = op;
+        AdjustFlagsAndWidth(Op);
     }
 
     public GreenExpression Operand { get; }
@@ -499,11 +521,17 @@ internal sealed class GreenTernaryExpression : GreenExpression
     )
         : base(SyntaxKind.TernaryExpression)
     {
+        SlotCount = 5;
         Condition = condition;
+        AdjustFlagsAndWidth(Condition);
         QuestionMark = questionMark;
+        AdjustFlagsAndWidth(QuestionMark);
         WhenTrue = whenTrue;
+        AdjustFlagsAndWidth(WhenTrue);
         Colon = colon;
+        AdjustFlagsAndWidth(Colon);
         WhenFalse = whenFalse;
+        AdjustFlagsAndWidth(WhenFalse);
     }
 
     public GreenExpression Condition { get; }
@@ -629,8 +657,11 @@ internal sealed class GreenInvocationExpression : GreenExpression
     public GreenInvocationExpression(GreenExpression callee, GreenArgumentList arguments)
         : base(SyntaxKind.InvocationExpression)
     {
+        SlotCount = 2;
         Callee = callee;
+        AdjustFlagsAndWidth(Callee);
         Arguments = arguments;
+        AdjustFlagsAndWidth(Arguments);
     }
 
     public GreenExpression Callee { get; }
@@ -693,9 +724,13 @@ internal sealed class GreenCastExpression : GreenExpression
     public GreenCastExpression(GreenExpression operand, GreenToken asKeyword, GreenType type)
         : base(SyntaxKind.CastExpression)
     {
+        SlotCount = 3;
         Operand = operand;
+        AdjustFlagsAndWidth(Operand);
         AsKeyword = asKeyword;
+        AdjustFlagsAndWidth(AsKeyword);
         Type = type;
+        AdjustFlagsAndWidth(Type);
     }
 
     public GreenExpression Operand { get; }

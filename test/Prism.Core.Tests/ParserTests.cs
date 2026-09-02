@@ -46,6 +46,14 @@ public sealed class ParserTests
 
         Assert.That(value.HasValue, Is.True);
         Assert.That(value.Value.Value, Is.EqualTo(new BigInteger(5)));
+
+        var firstToken = declaration.FirstToken;
+        Assert.That(firstToken, Is.Not.Null);
+        Assert.That(firstToken.Kind, Is.EqualTo(SyntaxKind.VarKeyword));
+
+        var lastToken = declaration.LastToken;
+        Assert.That(lastToken, Is.Not.Null);
+        Assert.That(lastToken.Kind, Is.EqualTo(SyntaxKind.SemicolonToken));
     }
 
     [Test]

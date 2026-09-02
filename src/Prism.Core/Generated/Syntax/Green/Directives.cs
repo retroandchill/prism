@@ -9,9 +9,13 @@ internal sealed class GreenUsingDirective : GreenNode
     public GreenUsingDirective(GreenToken usingKeyword, GreenName name, GreenToken semicolon)
         : base(SyntaxKind.UsingDirective)
     {
+        SlotCount = 3;
         UsingKeyword = usingKeyword;
+        AdjustFlagsAndWidth(UsingKeyword);
         Name = name;
+        AdjustFlagsAndWidth(Name);
         Semicolon = semicolon;
+        AdjustFlagsAndWidth(Semicolon);
     }
 
     public GreenToken UsingKeyword { get; }

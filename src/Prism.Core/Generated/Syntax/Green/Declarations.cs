@@ -19,7 +19,9 @@ internal sealed class GreenIncompleteDeclaration : GreenDeclaration
     public GreenIncompleteDeclaration(GreenSyntaxList<GreenToken> modifiers)
         : base(SyntaxKind.IncompleteDeclaration)
     {
+        SlotCount = 1;
         Modifiers = modifiers;
+        AdjustFlagsAndWidth(Modifiers);
     }
 
     public override GreenSyntaxList<GreenToken> Modifiers { get; }
@@ -100,13 +102,21 @@ internal sealed class GreenBlockNamespaceDeclaration : GreenNamespaceDeclaration
     )
         : base(SyntaxKind.BlockNamespaceDeclaration)
     {
+        SlotCount = 7;
         Modifiers = modifiers;
+        AdjustFlagsAndWidth(Modifiers);
         NamespaceToken = namespaceToken;
+        AdjustFlagsAndWidth(NamespaceToken);
         Name = name;
+        AdjustFlagsAndWidth(Name);
         OpenBrace = openBrace;
+        AdjustFlagsAndWidth(OpenBrace);
         Usings = usings;
+        AdjustFlagsAndWidth(Usings);
         Members = members;
+        AdjustFlagsAndWidth(Members);
         CloseBrace = closeBrace;
+        AdjustFlagsAndWidth(CloseBrace);
     }
 
     public override GreenSyntaxList<GreenToken> Modifiers { get; }
@@ -347,12 +357,19 @@ internal sealed class GreenFileScopedNamespaceDeclaration : GreenNamespaceDeclar
     )
         : base(SyntaxKind.FileScopedNamespaceDeclaration)
     {
+        SlotCount = 6;
         Modifiers = modifiers;
+        AdjustFlagsAndWidth(Modifiers);
         NamespaceToken = namespaceToken;
+        AdjustFlagsAndWidth(NamespaceToken);
         Name = name;
+        AdjustFlagsAndWidth(Name);
         Semicolon = semicolon;
+        AdjustFlagsAndWidth(Semicolon);
         Usings = usings;
+        AdjustFlagsAndWidth(Usings);
         Members = members;
+        AdjustFlagsAndWidth(Members);
     }
 
     public override GreenSyntaxList<GreenToken> Modifiers { get; }
@@ -564,12 +581,21 @@ internal sealed class GreenVariableDeclaration : GreenDeclaration
     )
         : base(SyntaxKind.VariableDeclaration)
     {
+        SlotCount = 6;
         Modifiers = modifiers;
+        AdjustFlagsAndWidth(Modifiers);
         VarKeyword = varKeyword;
+        AdjustFlagsAndWidth(VarKeyword);
         Identifier = identifier;
+        AdjustFlagsAndWidth(Identifier);
         Type = type;
+        if (Type is not null)
+            AdjustFlagsAndWidth(Type);
         Initializer = initializer;
+        if (Initializer is not null)
+            AdjustFlagsAndWidth(Initializer);
         Semicolon = semicolon;
+        AdjustFlagsAndWidth(Semicolon);
     }
 
     public override GreenSyntaxList<GreenToken> Modifiers { get; }
@@ -775,14 +801,27 @@ internal sealed class GreenFunctionDeclaration : GreenDeclaration
     )
         : base(SyntaxKind.FunctionDeclaration)
     {
+        SlotCount = 8;
         Modifiers = modifiers;
+        AdjustFlagsAndWidth(Modifiers);
         FuncKeyword = funcKeyword;
+        AdjustFlagsAndWidth(FuncKeyword);
         Identifier = identifier;
+        AdjustFlagsAndWidth(Identifier);
         Parameters = parameters;
+        AdjustFlagsAndWidth(Parameters);
         ReturnType = returnType;
+        if (ReturnType is not null)
+            AdjustFlagsAndWidth(ReturnType);
         Body = body;
+        if (Body is not null)
+            AdjustFlagsAndWidth(Body);
         ExpressionBody = expressionBody;
+        if (ExpressionBody is not null)
+            AdjustFlagsAndWidth(ExpressionBody);
         Semicolon = semicolon;
+        if (Semicolon is not null)
+            AdjustFlagsAndWidth(Semicolon);
     }
 
     public override GreenSyntaxList<GreenToken> Modifiers { get; }

@@ -71,14 +71,14 @@ internal sealed class GreenListNode : GreenNode
             }
         }
 
-        public GreenListNode Build()
+        public GreenListNode? Build()
         {
-            return new GreenListNode(_children.ToImmutable());
+            return _children.Count > 0 ? new GreenListNode(_children.ToImmutable()) : null;
         }
 
-        public GreenListNode BuildAndClear()
+        public GreenListNode? BuildAndClear()
         {
-            return new GreenListNode(_children.DrainToImmutable());
+            return _children.Count > 0 ? new GreenListNode(_children.DrainToImmutable()) : null;
         }
     }
 }

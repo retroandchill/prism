@@ -15,7 +15,9 @@ internal sealed class GreenPredefinedType : GreenType
     public GreenPredefinedType(GreenToken keyword)
         : base(SyntaxKind.PredefinedType)
     {
+        SlotCount = 1;
         Keyword = keyword;
+        AdjustFlagsAndWidth(Keyword);
     }
 
     public GreenToken Keyword { get; }
@@ -64,7 +66,9 @@ internal sealed class GreenNamedType : GreenType
     public GreenNamedType(GreenName identifier)
         : base(SyntaxKind.NamedType)
     {
+        SlotCount = 1;
         Identifier = identifier;
+        AdjustFlagsAndWidth(Identifier);
     }
 
     public GreenName Identifier { get; }

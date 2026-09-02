@@ -12,8 +12,11 @@ internal sealed class GreenCompilationUnit : GreenNode
     )
         : base(SyntaxKind.CompilationUnit)
     {
+        SlotCount = 2;
         Usings = usings;
+        AdjustFlagsAndWidth(Usings);
         Members = members;
+        AdjustFlagsAndWidth(Members);
     }
 
     public GreenSyntaxList<GreenUsingDirective> Usings { get; }

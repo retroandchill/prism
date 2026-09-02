@@ -9,8 +9,11 @@ internal sealed class GreenInitializer : GreenNode
     public GreenInitializer(GreenToken equalSign, GreenExpression value)
         : base(SyntaxKind.Initializer)
     {
+        SlotCount = 2;
         EqualSign = equalSign;
+        AdjustFlagsAndWidth(EqualSign);
         Value = value;
+        AdjustFlagsAndWidth(Value);
     }
 
     public GreenToken EqualSign { get; }
@@ -73,8 +76,11 @@ internal sealed class GreenTypeSpecifier : GreenNode
     public GreenTypeSpecifier(GreenToken colon, GreenType type)
         : base(SyntaxKind.TypeSpecifier)
     {
+        SlotCount = 2;
         Colon = colon;
+        AdjustFlagsAndWidth(Colon);
         Type = type;
+        AdjustFlagsAndWidth(Type);
     }
 
     public GreenToken Colon { get; }
@@ -137,8 +143,11 @@ internal sealed class GreenNamedParameter : GreenNode
     public GreenNamedParameter(GreenToken name, GreenToken colon)
         : base(SyntaxKind.NamedParameter)
     {
+        SlotCount = 2;
         Name = name;
+        AdjustFlagsAndWidth(Name);
         Colon = colon;
+        AdjustFlagsAndWidth(Colon);
     }
 
     public GreenToken Name { get; }
@@ -205,9 +214,13 @@ internal sealed class GreenArgumentList : GreenNode
     )
         : base(SyntaxKind.ArgumentList)
     {
+        SlotCount = 3;
         OpenParen = openParen;
+        AdjustFlagsAndWidth(OpenParen);
         Arguments = arguments;
+        AdjustFlagsAndWidth(Arguments);
         CloseParen = closeParen;
+        AdjustFlagsAndWidth(CloseParen);
     }
 
     public GreenToken OpenParen { get; }
@@ -299,8 +312,12 @@ internal sealed class GreenArgument : GreenNode
     public GreenArgument(GreenNamedParameter? name, GreenExpression value)
         : base(SyntaxKind.Argument)
     {
+        SlotCount = 2;
         Name = name;
+        if (Name is not null)
+            AdjustFlagsAndWidth(Name);
         Value = value;
+        AdjustFlagsAndWidth(Value);
     }
 
     public GreenNamedParameter? Name { get; }
@@ -365,9 +382,13 @@ internal sealed class GreenParameterList : GreenNode
     )
         : base(SyntaxKind.ParameterList)
     {
+        SlotCount = 3;
         OpenParen = openParen;
+        AdjustFlagsAndWidth(OpenParen);
         Parameters = parameters;
+        AdjustFlagsAndWidth(Parameters);
         CloseParen = closeParen;
+        AdjustFlagsAndWidth(CloseParen);
     }
 
     public GreenToken OpenParen { get; }
@@ -464,10 +485,18 @@ internal sealed class GreenParameter : GreenNode
     )
         : base(SyntaxKind.Parameter)
     {
+        SlotCount = 4;
         MutableKeyword = mutableKeyword;
+        if (MutableKeyword is not null)
+            AdjustFlagsAndWidth(MutableKeyword);
         Name = name;
+        AdjustFlagsAndWidth(Name);
         TypeSpecifier = typeSpecifier;
+        if (TypeSpecifier is not null)
+            AdjustFlagsAndWidth(TypeSpecifier);
         DefaultValue = defaultValue;
+        if (DefaultValue is not null)
+            AdjustFlagsAndWidth(DefaultValue);
     }
 
     public GreenToken? MutableKeyword { get; }
@@ -576,8 +605,11 @@ internal sealed class GreenExpressionBody : GreenNode
     public GreenExpressionBody(GreenToken arrow, GreenExpression expression)
         : base(SyntaxKind.ExpressionBody)
     {
+        SlotCount = 2;
         Arrow = arrow;
+        AdjustFlagsAndWidth(Arrow);
         Expression = expression;
+        AdjustFlagsAndWidth(Expression);
     }
 
     public GreenToken Arrow { get; }
@@ -640,8 +672,11 @@ internal sealed class GreenElseClause : GreenNode
     public GreenElseClause(GreenToken elseKeyword, GreenStatement statement)
         : base(SyntaxKind.ElseClause)
     {
+        SlotCount = 2;
         ElseKeyword = elseKeyword;
+        AdjustFlagsAndWidth(ElseKeyword);
         Statement = statement;
+        AdjustFlagsAndWidth(Statement);
     }
 
     public GreenToken ElseKeyword { get; }

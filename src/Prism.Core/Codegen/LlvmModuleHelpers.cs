@@ -4,9 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Buffers;
-using LLVMSharp;
 using LLVMSharp.Interop;
-using Type = LLVMSharp.Type;
 
 namespace Prism.Core.Codegen;
 
@@ -14,63 +12,68 @@ internal static class LlvmModuleHelpers
 {
     private const string GlobalCtorsName = "llvm.global_ctors";
 
-    public static void AppendToGlobalCtors(this Module module, Function function, int priority)
+    public static void AppendToGlobalCtors(
+        this LLVMModuleRef module,
+        LLVMValueRef function,
+        int priority
+    )
     {
         var context = module.Context;
 
-        var int32Type = Type.GetInt32Ty(context);
-        var ptrType = PointerType.Get(context);
+        var int32Type = context.Int32Type;
+        var ptrType = context.CreatePointerType(0);
 
-        var elementType = StructType.Get(context, [int32Type, ptrType, ptrType], false);
-        var newElement = ConstantStruct.GetAnon(
-            context,
+        var elementType = context.GetStructType([int32Type, ptrType, ptrType], false);
+
+        var newElement = LLVMValueRef.CreateConstStruct(
             [
-                ConstantInt.Get(int32Type, unchecked((ulong)priority)),
+                LLVMValueRef.CreateConstInt(int32Type, unchecked((ulong)priority)),
                 function,
-                Constant.GetNullValue(ptrType),
+                LLVMValueRef.CreateConstNull(ptrType),
             ],
             false
         );
 
-        Constant[]? ctorElements = null;
+        LLVMValueRef[]? ctorElements = null;
         var existingCount = 0u;
         var newCount = 1u;
 
-        var existingGlobal = module.GetGlobalVariable(GlobalCtorsName);
+        var existingGlobal = module.GetNamedGlobal(GlobalCtorsName);
 
-        ConstantArray newArrayInit;
+        LLVMValueRef newArrayInit;
         try
         {
-            if (existingGlobal is not null)
+            if (!existingGlobal.IsNull)
             {
                 var initializer = existingGlobal.Initializer;
-                if (initializer is ConstantArray array)
+                if (!initializer.IsAConstantArray.IsNull)
                 {
-                    existingCount = array.NumOperands;
+                    existingCount = (uint)initializer.OperandCount;
                     newCount = existingCount + 1;
 
-                    ctorElements = ArrayPool<Constant>.Shared.Rent((int)newCount);
+                    ctorElements = ArrayPool<LLVMValueRef>.Shared.Rent((int)newCount);
                     for (var i = 0u; i < existingCount; i++)
                     {
-                        ctorElements[(int)i] = (Constant)array.GetOperand(i);
+                        ctorElements[i] = initializer.GetOperand(i);
                     }
                 }
-
-                existingGlobal.Handle.DeleteGlobal();
             }
 
-            ctorElements ??= ArrayPool<Constant>.Shared.Rent((int)newCount);
+            ctorElements ??= ArrayPool<LLVMValueRef>.Shared.Rent((int)newCount);
             ctorElements[(int)existingCount] = newElement;
 
-            newArrayInit = ConstantArray.Get(elementType, ctorElements.AsSpan(0, (int)newCount));
+            newArrayInit = LLVMValueRef.CreateConstArray(
+                elementType,
+                ctorElements.AsSpan(0, (int)newCount)
+            );
         }
         finally
         {
             if (ctorElements is not null)
-                ArrayPool<Constant>.Shared.Return(ctorElements, true);
+                ArrayPool<LLVMValueRef>.Shared.Return(ctorElements, true);
         }
 
-        var arrayType = ArrayType.Get(elementType, newCount);
+        var arrayType = LLVMTypeRef.CreateArray(elementType, newCount);
         var globalCtors = module.AddGlobal(arrayType, GlobalCtorsName);
 
         globalCtors.Linkage = LLVMLinkage.LLVMAppendingLinkage;

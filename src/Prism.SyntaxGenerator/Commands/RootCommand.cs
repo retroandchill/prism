@@ -11,4 +11,4 @@ namespace Prism.SyntaxGenerator.Commands;
     Description = "Generate Prism syntax",
     Children = [typeof(ExportSchemaCommand), typeof(ExportNodesCommand)]
 )]
-public class RootCommand { }
+public class RootCommand;

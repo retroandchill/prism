@@ -4,18 +4,17 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using LLVMSharp;
+using LLVMSharp.Interop;
 using Prism.Core.Symbols;
 using ZLinq;
 
 namespace Prism.Core.Codegen;
 
-internal sealed class FunctionEmissionContext(Function function, BasicBlock entryBlock)
+internal sealed class FunctionEmissionContext(LLVMValueRef function)
 {
-    private readonly List<Dictionary<Symbol, Value>> _scopeFrames = [CreateNewFrame()];
+    private readonly List<Dictionary<Symbol, LLVMValueRef>> _scopeFrames = [CreateNewFrame()];
 
-    public Function Function { get; } = function;
-
-    public BasicBlock EntryBlock { get; } = entryBlock;
+    public LLVMValueRef Function { get; } = function;
 
     public void PushScope()
     {
@@ -27,12 +26,12 @@ internal sealed class FunctionEmissionContext(Function function, BasicBlock entr
         _scopeFrames.RemoveAt(_scopeFrames.Count - 1);
     }
 
-    public void BindStorage(Symbol symbol, Value value)
+    public void BindStorage(Symbol symbol, LLVMValueRef value)
     {
         _scopeFrames[^1].Add(symbol, value);
     }
 
-    public Value? LookupStorage(Symbol symbol)
+    public LLVMValueRef? LookupStorage(Symbol symbol)
     {
         foreach (var storage in _scopeFrames.AsValueEnumerable().Reverse())
         {
@@ -43,6 +42,6 @@ internal sealed class FunctionEmissionContext(Function function, BasicBlock entr
         return null;
     }
 
-    private static Dictionary<Symbol, Value> CreateNewFrame() =>
+    private static Dictionary<Symbol, LLVMValueRef> CreateNewFrame() =>
         new(ReferenceEqualityComparer.Instance);
 }

@@ -15,7 +15,9 @@ internal sealed class GreenSimpleName : GreenName
     public GreenSimpleName(GreenToken identifier)
         : base(SyntaxKind.SimpleName)
     {
+        SlotCount = 1;
         Identifier = identifier;
+        AdjustFlagsAndWidth(Identifier);
     }
 
     public GreenToken Identifier { get; }
@@ -64,9 +66,13 @@ internal sealed class GreenQualifiedName : GreenName
     public GreenQualifiedName(GreenName left, GreenToken separator, GreenSimpleName right)
         : base(SyntaxKind.QualifiedName)
     {
+        SlotCount = 3;
         Left = left;
+        AdjustFlagsAndWidth(Left);
         Separator = separator;
+        AdjustFlagsAndWidth(Separator);
         Right = right;
+        AdjustFlagsAndWidth(Right);
     }
 
     public GreenName Left { get; }

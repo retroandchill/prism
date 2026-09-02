@@ -302,9 +302,13 @@ public static class CSharpEmitter
             writer.WriteLine($") : base({SyntaxKindClass}.{node.Kind!.CSharpName})");
             using (writer.EnterBlockScope())
             {
+                writer.WriteLine($"SlotCount = {node.Properties.Length};");
                 foreach (var property in node.Properties)
                 {
                     writer.WriteLine($"{property.PropertyName} = {property.ParameterName};");
+                    if (property.Shape == PropertyShape.Optional)
+                        writer.Write($"if ({property.PropertyName} is not null) ");
+                    writer.WriteLine($"AdjustFlagsAndWidth({property.PropertyName});");
                 }
             }
 

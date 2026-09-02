@@ -3,9 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Collections.Concurrent;
 using System.Diagnostics;
-using LLVMSharp;
 using LLVMSharp.Interop;
 using Prism.Core.BoundTree;
 using Prism.Core.Compiling;
@@ -13,9 +11,7 @@ using Prism.Core.Configuration;
 using Prism.Core.Mappers;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
-using Prism.Core.Utils;
 using ZLinq;
-using Type = LLVMSharp.Type;
 
 namespace Prism.Core.Codegen;
 
@@ -36,15 +32,15 @@ internal sealed class LlvmCodeEmitter : IDisposable
     private readonly Compilation _compilation;
     private readonly CodeGenOptions _options;
 
-    private readonly LLVMContext _context;
-    private readonly Module _module;
-    private readonly IRBuilder _builder;
+    private LLVMContextRef _context;
+    private LLVMModuleRef _module;
+    private LLVMBuilderRef _builder;
 
-    private readonly Dictionary<Symbol, Value> _symbolToValue = new(
+    private readonly Dictionary<Symbol, LLVMValueRef> _symbolToValue = new(
         ReferenceEqualityComparer.Instance
     );
 
-    private readonly Dictionary<TypeSymbol, Type> _symbolToType = new(
+    private readonly Dictionary<TypeSymbol, LLVMTypeRef> _symbolToType = new(
         ReferenceEqualityComparer.Instance
     );
 
@@ -52,9 +48,9 @@ internal sealed class LlvmCodeEmitter : IDisposable
     {
         _compilation = compilation;
         _options = options;
-        _context = new LLVMContext();
-        _module = Module.Create(_context, compilation.AssemblyName);
-        _builder = new IRBuilder(_context);
+        _context = LLVMContextRef.Create();
+        _module = _context.CreateModuleWithName(compilation.AssemblyName);
+        _builder = _context.CreateBuilder();
     }
 
     public EmitResult Emit()
@@ -77,7 +73,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
 
         if (assemblyInitializerContext is not null)
         {
-            _builder.CreateRetVoid();
+            _builder.BuildRetVoid();
             _module.AppendToGlobalCtors(assemblyInitializerContext.Function, 65535);
         }
 
@@ -102,30 +98,27 @@ internal sealed class LlvmCodeEmitter : IDisposable
         if (entryPoint is null)
             return false;
 
-        var functionType = FunctionType.Get(Type.GetInt32Ty(_context), []);
+        var functionType = LLVMTypeRef.CreateFunction(_context.Int32Type, []);
         var mainFunc = _module.AddFunction("main", functionType);
         var entry = mainFunc.AppendBasicBlock("entry");
-        _builder.SetInsertPoint(entry);
+        _builder.PositionAtEnd(entry);
 
         var targetFunction = GetOrCreateFunction(entryPoint);
-        var callEntryPoint = _builder.CreateCall(targetFunction.FunctionType, targetFunction);
-        if (entryPoint.ReturnsVoid)
-        {
-            _builder.CreateRet(ConstantInt.Get(Type.GetInt32Ty(_context), 0));
-        }
-        else
-        {
-            _builder.CreateRet(callEntryPoint);
-        }
+        var callEntryPoint = _builder.BuildCall2(targetFunction.FunctionType, targetFunction, []);
+        _builder.BuildRet(
+            entryPoint.ReturnsVoid
+                ? LLVMValueRef.CreateConstInt(_context.Int32Type, 0)
+                : callEntryPoint
+        );
 
         return true;
     }
 
-    private Function GetOrCreateFunction(FunctionSymbol functionSymbol)
+    private LLVMValueRef GetOrCreateFunction(FunctionSymbol functionSymbol)
     {
         if (_symbolToValue.TryGetValue(functionSymbol, out var function))
         {
-            return (Function)function;
+            return function;
         }
 
         var returnType = GetOrCreateType(functionSymbol.ReturnType);
@@ -135,17 +128,17 @@ internal sealed class LlvmCodeEmitter : IDisposable
             .ToArrayPool();
 
         var name = functionSymbol.Mangle();
-        var functionType = FunctionType.Get(returnType, parameters.Span, false);
+        var functionType = LLVMTypeRef.CreateFunction(returnType, parameters.Span, false);
         var func = _module.AddFunction(name, functionType);
         _symbolToValue[functionSymbol] = func;
         return func;
     }
 
-    private GlobalVariable GetOrCreateGlobal(VariableSymbol symbol)
+    private LLVMValueRef GetOrCreateGlobal(VariableSymbol symbol)
     {
         if (_symbolToValue.TryGetValue(symbol, out var global))
         {
-            return (GlobalVariable)global;
+            return global;
         }
 
         var type = GetOrCreateType(symbol.Type);
@@ -177,18 +170,18 @@ internal sealed class LlvmCodeEmitter : IDisposable
 
         if (assemblyInitializerContext is null)
         {
-            var functionType = FunctionType.Get(Type.GetVoidTy(_context), [], false);
+            var functionType = LLVMTypeRef.CreateFunction(_context.VoidType, [], false);
             var initializerName = $"{_compilation.AssemblyName}_<GlobalInitializer>";
             var assemblyInitializer = _module.AddFunction(initializerName, functionType);
             assemblyInitializer.Linkage = LLVMLinkage.LLVMInternalLinkage;
             var block = assemblyInitializer.AppendBasicBlock("entry");
 
-            assemblyInitializerContext = new FunctionEmissionContext(assemblyInitializer, block);
-            _builder.SetInsertPoint(block);
+            assemblyInitializerContext = new FunctionEmissionContext(assemblyInitializer);
+            _builder.PositionAtEnd(block);
         }
 
         var initializedValue = EmitExpression(initializer, assemblyInitializerContext);
-        _builder.CreateStore(initializedValue, variable);
+        _builder.BuildStore(initializedValue, variable);
     }
 
     private void EmitFunctionBody(FunctionSymbol symbol)
@@ -202,8 +195,8 @@ internal sealed class LlvmCodeEmitter : IDisposable
         }
 
         var entry = function.AppendBasicBlock("entry");
-        _builder.SetInsertPoint(entry);
-        var context = new FunctionEmissionContext(function, entry);
+        _builder.PositionAtEnd(entry);
+        var context = new FunctionEmissionContext(function);
 
         foreach (
             var (symbolParam, llvmParam) in symbol
@@ -213,8 +206,8 @@ internal sealed class LlvmCodeEmitter : IDisposable
         {
             if (symbolParam.IsMutable)
             {
-                var slot = CreateEntryAlloca(llvmParam.Type, symbolParam.Name, context);
-                _builder.CreateStore(llvmParam, slot);
+                var slot = CreateEntryAlloca(llvmParam.TypeOf, symbolParam.Name, context);
+                _builder.BuildStore(llvmParam, slot);
                 context.BindStorage(symbolParam, slot);
             }
             else
@@ -225,7 +218,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
         EmitStatement(body, context);
     }
 
-    private Type GetOrCreateType(TypeSymbol symbol)
+    private LLVMTypeRef GetOrCreateType(TypeSymbol symbol)
     {
         if (_symbolToType.TryGetValue(symbol, out var type))
         {
@@ -237,91 +230,110 @@ internal sealed class LlvmCodeEmitter : IDisposable
         return type;
     }
 
-    private Type CreateType(TypeSymbol symbol)
+    private LLVMTypeRef CreateType(TypeSymbol symbol)
     {
         return symbol.SpecialType switch
         {
-            SpecialType.Void => Type.GetVoidTy(_context),
+            SpecialType.Void => _context.VoidType,
             SpecialType.Bool or SpecialType.I8 or SpecialType.U8 or SpecialType.Char =>
-                Type.GetInt8Ty(_context),
-            SpecialType.I16 or SpecialType.U16 or SpecialType.Char16 => Type.GetInt16Ty(_context),
-            SpecialType.I32 or SpecialType.U32 or SpecialType.Rune => Type.GetInt32Ty(_context),
-            SpecialType.I64 or SpecialType.U64 => Type.GetInt64Ty(_context),
-            SpecialType.I128 or SpecialType.U128 => Type.GetInt128Ty(_context),
+                _context.Int8Type,
+            SpecialType.I16 or SpecialType.U16 or SpecialType.Char16 => _context.Int16Type,
+            SpecialType.I32 or SpecialType.U32 or SpecialType.Rune => _context.Int32Type,
+            SpecialType.I64 or SpecialType.U64 => _context.Int64Type,
+            SpecialType.I128 or SpecialType.U128 => _context.Int128Type,
             SpecialType.ISize or SpecialType.USize => _compilation.Settings.PointerWidth switch
             {
-                PointerWidth.X32 => Type.GetInt32Ty(_context),
-                PointerWidth.X64 => Type.GetInt64Ty(_context),
+                PointerWidth.X32 => _context.Int32Type,
+                PointerWidth.X64 => _context.Int64Type,
                 _ => throw new InvalidOperationException("Invalid pointer width"),
             },
-            SpecialType.F32 => Type.GetFloatTy(_context),
-            SpecialType.F64 => Type.GetDoubleTy(_context),
+            SpecialType.F32 => _context.FloatType,
+            SpecialType.F64 => _context.DoubleType,
             _ => throw new NotImplementedException(),
         };
     }
 
-    private Constant MakeConstant(in ConstantValue value)
+    private LLVMValueRef MakeConstant(in ConstantValue value)
     {
         return value.Kind switch
         {
-            ConstantKind.Bool => ConstantInt.Get(
-                Type.GetInt8Ty(_context),
+            ConstantKind.Bool => LLVMValueRef.CreateConstInt(
+                _context.Int8Type,
                 value.AsBoolean() ? 1UL : 0UL
             ),
-            ConstantKind.Char => ConstantInt.Get(
-                Type.GetInt8Ty(_context),
+            ConstantKind.Char => LLVMValueRef.CreateConstInt(
+                _context.Int8Type,
                 (ulong)value.AsCharacter().Value
             ),
-            ConstantKind.Char16 => ConstantInt.Get(
-                Type.GetInt16Ty(_context),
+            ConstantKind.Char16 => LLVMValueRef.CreateConstInt(
+                _context.Int16Type,
                 (ulong)value.AsCharacter().Value
             ),
-            ConstantKind.Rune => ConstantInt.Get(
-                Type.GetInt32Ty(_context),
+            ConstantKind.Rune => LLVMValueRef.CreateConstInt(
+                _context.Int32Type,
                 (ulong)value.AsCharacter().Value
             ),
-            ConstantKind.I8 => ConstantInt.GetSigned(Type.GetInt8Ty(_context), value.AsInt64()),
-            ConstantKind.I16 => ConstantInt.GetSigned(Type.GetInt16Ty(_context), value.AsInt64()),
-            ConstantKind.I32 => ConstantInt.GetSigned(Type.GetInt32Ty(_context), value.AsInt64()),
-            ConstantKind.I64 => ConstantInt.GetSigned(Type.GetInt64Ty(_context), value.AsInt64()),
-            ConstantKind.I128 => ConstantInt.Get(Type.GetInt128Ty(_context), value.AsInt128()),
-            ConstantKind.ISize => ConstantInt.GetSigned(
+            ConstantKind.I8 => LLVMValueRef.CreateConstInt(
+                _context.Int8Type,
+                unchecked((ulong)value.AsInt64()),
+                true
+            ),
+            ConstantKind.I16 => LLVMValueRef.CreateConstInt(
+                _context.Int16Type,
+                unchecked((ulong)value.AsInt64()),
+                true
+            ),
+            ConstantKind.I32 => LLVMValueRef.CreateConstInt(
+                _context.Int32Type,
+                unchecked((ulong)value.AsInt64()),
+                true
+            ),
+            ConstantKind.I64 => LLVMValueRef.CreateConstInt(
+                _context.Int64Type,
+                unchecked((ulong)value.AsInt64()),
+                true
+            ),
+            ConstantKind.I128 => LLVMValueRef.CreateConstInt(_context.Int128Type, value.AsInt128()),
+            ConstantKind.ISize => LLVMValueRef.CreateConstInt(
                 _compilation.Settings.PointerWidth switch
                 {
-                    PointerWidth.X32 => Type.GetInt32Ty(_context),
-                    PointerWidth.X64 => Type.GetInt64Ty(_context),
+                    PointerWidth.X32 => _context.Int32Type,
+                    PointerWidth.X64 => _context.Int64Type,
                     _ => throw new InvalidOperationException("Invalid pointer width"),
                 },
                 value.AsInt64()
             ),
-            ConstantKind.U8 => ConstantInt.Get(Type.GetInt8Ty(_context), value.AsUInt64()),
-            ConstantKind.U16 => ConstantInt.Get(Type.GetInt16Ty(_context), value.AsUInt64()),
-            ConstantKind.U32 => ConstantInt.Get(Type.GetInt32Ty(_context), value.AsUInt64()),
-            ConstantKind.U64 => ConstantInt.Get(Type.GetInt64Ty(_context), value.AsUInt64()),
-            ConstantKind.U128 => ConstantInt.Get(Type.GetInt64Ty(_context), value.AsUInt128()),
-            ConstantKind.USize => ConstantInt.Get(
+            ConstantKind.U8 => LLVMValueRef.CreateConstInt(_context.Int8Type, value.AsUInt64()),
+            ConstantKind.U16 => LLVMValueRef.CreateConstInt(_context.Int16Type, value.AsUInt64()),
+            ConstantKind.U32 => LLVMValueRef.CreateConstInt(_context.Int32Type, value.AsUInt64()),
+            ConstantKind.U64 => LLVMValueRef.CreateConstInt(_context.Int64Type, value.AsUInt64()),
+            ConstantKind.U128 => LLVMValueRef.CreateConstInt(_context.Int64Type, value.AsUInt128()),
+            ConstantKind.USize => LLVMValueRef.CreateConstInt(
                 _compilation.Settings.PointerWidth switch
                 {
-                    PointerWidth.X32 => Type.GetInt32Ty(_context),
-                    PointerWidth.X64 => Type.GetInt64Ty(_context),
+                    PointerWidth.X32 => _context.Int32Type,
+                    PointerWidth.X64 => _context.Int64Type,
                     _ => throw new InvalidOperationException("Invalid pointer width"),
                 },
                 value.AsUInt64()
             ),
-            ConstantKind.F32 => ConstantFP.Get(Type.GetFloatTy(_context), value.AsFloat32()),
-            ConstantKind.F64 => ConstantFP.Get(Type.GetDoubleTy(_context), value.AsFloat64()),
-            ConstantKind.Str => _builder.CreateGlobalString(value.AsString()),
+            ConstantKind.F32 => LLVMValueRef.CreateConstReal(_context.FloatType, value.AsFloat32()),
+            ConstantKind.F64 => LLVMValueRef.CreateConstReal(
+                _context.DoubleType,
+                value.AsFloat64()
+            ),
+            ConstantKind.Str => _builder.BuildGlobalString(value.AsString()),
             _ => throw new ArgumentException("Invalid constant kind"),
         };
     }
 
-    private Value ConvertByteBoolToI1IfNeeded(Value value)
+    private LLVMValueRef ConvertByteBoolToI1IfNeeded(LLVMValueRef value)
     {
-        return value.Type is IntegerType { BitWidth: 8 }
-            ? _builder.CreateICmp(
-                CmpInst.Predicate.ICMP_NE,
+        return value.TypeOf.IntWidth == 8
+            ? _builder.BuildICmp(
+                LLVMIntPredicate.LLVMIntNE,
                 value,
-                ConstantInt.Get(Type.GetInt8Ty(_context), 0)
+                LLVMValueRef.CreateConstInt(_context.Int8Type, 0)
             )
             : value;
     }
@@ -395,7 +407,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
         if (declaration.Initializer is null)
             return;
 
-        _builder.CreateStore(EmitExpression(declaration.Initializer, context), slot);
+        _builder.BuildStore(EmitExpression(declaration.Initializer, context), slot);
     }
 
     private void EmitExpressionStatement(
@@ -410,12 +422,12 @@ internal sealed class LlvmCodeEmitter : IDisposable
     {
         if (returnStatement.Expression is null)
         {
-            _builder.CreateRetVoid();
+            _builder.BuildRetVoid();
             return;
         }
 
         var expression = EmitExpression(returnStatement.Expression, context);
-        _builder.CreateRet(expression);
+        _builder.BuildRet(expression);
     }
 
     private void EmitIfStatement(BoundIfStatement statement, FunctionEmissionContext context)
@@ -423,69 +435,71 @@ internal sealed class LlvmCodeEmitter : IDisposable
         var function = context.Function;
         var thenBlock = function.AppendBasicBlock("cond.then");
         var elseBlock = statement.ElseStatement is not null
-            ? function.AppendBasicBlock("cond.else")
-            : null;
-        var mergeBlock = function.AppendBasicBlock("cond.merge");
+            ? LLVMBasicBlockRef.CreateInContext(_context, "cond.else")
+            : (LLVMBasicBlockRef?)null;
+        var mergeBlock = LLVMBasicBlockRef.CreateInContext(_context, "cond.merge");
 
         var condition = ConvertByteBoolToI1IfNeeded(EmitExpression(statement.Condition, context));
-        _builder.CreateCondBr(condition, thenBlock, elseBlock ?? mergeBlock);
+        _builder.BuildCondBr(condition, thenBlock, elseBlock ?? mergeBlock);
 
-        _builder.SetInsertPoint(thenBlock);
+        _builder.PositionAtEnd(thenBlock);
         EmitStatement(statement.ThenStatement, context);
-        _builder.CreateBr(mergeBlock);
+        _builder.BuildBr(mergeBlock);
 
         if (elseBlock is not null)
         {
-            _builder.SetInsertPoint(elseBlock);
+            function.AppendExistingBasicBlock(elseBlock.Value);
+            _builder.PositionAtEnd(elseBlock.Value);
             Debug.Assert(statement.ElseStatement is not null);
             EmitStatement(statement.ElseStatement, context);
-            _builder.CreateBr(mergeBlock);
+            _builder.BuildBr(mergeBlock);
         }
 
-        _builder.SetInsertPoint(mergeBlock);
+        function.AppendExistingBasicBlock(mergeBlock);
+        _builder.PositionAtEnd(mergeBlock);
     }
 
-    void EmitWhileStatement(BoundWhileStatement statement, FunctionEmissionContext context)
+    private void EmitWhileStatement(BoundWhileStatement statement, FunctionEmissionContext context)
     {
         throw new NotImplementedException();
     }
 
-    void EmitLoopStatement(BoundLoopStatement loop, FunctionEmissionContext context)
+    private void EmitLoopStatement(BoundLoopStatement loop, FunctionEmissionContext context)
     {
         throw new NotImplementedException();
     }
 
-    void EmitForLoop(BoundForStatement loop, FunctionEmissionContext context)
+    private void EmitForLoop(BoundForStatement loop, FunctionEmissionContext context)
     {
         throw new NotImplementedException();
     }
 
-    void EmitBreakStatement(BoundBreakStatement statement, FunctionEmissionContext context)
+    private void EmitBreakStatement(BoundBreakStatement statement, FunctionEmissionContext context)
     {
         throw new NotImplementedException();
     }
 
-    void EmitContinueStatement(BoundContinueStatement statement, FunctionEmissionContext context)
+    private void EmitContinueStatement(
+        BoundContinueStatement statement,
+        FunctionEmissionContext context
+    )
     {
         throw new NotImplementedException();
     }
 
-    private AllocaInst CreateEntryAlloca(Type type, string name, FunctionEmissionContext context)
+    private LLVMValueRef CreateEntryAlloca(
+        LLVMTypeRef type,
+        string name,
+        FunctionEmissionContext context
+    )
     {
         var entry = context.Function.EntryBasicBlock;
-        var entryBuilder = new IRBuilder(_context);
-        try
-        {
-            entryBuilder.SetInsertPoint(entry);
-            return entryBuilder.CreateAlloca(type, name: name);
-        }
-        finally
-        {
-            entryBuilder.Handle.Dispose();
-        }
+        using var entryBuilder = _context.CreateBuilder();
+        entryBuilder.PositionAtEnd(entry);
+        return entryBuilder.BuildAlloca(type, name);
     }
 
-    private Value EmitExpression(BoundExpression expression, FunctionEmissionContext context)
+    private LLVMValueRef EmitExpression(BoundExpression expression, FunctionEmissionContext context)
     {
         return expression switch
         {
@@ -505,7 +519,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
         };
     }
 
-    private Value EmitAccess(BoundVariableAccess access, FunctionEmissionContext context)
+    private LLVMValueRef EmitAccess(BoundVariableAccess access, FunctionEmissionContext context)
     {
         var val = EmitAccessCore(access, context);
         if (access.Symbol is { IsMutable: false, IsGlobal: false, HasInitializer: true })
@@ -514,20 +528,23 @@ internal sealed class LlvmCodeEmitter : IDisposable
         }
 
         var type = GetOrCreateType(access.Symbol.Type);
-        return _builder.CreateLoad(type, val);
+        return _builder.BuildLoad2(type, val);
     }
 
-    private Value EmitAccess(BoundParameterAccess access, FunctionEmissionContext context)
+    private LLVMValueRef EmitAccess(BoundParameterAccess access, FunctionEmissionContext context)
     {
         var val = EmitAccessCore(access, context);
         if (!access.Symbol.IsMutable)
             return val;
 
         var type = GetOrCreateType(access.Symbol.Type);
-        return _builder.CreateLoad(type, val);
+        return _builder.BuildLoad2(type, val);
     }
 
-    private Value EmitOperation(BoundUnaryOperation operation, FunctionEmissionContext context)
+    private LLVMValueRef EmitOperation(
+        BoundUnaryOperation operation,
+        FunctionEmissionContext context
+    )
     {
         switch (operation.Operation)
         {
@@ -537,12 +554,12 @@ internal sealed class LlvmCodeEmitter : IDisposable
             {
                 var operand = EmitExpression(operation.Operand, context);
                 return operation.Operand.Type.SpecialType.IsInteger
-                    ? _builder.CreateNeg(operand)
-                    : _builder.CreateFNeg(operand);
+                    ? _builder.BuildNeg(operand)
+                    : _builder.BuildFNeg(operand);
             }
             case UnaryOperation.LogicalNot:
             case UnaryOperation.BitwiseNot:
-                return _builder.CreateNot(EmitExpression(operation.Operand, context));
+                return _builder.BuildNot(EmitExpression(operation.Operand, context));
             case UnaryOperation.PreIncrement:
                 return EmitUnaryIncrementDecrement(
                     operation,
@@ -576,7 +593,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
         }
     }
 
-    private Value EmitUnaryIncrementDecrement(
+    private LLVMValueRef EmitUnaryIncrementDecrement(
         BoundUnaryOperation operation,
         UnaryReturnType returnType,
         UnaryArithmeticType direction,
@@ -585,20 +602,20 @@ internal sealed class LlvmCodeEmitter : IDisposable
     {
         var operand = EmitAddress(operation.Operand, context);
         var type = GetOrCreateType(operation.Operand.Type);
-        var value = _builder.CreateLoad(type, operand);
+        var value = _builder.BuildLoad2(type, operand);
         var updated = direction switch
         {
-            UnaryArithmeticType.Increment => _builder.CreateAdd(
+            UnaryArithmeticType.Increment => _builder.BuildAdd(
                 value,
-                ConstantInt.Get(value.Type, 1)
+                LLVMValueRef.CreateConstInt(value.TypeOf, 1)
             ),
-            UnaryArithmeticType.Decrement => _builder.CreateSub(
+            UnaryArithmeticType.Decrement => _builder.BuildSub(
                 value,
-                ConstantInt.Get(value.Type, 1)
+                LLVMValueRef.CreateConstInt(value.TypeOf, 1)
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
         };
-        _builder.CreateStore(updated, operand);
+        _builder.BuildStore(updated, operand);
         return returnType switch
         {
             UnaryReturnType.Prefix => updated,
@@ -607,125 +624,125 @@ internal sealed class LlvmCodeEmitter : IDisposable
         };
     }
 
-    private Value EmitOperation(BoundBinaryOperation operation, FunctionEmissionContext context)
+    private LLVMValueRef EmitOperation(
+        BoundBinaryOperation operation,
+        FunctionEmissionContext context
+    )
     {
         var left = EmitExpression(operation.Left, context);
         var right = EmitExpression(operation.Right, context);
         return EmitBinaryOperation(operation.Left.Type, left, right, operation.Operation);
     }
 
-    private Value EmitBinaryOperation(
+    private LLVMValueRef EmitBinaryOperation(
         TypeSymbol type,
-        Value left,
-        Value right,
+        LLVMValueRef left,
+        LLVMValueRef right,
         BinaryOperation operation
     )
     {
         return operation switch
         {
             BinaryOperation.Addition => type.SpecialType.IsInteger
-                ? _builder.CreateAdd(left, right)
-                : _builder.CreateFAdd(left, right),
+                ? _builder.BuildAdd(left, right)
+                : _builder.BuildFAdd(left, right),
             BinaryOperation.Subtraction => type.SpecialType.IsInteger
-                ? _builder.CreateSub(left, right)
-                : _builder.CreateFSub(left, right),
+                ? _builder.BuildSub(left, right)
+                : _builder.BuildFSub(left, right),
             BinaryOperation.Multiplication => type.SpecialType.IsInteger
-                ? _builder.CreateMul(left, right)
-                : _builder.CreateFMul(left, right),
+                ? _builder.BuildMul(left, right)
+                : _builder.BuildFMul(left, right),
             BinaryOperation.Division => type.SpecialType switch
             {
-                { IsSignedInteger: true } => _builder.CreateSDiv(left, right),
-                { IsUnsignedInteger: true } => _builder.CreateUDiv(left, right),
-                _ => _builder.CreateFDiv(left, right),
+                { IsSignedInteger: true } => _builder.BuildSDiv(left, right),
+                { IsUnsignedInteger: true } => _builder.BuildUDiv(left, right),
+                _ => _builder.BuildFDiv(left, right),
             },
             BinaryOperation.Modulo => type.SpecialType switch
             {
-                { IsSignedInteger: true } => _builder.CreateSRem(left, right),
-                { IsUnsignedInteger: true } => _builder.CreateURem(left, right),
-                _ => _builder.CreateFRem(left, right),
+                { IsSignedInteger: true } => _builder.BuildSRem(left, right),
+                { IsUnsignedInteger: true } => _builder.BuildURem(left, right),
+                _ => _builder.BuildFRem(left, right),
             },
-            BinaryOperation.BitwiseAnd or BinaryOperation.LogicalAnd => _builder.CreateAnd(
+            BinaryOperation.BitwiseAnd or BinaryOperation.LogicalAnd => _builder.BuildAnd(
                 left,
                 right
             ),
-            BinaryOperation.BitwiseOr or BinaryOperation.LogicalOr => _builder.CreateOr(
-                left,
-                right
-            ),
-            BinaryOperation.BitwiseXor => _builder.CreateXor(left, right),
+            BinaryOperation.BitwiseOr or BinaryOperation.LogicalOr => _builder.BuildOr(left, right),
+            BinaryOperation.BitwiseXor => _builder.BuildXor(left, right),
             BinaryOperation.Equality => type.SpecialType.IsFloatingPoint
-                ? _builder.CreateFCmp(CmpInst.Predicate.FCMP_OEQ, left, right)
-                : _builder.CreateICmp(CmpInst.Predicate.ICMP_EQ, left, right),
+                ? _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOEQ, left, right)
+                : _builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ, left, right),
             BinaryOperation.NotEquals => type.SpecialType.IsFloatingPoint
-                ? _builder.CreateFCmp(CmpInst.Predicate.FCMP_ONE, left, right)
-                : _builder.CreateICmp(CmpInst.Predicate.ICMP_NE, left, right),
+                ? _builder.BuildFCmp(LLVMRealPredicate.LLVMRealONE, left, right)
+                : _builder.BuildICmp(LLVMIntPredicate.LLVMIntNE, left, right),
             BinaryOperation.LessThan => type.SpecialType switch
             {
-                { IsSignedInteger: true } => _builder.CreateICmp(
-                    CmpInst.Predicate.ICMP_SLT,
+                { IsSignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntSLT,
                     left,
                     right
                 ),
-                { IsUnsignedInteger: true } => _builder.CreateICmp(
-                    CmpInst.Predicate.ICMP_ULT,
+                { IsUnsignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntULT,
                     left,
                     right
                 ),
-                _ => _builder.CreateFCmp(CmpInst.Predicate.FCMP_OLT, left, right),
+                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOLT, left, right),
             },
             BinaryOperation.LessThanOrEquals => type.SpecialType switch
             {
-                { IsSignedInteger: true } => _builder.CreateICmp(
-                    CmpInst.Predicate.ICMP_SLE,
+                { IsSignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntSLE,
                     left,
                     right
                 ),
-                { IsUnsignedInteger: true } => _builder.CreateICmp(
-                    CmpInst.Predicate.ICMP_ULE,
+                { IsUnsignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntULE,
                     left,
                     right
                 ),
-                _ => _builder.CreateFCmp(CmpInst.Predicate.FCMP_OLE, left, right),
+                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOLE, left, right),
             },
             BinaryOperation.GreaterThan => type.SpecialType switch
             {
-                { IsSignedInteger: true } => _builder.CreateICmp(
-                    CmpInst.Predicate.ICMP_SGT,
+                { IsSignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntSGT,
                     left,
                     right
                 ),
-                { IsUnsignedInteger: true } => _builder.CreateICmp(
-                    CmpInst.Predicate.ICMP_UGT,
+                { IsUnsignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntUGT,
                     left,
                     right
                 ),
-                _ => _builder.CreateFCmp(CmpInst.Predicate.FCMP_OGT, left, right),
+                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOGT, left, right),
             },
             BinaryOperation.GreaterThanOrEquals => type.SpecialType switch
             {
-                { IsSignedInteger: true } => _builder.CreateICmp(
-                    CmpInst.Predicate.ICMP_SGE,
+                { IsSignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntSGE,
                     left,
                     right
                 ),
-                { IsUnsignedInteger: true } => _builder.CreateICmp(
-                    CmpInst.Predicate.ICMP_UGE,
+                { IsUnsignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntUGE,
                     left,
                     right
                 ),
-                _ => _builder.CreateFCmp(CmpInst.Predicate.FCMP_OGE, left, right),
+                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOGE, left, right),
             },
             BinaryOperation.ThreeWayComparison => throw new NotSupportedException(
                 "Three way comparisons are not supported yet"
             ),
-            BinaryOperation.ShiftLeft => _builder.CreateShl(left, right),
-            BinaryOperation.ShiftRight => _builder.CreateAShr(left, right),
-            BinaryOperation.UnsignedShiftRight => _builder.CreateLShr(left, right),
+            BinaryOperation.ShiftLeft => _builder.BuildShl(left, right),
+            BinaryOperation.ShiftRight => _builder.BuildAShr(left, right),
+            BinaryOperation.UnsignedShiftRight => _builder.BuildLShr(left, right),
             _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
         };
     }
 
-    private Value EmitAssignment(
+    private LLVMValueRef EmitAssignment(
         BoundAssignmentOperation operation,
         FunctionEmissionContext context
     )
@@ -734,22 +751,25 @@ internal sealed class LlvmCodeEmitter : IDisposable
         var value = EmitExpression(operation.Right, context);
         if (operation.Operation == AssignmentOperation.Simple)
         {
-            _builder.CreateStore(value, assignee);
+            _builder.BuildStore(value, assignee);
         }
         else
         {
             var binaryOp = operation.Operation.ToBinaryOperation();
             var type = GetOrCreateType(operation.Left.Type);
-            var assigneeValue = _builder.CreateLoad(type, assignee);
+            var assigneeValue = _builder.BuildLoad2(type, assignee);
             var result = EmitBinaryOperation(operation.Left.Type, assigneeValue, value, binaryOp);
-            _builder.CreateStore(result, assignee);
+            _builder.BuildStore(result, assignee);
         }
 
         // Assignments do not return a value
         return null!;
     }
 
-    private Value EmitConditional(BoundConditional conditional, FunctionEmissionContext context)
+    private LLVMValueRef EmitConditional(
+        BoundConditional conditional,
+        FunctionEmissionContext context
+    )
     {
         var function = context.Function;
         var thenBlock = function.AppendBasicBlock("cond.then");
@@ -757,27 +777,29 @@ internal sealed class LlvmCodeEmitter : IDisposable
         var mergeBlock = function.AppendBasicBlock("cond.merge");
 
         var condition = ConvertByteBoolToI1IfNeeded(EmitExpression(conditional.Condition, context));
-        _builder.CreateCondBr(condition, thenBlock, elseBlock);
+        _builder.BuildCondBr(condition, thenBlock, elseBlock);
 
-        _builder.SetInsertPoint(thenBlock);
+        _builder.PositionAtEnd(thenBlock);
         var thenValue = EmitExpression(conditional.WhenTrue, context);
         var actualThenBlock = _builder.InsertBlock;
-        _builder.CreateBr(mergeBlock);
+        _builder.BuildBr(mergeBlock);
 
-        _builder.SetInsertPoint(elseBlock);
+        _builder.PositionAtEnd(elseBlock);
         var elseValue = EmitExpression(conditional.WhenFalse, context);
         var actualElseBlock = _builder.InsertBlock;
-        _builder.CreateBr(mergeBlock);
+        _builder.BuildBr(mergeBlock);
 
-        _builder.SetInsertPoint(mergeBlock);
+        _builder.PositionAtEnd(mergeBlock);
         var resultType = GetOrCreateType(conditional.Type);
-        var phi = _builder.CreatePHI(resultType);
-        phi.AddIncoming(thenValue, actualThenBlock);
-        phi.AddIncoming(elseValue, actualElseBlock);
+        var phi = _builder.BuildPhi(resultType);
+
+        Span<LLVMValueRef> values = [thenValue, elseValue];
+        Span<LLVMBasicBlockRef> blocks = [actualThenBlock, actualElseBlock];
+        phi.AddIncoming(values, blocks, 2);
         return phi;
     }
 
-    private CallInst EmitCall(BoundInvocation call, FunctionEmissionContext context)
+    private LLVMValueRef EmitCall(BoundInvocation call, FunctionEmissionContext context)
     {
         var target = call.Function;
         var callee = GetOrCreateFunction(target);
@@ -786,10 +808,10 @@ internal sealed class LlvmCodeEmitter : IDisposable
             .Arguments.AsValueEnumerable()
             .Select(a => EmitExpression(a, context))
             .ToArrayPool();
-        return _builder.CreateCall(callee.FunctionType, callee, arguments.Span, "");
+        return _builder.BuildCall2(callee.FunctionType, callee, arguments.Span, "");
     }
 
-    private Value EmitConversion(BoundConversion conversion, FunctionEmissionContext context)
+    private LLVMValueRef EmitConversion(BoundConversion conversion, FunctionEmissionContext context)
     {
         var operand = EmitExpression(conversion.Operand, context);
 
@@ -799,8 +821,8 @@ internal sealed class LlvmCodeEmitter : IDisposable
         return EmitScalarConversion(operand, conversion.Conversion, sourceType, targetType);
     }
 
-    private Value EmitScalarConversion(
-        Value operand,
+    private LLVMValueRef EmitScalarConversion(
+        LLVMValueRef operand,
         Conversion conversion,
         TypeSymbol sourceType,
         TypeSymbol targetType
@@ -816,18 +838,15 @@ internal sealed class LlvmCodeEmitter : IDisposable
         {
             if (sourceType.SpecialType.IsInteger && targetType.SpecialType.IsInteger)
             {
-                var sourceInt = (IntegerType)source;
-                var destInt = (IntegerType)target;
-
-                if (sourceInt.BitWidth < destInt.BitWidth)
+                if (source.IntWidth < target.IntWidth)
                 {
                     return sourceType.SpecialType.IsSignedInteger
-                        ? _builder.CreateSExt(operand, target)
-                        : _builder.CreateZExt(operand, target);
+                        ? _builder.BuildSExt(operand, target)
+                        : _builder.BuildZExt(operand, target);
                 }
 
-                Debug.Assert(sourceInt.BitWidth > destInt.BitWidth);
-                return _builder.CreateTrunc(operand, target);
+                Debug.Assert(source.IntWidth > target.IntWidth);
+                return _builder.BuildTrunc(operand, target);
             }
 
             if (sourceType.SpecialType.IsFloatingPoint && targetType.SpecialType.IsFloatingPoint)
@@ -835,48 +854,45 @@ internal sealed class LlvmCodeEmitter : IDisposable
                 if (sourceType.SpecialType == SpecialType.F32)
                 {
                     Debug.Assert(targetType.SpecialType == SpecialType.F64);
-                    return _builder.CreateFPExt(operand, target);
+                    return _builder.BuildFPExt(operand, target);
                 }
 
                 Debug.Assert(sourceType.SpecialType == SpecialType.F64);
                 Debug.Assert(targetType.SpecialType == SpecialType.F32);
-                return _builder.CreateFPTrunc(operand, target);
+                return _builder.BuildFPTrunc(operand, target);
             }
 
             if (sourceType.SpecialType.IsFloatingPoint && targetType.SpecialType.IsInteger)
             {
                 return targetType.SpecialType.IsSignedInteger
-                    ? _builder.CreateFPToSI(operand, target)
-                    : _builder.CreateFPToUI(operand, target);
+                    ? _builder.BuildFPToSI(operand, target)
+                    : _builder.BuildFPToUI(operand, target);
             }
 
             if (sourceType.SpecialType.IsInteger && targetType.SpecialType.IsFloatingPoint)
             {
                 return targetType.SpecialType.IsSignedInteger
-                    ? _builder.CreateSIToFP(operand, target)
-                    : _builder.CreateUIToFP(operand, target);
+                    ? _builder.BuildSIToFP(operand, target)
+                    : _builder.BuildUIToFP(operand, target);
             }
         }
 
         // ReSharper disable once InvertIf
         if (conversion.IsCharacter)
         {
-            var sourceInt = (IntegerType)source;
-            var destInt = (IntegerType)target;
-
-            if (sourceInt.BitWidth < destInt.BitWidth)
+            if (source.IntWidth < target.IntWidth)
             {
-                return _builder.CreateZExt(operand, target);
+                return _builder.BuildZExt(operand, target);
             }
 
-            Debug.Assert(sourceInt.BitWidth > destInt.BitWidth);
-            return _builder.CreateTrunc(operand, target);
+            Debug.Assert(source.IntWidth > target.IntWidth);
+            return _builder.BuildTrunc(operand, target);
         }
 
         throw new InvalidOperationException("If we get here, the conversion is invalid");
     }
 
-    private Value EmitAddress(BoundExpression expression, FunctionEmissionContext context)
+    private LLVMValueRef EmitAddress(BoundExpression expression, FunctionEmissionContext context)
     {
         return expression switch
         {
@@ -886,12 +902,12 @@ internal sealed class LlvmCodeEmitter : IDisposable
         };
     }
 
-    private Value EmitAccessCore(BoundVariableAccess access, FunctionEmissionContext context)
+    private LLVMValueRef EmitAccessCore(BoundVariableAccess access, FunctionEmissionContext context)
     {
         return context.LookupStorage(access.Symbol) ?? GetOrCreateGlobal(access.Symbol);
     }
 
-    private static Value EmitAccessCore(
+    private static LLVMValueRef EmitAccessCore(
         BoundParameterAccess access,
         FunctionEmissionContext context
     )
@@ -913,7 +929,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
         LLVM.InitializeNativeAsmParser();
 
         var tripleString = _compilation.Settings.GetLlvmTriple();
-        if (!Target.TryGetTargetFromTriple(tripleString, out var target, out _))
+        if (!LLVMTargetRef.TryGetTargetFromTriple(tripleString, out var target, out _))
         {
             // TODO: Emit a diagnostic
             return new EmitResult(false, []);
@@ -930,9 +946,8 @@ internal sealed class LlvmCodeEmitter : IDisposable
             LLVMCodeModel.LLVMCodeModelDefault
         );
 
-        _module.TargetTriple = tripleString;
-        var moduleHandle = _module.Handle;
-        moduleHandle.DataLayoutObject = targetMachine.CreateTargetDataLayout().Handle;
+        _module.Target = tripleString;
+        _module.DataLayoutObject = targetMachine.CreateTargetDataLayout();
 
         var outputFilename = Path.Combine(
             _options.OutputDirectory,
@@ -956,8 +971,8 @@ internal sealed class LlvmCodeEmitter : IDisposable
 
     public void Dispose()
     {
-        _builder.Handle.Dispose();
-        _module.Handle.Dispose();
-        _context.Handle.Dispose();
+        _builder.Dispose();
+        _module.Dispose();
+        _context.Dispose();
     }
 }

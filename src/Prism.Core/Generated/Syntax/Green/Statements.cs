@@ -15,7 +15,9 @@ internal sealed class GreenEmptyStatement : GreenStatement
     public GreenEmptyStatement(GreenToken semicolon)
         : base(SyntaxKind.EmptyStatement)
     {
+        SlotCount = 1;
         Semicolon = semicolon;
+        AdjustFlagsAndWidth(Semicolon);
     }
 
     public GreenToken Semicolon { get; }
@@ -64,7 +66,9 @@ internal sealed class GreenVariableDeclarationStatement : GreenStatement
     public GreenVariableDeclarationStatement(GreenVariableDeclaration declaration)
         : base(SyntaxKind.VariableDeclarationStatement)
     {
+        SlotCount = 1;
         Declaration = declaration;
+        AdjustFlagsAndWidth(Declaration);
     }
 
     public GreenVariableDeclaration Declaration { get; }
@@ -117,9 +121,13 @@ internal sealed class GreenBlock : GreenStatement
     )
         : base(SyntaxKind.Block)
     {
+        SlotCount = 3;
         OpenBrace = openBrace;
+        AdjustFlagsAndWidth(OpenBrace);
         Statements = statements;
+        AdjustFlagsAndWidth(Statements);
         CloseBrace = closeBrace;
+        AdjustFlagsAndWidth(CloseBrace);
     }
 
     public GreenToken OpenBrace { get; }
@@ -198,9 +206,14 @@ internal sealed class GreenReturnStatement : GreenStatement
     )
         : base(SyntaxKind.ReturnStatement)
     {
+        SlotCount = 3;
         ReturnKeyword = returnKeyword;
+        AdjustFlagsAndWidth(ReturnKeyword);
         Expression = expression;
+        if (Expression is not null)
+            AdjustFlagsAndWidth(Expression);
         Semicolon = semicolon;
+        AdjustFlagsAndWidth(Semicolon);
     }
 
     public GreenToken ReturnKeyword { get; }
@@ -292,8 +305,11 @@ internal sealed class GreenExpressionStatement : GreenStatement
     public GreenExpressionStatement(GreenExpression expression, GreenToken semicolon)
         : base(SyntaxKind.ExpressionStatement)
     {
+        SlotCount = 2;
         Expression = expression;
+        AdjustFlagsAndWidth(Expression);
         Semicolon = semicolon;
+        AdjustFlagsAndWidth(Semicolon);
     }
 
     public GreenExpression Expression { get; }
@@ -363,12 +379,20 @@ internal sealed class GreenIfStatement : GreenStatement
     )
         : base(SyntaxKind.IfStatement)
     {
+        SlotCount = 6;
         IfKeyword = ifKeyword;
+        AdjustFlagsAndWidth(IfKeyword);
         OpenParen = openParen;
+        AdjustFlagsAndWidth(OpenParen);
         Condition = condition;
+        AdjustFlagsAndWidth(Condition);
         CloseParen = closeParen;
+        AdjustFlagsAndWidth(CloseParen);
         Block = block;
+        AdjustFlagsAndWidth(Block);
         ElseClause = elseClause;
+        if (ElseClause is not null)
+            AdjustFlagsAndWidth(ElseClause);
     }
 
     public GreenToken IfKeyword { get; }
@@ -515,11 +539,17 @@ internal sealed class GreenWhileStatement : GreenStatement
     )
         : base(SyntaxKind.WhileStatement)
     {
+        SlotCount = 5;
         WhileKeyword = whileKeyword;
+        AdjustFlagsAndWidth(WhileKeyword);
         OpenParen = openParen;
+        AdjustFlagsAndWidth(OpenParen);
         Condition = condition;
+        AdjustFlagsAndWidth(Condition);
         CloseParen = closeParen;
+        AdjustFlagsAndWidth(CloseParen);
         Block = block;
+        AdjustFlagsAndWidth(Block);
     }
 
     public GreenToken WhileKeyword { get; }
@@ -645,8 +675,11 @@ internal sealed class GreenLoopStatement : GreenStatement
     public GreenLoopStatement(GreenToken loopKeyword, GreenBlock block)
         : base(SyntaxKind.LoopStatement)
     {
+        SlotCount = 2;
         LoopKeyword = loopKeyword;
+        AdjustFlagsAndWidth(LoopKeyword);
         Block = block;
+        AdjustFlagsAndWidth(Block);
     }
 
     public GreenToken LoopKeyword { get; }
@@ -720,16 +753,29 @@ internal sealed class GreenForStatement : GreenStatement
     )
         : base(SyntaxKind.ForStatement)
     {
+        SlotCount = 10;
         ForKeyword = forKeyword;
+        AdjustFlagsAndWidth(ForKeyword);
         OpenParen = openParen;
+        AdjustFlagsAndWidth(OpenParen);
         Declaration = declaration;
+        if (Declaration is not null)
+            AdjustFlagsAndWidth(Declaration);
         Initializers = initializers;
+        AdjustFlagsAndWidth(Initializers);
         FirstSemicolon = firstSemicolon;
+        AdjustFlagsAndWidth(FirstSemicolon);
         Condition = condition;
+        if (Condition is not null)
+            AdjustFlagsAndWidth(Condition);
         SecondSemicolon = secondSemicolon;
+        AdjustFlagsAndWidth(SecondSemicolon);
         Incrementors = incrementors;
+        AdjustFlagsAndWidth(Incrementors);
         CloseParen = closeParen;
+        AdjustFlagsAndWidth(CloseParen);
         Block = block;
+        AdjustFlagsAndWidth(Block);
     }
 
     public GreenToken ForKeyword { get; }
@@ -1062,8 +1108,11 @@ internal sealed class GreenBreakStatement : GreenStatement
     public GreenBreakStatement(GreenToken keyword, GreenToken semicolon)
         : base(SyntaxKind.BreakStatement)
     {
+        SlotCount = 2;
         Keyword = keyword;
+        AdjustFlagsAndWidth(Keyword);
         Semicolon = semicolon;
+        AdjustFlagsAndWidth(Semicolon);
     }
 
     public GreenToken Keyword { get; }
@@ -1126,8 +1175,11 @@ internal sealed class GreenContinueStatement : GreenStatement
     public GreenContinueStatement(GreenToken keyword, GreenToken semicolon)
         : base(SyntaxKind.ContinueStatement)
     {
+        SlotCount = 2;
         Keyword = keyword;
+        AdjustFlagsAndWidth(Keyword);
         Semicolon = semicolon;
+        AdjustFlagsAndWidth(Semicolon);
     }
 
     public GreenToken Keyword { get; }
