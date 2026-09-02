@@ -519,7 +519,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
             builder.AddItem(
                 new GreenParameter(
-                    ExpectToken(SyntaxKind.MutableKeyword),
+                    MatchToken(SyntaxKind.MutableKeyword),
                     ExpectToken(SyntaxKind.IdentifierToken),
                     ParseRequiredTypeSpecifier(),
                     ParseInitializer()
