@@ -3,6 +3,7 @@ using Prism.Core.Syntax;
 
 const string programPath = "D:/dev/prism/examples/hello_world/main.pr";
 
+Console.WriteLine("Parsing Program");
 string program;
 using (var stream = File.OpenRead(programPath))
 {
@@ -19,4 +20,5 @@ if (compilation.Emit(Directory.GetParent(programPath)!.FullName) is (false, _))
     return 1;
 }
 
+Console.WriteLine("Compilation Succeeded");
 return 0;
