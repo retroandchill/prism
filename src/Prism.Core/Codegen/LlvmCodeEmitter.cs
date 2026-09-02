@@ -384,14 +384,16 @@ internal sealed class LlvmCodeEmitter : IDisposable
 
     private void EmitBlock(BoundBlock block, FunctionEmissionContext context)
     {
-        context.PushScope();
+        using var scope = context.PushScope();
 
-        foreach (var statement in block.Statements)
+        foreach (
+            var statement in block
+                .Statements.AsValueEnumerable()
+                .TakeWhile(_ => !CurrentBlockHasTerminator())
+        )
         {
             EmitStatement(statement, context);
         }
-
-        context.PopScope();
     }
 
     private void EmitLocal(BoundVariableDeclaration declaration, FunctionEmissionContext context)
@@ -447,18 +449,31 @@ internal sealed class LlvmCodeEmitter : IDisposable
         var condition = ConvertByteBoolToI1IfNeeded(EmitExpression(statement.Condition, context));
         _builder.BuildCondBr(condition, thenBlock, elseBlock ?? mergeBlock);
 
+        var thenFallsThrough = false;
         _builder.PositionAtEnd(thenBlock);
         EmitStatement(statement.ThenStatement, context);
-        _builder.BuildBr(mergeBlock);
+        if (!CurrentBlockHasTerminator())
+        {
+            _builder.BuildBr(mergeBlock);
+            thenFallsThrough = true;
+        }
 
+        var elseFallsThrough = false;
         if (elseBlock is not null)
         {
             function.AppendExistingBasicBlock(elseBlock.Value);
             _builder.PositionAtEnd(elseBlock.Value);
             Debug.Assert(statement.ElseStatement is not null);
             EmitStatement(statement.ElseStatement, context);
-            _builder.BuildBr(mergeBlock);
+            if (!CurrentBlockHasTerminator())
+            {
+                _builder.BuildBr(mergeBlock);
+                elseFallsThrough = true;
+            }
         }
+
+        if (!thenFallsThrough && !elseFallsThrough && statement.ElseStatement is not null)
+            return;
 
         function.AppendExistingBasicBlock(mergeBlock);
         _builder.PositionAtEnd(mergeBlock);
@@ -470,7 +485,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
         var loopHead = function.AppendBasicBlock("loop.head");
         var loopBody = LLVMBasicBlockRef.CreateInContext(_context, "loop.body");
         var loopTail = LLVMBasicBlockRef.CreateInContext(_context, "loop.tail");
-        context.PushScope();
+        using var scope = context.PushScope();
         context.BindLabel(statement.Label, loopTail, loopHead);
 
         _builder.BuildBr(loopHead);
@@ -481,16 +496,18 @@ internal sealed class LlvmCodeEmitter : IDisposable
         function.AppendExistingBasicBlock(loopBody);
         _builder.PositionAtEnd(loopBody);
         EmitStatement(statement.Body, context);
-        _builder.BuildBr(loopHead);
+        if (!CurrentBlockHasTerminator())
+        {
+            _builder.BuildBr(loopHead);
+        }
 
         function.AppendExistingBasicBlock(loopTail);
         _builder.PositionAtEnd(loopTail);
-        context.PopScope();
     }
 
     private void EmitLoopStatement(BoundLoopStatement loop, FunctionEmissionContext context)
     {
-        context.PushScope();
+        using var scope = context.PushScope();
         var function = context.Function;
         var loopHead = function.AppendBasicBlock("loop.head");
         var loopTail = LLVMBasicBlockRef.CreateInContext(_context, "loop.tail");
@@ -499,16 +516,18 @@ internal sealed class LlvmCodeEmitter : IDisposable
         _builder.BuildBr(loopHead);
         _builder.PositionAtEnd(loopHead);
         EmitStatement(loop.Body, context);
-        _builder.BuildBr(loopHead);
+        if (!CurrentBlockHasTerminator())
+        {
+            _builder.BuildBr(loopHead);
+        }
 
         function.AppendExistingBasicBlock(loopTail);
         _builder.PositionAtEnd(loopTail);
-        context.PopScope();
     }
 
     private void EmitForLoop(BoundForStatement loop, FunctionEmissionContext context)
     {
-        context.PushScope();
+        using var scope = context.PushScope();
         if (loop.Variable is not null)
         {
             EmitLocal(loop.Variable, context);
@@ -523,8 +542,12 @@ internal sealed class LlvmCodeEmitter : IDisposable
         var loopBody = loop.Condition is not null
             ? LLVMBasicBlockRef.CreateInContext(_context, "loop.body")
             : (LLVMBasicBlockRef?)null;
+        var loopIncrement =
+            loop.Incrementors.Length > 0
+                ? LLVMBasicBlockRef.CreateInContext(_context, "loop.increment")
+                : (LLVMBasicBlockRef?)null;
         var loopTail = LLVMBasicBlockRef.CreateInContext(_context, "loop.tail");
-        context.BindLabel(loop.Label, loopTail, loopHead);
+        context.BindLabel(loop.Label, loopTail, loopIncrement ?? loopHead);
 
         _builder.BuildBr(loopHead);
         _builder.PositionAtEnd(loopHead);
@@ -539,16 +562,26 @@ internal sealed class LlvmCodeEmitter : IDisposable
         }
 
         EmitStatement(loop.Body, context);
-        foreach (var incrementor in loop.Incrementors)
-        {
-            EmitExpression(incrementor, context);
-        }
 
-        _builder.BuildBr(loopHead);
+        if (!CurrentBlockHasTerminator())
+        {
+            if (loopIncrement is not null)
+            {
+                _builder.BuildBr(loopIncrement.Value);
+
+                function.AppendExistingBasicBlock(loopIncrement.Value);
+                _builder.PositionAtEnd(loopIncrement.Value);
+                foreach (var incrementor in loop.Incrementors)
+                {
+                    EmitExpression(incrementor, context);
+                }
+            }
+
+            _builder.BuildBr(loopHead);
+        }
 
         function.AppendExistingBasicBlock(loopTail);
         _builder.PositionAtEnd(loopTail);
-        context.PopScope();
     }
 
     private void EmitBreakStatement(BoundBreakStatement statement, FunctionEmissionContext context)
@@ -570,6 +603,19 @@ internal sealed class LlvmCodeEmitter : IDisposable
         _builder.BuildBr(continueLabel);
     }
 
+    private bool CurrentBlockHasTerminator()
+    {
+        var block = _builder.InsertBlock;
+        return block.LastInstruction
+            is {
+                IsNull: false,
+                Opcode: LLVMOpcode.LLVMRet
+                    or LLVMOpcode.LLVMBr
+                    or LLVMOpcode.LLVMSwitch
+                    or LLVMOpcode.LLVMUnreachable
+            };
+    }
+
     private LLVMValueRef CreateEntryAlloca(
         LLVMTypeRef type,
         string name,
@@ -578,7 +624,22 @@ internal sealed class LlvmCodeEmitter : IDisposable
     {
         var entry = context.Function.EntryBasicBlock;
         using var entryBuilder = _context.CreateBuilder();
-        entryBuilder.PositionAtEnd(entry);
+
+        var instruction = entry.FirstInstruction;
+        while (instruction is { IsNull: false, InstructionOpcode: LLVMOpcode.LLVMAlloca })
+        {
+            instruction = instruction.NextInstruction;
+        }
+
+        if (instruction.IsNull || instruction.InstructionOpcode == 0)
+        {
+            entryBuilder.PositionAtEnd(entry);
+        }
+        else
+        {
+            entryBuilder.PositionBefore(instruction);
+        }
+
         return entryBuilder.BuildAlloca(type, name);
     }
 

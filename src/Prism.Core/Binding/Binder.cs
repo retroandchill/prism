@@ -381,6 +381,11 @@ internal abstract class Binder
                 continueStatementSyntax,
                 context
             ),
+            LabeledStatementSyntax labeledStatementSyntax => BindStatement(
+                labeledStatementSyntax.Statement,
+                returnType,
+                context
+            ),
             _ => throw new ArgumentOutOfRangeException(nameof(syntax)),
         };
     }

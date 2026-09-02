@@ -156,7 +156,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             SyntaxKind.WhileKeyword => ParseWhileStatement(),
             SyntaxKind.LoopKeyword => ParseLoopStatement(),
             SyntaxKind.ForKeyword => ParseForStatement(),
-            SyntaxKind.IdentifierToken when PeekToken(1).Kind == SyntaxKind.ColonToken =>
+            SyntaxKind.IdentifierToken when PeekToken(2).Kind == SyntaxKind.ColonToken =>
                 ParseLabeledStatement(),
             _ => ParseExpressionStatement(),
         };

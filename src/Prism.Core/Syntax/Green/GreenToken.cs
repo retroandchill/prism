@@ -61,7 +61,7 @@ internal class GreenToken : GreenNode
     public T? TryGetValue<T>()
         where T : struct, ISyntaxData
     {
-        return this is GreenValueToken<T> valueToken ? valueToken.Value : default;
+        return this is GreenValueToken<T> valueToken ? valueToken.Value : null;
     }
 
     public GreenToken WithLeadingTrivia(GreenNode? leadingTrivia)

@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using JetBrains.Annotations;
 using LLVMSharp.Interop;
 using Prism.Core.Symbols;
 using ZLinq;
@@ -25,12 +26,13 @@ internal sealed class FunctionEmissionContext(LLVMValueRef function)
 
     public LLVMValueRef Function { get; } = function;
 
-    public void PushScope()
+    public ScopeContext PushScope()
     {
         _scopeFrames.Add(new ScopeFrame());
+        return new ScopeContext(this);
     }
 
-    public void PopScope()
+    private void PopScope()
     {
         _scopeFrames.RemoveAt(_scopeFrames.Count - 1);
     }
@@ -69,5 +71,14 @@ internal sealed class FunctionEmissionContext(LLVMValueRef function)
         }
 
         return null;
+    }
+
+    [MustDisposeResource]
+    public readonly ref struct ScopeContext(FunctionEmissionContext context) : IDisposable
+    {
+        public void Dispose()
+        {
+            context.PopScope();
+        }
     }
 }

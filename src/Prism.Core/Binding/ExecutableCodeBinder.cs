@@ -98,6 +98,9 @@ internal sealed class ExecutableCodeBinder(Binder next, SyntaxNode syntax) : Bin
                 CollectScopes(forStatement.Block, binder, mappings);
                 break;
             }
+            case LabeledStatementSyntax labeled:
+                CollectScopes(labeled.Statement, enclosingBinder, mappings);
+                break;
         }
     }
 

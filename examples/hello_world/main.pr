@@ -22,14 +22,11 @@ func cast_check(a: i64): i32 {
 }
 
 func min(a: i32, b: i32): i32 {
-    mutable var result: i32;
     if (a < b) {
-        result = a;
+        return a;
     } else {
-        result = b;
+        return b;
     }
-
-    return result;
 }
 
 func compound_assign(mutable a: i32, b: i32): i32 {
@@ -51,12 +48,10 @@ func unconditional_loop(a: i32): i32 {
     mutable var i = 0;
 
     loop {
-        /*
         // We need to apply control-flow analysis to this in order for it to not crash
         if (i == a) {
             break;
         }
-        */
 
         i++;
     }
@@ -67,6 +62,20 @@ func unconditional_loop(a: i32): i32 {
 func for_loop(a: i32) {
     for (mutable var i = 0; i < a; i++) {
         // Do nothing
+    }
+}
+
+func nested_break_and_continue() {
+    outer: for (mutable var i = 0; i < 10; i++) {
+        for (mutable var j = 0; j < 10; j++) {
+            if (i == 5 && j == 5) {
+                continue outer;
+            }
+
+            if (i == 5 && j == 7) {
+                break outer;
+            }
+        }
     }
 }
 

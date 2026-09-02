@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="JetBrains.Annotations" />
     <PackageReference Include="LLVMSharp" />
     <PackageReference Include="NetEscapades.EnumGenerators" />
     <PackageReference Include="Nito.Collections.Deque" />
