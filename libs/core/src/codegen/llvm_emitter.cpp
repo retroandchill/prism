@@ -904,9 +904,9 @@ namespace prism
             switch (return_type)
             {
                 case UnaryReturnType::prefix:
-                    return value;
-                case UnaryReturnType::postfix:
                     return updated;
+                case UnaryReturnType::postfix:
+                    return value;
                 default:
                     UNREACHABLE("Invalid UnaryReturnType");
             }

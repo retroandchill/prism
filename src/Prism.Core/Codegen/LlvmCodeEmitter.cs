@@ -10,6 +10,7 @@ using LLVMSharp.Interop;
 using Prism.Core.BoundTree;
 using Prism.Core.Compiling;
 using Prism.Core.Configuration;
+using Prism.Core.Mappers;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Utils;
@@ -58,7 +59,66 @@ internal sealed class LlvmCodeEmitter : IDisposable
 
     public EmitResult Emit()
     {
-        throw new NotImplementedException();
+        foreach (var global in _compilation.GetGlobalVariables())
+        {
+            GetOrCreateGlobal(global);
+        }
+
+        foreach (var function in _compilation.GetGlobalFunctions())
+        {
+            GetOrCreateFunction(function);
+        }
+
+        FunctionEmissionContext? assemblyInitializerContext = null;
+        foreach (var global in _compilation.GetGlobalVariables())
+        {
+            EmitGlobalInitializer(global, ref assemblyInitializerContext);
+        }
+
+        if (assemblyInitializerContext is not null)
+        {
+            _builder.CreateRetVoid();
+            _module.AppendToGlobalCtors(assemblyInitializerContext.Function, 65535);
+        }
+
+        foreach (var function in _compilation.GetGlobalFunctions())
+        {
+            EmitFunctionBody(function);
+        }
+
+        if (_compilation.Settings.IsApplication && !EmitEntryPoint())
+        {
+            return new EmitResult(false, []);
+        }
+
+        WriteIR();
+        return OutputBinary();
+    }
+
+    private bool EmitEntryPoint()
+    {
+        Debug.Assert(_compilation.Settings.IsApplication);
+        var entryPoint = _compilation.GetEntryPoint();
+        if (entryPoint is null)
+            return false;
+
+        var functionType = FunctionType.Get(Type.GetInt32Ty(_context), []);
+        var mainFunc = _module.AddFunction("main", functionType);
+        var entry = mainFunc.AppendBasicBlock("entry");
+        _builder.SetInsertPoint(entry);
+
+        var targetFunction = GetOrCreateFunction(entryPoint);
+        var callEntryPoint = _builder.CreateCall(targetFunction.FunctionType, targetFunction);
+        if (entryPoint.ReturnsVoid)
+        {
+            _builder.CreateRet(ConstantInt.Get(Type.GetInt32Ty(_context), 0));
+        }
+        else
+        {
+            _builder.CreateRet(callEntryPoint);
+        }
+
+        return true;
     }
 
     private Function GetOrCreateFunction(FunctionSymbol functionSymbol)
@@ -94,6 +154,75 @@ internal sealed class LlvmCodeEmitter : IDisposable
         var variable = _module.AddGlobal(type, name);
         _symbolToValue[symbol] = variable;
         return variable;
+    }
+
+    private void EmitGlobalInitializer(
+        VariableSymbol symbol,
+        ref FunctionEmissionContext? assemblyInitializerContext
+    )
+    {
+        var variable = GetOrCreateGlobal(symbol);
+        if (!symbol.HasInitializer)
+            return;
+
+        var initializer = _compilation.GetBoundInitializer(symbol);
+        if (initializer is null)
+            return;
+
+        if (initializer.ConstantValue is { } constant)
+        {
+            variable.Initializer = MakeConstant(constant);
+            return;
+        }
+
+        if (assemblyInitializerContext is null)
+        {
+            var functionType = FunctionType.Get(Type.GetVoidTy(_context), [], false);
+            var initializerName = $"{_compilation.AssemblyName}_<GlobalInitializer>";
+            var assemblyInitializer = _module.AddFunction(initializerName, functionType);
+            assemblyInitializer.Linkage = LLVMLinkage.LLVMInternalLinkage;
+            var block = assemblyInitializer.AppendBasicBlock("entry");
+
+            assemblyInitializerContext = new FunctionEmissionContext(assemblyInitializer, block);
+            _builder.SetInsertPoint(block);
+        }
+
+        var initializedValue = EmitExpression(initializer, assemblyInitializerContext);
+        _builder.CreateStore(initializedValue, variable);
+    }
+
+    private void EmitFunctionBody(FunctionSymbol symbol)
+    {
+        var function = GetOrCreateFunction(symbol);
+        var body = _compilation.GetBoundBody(symbol);
+        if (body is null)
+        {
+            function.Linkage = LLVMLinkage.LLVMAvailableExternallyLinkage;
+            return;
+        }
+
+        var entry = function.AppendBasicBlock("entry");
+        _builder.SetInsertPoint(entry);
+        var context = new FunctionEmissionContext(function, entry);
+
+        foreach (
+            var (symbolParam, llvmParam) in symbol
+                .Parameters.AsValueEnumerable()
+                .Zip(function.GetParams())
+        )
+        {
+            if (symbolParam.IsMutable)
+            {
+                var slot = CreateEntryAlloca(llvmParam.Type, symbolParam.Name, context);
+                _builder.CreateStore(llvmParam, slot);
+                context.BindStorage(symbolParam, slot);
+            }
+            else
+            {
+                context.BindStorage(symbolParam, llvmParam);
+            }
+        }
+        EmitStatement(body, context);
     }
 
     private Type GetOrCreateType(TypeSymbol symbol)
@@ -277,7 +406,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
         _ = EmitExpression(statement.Expression, context);
     }
 
-    void EmitReturn(BoundReturnStatement returnStatement, FunctionEmissionContext context)
+    private void EmitReturn(BoundReturnStatement returnStatement, FunctionEmissionContext context)
     {
         if (returnStatement.Expression is null)
         {
@@ -358,42 +487,131 @@ internal sealed class LlvmCodeEmitter : IDisposable
 
     private Value EmitExpression(BoundExpression expression, FunctionEmissionContext context)
     {
-        throw new NotImplementedException();
-    }
-
-    private Value EmitLiteral(BoundLiteral literal, FunctionEmissionContext context)
-    {
-        throw new NotImplementedException();
+        return expression switch
+        {
+            BoundBadExpression => throw new InvalidOperationException(
+                "Should only emit LLVM IR if the compilation is valid"
+            ),
+            BoundLiteral literal => MakeConstant(literal.Value),
+            BoundVariableAccess access => EmitAccess(access, context),
+            BoundParameterAccess access => EmitAccess(access, context),
+            BoundUnaryOperation unary => EmitOperation(unary, context),
+            BoundBinaryOperation binary => EmitOperation(binary, context),
+            BoundAssignmentOperation assignment => EmitAssignment(assignment, context),
+            BoundConditional conditional => EmitConditional(conditional, context),
+            BoundInvocation invocation => EmitCall(invocation, context),
+            BoundConversion conversion => EmitConversion(conversion, context),
+            _ => throw new InvalidOperationException("We probably added a new expression type"),
+        };
     }
 
     private Value EmitAccess(BoundVariableAccess access, FunctionEmissionContext context)
     {
-        throw new NotImplementedException();
+        var val = EmitAccessCore(access, context);
+        if (access.Symbol is { IsMutable: false, IsGlobal: false, HasInitializer: true })
+        {
+            return val;
+        }
+
+        var type = GetOrCreateType(access.Symbol.Type);
+        return _builder.CreateLoad(type, val);
     }
 
     private Value EmitAccess(BoundParameterAccess access, FunctionEmissionContext context)
     {
-        throw new NotImplementedException();
+        var val = EmitAccessCore(access, context);
+        if (!access.Symbol.IsMutable)
+            return val;
+
+        var type = GetOrCreateType(access.Symbol.Type);
+        return _builder.CreateLoad(type, val);
     }
 
     private Value EmitOperation(BoundUnaryOperation operation, FunctionEmissionContext context)
     {
-        throw new NotImplementedException();
+        switch (operation.Operation)
+        {
+            case UnaryOperation.Identity:
+                return EmitExpression(operation.Operand, context);
+            case UnaryOperation.Negation:
+            {
+                var operand = EmitExpression(operation.Operand, context);
+                return operation.Operand.Type.SpecialType.IsInteger
+                    ? _builder.CreateNeg(operand)
+                    : _builder.CreateFNeg(operand);
+            }
+            case UnaryOperation.LogicalNot:
+            case UnaryOperation.BitwiseNot:
+                return _builder.CreateNot(EmitExpression(operation.Operand, context));
+            case UnaryOperation.PreIncrement:
+                return EmitUnaryIncrementDecrement(
+                    operation,
+                    UnaryReturnType.Prefix,
+                    UnaryArithmeticType.Increment,
+                    context
+                );
+            case UnaryOperation.PreDecrement:
+                return EmitUnaryIncrementDecrement(
+                    operation,
+                    UnaryReturnType.Prefix,
+                    UnaryArithmeticType.Decrement,
+                    context
+                );
+            case UnaryOperation.PostIncrement:
+                return EmitUnaryIncrementDecrement(
+                    operation,
+                    UnaryReturnType.Postfix,
+                    UnaryArithmeticType.Increment,
+                    context
+                );
+            case UnaryOperation.PostDecrement:
+                return EmitUnaryIncrementDecrement(
+                    operation,
+                    UnaryReturnType.Postfix,
+                    UnaryArithmeticType.Decrement,
+                    context
+                );
+            default:
+                throw new ArgumentException("Invalid operation");
+        }
     }
 
     private Value EmitUnaryIncrementDecrement(
         BoundUnaryOperation operation,
         UnaryReturnType returnType,
-        UnaryArithmeticType arithmeticType,
+        UnaryArithmeticType direction,
         FunctionEmissionContext context
     )
     {
-        throw new NotImplementedException();
+        var operand = EmitAddress(operation.Operand, context);
+        var type = GetOrCreateType(operation.Operand.Type);
+        var value = _builder.CreateLoad(type, operand);
+        var updated = direction switch
+        {
+            UnaryArithmeticType.Increment => _builder.CreateAdd(
+                value,
+                ConstantInt.Get(value.Type, 1)
+            ),
+            UnaryArithmeticType.Decrement => _builder.CreateSub(
+                value,
+                ConstantInt.Get(value.Type, 1)
+            ),
+            _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
+        };
+        _builder.CreateStore(updated, operand);
+        return returnType switch
+        {
+            UnaryReturnType.Prefix => updated,
+            UnaryReturnType.Postfix => value,
+            _ => throw new ArgumentOutOfRangeException(nameof(returnType), returnType, null),
+        };
     }
 
     private Value EmitOperation(BoundBinaryOperation operation, FunctionEmissionContext context)
     {
-        throw new NotImplementedException();
+        var left = EmitExpression(operation.Left, context);
+        var right = EmitExpression(operation.Right, context);
+        return EmitBinaryOperation(operation.Left.Type, left, right, operation.Operation);
     }
 
     private Value EmitBinaryOperation(
@@ -403,7 +621,108 @@ internal sealed class LlvmCodeEmitter : IDisposable
         BinaryOperation operation
     )
     {
-        throw new NotImplementedException();
+        return operation switch
+        {
+            BinaryOperation.Addition => type.SpecialType.IsInteger
+                ? _builder.CreateAdd(left, right)
+                : _builder.CreateFAdd(left, right),
+            BinaryOperation.Subtraction => type.SpecialType.IsInteger
+                ? _builder.CreateSub(left, right)
+                : _builder.CreateFSub(left, right),
+            BinaryOperation.Multiplication => type.SpecialType.IsInteger
+                ? _builder.CreateMul(left, right)
+                : _builder.CreateFMul(left, right),
+            BinaryOperation.Division => type.SpecialType switch
+            {
+                { IsSignedInteger: true } => _builder.CreateSDiv(left, right),
+                { IsUnsignedInteger: true } => _builder.CreateUDiv(left, right),
+                _ => _builder.CreateFDiv(left, right),
+            },
+            BinaryOperation.Modulo => type.SpecialType switch
+            {
+                { IsSignedInteger: true } => _builder.CreateSRem(left, right),
+                { IsUnsignedInteger: true } => _builder.CreateURem(left, right),
+                _ => _builder.CreateFRem(left, right),
+            },
+            BinaryOperation.BitwiseAnd or BinaryOperation.LogicalAnd => _builder.CreateAnd(
+                left,
+                right
+            ),
+            BinaryOperation.BitwiseOr or BinaryOperation.LogicalOr => _builder.CreateOr(
+                left,
+                right
+            ),
+            BinaryOperation.BitwiseXor => _builder.CreateXor(left, right),
+            BinaryOperation.Equality => type.SpecialType.IsFloatingPoint
+                ? _builder.CreateFCmp(CmpInst.Predicate.FCMP_OEQ, left, right)
+                : _builder.CreateICmp(CmpInst.Predicate.ICMP_EQ, left, right),
+            BinaryOperation.NotEquals => type.SpecialType.IsFloatingPoint
+                ? _builder.CreateFCmp(CmpInst.Predicate.FCMP_ONE, left, right)
+                : _builder.CreateICmp(CmpInst.Predicate.ICMP_NE, left, right),
+            BinaryOperation.LessThan => type.SpecialType switch
+            {
+                { IsSignedInteger: true } => _builder.CreateICmp(
+                    CmpInst.Predicate.ICMP_SLT,
+                    left,
+                    right
+                ),
+                { IsUnsignedInteger: true } => _builder.CreateICmp(
+                    CmpInst.Predicate.ICMP_ULT,
+                    left,
+                    right
+                ),
+                _ => _builder.CreateFCmp(CmpInst.Predicate.FCMP_OLT, left, right),
+            },
+            BinaryOperation.LessThanOrEquals => type.SpecialType switch
+            {
+                { IsSignedInteger: true } => _builder.CreateICmp(
+                    CmpInst.Predicate.ICMP_SLE,
+                    left,
+                    right
+                ),
+                { IsUnsignedInteger: true } => _builder.CreateICmp(
+                    CmpInst.Predicate.ICMP_ULE,
+                    left,
+                    right
+                ),
+                _ => _builder.CreateFCmp(CmpInst.Predicate.FCMP_OLE, left, right),
+            },
+            BinaryOperation.GreaterThan => type.SpecialType switch
+            {
+                { IsSignedInteger: true } => _builder.CreateICmp(
+                    CmpInst.Predicate.ICMP_SGT,
+                    left,
+                    right
+                ),
+                { IsUnsignedInteger: true } => _builder.CreateICmp(
+                    CmpInst.Predicate.ICMP_UGT,
+                    left,
+                    right
+                ),
+                _ => _builder.CreateFCmp(CmpInst.Predicate.FCMP_OGT, left, right),
+            },
+            BinaryOperation.GreaterThanOrEquals => type.SpecialType switch
+            {
+                { IsSignedInteger: true } => _builder.CreateICmp(
+                    CmpInst.Predicate.ICMP_SGE,
+                    left,
+                    right
+                ),
+                { IsUnsignedInteger: true } => _builder.CreateICmp(
+                    CmpInst.Predicate.ICMP_UGE,
+                    left,
+                    right
+                ),
+                _ => _builder.CreateFCmp(CmpInst.Predicate.FCMP_OGE, left, right),
+            },
+            BinaryOperation.ThreeWayComparison => throw new NotSupportedException(
+                "Three way comparisons are not supported yet"
+            ),
+            BinaryOperation.ShiftLeft => _builder.CreateShl(left, right),
+            BinaryOperation.ShiftRight => _builder.CreateAShr(left, right),
+            BinaryOperation.UnsignedShiftRight => _builder.CreateLShr(left, right),
+            _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
+        };
     }
 
     private Value EmitAssignment(
@@ -411,32 +730,73 @@ internal sealed class LlvmCodeEmitter : IDisposable
         FunctionEmissionContext context
     )
     {
-        throw new NotImplementedException();
+        var assignee = EmitAddress(operation.Left, context);
+        var value = EmitExpression(operation.Right, context);
+        if (operation.Operation == AssignmentOperation.Simple)
+        {
+            _builder.CreateStore(value, assignee);
+        }
+        else
+        {
+            var binaryOp = operation.Operation.ToBinaryOperation();
+            var type = GetOrCreateType(operation.Left.Type);
+            var assigneeValue = _builder.CreateLoad(type, assignee);
+            var result = EmitBinaryOperation(operation.Left.Type, assigneeValue, value, binaryOp);
+            _builder.CreateStore(result, assignee);
+        }
+
+        // Assignments do not return a value
+        return null!;
     }
 
-    private void EmitAssignment(
-        Value assignee,
-        TypeSymbol assigneeType,
-        Value value,
-        Func<Value, Value, Value> functor
-    )
+    private Value EmitConditional(BoundConditional conditional, FunctionEmissionContext context)
     {
-        throw new NotImplementedException();
+        var function = context.Function;
+        var thenBlock = function.AppendBasicBlock("cond.then");
+        var elseBlock = function.AppendBasicBlock("cond.else");
+        var mergeBlock = function.AppendBasicBlock("cond.merge");
+
+        var condition = ConvertByteBoolToI1IfNeeded(EmitExpression(conditional.Condition, context));
+        _builder.CreateCondBr(condition, thenBlock, elseBlock);
+
+        _builder.SetInsertPoint(thenBlock);
+        var thenValue = EmitExpression(conditional.WhenTrue, context);
+        var actualThenBlock = _builder.InsertBlock;
+        _builder.CreateBr(mergeBlock);
+
+        _builder.SetInsertPoint(elseBlock);
+        var elseValue = EmitExpression(conditional.WhenFalse, context);
+        var actualElseBlock = _builder.InsertBlock;
+        _builder.CreateBr(mergeBlock);
+
+        _builder.SetInsertPoint(mergeBlock);
+        var resultType = GetOrCreateType(conditional.Type);
+        var phi = _builder.CreatePHI(resultType);
+        phi.AddIncoming(thenValue, actualThenBlock);
+        phi.AddIncoming(elseValue, actualElseBlock);
+        return phi;
     }
 
-    private Value EmitConditional(BoundConditional operation, FunctionEmissionContext context)
+    private CallInst EmitCall(BoundInvocation call, FunctionEmissionContext context)
     {
-        throw new NotImplementedException();
-    }
+        var target = call.Function;
+        var callee = GetOrCreateFunction(target);
 
-    private Value EmitCall(BoundInvocation call, FunctionEmissionContext context)
-    {
-        throw new NotImplementedException();
+        using var arguments = call
+            .Arguments.AsValueEnumerable()
+            .Select(a => EmitExpression(a, context))
+            .ToArrayPool();
+        return _builder.CreateCall(callee.FunctionType, callee, arguments.Span, "");
     }
 
     private Value EmitConversion(BoundConversion conversion, FunctionEmissionContext context)
     {
-        throw new NotImplementedException();
+        var operand = EmitExpression(conversion.Operand, context);
+
+        var sourceType = conversion.Operand.Type;
+        var targetType = conversion.Type;
+
+        return EmitScalarConversion(operand, conversion.Conversion, sourceType, targetType);
     }
 
     private Value EmitScalarConversion(
@@ -446,22 +806,117 @@ internal sealed class LlvmCodeEmitter : IDisposable
         TypeSymbol targetType
     )
     {
-        throw new NotImplementedException();
+        var source = GetOrCreateType(sourceType);
+        var target = GetOrCreateType(targetType);
+
+        if (source == target)
+            return operand;
+
+        if (conversion.IsNumeric)
+        {
+            if (sourceType.SpecialType.IsInteger && targetType.SpecialType.IsInteger)
+            {
+                var sourceInt = (IntegerType)source;
+                var destInt = (IntegerType)target;
+
+                if (sourceInt.BitWidth < destInt.BitWidth)
+                {
+                    return sourceType.SpecialType.IsSignedInteger
+                        ? _builder.CreateSExt(operand, target)
+                        : _builder.CreateZExt(operand, target);
+                }
+
+                Debug.Assert(sourceInt.BitWidth > destInt.BitWidth);
+                return _builder.CreateTrunc(operand, target);
+            }
+
+            if (sourceType.SpecialType.IsFloatingPoint && targetType.SpecialType.IsFloatingPoint)
+            {
+                if (sourceType.SpecialType == SpecialType.F32)
+                {
+                    Debug.Assert(targetType.SpecialType == SpecialType.F64);
+                    return _builder.CreateFPExt(operand, target);
+                }
+
+                Debug.Assert(sourceType.SpecialType == SpecialType.F64);
+                Debug.Assert(targetType.SpecialType == SpecialType.F32);
+                return _builder.CreateFPTrunc(operand, target);
+            }
+
+            if (sourceType.SpecialType.IsFloatingPoint && targetType.SpecialType.IsInteger)
+            {
+                return targetType.SpecialType.IsSignedInteger
+                    ? _builder.CreateFPToSI(operand, target)
+                    : _builder.CreateFPToUI(operand, target);
+            }
+
+            if (sourceType.SpecialType.IsInteger && targetType.SpecialType.IsFloatingPoint)
+            {
+                return targetType.SpecialType.IsSignedInteger
+                    ? _builder.CreateSIToFP(operand, target)
+                    : _builder.CreateUIToFP(operand, target);
+            }
+        }
+
+        // ReSharper disable once InvertIf
+        if (conversion.IsCharacter)
+        {
+            var sourceInt = (IntegerType)source;
+            var destInt = (IntegerType)target;
+
+            if (sourceInt.BitWidth < destInt.BitWidth)
+            {
+                return _builder.CreateZExt(operand, target);
+            }
+
+            Debug.Assert(sourceInt.BitWidth > destInt.BitWidth);
+            return _builder.CreateTrunc(operand, target);
+        }
+
+        throw new InvalidOperationException("If we get here, the conversion is invalid");
     }
 
     private Value EmitAddress(BoundExpression expression, FunctionEmissionContext context)
     {
-        throw new NotImplementedException();
+        return expression switch
+        {
+            BoundVariableAccess access => EmitAccessCore(access, context),
+            BoundParameterAccess access => EmitAccessCore(access, context),
+            _ => throw new ArgumentException("Invalid expression type for address emission"),
+        };
     }
 
     private Value EmitAccessCore(BoundVariableAccess access, FunctionEmissionContext context)
     {
-        throw new NotImplementedException();
+        return context.LookupStorage(access.Symbol) ?? GetOrCreateGlobal(access.Symbol);
     }
 
-    private Value EmitAccessCore(BoundParameterAccess access, FunctionEmissionContext context)
+    private static Value EmitAccessCore(
+        BoundParameterAccess access,
+        FunctionEmissionContext context
+    )
     {
-        throw new NotImplementedException();
+        return context.LookupStorage(access.Symbol)
+            ?? throw new ArgumentException("Invalid parameter access");
+    }
+
+    private void WriteIR()
+    {
+        var targetPath = Path.Combine(_options.OutputDirectory, $"{_compilation.AssemblyName}.ll");
+        _module.PrintToFile(targetPath);
+    }
+
+    private EmitResult OutputBinary()
+    {
+        LLVM.InitializeAllTargetInfos();
+        LLVM.InitializeAllTargets();
+        LLVM.InitializeAllTargetMCs();
+        LLVM.InitializeAllAsmParsers();
+        LLVM.InitializeAllAsmPrinters();
+
+        // TODO: Implement binary output
+
+        return new EmitResult(true, []);
     }
 
     public void Dispose()

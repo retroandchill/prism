@@ -7,12 +7,24 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using LLVMSharp;
 using LLVMSharp.Interop;
+using ZLinq;
 using Type = LLVMSharp.Type;
 
 namespace Prism.Core.Codegen;
 
 internal static class LlvmConstantHelpers
 {
+    extension(Constant)
+    {
+        public static Constant GetNullValue(Type type)
+        {
+            return Create(LLVMValueRef.CreateConstNull(type.Handle));
+        }
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "Create")]
+    private static extern Constant Create(LLVMValueRef handle);
+
     extension(ConstantInt)
     {
         public static Constant Get(Type type, ulong value, bool isSigned = false)
@@ -53,4 +65,19 @@ internal static class LlvmConstantHelpers
 
     [UnsafeAccessor(UnsafeAccessorKind.Constructor)]
     private static extern ConstantFP ToConstFP(LLVMValueRef handle);
+
+    extension(ConstantArray)
+    {
+        public static ConstantArray Get(Type type, params ReadOnlySpan<Constant> elements)
+        {
+            using var elementsHandle = elements
+                .AsValueEnumerable()
+                .Select(e => e.Handle)
+                .ToArrayPool();
+            return ToConstArray(LLVMValueRef.CreateConstArray(type.Handle, elementsHandle.Span));
+        }
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Constructor)]
+    private static extern ConstantArray ToConstArray(LLVMValueRef handle);
 }
