@@ -26,6 +26,7 @@ internal sealed class FunctionEmissionContext(LLVMValueRef function)
 
     public LLVMValueRef Function { get; } = function;
 
+    [MustDisposeResource]
     public ScopeContext PushScope()
     {
         _scopeFrames.Add(new ScopeFrame());

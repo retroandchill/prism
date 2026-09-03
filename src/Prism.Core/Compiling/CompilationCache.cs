@@ -13,6 +13,10 @@ internal sealed class CompilationCache(Compilation compilation)
 {
     private readonly record struct SymbolLookupKey(Symbol? Container, string Name);
 
+    private readonly record struct ArrayLookupKey(TypeSymbol ElementType, ulong? Size);
+
+    private readonly record struct ReferenceLookupKey(TypeSymbol ReferencedType, bool IsMutable);
+
     private readonly ConcurrentDictionary<
         NamespaceSymbol,
         NamespaceSymbol?
@@ -23,6 +27,9 @@ internal sealed class CompilationCache(Compilation compilation)
     private readonly ConcurrentDictionary<SyntaxTree, SemanticModel> _semanticModels = new(
         ReferenceEqualityComparer.Instance
     );
+    private readonly ConcurrentDictionary<ArrayLookupKey, ArrayTypeSymbol> _arrayTypes = new();
+    private readonly ConcurrentDictionary<ReferenceLookupKey, ReferenceTypeSymbol> _referenceTypes =
+        new();
     private readonly ConcurrentDictionary<SymbolLookupKey, NamedTypeSymbol> _errorTypes = new();
     private readonly ConcurrentDictionary<SymbolLookupKey, NamespaceSymbol> _errorNamespaces =
         new();
@@ -66,6 +73,22 @@ internal sealed class CompilationCache(Compilation compilation)
             syntaxTree,
             static (t, c) => new SemanticModel(c, t),
             compilation
+        );
+    }
+
+    public ArrayTypeSymbol CreateArrayTypeSymbol(TypeSymbol elementType, ulong? size)
+    {
+        return _arrayTypes.GetOrAdd(
+            new ArrayLookupKey(elementType, size),
+            static k => new ArrayTypeSymbol(k.ElementType, k.Size)
+        );
+    }
+
+    public ReferenceTypeSymbol CreateReferenceTypeSymbol(TypeSymbol elementType, bool isMutable)
+    {
+        return _referenceTypes.GetOrAdd(
+            new ReferenceLookupKey(elementType, isMutable),
+            static k => new ReferenceTypeSymbol(k.ReferencedType, k.IsMutable)
         );
     }
 

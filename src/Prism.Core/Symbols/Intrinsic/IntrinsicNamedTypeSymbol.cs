@@ -45,4 +45,6 @@ internal sealed class IntrinsicNamedTypeSymbol : NamedTypeSymbol
     public override ImmutableArray<Symbol> GetMembers() => [];
 
     public override ImmutableArray<Symbol> GetMembers(string name) => [];
+
+    public override bool IsDynamicallySized => SpecialType == SpecialType.Str;
 }

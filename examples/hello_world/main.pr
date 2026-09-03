@@ -48,6 +48,7 @@ func unconditional_loop(a: i32): i32 {
     mutable var i = 0;
 
     loop {
+        // Line comment example
         if (i == a) {
             break;
         }

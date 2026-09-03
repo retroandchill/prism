@@ -22,6 +22,8 @@ public static partial class TokenReplacer
             GreenCompilationUnit compilationUnit => ReplaceFirstToken(compilationUnit, newToken),
             GreenPredefinedType predefinedType => ReplaceFirstToken(predefinedType, newToken),
             GreenNamedType namedType => ReplaceFirstToken(namedType, newToken),
+            GreenArrayType arrayType => ReplaceFirstToken(arrayType, newToken),
+            GreenReferenceType referenceType => ReplaceFirstToken(referenceType, newToken),
             GreenSimpleName simpleName => ReplaceFirstToken(simpleName, newToken),
             GreenQualifiedName qualifiedName => ReplaceFirstToken(qualifiedName, newToken),
             GreenInitializer initializer => ReplaceFirstToken(initializer, newToken),
@@ -135,6 +137,8 @@ public static partial class TokenReplacer
             null => null,
             GreenPredefinedType predefinedType => ReplaceFirstToken(predefinedType, newToken),
             GreenNamedType namedType => ReplaceFirstToken(namedType, newToken),
+            GreenArrayType arrayType => ReplaceFirstToken(arrayType, newToken),
+            GreenReferenceType referenceType => ReplaceFirstToken(referenceType, newToken),
             _ => throw new InvalidOperationException("Invalid node type passed into visit"),
         };
     }
@@ -361,6 +365,76 @@ public static partial class TokenReplacer
         if (newIdentifier != oldIdentifier)
         {
             return node.WithIdentifier(newIdentifier);
+        }
+
+        return node;
+    }
+
+    [return: NotNullIfNotNull(nameof(node))]
+    internal static GreenArrayType? ReplaceFirstToken(GreenArrayType? node, GreenToken newToken)
+    {
+        if (node is null)
+            return null;
+
+        var oldElementType = node.ElementType;
+        var newElementType = ReplaceFirstToken(oldElementType, newToken);
+        if (newElementType != oldElementType)
+        {
+            return node.WithElementType(newElementType);
+        }
+
+        var oldOpenBrace = node.OpenBrace;
+        var newOpenBrace = ReplaceFirstToken(oldOpenBrace, newToken);
+        if (newOpenBrace != oldOpenBrace)
+        {
+            return node.WithOpenBrace(newOpenBrace);
+        }
+
+        var oldSize = node.Size;
+        var newSize = ReplaceFirstToken(oldSize, newToken);
+        if (newSize != oldSize)
+        {
+            return node.WithSize(newSize);
+        }
+
+        var oldClosingBrace = node.ClosingBrace;
+        var newClosingBrace = ReplaceFirstToken(oldClosingBrace, newToken);
+        if (newClosingBrace != oldClosingBrace)
+        {
+            return node.WithClosingBrace(newClosingBrace);
+        }
+
+        return node;
+    }
+
+    [return: NotNullIfNotNull(nameof(node))]
+    internal static GreenReferenceType? ReplaceFirstToken(
+        GreenReferenceType? node,
+        GreenToken newToken
+    )
+    {
+        if (node is null)
+            return null;
+
+        var oldReferencedType = node.ReferencedType;
+        var newReferencedType = ReplaceFirstToken(oldReferencedType, newToken);
+        if (newReferencedType != oldReferencedType)
+        {
+            return node.WithReferencedType(newReferencedType);
+        }
+
+        var oldMutableKeyword = node.MutableKeyword;
+        var newMutableKeyword = ReplaceFirstToken(oldMutableKeyword, newToken);
+        if (newMutableKeyword != oldMutableKeyword)
+        {
+            return node.WithMutableKeyword(newMutableKeyword);
+        }
+
+        var oldAmpersand = node.Ampersand;
+        var newAmpersand = ReplaceFirstToken(oldAmpersand, newToken);
+        if (newAmpersand != oldAmpersand)
+        {
+            return node.WithAmpersand(newAmpersand);
         }
 
         return node;
@@ -1697,6 +1771,8 @@ public static partial class TokenReplacer
             GreenCompilationUnit compilationUnit => ReplaceLastToken(compilationUnit, newToken),
             GreenPredefinedType predefinedType => ReplaceLastToken(predefinedType, newToken),
             GreenNamedType namedType => ReplaceLastToken(namedType, newToken),
+            GreenArrayType arrayType => ReplaceLastToken(arrayType, newToken),
+            GreenReferenceType referenceType => ReplaceLastToken(referenceType, newToken),
             GreenSimpleName simpleName => ReplaceLastToken(simpleName, newToken),
             GreenQualifiedName qualifiedName => ReplaceLastToken(qualifiedName, newToken),
             GreenInitializer initializer => ReplaceLastToken(initializer, newToken),
@@ -1810,6 +1886,8 @@ public static partial class TokenReplacer
             null => null,
             GreenPredefinedType predefinedType => ReplaceLastToken(predefinedType, newToken),
             GreenNamedType namedType => ReplaceLastToken(namedType, newToken),
+            GreenArrayType arrayType => ReplaceLastToken(arrayType, newToken),
+            GreenReferenceType referenceType => ReplaceLastToken(referenceType, newToken),
             _ => throw new InvalidOperationException("Invalid node type passed into visit"),
         };
     }
@@ -2036,6 +2114,76 @@ public static partial class TokenReplacer
         if (newIdentifier != oldIdentifier)
         {
             return node.WithIdentifier(newIdentifier);
+        }
+
+        return node;
+    }
+
+    [return: NotNullIfNotNull(nameof(node))]
+    internal static GreenArrayType? ReplaceLastToken(GreenArrayType? node, GreenToken newToken)
+    {
+        if (node is null)
+            return null;
+
+        var oldClosingBrace = node.ClosingBrace;
+        var newClosingBrace = ReplaceLastToken(oldClosingBrace, newToken);
+        if (newClosingBrace != oldClosingBrace)
+        {
+            return node.WithClosingBrace(newClosingBrace);
+        }
+
+        var oldSize = node.Size;
+        var newSize = ReplaceLastToken(oldSize, newToken);
+        if (newSize != oldSize)
+        {
+            return node.WithSize(newSize);
+        }
+
+        var oldOpenBrace = node.OpenBrace;
+        var newOpenBrace = ReplaceLastToken(oldOpenBrace, newToken);
+        if (newOpenBrace != oldOpenBrace)
+        {
+            return node.WithOpenBrace(newOpenBrace);
+        }
+
+        var oldElementType = node.ElementType;
+        var newElementType = ReplaceLastToken(oldElementType, newToken);
+        if (newElementType != oldElementType)
+        {
+            return node.WithElementType(newElementType);
+        }
+
+        return node;
+    }
+
+    [return: NotNullIfNotNull(nameof(node))]
+    internal static GreenReferenceType? ReplaceLastToken(
+        GreenReferenceType? node,
+        GreenToken newToken
+    )
+    {
+        if (node is null)
+            return null;
+
+        var oldAmpersand = node.Ampersand;
+        var newAmpersand = ReplaceLastToken(oldAmpersand, newToken);
+        if (newAmpersand != oldAmpersand)
+        {
+            return node.WithAmpersand(newAmpersand);
+        }
+
+        var oldMutableKeyword = node.MutableKeyword;
+        var newMutableKeyword = ReplaceLastToken(oldMutableKeyword, newToken);
+        if (newMutableKeyword != oldMutableKeyword)
+        {
+            return node.WithMutableKeyword(newMutableKeyword);
+        }
+
+        var oldReferencedType = node.ReferencedType;
+        var newReferencedType = ReplaceLastToken(oldReferencedType, newToken);
+        if (newReferencedType != oldReferencedType)
+        {
+            return node.WithReferencedType(newReferencedType);
         }
 
         return node;

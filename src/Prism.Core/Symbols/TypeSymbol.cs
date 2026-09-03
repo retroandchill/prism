@@ -15,4 +15,6 @@ public abstract class TypeSymbol : MemberContainerSymbol
     public SpecialType SpecialType { get; }
 
     public bool IsVoid => SpecialType == SpecialType.Void;
+
+    public abstract bool IsDynamicallySized { get; }
 }

@@ -95,8 +95,35 @@ internal abstract class Binder
             PredefinedTypeSyntax predefinedTypeSyntax => Compilation.GetSpecialType(
                 predefinedTypeSyntax.Keyword.Kind.ToSpecialType()
             ),
+            ArrayTypeSyntax arrayTypeSyntax => Compilation.CreateArrayTypeSymbol(
+                ResolveType(arrayTypeSyntax.ElementType, context),
+                GetArraySize(arrayTypeSyntax, context)
+            ),
+            ReferenceTypeSyntax referenceTypeSyntax => Compilation.CreateReferenceTypeSymbol(
+                ResolveType(referenceTypeSyntax.ReferencedType, context),
+                referenceTypeSyntax.MutableKeyword is not null
+            ),
             _ => throw new ArgumentOutOfRangeException(nameof(syntax)),
         };
+    }
+
+    private ulong? GetArraySize(ArrayTypeSyntax syntax, LookupContext context)
+    {
+        if (syntax.Size is null)
+            return null;
+
+        var boundSize = BindExpression(
+            syntax.Size,
+            Compilation.GetSpecialType(SpecialType.USize),
+            context
+        );
+        if (
+            boundSize.ConstantValue
+            is not { IsUnsignedInteger: true, Kind: not ConstantKind.U128 } constant
+        )
+            return null;
+
+        return constant.AsUInt64();
     }
 
     private TypeSymbol RequireType(LookupResult result, NameSyntax syntax, LookupContext context)

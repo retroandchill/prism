@@ -136,6 +136,8 @@ public enum SyntaxKind : ushort
     #region Types
     PredefinedType = 3000,
     NamedType = 3001,
+    ArrayType = 3002,
+    ReferenceType = 3003,
     #endregion
 
     #region Names
@@ -313,6 +315,8 @@ public static partial class SyntaxKindExtensions
                     SyntaxKind.CompilationUnit => "CompilationUnit",
                     SyntaxKind.PredefinedType => "PredefinedType",
                     SyntaxKind.NamedType => "NamedType",
+                    SyntaxKind.ArrayType => "ArrayType",
+                    SyntaxKind.ReferenceType => "ReferenceType",
                     SyntaxKind.SimpleName => "SimpleName",
                     SyntaxKind.QualifiedName => "QualifiedName",
                     SyntaxKind.Initializer => "Initializer",
@@ -388,9 +392,9 @@ public static partial class SyntaxKindExtensions
         public bool IsTopLevel => (ushort)kind >= 2000 && (ushort)kind <= 2000;
 
         public static SyntaxKind TypeStart => (SyntaxKind)3000;
-        public static SyntaxKind TypeEnd => (SyntaxKind)3001;
+        public static SyntaxKind TypeEnd => (SyntaxKind)3003;
 
-        public bool IsType => (ushort)kind >= 3000 && (ushort)kind <= 3001;
+        public bool IsType => (ushort)kind >= 3000 && (ushort)kind <= 3003;
 
         public static SyntaxKind NameStart => (SyntaxKind)4000;
         public static SyntaxKind NameEnd => (SyntaxKind)4001;

@@ -27,7 +27,7 @@ public class Compilation
     private readonly SyntaxAndDeclarationManager _syntaxAndDeclarationManager;
     private EntryPoint? _entryPoint;
 
-    internal Compilation(
+    private Compilation(
         string assemblyName,
         CompilationSettings settings,
         SyntaxAndDeclarationManager manager
@@ -110,6 +110,19 @@ public class Compilation
         return IntrinsicSymbols.GetType(specialType);
     }
 #pragma warning restore CA1822
+
+    public ArrayTypeSymbol CreateArrayTypeSymbol(TypeSymbol elementType, ulong? size = null)
+    {
+        return Cache.CreateArrayTypeSymbol(elementType, size);
+    }
+
+    public ReferenceTypeSymbol CreateReferenceTypeSymbol(
+        TypeSymbol elementType,
+        bool isMutable = false
+    )
+    {
+        return Cache.CreateReferenceTypeSymbol(elementType, isMutable);
+    }
 
     public NamedTypeSymbol CreateErrorTypeSymbol(Symbol? containingSymbol, string name)
     {

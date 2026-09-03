@@ -237,25 +237,46 @@ internal sealed class LlvmCodeEmitter : IDisposable
 
     private LLVMTypeRef CreateType(TypeSymbol symbol)
     {
-        return symbol.SpecialType switch
+        switch (symbol)
         {
-            SpecialType.Void => _context.VoidType,
-            SpecialType.Bool or SpecialType.I8 or SpecialType.U8 or SpecialType.Char =>
-                _context.Int8Type,
-            SpecialType.I16 or SpecialType.U16 or SpecialType.Char16 => _context.Int16Type,
-            SpecialType.I32 or SpecialType.U32 or SpecialType.Rune => _context.Int32Type,
-            SpecialType.I64 or SpecialType.U64 => _context.Int64Type,
-            SpecialType.I128 or SpecialType.U128 => _context.Int128Type,
-            SpecialType.ISize or SpecialType.USize => _compilation.Settings.PointerWidth switch
+            case ReferenceTypeSymbol { ReferencedType: var referencedType }:
             {
-                PointerWidth.X32 => _context.Int32Type,
-                PointerWidth.X64 => _context.Int64Type,
-                _ => throw new InvalidOperationException("Invalid pointer width"),
-            },
-            SpecialType.F32 => _context.FloatType,
-            SpecialType.F64 => _context.DoubleType,
-            _ => throw new NotImplementedException(),
-        };
+                var pointer = _context.CreatePointerType(0);
+                if (referencedType.IsDynamicallySized)
+                {
+                    LLVMTypeRef.CreateStruct(
+                        [pointer, GetOrCreateType(_compilation.GetSpecialType(SpecialType.USize))],
+                        false
+                    );
+                }
+
+                return pointer;
+            }
+            case ArrayTypeSymbol { ElementType: var elementType, Size: { } size }:
+                return LLVMTypeRef.CreateArray2(GetOrCreateType(elementType), size);
+            default:
+                return symbol.SpecialType switch
+                {
+                    SpecialType.Void => _context.VoidType,
+                    SpecialType.Bool or SpecialType.I8 or SpecialType.U8 or SpecialType.Char =>
+                        _context.Int8Type,
+                    SpecialType.I16 or SpecialType.U16 or SpecialType.Char16 => _context.Int16Type,
+                    SpecialType.I32 or SpecialType.U32 or SpecialType.Rune => _context.Int32Type,
+                    SpecialType.I64 or SpecialType.U64 => _context.Int64Type,
+                    SpecialType.I128 or SpecialType.U128 => _context.Int128Type,
+                    SpecialType.ISize or SpecialType.USize => _compilation
+                        .Settings
+                        .PointerWidth switch
+                    {
+                        PointerWidth.X32 => _context.Int32Type,
+                        PointerWidth.X64 => _context.Int64Type,
+                        _ => throw new InvalidOperationException("Invalid pointer width"),
+                    },
+                    SpecialType.F32 => _context.FloatType,
+                    SpecialType.F64 => _context.DoubleType,
+                    _ => throw new NotImplementedException(),
+                };
+        }
     }
 
     private LLVMValueRef MakeConstant(in ConstantValue value)

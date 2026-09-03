@@ -477,6 +477,45 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
     private GreenType ParseType()
     {
+        var type = ParseBaseType();
+
+        while (!AtEnd)
+        {
+            switch (PeekToken().Kind)
+            {
+                case SyntaxKind.AmpToken:
+                    type = new GreenReferenceType(type, null, ConsumeToken());
+                    break;
+                case SyntaxKind.MutableKeyword:
+                    type = new GreenReferenceType(
+                        type,
+                        ConsumeToken(),
+                        ExpectToken(SyntaxKind.AmpToken)
+                    );
+                    break;
+                case SyntaxKind.OpenBracketToken:
+                {
+                    var openBracket = ConsumeToken();
+                    var expression =
+                        PeekToken().Kind != SyntaxKind.CloseBraceToken ? ParseExpression() : null;
+                    type = new GreenArrayType(
+                        type,
+                        openBracket,
+                        expression,
+                        ExpectToken(SyntaxKind.CloseBracketToken)
+                    );
+                    break;
+                }
+                default:
+                    return type;
+            }
+        }
+
+        return type;
+    }
+
+    private GreenType ParseBaseType()
+    {
         return PeekToken().Kind.IsBuiltInType
             ? new GreenPredefinedType(ConsumeToken())
             : new GreenNamedType(ParseName());

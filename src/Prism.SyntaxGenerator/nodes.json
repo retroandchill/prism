@@ -506,6 +506,72 @@
               "shape": "single"
             }
           ]
+        },
+        {
+          "name": "ArrayType",
+          "base": "Type",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "element_type",
+              "type": "Type",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "open_brace",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenBraceToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "size",
+              "type": "Expression",
+              "shape": "optional"
+            },
+            {
+              "$type": "item",
+              "name": "closing_brace",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseBraceToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ReferenceType",
+          "base": "Type",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "referenced_type",
+              "type": "Type",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "mutable_keyword",
+              "type": "Token",
+              "shape": "optional",
+              "kinds": [
+                "MutableKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "ampersand",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "AmpToken"
+              ]
+            }
+          ]
         }
       ]
     },

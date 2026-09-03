@@ -1,0 +1,25 @@
+{
+  "name": "prism-syntax-highlighting",
+  "displayName": "Prism Syntax Highlighting",
+  "description": "Basic syntax highlighting for the Prism programming language",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.136.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "prism",
+      "aliases": ["Prism", "prism"],
+      "extensions": [".pr"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "prism",
+      "scopeName": "source.prism",
+      "path": "./syntaxes/prism.tmLanguage.json"
+    }]
+  }
+}
