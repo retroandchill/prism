@@ -48,7 +48,6 @@ func unconditional_loop(a: i32): i32 {
     mutable var i = 0;
 
     loop {
-        // We need to apply control-flow analysis to this in order for it to not crash
         if (i == a) {
             break;
         }
