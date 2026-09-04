@@ -411,6 +411,12 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 ParseType()
             ),
             { IsPostfixOperator: true } => new GreenPostfixExpression(expression, ConsumeToken()),
+            SyntaxKind.OpenBracketToken => new GreenIndexExpression(
+                expression,
+                ConsumeToken(),
+                ParseExpression(),
+                ExpectToken(SyntaxKind.CloseBracketToken)
+            ),
             _ => expression,
         };
     }

@@ -393,3 +393,62 @@ public sealed class CastExpressionSyntax : ExpressionSyntax
         };
     }
 };
+
+public sealed class IndexExpressionSyntax : ExpressionSyntax
+{
+    internal IndexExpressionSyntax(GreenIndexExpression node, SyntaxNode? parent, int position)
+        : base(node, parent, position) { }
+
+    private ExpressionSyntax? _operand;
+    public ExpressionSyntax Operand
+    {
+        get { return GetRed(ref _operand); }
+    }
+    public SyntaxToken OpenBracket
+    {
+        get
+        {
+            return new SyntaxToken(
+                ((GreenIndexExpression)Green).OpenBracket,
+                this,
+                GetSlotPosition(1)
+            );
+        }
+    }
+    private ExpressionSyntax? _index;
+    public ExpressionSyntax Index
+    {
+        get { return GetRed(ref _index, 2); }
+    }
+    public SyntaxToken CloseBracket
+    {
+        get
+        {
+            return new SyntaxToken(
+                ((GreenIndexExpression)Green).CloseBracket,
+                this,
+                GetSlotPosition(3)
+            );
+        }
+    }
+
+    internal override SyntaxNode? GetNodeSlot(int index)
+    {
+        return index switch
+        {
+            0 => GetRed(ref _operand),
+            2 => GetRed(ref _index, 2),
+            _ => null,
+        };
+    }
+
+    internal override SyntaxNode? GetCachedSlot(int index)
+    {
+        return index switch
+        {
+            0 => _operand,
+            2 => _index,
+            _ => null,
+        };
+    }
+};

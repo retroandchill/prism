@@ -66,6 +66,7 @@ public static partial class TokenReplacer
                 newToken
             ),
             GreenCastExpression castExpression => ReplaceFirstToken(castExpression, newToken),
+            GreenIndexExpression indexExpression => ReplaceFirstToken(indexExpression, newToken),
             GreenEmptyStatement emptyStatement => ReplaceFirstToken(emptyStatement, newToken),
             GreenVariableDeclarationStatement variableDeclarationStatement => ReplaceFirstToken(
                 variableDeclarationStatement,
@@ -192,6 +193,7 @@ public static partial class TokenReplacer
                 newToken
             ),
             GreenCastExpression castExpression => ReplaceFirstToken(castExpression, newToken),
+            GreenIndexExpression indexExpression => ReplaceFirstToken(indexExpression, newToken),
             _ => throw new InvalidOperationException("Invalid node type passed into visit"),
         };
     }
@@ -1035,6 +1037,46 @@ public static partial class TokenReplacer
     }
 
     [return: NotNullIfNotNull(nameof(node))]
+    internal static GreenIndexExpression? ReplaceFirstToken(
+        GreenIndexExpression? node,
+        GreenToken newToken
+    )
+    {
+        if (node is null)
+            return null;
+
+        var oldOperand = node.Operand;
+        var newOperand = ReplaceFirstToken(oldOperand, newToken);
+        if (newOperand != oldOperand)
+        {
+            return node.WithOperand(newOperand);
+        }
+
+        var oldOpenBracket = node.OpenBracket;
+        var newOpenBracket = ReplaceFirstToken(oldOpenBracket, newToken);
+        if (newOpenBracket != oldOpenBracket)
+        {
+            return node.WithOpenBracket(newOpenBracket);
+        }
+
+        var oldIndex = node.Index;
+        var newIndex = ReplaceFirstToken(oldIndex, newToken);
+        if (newIndex != oldIndex)
+        {
+            return node.WithIndex(newIndex);
+        }
+
+        var oldCloseBracket = node.CloseBracket;
+        var newCloseBracket = ReplaceFirstToken(oldCloseBracket, newToken);
+        if (newCloseBracket != oldCloseBracket)
+        {
+            return node.WithCloseBracket(newCloseBracket);
+        }
+
+        return node;
+    }
+
+    [return: NotNullIfNotNull(nameof(node))]
     internal static GreenEmptyStatement? ReplaceFirstToken(
         GreenEmptyStatement? node,
         GreenToken newToken
@@ -1815,6 +1857,7 @@ public static partial class TokenReplacer
                 newToken
             ),
             GreenCastExpression castExpression => ReplaceLastToken(castExpression, newToken),
+            GreenIndexExpression indexExpression => ReplaceLastToken(indexExpression, newToken),
             GreenEmptyStatement emptyStatement => ReplaceLastToken(emptyStatement, newToken),
             GreenVariableDeclarationStatement variableDeclarationStatement => ReplaceLastToken(
                 variableDeclarationStatement,
@@ -1941,6 +1984,7 @@ public static partial class TokenReplacer
                 newToken
             ),
             GreenCastExpression castExpression => ReplaceLastToken(castExpression, newToken),
+            GreenIndexExpression indexExpression => ReplaceLastToken(indexExpression, newToken),
             _ => throw new InvalidOperationException("Invalid node type passed into visit"),
         };
     }
@@ -2771,6 +2815,46 @@ public static partial class TokenReplacer
         if (newAsKeyword != oldAsKeyword)
         {
             return node.WithAsKeyword(newAsKeyword);
+        }
+
+        var oldOperand = node.Operand;
+        var newOperand = ReplaceLastToken(oldOperand, newToken);
+        if (newOperand != oldOperand)
+        {
+            return node.WithOperand(newOperand);
+        }
+
+        return node;
+    }
+
+    [return: NotNullIfNotNull(nameof(node))]
+    internal static GreenIndexExpression? ReplaceLastToken(
+        GreenIndexExpression? node,
+        GreenToken newToken
+    )
+    {
+        if (node is null)
+            return null;
+
+        var oldCloseBracket = node.CloseBracket;
+        var newCloseBracket = ReplaceLastToken(oldCloseBracket, newToken);
+        if (newCloseBracket != oldCloseBracket)
+        {
+            return node.WithCloseBracket(newCloseBracket);
+        }
+
+        var oldIndex = node.Index;
+        var newIndex = ReplaceLastToken(oldIndex, newToken);
+        if (newIndex != oldIndex)
+        {
+            return node.WithIndex(newIndex);
+        }
+
+        var oldOpenBracket = node.OpenBracket;
+        var newOpenBracket = ReplaceLastToken(oldOpenBracket, newToken);
+        if (newOpenBracket != oldOpenBracket)
+        {
+            return node.WithOpenBracket(newOpenBracket);
         }
 
         var oldOperand = node.Operand;

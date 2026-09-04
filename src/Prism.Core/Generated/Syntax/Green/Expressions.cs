@@ -797,3 +797,127 @@ internal sealed class GreenCastExpression : GreenExpression
         return new GreenCastExpression(operand, asKeyword, type) { Diagnostics = Diagnostics };
     }
 }
+
+internal sealed class GreenIndexExpression : GreenExpression
+{
+    public GreenIndexExpression(
+        GreenExpression operand,
+        GreenToken openBracket,
+        GreenExpression index,
+        GreenToken closeBracket
+    )
+        : base(SyntaxKind.IndexExpression)
+    {
+        SlotCount = 4;
+        Operand = operand;
+        AdjustFlagsAndWidth(Operand);
+        OpenBracket = openBracket;
+        AdjustFlagsAndWidth(OpenBracket);
+        Index = index;
+        AdjustFlagsAndWidth(Index);
+        CloseBracket = closeBracket;
+        AdjustFlagsAndWidth(CloseBracket);
+    }
+
+    public GreenExpression Operand { get; }
+    public GreenToken OpenBracket { get; }
+    public GreenExpression Index { get; }
+    public GreenToken CloseBracket { get; }
+
+    public override GreenNode? GetSlot(int index)
+    {
+        return index switch
+        {
+            0 => Operand,
+            1 => OpenBracket,
+            2 => Index,
+            3 => CloseBracket,
+            _ => null,
+        };
+    }
+
+    public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
+    {
+        return new IndexExpressionSyntax(this, parent, position);
+    }
+
+    public GreenIndexExpression WithOperand(GreenExpression operand)
+    {
+        if (Operand == operand)
+            return this;
+
+        return new GreenIndexExpression(operand, OpenBracket, Index, CloseBracket)
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public GreenIndexExpression WithOpenBracket(GreenToken openBracket)
+    {
+        if (OpenBracket == openBracket)
+            return this;
+
+        return new GreenIndexExpression(Operand, openBracket, Index, CloseBracket)
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public GreenIndexExpression WithIndex(GreenExpression index)
+    {
+        if (Index == index)
+            return this;
+
+        return new GreenIndexExpression(Operand, OpenBracket, index, CloseBracket)
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public GreenIndexExpression WithCloseBracket(GreenToken closeBracket)
+    {
+        if (CloseBracket == closeBracket)
+            return this;
+
+        return new GreenIndexExpression(Operand, OpenBracket, Index, closeBracket)
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public override GreenIndexExpression WithDiagnostics(
+        ImmutableArray<SyntaxDiagnosticInfo> diagnostics
+    )
+    {
+        if (Diagnostics == diagnostics)
+            return this;
+
+        return new GreenIndexExpression(Operand, OpenBracket, Index, CloseBracket)
+        {
+            Diagnostics = diagnostics,
+        };
+    }
+
+    public GreenIndexExpression Update(
+        GreenExpression operand,
+        GreenToken openBracket,
+        GreenExpression index,
+        GreenToken closeBracket
+    )
+    {
+        if (
+            Operand == operand
+            && OpenBracket == openBracket
+            && Index == index
+            && CloseBracket == closeBracket
+        )
+        {
+            return this;
+        }
+
+        return new GreenIndexExpression(operand, openBracket, index, closeBracket)
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+}

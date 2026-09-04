@@ -808,7 +808,7 @@ internal abstract class Binder
             case SyntaxKind.AmpToken:
             {
                 var inner = BindExpression(syntax.Operand, context, true);
-                if (!inner.IsLValue)
+                if (!inner.IsAddressable)
                 {
                     context.ReportDiagnostic(Diagnostic.CannotTakeAddress(syntax.Operand.Location));
                 }

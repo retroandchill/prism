@@ -1139,6 +1139,42 @@
               "shape": "single"
             }
           ]
+        },
+        {
+          "name": "IndexExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "operand",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "open_bracket",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenBracketToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "index",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "close_bracket",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseBracketToken"
+              ]
+            }
+          ]
         }
       ]
     },
@@ -2204,6 +2240,17 @@
           "name": "CannotDereferenceVariableLength",
           "severity": "Error",
           "format": "Cannot dereference a variable length type {Type}",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NoIndexOperation",
+          "severity": "Error",
+          "format": "Cannot perform index operation on {Type}",
           "args": [
             {
               "name": "Type",

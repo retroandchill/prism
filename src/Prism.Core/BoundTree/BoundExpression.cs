@@ -12,7 +12,7 @@ internal abstract class BoundExpression(ExpressionSyntax syntax, TypeSymbol type
 
     public TypeSymbol Type { get; } = type;
 
-    public virtual bool IsLValue => false;
+    public virtual bool IsAddressable => false;
 
     public virtual bool IsAssignable => false;
 
@@ -54,7 +54,7 @@ internal sealed class BoundVariableAccess(ExpressionSyntax syntax, VariableSymbo
 {
     public VariableSymbol Symbol { get; } = symbol;
 
-    public override bool IsLValue => true;
+    public override bool IsAddressable => true;
 
     public override bool IsAssignable => Symbol.IsMutable;
 }
@@ -64,7 +64,7 @@ internal sealed class BoundParameterAccess(ExpressionSyntax syntax, ParameterSym
 {
     public ParameterSymbol Symbol { get; } = symbol;
 
-    public override bool IsLValue => true;
+    public override bool IsAddressable => true;
 
     public override bool IsAssignable => Symbol.IsMutable;
 }
@@ -161,7 +161,18 @@ internal sealed class BoundDereference(
 {
     public BoundExpression Operand { get; } = operand;
 
-    public override bool IsLValue => true;
+    public override bool IsAddressable => true;
 
     public override bool IsAssignable { get; } = isMutable;
+}
+
+internal sealed class BoundIndex(
+    IndexExpressionSyntax syntax,
+    BoundExpression operand,
+    BoundExpression index,
+    TypeSymbol type
+) : BoundExpression(syntax, type)
+{
+    public BoundExpression Operand { get; } = operand;
+    public BoundExpression Index { get; } = index;
 }
