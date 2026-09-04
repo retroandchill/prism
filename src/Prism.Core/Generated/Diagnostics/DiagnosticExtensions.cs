@@ -427,6 +427,26 @@ public static class DiagnosticExtensions
         {
             return new DiagnosticInfo(DiagnosticDescriptors.InvalidUseOfContinue, severity);
         }
+
+        internal static DiagnosticInfo CannotTakeAddress()
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.CannotTakeAddress);
+        }
+
+        internal static DiagnosticInfo CannotTakeAddress(DiagnosticSeverity severity)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.CannotTakeAddress, severity);
+        }
+
+        internal static DiagnosticInfo CannotDereference()
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.CannotDereference);
+        }
+
+        internal static DiagnosticInfo CannotDereference(DiagnosticSeverity severity)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.CannotDereference, severity);
+        }
     }
 
     extension(Diagnostic)
@@ -1934,6 +1954,78 @@ public static class DiagnosticExtensions
         {
             return new Diagnostic(
                 DiagnosticDescriptors.InvalidUseOfContinue,
+                severity,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic CannotTakeAddress(Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.CannotTakeAddress, location);
+        }
+
+        public static Diagnostic CannotTakeAddress(DiagnosticSeverity severity, Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.CannotTakeAddress, severity, location);
+        }
+
+        public static Diagnostic CannotTakeAddress(
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.CannotTakeAddress,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic CannotTakeAddress(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.CannotTakeAddress,
+                severity,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic CannotDereference(Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.CannotDereference, location);
+        }
+
+        public static Diagnostic CannotDereference(DiagnosticSeverity severity, Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.CannotDereference, severity, location);
+        }
+
+        public static Diagnostic CannotDereference(
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.CannotDereference,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic CannotDereference(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.CannotDereference,
                 severity,
                 location,
                 additionalLocations

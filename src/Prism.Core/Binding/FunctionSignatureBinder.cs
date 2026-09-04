@@ -17,7 +17,7 @@ internal sealed class FunctionSignatureBinder(
     protected override LookupResult LookupLocal(
         string name,
         LookupOptions options,
-        LookupContext context
+        BindingContext context
     )
     {
         if (!options.HasFlag(LookupOptions.Value))
@@ -33,5 +33,5 @@ internal sealed class FunctionSignatureBinder(
         );
     }
 
-    public override LabelSymbol? LookupLoopLabel(string name, LookupContext context) => null;
+    public override LabelSymbol? LookupLoopLabel(string name, BindingContext context) => null;
 }

@@ -142,3 +142,26 @@ internal sealed class BoundConversion(
 
     public Conversion Conversion { get; } = conversion;
 }
+
+internal sealed class BoundAddressOf(
+    PrefixExpressionSyntax syntax,
+    BoundExpression operand,
+    TypeSymbol type
+) : BoundExpression(syntax, type)
+{
+    public BoundExpression Operand { get; } = operand;
+}
+
+internal sealed class BoundDereference(
+    PrefixExpressionSyntax syntax,
+    BoundExpression operand,
+    TypeSymbol type,
+    bool isMutable
+) : BoundExpression(syntax, type)
+{
+    public BoundExpression Operand { get; } = operand;
+
+    public override bool IsLValue => true;
+
+    public override bool IsAssignable { get; } = isMutable;
+}

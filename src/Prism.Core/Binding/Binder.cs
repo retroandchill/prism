@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using NetEscapades.EnumGenerators;
 using Prism.Core.BoundTree;
 using Prism.Core.Compiling;
 using Prism.Core.Declarations;
@@ -83,7 +82,7 @@ internal abstract class Binder
         return Next.GetDeclaredLocalVariablesForScope(designator);
     }
 
-    public TypeSymbol ResolveType(TypeSyntax syntax, LookupContext context)
+    public TypeSymbol ResolveType(TypeSyntax syntax, BindingContext context)
     {
         return syntax switch
         {
@@ -107,7 +106,7 @@ internal abstract class Binder
         };
     }
 
-    private ulong? GetArraySize(ArrayTypeSyntax syntax, LookupContext context)
+    private ulong? GetArraySize(ArrayTypeSyntax syntax, BindingContext context)
     {
         if (syntax.Size is null)
             return null;
@@ -126,7 +125,7 @@ internal abstract class Binder
         return constant.AsUInt64();
     }
 
-    private TypeSymbol RequireType(LookupResult result, NameSyntax syntax, LookupContext context)
+    private TypeSymbol RequireType(LookupResult result, NameSyntax syntax, BindingContext context)
     {
         if (result is { IsViable: true, Symbol: TypeSymbol typeSymbol })
         {
@@ -145,7 +144,7 @@ internal abstract class Binder
     public LookupResult LookupFromSyntax(
         NameSyntax syntax,
         LookupOptions options,
-        LookupContext context
+        BindingContext context
     )
     {
         return syntax switch
@@ -159,7 +158,7 @@ internal abstract class Binder
     public LookupResult LookupUnqualifiedName(
         string name,
         LookupOptions options,
-        LookupContext context
+        BindingContext context
     )
     {
         if (options.HasFlag(LookupOptions.Callable))
@@ -236,7 +235,7 @@ internal abstract class Binder
     private LookupResult LookupFromSimpleName(
         SimpleNameSyntax syntax,
         LookupOptions options,
-        LookupContext context
+        BindingContext context
     )
     {
         return LookupUnqualifiedName(syntax.UnqualifiedName, options, context);
@@ -245,7 +244,7 @@ internal abstract class Binder
     private LookupResult LookupFromQualifiedName(
         QualifiedNameSyntax syntax,
         LookupOptions options,
-        LookupContext context
+        BindingContext context
     )
     {
         var lookupResult = LookupFromSyntax(syntax.Left, LookupOptions.NamespaceOrType, context);
@@ -266,10 +265,10 @@ internal abstract class Binder
     protected abstract LookupResult LookupLocal(
         string name,
         LookupOptions options,
-        LookupContext context
+        BindingContext context
     );
 
-    public abstract LabelSymbol? LookupLoopLabel(string name, LookupContext context);
+    public abstract LabelSymbol? LookupLoopLabel(string name, BindingContext context);
 
     protected static LookupResult MakeLookupResult(
         ImmutableArray<Symbol> symbols,
@@ -363,7 +362,7 @@ internal abstract class Binder
     public BoundStatement BindStatement(
         StatementSyntax syntax,
         TypeSymbol returnType,
-        LookupContext context
+        BindingContext context
     )
     {
         return syntax switch
@@ -408,8 +407,8 @@ internal abstract class Binder
                 continueStatementSyntax,
                 context
             ),
-            LabeledStatementSyntax labeledStatementSyntax => BindStatement(
-                labeledStatementSyntax.Statement,
+            LabeledStatementSyntax labeledStatementSyntax => BindLabelStatement(
+                labeledStatementSyntax,
                 returnType,
                 context
             ),
@@ -420,7 +419,7 @@ internal abstract class Binder
     public BoundStatement BindExpressionBody(
         ExpressionBodySyntax syntax,
         TypeSymbol returnType,
-        LookupContext context
+        BindingContext context
     )
     {
         if (returnType.IsVoid)
@@ -434,7 +433,7 @@ internal abstract class Binder
         );
     }
 
-    private BoundBlock BindBlock(BlockSyntax syntax, TypeSymbol returnType, LookupContext context)
+    private BoundBlock BindBlock(BlockSyntax syntax, TypeSymbol returnType, BindingContext context)
     {
         var builder = ImmutableArray.CreateBuilder<BoundStatement>(syntax.Statements.Count);
         var binder = GetRequiredBinder(syntax);
@@ -452,7 +451,7 @@ internal abstract class Binder
 
     private BoundVariableDeclaration BindVariableDeclaration(
         VariableDeclarationStatementSyntax syntax,
-        LookupContext context
+        BindingContext context
     )
     {
         var semanticModel = Compilation.GetSemanticModel(syntax.SyntaxTree);
@@ -475,7 +474,7 @@ internal abstract class Binder
 
     private BoundExpressionStatement BindExpressionStatement(
         ExpressionStatementSyntax syntax,
-        LookupContext context
+        BindingContext context
     )
     {
         return new BoundExpressionStatement(syntax, BindExpression(syntax.Expression, context));
@@ -484,7 +483,7 @@ internal abstract class Binder
     private BoundStatement BindReturnStatement(
         ReturnStatementSyntax syntax,
         TypeSymbol returnType,
-        LookupContext context
+        BindingContext context
     )
     {
         var expression = syntax.Expression switch
@@ -499,7 +498,7 @@ internal abstract class Binder
     private BoundIfStatement BindIfStatement(
         IfStatementSyntax syntax,
         TypeSymbol returnType,
-        LookupContext context
+        BindingContext context
     )
     {
         var condition = BindExpression(
@@ -519,7 +518,7 @@ internal abstract class Binder
     private BoundWhileStatement BindWhileStatement(
         WhileStatementSyntax syntax,
         TypeSymbol returnType,
-        LookupContext context
+        BindingContext context
     )
     {
         var binder = GetRequiredBinder(syntax);
@@ -537,7 +536,7 @@ internal abstract class Binder
     private BoundLoopStatement BindLoopStatement(
         LoopStatementSyntax syntax,
         TypeSymbol returnType,
-        LookupContext context
+        BindingContext context
     )
     {
         var binder = GetRequiredBinder(syntax);
@@ -550,7 +549,7 @@ internal abstract class Binder
     private BoundForStatement BindForStatement(
         ForStatementSyntax syntax,
         TypeSymbol returnType,
-        LookupContext context
+        BindingContext context
     )
     {
         var binder = GetRequiredBinder(syntax);
@@ -594,7 +593,7 @@ internal abstract class Binder
 
     private BoundBreakStatement BindBreakStatement(
         BreakStatementSyntax syntax,
-        LookupContext context
+        BindingContext context
     )
     {
         var labelName = syntax.Label?.IdentifierName ?? "";
@@ -611,7 +610,7 @@ internal abstract class Binder
 
     private BoundContinueStatement BindContinueStatement(
         ContinueStatementSyntax syntax,
-        LookupContext context
+        BindingContext context
     )
     {
         var labelName = syntax.Label?.IdentifierName ?? "";
@@ -629,7 +628,7 @@ internal abstract class Binder
     private BoundStatement BindLabelStatement(
         LabeledStatementSyntax syntax,
         TypeSymbol returnValue,
-        LookupContext context
+        BindingContext context
     )
     {
         if (
@@ -645,49 +644,50 @@ internal abstract class Binder
         return BindStatement(syntax.Statement, returnValue, context);
     }
 
-    public BoundExpression BindExpression(ExpressionSyntax syntax, LookupContext context)
+    public BoundExpression BindExpression(
+        ExpressionSyntax syntax,
+        BindingContext context,
+        bool addressing = false
+    )
     {
-        return BindExpression(syntax, null, context);
+        return BindExpression(syntax, null, context, addressing);
     }
 
     public BoundExpression BindExpression(
         ExpressionSyntax syntax,
         TypeSymbol? targetType,
-        LookupContext context
+        BindingContext context,
+        bool addressing = false
     )
     {
-        var bound = syntax switch
+        return syntax switch
         {
             LiteralExpressionSyntax literal => BindLiteralExpression(literal, targetType, context),
-            IdentifierExpressionSyntax identifier => BindIdentifierExpression(identifier, context),
+            IdentifierExpressionSyntax identifier => BindIdentifierExpression(
+                identifier,
+                context,
+                addressing
+            ),
             ParenthesizedExpressionSyntax parenthesized => BindExpression(
                 parenthesized.Expression,
                 targetType,
                 context
             ),
-            BinaryExpressionSyntax binary => BindBinaryExpression(binary, targetType, context),
+            BinaryExpressionSyntax binary => BindBinaryExpression(binary, context),
             AssignmentExpressionSyntax assignment => BindAssignmentExpression(assignment, context),
             PrefixExpressionSyntax prefix => BindPrefixExpression(prefix, targetType, context),
             PostfixExpressionSyntax postfix => BindPostfixExpression(postfix, targetType, context),
             TernaryExpressionSyntax ternary => BindTernaryExpression(ternary, targetType, context),
-            InvocationExpressionSyntax invocation => BindInvocationExpression(
-                invocation,
-                targetType,
-                context
-            ),
-            CastExpressionSyntax cast => BindCastExpression(cast, targetType, context),
+            InvocationExpressionSyntax invocation => BindInvocationExpression(invocation, context),
+            CastExpressionSyntax cast => BindCastExpression(cast, context),
             _ => throw new ArgumentException("Invalid expression syntax", nameof(syntax)),
         };
-
-        return targetType is not null
-            ? AddConversionIfNecessary(bound, targetType, context)
-            : bound;
     }
 
     private BoundLiteral BindLiteralExpression(
         LiteralExpressionSyntax syntax,
         TypeSymbol? returnType,
-        LookupContext context
+        BindingContext context
     )
     {
         var token = syntax.Value;
@@ -698,27 +698,38 @@ internal abstract class Binder
 
     private BoundExpression BindIdentifierExpression(
         IdentifierExpressionSyntax syntax,
-        LookupContext context
+        BindingContext context,
+        bool addressing
     )
     {
         var result = LookupFromSyntax(syntax.Value, LookupOptions.Value, context);
         if (!result.IsViable)
             return new BoundBadExpression(syntax, ErrorTypeSymbol.Unnamed);
 
-        return result.Symbol switch
+        switch (result.Symbol)
         {
-            VariableSymbol v => new BoundVariableAccess(syntax, v),
-            ParameterSymbol p => new BoundParameterAccess(syntax, p),
-            _ => throw new InvalidOperationException(
-                "We must have added a symbol type that can hold a value that we haven't accounted for yet."
-            ),
-        };
+            case VariableSymbol v:
+                if (v.IsLocal && addressing)
+                {
+                    context.AddReferencedLocal(v);
+                }
+                return new BoundVariableAccess(syntax, v);
+            case ParameterSymbol p:
+                if (addressing)
+                {
+                    context.AddReferencedLocal(p);
+                }
+                return new BoundParameterAccess(syntax, p);
+            default:
+                throw new InvalidOperationException(
+                    "We must have added a symbol type that can hold a value that we haven't accounted for yet."
+                );
+        }
     }
 
     private BoundBinaryOperation BindBinaryExpression(
         BinaryExpressionSyntax syntax,
-        TypeSymbol? returnType,
-        LookupContext context
+        BindingContext context
     )
     {
         var left = BindExpression(syntax.Left, context);
@@ -756,7 +767,7 @@ internal abstract class Binder
 
     private BoundAssignmentOperation BindAssignmentExpression(
         AssignmentExpressionSyntax syntax,
-        LookupContext context
+        BindingContext context
     )
     {
         var assignee = BindExpression(syntax.Left, context);
@@ -788,9 +799,45 @@ internal abstract class Binder
     private BoundExpression BindPrefixExpression(
         PrefixExpressionSyntax syntax,
         TypeSymbol? returnType,
-        LookupContext context
+        BindingContext context
     )
     {
+        // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
+        switch (syntax.Op.Kind)
+        {
+            case SyntaxKind.AmpToken:
+            {
+                var inner = BindExpression(syntax.Operand, context, true);
+                if (!inner.IsLValue)
+                {
+                    context.ReportDiagnostic(Diagnostic.CannotTakeAddress(syntax.Operand.Location));
+                }
+
+                return new BoundAddressOf(
+                    syntax,
+                    inner,
+                    Compilation.CreateReferenceTypeSymbol(inner.Type, inner.IsAssignable)
+                );
+            }
+            case SyntaxKind.StarToken:
+            {
+                var inner = BindExpression(syntax.Operand, context);
+                if (
+                    inner.Type is ReferenceTypeSymbol
+                    {
+                        ReferencedType: var referencedType,
+                        IsMutable: var isMutable
+                    }
+                )
+                {
+                    return new BoundDereference(syntax, inner, referencedType, isMutable);
+                }
+
+                context.ReportDiagnostic(Diagnostic.CannotDereference(syntax.Operand.Location));
+                return new BoundDereference(syntax, inner, inner.Type, false);
+            }
+        }
+
         var op = syntax.Op.Kind.ToPrefixOperation();
 
         if (op == UnaryOperation.Negation)
@@ -841,7 +888,7 @@ internal abstract class Binder
     private BoundUnaryOperation BindPostfixExpression(
         PostfixExpressionSyntax syntax,
         TypeSymbol? returnType,
-        LookupContext context
+        BindingContext context
     )
     {
         var operand = BindExpression(syntax.Operand, returnType, context);
@@ -852,7 +899,7 @@ internal abstract class Binder
     private BoundConditional BindTernaryExpression(
         TernaryExpressionSyntax syntax,
         TypeSymbol? returnType,
-        LookupContext context
+        BindingContext context
     )
     {
         var condition = AddConversionIfNecessary(
@@ -883,8 +930,7 @@ internal abstract class Binder
 
     private BoundExpression BindInvocationExpression(
         InvocationExpressionSyntax syntax,
-        TypeSymbol? returnType,
-        LookupContext context
+        BindingContext context
     )
     {
         var arguments = new BoundExpression[syntax.Arguments.Arguments.Count];
@@ -920,11 +966,7 @@ internal abstract class Binder
         return new BoundInvocation(syntax, ErrorFunctionSymbol.Unnamed, [callee, .. arguments]);
     }
 
-    private BoundExpression BindCastExpression(
-        CastExpressionSyntax syntax,
-        TypeSymbol? returnType,
-        LookupContext context
-    )
+    private BoundExpression BindCastExpression(CastExpressionSyntax syntax, BindingContext context)
     {
         var operand = BindExpression(syntax.Operand, context);
         var targetType = ResolveType(syntax.Type, context);
@@ -934,7 +976,7 @@ internal abstract class Binder
     private BoundExpression AddConversionIfNecessary(
         BoundExpression expression,
         TypeSymbol type,
-        LookupContext context,
+        BindingContext context,
         bool isExplicit = false
     )
     {
@@ -946,7 +988,7 @@ internal abstract class Binder
         BoundExpression expression,
         TypeSymbol type,
         Conversion conversion,
-        LookupContext context,
+        BindingContext context,
         bool isExplicit = false
     )
     {
@@ -983,7 +1025,7 @@ internal abstract class Binder
     private ConstantValue EvaluateConstantExpression(
         SyntaxToken token,
         TypeSymbol? returnType,
-        LookupContext context
+        BindingContext context
     )
     {
         if (token.TryGetValue<BoolLiteralData>() is { Value: var boolValue })
@@ -1024,7 +1066,7 @@ internal abstract class Binder
         in IntegerLiteralData data,
         TypeSymbol? returnType,
         Location location,
-        LookupContext context,
+        BindingContext context,
         bool isNegative = false
     )
     {
@@ -1098,7 +1140,7 @@ internal abstract class Binder
         in FloatLiteralData data,
         TypeSymbol? returnType,
         Location location,
-        LookupContext context,
+        BindingContext context,
         bool isNegative = false
     )
     {
@@ -1150,7 +1192,7 @@ internal abstract class Binder
         ExpressionSyntax syntax,
         UnaryOperation operation,
         BoundExpression operand,
-        LookupContext context
+        BindingContext context
     )
     {
         var resultType = ConversionClassifier.ClassifyUnaryOperand(operation, operand.Type);
@@ -1200,7 +1242,7 @@ internal abstract class Binder
         LookupResult result,
         BoundExpression[] arguments,
         Location location,
-        LookupContext context
+        BindingContext context
     )
     {
         // TODO: We need to eventually actually resolve named/default parameters
@@ -1260,7 +1302,7 @@ internal abstract class Binder
     private bool TryMatchOverload(
         FunctionSymbol overload,
         BoundExpression[] arguments,
-        LookupContext context
+        BindingContext context
     )
     {
         Debug.Assert(overload.Parameters.Length == arguments.Length);

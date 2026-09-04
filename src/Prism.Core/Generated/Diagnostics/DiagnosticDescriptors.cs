@@ -292,6 +292,24 @@ public static class DiagnosticDescriptors
         DefaultSeverity = DiagnosticSeverity.Error,
     };
 
+    public static readonly DiagnosticDescriptor CannotTakeAddress = new()
+    {
+        Id = DiagnosticCode.CannotTakeAddress.ToStringFast(),
+        Title = "Cannot take address",
+        MessageFormat = "Cannot take address of a temporary",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
+    public static readonly DiagnosticDescriptor CannotDereference = new()
+    {
+        Id = DiagnosticCode.CannotDereference.ToStringFast(),
+        Title = "Cannot dereference",
+        MessageFormat = "Cannot dereference a non-reference type",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
     public static DiagnosticDescriptor? Find(DiagnosticCode code)
     {
         return code switch
@@ -329,6 +347,8 @@ public static class DiagnosticDescriptors
             DiagnosticCode.InvalidUseOfLabel => InvalidUseOfLabel,
             DiagnosticCode.InvalidUseOfBreak => InvalidUseOfBreak,
             DiagnosticCode.InvalidUseOfContinue => InvalidUseOfContinue,
+            DiagnosticCode.CannotTakeAddress => CannotTakeAddress,
+            DiagnosticCode.CannotDereference => CannotDereference,
             _ => null,
         };
     }

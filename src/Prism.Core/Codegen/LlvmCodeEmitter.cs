@@ -196,7 +196,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
 
         var entry = function.AppendBasicBlock("entry");
         _builder.PositionAtEnd(entry);
-        var context = new FunctionEmissionContext(function);
+        var context = new FunctionEmissionContext(function, body);
 
         foreach (
             var (symbolParam, llvmParam) in symbol
@@ -204,7 +204,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
                 .Zip(function.GetParams())
         )
         {
-            if (symbolParam.IsMutable)
+            if (context.RequiresStorage(symbolParam))
             {
                 var slot = CreateEntryAlloca(llvmParam.TypeOf, symbolParam.Name, context);
                 _builder.BuildStore(llvmParam, slot);
@@ -215,7 +215,8 @@ internal sealed class LlvmCodeEmitter : IDisposable
                 context.BindStorage(symbolParam, llvmParam);
             }
         }
-        EmitStatement(body, context);
+
+        EmitStatement(body.TopLevelStatement, context);
 
         if (symbol.ReturnsVoid)
         {
@@ -244,7 +245,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
                 var pointer = _context.CreatePointerType(0);
                 if (referencedType.IsDynamicallySized)
                 {
-                    LLVMTypeRef.CreateStruct(
+                    return LLVMTypeRef.CreateStruct(
                         [pointer, GetOrCreateType(_compilation.GetSpecialType(SpecialType.USize))],
                         false
                     );
@@ -420,8 +421,9 @@ internal sealed class LlvmCodeEmitter : IDisposable
     private void EmitLocal(BoundVariableDeclaration declaration, FunctionEmissionContext context)
     {
         var symbol = declaration.Variable;
-        if (!symbol.IsMutable && declaration.Initializer is not null)
+        if (!context.RequiresStorage(symbol))
         {
+            Debug.Assert(declaration.Initializer is not null);
             var value = EmitExpression(declaration.Initializer, context);
             context.BindStorage(symbol, value);
             return;
@@ -680,6 +682,8 @@ internal sealed class LlvmCodeEmitter : IDisposable
             BoundConditional conditional => EmitConditional(conditional, context),
             BoundInvocation invocation => EmitCall(invocation, context),
             BoundConversion conversion => EmitConversion(conversion, context),
+            BoundAddressOf addressOf => EmitAddress(addressOf.Operand, context),
+            BoundDereference dereference => EmitDereference(dereference, context),
             _ => throw new InvalidOperationException("We probably added a new expression type"),
         };
     }
@@ -687,7 +691,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
     private LLVMValueRef EmitAccess(BoundVariableAccess access, FunctionEmissionContext context)
     {
         var val = EmitAccessCore(access, context);
-        if (access.Symbol is { IsMutable: false, IsGlobal: false, HasInitializer: true })
+        if (!context.RequiresStorage(access.Symbol))
         {
             return val;
         }
@@ -699,7 +703,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
     private LLVMValueRef EmitAccess(BoundParameterAccess access, FunctionEmissionContext context)
     {
         var val = EmitAccessCore(access, context);
-        if (!access.Symbol.IsMutable)
+        if (!context.RequiresStorage(access.Symbol))
             return val;
 
         var type = GetOrCreateType(access.Symbol.Type);
@@ -1057,12 +1061,23 @@ internal sealed class LlvmCodeEmitter : IDisposable
         throw new InvalidOperationException("If we get here, the conversion is invalid");
     }
 
+    private LLVMValueRef EmitDereference(
+        BoundDereference expression,
+        FunctionEmissionContext context
+    )
+    {
+        var address = EmitExpression(expression.Operand, context);
+        var type = GetOrCreateType(expression.Type);
+        return _builder.BuildLoad2(type, address);
+    }
+
     private LLVMValueRef EmitAddress(BoundExpression expression, FunctionEmissionContext context)
     {
         return expression switch
         {
             BoundVariableAccess access => EmitAccessCore(access, context),
             BoundParameterAccess access => EmitAccessCore(access, context),
+            BoundDereference dereference => EmitExpression(dereference.Operand, context),
             _ => throw new ArgumentException("Invalid expression type for address emission"),
         };
     }

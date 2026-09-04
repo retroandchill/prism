@@ -12,6 +12,9 @@ public enum ConversionKind : byte
 
     ExplicitNumeric,
     ExplicitCharacter,
+
+    AddReference,
+    RemoveReference,
 }
 
 public static partial class ConversionKindExtensions

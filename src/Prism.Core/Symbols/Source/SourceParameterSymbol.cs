@@ -83,7 +83,7 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
         var factory = compilation.GetBinderFactory(_syntax.SyntaxTree);
         var binder = factory.GetBinder(_syntax);
 
-        var context = LookupContext.Create(diagnostics);
+        var context = BindingContext.Create(diagnostics);
         Debug.Assert(_syntax.TypeSpecifier is not null);
         return binder.ResolveType(_syntax.TypeSpecifier.Type, context);
     }

@@ -35,7 +35,7 @@ internal static class BindingHelpers
         LookupResult result,
         NameSyntax syntax,
         LookupOptions expected,
-        LookupContext context
+        BindingContext context
     )
     {
         switch (result.Kind)

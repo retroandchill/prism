@@ -2189,6 +2189,16 @@
           "name": "InvalidUseOfContinue",
           "severity": "Error",
           "format": "Continue may only be used inside loops"
+        },
+        {
+          "name": "CannotTakeAddress",
+          "severity": "Error",
+          "format": "Cannot take address of a temporary"
+        },
+        {
+          "name": "CannotDereference",
+          "severity": "Error",
+          "format": "Cannot dereference a non-reference type"
         }
       ]
     }

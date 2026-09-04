@@ -216,7 +216,7 @@ public class Compilation
 
     internal BoundExpression? GetBoundInitializer(VariableSymbol variable)
     {
-        var context = LookupContext.Create(DeclarationDiagnostics);
+        var context = BindingContext.Create(DeclarationDiagnostics);
         foreach (var reference in variable.DeclaringSyntaxReferences)
         {
             var semanticModel = GetSemanticModel(reference.SyntaxTree);
@@ -229,9 +229,9 @@ public class Compilation
         return null;
     }
 
-    internal BoundStatement? GetBoundBody(FunctionSymbol function)
+    internal BoundBody? GetBoundBody(FunctionSymbol function)
     {
-        var context = LookupContext.Create(DeclarationDiagnostics);
+        var context = BindingContext.Create(DeclarationDiagnostics);
         foreach (var reference in function.DeclaringSyntaxReferences)
         {
             var semanticModel = GetSemanticModel(reference.SyntaxTree);

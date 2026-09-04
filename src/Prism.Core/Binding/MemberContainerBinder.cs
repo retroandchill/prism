@@ -18,7 +18,7 @@ internal sealed class MemberContainerBinder(
     protected override LookupResult LookupLocal(
         string name,
         LookupOptions options,
-        LookupContext context
+        BindingContext context
     )
     {
         if (LookupQualifiedName(name, symbol, options) is { IsViable: true } result)
@@ -53,5 +53,5 @@ internal sealed class MemberContainerBinder(
         };
     }
 
-    public override LabelSymbol? LookupLoopLabel(string name, LookupContext context) => null;
+    public override LabelSymbol? LookupLoopLabel(string name, BindingContext context) => null;
 }

@@ -189,7 +189,7 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
 
     protected override TypeSymbol ComputeType(DiagnosticBag diagnostics)
     {
-        var context = LookupContext.Create(diagnostics);
+        var context = BindingContext.Create(diagnostics);
         if (Syntax.Type is not null)
         {
             return _scopeBinder.ResolveType(Syntax.Type.Type, context);
@@ -210,12 +210,12 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
         if (Syntax.Initializer is null)
             return null;
 
-        var context = LookupContext.Create(diagnostics);
+        var context = BindingContext.Create(diagnostics);
         var initializer = GetInitializer(context);
         return initializer.ConstantValue;
     }
 
-    private BoundExpression GetInitializer(LookupContext context)
+    private BoundExpression GetInitializer(BindingContext context)
     {
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
@@ -258,7 +258,7 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
         Debug.Assert(compilation is not null);
         var factory = compilation.GetBinderFactory(Syntax.SyntaxTree);
         var binder = factory.GetBinder(Syntax);
-        var context = LookupContext.Create(diagnostics);
+        var context = BindingContext.Create(diagnostics);
         return binder.ResolveType(Syntax.Type.Type, context);
     }
 
@@ -267,7 +267,7 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
         if (Syntax.Initializer is null)
             return null;
 
-        var context = LookupContext.Create(diagnostics);
+        var context = BindingContext.Create(diagnostics);
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
         var semanticModel = compilation.GetSemanticModel(Syntax.SyntaxTree);

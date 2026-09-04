@@ -95,7 +95,7 @@ internal abstract class LocalScopeBinder(Binder next) : Binder(next)
     protected sealed override LookupResult LookupLocal(
         string name,
         LookupOptions options,
-        LookupContext context
+        BindingContext context
     )
     {
         if (!options.HasFlag(LookupOptions.Value))
@@ -108,7 +108,7 @@ internal abstract class LocalScopeBinder(Binder next) : Binder(next)
         return MakeLookupResult(ImmutableArray<Symbol>.CastUp(found), LookupOptions.Value);
     }
 
-    public override LabelSymbol? LookupLoopLabel(string name, LookupContext context)
+    public override LabelSymbol? LookupLoopLabel(string name, BindingContext context)
     {
         Debug.Assert(Next is not null);
         return Next.LookupLoopLabel(name, context);

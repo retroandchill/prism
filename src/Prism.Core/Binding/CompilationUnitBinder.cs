@@ -16,7 +16,7 @@ internal sealed class CompilationUnitBinder(Binder next, CompilationUnitSyntax s
     protected override LookupResult LookupLocal(
         string name,
         LookupOptions options,
-        LookupContext context
+        BindingContext context
     )
     {
         var found = GetUsingNamespaces()
@@ -42,5 +42,5 @@ internal sealed class CompilationUnitBinder(Binder next, CompilationUnitSyntax s
         return _usingNamespaces;
     }
 
-    public override LabelSymbol? LookupLoopLabel(string name, LookupContext context) => null;
+    public override LabelSymbol? LookupLoopLabel(string name, BindingContext context) => null;
 }

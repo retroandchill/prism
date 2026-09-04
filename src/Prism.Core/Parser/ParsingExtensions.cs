@@ -55,7 +55,9 @@ internal static class ParsingExtensions
                     or SyntaxKind.BangToken
                     or SyntaxKind.TildeToken
                     or SyntaxKind.PlusPlusToken
-                    or SyntaxKind.MinusMinusToken;
+                    or SyntaxKind.MinusMinusToken
+                    or SyntaxKind.AmpToken
+                    or SyntaxKind.StarToken;
 
         public bool IsPostfixOperator =>
             kind is SyntaxKind.PlusPlusToken or SyntaxKind.MinusMinusToken;

@@ -16,13 +16,13 @@ internal sealed class ExecutableCodeBinder(Binder next, SyntaxNode syntax) : Bin
     protected override LookupResult LookupLocal(
         string name,
         LookupOptions options,
-        LookupContext context
+        BindingContext context
     )
     {
         return LookupResult.NotFound();
     }
 
-    public override LabelSymbol? LookupLoopLabel(string name, LookupContext context) => null;
+    public override LabelSymbol? LookupLoopLabel(string name, BindingContext context) => null;
 
     private FrozenDictionary<SyntaxNode, Binder> BinderMappings
     {

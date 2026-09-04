@@ -16,7 +16,7 @@ internal sealed class SemanticModelState(Compilation compilation, SyntaxTree syn
     > _variableInitializers = new(ReferenceEqualityComparer.Instance);
     private readonly ConcurrentDictionary<
         FunctionDeclarationSyntax,
-        Lazy<BoundStatement>
+        Lazy<BoundBody>
     > _functionBodies = new(ReferenceEqualityComparer.Instance);
     private readonly ConcurrentDictionary<SyntaxNode, Symbol> _symbols = new(
         ReferenceEqualityComparer.Instance
@@ -31,7 +31,7 @@ internal sealed class SemanticModelState(Compilation compilation, SyntaxTree syn
 
     public BoundExpression GetBoundVariableInitializer(
         VariableDeclarationSyntax declaration,
-        LookupContext context
+        BindingContext context
     )
     {
         return GetBoundVariableInitializer(declaration, GetBinder(declaration), context);
@@ -40,7 +40,7 @@ internal sealed class SemanticModelState(Compilation compilation, SyntaxTree syn
     public BoundExpression GetBoundVariableInitializer(
         VariableDeclarationSyntax declaration,
         Binder binder,
-        LookupContext context
+        BindingContext context
     )
     {
         Debug.Assert(declaration.Initializer is not null);
@@ -54,34 +54,41 @@ internal sealed class SemanticModelState(Compilation compilation, SyntaxTree syn
         return lazy.Value;
     }
 
-    public BoundStatement GetBoundFunctionBody(
+    public BoundBody GetBoundFunctionBody(
         FunctionDeclarationSyntax declaration,
-        LookupContext context
+        BindingContext context
     )
     {
         var symbol = GetDeclaredSymbol(declaration) as FunctionSymbol;
         Debug.Assert(symbol is not null);
         var lazy = _functionBodies.GetOrAdd(
             declaration,
-            _ => new Lazy<BoundStatement>(
+            _ => new Lazy<BoundBody>(
                 () =>
                 {
+                    BoundStatement topLevel;
                     if (declaration.Body is not null)
                     {
                         Debug.Assert(declaration.ExpressionBody is null);
                         var binder = GetBinder(declaration.Body);
-                        return binder.BindStatement(declaration.Body, symbol.ReturnType, context);
+                        topLevel = binder.BindStatement(
+                            declaration.Body,
+                            symbol.ReturnType,
+                            context
+                        );
                     }
                     else
                     {
                         Debug.Assert(declaration.ExpressionBody is not null);
                         var binder = GetBinder(declaration.ExpressionBody);
-                        return binder.BindExpressionBody(
+                        topLevel = binder.BindExpressionBody(
                             declaration.ExpressionBody,
                             symbol.ReturnType,
                             context
                         );
                     }
+
+                    return new BoundBody(topLevel, context.CollectReferencedLocals());
                 },
                 LazyThreadSafetyMode.ExecutionAndPublication
             )

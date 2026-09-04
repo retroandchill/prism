@@ -90,6 +90,7 @@ internal sealed class ConversionClassifier(Binder binder)
                     );
                 }
                 break;
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
         }

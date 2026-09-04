@@ -106,4 +106,10 @@ public enum DiagnosticCode : uint
 
     [EnumMember(Value = "E2025")]
     InvalidUseOfContinue = 2025,
+
+    [EnumMember(Value = "E2026")]
+    CannotTakeAddress = 2026,
+
+    [EnumMember(Value = "E2027")]
+    CannotDereference = 2027,
 }

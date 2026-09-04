@@ -92,7 +92,7 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
             return compilation.GetSpecialType(SpecialType.Void);
         }
 
-        var context = LookupContext.Create(bag);
+        var context = BindingContext.Create(bag);
         var semanticModel = compilation.GetSemanticModel(_syntax.SyntaxTree);
         var binder = semanticModel.GetBinder(_syntax);
         return binder.ResolveType(_syntax.ReturnType.Type, context);

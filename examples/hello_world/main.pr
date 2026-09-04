@@ -79,6 +79,19 @@ func nested_break_and_continue() {
     }
 }
 
+func print(msg: str&) {
+    // TODO: Implement me
+}
+
+func add_by_reference(a: i32&, b: i32) {
+    *a += b;
+}
+
+func act_on_by_reference(a: i32, b: i32): i32 {
+    var c = &a;
+    return *c + b;
+}
+
 func main(): i32 {
     return add(1, 4);
 }

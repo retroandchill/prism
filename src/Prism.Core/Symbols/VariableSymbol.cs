@@ -13,6 +13,8 @@ public abstract class VariableSymbol : Symbol
 
     public abstract bool IsGlobal { get; }
 
+    public bool IsLocal => !IsGlobal;
+
     public abstract bool HasInitializer { get; }
 
     public abstract ConstantValue? ConstantValue { get; }

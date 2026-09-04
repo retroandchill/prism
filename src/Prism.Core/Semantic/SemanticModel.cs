@@ -62,7 +62,7 @@ public class SemanticModel
 
     internal BoundExpression GetBoundVariableInitializer(
         VariableDeclarationSyntax syntax,
-        LookupContext context
+        BindingContext context
     )
     {
         return State.GetBoundVariableInitializer(syntax, context);
@@ -71,15 +71,15 @@ public class SemanticModel
     internal BoundExpression GetBoundVariableInitializer(
         VariableDeclarationSyntax syntax,
         Binder binder,
-        LookupContext context
+        BindingContext context
     )
     {
         return State.GetBoundVariableInitializer(syntax, binder, context);
     }
 
-    internal BoundStatement GetBoundFunctionBody(
+    internal BoundBody GetBoundFunctionBody(
         FunctionDeclarationSyntax syntax,
-        LookupContext context
+        BindingContext context
     )
     {
         return State.GetBoundFunctionBody(syntax, context);
