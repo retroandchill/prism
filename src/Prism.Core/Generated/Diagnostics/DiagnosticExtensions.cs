@@ -447,6 +447,23 @@ public static class DiagnosticExtensions
         {
             return new DiagnosticInfo(DiagnosticDescriptors.CannotDereference, severity);
         }
+
+        internal static DiagnosticInfo CannotDereferenceVariableLength(string type)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.CannotDereferenceVariableLength, type);
+        }
+
+        internal static DiagnosticInfo CannotDereferenceVariableLength(
+            DiagnosticSeverity severity,
+            string type
+        )
+        {
+            return new DiagnosticInfo(
+                DiagnosticDescriptors.CannotDereferenceVariableLength,
+                severity,
+                type
+            );
+        }
     }
 
     extension(Diagnostic)
@@ -2029,6 +2046,59 @@ public static class DiagnosticExtensions
                 severity,
                 location,
                 additionalLocations
+            );
+        }
+
+        public static Diagnostic CannotDereferenceVariableLength(Location location, string type)
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.CannotDereferenceVariableLength,
+                location,
+                type
+            );
+        }
+
+        public static Diagnostic CannotDereferenceVariableLength(
+            DiagnosticSeverity severity,
+            Location location,
+            string type
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.CannotDereferenceVariableLength,
+                severity,
+                location,
+                type
+            );
+        }
+
+        public static Diagnostic CannotDereferenceVariableLength(
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            string type
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.CannotDereferenceVariableLength,
+                location,
+                additionalLocations,
+                type
+            );
+        }
+
+        public static Diagnostic CannotDereferenceVariableLength(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            string type
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.CannotDereferenceVariableLength,
+                severity,
+                location,
+                additionalLocations,
+                type
             );
         }
     }

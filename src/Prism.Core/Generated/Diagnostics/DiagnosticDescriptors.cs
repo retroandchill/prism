@@ -310,6 +310,15 @@ public static class DiagnosticDescriptors
         DefaultSeverity = DiagnosticSeverity.Error,
     };
 
+    public static readonly DiagnosticDescriptor CannotDereferenceVariableLength = new()
+    {
+        Id = DiagnosticCode.CannotDereferenceVariableLength.ToStringFast(),
+        Title = "Cannot dereference variable length",
+        MessageFormat = "Cannot dereference a variable length type {Type}",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
     public static DiagnosticDescriptor? Find(DiagnosticCode code)
     {
         return code switch
@@ -349,6 +358,7 @@ public static class DiagnosticDescriptors
             DiagnosticCode.InvalidUseOfContinue => InvalidUseOfContinue,
             DiagnosticCode.CannotTakeAddress => CannotTakeAddress,
             DiagnosticCode.CannotDereference => CannotDereference,
+            DiagnosticCode.CannotDereferenceVariableLength => CannotDereferenceVariableLength,
             _ => null,
         };
     }

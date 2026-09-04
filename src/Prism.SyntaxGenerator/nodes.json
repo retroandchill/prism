@@ -2199,6 +2199,17 @@
           "name": "CannotDereference",
           "severity": "Error",
           "format": "Cannot dereference a non-reference type"
+        },
+        {
+          "name": "CannotDereferenceVariableLength",
+          "severity": "Error",
+          "format": "Cannot dereference a variable length type {Type}",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
         }
       ]
     }

@@ -826,10 +826,19 @@ internal abstract class Binder
                     inner.Type is ReferenceTypeSymbol
                     {
                         ReferencedType: var referencedType,
-                        IsMutable: var isMutable
+                        IsMutable: var isMutable,
                     }
                 )
                 {
+                    if (referencedType.IsDynamicallySized)
+                    {
+                        context.ReportDiagnostic(
+                            Diagnostic.CannotDereferenceVariableLength(
+                                syntax.Operand.Location,
+                                referencedType.ToDisplayString()
+                            )
+                        );
+                    }
                     return new BoundDereference(syntax, inner, referencedType, isMutable);
                 }
 

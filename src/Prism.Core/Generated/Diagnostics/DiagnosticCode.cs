@@ -112,4 +112,7 @@ public enum DiagnosticCode : uint
 
     [EnumMember(Value = "E2027")]
     CannotDereference = 2027,
+
+    [EnumMember(Value = "E2028")]
+    CannotDereferenceVariableLength = 2028,
 }
