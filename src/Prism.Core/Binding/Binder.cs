@@ -706,25 +706,14 @@ internal abstract class Binder
         if (!result.IsViable)
             return new BoundBadExpression(syntax, ErrorTypeSymbol.Unnamed);
 
-        switch (result.Symbol)
+        return result.Symbol switch
         {
-            case VariableSymbol v:
-                if (v.IsLocal && addressing)
-                {
-                    context.AddReferencedLocal(v);
-                }
-                return new BoundVariableAccess(syntax, v);
-            case ParameterSymbol p:
-                if (addressing)
-                {
-                    context.AddReferencedLocal(p);
-                }
-                return new BoundParameterAccess(syntax, p);
-            default:
-                throw new InvalidOperationException(
-                    "We must have added a symbol type that can hold a value that we haven't accounted for yet."
-                );
-        }
+            VariableSymbol v => new BoundVariableAccess(syntax, v),
+            ParameterSymbol p => new BoundParameterAccess(syntax, p),
+            _ => throw new InvalidOperationException(
+                "We must have added a symbol type that can hold a value that we haven't accounted for yet."
+            ),
+        };
     }
 
     private BoundBinaryOperation BindBinaryExpression(
@@ -1230,10 +1219,10 @@ internal abstract class Binder
         return operation switch
         {
             AssignmentOperation.Simple => true,
-            AssignmentOperation.Addition
-            or AssignmentOperation.Subtraction
-            or AssignmentOperation.Multiplication
-            or AssignmentOperation.Division
+            AssignmentOperation.Add
+            or AssignmentOperation.Subtract
+            or AssignmentOperation.Multiply
+            or AssignmentOperation.Divide
             or AssignmentOperation.Modulo => type.SpecialType.IsNumeric,
             AssignmentOperation.BitwiseAnd
             or AssignmentOperation.BitwiseOr

@@ -16,7 +16,7 @@ internal sealed class SemanticModelState(Compilation compilation, SyntaxTree syn
     > _variableInitializers = new(ReferenceEqualityComparer.Instance);
     private readonly ConcurrentDictionary<
         FunctionDeclarationSyntax,
-        Lazy<BoundBody>
+        Lazy<BoundStatement>
     > _functionBodies = new(ReferenceEqualityComparer.Instance);
     private readonly ConcurrentDictionary<SyntaxNode, Symbol> _symbols = new(
         ReferenceEqualityComparer.Instance
@@ -54,7 +54,7 @@ internal sealed class SemanticModelState(Compilation compilation, SyntaxTree syn
         return lazy.Value;
     }
 
-    public BoundBody GetBoundFunctionBody(
+    public BoundStatement GetBoundFunctionBody(
         FunctionDeclarationSyntax declaration,
         BindingContext context
     )
@@ -63,7 +63,7 @@ internal sealed class SemanticModelState(Compilation compilation, SyntaxTree syn
         Debug.Assert(symbol is not null);
         var lazy = _functionBodies.GetOrAdd(
             declaration,
-            _ => new Lazy<BoundBody>(
+            _ => new Lazy<BoundStatement>(
                 () =>
                 {
                     BoundStatement topLevel;
@@ -88,7 +88,7 @@ internal sealed class SemanticModelState(Compilation compilation, SyntaxTree syn
                         );
                     }
 
-                    return new BoundBody(topLevel, context.CollectReferencedLocals());
+                    return topLevel;
                 },
                 LazyThreadSafetyMode.ExecutionAndPublication
             )

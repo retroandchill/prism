@@ -196,7 +196,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
 
         var entry = function.AppendBasicBlock("entry");
         _builder.PositionAtEnd(entry);
-        var context = new FunctionEmissionContext(function, body);
+        var context = new FunctionEmissionContext(function);
 
         foreach (
             var (symbolParam, llvmParam) in symbol
@@ -204,7 +204,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
                 .Zip(function.GetParams())
         )
         {
-            if (context.RequiresStorage(symbolParam))
+            if (symbolParam.IsMutable)
             {
                 var slot = CreateEntryAlloca(llvmParam.TypeOf, symbolParam.Name, context);
                 _builder.BuildStore(llvmParam, slot);
@@ -216,7 +216,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
             }
         }
 
-        EmitStatement(body.TopLevelStatement, context);
+        EmitStatement(body, context);
 
         if (symbol.ReturnsVoid)
         {
@@ -421,9 +421,8 @@ internal sealed class LlvmCodeEmitter : IDisposable
     private void EmitLocal(BoundVariableDeclaration declaration, FunctionEmissionContext context)
     {
         var symbol = declaration.Variable;
-        if (!context.RequiresStorage(symbol))
+        if (!symbol.IsMutable && declaration.Initializer is not null)
         {
-            Debug.Assert(declaration.Initializer is not null);
             var value = EmitExpression(declaration.Initializer, context);
             context.BindStorage(symbol, value);
             return;
@@ -691,7 +690,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
     private LLVMValueRef EmitAccess(BoundVariableAccess access, FunctionEmissionContext context)
     {
         var val = EmitAccessCore(access, context);
-        if (!context.RequiresStorage(access.Symbol))
+        if (access.Symbol is { IsMutable: false, IsLocal: true })
         {
             return val;
         }
@@ -703,7 +702,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
     private LLVMValueRef EmitAccess(BoundParameterAccess access, FunctionEmissionContext context)
     {
         var val = EmitAccessCore(access, context);
-        if (!context.RequiresStorage(access.Symbol))
+        if (!access.Symbol.IsMutable)
             return val;
 
         var type = GetOrCreateType(access.Symbol.Type);
@@ -812,16 +811,16 @@ internal sealed class LlvmCodeEmitter : IDisposable
     {
         return operation switch
         {
-            BinaryOperation.Addition => type.SpecialType.IsInteger
+            BinaryOperation.Add => type.SpecialType.IsInteger
                 ? _builder.BuildAdd(left, right)
                 : _builder.BuildFAdd(left, right),
-            BinaryOperation.Subtraction => type.SpecialType.IsInteger
+            BinaryOperation.Subtract => type.SpecialType.IsInteger
                 ? _builder.BuildSub(left, right)
                 : _builder.BuildFSub(left, right),
-            BinaryOperation.Multiplication => type.SpecialType.IsInteger
+            BinaryOperation.Multiply => type.SpecialType.IsInteger
                 ? _builder.BuildMul(left, right)
                 : _builder.BuildFMul(left, right),
-            BinaryOperation.Division => type.SpecialType switch
+            BinaryOperation.Divide => type.SpecialType switch
             {
                 { IsSignedInteger: true } => _builder.BuildSDiv(left, right),
                 { IsUnsignedInteger: true } => _builder.BuildUDiv(left, right),
@@ -839,10 +838,10 @@ internal sealed class LlvmCodeEmitter : IDisposable
             ),
             BinaryOperation.BitwiseOr or BinaryOperation.LogicalOr => _builder.BuildOr(left, right),
             BinaryOperation.BitwiseXor => _builder.BuildXor(left, right),
-            BinaryOperation.Equality => type.SpecialType.IsFloatingPoint
+            BinaryOperation.Equal => type.SpecialType.IsFloatingPoint
                 ? _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOEQ, left, right)
                 : _builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ, left, right),
-            BinaryOperation.NotEquals => type.SpecialType.IsFloatingPoint
+            BinaryOperation.NotEqual => type.SpecialType.IsFloatingPoint
                 ? _builder.BuildFCmp(LLVMRealPredicate.LLVMRealONE, left, right)
                 : _builder.BuildICmp(LLVMIntPredicate.LLVMIntNE, left, right),
             BinaryOperation.LessThan => type.SpecialType switch
@@ -859,7 +858,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
                 ),
                 _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOLT, left, right),
             },
-            BinaryOperation.LessThanOrEquals => type.SpecialType switch
+            BinaryOperation.LessThanOrEqual => type.SpecialType switch
             {
                 { IsSignedInteger: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntSLE,
@@ -887,7 +886,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
                 ),
                 _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOGT, left, right),
             },
-            BinaryOperation.GreaterThanOrEquals => type.SpecialType switch
+            BinaryOperation.GreaterThanOrEqual => type.SpecialType switch
             {
                 { IsSignedInteger: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntSGE,

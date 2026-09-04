@@ -9,8 +9,6 @@ internal sealed class BindingContext
 {
     private readonly DiagnosticBag? _diagnostics;
 
-    private ImmutableHashSet<Symbol>.Builder? _referencedLocals;
-
     private BindingContext(DiagnosticBag? diagnostics)
     {
         _diagnostics = diagnostics;
@@ -26,26 +24,5 @@ internal sealed class BindingContext
     public void ReportDiagnostic(Diagnostic diagnostic)
     {
         _diagnostics?.Add(diagnostic);
-    }
-
-    public void AddReferencedLocal(Symbol symbol)
-    {
-        if (_referencedLocals is null)
-        {
-            Interlocked.CompareExchange(
-                ref _referencedLocals,
-                ImmutableHashSet.CreateBuilder<Symbol>(ReferenceEqualityComparer.Instance),
-                null
-            );
-        }
-
-        _referencedLocals.Add(symbol);
-    }
-
-    public ImmutableHashSet<Symbol> CollectReferencedLocals()
-    {
-        return _referencedLocals is not null
-            ? _referencedLocals.ToImmutable()
-            : ImmutableHashSet<Symbol>.Empty;
     }
 }

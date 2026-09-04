@@ -229,7 +229,7 @@ public class Compilation
         return null;
     }
 
-    internal BoundBody? GetBoundBody(FunctionSymbol function)
+    internal BoundStatement? GetBoundBody(FunctionSymbol function)
     {
         var context = BindingContext.Create(DeclarationDiagnostics);
         foreach (var reference in function.DeclaringSyntaxReferences)

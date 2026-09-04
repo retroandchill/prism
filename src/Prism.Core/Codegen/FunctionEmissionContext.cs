@@ -5,7 +5,6 @@
 
 using JetBrains.Annotations;
 using LLVMSharp.Interop;
-using Prism.Core.BoundTree;
 using Prism.Core.Symbols;
 using ZLinq;
 
@@ -13,7 +12,7 @@ namespace Prism.Core.Codegen;
 
 internal readonly record struct LoopLabels(LLVMBasicBlockRef Break, LLVMBasicBlockRef Continue);
 
-internal sealed class FunctionEmissionContext(LLVMValueRef function, BoundBody? body = null)
+internal sealed class FunctionEmissionContext(LLVMValueRef function)
 {
     private readonly struct ScopeFrame()
     {
@@ -42,22 +41,6 @@ internal sealed class FunctionEmissionContext(LLVMValueRef function, BoundBody? 
     public void BindStorage(Symbol symbol, LLVMValueRef value)
     {
         _scopeFrames[^1].Symbols.Add(symbol, value);
-    }
-
-    public bool RequiresStorage(ParameterSymbol parameter)
-    {
-        if (parameter.IsMutable)
-            return true;
-
-        return body?.IsAddressTaken(parameter) ?? false;
-    }
-
-    public bool RequiresStorage(VariableSymbol variable)
-    {
-        if (variable.IsMutable || variable.IsGlobal || !variable.HasInitializer)
-            return true;
-
-        return body?.IsAddressTaken(variable) ?? false;
     }
 
     public LLVMValueRef? LookupStorage(Symbol symbol)
