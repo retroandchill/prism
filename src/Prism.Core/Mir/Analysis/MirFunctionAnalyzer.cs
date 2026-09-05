@@ -6,6 +6,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Core.Utils;
+using ZLinq;
 
 namespace Prism.Core.Mir.Analysis;
 
@@ -320,5 +321,367 @@ internal static class MirFunctionAnalyzer
             default:
                 throw new ArgumentOutOfRangeException(nameof(terminator));
         }
+    }
+
+    public static MirLocalFlowAnalysis AnalyzeLocalFlow(
+        MirFunction function,
+        MirControlFlowGraph cfg,
+        MirUseDefAnalysis useDef
+    )
+    {
+        var builders = function.Locals.ToDictionary(
+            l => l.Id,
+            l => new MirLocalFlowInfoBuilder(l.Id)
+        );
+
+        SeedLocalBlockFacts(builders, useDef);
+
+        foreach (var block in cfg.Blocks)
+        {
+            foreach (var instruction in block.Instructions)
+            {
+                AnalyzeInstructionLocalFlow(instruction, block.Id, builders);
+            }
+
+            AnalyzeTerminatorLocalFlow(block.Terminator, block.Id, builders);
+        }
+
+        foreach (var builder in builders.Values)
+        {
+            FinalizeLocalFlow(builder, cfg);
+        }
+
+        return new MirLocalFlowAnalysis
+        {
+            Locals = builders.ToImmutableDictionary(kv => kv.Key, kv => kv.Value.Build()),
+        };
+    }
+
+    private static void AnalyzeInstructionLocalFlow(
+        MirInstruction instruction,
+        MirBlockId blockId,
+        Dictionary<MirLocalId, MirLocalFlowInfoBuilder> builders
+    )
+    {
+        switch (instruction)
+        {
+            case MirAssignInstruction assign:
+                AnalyzeWriteDestination(assign.Destination, blockId, builders);
+                AnalyzeValue(assign.Source, blockId, builders);
+                break;
+
+            case MirUnaryInstruction unary:
+                AnalyzeWriteDestination(unary.Destination, blockId, builders);
+                AnalyzeValue(unary.Value, blockId, builders);
+                break;
+
+            case MirBinaryInstruction binary:
+                AnalyzeWriteDestination(binary.Destination, blockId, builders);
+                AnalyzeValue(binary.Left, blockId, builders);
+                AnalyzeValue(binary.Right, blockId, builders);
+                break;
+
+            case MirConvertInstruction convert:
+                AnalyzeWriteDestination(convert.Destination, blockId, builders);
+                AnalyzeValue(convert.Value, blockId, builders);
+                break;
+
+            case MirCallInstruction call:
+                if (call.Destination is not null)
+                    AnalyzeWriteDestination(call.Destination, blockId, builders);
+
+                foreach (var argument in call.Arguments)
+                    AnalyzeValue(argument, blockId, builders);
+                break;
+
+            case MirStorageLiveInstruction:
+            case MirStorageDeadInstruction:
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(instruction));
+        }
+    }
+
+    private static void SeedLocalBlockFacts(
+        Dictionary<MirLocalId, MirLocalFlowInfoBuilder> builders,
+        MirUseDefAnalysis useDef
+    )
+    {
+        foreach (var blockInfo in useDef.Blocks.Values)
+        {
+            foreach (var localId in blockInfo.Defs)
+            {
+                builders[localId].DefBlocks.Add(blockInfo.BlockId);
+            }
+
+            foreach (var localId in blockInfo.AllReads)
+            {
+                builders[localId].UseBlocks.Add(blockInfo.BlockId);
+            }
+        }
+    }
+
+    private static void AnalyzeTerminatorLocalFlow(
+        MirTerminator terminator,
+        MirBlockId blockId,
+        Dictionary<MirLocalId, MirLocalFlowInfoBuilder> builders
+    )
+    {
+        switch (terminator)
+        {
+            case MirBranchTerminator branch:
+                AnalyzeValue(branch.Condition, blockId, builders);
+                break;
+
+            case MirReturnTerminator { Value: not null } ret:
+                AnalyzeValue(ret.Value, blockId, builders);
+                break;
+
+            case MirGotoTerminator:
+            case MirReturnTerminator:
+            case MirUnreachableTerminator:
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(terminator));
+        }
+    }
+
+    private static void AnalyzeValue(
+        MirValue value,
+        MirBlockId blockId,
+        Dictionary<MirLocalId, MirLocalFlowInfoBuilder> builders
+    )
+    {
+        switch (value)
+        {
+            case MirConstantValue:
+            case MirNullValue:
+                return;
+
+            case MirReadValue read:
+                AnalyzeReadFromPlace(read.Place, blockId, builders);
+                return;
+
+            case MirAddressOfValue addressOf:
+                AnalyzeAddressOfPlace(addressOf.Place, builders);
+                AnalyzePlaceComputation(addressOf.Place, blockId, builders);
+                return;
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(value));
+        }
+    }
+
+    private static void AnalyzeReadFromPlace(
+        MirPlace place,
+        MirBlockId blockId,
+        Dictionary<MirLocalId, MirLocalFlowInfoBuilder> builders
+    )
+    {
+        switch (place)
+        {
+            case MirLocalPlace local:
+                RecordRead(local.LocalId, blockId, builders);
+                return;
+
+            case MirGlobalPlace:
+                return;
+
+            case MirDerefPlace deref:
+                AnalyzeValue(deref.Pointer, blockId, builders);
+                return;
+
+            case MirFieldPlace field:
+                AnalyzeReadFromPlace(field.Base, blockId, builders);
+                return;
+
+            case MirIndexPlace index:
+                AnalyzeReadFromPlace(index.Base, blockId, builders);
+                AnalyzeValue(index.Index, blockId, builders);
+                return;
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(place));
+        }
+    }
+
+    private static void AnalyzePlaceComputation(
+        MirPlace place,
+        MirBlockId blockId,
+        Dictionary<MirLocalId, MirLocalFlowInfoBuilder> builders
+    )
+    {
+        switch (place)
+        {
+            case MirLocalPlace:
+            case MirGlobalPlace:
+                return;
+
+            case MirDerefPlace deref:
+                AnalyzeValue(deref.Pointer, blockId, builders);
+                return;
+
+            case MirFieldPlace field:
+                AnalyzePlaceComputation(field.Base, blockId, builders);
+                return;
+
+            case MirIndexPlace index:
+                AnalyzePlaceComputation(index.Base, blockId, builders);
+                AnalyzeValue(index.Index, blockId, builders);
+                return;
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(place));
+        }
+    }
+
+    private static void AnalyzeWriteDestination(
+        MirPlace place,
+        MirBlockId blockId,
+        Dictionary<MirLocalId, MirLocalFlowInfoBuilder> builders
+    )
+    {
+        AnalyzePlaceComputation(place, blockId, builders);
+
+        if (place is MirLocalPlace local)
+        {
+            RecordWrite(local.LocalId, blockId, builders);
+        }
+    }
+
+    private static void AnalyzeAddressOfPlace(
+        MirPlace place,
+        Dictionary<MirLocalId, MirLocalFlowInfoBuilder> builders
+    )
+    {
+        switch (place)
+        {
+            case MirLocalPlace local:
+                builders[local.LocalId].IsAddressTaken = true;
+                return;
+
+            case MirGlobalPlace:
+                return;
+
+            case MirDerefPlace:
+                return;
+
+            case MirFieldPlace field:
+                AnalyzeAddressOfPlace(field.Base, builders);
+                return;
+
+            case MirIndexPlace index:
+                AnalyzeAddressOfPlace(index.Base, builders);
+                return;
+
+            default:
+                throw new ArgumentOutOfRangeException(nameof(place));
+        }
+    }
+
+    private static void RecordRead(
+        MirLocalId localId,
+        MirBlockId blockId,
+        Dictionary<MirLocalId, MirLocalFlowInfoBuilder> builders
+    )
+    {
+        var builder = builders[localId];
+        builder.ReadCount++;
+        builder.UseBlocks.Add(blockId);
+    }
+
+    private static void RecordWrite(
+        MirLocalId localId,
+        MirBlockId blockId,
+        Dictionary<MirLocalId, MirLocalFlowInfoBuilder> builders
+    )
+    {
+        var builder = builders[localId];
+        builder.WriteCount++;
+        builder.DefBlocks.Add(blockId);
+    }
+
+    private static void FinalizeLocalFlow(MirLocalFlowInfoBuilder builder, MirControlFlowGraph cfg)
+    {
+        builder.IsUsedAcrossBlocks = IsUsedAcrossBlocks(builder);
+        builder.HasMultipleDefinitions = HasMultipleDefinitions(builder);
+        builder.HasMergePotential = HasMergePotential(builder, cfg);
+    }
+
+    private static bool IsUsedAcrossBlocks(MirLocalFlowInfoBuilder builder)
+    {
+        if (builder.UseBlocks.Count > 1 || builder.DefBlocks.Count > 1)
+            return true;
+
+        if (builder.UseBlocks.Count == 0 || builder.DefBlocks.Count == 0)
+            return false;
+
+        return builder.UseBlocks[0] != builder.DefBlocks[0];
+    }
+
+    private static bool HasMultipleDefinitions(MirLocalFlowInfoBuilder builder)
+    {
+        return builder.WriteCount > 1;
+    }
+
+    private static bool HasMergePotential(MirLocalFlowInfoBuilder builder, MirControlFlowGraph cfg)
+    {
+        if (builder.DefBlocks.Count < 2)
+            return false;
+
+        foreach (var block in cfg.Blocks)
+        {
+            if (
+                !cfg.Predecessors.TryGetValue(block.Id, out var predecessors)
+                || predecessors.Length < 2
+            )
+                continue;
+
+            var reachingDefCount = 0;
+            foreach (
+                var _ in builder
+                    .DefBlocks.AsValueEnumerable()
+                    .Where(defBlock => CanReach(defBlock, block.Id, cfg))
+            )
+            {
+                reachingDefCount++;
+                if (reachingDefCount >= 2)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool CanReach(MirBlockId from, MirBlockId to, MirControlFlowGraph cfg)
+    {
+        if (from == to)
+            return true;
+
+        var visited = new HashSet<MirBlockId>();
+        var queue = new Queue<MirBlockId>();
+        queue.Enqueue(from);
+
+        while (queue.TryDequeue(out var current))
+        {
+            if (!visited.Add(current))
+                continue;
+
+            if (!cfg.Successors.TryGetValue(current, out var successors))
+                continue;
+
+            foreach (var successor in successors)
+            {
+                if (successor == to)
+                    return true;
+
+                if (!visited.Contains(successor))
+                    queue.Enqueue(successor);
+            }
+        }
+
+        return false;
     }
 }
