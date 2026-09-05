@@ -4,7 +4,6 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
-using Prism.Core.BoundTree;
 using Prism.Core.Mir;
 using Prism.Core.Symbols;
 
@@ -13,8 +12,6 @@ namespace Prism.Core.Codegen.Mir;
 internal readonly record struct MirLoopTargets(MirBlockId BreakTarget, MirBlockId ContinueTarget);
 
 internal sealed class MirEmissionContext(
-    FunctionSymbol function,
-    BoundStatement? body,
     MirFunctionBuilder builder,
     MirTypeMapper typeMapper,
     IReadOnlyDictionary<VariableSymbol, MirGlobal> globals,
@@ -25,10 +22,6 @@ internal sealed class MirEmissionContext(
     private readonly Dictionary<LabelSymbol, MirLoopTargets> _loopTargets = new(
         ReferenceEqualityComparer.Instance
     );
-
-    public FunctionSymbol Function { get; } = function;
-
-    public BoundStatement? Body { get; } = body;
 
     public MirBasicBlockBuilder CurrentBlock { get; private set; } = null!;
 

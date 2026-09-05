@@ -13,7 +13,11 @@ internal sealed record MirLocalPlace(MirLocalId LocalId, MirType Type) : MirPlac
         : this(local.Id, local.Type) { }
 }
 
-internal sealed record MirGlobalPlace(MirGlobalId GlobalId, MirType Type) : MirPlace(Type);
+internal sealed record MirGlobalPlace(MirGlobalId GlobalId, MirType Type) : MirPlace(Type)
+{
+    public MirGlobalPlace(MirGlobal global)
+        : this(global.Id, global.Type) { }
+}
 
 internal sealed record MirDerefPlace(MirValue Pointer, MirType Type) : MirPlace(Type);
 

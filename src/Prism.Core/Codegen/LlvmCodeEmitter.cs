@@ -3,280 +3,108 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Diagnostics;
 using LLVMSharp.Interop;
-using Prism.Core.BoundTree;
-using Prism.Core.Compiling;
 using Prism.Core.Configuration;
-using Prism.Core.Mappers;
+using Prism.Core.Mir;
+using Prism.Core.Mir.Analysis;
 using Prism.Core.Semantic;
-using Prism.Core.Symbols;
 using ZLinq;
 
 namespace Prism.Core.Codegen;
 
 internal sealed class LlvmCodeEmitter : IDisposable
 {
-    private enum UnaryReturnType : byte
-    {
-        Prefix,
-        Postfix,
-    }
-
-    private enum UnaryArithmeticType : byte
-    {
-        Increment,
-        Decrement,
-    }
-
-    private readonly Compilation _compilation;
+    private readonly MirModule _mirModule;
+    private readonly CompilationSettings _settings;
     private readonly CodeGenOptions _options;
 
     private LLVMContextRef _context;
     private LLVMModuleRef _module;
     private LLVMBuilderRef _builder;
 
-    private readonly Dictionary<Symbol, LLVMValueRef> _symbolToValue = new(
-        ReferenceEqualityComparer.Instance
-    );
+    private readonly Dictionary<MirGlobalId, LLVMValueRef> _globals = new();
+    private readonly Dictionary<MirFunctionId, LLVMValueRef> _functions = new();
+    private readonly Dictionary<MirType, LLVMTypeRef> _typeMap = new();
 
-    private readonly Dictionary<TypeSymbol, LLVMTypeRef> _symbolToType = new(
-        ReferenceEqualityComparer.Instance
-    );
-
-    public LlvmCodeEmitter(Compilation compilation, CodeGenOptions options)
+    public LlvmCodeEmitter(MirModule module, CompilationSettings settings, CodeGenOptions options)
     {
-        _compilation = compilation;
+        _mirModule = module;
+        _settings = settings;
         _options = options;
         _context = LLVMContextRef.Create();
-        _module = _context.CreateModuleWithName(compilation.AssemblyName);
+        _module = _context.CreateModuleWithName(module.Name);
         _builder = _context.CreateBuilder();
     }
 
     public EmitResult Emit()
     {
-        foreach (var global in _compilation.GetGlobalVariables())
+        foreach (var global in _mirModule.Globals)
         {
-            GetOrCreateGlobal(global);
+            EmitGlobal(global);
         }
 
-        foreach (var function in _compilation.GetGlobalFunctions())
+        foreach (var function in _mirModule.Functions)
         {
-            GetOrCreateFunction(function);
-        }
-
-        FunctionEmissionContext? assemblyInitializerContext = null;
-        foreach (var global in _compilation.GetGlobalVariables())
-        {
-            EmitGlobalInitializer(global, ref assemblyInitializerContext);
-        }
-
-        if (assemblyInitializerContext is not null)
-        {
-            _builder.BuildRetVoid();
-            _module.AppendToGlobalCtors(assemblyInitializerContext.Function, 65535);
-        }
-
-        foreach (var function in _compilation.GetGlobalFunctions())
-        {
-            EmitFunctionBody(function);
-        }
-
-        if (_compilation.Settings.IsApplication && !EmitEntryPoint())
-        {
-            return new EmitResult(false, []);
+            EmitFunction(function);
         }
 
         WriteIR();
         return OutputBinary();
     }
 
-    private bool EmitEntryPoint()
+    private LLVMTypeRef GetOrCreateType(MirType symbol)
     {
-        Debug.Assert(_compilation.Settings.IsApplication);
-        var entryPoint = _compilation.GetEntryPoint();
-        if (entryPoint is null)
-            return false;
-
-        var functionType = LLVMTypeRef.CreateFunction(_context.Int32Type, []);
-        var mainFunc = _module.AddFunction("main", functionType);
-        var entry = mainFunc.AppendBasicBlock("entry");
-        _builder.PositionAtEnd(entry);
-
-        var targetFunction = GetOrCreateFunction(entryPoint);
-        var callEntryPoint = _builder.BuildCall2(targetFunction.FunctionType, targetFunction, []);
-        _builder.BuildRet(
-            entryPoint.ReturnsVoid
-                ? LLVMValueRef.CreateConstInt(_context.Int32Type, 0)
-                : callEntryPoint
-        );
-
-        return true;
-    }
-
-    private LLVMValueRef GetOrCreateFunction(FunctionSymbol functionSymbol)
-    {
-        if (_symbolToValue.TryGetValue(functionSymbol, out var function))
-        {
-            return function;
-        }
-
-        var returnType = GetOrCreateType(functionSymbol.ReturnType);
-        using var parameters = functionSymbol
-            .Parameters.AsValueEnumerable()
-            .Select(p => GetOrCreateType(p.Type))
-            .ToArrayPool();
-
-        var name = functionSymbol.Mangle();
-        var functionType = LLVMTypeRef.CreateFunction(returnType, parameters.Span, false);
-        var func = _module.AddFunction(name, functionType);
-        _symbolToValue[functionSymbol] = func;
-        return func;
-    }
-
-    private LLVMValueRef GetOrCreateGlobal(VariableSymbol symbol)
-    {
-        if (_symbolToValue.TryGetValue(symbol, out var global))
-        {
-            return global;
-        }
-
-        var type = GetOrCreateType(symbol.Type);
-
-        var name = symbol.Mangle();
-        var variable = _module.AddGlobal(type, name);
-        _symbolToValue[symbol] = variable;
-        return variable;
-    }
-
-    private void EmitGlobalInitializer(
-        VariableSymbol symbol,
-        ref FunctionEmissionContext? assemblyInitializerContext
-    )
-    {
-        var variable = GetOrCreateGlobal(symbol);
-        if (!symbol.HasInitializer)
-            return;
-
-        var initializer = _compilation.GetBoundInitializer(symbol);
-        if (initializer is null)
-            return;
-
-        if (initializer.ConstantValue is { } constant)
-        {
-            variable.Initializer = MakeConstant(constant);
-            return;
-        }
-
-        if (assemblyInitializerContext is null)
-        {
-            var functionType = LLVMTypeRef.CreateFunction(_context.VoidType, [], false);
-            var initializerName = $"{_compilation.AssemblyName}_<GlobalInitializer>";
-            var assemblyInitializer = _module.AddFunction(initializerName, functionType);
-            assemblyInitializer.Linkage = LLVMLinkage.LLVMInternalLinkage;
-            var block = assemblyInitializer.AppendBasicBlock("entry");
-
-            assemblyInitializerContext = new FunctionEmissionContext(assemblyInitializer);
-            _builder.PositionAtEnd(block);
-        }
-
-        var initializedValue = EmitExpression(initializer, assemblyInitializerContext);
-        _builder.BuildStore(initializedValue, variable);
-    }
-
-    private void EmitFunctionBody(FunctionSymbol symbol)
-    {
-        var function = GetOrCreateFunction(symbol);
-        var body = _compilation.GetBoundBody(symbol);
-        if (body is null)
-        {
-            function.Linkage = LLVMLinkage.LLVMAvailableExternallyLinkage;
-            return;
-        }
-
-        var entry = function.AppendBasicBlock("entry");
-        _builder.PositionAtEnd(entry);
-        var context = new FunctionEmissionContext(function);
-
-        foreach (
-            var (symbolParam, llvmParam) in symbol
-                .Parameters.AsValueEnumerable()
-                .Zip(function.GetParams())
-        )
-        {
-            if (symbolParam.IsMutable)
-            {
-                var slot = CreateEntryAlloca(llvmParam.TypeOf, symbolParam.Name, context);
-                _builder.BuildStore(llvmParam, slot);
-                context.BindStorage(symbolParam, slot);
-            }
-            else
-            {
-                context.BindStorage(symbolParam, llvmParam);
-            }
-        }
-
-        EmitStatement(body, context);
-
-        if (symbol.ReturnsVoid)
-        {
-            _builder.BuildRetVoid();
-        }
-    }
-
-    private LLVMTypeRef GetOrCreateType(TypeSymbol symbol)
-    {
-        if (_symbolToType.TryGetValue(symbol, out var type))
+        if (_typeMap.TryGetValue(symbol, out var type))
         {
             return type;
         }
 
         type = CreateType(symbol);
-        _symbolToType[symbol] = type;
+        _typeMap[symbol] = type;
         return type;
     }
 
-    private LLVMTypeRef CreateType(TypeSymbol symbol)
+    private LLVMTypeRef CreateType(MirType symbol)
     {
         switch (symbol)
         {
-            case ReferenceTypeSymbol { ReferencedType: var referencedType }:
-            {
-                var pointer = _context.CreatePointerType(0);
-                if (referencedType.IsDynamicallySized)
+            case MirArrayType mirArrayType:
+                return LLVMTypeRef.CreateArray2(
+                    CreateType(mirArrayType.ElementType),
+                    mirArrayType.Length
+                );
+            case MirBoolType:
+                return _context.Int8Type;
+            case MirFloatType mirFloatType:
+                return mirFloatType.Bits switch
                 {
-                    return LLVMTypeRef.CreateStruct(
-                        [pointer, GetOrCreateType(_compilation.GetSpecialType(SpecialType.USize))],
-                        false
-                    );
-                }
-
-                return pointer;
-            }
-            case ArrayTypeSymbol { ElementType: var elementType, Size: { } size }:
-                return LLVMTypeRef.CreateArray2(GetOrCreateType(elementType), size);
-            default:
-                return symbol.SpecialType switch
-                {
-                    SpecialType.Void => _context.VoidType,
-                    SpecialType.Bool or SpecialType.I8 or SpecialType.U8 or SpecialType.Char =>
-                        _context.Int8Type,
-                    SpecialType.I16 or SpecialType.U16 or SpecialType.Char16 => _context.Int16Type,
-                    SpecialType.I32 or SpecialType.U32 or SpecialType.Rune => _context.Int32Type,
-                    SpecialType.I64 or SpecialType.U64 => _context.Int64Type,
-                    SpecialType.I128 or SpecialType.U128 => _context.Int128Type,
-                    SpecialType.ISize or SpecialType.USize => _compilation
-                        .Settings
-                        .PointerWidth switch
-                    {
-                        PointerWidth.X32 => _context.Int32Type,
-                        PointerWidth.X64 => _context.Int64Type,
-                        _ => throw new InvalidOperationException("Invalid pointer width"),
-                    },
-                    SpecialType.F32 => _context.FloatType,
-                    SpecialType.F64 => _context.DoubleType,
-                    _ => throw new NotImplementedException(),
+                    32 => _context.FloatType,
+                    64 => _context.DoubleType,
+                    _ => throw new InvalidOperationException("Invalid float type"),
                 };
+            case MirIntType mirIntType:
+                return LLVMTypeRef.CreateInt((uint)mirIntType.Bits);
+            case MirPointerType:
+                return _context.CreatePointerType(0);
+            case MirSliceType:
+            {
+                var sizeType = _context.GetIntType((uint)_settings.PointerWidth.BitWidth);
+                return LLVMTypeRef.CreateStruct([_context.CreatePointerType(0), sizeType], false);
+            }
+            case MirStructType mirStructType:
+            {
+                using var types = mirStructType
+                    .Fields.AsValueEnumerable()
+                    .Select(CreateType)
+                    .ToArrayPool();
+                var namedStruct = _context.CreateNamedStruct(mirStructType.Name);
+                namedStruct.GetStructElementTypes(types.Span);
+                return namedStruct;
+            }
+            case MirVoidType:
+                return _context.VoidType;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(symbol));
         }
     }
 
@@ -322,7 +150,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
             ),
             ConstantKind.I128 => LLVMValueRef.CreateConstInt(_context.Int128Type, value.AsInt128()),
             ConstantKind.ISize => LLVMValueRef.CreateConstInt(
-                _compilation.Settings.PointerWidth switch
+                _settings.PointerWidth switch
                 {
                     PointerWidth.X32 => _context.Int32Type,
                     PointerWidth.X64 => _context.Int64Type,
@@ -336,7 +164,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
             ConstantKind.U64 => LLVMValueRef.CreateConstInt(_context.Int64Type, value.AsUInt64()),
             ConstantKind.U128 => LLVMValueRef.CreateConstInt(_context.Int64Type, value.AsUInt128()),
             ConstantKind.USize => LLVMValueRef.CreateConstInt(
-                _compilation.Settings.PointerWidth switch
+                _settings.PointerWidth switch
                 {
                     PointerWidth.X32 => _context.Int32Type,
                     PointerWidth.X64 => _context.Int64Type,
@@ -365,739 +193,503 @@ internal sealed class LlvmCodeEmitter : IDisposable
             : value;
     }
 
-    private void EmitStatement(BoundStatement statement, FunctionEmissionContext context)
+    private void EmitGlobal(MirGlobal global)
     {
-        switch (statement)
+        var type = GetOrCreateType(global.Type);
+        var created = _module.AddGlobal(type, global.Name);
+        created.Initializer = global.Initializer switch
         {
-            case BoundBlock boundBlock:
-                EmitBlock(boundBlock, context);
-                break;
-            case BoundVariableDeclaration boundVariableDeclaration:
-                EmitLocal(boundVariableDeclaration, context);
-                break;
-            case BoundExpressionStatement boundExpressionStatement:
-                EmitExpressionStatement(boundExpressionStatement, context);
-                break;
-            case BoundReturnStatement boundReturnStatement:
-                EmitReturn(boundReturnStatement, context);
-                break;
-            case BoundIfStatement boundIfStatement:
-                EmitIfStatement(boundIfStatement, context);
-                break;
-            case BoundWhileStatement boundWhileStatement:
-                EmitWhileStatement(boundWhileStatement, context);
-                break;
-            case BoundLoopStatement boundLoopStatement:
-                EmitLoopStatement(boundLoopStatement, context);
-                break;
-            case BoundForStatement boundForStatement:
-                EmitForLoop(boundForStatement, context);
-                break;
-            case BoundBreakStatement boundBreakStatement:
-                EmitBreakStatement(boundBreakStatement, context);
-                break;
-            case BoundContinueStatement boundContinueStatement:
-                EmitContinueStatement(boundContinueStatement, context);
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(statement));
-        }
+            MirConstantGlobalInitializer mirConstantGlobalInitializer => MakeConstant(
+                mirConstantGlobalInitializer.Value.Constant
+            ),
+            MirComputedGlobalInitializer or MirNoGlobalInitializer => LLVMValueRef.CreateConstNull(
+                type
+            ),
+            _ => throw new InvalidOperationException("Unknown global initializer type"),
+        };
+        _globals[global.Id] = created;
     }
 
-    private void EmitBlock(BoundBlock block, FunctionEmissionContext context)
+    private LLVMValueRef GetOrCreateFunction(MirFunction function)
     {
-        using var scope = context.PushScope();
-
-        foreach (
-            var statement in block
-                .Statements.AsValueEnumerable()
-                .TakeWhile(_ => !CurrentBlockHasTerminator())
-        )
+        if (_functions.TryGetValue(function.Id, out var llvmValue))
         {
-            EmitStatement(statement, context);
-        }
-    }
-
-    private void EmitLocal(BoundVariableDeclaration declaration, FunctionEmissionContext context)
-    {
-        var symbol = declaration.Variable;
-        if (!symbol.IsMutable && declaration.Initializer is not null)
-        {
-            var value = EmitExpression(declaration.Initializer, context);
-            context.BindStorage(symbol, value);
-            return;
+            return llvmValue;
         }
 
-        var type = GetOrCreateType(symbol.Type);
-        var slot = CreateEntryAlloca(type, symbol.Name, context);
-
-        context.BindStorage(symbol, slot);
-
-        if (declaration.Initializer is null)
-            return;
-
-        _builder.BuildStore(EmitExpression(declaration.Initializer, context), slot);
+        var returnType = GetOrCreateType(function.ReturnType);
+        using var parameters = function
+            .Locals.AsValueEnumerable()
+            .Where(l => l.Kind == MirLocalKind.Parameter)
+            .Select(p => GetOrCreateType(p.Type))
+            .ToArrayPool();
+        var functionType = LLVMTypeRef.CreateFunction(returnType, parameters.Span, false);
+        llvmValue = _module.AddFunction(function.Name, functionType);
+        _functions[function.Id] = llvmValue;
+        return llvmValue;
     }
 
-    private void EmitExpressionStatement(
-        BoundExpressionStatement statement,
-        FunctionEmissionContext context
-    )
+    private void EmitFunction(MirFunction function)
     {
-        _ = EmitExpression(statement.Expression, context);
-    }
+        var llvmFunction = GetOrCreateFunction(function);
 
-    private void EmitReturn(BoundReturnStatement returnStatement, FunctionEmissionContext context)
-    {
-        if (returnStatement.Expression is null)
+        var cfg = MirFunctionAnalyzer.AnalyzeControlFlow(function);
+        var useDef = MirFunctionAnalyzer.AnalyzeDefUse(cfg);
+        var localInfos = MirFunctionAnalyzer.AnalyzeLocalFlow(function, cfg, useDef);
+        var localClassification = MirFunctionAnalyzer.ClassifyLocals(localInfos);
+
+        var context = new FunctionEmissionContext(llvmFunction, localClassification);
+        foreach (var block in function.Blocks)
         {
-            _builder.BuildRetVoid();
-            return;
+            var blockRef = LLVMBasicBlockRef.CreateInContext(_context, block.Name);
+            context.BindBlock(block.Id, blockRef);
         }
 
-        var expression = EmitExpression(returnStatement.Expression, context);
-        _builder.BuildRet(expression);
+        var entryBlock = context.LookupBlock(function.EntryBlock);
+        _builder.PositionAtEnd(entryBlock);
+
+        InitializeLocalVariables(function, context);
     }
 
-    private void EmitIfStatement(BoundIfStatement statement, FunctionEmissionContext context)
+    private void InitializeLocalVariables(MirFunction function, FunctionEmissionContext context)
     {
-        var function = context.Function;
-        var thenBlock = function.AppendBasicBlock("cond.then");
-        var elseBlock = statement.ElseStatement is not null
-            ? LLVMBasicBlockRef.CreateInContext(_context, "cond.else")
-            : (LLVMBasicBlockRef?)null;
-        var mergeBlock = LLVMBasicBlockRef.CreateInContext(_context, "cond.merge");
-
-        var condition = ConvertByteBoolToI1IfNeeded(EmitExpression(statement.Condition, context));
-        _builder.BuildCondBr(condition, thenBlock, elseBlock ?? mergeBlock);
-
-        var thenFallsThrough = false;
-        _builder.PositionAtEnd(thenBlock);
-        EmitStatement(statement.ThenStatement, context);
-        if (!CurrentBlockHasTerminator())
+        uint paramIndex = 0;
+        foreach (var local in function.Locals)
         {
-            _builder.BuildBr(mergeBlock);
-            thenFallsThrough = true;
-        }
-
-        var elseFallsThrough = false;
-        if (elseBlock is not null)
-        {
-            function.AppendExistingBasicBlock(elseBlock.Value);
-            _builder.PositionAtEnd(elseBlock.Value);
-            Debug.Assert(statement.ElseStatement is not null);
-            EmitStatement(statement.ElseStatement, context);
-            if (!CurrentBlockHasTerminator())
+            var classification = context.LocalClassification.Locals[local.Id];
+            if (local.Kind == MirLocalKind.Parameter)
             {
-                _builder.BuildBr(mergeBlock);
-                elseFallsThrough = true;
-            }
-        }
-
-        if (!thenFallsThrough && !elseFallsThrough && statement.ElseStatement is not null)
-            return;
-
-        function.AppendExistingBasicBlock(mergeBlock);
-        _builder.PositionAtEnd(mergeBlock);
-    }
-
-    private void EmitWhileStatement(BoundWhileStatement statement, FunctionEmissionContext context)
-    {
-        var function = context.Function;
-        var loopHead = function.AppendBasicBlock("loop.head");
-        var loopBody = LLVMBasicBlockRef.CreateInContext(_context, "loop.body");
-        var loopTail = LLVMBasicBlockRef.CreateInContext(_context, "loop.tail");
-        using var scope = context.PushScope();
-        context.BindLabel(statement.Label, loopTail, loopHead);
-
-        _builder.BuildBr(loopHead);
-        _builder.PositionAtEnd(loopHead);
-        var condition = ConvertByteBoolToI1IfNeeded(EmitExpression(statement.Condition, context));
-        _builder.BuildCondBr(condition, loopBody, loopTail);
-
-        function.AppendExistingBasicBlock(loopBody);
-        _builder.PositionAtEnd(loopBody);
-        EmitStatement(statement.Body, context);
-        if (!CurrentBlockHasTerminator())
-        {
-            _builder.BuildBr(loopHead);
-        }
-
-        function.AppendExistingBasicBlock(loopTail);
-        _builder.PositionAtEnd(loopTail);
-    }
-
-    private void EmitLoopStatement(BoundLoopStatement loop, FunctionEmissionContext context)
-    {
-        using var scope = context.PushScope();
-        var function = context.Function;
-        var loopHead = function.AppendBasicBlock("loop.head");
-        var loopTail = LLVMBasicBlockRef.CreateInContext(_context, "loop.tail");
-        context.BindLabel(loop.Label, loopTail, loopHead);
-
-        _builder.BuildBr(loopHead);
-        _builder.PositionAtEnd(loopHead);
-        EmitStatement(loop.Body, context);
-        if (!CurrentBlockHasTerminator())
-        {
-            _builder.BuildBr(loopHead);
-        }
-
-        function.AppendExistingBasicBlock(loopTail);
-        _builder.PositionAtEnd(loopTail);
-    }
-
-    private void EmitForLoop(BoundForStatement loop, FunctionEmissionContext context)
-    {
-        using var scope = context.PushScope();
-        if (loop.Variable is not null)
-        {
-            EmitLocal(loop.Variable, context);
-        }
-        foreach (var initializer in loop.Initializers)
-        {
-            EmitExpression(initializer, context);
-        }
-
-        var function = context.Function;
-        var loopHead = function.AppendBasicBlock("loop.head");
-        var loopBody = loop.Condition is not null
-            ? LLVMBasicBlockRef.CreateInContext(_context, "loop.body")
-            : (LLVMBasicBlockRef?)null;
-        var loopIncrement =
-            loop.Incrementors.Length > 0
-                ? LLVMBasicBlockRef.CreateInContext(_context, "loop.increment")
-                : (LLVMBasicBlockRef?)null;
-        var loopTail = LLVMBasicBlockRef.CreateInContext(_context, "loop.tail");
-        context.BindLabel(loop.Label, loopTail, loopIncrement ?? loopHead);
-
-        _builder.BuildBr(loopHead);
-        _builder.PositionAtEnd(loopHead);
-        if (loopBody is not null)
-        {
-            Debug.Assert(loop.Condition is not null);
-            var condition = ConvertByteBoolToI1IfNeeded(EmitExpression(loop.Condition, context));
-            _builder.BuildCondBr(condition, loopBody.Value, loopTail);
-
-            function.AppendExistingBasicBlock(loopBody.Value);
-            _builder.PositionAtEnd(loopBody.Value);
-        }
-
-        EmitStatement(loop.Body, context);
-
-        if (!CurrentBlockHasTerminator())
-        {
-            if (loopIncrement is not null)
-            {
-                _builder.BuildBr(loopIncrement.Value);
-
-                function.AppendExistingBasicBlock(loopIncrement.Value);
-                _builder.PositionAtEnd(loopIncrement.Value);
-                foreach (var incrementor in loop.Incrementors)
+                var rawParam = context.Function.GetParam(paramIndex);
+                if (classification.StorageKind == MirLocalStorageKind.Memory)
                 {
-                    EmitExpression(incrementor, context);
+                    var alloca = _builder.BuildAlloca(GetOrCreateType(local.Type), local.Name);
+                    context.BindLocal(local.Id, alloca);
+                    _builder.BuildStore(rawParam, alloca);
                 }
+                else
+                {
+                    context.BindLocal(local.Id, rawParam);
+                }
+
+                paramIndex++;
             }
-
-            _builder.BuildBr(loopHead);
-        }
-
-        function.AppendExistingBasicBlock(loopTail);
-        _builder.PositionAtEnd(loopTail);
-    }
-
-    private void EmitBreakStatement(BoundBreakStatement statement, FunctionEmissionContext context)
-    {
-        var (breakLabel, _) =
-            context.LookupLabels(statement.Label)
-            ?? throw new InvalidOperationException("This shouldn't happen");
-        _builder.BuildBr(breakLabel);
-    }
-
-    private void EmitContinueStatement(
-        BoundContinueStatement statement,
-        FunctionEmissionContext context
-    )
-    {
-        var (_, continueLabel) =
-            context.LookupLabels(statement.Label)
-            ?? throw new InvalidOperationException("This shouldn't happen");
-        _builder.BuildBr(continueLabel);
-    }
-
-    private bool CurrentBlockHasTerminator()
-    {
-        var block = _builder.InsertBlock;
-        return block.LastInstruction
-            is {
-                IsNull: false,
-                Opcode: LLVMOpcode.LLVMRet
-                    or LLVMOpcode.LLVMBr
-                    or LLVMOpcode.LLVMSwitch
-                    or LLVMOpcode.LLVMUnreachable
-            };
-    }
-
-    private LLVMValueRef CreateEntryAlloca(
-        LLVMTypeRef type,
-        string name,
-        FunctionEmissionContext context
-    )
-    {
-        var entry = context.Function.EntryBasicBlock;
-        using var entryBuilder = _context.CreateBuilder();
-
-        var instruction = entry.FirstInstruction;
-        while (instruction is { IsNull: false, InstructionOpcode: LLVMOpcode.LLVMAlloca })
-        {
-            instruction = instruction.NextInstruction;
-        }
-
-        if (instruction.IsNull || instruction.InstructionOpcode == 0)
-        {
-            entryBuilder.PositionAtEnd(entry);
-        }
-        else
-        {
-            entryBuilder.PositionBefore(instruction);
-        }
-
-        return entryBuilder.BuildAlloca(type, name);
-    }
-
-    private LLVMValueRef EmitExpression(BoundExpression expression, FunctionEmissionContext context)
-    {
-        return expression switch
-        {
-            BoundBadExpression => throw new InvalidOperationException(
-                "Should only emit LLVM IR if the compilation is valid"
-            ),
-            BoundLiteral literal => MakeConstant(literal.Value),
-            BoundVariableAccess access => EmitAccess(access, context),
-            BoundParameterAccess access => EmitAccess(access, context),
-            BoundUnaryOperation unary => EmitOperation(unary, context),
-            BoundBinaryOperation binary => EmitOperation(binary, context),
-            BoundAssignmentOperation assignment => EmitAssignment(assignment, context),
-            BoundConditional conditional => EmitConditional(conditional, context),
-            BoundInvocation invocation => EmitCall(invocation, context),
-            BoundConversion conversion => EmitConversion(conversion, context),
-            BoundAddressOf addressOf => EmitAddress(addressOf.Operand, context),
-            BoundDereference dereference => EmitDereference(dereference, context),
-            _ => throw new InvalidOperationException("We probably added a new expression type"),
-        };
-    }
-
-    private LLVMValueRef EmitAccess(BoundVariableAccess access, FunctionEmissionContext context)
-    {
-        var val = EmitAccessCore(access, context);
-        if (access.Symbol is { IsMutable: false, IsLocal: true })
-        {
-            return val;
-        }
-
-        var type = GetOrCreateType(access.Symbol.Type);
-        return _builder.BuildLoad2(type, val);
-    }
-
-    private LLVMValueRef EmitAccess(BoundParameterAccess access, FunctionEmissionContext context)
-    {
-        var val = EmitAccessCore(access, context);
-        if (!access.Symbol.IsMutable)
-            return val;
-
-        var type = GetOrCreateType(access.Symbol.Type);
-        return _builder.BuildLoad2(type, val);
-    }
-
-    private LLVMValueRef EmitOperation(
-        BoundUnaryOperation operation,
-        FunctionEmissionContext context
-    )
-    {
-        switch (operation.Operation)
-        {
-            case UnaryOperation.Identity:
-                return EmitExpression(operation.Operand, context);
-            case UnaryOperation.Negation:
+            else if (classification.StorageKind == MirLocalStorageKind.Memory)
             {
-                var operand = EmitExpression(operation.Operand, context);
-                return operation.Operand.Type.SpecialType.IsInteger
-                    ? _builder.BuildNeg(operand)
-                    : _builder.BuildFNeg(operand);
+                var alloca = _builder.BuildAlloca(GetOrCreateType(local.Type), local.Name);
+                context.BindLocal(local.Id, alloca);
             }
-            case UnaryOperation.LogicalNot:
-            case UnaryOperation.BitwiseNot:
-                return _builder.BuildNot(EmitExpression(operation.Operand, context));
-            case UnaryOperation.PreIncrement:
-                return EmitUnaryIncrementDecrement(
-                    operation,
-                    UnaryReturnType.Prefix,
-                    UnaryArithmeticType.Increment,
-                    context
-                );
-            case UnaryOperation.PreDecrement:
-                return EmitUnaryIncrementDecrement(
-                    operation,
-                    UnaryReturnType.Prefix,
-                    UnaryArithmeticType.Decrement,
-                    context
-                );
-            case UnaryOperation.PostIncrement:
-                return EmitUnaryIncrementDecrement(
-                    operation,
-                    UnaryReturnType.Postfix,
-                    UnaryArithmeticType.Increment,
-                    context
-                );
-            case UnaryOperation.PostDecrement:
-                return EmitUnaryIncrementDecrement(
-                    operation,
-                    UnaryReturnType.Postfix,
-                    UnaryArithmeticType.Decrement,
-                    context
-                );
+        }
+    }
+
+    private void EmitBlock(MirBasicBlock block, FunctionEmissionContext context)
+    {
+        var llvmBlock = context.LookupBlock(block.Id);
+        context.Function.AppendExistingBasicBlock(llvmBlock);
+        _builder.PositionAtEnd(llvmBlock);
+
+        foreach (var instruction in block.Instructions)
+        {
+            EmitInstruction(instruction, context);
+        }
+
+        EmitTerminator(block.Terminator, context);
+    }
+
+    private void EmitInstruction(MirInstruction instruction, FunctionEmissionContext context)
+    {
+        switch (instruction)
+        {
+            case MirAssignInstruction mirAssignInstruction:
+                EmitAssignment(mirAssignInstruction, context);
+                break;
+            case MirUnaryInstruction mirUnaryInstruction:
+                EmitUnaryOperation(mirUnaryInstruction, context);
+                break;
+            case MirBinaryInstruction mirBinaryInstruction:
+                EmitBinaryOperation(mirBinaryInstruction, context);
+                break;
+            case MirCallInstruction mirCallInstruction:
+                EmitCall(mirCallInstruction, context);
+                break;
+            case MirConvertInstruction mirConvertInstruction:
+                EmitConvert(mirConvertInstruction, context);
+                break;
+            case MirStorageLiveInstruction mirStorageLiveInstruction:
+                EmitStorageLive(mirStorageLiveInstruction, context);
+                break;
+            case MirStorageDeadInstruction mirStorageDeadInstruction:
+                EmitStorageDead(mirStorageDeadInstruction, context);
+                break;
             default:
-                throw new ArgumentException("Invalid operation");
+                throw new ArgumentOutOfRangeException(nameof(instruction));
         }
     }
 
-    private LLVMValueRef EmitUnaryIncrementDecrement(
-        BoundUnaryOperation operation,
-        UnaryReturnType returnType,
-        UnaryArithmeticType direction,
+    private void EmitAssignment(MirAssignInstruction assignment, FunctionEmissionContext context)
+    {
+        var source = GetValue(assignment.Source, context);
+        EmitWriteToDest(assignment.Destination, source, context);
+    }
+
+    private void EmitUnaryOperation(MirUnaryInstruction operation, FunctionEmissionContext context)
+    {
+        var source = GetValue(operation.Value, context);
+        var result = operation.Op switch
+        {
+            MirUnaryOp.Negation => operation.Value.Type switch
+            {
+                MirIntType => _builder.BuildNeg(source),
+                MirFloatType => _builder.BuildFNeg(source),
+                _ => throw new InvalidOperationException("Unknown type for negation"),
+            },
+            MirUnaryOp.LogicalNot or MirUnaryOp.BitwiseNot => _builder.BuildNot(source),
+            _ => throw new InvalidOperationException("Unknown unary operation"),
+        };
+        EmitWriteToDest(operation.Destination, result, context);
+    }
+
+    private void EmitBinaryOperation(
+        MirBinaryInstruction operation,
         FunctionEmissionContext context
     )
     {
-        var operand = EmitAddress(operation.Operand, context);
-        var type = GetOrCreateType(operation.Operand.Type);
-        var value = _builder.BuildLoad2(type, operand);
-        var updated = direction switch
+        var left = GetValue(operation.Left, context);
+        var right = GetValue(operation.Right, context);
+        var result = operation.Op switch
         {
-            UnaryArithmeticType.Increment => _builder.BuildAdd(
-                value,
-                LLVMValueRef.CreateConstInt(value.TypeOf, 1)
-            ),
-            UnaryArithmeticType.Decrement => _builder.BuildSub(
-                value,
-                LLVMValueRef.CreateConstInt(value.TypeOf, 1)
-            ),
-            _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
-        };
-        _builder.BuildStore(updated, operand);
-        return returnType switch
-        {
-            UnaryReturnType.Prefix => updated,
-            UnaryReturnType.Postfix => value,
-            _ => throw new ArgumentOutOfRangeException(nameof(returnType), returnType, null),
-        };
-    }
-
-    private LLVMValueRef EmitOperation(
-        BoundBinaryOperation operation,
-        FunctionEmissionContext context
-    )
-    {
-        var left = EmitExpression(operation.Left, context);
-        var right = EmitExpression(operation.Right, context);
-        return EmitBinaryOperation(operation.Left.Type, left, right, operation.Operation);
-    }
-
-    private LLVMValueRef EmitBinaryOperation(
-        TypeSymbol type,
-        LLVMValueRef left,
-        LLVMValueRef right,
-        BinaryOperation operation
-    )
-    {
-        return operation switch
-        {
-            BinaryOperation.Add => type.SpecialType.IsInteger
-                ? _builder.BuildAdd(left, right)
-                : _builder.BuildFAdd(left, right),
-            BinaryOperation.Subtract => type.SpecialType.IsInteger
-                ? _builder.BuildSub(left, right)
-                : _builder.BuildFSub(left, right),
-            BinaryOperation.Multiply => type.SpecialType.IsInteger
-                ? _builder.BuildMul(left, right)
-                : _builder.BuildFMul(left, right),
-            BinaryOperation.Divide => type.SpecialType switch
+            MirBinaryOp.Add => operation.Destination.Type switch
             {
-                { IsSignedInteger: true } => _builder.BuildSDiv(left, right),
-                { IsUnsignedInteger: true } => _builder.BuildUDiv(left, right),
-                _ => _builder.BuildFDiv(left, right),
+                MirIntType => _builder.BuildAdd(left, right),
+                MirFloatType => _builder.BuildFAdd(left, right),
+                _ => throw new InvalidOperationException("Invalid operand type"),
             },
-            BinaryOperation.Modulo => type.SpecialType switch
+            MirBinaryOp.Subtract => operation.Destination.Type switch
             {
-                { IsSignedInteger: true } => _builder.BuildSRem(left, right),
-                { IsUnsignedInteger: true } => _builder.BuildURem(left, right),
-                _ => _builder.BuildFRem(left, right),
+                MirIntType => _builder.BuildSub(left, right),
+                MirFloatType => _builder.BuildFSub(left, right),
+                _ => throw new InvalidOperationException("Invalid operand type"),
             },
-            BinaryOperation.BitwiseAnd or BinaryOperation.LogicalAnd => _builder.BuildAnd(
-                left,
-                right
-            ),
-            BinaryOperation.BitwiseOr or BinaryOperation.LogicalOr => _builder.BuildOr(left, right),
-            BinaryOperation.BitwiseXor => _builder.BuildXor(left, right),
-            BinaryOperation.Equal => type.SpecialType.IsFloatingPoint
-                ? _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOEQ, left, right)
-                : _builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ, left, right),
-            BinaryOperation.NotEqual => type.SpecialType.IsFloatingPoint
-                ? _builder.BuildFCmp(LLVMRealPredicate.LLVMRealONE, left, right)
-                : _builder.BuildICmp(LLVMIntPredicate.LLVMIntNE, left, right),
-            BinaryOperation.LessThan => type.SpecialType switch
+            MirBinaryOp.Multiply => operation.Destination.Type switch
             {
-                { IsSignedInteger: true } => _builder.BuildICmp(
+                MirIntType => _builder.BuildMul(left, right),
+                MirFloatType => _builder.BuildFMul(left, right),
+                _ => throw new InvalidOperationException("Invalid operand type"),
+            },
+            MirBinaryOp.Divide => operation.Destination.Type switch
+            {
+                MirIntType { Signed: true } => _builder.BuildSDiv(left, right),
+                MirIntType { Signed: false } => _builder.BuildUDiv(left, right),
+                MirFloatType => _builder.BuildFDiv(left, right),
+                _ => throw new InvalidOperationException("Invalid operand type"),
+            },
+            MirBinaryOp.Modulo => operation.Destination.Type switch
+            {
+                MirIntType { Signed: true } => _builder.BuildSRem(left, right),
+                MirIntType { Signed: false } => _builder.BuildURem(left, right),
+                MirFloatType => _builder.BuildFRem(left, right),
+                _ => throw new InvalidOperationException("Invalid operand type"),
+            },
+            MirBinaryOp.BitwiseAnd => _builder.BuildAnd(left, right),
+            MirBinaryOp.BitwiseOr => _builder.BuildOr(left, right),
+            MirBinaryOp.BitwiseXor => _builder.BuildXor(left, right),
+            MirBinaryOp.ShiftLeft => _builder.BuildShl(left, right),
+            MirBinaryOp.ShiftRight => _builder.BuildAShr(left, right),
+            MirBinaryOp.UnsignedShiftRight => _builder.BuildLShr(left, right),
+            MirBinaryOp.Equal => operation.Destination.Type switch
+            {
+                MirIntType or MirPointerType => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntEQ,
+                    left,
+                    right
+                ),
+                MirFloatType => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOEQ, left, right),
+                _ => throw new InvalidOperationException("Invalid operand type"),
+            },
+            MirBinaryOp.NotEqual => operation.Destination.Type switch
+            {
+                MirIntType or MirPointerType => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntNE,
+                    left,
+                    right
+                ),
+                MirFloatType => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealONE, left, right),
+                _ => throw new InvalidOperationException("Invalid operand type"),
+            },
+            MirBinaryOp.LessThan => operation.Destination.Type switch
+            {
+                MirIntType { Signed: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntSLT,
                     left,
                     right
                 ),
-                { IsUnsignedInteger: true } => _builder.BuildICmp(
+                MirIntType { Signed: false } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntULT,
                     left,
                     right
                 ),
-                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOLT, left, right),
+                MirFloatType => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOLT, left, right),
+                _ => throw new InvalidOperationException("Invalid operand type"),
             },
-            BinaryOperation.LessThanOrEqual => type.SpecialType switch
+            MirBinaryOp.LessThanOrEqual => operation.Destination.Type switch
             {
-                { IsSignedInteger: true } => _builder.BuildICmp(
+                MirIntType { Signed: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntSLE,
                     left,
                     right
                 ),
-                { IsUnsignedInteger: true } => _builder.BuildICmp(
+                MirIntType { Signed: false } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntULE,
                     left,
                     right
                 ),
-                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOLE, left, right),
+                MirFloatType => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOLE, left, right),
+                _ => throw new InvalidOperationException("Invalid operand type"),
             },
-            BinaryOperation.GreaterThan => type.SpecialType switch
+            MirBinaryOp.GreaterThan => operation.Destination.Type switch
             {
-                { IsSignedInteger: true } => _builder.BuildICmp(
+                MirIntType { Signed: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntSGT,
                     left,
                     right
                 ),
-                { IsUnsignedInteger: true } => _builder.BuildICmp(
+                MirIntType { Signed: false } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntUGT,
                     left,
                     right
                 ),
-                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOGT, left, right),
+                MirFloatType => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOGT, left, right),
+                _ => throw new InvalidOperationException("Invalid operand type"),
             },
-            BinaryOperation.GreaterThanOrEqual => type.SpecialType switch
+            MirBinaryOp.GreaterThanOrEqual => operation.Destination.Type switch
             {
-                { IsSignedInteger: true } => _builder.BuildICmp(
+                MirIntType { Signed: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntSGE,
                     left,
                     right
                 ),
-                { IsUnsignedInteger: true } => _builder.BuildICmp(
+                MirIntType { Signed: false } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntUGE,
                     left,
                     right
                 ),
-                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOGE, left, right),
+                MirFloatType => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOGE, left, right),
+                _ => throw new InvalidOperationException("Invalid operand type"),
             },
-            BinaryOperation.ThreeWayComparison => throw new NotSupportedException(
-                "Three way comparisons are not supported yet"
-            ),
-            BinaryOperation.ShiftLeft => _builder.BuildShl(left, right),
-            BinaryOperation.ShiftRight => _builder.BuildAShr(left, right),
-            BinaryOperation.UnsignedShiftRight => _builder.BuildLShr(left, right),
-            _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
+            _ => throw new InvalidOperationException("Invalid binary operation"),
         };
+        EmitWriteToDest(operation.Destination, result, context);
     }
 
-    private LLVMValueRef EmitAssignment(
-        BoundAssignmentOperation operation,
-        FunctionEmissionContext context
-    )
+    private void EmitCall(MirCallInstruction call, FunctionEmissionContext context)
     {
-        var assignee = EmitAddress(operation.Left, context);
-        var value = EmitExpression(operation.Right, context);
-        if (operation.Operation == AssignmentOperation.Simple)
-        {
-            _builder.BuildStore(value, assignee);
-        }
-        else
-        {
-            var binaryOp = operation.Operation.ToBinaryOperation();
-            var type = GetOrCreateType(operation.Left.Type);
-            var assigneeValue = _builder.BuildLoad2(type, assignee);
-            var result = EmitBinaryOperation(operation.Left.Type, assigneeValue, value, binaryOp);
-            _builder.BuildStore(result, assignee);
-        }
-
-        // Assignments do not return a value
-        return null!;
-    }
-
-    private LLVMValueRef EmitConditional(
-        BoundConditional conditional,
-        FunctionEmissionContext context
-    )
-    {
-        var function = context.Function;
-        var thenBlock = function.AppendBasicBlock("cond.then");
-        var elseBlock = function.AppendBasicBlock("cond.else");
-        var mergeBlock = function.AppendBasicBlock("cond.merge");
-
-        var condition = ConvertByteBoolToI1IfNeeded(EmitExpression(conditional.Condition, context));
-        _builder.BuildCondBr(condition, thenBlock, elseBlock);
-
-        _builder.PositionAtEnd(thenBlock);
-        var thenValue = EmitExpression(conditional.WhenTrue, context);
-        var actualThenBlock = _builder.InsertBlock;
-        _builder.BuildBr(mergeBlock);
-
-        _builder.PositionAtEnd(elseBlock);
-        var elseValue = EmitExpression(conditional.WhenFalse, context);
-        var actualElseBlock = _builder.InsertBlock;
-        _builder.BuildBr(mergeBlock);
-
-        _builder.PositionAtEnd(mergeBlock);
-        var resultType = GetOrCreateType(conditional.Type);
-        var phi = _builder.BuildPhi(resultType);
-
-        Span<LLVMValueRef> values = [thenValue, elseValue];
-        Span<LLVMBasicBlockRef> blocks = [actualThenBlock, actualElseBlock];
-        phi.AddIncoming(values, blocks, 2);
-        return phi;
-    }
-
-    private LLVMValueRef EmitCall(BoundInvocation call, FunctionEmissionContext context)
-    {
-        var target = call.Function;
-        var callee = GetOrCreateFunction(target);
-
-        using var arguments = call
+        var function = _mirModule.GetFunction(call.Callee);
+        var callee = GetOrCreateFunction(function);
+        using var parameters = call
             .Arguments.AsValueEnumerable()
-            .Select(a => EmitExpression(a, context))
+            .Select(p => GetValue(p, context))
             .ToArrayPool();
-        return _builder.BuildCall2(callee.FunctionType, callee, arguments.Span, "");
-    }
-
-    private LLVMValueRef EmitConversion(BoundConversion conversion, FunctionEmissionContext context)
-    {
-        var operand = EmitExpression(conversion.Operand, context);
-
-        var sourceType = conversion.Operand.Type;
-        var targetType = conversion.Type;
-
-        return EmitScalarConversion(operand, conversion.Conversion, sourceType, targetType);
-    }
-
-    private LLVMValueRef EmitScalarConversion(
-        LLVMValueRef operand,
-        Conversion conversion,
-        TypeSymbol sourceType,
-        TypeSymbol targetType
-    )
-    {
-        var source = GetOrCreateType(sourceType);
-        var target = GetOrCreateType(targetType);
-
-        if (source == target)
-            return operand;
-
-        if (conversion.IsNumeric)
+        var result = _builder.BuildCall2(callee.FunctionType, callee, parameters.Span, "");
+        if (call.Destination is not null)
         {
-            if (sourceType.SpecialType.IsInteger && targetType.SpecialType.IsInteger)
-            {
-                if (source.IntWidth < target.IntWidth)
-                {
-                    return sourceType.SpecialType.IsSignedInteger
-                        ? _builder.BuildSExt(operand, target)
-                        : _builder.BuildZExt(operand, target);
-                }
-
-                Debug.Assert(source.IntWidth > target.IntWidth);
-                return _builder.BuildTrunc(operand, target);
-            }
-
-            if (sourceType.SpecialType.IsFloatingPoint && targetType.SpecialType.IsFloatingPoint)
-            {
-                if (sourceType.SpecialType == SpecialType.F32)
-                {
-                    Debug.Assert(targetType.SpecialType == SpecialType.F64);
-                    return _builder.BuildFPExt(operand, target);
-                }
-
-                Debug.Assert(sourceType.SpecialType == SpecialType.F64);
-                Debug.Assert(targetType.SpecialType == SpecialType.F32);
-                return _builder.BuildFPTrunc(operand, target);
-            }
-
-            if (sourceType.SpecialType.IsFloatingPoint && targetType.SpecialType.IsInteger)
-            {
-                return targetType.SpecialType.IsSignedInteger
-                    ? _builder.BuildFPToSI(operand, target)
-                    : _builder.BuildFPToUI(operand, target);
-            }
-
-            if (sourceType.SpecialType.IsInteger && targetType.SpecialType.IsFloatingPoint)
-            {
-                return targetType.SpecialType.IsSignedInteger
-                    ? _builder.BuildSIToFP(operand, target)
-                    : _builder.BuildUIToFP(operand, target);
-            }
+            EmitWriteToDest(call.Destination, result, context);
         }
-
-        // ReSharper disable once InvertIf
-        if (conversion.IsCharacter)
-        {
-            if (source.IntWidth < target.IntWidth)
-            {
-                return _builder.BuildZExt(operand, target);
-            }
-
-            Debug.Assert(source.IntWidth > target.IntWidth);
-            return _builder.BuildTrunc(operand, target);
-        }
-
-        throw new InvalidOperationException("If we get here, the conversion is invalid");
     }
 
-    private LLVMValueRef EmitDereference(
-        BoundDereference expression,
+    private void EmitConvert(MirConvertInstruction conversion, FunctionEmissionContext context)
+    {
+        var baseValue = GetValue(conversion.Value, context);
+        var type = GetOrCreateType(conversion.Destination.Type);
+        var convertedValue = conversion.Kind switch
+        {
+            MirConversionKind.Identity => baseValue,
+            MirConversionKind.ZeroExtend => _builder.BuildZExt(baseValue, type),
+            MirConversionKind.SignExtend => _builder.BuildSExt(baseValue, type),
+            MirConversionKind.Truncate => _builder.BuildTrunc(baseValue, type),
+            MirConversionKind.FloatExtend => _builder.BuildFPExt(baseValue, type),
+            MirConversionKind.FloatTruncate => _builder.BuildFPTrunc(baseValue, type),
+            MirConversionKind.SignedIntToFloat => _builder.BuildSIToFP(baseValue, type),
+            MirConversionKind.UnsignedIntToFloat => _builder.BuildUIToFP(baseValue, type),
+            MirConversionKind.FloatToSignedInt => _builder.BuildFPToSI(baseValue, type),
+            MirConversionKind.FloatToUnsignedInt => _builder.BuildFPToUI(baseValue, type),
+            MirConversionKind.BitCast => _builder.BuildBitCast(baseValue, type),
+            _ => throw new InvalidOperationException("Unknown conversion kind"),
+        };
+        EmitWriteToDest(conversion.Destination, convertedValue, context);
+    }
+
+    private void EmitStorageLive(
+        MirStorageLiveInstruction storageLive,
         FunctionEmissionContext context
-    )
+    ) { }
+
+    private void EmitStorageDead(
+        MirStorageDeadInstruction storageDead,
+        FunctionEmissionContext context
+    ) { }
+
+    private void EmitTerminator(MirTerminator instruction, FunctionEmissionContext context)
     {
-        var address = EmitExpression(expression.Operand, context);
-        var type = GetOrCreateType(expression.Type);
-        return _builder.BuildLoad2(type, address);
+        switch (instruction)
+        {
+            case MirBranchTerminator mirBranchTerminator:
+            {
+                var condition = ConvertByteBoolToI1IfNeeded(
+                    GetValue(mirBranchTerminator.Condition, context)
+                );
+                _builder.BuildCondBr(
+                    condition,
+                    context.LookupBlock(mirBranchTerminator.WhenTrue),
+                    context.LookupBlock(mirBranchTerminator.WhenFalse)
+                );
+                break;
+            }
+            case MirGotoTerminator mirGotoTerminator:
+                _builder.BuildBr(context.LookupBlock(mirGotoTerminator.Target));
+                break;
+            case MirReturnTerminator mirReturnTerminator:
+                if (mirReturnTerminator.Value is not null)
+                {
+                    _builder.BuildRet(GetValue(mirReturnTerminator.Value, context));
+                }
+                else
+                {
+                    _builder.BuildRetVoid();
+                }
+                break;
+            case MirUnreachableTerminator:
+                _builder.BuildUnreachable();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(instruction));
+        }
     }
 
-    private LLVMValueRef EmitAddress(BoundExpression expression, FunctionEmissionContext context)
+    private LLVMValueRef GetValue(MirValue value, FunctionEmissionContext context)
     {
-        return expression switch
+        return value switch
         {
-            BoundVariableAccess access => EmitAccessCore(access, context),
-            BoundParameterAccess access => EmitAccessCore(access, context),
-            BoundDereference dereference => EmitExpression(dereference.Operand, context),
-            _ => throw new ArgumentException("Invalid expression type for address emission"),
+            MirAddressOfValue mirAddressOfValue => EmitTakeAddress(mirAddressOfValue, context),
+            MirConstantValue mirConstantValue => MakeConstant(mirConstantValue.Constant),
+            MirNullValue => throw new InvalidOperationException("Cannot get a null value"),
+            MirReadValue mirReadValue => EmitReadValue(mirReadValue, context),
+            _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
     }
 
-    private LLVMValueRef EmitAccessCore(BoundVariableAccess access, FunctionEmissionContext context)
-    {
-        return context.LookupStorage(access.Symbol) ?? GetOrCreateGlobal(access.Symbol);
-    }
-
-    private static LLVMValueRef EmitAccessCore(
-        BoundParameterAccess access,
+    private LLVMValueRef EmitTakeAddress(
+        MirAddressOfValue addressOf,
         FunctionEmissionContext context
     )
     {
-        return context.LookupStorage(access.Symbol)
-            ?? throw new ArgumentException("Invalid parameter access");
+        return addressOf.Place switch
+        {
+            MirDerefPlace mirDerefPlace => throw new NotImplementedException(),
+            MirFieldPlace mirFieldPlace => throw new NotImplementedException(),
+            MirGlobalPlace mirGlobalPlace => _globals[mirGlobalPlace.GlobalId],
+            MirIndexPlace mirIndexPlace => throw new NotImplementedException(),
+            MirLocalPlace mirLocalPlace => context.LookupLocal(mirLocalPlace.LocalId),
+            _ => throw new InvalidOperationException("Invalid place"),
+        };
+    }
+
+    private LLVMValueRef EmitReadValue(MirReadValue read, FunctionEmissionContext context)
+    {
+        return read.Place switch
+        {
+            MirFieldPlace mirFieldPlace => throw new NotImplementedException(),
+            MirGlobalPlace mirGlobalPlace => EmitReadGlobal(mirGlobalPlace),
+            MirIndexPlace mirIndexPlace => throw new NotImplementedException(),
+            MirLocalPlace mirLocalPlace => EmitReadLocal(mirLocalPlace, context),
+            MirDerefPlace mirDerefPlace => EmitDerefLocal(mirDerefPlace, context),
+            _ => throw new InvalidOperationException("Invalid place"),
+        };
+    }
+
+    private LLVMValueRef EmitReadGlobal(MirGlobalPlace place)
+    {
+        var global = _globals[place.GlobalId];
+        var type = GetOrCreateType(place.Type);
+        return _builder.BuildLoad2(type, global);
+    }
+
+    private LLVMValueRef EmitReadLocal(MirLocalPlace place, FunctionEmissionContext context)
+    {
+        var local = context.LookupLocal(place.LocalId);
+        var classification = context.LocalClassification.Locals[place.LocalId];
+        if (classification.StorageKind != MirLocalStorageKind.Memory)
+            return local;
+
+        var type = GetOrCreateType(place.Type);
+        return _builder.BuildLoad2(type, local);
+    }
+
+    private LLVMValueRef EmitDerefLocal(MirDerefPlace place, FunctionEmissionContext context)
+    {
+        var location = GetValue(place.Pointer, context);
+        return _builder.BuildLoad2(GetOrCreateType(place.Type), location);
+    }
+
+    private void EmitWriteToDest(
+        MirPlace destination,
+        LLVMValueRef value,
+        FunctionEmissionContext context
+    )
+    {
+        switch (destination)
+        {
+            case MirFieldPlace mirFieldPlace:
+                throw new NotImplementedException();
+            case MirGlobalPlace mirGlobalPlace:
+                EmitAssignGlobal(mirGlobalPlace, value);
+                break;
+            case MirIndexPlace mirIndexPlace:
+                throw new NotImplementedException();
+            case MirLocalPlace mirLocalPlace:
+                EmitAssignLocal(mirLocalPlace, value, context);
+                break;
+            case MirDerefPlace mirDerefPlace:
+                EmitAssignDeref(mirDerefPlace, value, context);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(destination));
+        }
+    }
+
+    private void EmitAssignGlobal(MirGlobalPlace place, LLVMValueRef value)
+    {
+        _builder.BuildStore(value, _globals[place.GlobalId]);
+    }
+
+    private void EmitAssignLocal(
+        MirLocalPlace destination,
+        LLVMValueRef value,
+        FunctionEmissionContext context
+    )
+    {
+        var classification = context.LocalClassification.Locals[destination.LocalId];
+        if (classification.StorageKind != MirLocalStorageKind.Memory)
+        {
+            context.BindLocal(destination.LocalId, value);
+            return;
+        }
+
+        var local = context.LookupLocal(destination.LocalId);
+        _builder.BuildStore(value, local);
+    }
+
+    private void EmitAssignDeref(
+        MirDerefPlace destination,
+        LLVMValueRef value,
+        FunctionEmissionContext context
+    )
+    {
+        var location = GetValue(destination.Pointer, context);
+        _builder.BuildStore(value, location);
     }
 
     private void WriteIR()
     {
-        var targetPath = Path.Combine(_options.OutputDirectory, $"{_compilation.AssemblyName}.ll");
+        var targetPath = Path.Combine(_options.OutputDirectory, $"{_mirModule.Name}.ll");
         _module.PrintToFile(targetPath);
     }
 
@@ -1107,7 +699,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
         LLVM.InitializeNativeAsmPrinter();
         LLVM.InitializeNativeAsmParser();
 
-        var tripleString = _compilation.Settings.GetLlvmTriple();
+        var tripleString = _settings.GetLlvmTriple();
         if (!LLVMTargetRef.TryGetTargetFromTriple(tripleString, out var target, out _))
         {
             // TODO: Emit a diagnostic
@@ -1128,10 +720,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
         _module.Target = tripleString;
         _module.DataLayoutObject = targetMachine.CreateTargetDataLayout();
 
-        var outputFilename = Path.Combine(
-            _options.OutputDirectory,
-            $"{_compilation.AssemblyName}.obj"
-        );
+        var outputFilename = Path.Combine(_options.OutputDirectory, $"{_mirModule.Name}.obj");
 
         if (
             !targetMachine.TryEmitToFile(

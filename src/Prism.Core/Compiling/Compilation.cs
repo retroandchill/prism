@@ -4,6 +4,7 @@ using Cysharp.Text;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Codegen;
+using Prism.Core.Codegen.Mir;
 using Prism.Core.Configuration;
 using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
@@ -139,8 +140,12 @@ public class Compilation
 
     public EmitResult Emit(string filepath)
     {
+        var mirEmitter = new MirEmitter(this);
+        var module = mirEmitter.Emit();
+
         using var emitter = new LlvmCodeEmitter(
-            this,
+            module,
+            Settings,
             new CodeGenOptions { OutputDirectory = filepath }
         );
         return emitter.Emit();

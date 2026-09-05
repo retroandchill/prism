@@ -112,7 +112,57 @@ internal sealed class MirEmitter(Compilation compilation)
             builder.Add(EmitFunction(symbol, functionIds, globals));
         }
 
-        return (builder.ToImmutable(), null);
+        var moduleInitializer = EmitModuleInitializer(
+            new MirFunctionId(nextFunctionId + 1),
+            globals,
+            functionIds
+        );
+        if (moduleInitializer is not null)
+        {
+            builder.Add(moduleInitializer);
+        }
+
+        return (builder.ToImmutable(), moduleInitializer?.Id);
+    }
+
+    private MirFunction? EmitModuleInitializer(
+        MirFunctionId functionId,
+        IReadOnlyDictionary<VariableSymbol, MirGlobal> globals,
+        Dictionary<FunctionSymbol, MirFunctionId> functionIds
+    )
+    {
+        MirFunctionBuilder? builder = null;
+        MirEmissionContext? context = null;
+        foreach (
+            var (symbol, global) in globals.Where(g =>
+                g.Value.Initializer is MirComputedGlobalInitializer
+            )
+        )
+        {
+            builder ??= new MirFunctionBuilder(
+                functionId,
+                $"{compilation.AssemblyName}_<g>ModuleInitializer",
+                MirVoidType.Instance
+            );
+            context ??= new MirEmissionContext(builder, _typeMapper, globals, functionIds);
+
+            var entry = context.AddBlock("entry");
+            context.SetCurrentBlock(entry);
+            builder.SetEntryBlock(entry.Id);
+
+            var boundInitializer = compilation.GetBoundInitializer(symbol);
+            Debug.Assert(boundInitializer is not null);
+            var value = EmitExpression(boundInitializer, context);
+            var place = new MirGlobalPlace(global);
+            context.CurrentBlock.AddInstruction(new MirAssignInstruction(place, value));
+
+            if (!entry.IsTerminated)
+            {
+                context.CurrentBlock.SetTerminator(MirReturnTerminator.Void);
+            }
+        }
+
+        return builder?.Build();
     }
 
     private MirFunction EmitFunction(
@@ -128,14 +178,7 @@ internal sealed class MirEmitter(Compilation compilation)
             _typeMapper.Map(symbol.ReturnType)
         );
 
-        var context = new MirEmissionContext(
-            symbol,
-            body,
-            builder,
-            _typeMapper,
-            globals,
-            functionIds
-        );
+        var context = new MirEmissionContext(builder, _typeMapper, globals, functionIds);
 
         EmitParameters(symbol, context);
 

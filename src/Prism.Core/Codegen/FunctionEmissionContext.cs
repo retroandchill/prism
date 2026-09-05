@@ -5,81 +5,46 @@
 
 using JetBrains.Annotations;
 using LLVMSharp.Interop;
+using Prism.Core.Mir;
+using Prism.Core.Mir.Analysis;
 using Prism.Core.Symbols;
 using ZLinq;
 
 namespace Prism.Core.Codegen;
 
-internal readonly record struct LoopLabels(LLVMBasicBlockRef Break, LLVMBasicBlockRef Continue);
-
-internal sealed class FunctionEmissionContext(LLVMValueRef function)
+internal sealed class FunctionEmissionContext(
+    LLVMValueRef function,
+    MirLocalClassificationAnalysis localClassification
+)
 {
-    private readonly struct ScopeFrame()
-    {
-        public Dictionary<Symbol, LLVMValueRef> Symbols { get; } =
-            new(ReferenceEqualityComparer.Instance);
-        public Dictionary<LabelSymbol, LoopLabels> Labels { get; } =
-            new(ReferenceEqualityComparer.Instance);
-    }
-
-    private readonly List<ScopeFrame> _scopeFrames = [new()];
+    private readonly Dictionary<MirLocalId, LLVMValueRef> _locals = new();
+    private readonly Dictionary<MirBlockId, LLVMBasicBlockRef> _blocks = new();
 
     public LLVMValueRef Function { get; } = function;
 
-    [MustDisposeResource]
-    public ScopeContext PushScope()
+    public MirLocalClassificationAnalysis LocalClassification { get; } = localClassification;
+
+    public void BindLocal(MirLocalId local, LLVMValueRef value)
     {
-        _scopeFrames.Add(new ScopeFrame());
-        return new ScopeContext(this);
+        _locals.Add(local, value);
     }
 
-    private void PopScope()
+    public LLVMValueRef LookupLocal(MirLocalId local)
     {
-        _scopeFrames.RemoveAt(_scopeFrames.Count - 1);
+        return _locals.TryGetValue(local, out var value)
+            ? value
+            : throw new KeyNotFoundException("Invalid local ID");
     }
 
-    public void BindStorage(Symbol symbol, LLVMValueRef value)
+    public void BindBlock(MirBlockId block, LLVMBasicBlockRef blockRef)
     {
-        _scopeFrames[^1].Symbols.Add(symbol, value);
+        _blocks.Add(block, blockRef);
     }
 
-    public LLVMValueRef? LookupStorage(Symbol symbol)
+    public LLVMBasicBlockRef LookupBlock(MirBlockId block)
     {
-        foreach (var storage in _scopeFrames.AsValueEnumerable().Reverse())
-        {
-            if (storage.Symbols.TryGetValue(symbol, out var value))
-                return value;
-        }
-
-        return null;
-    }
-
-    public void BindLabel(
-        LabelSymbol label,
-        LLVMBasicBlockRef breakBlock,
-        LLVMBasicBlockRef continueBlock
-    )
-    {
-        _scopeFrames[^1].Labels.Add(label, new LoopLabels(breakBlock, continueBlock));
-    }
-
-    public LoopLabels? LookupLabels(LabelSymbol label)
-    {
-        foreach (var storage in _scopeFrames.AsValueEnumerable().Reverse())
-        {
-            if (storage.Labels.TryGetValue(label, out var value))
-                return value;
-        }
-
-        return null;
-    }
-
-    [MustDisposeResource]
-    public readonly ref struct ScopeContext(FunctionEmissionContext context) : IDisposable
-    {
-        public void Dispose()
-        {
-            context.PopScope();
-        }
+        return _blocks.TryGetValue(block, out var value)
+            ? value
+            : throw new KeyNotFoundException("Invalid block ID");
     }
 }
