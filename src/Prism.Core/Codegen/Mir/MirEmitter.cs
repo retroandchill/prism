@@ -5,7 +5,6 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Prism.Core.BoundTree;
 using Prism.Core.Compiling;
 using Prism.Core.Mappers;
@@ -27,6 +26,12 @@ internal sealed class MirEmitter
     {
         Increment,
         Decrement,
+    }
+
+    private enum LogicalOperation : byte
+    {
+        And,
+        Or,
     }
 
     private readonly Compilation _compilation;
@@ -236,9 +241,7 @@ internal sealed class MirEmitter
         MirEmissionContext context
     )
     {
-        context.CurrentBlock.AddInstruction(
-            new MirEvalInstruction(EmitExpression(expression.Expression, context))
-        );
+        _ = EmitExpression(expression.Expression, context);
     }
 
     private void EmitReturn(BoundReturnStatement statement, MirEmissionContext context)
@@ -505,16 +508,18 @@ internal sealed class MirEmitter
         };
     }
 
-    private MirUnaryValue EmitSimpleUnary(
+    private MirReadValue EmitSimpleUnary(
         BoundUnaryOperation operation,
         MirUnaryOp mirOp,
         MirEmissionContext context
     )
     {
+        var temp = context.CreateTemp(_typeMapper.Map(operation.Type));
+        var place = new MirLocalPlace(temp);
         var operand = EmitExpression(operation.Operand, context);
         var resultType = _typeMapper.Map(operation.Type);
-
-        return new MirUnaryValue(mirOp, operand, resultType);
+        context.CurrentBlock.AddInstruction(new MirUnaryInstruction(place, mirOp, operand));
+        return new MirReadValue(place, resultType);
     }
 
     private MirValue EmitUnaryIncrementDecrement(
@@ -540,7 +545,10 @@ internal sealed class MirEmitter
             UnaryArithmeticKind.Decrement => MirBinaryOp.Subtract,
             _ => throw new ArgumentOutOfRangeException(nameof(arithmeticKind)),
         };
-        var newValue = new MirBinaryValue(binaryOp, oldValue, one, valueType);
+        context.CurrentBlock.AddInstruction(
+            new MirBinaryInstruction(place, binaryOp, oldValue, one)
+        );
+        var newValue = new MirReadValue(place, valueType);
 
         context.CurrentBlock.AddInstruction(new MirAssignInstruction(place, newValue));
 
@@ -552,13 +560,94 @@ internal sealed class MirEmitter
         };
     }
 
-    private MirBinaryValue EmitOperation(BoundBinaryOperation operation, MirEmissionContext context)
+    private MirValue EmitOperation(BoundBinaryOperation operation, MirEmissionContext context)
     {
         var left = EmitExpression(operation.Left, context);
-        var right = EmitExpression(operation.Right, context);
         var type = _typeMapper.Map(operation.Type);
-        var mirOp = operation.Operation.ToMirBinaryOperation();
-        return new MirBinaryValue(mirOp, left, right, type);
+        return EmitBinaryOperation(operation.Operation, type, left, operation.Right, context);
+    }
+
+    private MirReadValue EmitBinaryOperation(
+        BinaryOperation operation,
+        MirType type,
+        MirValue left,
+        BoundExpression right,
+        MirEmissionContext context
+    )
+    {
+        return operation switch
+        {
+            BinaryOperation.LogicalAnd => EmitLogicalOperation(
+                LogicalOperation.And,
+                type,
+                left,
+                right,
+                context
+            ),
+            BinaryOperation.LogicalOr => EmitLogicalOperation(
+                LogicalOperation.Or,
+                type,
+                left,
+                right,
+                context
+            ),
+            _ => EmitSimpleBinaryOperation(operation, type, left, right, context),
+        };
+    }
+
+    private MirReadValue EmitLogicalOperation(
+        LogicalOperation operation,
+        MirType type,
+        MirValue left,
+        BoundExpression right,
+        MirEmissionContext context
+    )
+    {
+        var temp = context.CreateTemp(type);
+        var place = new MirLocalPlace(temp);
+        var evalNext = context.AddBlock("eval.right");
+        var evalSkip = context.AddDetachedBlock("eval.skip");
+        var evalMerge = context.AddDetachedBlock("eval.merge");
+
+        var terminator = operation switch
+        {
+            LogicalOperation.And => new MirBranchTerminator(left, evalNext.Id, evalSkip.Id),
+            LogicalOperation.Or => new MirBranchTerminator(left, evalSkip.Id, evalNext.Id),
+            _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
+        };
+        context.CurrentBlock.SetTerminator(terminator);
+
+        context.SetCurrentBlock(evalNext);
+        context.CurrentBlock.AddInstruction(
+            new MirAssignInstruction(place, EmitExpression(right, context))
+        );
+        context.CurrentBlock.SetTerminator(new MirGotoTerminator(evalMerge.Id));
+
+        context.SetCurrentBlock(evalSkip);
+        context.CurrentBlock.AddInstruction(
+            new MirAssignInstruction(place, CreateBoolConstant(operation == LogicalOperation.Or))
+        );
+        context.CurrentBlock.SetTerminator(new MirGotoTerminator(evalMerge.Id));
+
+        context.SetCurrentBlock(evalMerge);
+        return new MirReadValue(place, type);
+    }
+
+    private MirReadValue EmitSimpleBinaryOperation(
+        BinaryOperation operation,
+        MirType type,
+        MirValue left,
+        BoundExpression right,
+        MirEmissionContext context
+    )
+    {
+        var rightValue = EmitExpression(right, context);
+        var temp = context.CreateTemp(type);
+        var place = new MirLocalPlace(temp.Id, temp.Type);
+        context.CurrentBlock.AddInstruction(
+            new MirBinaryInstruction(place, operation.ToMirBinaryOperation(), left, rightValue)
+        );
+        return new MirReadValue(place, type);
     }
 
     private MirNullValue EmitAssignment(
@@ -567,16 +656,23 @@ internal sealed class MirEmitter
     )
     {
         var place = EmitPlace(operation.Left, context);
-        var value = EmitExpression(operation.Right, context);
         if (operation.Operation == AssignmentOperation.Simple)
         {
-            context.CurrentBlock.AddInstruction(new MirAssignInstruction(place, value));
+            context.CurrentBlock.AddInstruction(
+                new MirAssignInstruction(place, EmitExpression(operation.Right, context))
+            );
         }
         else
         {
-            var binaryOperation = operation.Operation.ToMirBinaryOperation();
+            var binaryOperation = operation.Operation.ToBinaryOperation();
             var loadPlace = new MirReadValue(place, place.Type);
-            var binaryValue = new MirBinaryValue(binaryOperation, loadPlace, value, place.Type);
+            var binaryValue = EmitBinaryOperation(
+                binaryOperation,
+                place.Type,
+                loadPlace,
+                operation.Right,
+                context
+            );
             context.CurrentBlock.AddInstruction(new MirAssignInstruction(place, binaryValue));
         }
 
@@ -649,61 +745,111 @@ internal sealed class MirEmitter
     {
         var value = EmitExpression(conversion.Operand, context);
         var target = _typeMapper.Map(conversion.Type);
-        return EmitScalarConversion(value, conversion.Conversion, target);
+        return EmitScalarConversion(value, conversion.Conversion, target, context);
     }
 
     private static MirValue EmitScalarConversion(
         MirValue operand,
         Conversion conversion,
-        MirType target
+        MirType target,
+        MirEmissionContext context
     )
     {
         var source = operand.Type;
         if (source == target)
             return operand;
 
-        if (conversion.IsNumeric || conversion.IsCharacter)
+        if (conversion is { IsNumeric: false, IsCharacter: false })
+            throw new InvalidOperationException("If we get here, the conversion is invalid");
+
+        switch (source)
         {
-            if (source is MirIntType sourceInt && target is MirIntType targetInt)
+            case MirIntType sourceInt when target is MirIntType targetInt:
             {
                 if (sourceInt.Bits < targetInt.Bits)
                 {
                     return sourceInt.Signed
-                        ? new MirConvertValue(operand, MirConversionKind.SignExtend, target)
-                        : new MirConvertValue(operand, MirConversionKind.ZeroExtend, target);
+                        ? EmitConversionValue(
+                            operand,
+                            MirConversionKind.SignExtend,
+                            target,
+                            context
+                        )
+                        : EmitConversionValue(
+                            operand,
+                            MirConversionKind.ZeroExtend,
+                            target,
+                            context
+                        );
                 }
 
                 Debug.Assert(sourceInt.Bits > targetInt.Bits);
-                return new MirConvertValue(operand, MirConversionKind.Truncate, target);
+                return EmitConversionValue(operand, MirConversionKind.Truncate, target, context);
             }
-
-            if (source is MirFloatType sourceFloat && target is MirFloatType targetFloat)
+            case MirFloatType sourceFloat when target is MirFloatType targetFloat:
             {
                 if (sourceFloat.Bits < targetFloat.Bits)
                 {
-                    return new MirConvertValue(operand, MirConversionKind.FloatExtend, target);
+                    return EmitConversionValue(
+                        operand,
+                        MirConversionKind.FloatExtend,
+                        target,
+                        context
+                    );
                 }
 
                 Debug.Assert(sourceFloat.Bits > targetFloat.Bits);
-                return new MirConvertValue(operand, MirConversionKind.FloatTruncate, target);
+                return EmitConversionValue(
+                    operand,
+                    MirConversionKind.FloatTruncate,
+                    target,
+                    context
+                );
             }
-
-            if (source is MirFloatType && target is MirIntType { Signed: var targetSigned })
-            {
+            case MirFloatType when target is MirIntType { Signed: var targetSigned }:
                 return targetSigned
-                    ? new MirConvertValue(operand, MirConversionKind.FloatToSignedInt, target)
-                    : new MirConvertValue(operand, MirConversionKind.FloatToUnsignedInt, target);
-            }
-
-            if (source is MirIntType { Signed: var sourceSigned } && target is MirFloatType)
-            {
+                    ? EmitConversionValue(
+                        operand,
+                        MirConversionKind.FloatToSignedInt,
+                        target,
+                        context
+                    )
+                    : EmitConversionValue(
+                        operand,
+                        MirConversionKind.FloatToUnsignedInt,
+                        target,
+                        context
+                    );
+            case MirIntType { Signed: var sourceSigned } when target is MirFloatType:
                 return sourceSigned
-                    ? new MirConvertValue(operand, MirConversionKind.SignedIntToFloat, target)
-                    : new MirConvertValue(operand, MirConversionKind.UnsignedIntToFloat, target);
-            }
+                    ? EmitConversionValue(
+                        operand,
+                        MirConversionKind.SignedIntToFloat,
+                        target,
+                        context
+                    )
+                    : EmitConversionValue(
+                        operand,
+                        MirConversionKind.UnsignedIntToFloat,
+                        target,
+                        context
+                    );
+            default:
+                throw new InvalidOperationException("If we get here, the conversion is invalid");
         }
+    }
 
-        throw new InvalidOperationException("If we get here, the conversion is invalid");
+    private static MirReadValue EmitConversionValue(
+        MirValue operand,
+        MirConversionKind kind,
+        MirType target,
+        MirEmissionContext context
+    )
+    {
+        var temp = context.CreateTemp(target);
+        var place = new MirLocalPlace(temp);
+        context.CurrentBlock.AddInstruction(new MirConvertInstruction(place, kind, operand));
+        return new MirReadValue(place, target);
     }
 
     private MirAddressOfValue EmitAddressOf(BoundAddressOf operation, MirEmissionContext context)
@@ -753,6 +899,11 @@ internal sealed class MirEmitter
         var pointer = EmitExpression(dereference.Operand, context);
         var type = _typeMapper.Map(dereference.Type);
         return new MirDerefPlace(pointer, type);
+    }
+
+    private static MirConstantValue CreateBoolConstant(bool value)
+    {
+        return new MirConstantValue(ConstantValue.Boolean(value), MirBoolType.Instance);
     }
 
     private static MirConstantValue CreateUnitConstant(TypeSymbol sourceType, MirType targetType)

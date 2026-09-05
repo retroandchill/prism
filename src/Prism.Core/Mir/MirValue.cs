@@ -16,15 +16,6 @@ internal sealed record MirReadValue(MirPlace Place, MirType Type) : MirValue(Typ
 
 internal sealed record MirAddressOfValue(MirPlace Place, MirType Type) : MirValue(Type);
 
-internal sealed record MirUnaryValue(MirUnaryOp Op, MirValue Operand, MirType Type)
-    : MirValue(Type);
-
-internal sealed record MirBinaryValue(MirBinaryOp Op, MirValue Left, MirValue Right, MirType Type)
-    : MirValue(Type);
-
-internal sealed record MirConvertValue(MirValue Operand, MirConversionKind Conversion, MirType Type)
-    : MirValue(Type);
-
 internal sealed record MirNullValue : MirValue
 {
     private MirNullValue()

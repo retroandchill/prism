@@ -1,5 +1,4 @@
-﻿using Prism.Core.Binding;
-using Prism.Core.Mir;
+﻿using Prism.Core.Mir;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Syntax;
@@ -133,9 +132,8 @@ internal static partial class CommonEnumMappers
     [MapperIgnoreSourceValue(AssignmentOperation.Simple)]
     public static partial BinaryOperation ToBinaryOperation(this AssignmentOperation operation);
 
+    [MapperIgnoreSourceValue(BinaryOperation.LogicalAnd)]
+    [MapperIgnoreSourceValue(BinaryOperation.LogicalOr)]
     [MapperIgnoreSourceValue(BinaryOperation.ThreeWayComparison)]
     public static partial MirBinaryOp ToMirBinaryOperation(this BinaryOperation operation);
-
-    [MapperIgnoreSourceValue(AssignmentOperation.Simple)]
-    public static partial MirBinaryOp ToMirBinaryOperation(this AssignmentOperation operation);
 }

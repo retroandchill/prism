@@ -12,7 +12,21 @@ internal abstract record MirInstruction;
 
 internal sealed record MirAssignInstruction(MirPlace Destination, MirValue Source) : MirInstruction;
 
-internal sealed record MirEvalInstruction(MirValue Value) : MirInstruction;
+internal sealed record MirUnaryInstruction(MirPlace Destination, MirUnaryOp Op, MirValue Value)
+    : MirInstruction;
+
+internal sealed record MirBinaryInstruction(
+    MirPlace Destination,
+    MirBinaryOp Op,
+    MirValue Left,
+    MirValue Right
+) : MirInstruction;
+
+internal sealed record MirConvertInstruction(
+    MirPlace Destination,
+    MirConversionKind Kind,
+    MirValue Value
+) : MirInstruction;
 
 internal sealed record MirCallInstruction(
     MirPlace? Destination,

@@ -25,8 +25,6 @@ internal enum MirBinaryOp : byte
     ShiftLeft,
     ShiftRight,
     UnsignedShiftRight,
-    LogicalAnd,
-    LogicalOr,
     Equal,
     NotEqual,
     LessThan,
