@@ -14,7 +14,7 @@ using Prism.Core.Symbols;
 
 namespace Prism.Core.Codegen.Mir;
 
-internal sealed class MirEmitter
+internal sealed class MirEmitter(Compilation compilation)
 {
     private enum UnaryResultKind : byte
     {
@@ -34,21 +34,14 @@ internal sealed class MirEmitter
         Or,
     }
 
-    private readonly Compilation _compilation;
-    private readonly MirTypeMapper _typeMapper;
-
-    public MirEmitter(Compilation compilation)
-    {
-        _compilation = compilation;
-        _typeMapper = new MirTypeMapper(compilation);
-    }
+    private readonly MirTypeMapper _typeMapper = new(compilation);
 
     public MirModule Emit()
     {
         var globals = EmitGlobals();
         var (functions, globalInitializer) = EmitFunctions(globals);
         return new MirModule(
-            _compilation.AssemblyName,
+            compilation.AssemblyName,
             [.. globals.Values],
             functions,
             globalInitializer
@@ -60,7 +53,7 @@ internal sealed class MirEmitter
         var mapping = new OrderedDictionary<VariableSymbol, MirGlobal>(
             ReferenceEqualityComparer.Instance
         );
-        var symbols = _compilation.GetGlobalVariables();
+        var symbols = compilation.GetGlobalVariables();
         var nextGlobalId = 0;
         foreach (var symbol in symbols)
         {
@@ -83,7 +76,7 @@ internal sealed class MirEmitter
 
     private MirGlobalInitializer EmitGlobalInitializer(VariableSymbol symbol)
     {
-        var initializer = _compilation.GetBoundInitializer(symbol);
+        var initializer = compilation.GetBoundInitializer(symbol);
         if (initializer is null)
             return MirNoGlobalInitializer.Instance;
 
@@ -101,7 +94,7 @@ internal sealed class MirEmitter
         IReadOnlyDictionary<VariableSymbol, MirGlobal> globals
     )
     {
-        var symbols = _compilation.GetGlobalFunctions();
+        var symbols = compilation.GetGlobalFunctions();
         // Add one more to account for the possibility of emitting a global initializer
         var builder = ImmutableArray.CreateBuilder<MirFunction>(symbols.Length + 1);
         var nextFunctionId = 0;
@@ -128,7 +121,7 @@ internal sealed class MirEmitter
         IReadOnlyDictionary<VariableSymbol, MirGlobal> globals
     )
     {
-        var body = _compilation.GetBoundBody(symbol);
+        var body = compilation.GetBoundBody(symbol);
         var builder = new MirFunctionBuilder(
             functionIds[symbol],
             symbol.ToDisplayString(),

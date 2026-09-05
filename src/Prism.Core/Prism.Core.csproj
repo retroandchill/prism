@@ -25,4 +25,8 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Prism.Core.Tests" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="FlowAnalysis\" />
+  </ItemGroup>
 </Project>
