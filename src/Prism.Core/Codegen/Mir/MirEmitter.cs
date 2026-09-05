@@ -569,9 +569,10 @@ internal sealed class MirEmitter(Compilation compilation)
         var valueType = _typeMapper.Map(operation.Operand.Type);
 
         var temp = context.CreateTemp(valueType, "old");
-        var oldValue = new MirReadValue(place, place.Type);
+        var templaPlace = new MirLocalPlace(temp.Id, temp.Type);
+        var oldValue = new MirReadValue(templaPlace, templaPlace.Type);
         context.CurrentBlock.AddInstruction(
-            new MirAssignInstruction(new MirLocalPlace(temp.Id, temp.Type), oldValue)
+            new MirAssignInstruction(templaPlace, new MirReadValue(place, place.Type))
         );
 
         var one = CreateUnitConstant(operation.Operand.Type, valueType);
@@ -581,10 +582,12 @@ internal sealed class MirEmitter(Compilation compilation)
             UnaryArithmeticKind.Decrement => MirBinaryOp.Subtract,
             _ => throw new ArgumentOutOfRangeException(nameof(arithmeticKind)),
         };
+        var result = context.CreateTemp(valueType, "result");
+        var resultPlace = new MirLocalPlace(result);
         context.CurrentBlock.AddInstruction(
-            new MirBinaryInstruction(place, binaryOp, oldValue, one)
+            new MirBinaryInstruction(resultPlace, binaryOp, oldValue, one)
         );
-        var newValue = new MirReadValue(place, valueType);
+        var newValue = new MirReadValue(resultPlace, valueType);
 
         context.CurrentBlock.AddInstruction(new MirAssignInstruction(place, newValue));
 
