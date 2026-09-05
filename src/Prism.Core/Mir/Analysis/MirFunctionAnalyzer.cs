@@ -26,8 +26,9 @@ internal static class MirFunctionAnalyzer
 
         while (toExplore.TryDequeue(out var blockId))
         {
+            if (!explored.Add(blockId))
+                continue;
             var block = function.GetBlock(blockId);
-            explored.Add(block.Id);
             blocks.Add(block);
             var successorList = successors.GetOrAdd(block.Id, () => []);
             switch (block.Terminator)
@@ -325,16 +326,16 @@ internal static class MirFunctionAnalyzer
 
     public static MirLocalFlowAnalysis AnalyzeLocalFlow(
         MirFunction function,
-        MirControlFlowGraph cfg,
-        MirUseDefAnalysis useDef
+        MirControlFlowGraph cfg
     )
     {
         var builders = function.Locals.ToDictionary(
             l => l.Id,
             l => new MirLocalFlowInfoBuilder(l.Id)
+            {
+                WriteCount = l.Kind == MirLocalKind.Parameter ? 1 : 0,
+            }
         );
-
-        SeedLocalBlockFacts(builders, useDef);
 
         foreach (var block in cfg.Blocks)
         {
@@ -400,25 +401,6 @@ internal static class MirFunctionAnalyzer
 
             default:
                 throw new ArgumentOutOfRangeException(nameof(instruction));
-        }
-    }
-
-    private static void SeedLocalBlockFacts(
-        Dictionary<MirLocalId, MirLocalFlowInfoBuilder> builders,
-        MirUseDefAnalysis useDef
-    )
-    {
-        foreach (var blockInfo in useDef.Blocks.Values)
-        {
-            foreach (var localId in blockInfo.Defs)
-            {
-                builders[localId].DefBlocks.Add(blockInfo.BlockId);
-            }
-
-            foreach (var localId in blockInfo.AllReads)
-            {
-                builders[localId].UseBlocks.Add(blockInfo.BlockId);
-            }
         }
     }
 
@@ -700,7 +682,7 @@ internal static class MirFunctionAnalyzer
 
     private static MirLocalClassification ClassifyLocal(MirLocalFlowInfo local)
     {
-        if (local.IsAddressTaken)
+        if (local.IsAddressTaken || local.HasMultipleDefinitions)
         {
             return new MirLocalClassification
             {

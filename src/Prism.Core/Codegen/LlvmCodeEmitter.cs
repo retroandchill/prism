@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics;
 using LLVMSharp.Interop;
 using Prism.Core.Configuration;
 using Prism.Core.Mir;
@@ -83,7 +84,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
                     _ => throw new InvalidOperationException("Invalid float type"),
                 };
             case MirIntType mirIntType:
-                return LLVMTypeRef.CreateInt((uint)mirIntType.Bits);
+                return _context.GetIntType((uint)mirIntType.Bits);
             case MirPointerType:
                 return _context.CreatePointerType(0);
             case MirSliceType:
@@ -234,11 +235,10 @@ internal sealed class LlvmCodeEmitter : IDisposable
         var llvmFunction = GetOrCreateFunction(function);
 
         var cfg = MirFunctionAnalyzer.AnalyzeControlFlow(function);
-        var useDef = MirFunctionAnalyzer.AnalyzeDefUse(cfg);
-        var localInfos = MirFunctionAnalyzer.AnalyzeLocalFlow(function, cfg, useDef);
+        var localInfos = MirFunctionAnalyzer.AnalyzeLocalFlow(function, cfg);
         var localClassification = MirFunctionAnalyzer.ClassifyLocals(localInfos);
 
-        var context = new FunctionEmissionContext(llvmFunction, localClassification);
+        var context = new FunctionEmissionContext(function, llvmFunction, cfg, localClassification);
         foreach (var block in function.Blocks)
         {
             var blockRef = LLVMBasicBlockRef.CreateInContext(_context, block.Name);
@@ -246,9 +246,14 @@ internal sealed class LlvmCodeEmitter : IDisposable
         }
 
         var entryBlock = context.LookupBlock(function.EntryBlock);
+        llvmFunction.AppendExistingBasicBlock(entryBlock);
         _builder.PositionAtEnd(entryBlock);
 
         InitializeLocalVariables(function, context);
+        foreach (var block in function.Blocks)
+        {
+            EmitBlock(block, context);
+        }
     }
 
     private void InitializeLocalVariables(MirFunction function, FunctionEmissionContext context)
@@ -259,7 +264,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
             var classification = context.LocalClassification.Locals[local.Id];
             if (local.Kind == MirLocalKind.Parameter)
             {
-                var rawParam = context.Function.GetParam(paramIndex);
+                var rawParam = context.LlvmFunction.GetParam(paramIndex);
                 if (classification.StorageKind == MirLocalStorageKind.Memory)
                 {
                     var alloca = _builder.BuildAlloca(GetOrCreateType(local.Type), local.Name);
@@ -284,8 +289,24 @@ internal sealed class LlvmCodeEmitter : IDisposable
     private void EmitBlock(MirBasicBlock block, FunctionEmissionContext context)
     {
         var llvmBlock = context.LookupBlock(block.Id);
-        context.Function.AppendExistingBasicBlock(llvmBlock);
+        if (block.Id != context.MirFunction.EntryBlock)
+        {
+            context.LlvmFunction.AppendExistingBasicBlock(llvmBlock);
+        }
+
+        context.CurrentBlock = block.Id;
         _builder.PositionAtEnd(llvmBlock);
+
+        var phiLocals = context.LookupPhiLocals(block.Id);
+        foreach (var local in phiLocals)
+        {
+            var (values, blocks) = context.LookupPhiValues(local);
+            Debug.Assert(values.Length > 1);
+            var localType = context.MirFunction.GetLocal(local).Type;
+            var phi = _builder.BuildPhi(GetOrCreateType(localType));
+            phi.AddIncoming(values, blocks, (uint)values.Length);
+            context.BindLocal(local, phi);
+        }
 
         foreach (var instruction in block.Instructions)
         {
@@ -357,32 +378,32 @@ internal sealed class LlvmCodeEmitter : IDisposable
         var right = GetValue(operation.Right, context);
         var result = operation.Op switch
         {
-            MirBinaryOp.Add => operation.Destination.Type switch
+            MirBinaryOp.Add => operation.Left.Type switch
             {
                 MirIntType => _builder.BuildAdd(left, right),
                 MirFloatType => _builder.BuildFAdd(left, right),
                 _ => throw new InvalidOperationException("Invalid operand type"),
             },
-            MirBinaryOp.Subtract => operation.Destination.Type switch
+            MirBinaryOp.Subtract => operation.Left.Type switch
             {
                 MirIntType => _builder.BuildSub(left, right),
                 MirFloatType => _builder.BuildFSub(left, right),
                 _ => throw new InvalidOperationException("Invalid operand type"),
             },
-            MirBinaryOp.Multiply => operation.Destination.Type switch
+            MirBinaryOp.Multiply => operation.Left.Type switch
             {
                 MirIntType => _builder.BuildMul(left, right),
                 MirFloatType => _builder.BuildFMul(left, right),
                 _ => throw new InvalidOperationException("Invalid operand type"),
             },
-            MirBinaryOp.Divide => operation.Destination.Type switch
+            MirBinaryOp.Divide => operation.Left.Type switch
             {
                 MirIntType { Signed: true } => _builder.BuildSDiv(left, right),
                 MirIntType { Signed: false } => _builder.BuildUDiv(left, right),
                 MirFloatType => _builder.BuildFDiv(left, right),
                 _ => throw new InvalidOperationException("Invalid operand type"),
             },
-            MirBinaryOp.Modulo => operation.Destination.Type switch
+            MirBinaryOp.Modulo => operation.Left.Type switch
             {
                 MirIntType { Signed: true } => _builder.BuildSRem(left, right),
                 MirIntType { Signed: false } => _builder.BuildURem(left, right),
@@ -395,9 +416,9 @@ internal sealed class LlvmCodeEmitter : IDisposable
             MirBinaryOp.ShiftLeft => _builder.BuildShl(left, right),
             MirBinaryOp.ShiftRight => _builder.BuildAShr(left, right),
             MirBinaryOp.UnsignedShiftRight => _builder.BuildLShr(left, right),
-            MirBinaryOp.Equal => operation.Destination.Type switch
+            MirBinaryOp.Equal => operation.Left.Type switch
             {
-                MirIntType or MirPointerType => _builder.BuildICmp(
+                MirIntType or MirPointerType or MirBoolType => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntEQ,
                     left,
                     right
@@ -405,9 +426,9 @@ internal sealed class LlvmCodeEmitter : IDisposable
                 MirFloatType => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOEQ, left, right),
                 _ => throw new InvalidOperationException("Invalid operand type"),
             },
-            MirBinaryOp.NotEqual => operation.Destination.Type switch
+            MirBinaryOp.NotEqual => operation.Left.Type switch
             {
-                MirIntType or MirPointerType => _builder.BuildICmp(
+                MirIntType or MirPointerType or MirBoolType => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntNE,
                     left,
                     right
@@ -415,7 +436,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
                 MirFloatType => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealONE, left, right),
                 _ => throw new InvalidOperationException("Invalid operand type"),
             },
-            MirBinaryOp.LessThan => operation.Destination.Type switch
+            MirBinaryOp.LessThan => operation.Left.Type switch
             {
                 MirIntType { Signed: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntSLT,
@@ -430,7 +451,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
                 MirFloatType => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOLT, left, right),
                 _ => throw new InvalidOperationException("Invalid operand type"),
             },
-            MirBinaryOp.LessThanOrEqual => operation.Destination.Type switch
+            MirBinaryOp.LessThanOrEqual => operation.Left.Type switch
             {
                 MirIntType { Signed: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntSLE,
@@ -445,7 +466,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
                 MirFloatType => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOLE, left, right),
                 _ => throw new InvalidOperationException("Invalid operand type"),
             },
-            MirBinaryOp.GreaterThan => operation.Destination.Type switch
+            MirBinaryOp.GreaterThan => operation.Left.Type switch
             {
                 MirIntType { Signed: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntSGT,
@@ -460,7 +481,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
                 MirFloatType => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOGT, left, right),
                 _ => throw new InvalidOperationException("Invalid operand type"),
             },
-            MirBinaryOp.GreaterThanOrEqual => operation.Destination.Type switch
+            MirBinaryOp.GreaterThanOrEqual => operation.Left.Type switch
             {
                 MirIntType { Signed: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntSGE,
@@ -555,6 +576,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
                 {
                     _builder.BuildRetVoid();
                 }
+
                 break;
             case MirUnreachableTerminator:
                 _builder.BuildUnreachable();
@@ -667,14 +689,23 @@ internal sealed class LlvmCodeEmitter : IDisposable
     )
     {
         var classification = context.LocalClassification.Locals[destination.LocalId];
-        if (classification.StorageKind != MirLocalStorageKind.Memory)
+        switch (classification.StorageKind)
         {
-            context.BindLocal(destination.LocalId, value);
-            return;
+            case MirLocalStorageKind.Ssa:
+                context.BindLocal(destination.LocalId, value);
+                break;
+            case MirLocalStorageKind.SsaWithPhi:
+                context.AddPhiValue(destination.LocalId, value);
+                break;
+            case MirLocalStorageKind.Memory:
+                {
+                    var local = context.LookupLocal(destination.LocalId);
+                    _builder.BuildStore(value, local);
+                }
+                break;
+            default:
+                throw new InvalidOperationException("Unknown enum type");
         }
-
-        var local = context.LookupLocal(destination.LocalId);
-        _builder.BuildStore(value, local);
     }
 
     private void EmitAssignDeref(
@@ -722,6 +753,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
 
         var outputFilename = Path.Combine(_options.OutputDirectory, $"{_mirModule.Name}.obj");
 
+        _module.Verify(LLVMVerifierFailureAction.LLVMReturnStatusAction);
         if (
             !targetMachine.TryEmitToFile(
                 _module,

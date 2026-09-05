@@ -165,7 +165,7 @@ internal sealed class CompilationCache(Compilation compilation)
         return _topLevelFunctions;
     }
 
-    private static void CollectGlobalFunctions(
+    private void CollectGlobalFunctions(
         NamespaceSymbol namespaceSymbol,
         ImmutableArray<FunctionSymbol>.Builder functions
     )
@@ -182,5 +182,9 @@ internal sealed class CompilationCache(Compilation compilation)
                     break;
             }
         }
+
+        functions.Sort(
+            (a, b) => compilation.CompareSourceLocations(a.FirstLocation(), b.FirstLocation())
+        );
     }
 }

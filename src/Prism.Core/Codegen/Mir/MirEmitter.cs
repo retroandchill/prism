@@ -190,7 +190,7 @@ internal sealed class MirEmitter(Compilation compilation)
 
             EmitStatement(body, context);
 
-            if (!entry.IsTerminated && symbol.ReturnsVoid)
+            if (!context.CurrentBlock.IsTerminated && symbol.ReturnsVoid)
             {
                 context.CurrentBlock.SetTerminator(MirReturnTerminator.Void);
             }
@@ -433,7 +433,7 @@ internal sealed class MirEmitter(Compilation compilation)
         }
 
         context.AddBlock(loopTail);
-        context.CurrentBlock.SetTerminator(new MirGotoTerminator(loopHead.Id));
+        context.SetCurrentBlock(loopTail);
     }
 
     private static void EmitBreakStatement(
@@ -660,12 +660,14 @@ internal sealed class MirEmitter(Compilation compilation)
         context.CurrentBlock.SetTerminator(new MirGotoTerminator(evalMerge.Id));
 
         context.SetCurrentBlock(evalSkip);
+        context.AddBlock(evalSkip);
         context.CurrentBlock.AddInstruction(
             new MirAssignInstruction(place, CreateBoolConstant(operation == LogicalOperation.Or))
         );
         context.CurrentBlock.SetTerminator(new MirGotoTerminator(evalMerge.Id));
 
         context.SetCurrentBlock(evalMerge);
+        context.AddBlock(evalMerge);
         return new MirReadValue(place, type);
     }
 
@@ -715,7 +717,7 @@ internal sealed class MirEmitter(Compilation compilation)
         return MirNullValue.Instance;
     }
 
-    private MirValue EmitConditional(BoundConditional operation, MirEmissionContext context)
+    private MirReadValue EmitConditional(BoundConditional operation, MirEmissionContext context)
     {
         var type = _typeMapper.Map(operation.Type);
         var temp = context.CreateTemp(type, "result");

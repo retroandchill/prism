@@ -33,13 +33,12 @@ internal sealed class MirTypeMapper(Compilation compilation)
 
     private MirType MapReferenceType(ReferenceTypeSymbol type)
     {
-        var referencedType = Map(type.ReferencedType);
-
         if (type.ReferencedType.IsDynamicallySized)
         {
             return new MirSliceType(GetElementTypeForUnsized(type.ReferencedType), type.IsMutable);
         }
 
+        var referencedType = Map(type.ReferencedType);
         return new MirPointerType(referencedType, type.IsMutable);
     }
 

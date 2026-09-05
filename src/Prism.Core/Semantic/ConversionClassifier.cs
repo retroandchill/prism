@@ -134,7 +134,7 @@ internal sealed class ConversionClassifier(Binder binder)
                     return new BinaryOperandConversion(
                         Conversion.GetTrivial(ConversionKind.Identity),
                         Conversion.GetTrivial(ConversionKind.Identity),
-                        left
+                        binder.Compilation.GetSpecialType(SpecialType.Bool)
                     );
                 }
                 break;
