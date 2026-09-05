@@ -72,7 +72,7 @@ internal static class MirFunctionAnalyzer
         }
     }
 
-    public static MirPerBlockUseDefAnalysis AnalyzeDefUse(MirControlFlowGraph cfg)
+    public static MirUseDefAnalysis AnalyzeDefUse(MirControlFlowGraph cfg)
     {
         var builder = ImmutableDictionary.CreateBuilder<MirBlockId, MirBlockUseDef>();
         foreach (var block in cfg.Blocks)
@@ -80,7 +80,7 @@ internal static class MirFunctionAnalyzer
             builder.Add(block.Id, AnalyzeBlockUseDef(block));
         }
 
-        return new MirPerBlockUseDefAnalysis { Blocks = builder.ToImmutable() };
+        return new MirUseDefAnalysis { Blocks = builder.ToImmutable() };
     }
 
     private static MirBlockUseDef AnalyzeBlockUseDef(MirBasicBlock block)

@@ -7,11 +7,6 @@ using System.Collections.Immutable;
 
 namespace Prism.Core.Mir.Analysis;
 
-internal sealed class MirPerBlockUseDefAnalysis
-{
-    public required ImmutableDictionary<MirBlockId, MirBlockUseDef> Blocks { get; init; }
-}
-
 internal sealed class MirBlockUseDef
 {
     public required MirBlockId BlockId { get; init; }
