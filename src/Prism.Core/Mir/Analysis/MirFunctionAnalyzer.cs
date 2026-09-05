@@ -684,4 +684,47 @@ internal static class MirFunctionAnalyzer
 
         return false;
     }
+
+    public static MirLocalClassificationAnalysis ClassifyLocals(MirLocalFlowAnalysis localFlow)
+    {
+        var builder = ImmutableDictionary.CreateBuilder<MirLocalId, MirLocalClassification>();
+
+        foreach (var pair in localFlow.Locals)
+        {
+            var local = pair.Value;
+            builder.Add(pair.Key, ClassifyLocal(local));
+        }
+
+        return new MirLocalClassificationAnalysis { Locals = builder.ToImmutable() };
+    }
+
+    private static MirLocalClassification ClassifyLocal(MirLocalFlowInfo local)
+    {
+        if (local.IsAddressTaken)
+        {
+            return new MirLocalClassification
+            {
+                LocalId = local.LocalId,
+                StorageKind = MirLocalStorageKind.Memory,
+                IsSsaEligible = false,
+            };
+        }
+
+        if (local.HasMergePotential)
+        {
+            return new MirLocalClassification
+            {
+                LocalId = local.LocalId,
+                StorageKind = MirLocalStorageKind.SsaWithPhi,
+                IsSsaEligible = true,
+            };
+        }
+
+        return new MirLocalClassification
+        {
+            LocalId = local.LocalId,
+            StorageKind = MirLocalStorageKind.Ssa,
+            IsSsaEligible = true,
+        };
+    }
 }
