@@ -25,4 +25,14 @@ internal sealed class BindingContext
     {
         _diagnostics?.Add(diagnostic);
     }
+
+    public void ReportDiagnostics(ImmutableArray<Diagnostic> diagnostics)
+    {
+        _diagnostics?.AddRange(diagnostics);
+    }
+
+    public void ReportDiagnostics(IEnumerable<Diagnostic> diagnostics)
+    {
+        _diagnostics?.AddRange(diagnostics);
+    }
 }

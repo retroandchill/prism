@@ -1,11 +1,12 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Prism.Core.Diagnostics;
 
 namespace Prism.Core.Declarations;
 
-internal sealed class DiagnosticBag
+internal sealed class DiagnosticBag : IEnumerable<Diagnostic>
 {
     private DiagnosticBag()
     {
@@ -86,5 +87,13 @@ internal sealed class DiagnosticBag
     public void Clear()
     {
         _diagnostics?.Clear();
+    }
+
+    public IEnumerator<Diagnostic> GetEnumerator() =>
+        _diagnostics?.GetEnumerator() ?? Enumerable.Empty<Diagnostic>().GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
     }
 }

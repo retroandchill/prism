@@ -13,6 +13,7 @@ using Prism.Core.Symbols;
 using Prism.Core.Symbols.Intrinsic;
 using Prism.Core.Symbols.Source;
 using Prism.Core.Syntax;
+using Prism.Core.Text;
 using Prism.Core.Utils;
 using ZLinq;
 
@@ -357,6 +358,141 @@ public class Compilation
             )
         );
         return false;
+    }
+
+    public ImmutableArray<Diagnostic> GetParseDiagnostics(
+        CancellationToken cancellationToken = default
+    )
+    {
+        return GetDiagnostics(CompilationStage.Parse, false, null, cancellationToken);
+    }
+
+    public ImmutableArray<Diagnostic> GetDeclarationDiagnostics(
+        CancellationToken cancellationToken = default
+    )
+    {
+        return GetDiagnostics(CompilationStage.Declare, false, null, cancellationToken);
+    }
+
+    public ImmutableArray<Diagnostic> GetFunctionBodyDiagnostics(
+        CancellationToken cancellationToken = default
+    )
+    {
+        return GetDiagnostics(CompilationStage.Compile, false, null, cancellationToken);
+    }
+
+    private ImmutableArray<Diagnostic> GetDiagnostics(
+        CompilationStage stage,
+        bool includeEarlierStages,
+        Predicate<Symbol>? symbolFilter,
+        CancellationToken cancellationToken
+    )
+    {
+        var diagnostics = DiagnosticBag.Create();
+        GetDiagnostics(stage, includeEarlierStages, diagnostics, symbolFilter, cancellationToken);
+        return diagnostics.ToImmutableAndClear();
+    }
+
+    private void GetDiagnostics(
+        CompilationStage stage,
+        bool includeEarlierStages,
+        DiagnosticBag diagnostics,
+        Predicate<Symbol>? symbolFilter,
+        CancellationToken cancellationToken
+    )
+    {
+        var context = BindingContext.Create(diagnostics);
+        GetAllDiagnostics(stage, includeEarlierStages, context, symbolFilter, cancellationToken);
+    }
+
+    private void GetAllDiagnostics(
+        CompilationStage stage,
+        bool includeEarlierStages,
+        BindingContext context,
+        Predicate<Symbol>? symbolFilter,
+        CancellationToken cancellationToken
+    )
+    {
+        if (
+            stage == CompilationStage.Parse
+            || (stage > CompilationStage.Parse && includeEarlierStages)
+        )
+        {
+            foreach (var syntaxTree in SyntaxTrees)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                context.ReportDiagnostics(syntaxTree.GetDiagnostics());
+            }
+        }
+
+        if (
+            stage == CompilationStage.Declare
+            || (stage > CompilationStage.Declare && includeEarlierStages)
+        )
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            context.ReportDiagnostics(
+                GetSourceDeclarationDiagnostics(
+                    symbolFilter: symbolFilter,
+                    cancellationToken: cancellationToken
+                )
+            );
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (
+            stage != CompilationStage.Compile
+            && (stage <= CompilationStage.Compile || !includeEarlierStages)
+        )
+            return;
+
+        cancellationToken.ThrowIfCancellationRequested();
+        GetDiagnosticsForAllFunctionBodies(context, doLowering: false, cancellationToken);
+    }
+
+    private ImmutableArray<Diagnostic> GetSourceDeclarationDiagnostics(
+        SyntaxTree? syntaxTree = null,
+        TextSpan? filterSpanWithinTree = null,
+        Func<
+            IEnumerable<Diagnostic>,
+            SyntaxTree,
+            TextSpan?,
+            IEnumerable<Diagnostic>
+        >? locationFilterOpt = null,
+        Predicate<Symbol>? symbolFilter = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        SourceLocation? location = null;
+        if (syntaxTree is not null)
+        {
+            var root = syntaxTree.Root;
+            location = filterSpanWithinTree is not null
+                ? new SourceLocation(syntaxTree, filterSpanWithinTree.Value)
+                : new SourceLocation(root);
+        }
+
+        Assembly.ForceComplete(location, symbolFilter, cancellationToken);
+
+        var result = DeclarationDiagnostics.AsEnumerable();
+        if (locationFilterOpt is null)
+            return [.. result];
+
+        Debug.Assert(syntaxTree is not null);
+        result = locationFilterOpt(result, syntaxTree, filterSpanWithinTree);
+
+        return [.. result];
+    }
+
+    private void GetDiagnosticsForAllFunctionBodies(
+        BindingContext context,
+        bool doLowering,
+        CancellationToken cancellationToken
+    )
+    {
+        // TODO: Implement me
     }
 
     internal DiagnosticBag DeclarationDiagnostics { get; } = DiagnosticBag.Create();
