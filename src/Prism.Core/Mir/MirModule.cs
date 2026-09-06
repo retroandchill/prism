@@ -5,7 +5,6 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using Prism.Core.Mir;
 
 namespace Prism.Core.Mir;
 
@@ -15,7 +14,8 @@ internal sealed class MirModule
         string name,
         ImmutableArray<MirGlobal> globals,
         ImmutableArray<MirFunction> functions,
-        MirFunctionId? moduleInitializer = null
+        MirFunctionId? moduleInitializer = null,
+        MirFunctionId? entryPoint = null
     )
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -24,8 +24,9 @@ internal sealed class MirModule
         Functions = functions.IsDefault ? [] : functions;
         Name = name;
         ModuleInitializer = moduleInitializer;
+        EntryPoint = entryPoint;
 
-        ValidateUniqueIds(Globals, Functions, ModuleInitializer);
+        ValidateUniqueIds(Globals, Functions, ModuleInitializer, EntryPoint);
     }
 
     public string Name { get; }
@@ -35,6 +36,8 @@ internal sealed class MirModule
     public ImmutableArray<MirFunction> Functions { get; }
 
     public MirFunctionId? ModuleInitializer { get; }
+
+    public MirFunctionId? EntryPoint { get; }
 
     public MirGlobal GetGlobal(MirGlobalId id)
     {
@@ -63,7 +66,8 @@ internal sealed class MirModule
     private static void ValidateUniqueIds(
         ImmutableArray<MirGlobal> globals,
         ImmutableArray<MirFunction> functions,
-        MirFunctionId? moduleInitializer
+        MirFunctionId? moduleInitializer,
+        MirFunctionId? entryPoint
     )
     {
         var globalIds = new HashSet<MirGlobalId>();
@@ -95,6 +99,14 @@ internal sealed class MirModule
             throw new ArgumentOutOfRangeException(
                 nameof(moduleInitializer),
                 "Module initializer must refer to a function contained in the module."
+            );
+        }
+
+        if (entryPoint is not null && !functionIds.Contains(entryPoint.Value))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(entryPoint),
+                "Entry point must refer to a function contained in the module."
             );
         }
     }

@@ -34,17 +34,24 @@ internal sealed class MirEmitter(Compilation compilation)
         Or,
     }
 
+    private readonly record struct FunctionsEmitResult(
+        ImmutableArray<MirFunction> Functions,
+        MirFunctionId? ModuleInitializer,
+        MirFunctionId? EntryPoint
+    );
+
     private readonly MirTypeMapper _typeMapper = new(compilation);
 
     public MirModule Emit()
     {
         var globals = EmitGlobals();
-        var (functions, globalInitializer) = EmitFunctions(globals);
+        var (functions, moduleInitializer, entryPoint) = EmitFunctions(globals);
         return new MirModule(
             compilation.AssemblyName,
             [.. globals.Values],
             functions,
-            globalInitializer
+            moduleInitializer,
+            entryPoint
         );
     }
 
@@ -90,13 +97,13 @@ internal sealed class MirEmitter(Compilation compilation)
         return MirComputedGlobalInitializer.Instance;
     }
 
-    private (ImmutableArray<MirFunction>, MirFunctionId?) EmitFunctions(
+    private FunctionsEmitResult EmitFunctions(
         IReadOnlyDictionary<VariableSymbol, MirGlobal> globals
     )
     {
         var symbols = compilation.GetGlobalFunctions();
-        // Add one more to account for the possibility of emitting a global initializer
-        var builder = ImmutableArray.CreateBuilder<MirFunction>(symbols.Length + 1);
+        // Add two more to account for the possibility of emitting a global initializer and/or an entry point shim
+        var builder = ImmutableArray.CreateBuilder<MirFunction>(symbols.Length + 2);
         var nextFunctionId = 0;
 
         var functionIds = new Dictionary<FunctionSymbol, MirFunctionId>(
@@ -112,21 +119,27 @@ internal sealed class MirEmitter(Compilation compilation)
             builder.Add(EmitFunction(symbol, functionIds, globals));
         }
 
-        var moduleInitializer = EmitModuleInitializer(
-            new MirFunctionId(nextFunctionId + 1),
-            globals,
-            functionIds
-        );
+        var moduleInitializer = EmitModuleInitializer(ref nextFunctionId, globals, functionIds);
         if (moduleInitializer is not null)
         {
             builder.Add(moduleInitializer);
         }
 
-        return (builder.ToImmutable(), moduleInitializer?.Id);
+        var entryPoint = EmitEntryPoint(ref nextFunctionId, functionIds);
+        if (entryPoint is not null)
+        {
+            builder.Add(entryPoint);
+        }
+
+        return new FunctionsEmitResult(
+            builder.ToImmutable(),
+            moduleInitializer?.Id,
+            entryPoint?.Id
+        );
     }
 
     private MirFunction? EmitModuleInitializer(
-        MirFunctionId functionId,
+        ref int nextFunctionId,
         IReadOnlyDictionary<VariableSymbol, MirGlobal> globals,
         Dictionary<FunctionSymbol, MirFunctionId> functionIds
     )
@@ -140,7 +153,7 @@ internal sealed class MirEmitter(Compilation compilation)
         )
         {
             builder ??= new MirFunctionBuilder(
-                functionId,
+                new MirFunctionId(nextFunctionId++),
                 $"{compilation.AssemblyName}_<g>ModuleInitializer",
                 MirVoidType.Instance
             );
@@ -163,6 +176,42 @@ internal sealed class MirEmitter(Compilation compilation)
         }
 
         return builder?.Build();
+    }
+
+    private MirFunction? EmitEntryPoint(
+        ref int nextFunctionId,
+        Dictionary<FunctionSymbol, MirFunctionId> functionIds
+    )
+    {
+        var entryPoint = compilation.GetEntryPoint();
+        if (entryPoint is null)
+            return null;
+
+        var i32Type = _typeMapper.Map(compilation.GetSpecialType(SpecialType.I32));
+
+        var builder = new MirFunctionBuilder(new MirFunctionId(nextFunctionId++), "main", i32Type);
+
+        var entry = builder.AddBlock("entry");
+        builder.SetEntryBlock(entry.Id);
+
+        var mainFunction = functionIds[entryPoint];
+        if (entryPoint.ReturnsVoid)
+        {
+            entry.AddInstruction(new MirCallInstruction(null, mainFunction, []));
+            entry.SetTerminator(
+                new MirReturnTerminator(new MirConstantValue(ConstantValue.I32(0), i32Type))
+            );
+        }
+        else
+        {
+            // We've already verified that the function returns i32
+            var local = builder.AddLocal("return", i32Type, MirLocalKind.Temporary);
+            var place = new MirLocalPlace(local);
+            entry.AddInstruction(new MirCallInstruction(place, mainFunction, []));
+            entry.SetTerminator(new MirReturnTerminator(new MirReadValue(place)));
+        }
+
+        return builder.Build();
     }
 
     private MirFunction EmitFunction(
@@ -487,17 +536,17 @@ internal sealed class MirEmitter(Compilation compilation)
     {
         if (context.TryGetLocal(access.Symbol) is { } local)
         {
-            return new MirReadValue(new MirLocalPlace(local.Id, local.Type), local.Type);
+            return new MirReadValue(new MirLocalPlace(local.Id, local.Type));
         }
 
         var global = context.GetGlobal(access.Symbol);
-        return new MirReadValue(new MirGlobalPlace(global.Id, global.Type), global.Type);
+        return new MirReadValue(new MirGlobalPlace(global.Id, global.Type));
     }
 
     private static MirReadValue EmitAccess(BoundParameterAccess access, MirEmissionContext context)
     {
         var local = context.GetLocal(access.Symbol);
-        return new MirReadValue(new MirLocalPlace(local.Id, local.Type), local.Type);
+        return new MirReadValue(new MirLocalPlace(local.Id, local.Type));
     }
 
     private MirValue EmitOperation(BoundUnaryOperation operation, MirEmissionContext context)
@@ -555,7 +604,7 @@ internal sealed class MirEmitter(Compilation compilation)
         var operand = EmitExpression(operation.Operand, context);
         var resultType = _typeMapper.Map(operation.Type);
         context.CurrentBlock.AddInstruction(new MirUnaryInstruction(place, mirOp, operand));
-        return new MirReadValue(place, resultType);
+        return new MirReadValue(place);
     }
 
     private MirValue EmitUnaryIncrementDecrement(
@@ -570,9 +619,9 @@ internal sealed class MirEmitter(Compilation compilation)
 
         var temp = context.CreateTemp(valueType, "old");
         var templaPlace = new MirLocalPlace(temp.Id, temp.Type);
-        var oldValue = new MirReadValue(templaPlace, templaPlace.Type);
+        var oldValue = new MirReadValue(templaPlace);
         context.CurrentBlock.AddInstruction(
-            new MirAssignInstruction(templaPlace, new MirReadValue(place, place.Type))
+            new MirAssignInstruction(templaPlace, new MirReadValue(place))
         );
 
         var one = CreateUnitConstant(operation.Operand.Type, valueType);
@@ -587,7 +636,7 @@ internal sealed class MirEmitter(Compilation compilation)
         context.CurrentBlock.AddInstruction(
             new MirBinaryInstruction(resultPlace, binaryOp, oldValue, one)
         );
-        var newValue = new MirReadValue(resultPlace, valueType);
+        var newValue = new MirReadValue(resultPlace);
 
         context.CurrentBlock.AddInstruction(new MirAssignInstruction(place, newValue));
 
@@ -599,7 +648,7 @@ internal sealed class MirEmitter(Compilation compilation)
         };
     }
 
-    private MirValue EmitOperation(BoundBinaryOperation operation, MirEmissionContext context)
+    private MirReadValue EmitOperation(BoundBinaryOperation operation, MirEmissionContext context)
     {
         var left = EmitExpression(operation.Left, context);
         var type = _typeMapper.Map(operation.Type);
@@ -671,7 +720,7 @@ internal sealed class MirEmitter(Compilation compilation)
 
         context.SetCurrentBlock(evalMerge);
         context.AddBlock(evalMerge);
-        return new MirReadValue(place, type);
+        return new MirReadValue(place);
     }
 
     private MirReadValue EmitSimpleBinaryOperation(
@@ -688,7 +737,7 @@ internal sealed class MirEmitter(Compilation compilation)
         context.CurrentBlock.AddInstruction(
             new MirBinaryInstruction(place, operation.ToMirBinaryOperation(), left, rightValue)
         );
-        return new MirReadValue(place, type);
+        return new MirReadValue(place);
     }
 
     private MirNullValue EmitAssignment(
@@ -706,7 +755,7 @@ internal sealed class MirEmitter(Compilation compilation)
         else
         {
             var binaryOperation = operation.Operation.ToBinaryOperation();
-            var loadPlace = new MirReadValue(place, place.Type);
+            var loadPlace = new MirReadValue(place);
             var binaryValue = EmitBinaryOperation(
                 binaryOperation,
                 place.Type,
@@ -750,7 +799,7 @@ internal sealed class MirEmitter(Compilation compilation)
 
         context.AddBlock(mergeBlock);
         context.SetCurrentBlock(mergeBlock);
-        return new MirReadValue(place, place.Type);
+        return new MirReadValue(place);
     }
 
     private MirValue EmitCall(BoundInvocation call, MirEmissionContext context)
@@ -771,7 +820,7 @@ internal sealed class MirEmitter(Compilation compilation)
         context.CurrentBlock.AddInstruction(
             new MirCallInstruction(place, functionId, EmitExpressionList(call.Arguments, context))
         );
-        return place is not null ? new MirReadValue(place, place.Type) : MirNullValue.Instance;
+        return place is not null ? new MirReadValue(place) : MirNullValue.Instance;
     }
 
     private ImmutableArray<MirValue> EmitExpressionList(
@@ -890,7 +939,7 @@ internal sealed class MirEmitter(Compilation compilation)
         var temp = context.CreateTemp(target);
         var place = new MirLocalPlace(temp);
         context.CurrentBlock.AddInstruction(new MirConvertInstruction(place, kind, operand));
-        return new MirReadValue(place, target);
+        return new MirReadValue(place);
     }
 
     private MirAddressOfValue EmitAddressOf(BoundAddressOf operation, MirEmissionContext context)
@@ -902,7 +951,7 @@ internal sealed class MirEmitter(Compilation compilation)
     private MirReadValue EmitDereference(BoundDereference expression, MirEmissionContext context)
     {
         var place = EmitPlace(expression, context);
-        return new MirReadValue(place, place.Type);
+        return new MirReadValue(place);
     }
 
     private MirPlace EmitPlace(BoundExpression expression, MirEmissionContext context)

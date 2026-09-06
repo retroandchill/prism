@@ -12,7 +12,6 @@ internal enum MirLocalKind : byte
     Parameter,
     User,
     Temporary,
-    Return,
 }
 
 internal class MirLocal
