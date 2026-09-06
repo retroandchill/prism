@@ -1,7 +1,5 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Text;
-using Cysharp.Text;
 using Prism.Core.Compiling;
 using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
@@ -19,8 +17,6 @@ public abstract class Symbol
     }
 
     public string Name { get; }
-
-    public virtual string MetadataName => Name;
 
     // TODO: For now symbol visibility does not apply but eventually it will
     public virtual DeclaredVisibility DeclaredVisibility => DeclaredVisibility.NotApplicable;

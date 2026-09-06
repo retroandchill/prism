@@ -106,10 +106,10 @@ internal sealed class ConversionClassifier(Binder binder)
     {
         switch (operation)
         {
-            case BinaryOperation.Add:
-            case BinaryOperation.Subtract:
-            case BinaryOperation.Multiply:
-            case BinaryOperation.Divide:
+            case BinaryOperation.Addition:
+            case BinaryOperation.Subtraction:
+            case BinaryOperation.Multiplication:
+            case BinaryOperation.Division:
             case BinaryOperation.Modulo:
                 if (IsNumericType(left) && IsNumericType(right))
                 {
@@ -134,12 +134,12 @@ internal sealed class ConversionClassifier(Binder binder)
                     return new BinaryOperandConversion(
                         Conversion.GetTrivial(ConversionKind.Identity),
                         Conversion.GetTrivial(ConversionKind.Identity),
-                        binder.Compilation.GetSpecialType(SpecialType.Bool)
+                        left
                     );
                 }
                 break;
-            case BinaryOperation.Equal:
-            case BinaryOperation.NotEqual:
+            case BinaryOperation.Equality:
+            case BinaryOperation.NotEquals:
                 if (left.SpecialType == SpecialType.Bool && right.SpecialType == SpecialType.Bool)
                 {
                     return new BinaryOperandConversion(
@@ -166,9 +166,9 @@ internal sealed class ConversionClassifier(Binder binder)
 
                 break;
             case BinaryOperation.LessThan:
-            case BinaryOperation.LessThanOrEqual:
+            case BinaryOperation.LessThanOrEquals:
             case BinaryOperation.GreaterThan:
-            case BinaryOperation.GreaterThanOrEqual:
+            case BinaryOperation.GreaterThanOrEquals:
             case BinaryOperation.ThreeWayComparison:
                 if (IsNumericType(left) && IsNumericType(right))
                 {

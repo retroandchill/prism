@@ -3,106 +3,100 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using LLVMSharp.Interop;
-using Prism.Core.Mir;
-using Prism.Core.Mir.Analysis;
+using Prism.Core.BoundTree;
 using Prism.Core.Symbols;
-using Prism.Core.Utils;
 using ZLinq;
 
 namespace Prism.Core.Codegen;
 
-internal sealed class FunctionEmissionContext(
-    MirFunction function,
-    LLVMValueRef llvmFunction,
-    MirControlFlowGraph cfg,
-    MirLocalClassificationAnalysis localClassification
-)
+internal readonly record struct LoopLabels(LLVMBasicBlockRef Break, LLVMBasicBlockRef Continue);
+
+internal sealed class FunctionEmissionContext(LLVMValueRef function, BoundBody? body = null)
 {
-    private readonly Dictionary<MirLocalId, LLVMValueRef> _locals = new();
-    private readonly Dictionary<MirBlockId, LLVMBasicBlockRef> _blocks = new();
-    private readonly Dictionary<
-        MirLocalId,
-        (List<LLVMValueRef> Values, List<LLVMBasicBlockRef> Blocks)
-    > _phiValues = new();
-    private readonly Dictionary<MirBlockId, List<MirLocalId>> _phiLocalIds = new();
-
-    public MirFunction MirFunction { get; } = function;
-
-    public LLVMValueRef LlvmFunction { get; } = llvmFunction;
-    public MirLocalClassificationAnalysis LocalClassification { get; } = localClassification;
-
-    public MirBlockId CurrentBlock { get; set; }
-
-    public void BindLocal(MirLocalId local, LLVMValueRef value)
+    private readonly struct ScopeFrame()
     {
-        _locals[local] = value;
+        public Dictionary<Symbol, LLVMValueRef> Symbols { get; } =
+            new(ReferenceEqualityComparer.Instance);
+        public Dictionary<LabelSymbol, LoopLabels> Labels { get; } =
+            new(ReferenceEqualityComparer.Instance);
     }
 
-    public LLVMValueRef LookupLocal(MirLocalId local)
+    private readonly List<ScopeFrame> _scopeFrames = [new()];
+
+    public LLVMValueRef Function { get; } = function;
+
+    [MustDisposeResource]
+    public ScopeContext PushScope()
     {
-        return _locals.TryGetValue(local, out var value)
-            ? value
-            : throw new KeyNotFoundException("Invalid local ID");
+        _scopeFrames.Add(new ScopeFrame());
+        return new ScopeContext(this);
     }
 
-    public void AddPhiValue(MirLocalId local, LLVMValueRef value)
+    private void PopScope()
     {
-        var (values, blocks) = _phiValues.GetOrAdd(local, () => ([], []));
-        values.Add(value);
-        blocks.Add(LookupBlock(CurrentBlock));
+        _scopeFrames.RemoveAt(_scopeFrames.Count - 1);
+    }
 
-        var successors = cfg.Successors[CurrentBlock];
-        Debug.Assert(successors.Length == 1);
-        var localPhis = _phiLocalIds.GetOrAdd(successors[0], () => []);
-        if (!localPhis.Contains(local))
+    public void BindStorage(Symbol symbol, LLVMValueRef value)
+    {
+        _scopeFrames[^1].Symbols.Add(symbol, value);
+    }
+
+    public bool RequiresStorage(ParameterSymbol parameter)
+    {
+        if (parameter.IsMutable)
+            return true;
+
+        return body?.IsAddressTaken(parameter) ?? false;
+    }
+
+    public bool RequiresStorage(VariableSymbol variable)
+    {
+        if (variable.IsMutable || variable.IsGlobal || !variable.HasInitializer)
+            return true;
+
+        return body?.IsAddressTaken(variable) ?? false;
+    }
+
+    public LLVMValueRef? LookupStorage(Symbol symbol)
+    {
+        foreach (var storage in _scopeFrames.AsValueEnumerable().Reverse())
         {
-            localPhis.Add(local);
+            if (storage.Symbols.TryGetValue(symbol, out var value))
+                return value;
         }
+
+        return null;
     }
 
-    public PhiLookupResult LookupPhiValues(MirLocalId local)
-    {
-        return _phiValues.TryGetValue(local, out var tuple)
-            ? new PhiLookupResult(tuple.Values, tuple.Blocks)
-            : throw new KeyNotFoundException("Invalid local ID");
-    }
-
-    public IReadOnlyList<MirLocalId> LookupPhiLocals(MirBlockId block)
-    {
-        return _phiLocalIds.TryGetValue(block, out var list) ? list : Array.Empty<MirLocalId>();
-    }
-
-    public void BindBlock(MirBlockId block, LLVMBasicBlockRef blockRef)
-    {
-        _blocks.Add(block, blockRef);
-    }
-
-    public LLVMBasicBlockRef LookupBlock(MirBlockId block)
-    {
-        return _blocks.TryGetValue(block, out var value)
-            ? value
-            : throw new KeyNotFoundException("Invalid block ID");
-    }
-
-    public readonly ref struct PhiLookupResult(
-        List<LLVMValueRef> values,
-        List<LLVMBasicBlockRef> blocks
+    public void BindLabel(
+        LabelSymbol label,
+        LLVMBasicBlockRef breakBlock,
+        LLVMBasicBlockRef continueBlock
     )
     {
-        public ReadOnlySpan<LLVMValueRef> Values { get; } = CollectionsMarshal.AsSpan(values);
-        public ReadOnlySpan<LLVMBasicBlockRef> Blocks { get; } = CollectionsMarshal.AsSpan(blocks);
+        _scopeFrames[^1].Labels.Add(label, new LoopLabels(breakBlock, continueBlock));
+    }
 
-        public void Deconstruct(
-            out ReadOnlySpan<LLVMValueRef> values,
-            out ReadOnlySpan<LLVMBasicBlockRef> blocks
-        )
+    public LoopLabels? LookupLabels(LabelSymbol label)
+    {
+        foreach (var storage in _scopeFrames.AsValueEnumerable().Reverse())
         {
-            values = Values;
-            blocks = Blocks;
+            if (storage.Labels.TryGetValue(label, out var value))
+                return value;
+        }
+
+        return null;
+    }
+
+    [MustDisposeResource]
+    public readonly ref struct ScopeContext(FunctionEmissionContext context) : IDisposable
+    {
+        public void Dispose()
+        {
+            context.PopScope();
         }
     }
 }

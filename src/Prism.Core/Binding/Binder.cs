@@ -706,14 +706,25 @@ internal abstract class Binder
         if (!result.IsViable)
             return new BoundBadExpression(syntax, ErrorTypeSymbol.Unnamed);
 
-        return result.Symbol switch
+        switch (result.Symbol)
         {
-            VariableSymbol v => new BoundVariableAccess(syntax, v),
-            ParameterSymbol p => new BoundParameterAccess(syntax, p),
-            _ => throw new InvalidOperationException(
-                "We must have added a symbol type that can hold a value that we haven't accounted for yet."
-            ),
-        };
+            case VariableSymbol v:
+                if (v.IsLocal && addressing)
+                {
+                    context.AddReferencedLocal(v);
+                }
+                return new BoundVariableAccess(syntax, v);
+            case ParameterSymbol p:
+                if (addressing)
+                {
+                    context.AddReferencedLocal(p);
+                }
+                return new BoundParameterAccess(syntax, p);
+            default:
+                throw new InvalidOperationException(
+                    "We must have added a symbol type that can hold a value that we haven't accounted for yet."
+                );
+        }
     }
 
     private BoundBinaryOperation BindBinaryExpression(
@@ -745,34 +756,9 @@ internal abstract class Binder
             );
         }
 
-        var targetType = operation switch
-        {
-            BinaryOperation.Add
-            or BinaryOperation.Subtract
-            or BinaryOperation.Multiply
-            or BinaryOperation.Divide
-            or BinaryOperation.Modulo
-            or BinaryOperation.BitwiseAnd
-            or BinaryOperation.BitwiseOr
-            or BinaryOperation.BitwiseXor
-            or BinaryOperation.ShiftLeft
-            or BinaryOperation.ShiftRight
-            or BinaryOperation.UnsignedShiftRight => conversion?.Type,
-            BinaryOperation.LogicalAnd
-            or BinaryOperation.LogicalOr
-            or BinaryOperation.Equal
-            or BinaryOperation.NotEqual
-            or BinaryOperation.LessThan
-            or BinaryOperation.LessThanOrEqual
-            or BinaryOperation.GreaterThan
-            or BinaryOperation.GreaterThanOrEqual => Compilation.GetSpecialType(SpecialType.Bool),
-            BinaryOperation.ThreeWayComparison => throw new NotImplementedException(),
-            _ => throw new InvalidOperationException("Unknown binary operation"),
-        };
-
         return new BoundBinaryOperation(
             syntax,
-            targetType ?? ErrorTypeSymbol.Unnamed,
+            conversion?.Type ?? ErrorTypeSymbol.Unnamed,
             left,
             right,
             operation
@@ -1244,10 +1230,10 @@ internal abstract class Binder
         return operation switch
         {
             AssignmentOperation.Simple => true,
-            AssignmentOperation.Add
-            or AssignmentOperation.Subtract
-            or AssignmentOperation.Multiply
-            or AssignmentOperation.Divide
+            AssignmentOperation.Addition
+            or AssignmentOperation.Subtraction
+            or AssignmentOperation.Multiplication
+            or AssignmentOperation.Division
             or AssignmentOperation.Modulo => type.SpecialType.IsNumeric,
             AssignmentOperation.BitwiseAnd
             or AssignmentOperation.BitwiseOr

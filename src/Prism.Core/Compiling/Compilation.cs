@@ -4,7 +4,6 @@ using Cysharp.Text;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Codegen;
-using Prism.Core.Codegen.Mir;
 using Prism.Core.Configuration;
 using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
@@ -141,12 +140,8 @@ public class Compilation
 
     public EmitResult Emit(string filepath)
     {
-        var mirEmitter = new MirEmitter(this);
-        var module = mirEmitter.Emit();
-
         using var emitter = new LlvmCodeEmitter(
-            module,
-            Settings,
+            this,
             new CodeGenOptions { OutputDirectory = filepath }
         );
         return emitter.Emit();
@@ -235,7 +230,7 @@ public class Compilation
         return null;
     }
 
-    internal BoundStatement? GetBoundBody(FunctionSymbol function)
+    internal BoundBody? GetBoundBody(FunctionSymbol function)
     {
         var context = BindingContext.Create(DeclarationDiagnostics);
         foreach (var reference in function.DeclaringSyntaxReferences)

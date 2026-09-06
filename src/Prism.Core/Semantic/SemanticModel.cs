@@ -77,7 +77,7 @@ public class SemanticModel
         return State.GetBoundVariableInitializer(syntax, binder, context);
     }
 
-    internal BoundStatement GetBoundFunctionBody(
+    internal BoundBody GetBoundFunctionBody(
         FunctionDeclarationSyntax syntax,
         BindingContext context
     )

@@ -1,4 +1,4 @@
-﻿using Prism.Core.Mir;
+﻿using Prism.Core.Binding;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Syntax;
@@ -14,12 +14,12 @@ internal static partial class CommonEnumMappers
 {
     public static partial SpecialType ToSpecialType(this ConstantKind kind);
 
-    [MapperIgnoreSourceValue(BinaryOperation.Equal)]
-    [MapperIgnoreSourceValue(BinaryOperation.NotEqual)]
+    [MapperIgnoreSourceValue(BinaryOperation.Equality)]
+    [MapperIgnoreSourceValue(BinaryOperation.NotEquals)]
     [MapperIgnoreSourceValue(BinaryOperation.LessThan)]
-    [MapperIgnoreSourceValue(BinaryOperation.LessThanOrEqual)]
+    [MapperIgnoreSourceValue(BinaryOperation.LessThanOrEquals)]
     [MapperIgnoreSourceValue(BinaryOperation.GreaterThan)]
-    [MapperIgnoreSourceValue(BinaryOperation.GreaterThanOrEqual)]
+    [MapperIgnoreSourceValue(BinaryOperation.GreaterThanOrEquals)]
     [MapperIgnoreSourceValue(BinaryOperation.ThreeWayComparison)]
     public static partial AssignmentOperation ToAssignmentOperation(this BinaryOperation kind);
 
@@ -81,22 +81,22 @@ internal static partial class CommonEnumMappers
         {
             return kind switch
             {
-                SyntaxKind.PlusToken => BinaryOperation.Add,
-                SyntaxKind.MinusToken => BinaryOperation.Subtract,
-                SyntaxKind.StarToken => BinaryOperation.Multiply,
-                SyntaxKind.SlashToken => BinaryOperation.Divide,
+                SyntaxKind.PlusToken => BinaryOperation.Addition,
+                SyntaxKind.MinusToken => BinaryOperation.Subtraction,
+                SyntaxKind.StarToken => BinaryOperation.Multiplication,
+                SyntaxKind.SlashToken => BinaryOperation.Division,
                 SyntaxKind.PercentToken => BinaryOperation.Modulo,
                 SyntaxKind.AmpToken => BinaryOperation.BitwiseAnd,
                 SyntaxKind.PipeToken => BinaryOperation.BitwiseOr,
                 SyntaxKind.CaretToken => BinaryOperation.BitwiseXor,
                 SyntaxKind.AmpAmpToken => BinaryOperation.LogicalAnd,
                 SyntaxKind.PipePipeToken => BinaryOperation.LogicalOr,
-                SyntaxKind.EqualEqualToken => BinaryOperation.Equal,
-                SyntaxKind.BangEqualToken => BinaryOperation.NotEqual,
+                SyntaxKind.EqualEqualToken => BinaryOperation.Equality,
+                SyntaxKind.BangEqualToken => BinaryOperation.NotEquals,
                 SyntaxKind.LessToken => BinaryOperation.LessThan,
-                SyntaxKind.LessEqualToken => BinaryOperation.LessThanOrEqual,
+                SyntaxKind.LessEqualToken => BinaryOperation.LessThanOrEquals,
                 SyntaxKind.GreaterToken => BinaryOperation.GreaterThan,
-                SyntaxKind.GreaterEqualToken => BinaryOperation.GreaterThanOrEqual,
+                SyntaxKind.GreaterEqualToken => BinaryOperation.GreaterThanOrEquals,
                 SyntaxKind.SpaceshipToken => BinaryOperation.ThreeWayComparison,
                 SyntaxKind.LessLessToken => BinaryOperation.ShiftLeft,
                 SyntaxKind.GreaterGreaterToken => BinaryOperation.ShiftRight,
@@ -110,10 +110,10 @@ internal static partial class CommonEnumMappers
             return kind switch
             {
                 SyntaxKind.EqualToken => AssignmentOperation.Simple,
-                SyntaxKind.PlusEqualToken => AssignmentOperation.Add,
-                SyntaxKind.MinusEqualToken => AssignmentOperation.Subtract,
-                SyntaxKind.StarEqualToken => AssignmentOperation.Multiply,
-                SyntaxKind.SlashEqualToken => AssignmentOperation.Divide,
+                SyntaxKind.PlusEqualToken => AssignmentOperation.Addition,
+                SyntaxKind.MinusEqualToken => AssignmentOperation.Subtraction,
+                SyntaxKind.StarEqualToken => AssignmentOperation.Multiplication,
+                SyntaxKind.SlashEqualToken => AssignmentOperation.Division,
                 SyntaxKind.PercentEqualToken => AssignmentOperation.Modulo,
                 SyntaxKind.AmpEqualToken => AssignmentOperation.BitwiseAnd,
                 SyntaxKind.PipeEqualToken => AssignmentOperation.BitwiseOr,
@@ -131,9 +131,4 @@ internal static partial class CommonEnumMappers
 
     [MapperIgnoreSourceValue(AssignmentOperation.Simple)]
     public static partial BinaryOperation ToBinaryOperation(this AssignmentOperation operation);
-
-    [MapperIgnoreSourceValue(BinaryOperation.LogicalAnd)]
-    [MapperIgnoreSourceValue(BinaryOperation.LogicalOr)]
-    [MapperIgnoreSourceValue(BinaryOperation.ThreeWayComparison)]
-    public static partial MirBinaryOp ToMirBinaryOperation(this BinaryOperation operation);
 }
