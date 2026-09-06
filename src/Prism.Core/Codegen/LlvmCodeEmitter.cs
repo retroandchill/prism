@@ -8,6 +8,7 @@ using LLVMSharp.Interop;
 using Prism.Core.BoundTree;
 using Prism.Core.Compiling;
 using Prism.Core.Configuration;
+using Prism.Core.FlowAnalysis;
 using Prism.Core.Mappers;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
@@ -188,6 +189,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
     {
         var function = GetOrCreateFunction(symbol);
         var body = _compilation.GetBoundBody(symbol);
+        var analysis = body is not null ? FunctionBodyAnalysis.Create(_compilation, symbol) : null;
         if (body is null)
         {
             function.Linkage = LLVMLinkage.LLVMAvailableExternallyLinkage;
@@ -196,7 +198,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
 
         var entry = function.AppendBasicBlock("entry");
         _builder.PositionAtEnd(entry);
-        var context = new FunctionEmissionContext(function, body);
+        var context = new FunctionEmissionContext(function, analysis);
 
         foreach (
             var (symbolParam, llvmParam) in symbol
@@ -216,7 +218,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
             }
         }
 
-        EmitStatement(body.TopLevelStatement, context);
+        EmitStatement(body, context);
 
         if (symbol.ReturnsVoid)
         {

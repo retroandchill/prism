@@ -6,6 +6,7 @@
 using JetBrains.Annotations;
 using LLVMSharp.Interop;
 using Prism.Core.BoundTree;
+using Prism.Core.FlowAnalysis;
 using Prism.Core.Symbols;
 using ZLinq;
 
@@ -13,7 +14,10 @@ namespace Prism.Core.Codegen;
 
 internal readonly record struct LoopLabels(LLVMBasicBlockRef Break, LLVMBasicBlockRef Continue);
 
-internal sealed class FunctionEmissionContext(LLVMValueRef function, BoundBody? body = null)
+internal sealed class FunctionEmissionContext(
+    LLVMValueRef function,
+    FunctionBodyAnalysis? analysis = null
+)
 {
     private readonly struct ScopeFrame()
     {
@@ -49,7 +53,7 @@ internal sealed class FunctionEmissionContext(LLVMValueRef function, BoundBody? 
         if (parameter.IsMutable)
             return true;
 
-        return body?.IsAddressTaken(parameter) ?? false;
+        return analysis?.IsAddressTaken(parameter) ?? false;
     }
 
     public bool RequiresStorage(VariableSymbol variable)
@@ -57,7 +61,7 @@ internal sealed class FunctionEmissionContext(LLVMValueRef function, BoundBody? 
         if (variable.IsMutable || variable.IsGlobal || !variable.HasInitializer)
             return true;
 
-        return body?.IsAddressTaken(variable) ?? false;
+        return analysis?.IsAddressTaken(variable) ?? false;
     }
 
     public LLVMValueRef? LookupStorage(Symbol symbol)

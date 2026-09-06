@@ -30,10 +30,10 @@ internal sealed class ControlFlowGraphBuilder
 
     private ControlFlowGraphBuilder() { }
 
-    public static ControlFlowGraph Build(BoundBody body)
+    public static ControlFlowGraph Build(BoundStatement body)
     {
         var builder = new ControlFlowGraphBuilder();
-        return builder.BuildCore(body.TopLevelStatement);
+        return builder.BuildCore(body);
     }
 
     private ControlFlowGraph BuildCore(BoundStatement statement)
