@@ -201,7 +201,7 @@ public abstract class SyntaxNode
             index--;
             var prevSibling = GetCachedSlot(index);
             if (prevSibling is not null)
-                return prevSibling.Position + offset;
+                return prevSibling.EndPosition + offset;
 
             var greenChild = green.GetSlot(index);
             if (greenChild is not null)

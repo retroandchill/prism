@@ -650,24 +650,19 @@ internal abstract class Binder
         bool addressing = false
     )
     {
-        return BindExpression(syntax, null, context, addressing);
+        return BindExpression(syntax, null, context);
     }
 
     public BoundExpression BindExpression(
         ExpressionSyntax syntax,
         TypeSymbol? targetType,
-        BindingContext context,
-        bool addressing = false
+        BindingContext context
     )
     {
         return syntax switch
         {
             LiteralExpressionSyntax literal => BindLiteralExpression(literal, targetType, context),
-            IdentifierExpressionSyntax identifier => BindIdentifierExpression(
-                identifier,
-                context,
-                addressing
-            ),
+            IdentifierExpressionSyntax identifier => BindIdentifierExpression(identifier, context),
             ParenthesizedExpressionSyntax parenthesized => BindExpression(
                 parenthesized.Expression,
                 targetType,
@@ -698,33 +693,21 @@ internal abstract class Binder
 
     private BoundExpression BindIdentifierExpression(
         IdentifierExpressionSyntax syntax,
-        BindingContext context,
-        bool addressing
+        BindingContext context
     )
     {
         var result = LookupFromSyntax(syntax.Value, LookupOptions.Value, context);
         if (!result.IsViable)
             return new BoundBadExpression(syntax, ErrorTypeSymbol.Unnamed);
 
-        switch (result.Symbol)
+        return result.Symbol switch
         {
-            case VariableSymbol v:
-                if (v.IsLocal && addressing)
-                {
-                    context.AddReferencedLocal(v);
-                }
-                return new BoundVariableAccess(syntax, v);
-            case ParameterSymbol p:
-                if (addressing)
-                {
-                    context.AddReferencedLocal(p);
-                }
-                return new BoundParameterAccess(syntax, p);
-            default:
-                throw new InvalidOperationException(
-                    "We must have added a symbol type that can hold a value that we haven't accounted for yet."
-                );
-        }
+            VariableSymbol v => new BoundVariableAccess(syntax, v),
+            ParameterSymbol p => new BoundParameterAccess(syntax, p),
+            _ => throw new InvalidOperationException(
+                "We must have added a symbol type that can hold a value that we haven't accounted for yet."
+            ),
+        };
     }
 
     private BoundBinaryOperation BindBinaryExpression(

@@ -123,6 +123,9 @@ internal sealed class CompilationCache(Compilation compilation)
 
         var variables = ImmutableArray.CreateBuilder<VariableSymbol>();
         CollectGlobalVariables(compilation.Assembly.GlobalNamespace, variables);
+        variables.Sort(
+            (a, b) => compilation.CompareSourceLocations(a.FirstLocation(), b.FirstLocation())
+        );
         ImmutableInterlocked.InterlockedCompareExchange(
             ref _topLevelVariables,
             variables.DrainToImmutable(),
@@ -157,6 +160,9 @@ internal sealed class CompilationCache(Compilation compilation)
 
         var functions = ImmutableArray.CreateBuilder<FunctionSymbol>();
         CollectGlobalFunctions(compilation.Assembly.GlobalNamespace, functions);
+        functions.Sort(
+            (a, b) => compilation.CompareSourceLocations(a.FirstLocation(), b.FirstLocation())
+        );
         ImmutableInterlocked.InterlockedCompareExchange(
             ref _topLevelFunctions,
             functions.DrainToImmutable(),

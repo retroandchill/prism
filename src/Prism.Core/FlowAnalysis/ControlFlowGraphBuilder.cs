@@ -408,11 +408,12 @@ internal sealed class ControlFlowGraphBuilder
         }
     }
 
-    private static VariableSymbol? TryGetAddressedLocal(BoundExpression expression)
+    private static Symbol? TryGetAddressedLocal(BoundExpression expression)
     {
         return expression switch
         {
             BoundVariableAccess variableAccess => variableAccess.Symbol,
+            BoundParameterAccess parameterAccess => parameterAccess.Symbol,
             _ => null,
         };
     }

@@ -30,6 +30,12 @@ internal sealed class LlvmCodeEmitter : IDisposable
         Decrement,
     }
 
+    private enum LogicalOperation : byte
+    {
+        And,
+        Or,
+    }
+
     private readonly Compilation _compilation;
     private readonly CodeGenOptions _options;
 
@@ -365,6 +371,11 @@ internal sealed class LlvmCodeEmitter : IDisposable
                 LLVMValueRef.CreateConstInt(_context.Int8Type, 0)
             )
             : value;
+    }
+
+    private LLVMValueRef ConvertI1ToByteBoolIfNeeded(LLVMValueRef value)
+    {
+        return value.TypeOf.IntWidth == 1 ? _builder.BuildZExt(value, _context.Int8Type) : value;
     }
 
     private void EmitStatement(BoundStatement statement, FunctionEmissionContext context)
@@ -801,116 +812,221 @@ internal sealed class LlvmCodeEmitter : IDisposable
     )
     {
         var left = EmitExpression(operation.Left, context);
-        var right = EmitExpression(operation.Right, context);
-        return EmitBinaryOperation(operation.Left.Type, left, right, operation.Operation);
+        return EmitBinaryOperation(
+            operation.Left.Type,
+            left,
+            operation.Right,
+            operation.Operation,
+            context
+        );
     }
 
     private LLVMValueRef EmitBinaryOperation(
         TypeSymbol type,
         LLVMValueRef left,
-        LLVMValueRef right,
-        BinaryOperation operation
+        BoundExpression right,
+        BinaryOperation operation,
+        FunctionEmissionContext context
     )
     {
         return operation switch
         {
             BinaryOperation.Addition => type.SpecialType.IsInteger
-                ? _builder.BuildAdd(left, right)
-                : _builder.BuildFAdd(left, right),
+                ? _builder.BuildAdd(left, EmitExpression(right, context))
+                : _builder.BuildFAdd(left, EmitExpression(right, context)),
             BinaryOperation.Subtraction => type.SpecialType.IsInteger
-                ? _builder.BuildSub(left, right)
-                : _builder.BuildFSub(left, right),
+                ? _builder.BuildSub(left, EmitExpression(right, context))
+                : _builder.BuildFSub(left, EmitExpression(right, context)),
             BinaryOperation.Multiplication => type.SpecialType.IsInteger
-                ? _builder.BuildMul(left, right)
-                : _builder.BuildFMul(left, right),
+                ? _builder.BuildMul(left, EmitExpression(right, context))
+                : _builder.BuildFMul(left, EmitExpression(right, context)),
             BinaryOperation.Division => type.SpecialType switch
             {
-                { IsSignedInteger: true } => _builder.BuildSDiv(left, right),
-                { IsUnsignedInteger: true } => _builder.BuildUDiv(left, right),
-                _ => _builder.BuildFDiv(left, right),
+                { IsSignedInteger: true } => _builder.BuildSDiv(
+                    left,
+                    EmitExpression(right, context)
+                ),
+                { IsUnsignedInteger: true } => _builder.BuildUDiv(
+                    left,
+                    EmitExpression(right, context)
+                ),
+                _ => _builder.BuildFDiv(left, EmitExpression(right, context)),
             },
             BinaryOperation.Modulo => type.SpecialType switch
             {
-                { IsSignedInteger: true } => _builder.BuildSRem(left, right),
-                { IsUnsignedInteger: true } => _builder.BuildURem(left, right),
-                _ => _builder.BuildFRem(left, right),
+                { IsSignedInteger: true } => _builder.BuildSRem(
+                    left,
+                    EmitExpression(right, context)
+                ),
+                { IsUnsignedInteger: true } => _builder.BuildURem(
+                    left,
+                    EmitExpression(right, context)
+                ),
+                _ => _builder.BuildFRem(left, EmitExpression(right, context)),
             },
-            BinaryOperation.BitwiseAnd or BinaryOperation.LogicalAnd => _builder.BuildAnd(
+            BinaryOperation.LogicalAnd => EmitLogicalOperation(
                 left,
-                right
+                right,
+                LogicalOperation.And,
+                context
             ),
-            BinaryOperation.BitwiseOr or BinaryOperation.LogicalOr => _builder.BuildOr(left, right),
-            BinaryOperation.BitwiseXor => _builder.BuildXor(left, right),
+            BinaryOperation.LogicalOr => EmitLogicalOperation(
+                left,
+                right,
+                LogicalOperation.Or,
+                context
+            ),
+            BinaryOperation.BitwiseAnd => _builder.BuildAnd(left, EmitExpression(right, context)),
+            BinaryOperation.BitwiseOr => _builder.BuildOr(left, EmitExpression(right, context)),
+            BinaryOperation.BitwiseXor => _builder.BuildXor(left, EmitExpression(right, context)),
             BinaryOperation.Equality => type.SpecialType.IsFloatingPoint
-                ? _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOEQ, left, right)
-                : _builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ, left, right),
+                ? _builder.BuildFCmp(
+                    LLVMRealPredicate.LLVMRealOEQ,
+                    left,
+                    EmitExpression(right, context)
+                )
+                : _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntEQ,
+                    left,
+                    EmitExpression(right, context)
+                ),
             BinaryOperation.NotEquals => type.SpecialType.IsFloatingPoint
-                ? _builder.BuildFCmp(LLVMRealPredicate.LLVMRealONE, left, right)
-                : _builder.BuildICmp(LLVMIntPredicate.LLVMIntNE, left, right),
+                ? _builder.BuildFCmp(
+                    LLVMRealPredicate.LLVMRealONE,
+                    left,
+                    EmitExpression(right, context)
+                )
+                : _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntNE,
+                    left,
+                    EmitExpression(right, context)
+                ),
             BinaryOperation.LessThan => type.SpecialType switch
             {
                 { IsSignedInteger: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntSLT,
                     left,
-                    right
+                    EmitExpression(right, context)
                 ),
                 { IsUnsignedInteger: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntULT,
                     left,
-                    right
+                    EmitExpression(right, context)
                 ),
-                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOLT, left, right),
+                _ => _builder.BuildFCmp(
+                    LLVMRealPredicate.LLVMRealOLT,
+                    left,
+                    EmitExpression(right, context)
+                ),
             },
             BinaryOperation.LessThanOrEquals => type.SpecialType switch
             {
                 { IsSignedInteger: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntSLE,
                     left,
-                    right
+                    EmitExpression(right, context)
                 ),
                 { IsUnsignedInteger: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntULE,
                     left,
-                    right
+                    EmitExpression(right, context)
                 ),
-                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOLE, left, right),
+                _ => _builder.BuildFCmp(
+                    LLVMRealPredicate.LLVMRealOLE,
+                    left,
+                    EmitExpression(right, context)
+                ),
             },
             BinaryOperation.GreaterThan => type.SpecialType switch
             {
                 { IsSignedInteger: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntSGT,
                     left,
-                    right
+                    EmitExpression(right, context)
                 ),
                 { IsUnsignedInteger: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntUGT,
                     left,
-                    right
+                    EmitExpression(right, context)
                 ),
-                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOGT, left, right),
+                _ => _builder.BuildFCmp(
+                    LLVMRealPredicate.LLVMRealOGT,
+                    left,
+                    EmitExpression(right, context)
+                ),
             },
             BinaryOperation.GreaterThanOrEquals => type.SpecialType switch
             {
                 { IsSignedInteger: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntSGE,
                     left,
-                    right
+                    EmitExpression(right, context)
                 ),
                 { IsUnsignedInteger: true } => _builder.BuildICmp(
                     LLVMIntPredicate.LLVMIntUGE,
                     left,
-                    right
+                    EmitExpression(right, context)
                 ),
-                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOGE, left, right),
+                _ => _builder.BuildFCmp(
+                    LLVMRealPredicate.LLVMRealOGE,
+                    left,
+                    EmitExpression(right, context)
+                ),
             },
             BinaryOperation.ThreeWayComparison => throw new NotSupportedException(
                 "Three way comparisons are not supported yet"
             ),
-            BinaryOperation.ShiftLeft => _builder.BuildShl(left, right),
-            BinaryOperation.ShiftRight => _builder.BuildAShr(left, right),
-            BinaryOperation.UnsignedShiftRight => _builder.BuildLShr(left, right),
+            BinaryOperation.ShiftLeft => _builder.BuildShl(left, EmitExpression(right, context)),
+            BinaryOperation.ShiftRight => _builder.BuildAShr(left, EmitExpression(right, context)),
+            BinaryOperation.UnsignedShiftRight => _builder.BuildLShr(
+                left,
+                EmitExpression(right, context)
+            ),
             _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
         };
+    }
+
+    private LLVMValueRef EmitLogicalOperation(
+        LLVMValueRef left,
+        BoundExpression right,
+        LogicalOperation operation,
+        FunctionEmissionContext context
+    )
+    {
+        var checkNext = context.Function.AppendBasicBlock("check.next");
+        var skipNext = LLVMBasicBlockRef.CreateInContext(_context, "skip.next");
+        var currentBlock = _builder.InsertBlock;
+
+        switch (operation)
+        {
+            case LogicalOperation.And:
+                _builder.BuildCondBr(ConvertByteBoolToI1IfNeeded(left), checkNext, skipNext);
+                break;
+            case LogicalOperation.Or:
+                _builder.BuildCondBr(ConvertByteBoolToI1IfNeeded(left), skipNext, checkNext);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
+        }
+
+        _builder.PositionAtEnd(checkNext);
+        var rightValue = EmitExpression(right, context);
+        _builder.BuildBr(skipNext);
+
+        context.Function.AppendExistingBasicBlock(skipNext);
+        _builder.PositionAtEnd(skipNext);
+        var phi = _builder.BuildPhi(left.TypeOf);
+        phi.AddIncoming(
+            [
+                left,
+                left.TypeOf.IntWidth == 8
+                    ? ConvertI1ToByteBoolIfNeeded(rightValue)
+                    : ConvertByteBoolToI1IfNeeded(rightValue),
+            ],
+            [currentBlock, checkNext],
+            2
+        );
+        return phi;
     }
 
     private LLVMValueRef EmitAssignment(
@@ -919,17 +1035,22 @@ internal sealed class LlvmCodeEmitter : IDisposable
     )
     {
         var assignee = EmitAddress(operation.Left, context);
-        var value = EmitExpression(operation.Right, context);
         if (operation.Operation == AssignmentOperation.Simple)
         {
-            _builder.BuildStore(value, assignee);
+            _builder.BuildStore(EmitExpression(operation.Right, context), assignee);
         }
         else
         {
             var binaryOp = operation.Operation.ToBinaryOperation();
             var type = GetOrCreateType(operation.Left.Type);
             var assigneeValue = _builder.BuildLoad2(type, assignee);
-            var result = EmitBinaryOperation(operation.Left.Type, assigneeValue, value, binaryOp);
+            var result = EmitBinaryOperation(
+                operation.Left.Type,
+                assigneeValue,
+                operation.Right,
+                binaryOp,
+                context
+            );
             _builder.BuildStore(result, assignee);
         }
 
@@ -1136,6 +1257,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
             $"{_compilation.AssemblyName}.obj"
         );
 
+        _module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
         if (
             !targetMachine.TryEmitToFile(
                 _module,
