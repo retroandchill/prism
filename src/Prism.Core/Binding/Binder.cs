@@ -739,9 +739,34 @@ internal abstract class Binder
             );
         }
 
+        var targetType = operation switch
+        {
+            BinaryOperation.Addition
+            or BinaryOperation.Subtraction
+            or BinaryOperation.Multiplication
+            or BinaryOperation.Division
+            or BinaryOperation.Modulo
+            or BinaryOperation.BitwiseAnd
+            or BinaryOperation.BitwiseOr
+            or BinaryOperation.BitwiseXor
+            or BinaryOperation.ShiftLeft
+            or BinaryOperation.ShiftRight
+            or BinaryOperation.UnsignedShiftRight => conversion?.Type,
+            BinaryOperation.LogicalAnd
+            or BinaryOperation.LogicalOr
+            or BinaryOperation.Equality
+            or BinaryOperation.NotEquals
+            or BinaryOperation.LessThan
+            or BinaryOperation.LessThanOrEquals
+            or BinaryOperation.GreaterThan
+            or BinaryOperation.GreaterThanOrEquals => Compilation.GetSpecialType(SpecialType.Bool),
+            BinaryOperation.ThreeWayComparison => throw new NotImplementedException(),
+            _ => throw new InvalidOperationException("Unknown binary operation"),
+        };
+
         return new BoundBinaryOperation(
             syntax,
-            conversion?.Type ?? ErrorTypeSymbol.Unnamed,
+            targetType ?? ErrorTypeSymbol.Unnamed,
             left,
             right,
             operation

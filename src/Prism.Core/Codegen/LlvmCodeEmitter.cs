@@ -1037,7 +1037,12 @@ internal sealed class LlvmCodeEmitter : IDisposable
         var assignee = EmitAddress(operation.Left, context);
         if (operation.Operation == AssignmentOperation.Simple)
         {
-            _builder.BuildStore(EmitExpression(operation.Right, context), assignee);
+            var result = EmitExpression(operation.Right, context);
+            if (operation.Left.Type.SpecialType == SpecialType.Bool)
+            {
+                result = ConvertI1ToByteBoolIfNeeded(result);
+            }
+            _builder.BuildStore(result, assignee);
         }
         else
         {

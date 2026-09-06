@@ -628,7 +628,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     {
         if (
             PeekToken().Kind != SyntaxKind.IdentifierToken
-            && PeekToken(2).Kind != SyntaxKind.ColonToken
+            || PeekToken(2).Kind != SyntaxKind.ColonToken
         )
             return null;
 

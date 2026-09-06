@@ -92,6 +92,14 @@ func act_on_by_reference(a: i32, b: i32): i32 {
     return *c + b;
 }
 
+func print_maybe(message: str&, value: i32) {
+    var should_print = value != 5;
+    if (should_print)
+    {
+        print(message);
+    }
+}
+
 func main(): i32 {
     return add(1, 4);
 }
