@@ -49,6 +49,12 @@ internal sealed class LlvmCodeEmitter : IDisposable
             EmitFunction(function);
         }
 
+        if (_mirModule.ModuleInitializer is { } moduleInitializer)
+        {
+            var llvmInitializer = _functions[moduleInitializer];
+            _module.AppendToGlobalCtors(llvmInitializer, 65635);
+        }
+
         WriteIR();
         return OutputBinary();
     }
