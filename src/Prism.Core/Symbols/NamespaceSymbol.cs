@@ -1,4 +1,5 @@
-﻿using Prism.Core.Compiling;
+﻿using Cysharp.Text;
+using Prism.Core.Compiling;
 using Prism.Core.Utils;
 using ZLinq;
 

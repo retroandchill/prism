@@ -5,13 +5,13 @@
 
 using System.Runtime.InteropServices;
 using Prism.Core.Mir;
+using Prism.Core.Symbols;
 
 namespace Prism.Core.Mir;
 
 internal sealed class MirFunctionBuilder
 {
-    private readonly MirFunctionId _functionId;
-    private readonly string _name;
+    private readonly FunctionSymbol _function;
     private readonly MirType _returnType;
 
     private readonly List<MirLocal> _locals = [];
@@ -21,17 +21,13 @@ internal sealed class MirFunctionBuilder
     private int _nextBlockId;
     private MirBlockId? _entryBlock;
 
-    public MirFunctionBuilder(MirFunctionId functionId, string name, MirType returnType)
+    public MirFunctionBuilder(FunctionSymbol function, MirType returnType)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(returnType);
 
-        _functionId = functionId;
-        _name = name;
+        _function = function;
         _returnType = returnType;
     }
-
-    public string Name => _name;
 
     public MirType ReturnType => _returnType;
 
@@ -86,8 +82,7 @@ internal sealed class MirFunctionBuilder
         }
 
         return new MirFunction(
-            _functionId,
-            _name,
+            _function,
             _returnType,
             [.. _locals],
             ImmutableCollectionsMarshal.AsImmutableArray(blocks),

@@ -4,25 +4,22 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
-using Prism.Core.Mir;
+using Prism.Core.Symbols;
 using Prism.Core.Utils;
 
 namespace Prism.Core.Mir;
 
-internal readonly record struct MirFunctionId(int Value);
-
 internal sealed class MirFunction
 {
     public MirFunction(
-        MirFunctionId id,
-        string name,
+        FunctionSymbol symbol,
         MirType returnType,
         ImmutableArray<MirLocal> locals,
         ImmutableArray<MirBasicBlock> blocks,
         MirBlockId entryBlock
     )
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(symbol);
         ArgumentNullException.ThrowIfNull(returnType);
 
         if (blocks.IsDefaultOrEmpty)
@@ -37,15 +34,15 @@ internal sealed class MirFunction
                 "Entry block must exist in the function."
             );
 
-        Id = id;
-        Name = name;
+        Symbol = symbol;
+        Name = symbol.ToDisplayString();
         ReturnType = returnType;
         Locals = locals.NullToEmpty();
         Blocks = blocks;
         EntryBlock = entryBlock;
     }
 
-    public MirFunctionId Id { get; }
+    public FunctionSymbol Symbol { get; }
 
     public string Name { get; }
 

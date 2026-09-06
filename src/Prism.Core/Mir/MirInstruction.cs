@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using Prism.Core.Symbols;
 using Prism.Core.Utils;
 
 namespace Prism.Core.Mir;
@@ -30,7 +31,7 @@ internal sealed record MirConvertInstruction(
 
 internal sealed record MirCallInstruction(
     MirPlace? Destination,
-    MirFunctionId Callee,
+    FunctionSymbol Callee,
     ImmutableArray<MirValue> Arguments
 ) : MirInstruction;
 

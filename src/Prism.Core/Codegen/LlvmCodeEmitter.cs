@@ -9,6 +9,7 @@ using Prism.Core.Configuration;
 using Prism.Core.Mir;
 using Prism.Core.Mir.Analysis;
 using Prism.Core.Semantic;
+using Prism.Core.Symbols;
 using ZLinq;
 
 namespace Prism.Core.Codegen;
@@ -24,7 +25,9 @@ internal sealed class LlvmCodeEmitter : IDisposable
     private LLVMBuilderRef _builder;
 
     private readonly Dictionary<MirGlobalId, LLVMValueRef> _globals = new();
-    private readonly Dictionary<MirFunctionId, LLVMValueRef> _functions = new();
+    private readonly Dictionary<FunctionSymbol, LLVMValueRef> _functions = new(
+        ReferenceEqualityComparer.Instance
+    );
     private readonly Dictionary<MirType, LLVMTypeRef> _typeMap = new();
 
     public LlvmCodeEmitter(MirModule module, CompilationSettings settings, CodeGenOptions options)
@@ -219,7 +222,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
 
     private LLVMValueRef GetOrCreateFunction(MirFunction function)
     {
-        if (_functions.TryGetValue(function.Id, out var llvmValue))
+        if (_functions.TryGetValue(function.Symbol, out var llvmValue))
         {
             return llvmValue;
         }
@@ -232,7 +235,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
             .ToArrayPool();
         var functionType = LLVMTypeRef.CreateFunction(returnType, parameters.Span, false);
         llvmValue = _module.AddFunction(function.Name, functionType);
-        _functions[function.Id] = llvmValue;
+        _functions[function.Symbol] = llvmValue;
         return llvmValue;
     }
 

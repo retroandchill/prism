@@ -13,8 +13,7 @@ internal readonly record struct MirLoopTargets(MirBlockId BreakTarget, MirBlockI
 internal sealed class MirEmissionContext(
     MirFunctionBuilder builder,
     MirTypeMapper typeMapper,
-    IReadOnlyDictionary<VariableSymbol, MirGlobal> globals,
-    IReadOnlyDictionary<FunctionSymbol, MirFunctionId> functionIds
+    IReadOnlyDictionary<VariableSymbol, MirGlobal> globals
 )
 {
     private readonly Dictionary<Symbol, MirLocal> _locals = new(ReferenceEqualityComparer.Instance);
@@ -23,13 +22,6 @@ internal sealed class MirEmissionContext(
     );
 
     public MirBasicBlockBuilder CurrentBlock { get; private set; } = null!;
-
-    public MirFunctionId GetReferencedFunction(FunctionSymbol symbol)
-    {
-        return functionIds.TryGetValue(symbol, out var id)
-            ? id
-            : throw new KeyNotFoundException("Function not a part of this module");
-    }
 
     public MirBasicBlockBuilder AddBlock(string name)
     {

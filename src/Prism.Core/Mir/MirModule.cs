@@ -5,6 +5,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using Prism.Core.Symbols;
 
 namespace Prism.Core.Mir;
 
@@ -14,8 +15,8 @@ internal sealed class MirModule
         string name,
         ImmutableArray<MirGlobal> globals,
         ImmutableArray<MirFunction> functions,
-        MirFunctionId? moduleInitializer = null,
-        MirFunctionId? entryPoint = null
+        FunctionSymbol? moduleInitializer = null,
+        FunctionSymbol? entryPoint = null
     )
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -35,9 +36,9 @@ internal sealed class MirModule
 
     public ImmutableArray<MirFunction> Functions { get; }
 
-    public MirFunctionId? ModuleInitializer { get; }
+    public FunctionSymbol? ModuleInitializer { get; }
 
-    public MirFunctionId? EntryPoint { get; }
+    public FunctionSymbol? EntryPoint { get; }
 
     public MirGlobal GetGlobal(MirGlobalId id)
     {
@@ -45,10 +46,10 @@ internal sealed class MirModule
             ?? throw new KeyNotFoundException($"No MIR global exists with id '{id.Value}'.");
     }
 
-    public MirFunction GetFunction(MirFunctionId id)
+    public MirFunction GetFunction(FunctionSymbol symbol)
     {
-        return Functions.FirstOrDefault(f => f.Id == id)
-            ?? throw new KeyNotFoundException($"No MIR function exists with id '{id.Value}'.");
+        return Functions.FirstOrDefault(f => f.Symbol == symbol)
+            ?? throw new KeyNotFoundException($"No MIR function exists for {symbol}.");
     }
 
     public bool TryGetGlobal(MirGlobalId id, [NotNullWhen(true)] out MirGlobal? global)
@@ -57,17 +58,17 @@ internal sealed class MirModule
         return global is not null;
     }
 
-    public bool TryGetFunction(MirFunctionId id, [NotNullWhen(true)] out MirFunction? function)
+    public bool TryGetFunction(FunctionSymbol symbol, [NotNullWhen(true)] out MirFunction? function)
     {
-        function = Functions.FirstOrDefault(f => f.Id == id);
+        function = Functions.FirstOrDefault(f => f.Symbol == symbol);
         return function is not null;
     }
 
     private static void ValidateUniqueIds(
         ImmutableArray<MirGlobal> globals,
         ImmutableArray<MirFunction> functions,
-        MirFunctionId? moduleInitializer,
-        MirFunctionId? entryPoint
+        FunctionSymbol? moduleInitializer,
+        FunctionSymbol? entryPoint
     )
     {
         var globalIds = new HashSet<MirGlobalId>();
@@ -82,19 +83,19 @@ internal sealed class MirModule
             }
         }
 
-        var functionIds = new HashSet<MirFunctionId>();
+        var functionIds = new HashSet<FunctionSymbol>(ReferenceEqualityComparer.Instance);
         foreach (var function in functions)
         {
-            if (!functionIds.Add(function.Id))
+            if (!functionIds.Add(function.Symbol))
             {
                 throw new ArgumentException(
-                    $"Duplicate MIR function id '{function.Id.Value}'.",
+                    $"Duplicate MIR function id '{function.Symbol}'.",
                     nameof(functions)
                 );
             }
         }
 
-        if (moduleInitializer is not null && !functionIds.Contains(moduleInitializer.Value))
+        if (moduleInitializer is not null && !functionIds.Contains(moduleInitializer))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(moduleInitializer),
@@ -102,7 +103,7 @@ internal sealed class MirModule
             );
         }
 
-        if (entryPoint is not null && !functionIds.Contains(entryPoint.Value))
+        if (entryPoint is not null && !functionIds.Contains(entryPoint))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(entryPoint),
