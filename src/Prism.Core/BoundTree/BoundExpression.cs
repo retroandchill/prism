@@ -5,8 +5,7 @@ using Prism.Core.Syntax;
 
 namespace Prism.Core.BoundTree;
 
-internal abstract class BoundExpression(ExpressionSyntax syntax, TypeSymbol type)
-    : BoundNode(syntax)
+internal abstract class BoundExpression(SyntaxNode syntax, TypeSymbol type) : BoundNode(syntax)
 {
     private Lazy<ConstantValue?>? _constantValue;
 
@@ -38,10 +37,10 @@ internal abstract class BoundExpression(ExpressionSyntax syntax, TypeSymbol type
     protected virtual ConstantValue? ComputeConstantValue() => null;
 }
 
-internal sealed class BoundBadExpression(ExpressionSyntax syntax, TypeSymbol type)
+internal sealed class BoundBadExpression(SyntaxNode syntax, TypeSymbol type)
     : BoundExpression(syntax, type);
 
-internal sealed class BoundLiteral(ExpressionSyntax syntax, TypeSymbol type, ConstantValue value)
+internal sealed class BoundLiteral(SyntaxNode syntax, TypeSymbol type, ConstantValue value)
     : BoundExpression(syntax, type)
 {
     public ConstantValue Value { get; } = value;
@@ -49,7 +48,7 @@ internal sealed class BoundLiteral(ExpressionSyntax syntax, TypeSymbol type, Con
     protected override ConstantValue? ComputeConstantValue() => Value;
 }
 
-internal sealed class BoundVariableAccess(ExpressionSyntax syntax, VariableSymbol symbol)
+internal sealed class BoundVariableAccess(SyntaxNode syntax, VariableSymbol symbol)
     : BoundExpression(syntax, symbol.Type)
 {
     public VariableSymbol Symbol { get; } = symbol;
@@ -59,7 +58,7 @@ internal sealed class BoundVariableAccess(ExpressionSyntax syntax, VariableSymbo
     public override bool IsAssignable => Symbol.IsMutable;
 }
 
-internal sealed class BoundParameterAccess(ExpressionSyntax syntax, ParameterSymbol symbol)
+internal sealed class BoundParameterAccess(SyntaxNode syntax, ParameterSymbol symbol)
     : BoundExpression(syntax, symbol.Type)
 {
     public ParameterSymbol Symbol { get; } = symbol;
@@ -70,7 +69,7 @@ internal sealed class BoundParameterAccess(ExpressionSyntax syntax, ParameterSym
 }
 
 internal sealed class BoundUnaryOperation(
-    ExpressionSyntax syntax,
+    SyntaxNode syntax,
     TypeSymbol type,
     BoundExpression operand,
     UnaryOperation operation
@@ -82,7 +81,7 @@ internal sealed class BoundUnaryOperation(
 }
 
 internal sealed class BoundBinaryOperation(
-    ExpressionSyntax syntax,
+    SyntaxNode syntax,
     TypeSymbol type,
     BoundExpression left,
     BoundExpression right,
@@ -95,7 +94,7 @@ internal sealed class BoundBinaryOperation(
 }
 
 internal sealed class BoundAssignmentOperation(
-    ExpressionSyntax syntax,
+    SyntaxNode syntax,
     TypeSymbol type,
     BoundExpression left,
     BoundExpression right,
@@ -108,7 +107,7 @@ internal sealed class BoundAssignmentOperation(
 }
 
 internal sealed class BoundConditional(
-    ExpressionSyntax syntax,
+    SyntaxNode syntax,
     TypeSymbol type,
     BoundExpression condition,
     BoundExpression whenTrue,
@@ -121,7 +120,7 @@ internal sealed class BoundConditional(
 }
 
 internal sealed class BoundInvocation(
-    ExpressionSyntax syntax,
+    SyntaxNode syntax,
     FunctionSymbol function,
     ImmutableArray<BoundExpression> arguments
 ) : BoundExpression(syntax, function.ReturnType)
@@ -132,7 +131,7 @@ internal sealed class BoundInvocation(
 }
 
 internal sealed class BoundConversion(
-    ExpressionSyntax syntax,
+    SyntaxNode syntax,
     TypeSymbol type,
     BoundExpression operand,
     Conversion conversion
@@ -143,17 +142,14 @@ internal sealed class BoundConversion(
     public Conversion Conversion { get; } = conversion;
 }
 
-internal sealed class BoundAddressOf(
-    PrefixExpressionSyntax syntax,
-    BoundExpression operand,
-    TypeSymbol type
-) : BoundExpression(syntax, type)
+internal sealed class BoundAddressOf(SyntaxNode syntax, BoundExpression operand, TypeSymbol type)
+    : BoundExpression(syntax, type)
 {
     public BoundExpression Operand { get; } = operand;
 }
 
 internal sealed class BoundDereference(
-    PrefixExpressionSyntax syntax,
+    SyntaxNode syntax,
     BoundExpression operand,
     TypeSymbol type,
     bool isMutable
@@ -167,7 +163,7 @@ internal sealed class BoundDereference(
 }
 
 internal sealed class BoundIndex(
-    IndexExpressionSyntax syntax,
+    SyntaxNode syntax,
     BoundExpression operand,
     BoundExpression index,
     TypeSymbol type

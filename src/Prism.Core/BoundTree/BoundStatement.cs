@@ -4,23 +4,16 @@ using Prism.Core.Syntax;
 
 namespace Prism.Core.BoundTree;
 
-internal abstract class BoundStatement : BoundNode
-{
-    protected BoundStatement(StatementSyntax syntax)
-        : base(syntax) { }
+internal abstract class BoundStatement(SyntaxNode syntax) : BoundNode(syntax);
 
-    protected BoundStatement(ExpressionBodySyntax syntax)
-        : base(syntax) { }
-}
-
-internal sealed class BoundBlock(BlockSyntax syntax, ImmutableArray<BoundStatement> statements)
+internal sealed class BoundBlock(SyntaxNode syntax, ImmutableArray<BoundStatement> statements)
     : BoundStatement(syntax)
 {
     public ImmutableArray<BoundStatement> Statements { get; } = statements;
 }
 
 internal sealed class BoundVariableDeclaration(
-    VariableDeclarationStatementSyntax syntax,
+    SyntaxNode syntax,
     VariableSymbol variable,
     BoundExpression? initializer
 ) : BoundStatement(syntax)
@@ -30,42 +23,20 @@ internal sealed class BoundVariableDeclaration(
     public BoundExpression? Initializer { get; } = initializer;
 }
 
-internal sealed class BoundExpressionStatement : BoundStatement
+internal sealed class BoundExpressionStatement(SyntaxNode syntax, BoundExpression expression)
+    : BoundStatement(syntax)
 {
-    public BoundExpressionStatement(ExpressionStatementSyntax syntax, BoundExpression expression)
-        : base(syntax)
-    {
-        Expression = expression;
-    }
-
-    public BoundExpressionStatement(ExpressionBodySyntax syntax, BoundExpression expression)
-        : base(syntax)
-    {
-        Expression = expression;
-    }
-
-    public BoundExpression Expression { get; }
+    public BoundExpression Expression { get; } = expression;
 }
 
-internal sealed class BoundReturnStatement : BoundStatement
+internal sealed class BoundReturnStatement(SyntaxNode syntax, BoundExpression? expression)
+    : BoundStatement(syntax)
 {
-    public BoundReturnStatement(ReturnStatementSyntax syntax, BoundExpression? expression)
-        : base(syntax)
-    {
-        Expression = expression;
-    }
-
-    public BoundReturnStatement(ExpressionBodySyntax syntax, BoundExpression expression)
-        : base(syntax)
-    {
-        Expression = expression;
-    }
-
-    public BoundExpression? Expression { get; }
+    public BoundExpression? Expression { get; } = expression;
 }
 
 internal sealed class BoundIfStatement(
-    IfStatementSyntax syntax,
+    SyntaxNode syntax,
     BoundExpression condition,
     BoundStatement thenStatement,
     BoundStatement? elseStatement
@@ -78,11 +49,8 @@ internal sealed class BoundIfStatement(
     public BoundStatement? ElseStatement { get; } = elseStatement;
 }
 
-internal abstract class BoundLoopBase(
-    StatementSyntax syntax,
-    BoundStatement loopBody,
-    LabelSymbol label
-) : BoundStatement(syntax)
+internal abstract class BoundLoopBase(SyntaxNode syntax, BoundStatement loopBody, LabelSymbol label)
+    : BoundStatement(syntax)
 {
     public BoundStatement Body { get; } = loopBody;
 
@@ -90,7 +58,7 @@ internal abstract class BoundLoopBase(
 }
 
 internal sealed class BoundWhileStatement(
-    WhileStatementSyntax syntax,
+    SyntaxNode syntax,
     BoundExpression condition,
     BoundStatement body,
     LabelSymbol label
@@ -100,13 +68,13 @@ internal sealed class BoundWhileStatement(
 }
 
 internal sealed class BoundLoopStatement(
-    LoopStatementSyntax syntax,
+    SyntaxNode syntax,
     BoundStatement loopBody,
     LabelSymbol label
 ) : BoundLoopBase(syntax, loopBody, label);
 
 internal sealed class BoundForStatement(
-    ForStatementSyntax syntax,
+    SyntaxNode syntax,
     BoundVariableDeclaration? variable,
     ImmutableArray<BoundExpression> initializers,
     BoundExpression? condition,
@@ -124,13 +92,13 @@ internal sealed class BoundForStatement(
     public ImmutableArray<BoundExpression> Incrementors { get; } = incrementors;
 }
 
-internal sealed class BoundBreakStatement(BreakStatementSyntax syntax, LabelSymbol label)
+internal sealed class BoundBreakStatement(SyntaxNode syntax, LabelSymbol label)
     : BoundStatement(syntax)
 {
     public LabelSymbol Label { get; } = label;
 }
 
-internal sealed class BoundContinueStatement(ContinueStatementSyntax syntax, LabelSymbol label)
+internal sealed class BoundContinueStatement(SyntaxNode syntax, LabelSymbol label)
     : BoundStatement(syntax)
 {
     public LabelSymbol Label { get; } = label;
