@@ -1,7 +1,11 @@
-﻿namespace Prism.Core.Symbols;
+﻿using Prism.Core.Semantic;
+
+namespace Prism.Core.Symbols;
 
 public abstract class TypeSymbol : MemberContainerSymbol
 {
+    private Lazy<ConstantValue?>? _constantInitialValue;
+
     private protected TypeSymbol(
         string name,
         Symbol? containingSymbol = null,

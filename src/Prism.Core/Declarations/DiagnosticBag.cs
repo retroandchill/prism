@@ -2,23 +2,33 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
+using Microsoft.Extensions.ObjectPool;
 using Prism.Core.Diagnostics;
 
 namespace Prism.Core.Declarations;
 
-internal sealed class DiagnosticBag : IEnumerable<Diagnostic>
+internal sealed class DiagnosticBag : IEnumerable<Diagnostic>, IDisposable
 {
-    private DiagnosticBag()
-    {
-        // We may want to pool this later so we'll use a factory to hide that detail
-    }
+    private static readonly ObjectPool<DiagnosticBag> Pool = ObjectPool.Create(
+        new DiagnosticBagPolicy()
+    );
 
+    [MustDisposeResource]
     public static DiagnosticBag Create()
     {
-        return new DiagnosticBag();
+        return Pool.Get();
     }
 
     private ConcurrentQueue<Diagnostic>? _diagnostics;
+    private readonly ObjectPool<DiagnosticBag>? _pool;
+
+    public DiagnosticBag() { }
+
+    private DiagnosticBag(ObjectPool<DiagnosticBag> pool)
+    {
+        _pool = pool;
+    }
 
     private ConcurrentQueue<Diagnostic> Diagnostics
     {
@@ -95,5 +105,24 @@ internal sealed class DiagnosticBag : IEnumerable<Diagnostic>
     IEnumerator IEnumerable.GetEnumerator()
     {
         return GetEnumerator();
+    }
+
+    public void Dispose()
+    {
+        _pool?.Return(this);
+    }
+
+    private sealed class DiagnosticBagPolicy : IPooledObjectPolicy<DiagnosticBag>
+    {
+        DiagnosticBag IPooledObjectPolicy<DiagnosticBag>.Create()
+        {
+            return new DiagnosticBag(Pool);
+        }
+
+        bool IPooledObjectPolicy<DiagnosticBag>.Return(DiagnosticBag obj)
+        {
+            obj.Clear();
+            return true;
+        }
     }
 }

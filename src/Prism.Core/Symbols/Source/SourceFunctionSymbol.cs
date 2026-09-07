@@ -68,20 +68,19 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
             if (field is not null)
                 return field;
 
-            var diagnostics = DiagnosticBag.Create();
+            using var context = BindingContext.Create();
             if (
-                Interlocked.CompareExchange(ref field, ComputeReturnType(diagnostics), null)
-                is not null
+                Interlocked.CompareExchange(ref field, ComputeReturnType(context), null) is not null
             )
                 return field;
 
-            AddDeclarationDiagnostics(diagnostics);
+            AddDeclarationDiagnostics(context);
             _completionState.MarkPartComplete(CompletionPart.Type);
             return field;
         }
     }
 
-    private TypeSymbol ComputeReturnType(DiagnosticBag bag)
+    private TypeSymbol ComputeReturnType(BindingContext context)
     {
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
@@ -92,7 +91,6 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
             return compilation.GetSpecialType(SpecialType.Void);
         }
 
-        var context = BindingContext.Create(bag);
         var semanticModel = compilation.GetSemanticModel(_syntax.SyntaxTree);
         var binder = semanticModel.GetBinder(_syntax);
         return binder.ResolveType(_syntax.ReturnType.Type, context);
@@ -183,11 +181,11 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
         if (!_completionState.MarkPartComplete(CompletionPart.StartChecks))
             return;
 
-        var diagnostics = DiagnosticBag.Create();
+        using var context = BindingContext.Create();
         try
         {
-            FunctionChecks(diagnostics);
-            AddDeclarationDiagnostics(diagnostics);
+            FunctionChecks(context);
+            AddDeclarationDiagnostics(context);
         }
         finally
         {
@@ -195,7 +193,7 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
         }
     }
 
-    private void FunctionChecks(DiagnosticBag diagnostics)
+    private void FunctionChecks(BindingContext context)
     {
         // TODO: Actually validate
     }

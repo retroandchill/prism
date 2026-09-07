@@ -66,24 +66,23 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
             if (field is not null)
                 return field;
 
-            var diagnostics = DiagnosticBag.Create();
-            if (Interlocked.CompareExchange(ref field, ComputeType(diagnostics), null) is not null)
+            using var context = BindingContext.Create();
+            if (Interlocked.CompareExchange(ref field, ComputeType(context), null) is not null)
                 return field;
 
-            AddDeclarationDiagnostics(diagnostics);
+            AddDeclarationDiagnostics(context);
             _completionState.MarkPartComplete(CompletionPart.Type);
             return field;
         }
     }
 
-    private TypeSymbol ComputeType(DiagnosticBag diagnostics)
+    private TypeSymbol ComputeType(BindingContext context)
     {
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
         var factory = compilation.GetBinderFactory(_syntax.SyntaxTree);
         var binder = factory.GetBinder(_syntax);
 
-        var context = BindingContext.Create(diagnostics);
         Debug.Assert(_syntax.TypeSpecifier is not null);
         return binder.ResolveType(_syntax.TypeSpecifier.Type, context);
     }

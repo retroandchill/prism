@@ -307,7 +307,7 @@ internal abstract class Binder
 
     private NamespaceSymbol ResolveUsingNamespace(NameSyntax syntax)
     {
-        var diagnostics = DiagnosticBag.Create();
+        using var diagnostics = DiagnosticBag.Create();
         var names = CollectNames(syntax);
         var current = Compilation.GlobalNamespace;
         var isError = false;

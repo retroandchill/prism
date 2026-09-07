@@ -90,7 +90,7 @@ internal sealed class DeclarationTreeBuilder
             hasUsings = false;
         }
 
-        var diagnostics = DiagnosticBag.Create();
+        using var diagnostics = DiagnosticBag.Create();
         switch (node)
         {
             case FileScopedNamespaceDeclarationSyntax:

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using Prism.Core.Binding;
 using Prism.Core.Compiling;
 using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
@@ -120,11 +121,11 @@ public abstract class Symbol
 
     internal virtual Compilation? DeclaringCompilation => ContainingAssembly?.DeclaringCompilation;
 
-    private protected void AddDeclarationDiagnostics(DiagnosticBag diagnostics)
+    private protected void AddDeclarationDiagnostics(BindingContext diagnostics)
     {
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
-        compilation.DeclarationDiagnostics.AddRange(diagnostics);
+        compilation.DeclarationDiagnostics.AddRange(diagnostics.AccumulatedDiagnostics);
     }
 
     internal virtual bool NeedsCompletion => false;

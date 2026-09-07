@@ -15,9 +15,10 @@ namespace Prism.Core.Symbols.Source;
 internal abstract class SourceVariableSymbol : VariableSymbol
 {
     private SymbolCompletionState _completionState;
-    protected VariableDeclarationSyntax Syntax { get; }
+    public VariableDeclarationSyntax Syntax { get; }
 
-    private Lazy<ConstantValue?>? _constantValue;
+    private ConstantValue? _constantValue;
+    private bool _constantValueComputed;
 
     protected SourceVariableSymbol(
         string name,
@@ -55,17 +56,17 @@ internal abstract class SourceVariableSymbol : VariableSymbol
             if (field is not null)
                 return field;
 
-            var diagnostics = DiagnosticBag.Create();
-            if (Interlocked.CompareExchange(ref field, ComputeType(diagnostics), null) is not null)
+            using var context = BindingContext.Create();
+            if (Interlocked.CompareExchange(ref field, ComputeType(context), null) is not null)
                 return field;
 
-            AddDeclarationDiagnostics(diagnostics);
+            AddDeclarationDiagnostics(context);
             _completionState.MarkPartComplete(CompletionPart.Type);
             return field;
         }
     }
 
-    protected abstract TypeSymbol ComputeType(DiagnosticBag diagnostics);
+    protected abstract TypeSymbol ComputeType(BindingContext context);
 
     public sealed override bool IsMutable { get; }
 
@@ -91,30 +92,30 @@ internal abstract class SourceVariableSymbol : VariableSymbol
     {
         get
         {
-            if (_constantValue is not null)
-                return _constantValue.Value;
+            if (_constantValueComputed)
+                return _constantValue;
 
-            var diagnostics = DiagnosticBag.Create();
-            if (
-                Interlocked.CompareExchange(
-                    ref _constantValue,
-                    new Lazy<ConstantValue?>(
-                        () => ComputeConstantValue(diagnostics),
-                        LazyThreadSafetyMode.PublicationOnly
-                    ),
-                    null
-                )
-                is not null
-            )
-                return _constantValue.Value;
+            using var context = BindingContext.Create();
+            var (value, computed) = TryComputeConstantValue(context);
+            if (!computed)
+                return _constantValue;
 
-            AddDeclarationDiagnostics(diagnostics);
+            _constantValue = value;
+            AddDeclarationDiagnostics(context);
             _completionState.MarkPartComplete(CompletionPart.ConstantValue);
-            return _constantValue.Value;
+            return _constantValue;
         }
     }
 
-    protected abstract ConstantValue? ComputeConstantValue(DiagnosticBag diagnostics);
+    private (ConstantValue?, bool) TryComputeConstantValue(BindingContext context)
+    {
+        var value = ComputeConstantValue(context);
+        return !Interlocked.CompareExchange(ref _constantValueComputed, true, false)
+            ? (value, true)
+            : (_constantValue, false);
+    }
+
+    protected abstract ConstantValue? ComputeConstantValue(BindingContext context);
 
     public sealed override bool IsDefinedInSourceTree(SyntaxTree tree, TextSpan? definedWithin)
     {
@@ -187,9 +188,8 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
 
     public override bool IsGlobal => false;
 
-    protected override TypeSymbol ComputeType(DiagnosticBag diagnostics)
+    protected override TypeSymbol ComputeType(BindingContext context)
     {
-        var context = BindingContext.Create(diagnostics);
         if (Syntax.Type is not null)
         {
             return _scopeBinder.ResolveType(Syntax.Type.Type, context);
@@ -197,7 +197,7 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
 
         if (Syntax.Initializer is null)
         {
-            diagnostics.Add(Diagnostic.ExpectedTypeSpecifier(Syntax.Identifier.Location));
+            context.ReportDiagnostic(Diagnostic.ExpectedTypeSpecifier(Syntax.Identifier.Location));
             return ErrorTypeSymbol.Unnamed;
         }
 
@@ -205,12 +205,11 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
         return initializer.Type;
     }
 
-    protected override ConstantValue? ComputeConstantValue(DiagnosticBag diagnostics)
+    protected override ConstantValue? ComputeConstantValue(BindingContext context)
     {
         if (Syntax.Initializer is null)
             return null;
 
-        var context = BindingContext.Create(diagnostics);
         var initializer = GetInitializer(context);
         return initializer.ConstantValue;
     }
@@ -246,11 +245,11 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
 
     public override bool IsGlobal => true;
 
-    protected override TypeSymbol ComputeType(DiagnosticBag diagnostics)
+    protected override TypeSymbol ComputeType(BindingContext context)
     {
         if (Syntax.Type is null)
         {
-            diagnostics.Add(Diagnostic.ExpectedTypeSpecifier(Syntax.Identifier.Location));
+            context.ReportDiagnostic(Diagnostic.ExpectedTypeSpecifier(Syntax.Identifier.Location));
             return ErrorTypeSymbol.Unnamed;
         }
 
@@ -258,16 +257,14 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
         Debug.Assert(compilation is not null);
         var factory = compilation.GetBinderFactory(Syntax.SyntaxTree);
         var binder = factory.GetBinder(Syntax);
-        var context = BindingContext.Create(diagnostics);
         return binder.ResolveType(Syntax.Type.Type, context);
     }
 
-    protected override ConstantValue? ComputeConstantValue(DiagnosticBag diagnostics)
+    protected override ConstantValue? ComputeConstantValue(BindingContext context)
     {
         if (Syntax.Initializer is null)
             return null;
 
-        var context = BindingContext.Create(diagnostics);
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
         var semanticModel = compilation.GetSemanticModel(Syntax.SyntaxTree);

@@ -217,14 +217,16 @@ public class Compilation
 
     internal BoundExpression? GetBoundInitializer(VariableSymbol variable)
     {
-        var context = BindingContext.Create(DeclarationDiagnostics);
+        using var context = BindingContext.Create();
         foreach (var reference in variable.DeclaringSyntaxReferences)
         {
             var semanticModel = GetSemanticModel(reference.SyntaxTree);
             if (reference.Syntax is not VariableDeclarationSyntax declaration)
                 continue;
 
-            return semanticModel.GetBoundVariableInitializer(declaration, context);
+            var initializer = semanticModel.GetBoundVariableInitializer(declaration, context);
+            DeclarationDiagnostics.AddRange(context.AccumulatedDiagnostics);
+            return initializer;
         }
 
         return null;
@@ -232,14 +234,16 @@ public class Compilation
 
     internal BoundStatement? GetBoundBody(FunctionSymbol function)
     {
-        var context = BindingContext.Create(DeclarationDiagnostics);
+        using var context = BindingContext.Create();
         foreach (var reference in function.DeclaringSyntaxReferences)
         {
             var semanticModel = GetSemanticModel(reference.SyntaxTree);
             if (reference.Syntax is not FunctionDeclarationSyntax declaration)
                 continue;
 
-            return semanticModel.GetBoundFunctionBody(declaration, context);
+            var body = semanticModel.GetBoundFunctionBody(declaration, context);
+            DeclarationDiagnostics.AddRange(context.AccumulatedDiagnostics);
+            return body;
         }
 
         return null;
@@ -259,7 +263,7 @@ public class Compilation
         if (!Settings.IsApplication)
             return EntryPoint.Empty;
 
-        var diagnostics = DiagnosticBag.Create();
+        using var diagnostics = DiagnosticBag.Create();
         var function = FindEntryPoint(diagnostics);
         return new EntryPoint(function, diagnostics.ToImmutableAndClear());
     }
@@ -383,7 +387,7 @@ public class Compilation
         CancellationToken cancellationToken
     )
     {
-        var diagnostics = DiagnosticBag.Create();
+        using var diagnostics = DiagnosticBag.Create();
         GetDiagnostics(stage, includeEarlierStages, diagnostics, symbolFilter, cancellationToken);
         return diagnostics.ToImmutableAndClear();
     }
@@ -396,8 +400,9 @@ public class Compilation
         CancellationToken cancellationToken
     )
     {
-        var context = BindingContext.Create(diagnostics);
+        using var context = BindingContext.Create();
         GetAllDiagnostics(stage, includeEarlierStages, context, symbolFilter, cancellationToken);
+        diagnostics.AddRange(context.AccumulatedDiagnostics);
     }
 
     private void GetAllDiagnostics(
@@ -490,7 +495,7 @@ public class Compilation
         // TODO: Implement me
     }
 
-    internal DiagnosticBag DeclarationDiagnostics { get; } = DiagnosticBag.Create();
+    internal DiagnosticBag DeclarationDiagnostics { get; } = [];
 
     private CompilationCache Cache
     {
