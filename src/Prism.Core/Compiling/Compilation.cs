@@ -335,6 +335,11 @@ public class Compilation
         return false;
     }
 
+    public ImmutableArray<Diagnostic> GetDiagnostics(CancellationToken cancellationToken = default)
+    {
+        return GetDiagnostics(CompilationStage.Compile, true, null, cancellationToken);
+    }
+
     public ImmutableArray<Diagnostic> GetParseDiagnostics(
         CancellationToken cancellationToken = default
     )
