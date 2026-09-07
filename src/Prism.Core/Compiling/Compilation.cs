@@ -425,7 +425,7 @@ public class Compilation
             return;
 
         cancellationToken.ThrowIfCancellationRequested();
-        GetDiagnosticsForAllFunctionBodies(context, doLowering: false, cancellationToken);
+        GetDiagnosticsForAllFunctionBodies(context, cancellationToken);
     }
 
     private ImmutableArray<Diagnostic> GetSourceDeclarationDiagnostics(
@@ -464,11 +464,66 @@ public class Compilation
 
     private void GetDiagnosticsForAllFunctionBodies(
         BindingContext context,
-        bool doLowering,
         CancellationToken cancellationToken
     )
     {
-        // TODO: Implement me
+        GatherCompiledDiagnostics(Assembly.GlobalNamespace, context, cancellationToken);
+    }
+
+    private void GatherCompiledDiagnostics(
+        Symbol symbol,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        switch (symbol)
+        {
+            case MemberContainerSymbol container:
+                GatherCompiledDiagnostics(container, context, cancellationToken);
+                break;
+            case VariableSymbol variable:
+                GatherCompiledDiagnostics(variable, context, cancellationToken);
+                break;
+            case FunctionSymbol function:
+                GatherCompiledDiagnostics(function, context, cancellationToken);
+                break;
+        }
+    }
+
+    private void GatherCompiledDiagnostics(
+        MemberContainerSymbol container,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        foreach (var member in container.GetMembers())
+        {
+            GatherCompiledDiagnostics(member, context, cancellationToken);
+        }
+    }
+
+    private void GatherCompiledDiagnostics(
+        VariableSymbol variable,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var (_, diagnostics) = Cache.GetBoundInitializer(variable);
+        context.ReportDiagnostics(diagnostics);
+    }
+
+    private void GatherCompiledDiagnostics(
+        FunctionSymbol function,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var (_, diagnostics) = Cache.GetBoundFunctionBody(function);
+        context.ReportDiagnostics(diagnostics);
     }
 
     internal DiagnosticBag DeclarationDiagnostics { get; } = [];
