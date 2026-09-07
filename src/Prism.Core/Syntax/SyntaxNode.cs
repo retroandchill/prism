@@ -33,6 +33,15 @@ public abstract class SyntaxNode
     public bool IsMissing => Green.IsMissing;
     public bool ContainsDiagnostics => Green.ContainsDiagnostics;
 
+    internal bool HasErrors => ContainsDiagnostics && ComputeHasErrors();
+
+    private bool ComputeHasErrors()
+    {
+        return new SyntaxDiagnosticInfoList(Green)
+            .AsValueEnumerable()
+            .Any(d => d.Info.Severity == DiagnosticSeverity.Error);
+    }
+
     public bool HasLeadingTrivia => Green.HasLeadingTrivia;
 
     public SyntaxTriviaList LeadingTrivia => FirstToken.LeadingTrivia;

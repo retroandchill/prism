@@ -10,6 +10,7 @@ using Prism.Core.Mappers;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Error;
+using Prism.Core.Symbols.Source;
 using Prism.Core.Syntax;
 using Prism.Core.Utils;
 using ZLinq;
@@ -359,6 +360,17 @@ internal abstract class Binder
         }
     }
 
+    public BoundExpression BindInitializer(
+        VariableSymbol variable,
+        InitializerSyntax initializer,
+        BindingContext context
+    )
+    {
+        Debug.Assert(variable.IsGlobal);
+        var expression = BindExpression(initializer.Value, variable.Type, context);
+        return AddConversionIfNecessary(expression, variable.Type, context);
+    }
+
     public BoundStatement BindStatement(
         StatementSyntax syntax,
         TypeSymbol returnType,
@@ -461,13 +473,30 @@ internal abstract class Binder
             semanticModel.GetDeclaredSymbol(declaration)
             ?? throw new InvalidOperationException("Declared variable not found");
 
-        var initializer = declaration.Initializer switch
+        var targetType = declaration.Type switch
         {
-            not null => declaration.Type is not null
-                ? BindExpression(declaration.Initializer.Value, variable.Type, context)
-                : semanticModel.GetBoundVariableInitializer(syntax.Declaration, this, context),
+            { Type: var typeSyntax } => ResolveType(typeSyntax, context),
             null => null,
         };
+
+        var initializer = declaration.Initializer switch
+        {
+            not null => BindExpression(declaration.Initializer.Value, targetType, context),
+            null => null,
+        };
+
+        if (initializer is null)
+            return new BoundVariableDeclaration(syntax, variable, initializer);
+        if (targetType is not null)
+        {
+            initializer = AddConversionIfNecessary(initializer, targetType, context);
+        }
+
+        // We can short-circuit a double type computation here
+        if (variable is SourceLocalVariableSymbol sourceSymbol)
+        {
+            sourceSymbol.ForceSetType(initializer.Type);
+        }
 
         return new BoundVariableDeclaration(syntax, variable, initializer);
     }

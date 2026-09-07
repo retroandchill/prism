@@ -5,11 +5,17 @@ using Prism.Core.Syntax;
 
 namespace Prism.Core.BoundTree;
 
-internal abstract class BoundExpression(SyntaxNode syntax, TypeSymbol type) : BoundNode(syntax)
+internal abstract record BoundExpression : BoundNode
 {
     private Lazy<ConstantValue?>? _constantValue;
 
-    public TypeSymbol Type { get; } = type;
+    protected BoundExpression(SyntaxNode syntax, TypeSymbol type)
+        : base(syntax)
+    {
+        Type = type;
+    }
+
+    public TypeSymbol Type { get; }
 
     public virtual bool IsAddressable => false;
 
@@ -37,138 +43,220 @@ internal abstract class BoundExpression(SyntaxNode syntax, TypeSymbol type) : Bo
     protected virtual ConstantValue? ComputeConstantValue() => null;
 }
 
-internal sealed class BoundBadExpression(SyntaxNode syntax, TypeSymbol type)
-    : BoundExpression(syntax, type);
-
-internal sealed class BoundLiteral(SyntaxNode syntax, TypeSymbol type, ConstantValue value)
-    : BoundExpression(syntax, type)
+internal sealed record BoundBadExpression : BoundExpression
 {
-    public ConstantValue Value { get; } = value;
+    public BoundBadExpression(SyntaxNode syntax, TypeSymbol type)
+        : base(syntax, type) { }
+}
+
+internal sealed record BoundLiteral : BoundExpression
+{
+    public BoundLiteral(SyntaxNode syntax, TypeSymbol type, ConstantValue value)
+        : base(syntax, type)
+    {
+        Value = value;
+    }
+
+    public ConstantValue Value { get; }
 
     protected override ConstantValue? ComputeConstantValue() => Value;
 }
 
-internal sealed class BoundVariableAccess(SyntaxNode syntax, VariableSymbol symbol)
-    : BoundExpression(syntax, symbol.Type)
+internal sealed record BoundVariableAccess : BoundExpression
 {
-    public VariableSymbol Symbol { get; } = symbol;
+    public BoundVariableAccess(SyntaxNode syntax, VariableSymbol symbol)
+        : base(syntax, symbol.Type)
+    {
+        Symbol = symbol;
+    }
+
+    public VariableSymbol Symbol { get; }
 
     public override bool IsAddressable => true;
 
     public override bool IsAssignable => Symbol.IsMutable;
 }
 
-internal sealed class BoundParameterAccess(SyntaxNode syntax, ParameterSymbol symbol)
-    : BoundExpression(syntax, symbol.Type)
+internal sealed record BoundParameterAccess : BoundExpression
 {
-    public ParameterSymbol Symbol { get; } = symbol;
+    public BoundParameterAccess(SyntaxNode syntax, ParameterSymbol symbol)
+        : base(syntax, symbol.Type)
+    {
+        Symbol = symbol;
+    }
+
+    public ParameterSymbol Symbol { get; }
 
     public override bool IsAddressable => true;
 
     public override bool IsAssignable => Symbol.IsMutable;
 }
 
-internal sealed class BoundUnaryOperation(
-    SyntaxNode syntax,
-    TypeSymbol type,
-    BoundExpression operand,
-    UnaryOperation operation
-) : BoundExpression(syntax, type)
+internal sealed record BoundUnaryOperation : BoundExpression
 {
-    public BoundExpression Operand { get; } = operand;
+    public BoundUnaryOperation(
+        SyntaxNode syntax,
+        TypeSymbol type,
+        BoundExpression operand,
+        UnaryOperation operation
+    )
+        : base(syntax, type)
+    {
+        Operand = operand;
+        Operation = operation;
+    }
 
-    public UnaryOperation Operation { get; } = operation;
+    public BoundExpression Operand { get; }
+
+    public UnaryOperation Operation { get; }
 }
 
-internal sealed class BoundBinaryOperation(
-    SyntaxNode syntax,
-    TypeSymbol type,
-    BoundExpression left,
-    BoundExpression right,
-    BinaryOperation operation
-) : BoundExpression(syntax, type)
+internal sealed record BoundBinaryOperation : BoundExpression
 {
-    public BoundExpression Left { get; } = left;
-    public BoundExpression Right { get; } = right;
-    public BinaryOperation Operation { get; } = operation;
+    public BoundBinaryOperation(
+        SyntaxNode syntax,
+        TypeSymbol type,
+        BoundExpression left,
+        BoundExpression right,
+        BinaryOperation operation
+    )
+        : base(syntax, type)
+    {
+        Left = left;
+        Right = right;
+        Operation = operation;
+    }
+
+    public BoundExpression Left { get; }
+    public BoundExpression Right { get; }
+    public BinaryOperation Operation { get; }
 }
 
-internal sealed class BoundAssignmentOperation(
-    SyntaxNode syntax,
-    TypeSymbol type,
-    BoundExpression left,
-    BoundExpression right,
-    AssignmentOperation operation
-) : BoundExpression(syntax, type)
+internal sealed record BoundAssignmentOperation : BoundExpression
 {
-    public BoundExpression Left { get; } = left;
-    public BoundExpression Right { get; } = right;
-    public AssignmentOperation Operation { get; } = operation;
+    public BoundAssignmentOperation(
+        SyntaxNode syntax,
+        TypeSymbol type,
+        BoundExpression left,
+        BoundExpression right,
+        AssignmentOperation operation
+    )
+        : base(syntax, type)
+    {
+        Left = left;
+        Right = right;
+        Operation = operation;
+    }
+
+    public BoundExpression Left { get; }
+    public BoundExpression Right { get; }
+    public AssignmentOperation Operation { get; }
 }
 
-internal sealed class BoundConditional(
-    SyntaxNode syntax,
-    TypeSymbol type,
-    BoundExpression condition,
-    BoundExpression whenTrue,
-    BoundExpression whenFalse
-) : BoundExpression(syntax, type)
+internal sealed record BoundConditional : BoundExpression
 {
-    public BoundExpression Condition { get; } = condition;
-    public BoundExpression WhenTrue { get; } = whenTrue;
-    public BoundExpression WhenFalse { get; } = whenFalse;
+    public BoundConditional(
+        SyntaxNode syntax,
+        TypeSymbol type,
+        BoundExpression condition,
+        BoundExpression whenTrue,
+        BoundExpression whenFalse
+    )
+        : base(syntax, type)
+    {
+        Condition = condition;
+        WhenTrue = whenTrue;
+        WhenFalse = whenFalse;
+    }
+
+    public BoundExpression Condition { get; }
+    public BoundExpression WhenTrue { get; }
+    public BoundExpression WhenFalse { get; }
 }
 
-internal sealed class BoundInvocation(
-    SyntaxNode syntax,
-    FunctionSymbol function,
-    ImmutableArray<BoundExpression> arguments
-) : BoundExpression(syntax, function.ReturnType)
+internal sealed record BoundInvocation : BoundExpression
 {
-    public FunctionSymbol Function { get; } = function;
+    public BoundInvocation(
+        SyntaxNode syntax,
+        FunctionSymbol function,
+        ImmutableArray<BoundExpression> arguments
+    )
+        : base(syntax, function.ReturnType)
+    {
+        Function = function;
+        Arguments = arguments;
+    }
 
-    public ImmutableArray<BoundExpression> Arguments { get; } = arguments;
+    public FunctionSymbol Function { get; }
+
+    public ImmutableArray<BoundExpression> Arguments { get; }
 }
 
-internal sealed class BoundConversion(
-    SyntaxNode syntax,
-    TypeSymbol type,
-    BoundExpression operand,
-    Conversion conversion
-) : BoundExpression(syntax, type)
+internal sealed record BoundConversion : BoundExpression
 {
-    public BoundExpression Operand { get; } = operand;
+    public BoundConversion(
+        SyntaxNode syntax,
+        TypeSymbol type,
+        BoundExpression operand,
+        Conversion conversion
+    )
+        : base(syntax, type)
+    {
+        Operand = operand;
+        Conversion = conversion;
+    }
 
-    public Conversion Conversion { get; } = conversion;
+    public BoundExpression Operand { get; }
+
+    public Conversion Conversion { get; }
 }
 
-internal sealed class BoundAddressOf(SyntaxNode syntax, BoundExpression operand, TypeSymbol type)
-    : BoundExpression(syntax, type)
+internal sealed record BoundAddressOf : BoundExpression
 {
-    public BoundExpression Operand { get; } = operand;
+    public BoundAddressOf(SyntaxNode syntax, BoundExpression operand, TypeSymbol type)
+        : base(syntax, type)
+    {
+        Operand = operand;
+    }
+
+    public BoundExpression Operand { get; }
 }
 
-internal sealed class BoundDereference(
-    SyntaxNode syntax,
-    BoundExpression operand,
-    TypeSymbol type,
-    bool isMutable
-) : BoundExpression(syntax, type)
+internal sealed record BoundDereference : BoundExpression
 {
-    public BoundExpression Operand { get; } = operand;
+    public BoundDereference(
+        SyntaxNode syntax,
+        BoundExpression operand,
+        TypeSymbol type,
+        bool isMutable
+    )
+        : base(syntax, type)
+    {
+        Operand = operand;
+        IsAssignable = isMutable;
+    }
+
+    public BoundExpression Operand { get; }
 
     public override bool IsAddressable => true;
 
-    public override bool IsAssignable { get; } = isMutable;
+    public override bool IsAssignable { get; }
 }
 
-internal sealed class BoundIndex(
-    SyntaxNode syntax,
-    BoundExpression operand,
-    BoundExpression index,
-    TypeSymbol type
-) : BoundExpression(syntax, type)
+internal sealed record BoundIndex : BoundExpression
 {
-    public BoundExpression Operand { get; } = operand;
-    public BoundExpression Index { get; } = index;
+    public BoundIndex(
+        SyntaxNode syntax,
+        BoundExpression operand,
+        BoundExpression index,
+        TypeSymbol type
+    )
+        : base(syntax, type)
+    {
+        Operand = operand;
+        Index = index;
+    }
+
+    public BoundExpression Operand { get; }
+    public BoundExpression Index { get; }
 }

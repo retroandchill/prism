@@ -17,7 +17,6 @@ public static class NameMangler
 
         try
         {
-            builder.Append('$');
             if (variable.ContainingAssembly is { Name: var assemblyName })
             {
                 builder.Append(assemblyName);
@@ -40,7 +39,6 @@ public static class NameMangler
 
         try
         {
-            builder.Append('$');
             if (function.ContainingAssembly is { Name: var assemblyName })
             {
                 builder.Append(assemblyName);
@@ -142,7 +140,9 @@ public static class NameMangler
         builder.Append('N');
         var names = new List<string>();
         var current = symbol.ContainingSymbol;
-        while (current is not null and not AssemblySymbol)
+        while (
+            current is not null and not AssemblySymbol and not NamespaceSymbol { IsGlobal: true }
+        )
         {
             names.Add(current.Name);
             current = current.ContainingSymbol;

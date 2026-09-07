@@ -4,102 +4,167 @@ using Prism.Core.Syntax;
 
 namespace Prism.Core.BoundTree;
 
-internal abstract class BoundStatement(SyntaxNode syntax) : BoundNode(syntax);
-
-internal sealed class BoundBlock(SyntaxNode syntax, ImmutableArray<BoundStatement> statements)
-    : BoundStatement(syntax)
+internal abstract record BoundStatement : BoundNode
 {
-    public ImmutableArray<BoundStatement> Statements { get; } = statements;
+    protected BoundStatement(SyntaxNode syntax)
+        : base(syntax) { }
 }
 
-internal sealed class BoundVariableDeclaration(
-    SyntaxNode syntax,
-    VariableSymbol variable,
-    BoundExpression? initializer
-) : BoundStatement(syntax)
+internal sealed record BoundBlock : BoundStatement
 {
-    public VariableSymbol Variable { get; } = variable;
+    public BoundBlock(SyntaxNode syntax, ImmutableArray<BoundStatement> statements)
+        : base(syntax)
+    {
+        Statements = statements;
+    }
 
-    public BoundExpression? Initializer { get; } = initializer;
+    public ImmutableArray<BoundStatement> Statements { get; }
 }
 
-internal sealed class BoundExpressionStatement(SyntaxNode syntax, BoundExpression expression)
-    : BoundStatement(syntax)
+internal sealed record BoundVariableDeclaration : BoundStatement
 {
-    public BoundExpression Expression { get; } = expression;
+    public BoundVariableDeclaration(
+        SyntaxNode syntax,
+        VariableSymbol variable,
+        BoundExpression? initializer
+    )
+        : base(syntax)
+    {
+        Variable = variable;
+        Initializer = initializer;
+    }
+
+    public VariableSymbol Variable { get; }
+
+    public BoundExpression? Initializer { get; }
 }
 
-internal sealed class BoundReturnStatement(SyntaxNode syntax, BoundExpression? expression)
-    : BoundStatement(syntax)
+internal sealed record BoundExpressionStatement : BoundStatement
 {
-    public BoundExpression? Expression { get; } = expression;
+    public BoundExpressionStatement(SyntaxNode syntax, BoundExpression expression)
+        : base(syntax)
+    {
+        Expression = expression;
+    }
+
+    public BoundExpression Expression { get; }
 }
 
-internal sealed class BoundIfStatement(
-    SyntaxNode syntax,
-    BoundExpression condition,
-    BoundStatement thenStatement,
-    BoundStatement? elseStatement
-) : BoundStatement(syntax)
+internal sealed record BoundReturnStatement : BoundStatement
 {
-    public BoundExpression Condition { get; } = condition;
+    public BoundReturnStatement(SyntaxNode syntax, BoundExpression? expression)
+        : base(syntax)
+    {
+        Expression = expression;
+    }
 
-    public BoundStatement ThenStatement { get; } = thenStatement;
-
-    public BoundStatement? ElseStatement { get; } = elseStatement;
+    public BoundExpression? Expression { get; }
 }
 
-internal abstract class BoundLoopBase(SyntaxNode syntax, BoundStatement loopBody, LabelSymbol label)
-    : BoundStatement(syntax)
+internal sealed record BoundIfStatement : BoundStatement
 {
-    public BoundStatement Body { get; } = loopBody;
+    public BoundIfStatement(
+        SyntaxNode syntax,
+        BoundExpression condition,
+        BoundStatement thenStatement,
+        BoundStatement? elseStatement
+    )
+        : base(syntax)
+    {
+        Condition = condition;
+        ThenStatement = thenStatement;
+        ElseStatement = elseStatement;
+    }
 
-    public LabelSymbol Label { get; } = label;
+    public BoundExpression Condition { get; }
+
+    public BoundStatement ThenStatement { get; }
+
+    public BoundStatement? ElseStatement { get; }
 }
 
-internal sealed class BoundWhileStatement(
-    SyntaxNode syntax,
-    BoundExpression condition,
-    BoundStatement body,
-    LabelSymbol label
-) : BoundLoopBase(syntax, body, label)
+internal abstract record BoundLoopBase : BoundStatement
 {
-    public BoundExpression Condition { get; } = condition;
+    protected BoundLoopBase(SyntaxNode syntax, BoundStatement loopBody, LabelSymbol label)
+        : base(syntax)
+    {
+        Body = loopBody;
+        Label = label;
+    }
+
+    public BoundStatement Body { get; }
+
+    public LabelSymbol Label { get; }
 }
 
-internal sealed class BoundLoopStatement(
-    SyntaxNode syntax,
-    BoundStatement loopBody,
-    LabelSymbol label
-) : BoundLoopBase(syntax, loopBody, label);
-
-internal sealed class BoundForStatement(
-    SyntaxNode syntax,
-    BoundVariableDeclaration? variable,
-    ImmutableArray<BoundExpression> initializers,
-    BoundExpression? condition,
-    ImmutableArray<BoundExpression> incrementors,
-    BoundStatement body,
-    LabelSymbol label
-) : BoundLoopBase(syntax, body, label)
+internal sealed record BoundWhileStatement : BoundLoopBase
 {
-    public BoundVariableDeclaration? Variable { get; } = variable;
+    public BoundWhileStatement(
+        SyntaxNode syntax,
+        BoundExpression condition,
+        BoundStatement body,
+        LabelSymbol label
+    )
+        : base(syntax, body, label)
+    {
+        Condition = condition;
+    }
 
-    public ImmutableArray<BoundExpression> Initializers { get; } = initializers;
-
-    public BoundExpression? Condition { get; } = condition;
-
-    public ImmutableArray<BoundExpression> Incrementors { get; } = incrementors;
+    public BoundExpression Condition { get; }
 }
 
-internal sealed class BoundBreakStatement(SyntaxNode syntax, LabelSymbol label)
-    : BoundStatement(syntax)
+internal sealed record BoundLoopStatement : BoundLoopBase
 {
-    public LabelSymbol Label { get; } = label;
+    public BoundLoopStatement(SyntaxNode syntax, BoundStatement loopBody, LabelSymbol label)
+        : base(syntax, loopBody, label) { }
 }
 
-internal sealed class BoundContinueStatement(SyntaxNode syntax, LabelSymbol label)
-    : BoundStatement(syntax)
+internal sealed record BoundForStatement : BoundLoopBase
 {
-    public LabelSymbol Label { get; } = label;
+    public BoundForStatement(
+        SyntaxNode syntax,
+        BoundVariableDeclaration? variable,
+        ImmutableArray<BoundExpression> initializers,
+        BoundExpression? condition,
+        ImmutableArray<BoundExpression> incrementors,
+        BoundStatement body,
+        LabelSymbol label
+    )
+        : base(syntax, body, label)
+    {
+        Variable = variable;
+        Initializers = initializers;
+        Condition = condition;
+        Incrementors = incrementors;
+    }
+
+    public BoundVariableDeclaration? Variable { get; }
+
+    public ImmutableArray<BoundExpression> Initializers { get; }
+
+    public BoundExpression? Condition { get; }
+
+    public ImmutableArray<BoundExpression> Incrementors { get; }
+}
+
+internal sealed record BoundBreakStatement : BoundStatement
+{
+    public BoundBreakStatement(SyntaxNode syntax, LabelSymbol label)
+        : base(syntax)
+    {
+        Label = label;
+    }
+
+    public LabelSymbol Label { get; }
+}
+
+internal sealed record BoundContinueStatement : BoundStatement
+{
+    public BoundContinueStatement(SyntaxNode syntax, LabelSymbol label)
+        : base(syntax)
+    {
+        Label = label;
+    }
+
+    public LabelSymbol Label { get; }
 }

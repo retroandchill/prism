@@ -60,31 +60,6 @@ public class SemanticModel
         return State.GetBinder(syntax);
     }
 
-    internal BoundExpression GetBoundVariableInitializer(
-        VariableDeclarationSyntax syntax,
-        BindingContext context
-    )
-    {
-        return State.GetBoundVariableInitializer(syntax, context);
-    }
-
-    internal BoundExpression GetBoundVariableInitializer(
-        VariableDeclarationSyntax syntax,
-        Binder binder,
-        BindingContext context
-    )
-    {
-        return State.GetBoundVariableInitializer(syntax, binder, context);
-    }
-
-    internal BoundStatement GetBoundFunctionBody(
-        FunctionDeclarationSyntax syntax,
-        BindingContext context
-    )
-    {
-        return State.GetBoundFunctionBody(syntax, context);
-    }
-
     private void ValidateIsPartOfCompilation(SyntaxNode node)
     {
         if (!ReferenceEquals(SyntaxTree, node.SyntaxTree))

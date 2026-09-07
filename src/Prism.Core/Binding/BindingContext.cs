@@ -10,7 +10,7 @@ namespace Prism.Core.Binding;
 internal sealed class BindingContext : IDisposable
 {
     private static readonly ObjectPool<BindingContext> ContextsWithDiagnostics;
-    private static readonly BindingContext Discarded = new(null, null);
+    public static readonly BindingContext Discarded = new(null, null);
 
     private readonly ObjectPool<BindingContext>? _pool;
     private readonly DiagnosticBag? _diagnostics;
@@ -45,6 +45,11 @@ internal sealed class BindingContext : IDisposable
         _diagnostics?.AddRange(diagnostics);
     }
 
+    public ImmutableArray<Diagnostic> CollectDiagnostics()
+    {
+        return _diagnostics?.ToImmutable() ?? [];
+    }
+
     public void Dispose()
     {
         _pool?.Return(this);
@@ -60,7 +65,8 @@ internal sealed class BindingContext : IDisposable
 
         public bool Return(BindingContext obj)
         {
-            throw new NotImplementedException();
+            obj._diagnostics?.Clear();
+            return true;
         }
     }
 

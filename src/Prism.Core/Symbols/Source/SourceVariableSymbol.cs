@@ -1,8 +1,8 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using JetBrains.Annotations;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
-using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols.Error;
@@ -19,6 +19,7 @@ internal abstract class SourceVariableSymbol : VariableSymbol
 
     private ConstantValue? _constantValue;
     private bool _constantValueComputed;
+    private TypeSymbol? _type;
 
     protected SourceVariableSymbol(
         string name,
@@ -53,20 +54,33 @@ internal abstract class SourceVariableSymbol : VariableSymbol
     {
         get
         {
-            if (field is not null)
-                return field;
+            if (_type is not null)
+                return _type;
 
-            using var context = BindingContext.Create();
-            if (Interlocked.CompareExchange(ref field, ComputeType(context), null) is not null)
-                return field;
+            using var context = CreateBindingContext();
+            if (Interlocked.CompareExchange(ref _type, ComputeType(context), null) is not null)
+                return _type;
 
             AddDeclarationDiagnostics(context);
             _completionState.MarkPartComplete(CompletionPart.Type);
-            return field;
+            return _type;
         }
     }
 
+    [MustDisposeResource]
+    protected abstract BindingContext CreateBindingContext();
+
     protected abstract TypeSymbol ComputeType(BindingContext context);
+
+    internal void ForceSetType(TypeSymbol type)
+    {
+        Debug.Assert(IsLocal);
+
+        if (Interlocked.CompareExchange(ref _type, type, null) is not null)
+            return;
+
+        _completionState.MarkPartComplete(CompletionPart.Type);
+    }
 
     public sealed override bool IsMutable { get; }
 
@@ -188,6 +202,11 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
 
     public override bool IsGlobal => false;
 
+    protected override BindingContext CreateBindingContext()
+    {
+        return BindingContext.Discarded;
+    }
+
     protected override TypeSymbol ComputeType(BindingContext context)
     {
         if (Syntax.Type is not null)
@@ -216,16 +235,9 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
 
     private BoundExpression GetInitializer(BindingContext context)
     {
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        var semanticModel = compilation.GetSemanticModel(Syntax.SyntaxTree);
         Debug.Assert(_initializerBinder is not null);
-        var initializer = semanticModel.GetBoundVariableInitializer(
-            Syntax,
-            _initializerBinder,
-            context
-        );
-        return initializer;
+        Debug.Assert(Syntax.Initializer is not null);
+        return _initializerBinder.BindExpression(Syntax.Initializer.Value, context);
     }
 }
 
@@ -244,6 +256,11 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
     }
 
     public override bool IsGlobal => true;
+
+    protected override BindingContext CreateBindingContext()
+    {
+        return BindingContext.Create();
+    }
 
     protected override TypeSymbol ComputeType(BindingContext context)
     {
@@ -267,8 +284,7 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
 
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
-        var semanticModel = compilation.GetSemanticModel(Syntax.SyntaxTree);
-        var initializer = semanticModel.GetBoundVariableInitializer(Syntax, context);
-        return initializer.ConstantValue;
+        var initializer = compilation.GetBoundInitializer(this);
+        return initializer?.ConstantValue;
     }
 }

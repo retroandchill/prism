@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Core.Binding;
+using Prism.Core.BoundTree;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Error;
@@ -33,6 +34,15 @@ internal sealed class CompilationCache(Compilation compilation)
     private readonly ConcurrentDictionary<SymbolLookupKey, NamedTypeSymbol> _errorTypes = new();
     private readonly ConcurrentDictionary<SymbolLookupKey, NamespaceSymbol> _errorNamespaces =
         new();
+
+    private readonly ConcurrentDictionary<
+        VariableSymbol,
+        BoundResult<BoundExpression>
+    > _variableInitializers = new(ReferenceEqualityComparer.Instance);
+    private readonly ConcurrentDictionary<
+        FunctionSymbol,
+        BoundResult<BoundStatement>
+    > _functionBodies = new(ReferenceEqualityComparer.Instance);
 
     private ImmutableArray<VariableSymbol> _topLevelVariables;
     private ImmutableArray<FunctionSymbol> _topLevelFunctions;
@@ -112,6 +122,24 @@ internal sealed class CompilationCache(Compilation compilation)
         return _binderFactories.GetOrAdd(
             syntaxTree,
             static (t, c) => new BinderFactory(c, t),
+            compilation
+        );
+    }
+
+    public BoundResult<BoundExpression> GetBoundInitializer(VariableSymbol variable)
+    {
+        return _variableInitializers.GetOrAdd(
+            variable,
+            static (v, c) => CompilerDriver.BindVariableInitializer(c, v),
+            compilation
+        );
+    }
+
+    public BoundResult<BoundStatement> GetBoundFunctionBody(FunctionSymbol function)
+    {
+        return _functionBodies.GetOrAdd(
+            function,
+            static (f, c) => CompilerDriver.BindFunctionBody(c, f),
             compilation
         );
     }

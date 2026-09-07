@@ -217,36 +217,12 @@ public class Compilation
 
     internal BoundExpression? GetBoundInitializer(VariableSymbol variable)
     {
-        using var context = BindingContext.Create();
-        foreach (var reference in variable.DeclaringSyntaxReferences)
-        {
-            var semanticModel = GetSemanticModel(reference.SyntaxTree);
-            if (reference.Syntax is not VariableDeclarationSyntax declaration)
-                continue;
-
-            var initializer = semanticModel.GetBoundVariableInitializer(declaration, context);
-            DeclarationDiagnostics.AddRange(context.AccumulatedDiagnostics);
-            return initializer;
-        }
-
-        return null;
+        return Cache.GetBoundInitializer(variable).Bound;
     }
 
     internal BoundStatement? GetBoundBody(FunctionSymbol function)
     {
-        using var context = BindingContext.Create();
-        foreach (var reference in function.DeclaringSyntaxReferences)
-        {
-            var semanticModel = GetSemanticModel(reference.SyntaxTree);
-            if (reference.Syntax is not FunctionDeclarationSyntax declaration)
-                continue;
-
-            var body = semanticModel.GetBoundFunctionBody(declaration, context);
-            DeclarationDiagnostics.AddRange(context.AccumulatedDiagnostics);
-            return body;
-        }
-
-        return null;
+        return Cache.GetBoundFunctionBody(function).Bound;
     }
 
     private EntryPoint GetEntryPointAndDiagnostics()

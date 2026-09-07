@@ -11,7 +11,6 @@ namespace Prism.Core.Symbols.Source;
 
 internal sealed class SourceFunctionSymbol : FunctionSymbol
 {
-    private readonly FunctionDeclarationSyntax _syntax;
     private SymbolCompletionState _completionState;
     private readonly Lock _functionChecksLock = new();
 
@@ -22,12 +21,14 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
     )
         : base(name, containingSymbol)
     {
-        _syntax = syntax;
+        Syntax = syntax;
 
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
-        compilation.CacheSymbol(_syntax, this);
+        compilation.CacheSymbol(Syntax, this);
     }
+
+    public FunctionDeclarationSyntax Syntax { get; }
 
     public override ImmutableArray<Location> Locations
     {
@@ -38,7 +39,7 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
 
             ImmutableInterlocked.InterlockedCompareExchange(
                 ref field,
-                [_syntax.Identifier.Location],
+                [Syntax.Identifier.Location],
                 default
             );
             return field;
@@ -54,7 +55,7 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
 
             ImmutableInterlocked.InterlockedCompareExchange(
                 ref field,
-                [new SyntaxReference(_syntax)],
+                [new SyntaxReference(Syntax)],
                 default
             );
             return field;
@@ -85,15 +86,15 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
 
-        if (_syntax.ReturnType is null)
+        if (Syntax.ReturnType is null)
         {
             // Omitting the return type just results in void
             return compilation.GetSpecialType(SpecialType.Void);
         }
 
-        var semanticModel = compilation.GetSemanticModel(_syntax.SyntaxTree);
-        var binder = semanticModel.GetBinder(_syntax);
-        return binder.ResolveType(_syntax.ReturnType.Type, context);
+        var semanticModel = compilation.GetSemanticModel(Syntax.SyntaxTree);
+        var binder = semanticModel.GetBinder(Syntax);
+        return binder.ResolveType(Syntax.ReturnType.Type, context);
     }
 
     public override ImmutableArray<ParameterSymbol> Parameters
@@ -114,7 +115,7 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
 
     private ImmutableArray<ParameterSymbol> ComputeParameters()
     {
-        var source = _syntax.Parameters.Parameters;
+        var source = Syntax.Parameters.Parameters;
         if (source.Count == 0)
             return [];
 

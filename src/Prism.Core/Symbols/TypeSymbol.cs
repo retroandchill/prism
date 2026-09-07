@@ -4,8 +4,6 @@ namespace Prism.Core.Symbols;
 
 public abstract class TypeSymbol : MemberContainerSymbol
 {
-    private Lazy<ConstantValue?>? _constantInitialValue;
-
     private protected TypeSymbol(
         string name,
         Symbol? containingSymbol = null,
@@ -17,6 +15,8 @@ public abstract class TypeSymbol : MemberContainerSymbol
     }
 
     public SpecialType SpecialType { get; }
+
+    public bool IsErrorType { get; private protected init; }
 
     public bool IsVoid => SpecialType == SpecialType.Void;
 
