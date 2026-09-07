@@ -32,7 +32,7 @@ internal abstract record BoundNode
                 return true;
             }
 
-            return this is BoundExpression { Type: { IsErrorType: true } };
+            return this is BoundExpression { Type.IsErrorType: true };
         }
     }
 

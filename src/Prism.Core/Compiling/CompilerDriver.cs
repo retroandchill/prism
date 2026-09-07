@@ -33,6 +33,10 @@ internal static class CompilerDriver
 
         using var context = BindingContext.Create();
         var initializer = binder.BindInitializer(variable, syntax.Initializer, context);
+        if (context.HasErrors)
+        {
+            initializer = initializer with { HasErrors = true };
+        }
         return new BoundResult<BoundExpression>(initializer, context.CollectDiagnostics());
     }
 
@@ -61,6 +65,11 @@ internal static class CompilerDriver
         else
         {
             body = null;
+        }
+
+        if (context.HasErrors && body is not null)
+        {
+            body = body with { HasErrors = true };
         }
 
         return new BoundResult<BoundStatement>(body, context.CollectDiagnostics());

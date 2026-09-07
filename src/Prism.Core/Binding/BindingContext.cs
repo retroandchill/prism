@@ -30,6 +30,8 @@ internal sealed class BindingContext : IDisposable
     public IEnumerable<Diagnostic> AccumulatedDiagnostics =>
         (IEnumerable<Diagnostic>?)_diagnostics ?? [];
 
+    public bool HasErrors => _diagnostics?.HasErrors ?? false;
+
     public void ReportDiagnostic(Diagnostic diagnostic)
     {
         _diagnostics?.Add(diagnostic);
