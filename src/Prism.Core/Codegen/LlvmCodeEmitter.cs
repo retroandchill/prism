@@ -165,7 +165,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
             return;
 
         var initializer = _compilation.GetBoundInitializer(symbol);
-        if (initializer is null)
+        if (!initializer.HasInitializer)
             return;
 
         if (initializer.ConstantValue is { } constant)
@@ -186,7 +186,7 @@ internal sealed class LlvmCodeEmitter : IDisposable
             _builder.PositionAtEnd(block);
         }
 
-        var initializedValue = EmitExpression(initializer, assemblyInitializerContext);
+        var initializedValue = EmitExpression(initializer.Initializer, assemblyInitializerContext);
         _builder.BuildStore(initializedValue, variable);
     }
 

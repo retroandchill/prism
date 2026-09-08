@@ -37,7 +37,7 @@ internal sealed class CompilationCache(Compilation compilation)
 
     private readonly ConcurrentDictionary<
         VariableSymbol,
-        BoundResult<BoundExpression>
+        BoundVariableInitializer
     > _variableInitializers = new(ReferenceEqualityComparer.Instance);
     private readonly ConcurrentDictionary<FunctionSymbol, BoundFunctionBody> _functionBodies = new(
         ReferenceEqualityComparer.Instance
@@ -125,7 +125,7 @@ internal sealed class CompilationCache(Compilation compilation)
         );
     }
 
-    public BoundResult<BoundExpression> GetBoundInitializer(VariableSymbol variable)
+    public BoundVariableInitializer GetBoundInitializer(VariableSymbol variable)
     {
         return _variableInitializers.GetOrAdd(
             variable,

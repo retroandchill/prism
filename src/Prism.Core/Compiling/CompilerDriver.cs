@@ -21,13 +21,13 @@ internal readonly record struct BoundResult<TBound>(
 
 internal static class CompilerDriver
 {
-    public static BoundResult<BoundExpression> BindVariableInitializer(
+    public static BoundVariableInitializer BindVariableInitializer(
         Compilation compilation,
         VariableSymbol variable
     )
     {
         if (variable is not SourceGlobalVariableSymbol { Syntax: { Initializer: not null } syntax })
-            return new BoundResult<BoundExpression>(null, []);
+            return new BoundVariableInitializer(variable, []);
 
         var binderFactory = compilation.GetBinderFactory(syntax.SyntaxTree);
         var binder = binderFactory.GetBinder(syntax);
@@ -38,7 +38,7 @@ internal static class CompilerDriver
         {
             initializer = initializer with { HasErrors = true };
         }
-        return new BoundResult<BoundExpression>(initializer, context.CollectDiagnostics());
+        return new BoundVariableInitializer(variable, initializer, context.CollectDiagnostics());
     }
 
     public static BoundFunctionBody BindFunctionBody(

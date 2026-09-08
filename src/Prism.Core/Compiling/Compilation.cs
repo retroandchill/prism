@@ -215,9 +215,9 @@ public class Compilation
         return Cache.GetGlobalFunctions();
     }
 
-    internal BoundExpression? GetBoundInitializer(VariableSymbol variable)
+    internal BoundVariableInitializer GetBoundInitializer(VariableSymbol variable)
     {
-        return Cache.GetBoundInitializer(variable).Bound;
+        return Cache.GetBoundInitializer(variable);
     }
 
     internal BoundFunctionBody GetBoundBody(FunctionSymbol function)
@@ -516,8 +516,8 @@ public class Compilation
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var (_, diagnostics) = Cache.GetBoundInitializer(variable);
-        context.ReportDiagnostics(diagnostics);
+        var initializer = Cache.GetBoundInitializer(variable);
+        context.ReportDiagnostics(initializer.Diagnostics);
     }
 
     private void GatherCompiledDiagnostics(
