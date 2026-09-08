@@ -3,21 +3,13 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Collections.Immutable;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
-using Prism.Core.Diagnostics;
 using Prism.Core.FlowAnalysis;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Source;
 
 namespace Prism.Core.Compiling;
-
-internal readonly record struct BoundResult<TBound>(
-    TBound? Bound,
-    ImmutableArray<Diagnostic> Diagnostics
-)
-    where TBound : BoundNode;
 
 internal static class CompilerDriver
 {
