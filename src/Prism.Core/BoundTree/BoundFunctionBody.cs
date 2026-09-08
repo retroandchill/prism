@@ -1,0 +1,44 @@
+﻿using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using Prism.Core.Diagnostics;
+using Prism.Core.FlowAnalysis;
+using Prism.Core.Symbols;
+
+namespace Prism.Core.BoundTree;
+
+internal sealed class BoundFunctionBody
+{
+    public FunctionSymbol Function { get; }
+
+    [MemberNotNullWhen(true, nameof(Body), nameof(Analysis))]
+    public bool HasBody { get; }
+
+    public BoundStatement? Body { get; }
+
+    public FunctionBodyAnalysis? Analysis { get; }
+
+    public ImmutableArray<Diagnostic> Diagnostics { get; }
+
+    public BoundFunctionBody(
+        FunctionSymbol function,
+        BoundStatement body,
+        FunctionBodyAnalysis analysis,
+        ImmutableArray<Diagnostic> diagnostics
+    )
+    {
+        Function = function;
+        Body = body;
+        Analysis = analysis;
+        HasBody = true;
+        Diagnostics = diagnostics;
+    }
+
+    public BoundFunctionBody(FunctionSymbol function, ImmutableArray<Diagnostic> diagnostics)
+    {
+        Function = function;
+        Body = null;
+        Analysis = null;
+        HasBody = false;
+        Diagnostics = diagnostics;
+    }
+}

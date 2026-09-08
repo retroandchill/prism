@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Diagnostics;
+using Prism.Core.FlowAnalysis;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Source;
 
@@ -40,13 +41,13 @@ internal static class CompilerDriver
         return new BoundResult<BoundExpression>(initializer, context.CollectDiagnostics());
     }
 
-    public static BoundResult<BoundStatement> BindFunctionBody(
+    public static BoundFunctionBody BindFunctionBody(
         Compilation compilation,
         FunctionSymbol function
     )
     {
         if (function is not SourceFunctionSymbol { Syntax: var syntax })
-            return new BoundResult<BoundStatement>(null, []);
+            return new BoundFunctionBody(function, []);
 
         var binderFactory = compilation.GetBinderFactory(syntax.SyntaxTree);
 
@@ -72,6 +73,10 @@ internal static class CompilerDriver
             body = body with { HasErrors = true };
         }
 
-        return new BoundResult<BoundStatement>(body, context.CollectDiagnostics());
+        if (body is null)
+            return new BoundFunctionBody(function, context.CollectDiagnostics());
+
+        var analysis = FunctionBodyAnalysis.Create(body);
+        return new BoundFunctionBody(function, body, analysis, context.CollectDiagnostics());
     }
 }

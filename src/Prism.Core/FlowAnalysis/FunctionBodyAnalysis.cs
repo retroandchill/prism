@@ -11,35 +11,21 @@ namespace Prism.Core.FlowAnalysis;
 
 internal sealed class FunctionBodyAnalysis
 {
-    private readonly BoundStatement _body;
+    private readonly ControlFlowGraph _cfg;
 
-    private FunctionBodyAnalysis(BoundStatement body)
+    private FunctionBodyAnalysis(ControlFlowGraph cfg)
     {
-        _body = body;
+        _cfg = cfg;
     }
 
-    public static FunctionBodyAnalysis Create(Compilation compilation, FunctionSymbol function)
+    public static FunctionBodyAnalysis Create(BoundStatement body)
     {
-        var body = compilation.GetBoundBody(function);
-        return body is not null
-            ? new FunctionBodyAnalysis(body)
-            : throw new ArgumentException("Function does not have a body", nameof(function));
-    }
-
-    private ControlFlowGraph ControlFlowGraph
-    {
-        get
-        {
-            if (field is not null)
-                return field;
-
-            Interlocked.CompareExchange(ref field, ControlFlowGraphBuilder.Build(_body), null);
-            return field;
-        }
+        var cfg = ControlFlowGraphBuilder.Build(body);
+        return new FunctionBodyAnalysis(cfg);
     }
 
     public bool IsAddressTaken(Symbol symbol)
     {
-        return ControlFlowGraph.IsAddressTaken(symbol);
+        return _cfg.IsAddressTaken(symbol);
     }
 }

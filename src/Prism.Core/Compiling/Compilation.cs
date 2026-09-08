@@ -220,9 +220,9 @@ public class Compilation
         return Cache.GetBoundInitializer(variable).Bound;
     }
 
-    internal BoundStatement? GetBoundBody(FunctionSymbol function)
+    internal BoundFunctionBody GetBoundBody(FunctionSymbol function)
     {
-        return Cache.GetBoundFunctionBody(function).Bound;
+        return Cache.GetBoundFunctionBody(function);
     }
 
     private EntryPoint GetEntryPointAndDiagnostics()
@@ -527,8 +527,8 @@ public class Compilation
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var (_, diagnostics) = Cache.GetBoundFunctionBody(function);
-        context.ReportDiagnostics(diagnostics);
+        var boundBody = Cache.GetBoundFunctionBody(function);
+        context.ReportDiagnostics(boundBody.Diagnostics);
     }
 
     internal DiagnosticBag DeclarationDiagnostics { get; } = [];
