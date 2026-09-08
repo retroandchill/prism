@@ -5,6 +5,7 @@ using Prism.Core.Binding;
 using Prism.Core.Compiling;
 using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
+using Prism.Core.Symbols.Synthesized;
 using Prism.Core.Syntax;
 using Prism.Core.Text;
 using Prism.Core.Utils;
@@ -210,7 +211,7 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
                 .SelectMany(x => GetSyntaxMembers(x).AsValueEnumerable())
         )
         {
-            var symbol = syntax switch
+            Symbol? symbol = syntax switch
             {
                 NamespaceDeclarationSyntax => null,
                 VariableDeclarationSyntax variable => BuildSymbol(variable),
@@ -222,6 +223,8 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
 
             result.GetOrAdd(symbol.Name, ImmutableArray.CreateBuilder<Symbol>).Add(symbol);
         }
+
+        AddSynthesizedMembers(result);
 
         return result.ToImmutableDictionary(x => x.Key, x => x.Value.DrainToImmutable());
 
@@ -249,7 +252,7 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
         };
     }
 
-    private Symbol BuildSymbol(VariableDeclarationSyntax variableDeclaration)
+    private SourceGlobalVariableSymbol BuildSymbol(VariableDeclarationSyntax variableDeclaration)
     {
         return new SourceGlobalVariableSymbol(
             variableDeclaration.Identifier.IdentifierName,
@@ -258,13 +261,28 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
         );
     }
 
-    private Symbol BuildSymbol(FunctionDeclarationSyntax functionDeclaration)
+    private SourceFunctionSymbol BuildSymbol(FunctionDeclarationSyntax functionDeclaration)
     {
         return new SourceFunctionSymbol(
             functionDeclaration.Identifier.IdentifierName,
             this,
             functionDeclaration
         );
+    }
+
+    private void AddSynthesizedMembers(
+        Dictionary<string, ImmutableArray<Symbol>.Builder> nameToMembersMap
+    )
+    {
+        if (!IsGlobal)
+            return;
+
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        var globalCtor = new SynthesizedGlobalConstructor(this);
+        nameToMembersMap
+            .GetOrAdd(globalCtor.Name, ImmutableArray.CreateBuilder<Symbol>)
+            .Add(globalCtor);
     }
 
     public override NamespaceKind NamespaceKind => NamespaceKind.Assembly;

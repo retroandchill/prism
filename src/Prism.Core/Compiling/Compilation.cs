@@ -220,6 +220,13 @@ public class Compilation
         return Cache.GetBoundInitializer(variable).Bound;
     }
 
+    internal BoundResult<BoundExpression> GetBoundInitializerWithDiagnostics(
+        VariableSymbol variable
+    )
+    {
+        return Cache.GetBoundInitializer(variable);
+    }
+
     internal BoundStatement? GetBoundBody(FunctionSymbol function)
     {
         return Cache.GetBoundFunctionBody(function).Bound;
