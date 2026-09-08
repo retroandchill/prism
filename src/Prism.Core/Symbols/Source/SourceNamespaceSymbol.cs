@@ -224,8 +224,6 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
             result.GetOrAdd(symbol.Name, ImmutableArray.CreateBuilder<Symbol>).Add(symbol);
         }
 
-        AddSynthesizedMembers(result);
-
         return result.ToImmutableDictionary(x => x.Key, x => x.Value.DrainToImmutable());
 
         SyntaxList<DeclarationSyntax> GetSyntaxMembers(SingleNamespaceDeclaration x)
@@ -268,21 +266,6 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
             this,
             functionDeclaration
         );
-    }
-
-    private void AddSynthesizedMembers(
-        Dictionary<string, ImmutableArray<Symbol>.Builder> nameToMembersMap
-    )
-    {
-        if (!IsGlobal)
-            return;
-
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        var globalCtor = new SynthesizedGlobalConstructor(this);
-        nameToMembersMap
-            .GetOrAdd(globalCtor.Name, ImmutableArray.CreateBuilder<Symbol>)
-            .Add(globalCtor);
     }
 
     public override NamespaceKind NamespaceKind => NamespaceKind.Assembly;

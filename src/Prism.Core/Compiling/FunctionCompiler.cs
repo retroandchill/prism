@@ -4,12 +4,16 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Codegen;
 using Prism.Core.Diagnostics;
+using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Source;
+using Prism.Core.Symbols.Synthesized;
+using Prism.Core.Syntax;
 
 namespace Prism.Core.Compiling;
 
