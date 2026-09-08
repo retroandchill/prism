@@ -130,7 +130,7 @@ internal sealed class CompilationCache(Compilation compilation)
     {
         return _variableInitializers.GetOrAdd(
             variable,
-            static (v, c) => FunctionCompiler.BindVariableInitializer(c, v),
+            static (v, c) => CompilerDriver.BindVariableInitializer(c, v),
             compilation
         );
     }
@@ -139,7 +139,7 @@ internal sealed class CompilationCache(Compilation compilation)
     {
         return _functionBodies.GetOrAdd(
             function,
-            static (f, c) => FunctionCompiler.BindFunctionBody(c, f),
+            static (f, c) => CompilerDriver.BindFunctionBody(c, f),
             compilation
         );
     }
