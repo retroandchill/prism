@@ -150,9 +150,7 @@ internal sealed class CompilationCache(Compilation compilation)
 
         var variables = ImmutableArray.CreateBuilder<VariableSymbol>();
         CollectGlobalVariables(compilation.Assembly.GlobalNamespace, variables);
-        variables.Sort(
-            (a, b) => compilation.CompareSourceLocations(a.FirstLocation(), b.FirstLocation())
-        );
+        variables.Sort((a, b) => a.GetLexicalSortKey().CompareTo(b.GetLexicalSortKey()));
         ImmutableInterlocked.InterlockedCompareExchange(
             ref _topLevelVariables,
             variables.DrainToImmutable(),

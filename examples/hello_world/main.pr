@@ -83,7 +83,7 @@ func print(msg: str&) {
     // TODO: Implement me
 }
 
-func add_by_reference(a: i32&, b: i32) {
+func add_by_reference(a: i32 mutable&, b: i32) {
     *a += b;
 }
 

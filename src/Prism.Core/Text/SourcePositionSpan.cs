@@ -16,6 +16,9 @@ public readonly record struct SourcePositionSpan
                 "End position must be greater than or equal to start position."
             );
         }
+
+        Start = start;
+        End = end;
     }
 
     public override string ToString()

@@ -14,9 +14,11 @@ using (var stream = File.OpenRead(programPath))
 var syntaxTree = SyntaxTree.Parse(program);
 var compilation = Compilation.Create("test", [syntaxTree]);
 
-if (compilation.Emit(Directory.GetParent(programPath)!.FullName) is (false, _))
+if (compilation.Emit(Directory.GetParent(programPath)!.FullName) is (false, var diagnostics))
 {
     Console.WriteLine("Compilation Failed");
+    foreach (var diagnostic in diagnostics)
+        Console.WriteLine(diagnostic);
     return 1;
 }
 

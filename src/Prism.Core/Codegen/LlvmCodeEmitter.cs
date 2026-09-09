@@ -4,7 +4,9 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
+using Cysharp.Text;
 using LLVMSharp.Interop;
+using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Compiling;
 using Prism.Core.Configuration;
@@ -15,7 +17,7 @@ using ZLinq;
 
 namespace Prism.Core.Codegen;
 
-internal sealed class LlvmCodeEmitter : IDisposable
+internal sealed class LlvmCodeEmitter : ICodeEmitter
 {
     private enum UnaryReturnType : byte
     {
@@ -50,6 +52,9 @@ internal sealed class LlvmCodeEmitter : IDisposable
         ReferenceEqualityComparer.Instance
     );
 
+    private LLVMValueRef? _lifetimeStartFunction;
+    private LLVMValueRef? _lifetimeEndFunction;
+
     public LlvmCodeEmitter(Compilation compilation, CodeGenOptions options)
     {
         _compilation = compilation;
@@ -59,51 +64,75 @@ internal sealed class LlvmCodeEmitter : IDisposable
         _builder = _context.CreateBuilder();
     }
 
-    public EmitResult Emit()
+    public EmitResult Emit(BindingContext context)
     {
-        foreach (var global in _compilation.GetGlobalVariables())
-        {
-            GetOrCreateGlobal(global);
-        }
-
-        foreach (var function in _compilation.GetGlobalFunctions())
-        {
-            GetOrCreateFunction(function);
-        }
-
-        FunctionEmissionContext? assemblyInitializerContext = null;
-        foreach (var global in _compilation.GetGlobalVariables())
-        {
-            EmitGlobalInitializer(global, ref assemblyInitializerContext);
-        }
-
-        if (assemblyInitializerContext is not null)
-        {
-            _builder.BuildRetVoid();
-            _module.AppendToGlobalCtors(assemblyInitializerContext.Function, 65535);
-        }
-
-        foreach (var function in _compilation.GetGlobalFunctions())
-        {
-            EmitFunctionBody(function);
-        }
-
-        if (_compilation.Settings.IsApplication && !EmitEntryPoint())
-        {
-            return new EmitResult(false, []);
-        }
-
-        WriteIR();
-        return OutputBinary();
+        WriteIR(context);
+        return !context.HasErrors
+            ? OutputBinary(context)
+            : new EmitResult(false, context.CollectDiagnostics());
     }
 
-    private bool EmitEntryPoint()
+    public void AddGlobalVariable(BoundVariableInitializer variable, BindingContext bindingContext)
     {
-        Debug.Assert(_compilation.Settings.IsApplication);
-        var entryPoint = _compilation.GetEntryPoint();
-        if (entryPoint is null)
-            return false;
+        var llvmVariable = GetOrCreateGlobal(variable.Variable);
+        if (!variable.Variable.HasInitializer)
+            return;
 
+        if (!variable.HasInitializer)
+            return;
+
+        if (variable.ConstantValue is not { } constant)
+            return;
+
+        llvmVariable.Initializer = MakeConstant(constant);
+    }
+
+    public void AddFunction(BoundFunctionBody function, BindingContext bindingContext)
+    {
+        var llvmFunction = GetOrCreateFunction(function.Function);
+        if (!function.HasBody)
+        {
+            llvmFunction.Linkage = LLVMLinkage.LLVMAvailableExternallyLinkage;
+            return;
+        }
+
+        var entry = llvmFunction.AppendBasicBlock("entry");
+        _builder.PositionAtEnd(entry);
+        var context = new FunctionEmissionContext(llvmFunction, function.Analysis);
+
+        foreach (
+            var (symbolParam, llvmParam) in function
+                .Function.Parameters.AsValueEnumerable()
+                .Zip(llvmFunction.GetParams())
+        )
+        {
+            if (context.RequiresStorage(symbolParam))
+            {
+                var slot = CreateEntryAlloca(llvmParam.TypeOf, symbolParam.Name, context);
+                _builder.BuildStore(llvmParam, slot);
+                context.BindStorage(symbolParam, slot);
+            }
+            else
+            {
+                context.BindStorage(symbolParam, llvmParam);
+            }
+        }
+
+        EmitStatement(function.Body, context);
+
+        if (function.Function.ReturnsVoid && !CurrentBlockHasTerminator())
+        {
+            _builder.BuildRetVoid();
+        }
+    }
+
+    public void RegisterGlobalConstructor(FunctionSymbol function)
+    {
+        _module.AppendToGlobalCtors(GetOrCreateFunction(function), 65535);
+    }
+
+    public void RegisterEntryPoint(FunctionSymbol entryPoint)
+    {
         var functionType = LLVMTypeRef.CreateFunction(_context.Int32Type, []);
         var mainFunc = _module.AddFunction("main", functionType);
         var entry = mainFunc.AppendBasicBlock("entry");
@@ -116,8 +145,6 @@ internal sealed class LlvmCodeEmitter : IDisposable
                 ? LLVMValueRef.CreateConstInt(_context.Int32Type, 0)
                 : callEntryPoint
         );
-
-        return true;
     }
 
     private LLVMValueRef GetOrCreateFunction(FunctionSymbol functionSymbol)
@@ -140,6 +167,42 @@ internal sealed class LlvmCodeEmitter : IDisposable
         return func;
     }
 
+    public LLVMValueRef GetLifetimeStartFunction()
+    {
+        if (_lifetimeStartFunction is not null)
+            return _lifetimeStartFunction.Value;
+
+        var id = LookupIntrinsicId("llvm.lifetime.start.p0");
+        _lifetimeStartFunction = _module.GetIntrinsicDeclaration(
+            id,
+            [_context.CreatePointerType(0)]
+        );
+        return _lifetimeStartFunction.Value;
+    }
+
+    public LLVMValueRef GetLifetimeEndFunction()
+    {
+        if (_lifetimeEndFunction is not null)
+            return _lifetimeEndFunction.Value;
+
+        var id = LookupIntrinsicId("llvm.lifetime.end.p0");
+        _lifetimeEndFunction = _module.GetIntrinsicDeclaration(id, [_context.CreatePointerType(0)]);
+        return _lifetimeEndFunction.Value;
+    }
+
+    private uint LookupIntrinsicId(ReadOnlySpan<char> name)
+    {
+        using var builder = ZString.CreateUtf8StringBuilder();
+        builder.Append(name);
+        unsafe
+        {
+            fixed (byte* p = builder.AsSpan())
+            {
+                return LLVM.LookupIntrinsicID((sbyte*)p, (nuint)builder.Length);
+            }
+        }
+    }
+
     private LLVMValueRef GetOrCreateGlobal(VariableSymbol symbol)
     {
         if (_symbolToValue.TryGetValue(symbol, out var global))
@@ -153,81 +216,6 @@ internal sealed class LlvmCodeEmitter : IDisposable
         var variable = _module.AddGlobal(type, name);
         _symbolToValue[symbol] = variable;
         return variable;
-    }
-
-    private void EmitGlobalInitializer(
-        VariableSymbol symbol,
-        ref FunctionEmissionContext? assemblyInitializerContext
-    )
-    {
-        var variable = GetOrCreateGlobal(symbol);
-        if (!symbol.HasInitializer)
-            return;
-
-        var initializer = _compilation.GetBoundInitializer(symbol);
-        if (!initializer.HasInitializer)
-            return;
-
-        if (initializer.ConstantValue is { } constant)
-        {
-            variable.Initializer = MakeConstant(constant);
-            return;
-        }
-
-        if (assemblyInitializerContext is null)
-        {
-            var functionType = LLVMTypeRef.CreateFunction(_context.VoidType, [], false);
-            var initializerName = $"{_compilation.AssemblyName}_<GlobalInitializer>";
-            var assemblyInitializer = _module.AddFunction(initializerName, functionType);
-            assemblyInitializer.Linkage = LLVMLinkage.LLVMInternalLinkage;
-            var block = assemblyInitializer.AppendBasicBlock("entry");
-
-            assemblyInitializerContext = new FunctionEmissionContext(assemblyInitializer);
-            _builder.PositionAtEnd(block);
-        }
-
-        var initializedValue = EmitExpression(initializer.Initializer, assemblyInitializerContext);
-        _builder.BuildStore(initializedValue, variable);
-    }
-
-    private void EmitFunctionBody(FunctionSymbol symbol)
-    {
-        var function = GetOrCreateFunction(symbol);
-        var body = _compilation.GetBoundBody(symbol);
-        if (!body.HasBody)
-        {
-            function.Linkage = LLVMLinkage.LLVMAvailableExternallyLinkage;
-            return;
-        }
-
-        var entry = function.AppendBasicBlock("entry");
-        _builder.PositionAtEnd(entry);
-        var context = new FunctionEmissionContext(function, body.Analysis);
-
-        foreach (
-            var (symbolParam, llvmParam) in symbol
-                .Parameters.AsValueEnumerable()
-                .Zip(function.GetParams())
-        )
-        {
-            if (context.RequiresStorage(symbolParam))
-            {
-                var slot = CreateEntryAlloca(llvmParam.TypeOf, symbolParam.Name, context);
-                _builder.BuildStore(llvmParam, slot);
-                context.BindStorage(symbolParam, slot);
-            }
-            else
-            {
-                context.BindStorage(symbolParam, llvmParam);
-            }
-        }
-
-        EmitStatement(body.Body, context);
-
-        if (symbol.ReturnsVoid)
-        {
-            _builder.BuildRetVoid();
-        }
     }
 
     private LLVMTypeRef GetOrCreateType(TypeSymbol symbol)
@@ -444,6 +432,11 @@ internal sealed class LlvmCodeEmitter : IDisposable
         var slot = CreateEntryAlloca(type, symbol.Name, context);
 
         context.BindStorage(symbol, slot);
+        // TODO: We want to figure out how exactly lifetime management works, it may be more clear when we have destructors
+        /*
+        var lifetimeStartFunction = GetLifetimeStartFunction();
+        _builder.BuildCall2(lifetimeStartFunction.FunctionType, lifetimeStartFunction, [slot], ReadOnlySpan<char>.Empty);
+        */
 
         if (declaration.Initializer is null)
             return;
@@ -1222,13 +1215,13 @@ internal sealed class LlvmCodeEmitter : IDisposable
             ?? throw new ArgumentException("Invalid parameter access");
     }
 
-    private void WriteIR()
+    private void WriteIR(BindingContext context)
     {
         var targetPath = Path.Combine(_options.OutputDirectory, $"{_compilation.AssemblyName}.ll");
         _module.PrintToFile(targetPath);
     }
 
-    private EmitResult OutputBinary()
+    private EmitResult OutputBinary(BindingContext context)
     {
         LLVM.InitializeNativeTarget();
         LLVM.InitializeNativeAsmPrinter();
@@ -1270,10 +1263,10 @@ internal sealed class LlvmCodeEmitter : IDisposable
             )
         )
         {
-            return new EmitResult(false, []);
+            return new EmitResult(false, context.CollectDiagnostics());
         }
 
-        return new EmitResult(true, []);
+        return new EmitResult(true, context.CollectDiagnostics());
     }
 
     public void Dispose()

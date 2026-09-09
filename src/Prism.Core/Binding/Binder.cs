@@ -663,8 +663,8 @@ internal abstract class Binder
         if (
             syntax.Statement
             is not WhileStatementSyntax
-                or LoopStatementSyntax
-                or ForStatementSyntax
+                and not LoopStatementSyntax
+                and not ForStatementSyntax
         )
         {
             context.ReportDiagnostic(Diagnostic.InvalidUseOfLabel(syntax.Identifier.Location));

@@ -9,14 +9,15 @@ namespace Prism.Core.Syntax;
 
 public sealed class SyntaxTree
 {
-    internal SyntaxTree(string path, SourceText text, GreenNode root)
+    private SyntaxTree(string path, SourceText text, GreenNode root)
     {
         Path = path;
         Text = text;
         Root = root.CreateRed();
+        Root.SyntaxTree = this;
     }
 
-    internal SyntaxTree(SourceText text, GreenNode node)
+    private SyntaxTree(SourceText text, GreenNode node)
         : this("", text, node) { }
 
     internal SyntaxTree(SyntaxNode root)

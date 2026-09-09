@@ -115,4 +115,11 @@ public enum DiagnosticCode : uint
 
     [EnumMember(Value = "E2028")]
     CannotDereferenceVariableLength = 2028,
+
+    [EnumMember(Value = "E2029")]
+    NoIndexOperation = 2029,
+
+    // -- Code gen (3000-3999) ---
+    [EnumMember(Value = "E3000")]
+    ExternalDiagnostic = 3000,
 }

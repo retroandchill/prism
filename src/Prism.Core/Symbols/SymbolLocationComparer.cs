@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Prism.Core.Compiling;
 
 namespace Prism.Core.Symbols;
@@ -26,9 +27,6 @@ internal sealed class SymbolLocationComparer : IComparer<Symbol>
 
         if (x is null)
             return -1;
-        if (y is null)
-            return 1;
-
-        return _compilation.CompareSourceLocations(x.FirstLocation(), y.FirstLocation());
+        return y is null ? 1 : x.GetLexicalSortKey().CompareTo(y.GetLexicalSortKey());
     }
 }

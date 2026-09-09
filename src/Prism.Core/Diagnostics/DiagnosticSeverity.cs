@@ -9,6 +9,6 @@ public enum DiagnosticSeverity
 {
     Error,
     Warning,
-    Information,
+    Info,
     Hint,
 }

@@ -464,6 +464,29 @@ public static class DiagnosticExtensions
                 type
             );
         }
+
+        internal static DiagnosticInfo NoIndexOperation(string type)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.NoIndexOperation, type);
+        }
+
+        internal static DiagnosticInfo NoIndexOperation(DiagnosticSeverity severity, string type)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.NoIndexOperation, severity, type);
+        }
+
+        internal static DiagnosticInfo ExternalDiagnostic(string message)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.ExternalDiagnostic, message);
+        }
+
+        internal static DiagnosticInfo ExternalDiagnostic(
+            DiagnosticSeverity severity,
+            string message
+        )
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.ExternalDiagnostic, severity, message);
+        }
     }
 
     extension(Diagnostic)
@@ -2099,6 +2122,99 @@ public static class DiagnosticExtensions
                 location,
                 additionalLocations,
                 type
+            );
+        }
+
+        public static Diagnostic NoIndexOperation(Location location, string type)
+        {
+            return new Diagnostic(DiagnosticDescriptors.NoIndexOperation, location, type);
+        }
+
+        public static Diagnostic NoIndexOperation(
+            DiagnosticSeverity severity,
+            Location location,
+            string type
+        )
+        {
+            return new Diagnostic(DiagnosticDescriptors.NoIndexOperation, severity, location, type);
+        }
+
+        public static Diagnostic NoIndexOperation(
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            string type
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.NoIndexOperation,
+                location,
+                additionalLocations,
+                type
+            );
+        }
+
+        public static Diagnostic NoIndexOperation(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            string type
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.NoIndexOperation,
+                severity,
+                location,
+                additionalLocations,
+                type
+            );
+        }
+
+        public static Diagnostic ExternalDiagnostic(Location location, string message)
+        {
+            return new Diagnostic(DiagnosticDescriptors.ExternalDiagnostic, location, message);
+        }
+
+        public static Diagnostic ExternalDiagnostic(
+            DiagnosticSeverity severity,
+            Location location,
+            string message
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.ExternalDiagnostic,
+                severity,
+                location,
+                message
+            );
+        }
+
+        public static Diagnostic ExternalDiagnostic(
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            string message
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.ExternalDiagnostic,
+                location,
+                additionalLocations,
+                message
+            );
+        }
+
+        public static Diagnostic ExternalDiagnostic(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            string message
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.ExternalDiagnostic,
+                severity,
+                location,
+                additionalLocations,
+                message
             );
         }
     }

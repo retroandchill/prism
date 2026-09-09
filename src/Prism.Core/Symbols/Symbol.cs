@@ -40,6 +40,17 @@ public abstract class Symbol
         return TryGetFirstLocation() ?? Location.None;
     }
 
+    internal LexicalSortKey GetLexicalSortKey()
+    {
+        var firstLocation = TryGetFirstLocation();
+        if (firstLocation is null)
+            return LexicalSortKey.NotInSource;
+
+        var declaringCompilation = DeclaringCompilation;
+        Debug.Assert(declaringCompilation is not null);
+        return new LexicalSortKey((SourceLocation)firstLocation, declaringCompilation);
+    }
+
     public virtual bool IsImplicitlyDeclared => false;
 
     public Symbol? ContainingSymbol { get; }

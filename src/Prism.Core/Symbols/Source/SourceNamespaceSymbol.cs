@@ -5,6 +5,7 @@ using Prism.Core.Binding;
 using Prism.Core.Compiling;
 using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
+using Prism.Core.Symbols.Synthesized;
 using Prism.Core.Syntax;
 using Prism.Core.Text;
 using Prism.Core.Utils;
@@ -223,6 +224,8 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
             result.GetOrAdd(symbol.Name, ImmutableArray.CreateBuilder<Symbol>).Add(symbol);
         }
 
+        AddSynthesizedMembers(result);
+
         return result.ToImmutableDictionary(x => x.Key, x => x.Value.DrainToImmutable());
 
         SyntaxList<DeclarationSyntax> GetSyntaxMembers(SingleNamespaceDeclaration x)
@@ -265,6 +268,21 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
             this,
             functionDeclaration
         );
+    }
+
+    private void AddSynthesizedMembers(
+        Dictionary<string, ImmutableArray<Symbol>.Builder> nameToMembersMap
+    )
+    {
+        if (!IsGlobal)
+            return;
+
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        var globalCtor = new SynthesizedGlobalConstructor(this);
+        nameToMembersMap
+            .GetOrAdd(globalCtor.Name, ImmutableArray.CreateBuilder<Symbol>)
+            .Add(globalCtor);
     }
 
     public override NamespaceKind NamespaceKind => NamespaceKind.Assembly;

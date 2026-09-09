@@ -319,6 +319,24 @@ public static class DiagnosticDescriptors
         DefaultSeverity = DiagnosticSeverity.Error,
     };
 
+    public static readonly DiagnosticDescriptor NoIndexOperation = new()
+    {
+        Id = DiagnosticCode.NoIndexOperation.ToStringFast(),
+        Title = "No index operation",
+        MessageFormat = "Cannot perform index operation on {Type}",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
+    public static readonly DiagnosticDescriptor ExternalDiagnostic = new()
+    {
+        Id = DiagnosticCode.ExternalDiagnostic.ToStringFast(),
+        Title = "External diagnostic",
+        MessageFormat = "An external diagnostic occurred: {Message}",
+        Category = "CodeGen",
+        DefaultSeverity = DiagnosticSeverity.Info,
+    };
+
     public static DiagnosticDescriptor? Find(DiagnosticCode code)
     {
         return code switch
@@ -359,6 +377,8 @@ public static class DiagnosticDescriptors
             DiagnosticCode.CannotTakeAddress => CannotTakeAddress,
             DiagnosticCode.CannotDereference => CannotDereference,
             DiagnosticCode.CannotDereferenceVariableLength => CannotDereferenceVariableLength,
+            DiagnosticCode.NoIndexOperation => NoIndexOperation,
+            DiagnosticCode.ExternalDiagnostic => ExternalDiagnostic,
             _ => null,
         };
     }

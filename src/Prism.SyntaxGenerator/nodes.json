@@ -2259,6 +2259,22 @@
           ]
         }
       ]
+    },
+    {
+      "name": "CodeGen",
+      "diagnostics": [
+        {
+          "name": "ExternalDiagnostic",
+          "severity": "Info",
+          "format": "An external diagnostic occurred: {Message}",
+          "args": [
+            {
+              "name": "Message",
+              "type": "String"
+            }
+          ]
+        }
+      ]
     }
   ],
   "boundNodes": [

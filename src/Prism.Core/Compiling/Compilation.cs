@@ -144,7 +144,9 @@ public class Compilation
             this,
             new CodeGenOptions { OutputDirectory = filepath }
         );
-        return emitter.Emit();
+        using var context = BindingContext.Create();
+        FunctionCompiler.CompileFunctions(this, emitter, context, CancellationToken.None);
+        return emitter.Emit(context);
     }
 
     public FunctionSymbol? GetEntryPoint()
@@ -225,7 +227,7 @@ public class Compilation
         return Cache.GetBoundFunctionBody(function);
     }
 
-    private EntryPoint GetEntryPointAndDiagnostics()
+    internal EntryPoint GetEntryPointAndDiagnostics()
     {
         if (_entryPoint is not null)
             return _entryPoint;
@@ -472,63 +474,7 @@ public class Compilation
         CancellationToken cancellationToken
     )
     {
-        GatherCompiledDiagnostics(Assembly.GlobalNamespace, context, cancellationToken);
-    }
-
-    private void GatherCompiledDiagnostics(
-        Symbol symbol,
-        BindingContext context,
-        CancellationToken cancellationToken
-    )
-    {
-        switch (symbol)
-        {
-            case MemberContainerSymbol container:
-                GatherCompiledDiagnostics(container, context, cancellationToken);
-                break;
-            case VariableSymbol variable:
-                GatherCompiledDiagnostics(variable, context, cancellationToken);
-                break;
-            case FunctionSymbol function:
-                GatherCompiledDiagnostics(function, context, cancellationToken);
-                break;
-        }
-    }
-
-    private void GatherCompiledDiagnostics(
-        MemberContainerSymbol container,
-        BindingContext context,
-        CancellationToken cancellationToken
-    )
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        foreach (var member in container.GetMembers())
-        {
-            GatherCompiledDiagnostics(member, context, cancellationToken);
-        }
-    }
-
-    private void GatherCompiledDiagnostics(
-        VariableSymbol variable,
-        BindingContext context,
-        CancellationToken cancellationToken
-    )
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var initializer = Cache.GetBoundInitializer(variable);
-        context.ReportDiagnostics(initializer.Diagnostics);
-    }
-
-    private void GatherCompiledDiagnostics(
-        FunctionSymbol function,
-        BindingContext context,
-        CancellationToken cancellationToken
-    )
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        var boundBody = Cache.GetBoundFunctionBody(function);
-        context.ReportDiagnostics(boundBody.Diagnostics);
+        FunctionCompiler.CompileFunctions(this, null, context, cancellationToken);
     }
 
     internal DiagnosticBag DeclarationDiagnostics { get; } = [];

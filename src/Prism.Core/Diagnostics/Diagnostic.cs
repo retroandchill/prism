@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using Cysharp.Text;
 
 namespace Prism.Core.Diagnostics;
 
@@ -73,4 +74,9 @@ public sealed class Diagnostic
     public DiagnosticSeverity Severity => Info.Severity;
 
     public string GetMessage() => Info.GetMessage();
+
+    public override string ToString()
+    {
+        return $"{Severity} {Location}: {GetMessage()}";
+    }
 }

@@ -58,7 +58,7 @@ public abstract class SyntaxNode
             Debug.Assert(result is not null);
             return result;
         }
-        internal init => _syntaxTree = value;
+        internal set => _syntaxTree = value;
     }
 
     private static SyntaxTree ComputeSyntaxTree(SyntaxNode node)

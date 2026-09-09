@@ -30,4 +30,9 @@ public sealed record SourceLocation(SyntaxTree SyntaxTree, TextSpan SourceSpan) 
         : this(token.SyntaxTree, token.FullSpan) { }
 
     public FileSourcePositionSpan PositionSpan => SyntaxTree.GetPositionSpan(SourceSpan);
+
+    public override string ToString()
+    {
+        return $"{PositionSpan}";
+    }
 }
