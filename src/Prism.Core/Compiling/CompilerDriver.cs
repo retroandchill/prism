@@ -137,7 +137,7 @@ internal static class CompilerDriver
         if (body is null)
             return new BoundFunctionBody(function, context.CollectDiagnostics());
 
-        var analysis = FunctionBodyAnalysis.Create(body);
+        var analysis = FunctionAnalysisBuilder.Build(body);
         return new BoundFunctionBody(function, body, analysis, context.CollectDiagnostics());
     }
 }
