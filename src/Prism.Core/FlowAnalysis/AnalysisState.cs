@@ -5,4 +5,10 @@
 
 namespace Prism.Core.FlowAnalysis;
 
-internal sealed class AnalysisState { }
+internal sealed record AnalysisState
+{
+    public AnalysisState Merge(AnalysisState other)
+    {
+        return this;
+    }
+}

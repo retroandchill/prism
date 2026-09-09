@@ -21,6 +21,15 @@ internal sealed class FunctionAnalysisBuilder
     private readonly record struct FlowState(AnalysisState State, bool IsReachable)
     {
         public FlowState AsUnreachable() => this with { IsReachable = false };
+
+        public FlowState Merge(FlowState other)
+        {
+            // If either side is reachable, then there is a path to keep going
+            return new FlowState(
+                State: State.Merge(other.State),
+                IsReachable: IsReachable || other.IsReachable
+            );
+        }
     }
 
     private FunctionAnalysisBuilder() { }
@@ -42,66 +51,64 @@ internal sealed class FunctionAnalysisBuilder
 
     private FlowState VisitStatement(BoundStatement statement, FlowState state)
     {
-        switch (statement)
+        return statement switch
         {
-            case BoundBlock block:
-                return VisitBlock(block, state);
-            case BoundVariableDeclaration declaration:
-                VisitExpression(declaration.Initializer);
-                return state;
-            case BoundExpressionStatement expressionStatement:
-                VisitExpression(expressionStatement.Expression);
-                return state;
-            case BoundReturnStatement returnStatement:
-                return VisitReturn(returnStatement, state);
-            case BoundIfStatement ifStatement:
-                return VisitIf(ifStatement, state);
-            case BoundWhileStatement whileStatement:
-                return VisitWhile(whileStatement, state);
-            case BoundLoopStatement loopStatement:
-                return VisitLoop(loopStatement, state);
-            case BoundForStatement forStatement:
-                return VisitFor(forStatement, state);
-            case BoundBreakStatement breakStatement:
-                return VisitBreak(breakStatement, state);
-            case BoundContinueStatement continueStatement:
-                return VisitContinue(continueStatement, state);
-            default:
-                throw new ArgumentOutOfRangeException(nameof(statement));
-        }
+            BoundBlock block => VisitBlock(block, state),
+            BoundVariableDeclaration declaration => VisitExpression(declaration.Initializer, state),
+            BoundExpressionStatement expressionStatement => VisitExpression(
+                expressionStatement.Expression,
+                state
+            ),
+            BoundReturnStatement returnStatement => VisitReturn(returnStatement, state),
+            BoundIfStatement ifStatement => VisitIf(ifStatement, state),
+            BoundWhileStatement whileStatement => VisitWhile(whileStatement, state),
+            BoundLoopStatement loopStatement => VisitLoop(loopStatement, state),
+            BoundForStatement forStatement => VisitFor(forStatement, state),
+            BoundBreakStatement breakStatement => VisitBreak(breakStatement, state),
+            BoundContinueStatement continueStatement => VisitContinue(continueStatement, state),
+            _ => throw new ArgumentOutOfRangeException(nameof(statement)),
+        };
     }
 
     private FlowState VisitBlock(BoundBlock block, FlowState state)
     {
-        return block.Statements.Aggregate(
-            state,
-            (current, statement) => VisitStatement(statement, current)
-        );
+        foreach (var statement in block.Statements)
+        {
+            state = VisitStatement(statement, state);
+            if (!state.IsReachable)
+                break;
+        }
+
+        // TODO: We're going to copy Java and make unreachable code an explicit error
+        return state;
     }
 
     private FlowState VisitReturn(BoundReturnStatement statement, FlowState state)
     {
-        VisitExpression(statement.Expression);
+        state = VisitExpression(statement.Expression, state);
         return state.AsUnreachable();
     }
 
     private FlowState VisitIf(BoundIfStatement statement, FlowState state)
     {
-        state = VisitStatement(statement.ThenStatement, state);
+        state = VisitExpression(statement.Condition, state);
 
-        if (statement.ElseStatement is not null)
+        var thenState = VisitStatement(statement.ThenStatement, state);
+
+        if (statement.ElseStatement is null)
         {
-            state = VisitStatement(statement.ElseStatement, state);
+            return thenState.Merge(state);
         }
 
-        return state;
+        var elseState = VisitStatement(statement.ElseStatement, state);
+        return thenState.Merge(elseState);
     }
 
     private FlowState VisitWhile(BoundWhileStatement statement, FlowState state)
     {
         _loopStack.Push(new LoopContext(statement.Label));
 
-        VisitExpression(statement.Condition);
+        state = VisitExpression(statement.Condition, state);
 
         state = VisitStatement(statement.Body, state);
 
@@ -123,29 +130,29 @@ internal sealed class FunctionAnalysisBuilder
     {
         if (statement.Variable is not null)
         {
-            VisitExpression(statement.Variable.Initializer);
+            state = VisitExpression(statement.Variable.Initializer, state);
         }
 
-        foreach (var initializer in statement.Initializers)
-        {
-            VisitExpression(initializer);
-        }
+        state = statement.Initializers.Aggregate(
+            state,
+            (current, initializer) => VisitExpression(initializer, current)
+        );
 
         _loopStack.Push(new LoopContext(statement.Label));
 
         if (statement.Condition is not null)
         {
-            VisitExpression(statement.Condition);
+            state = VisitExpression(statement.Condition, state);
         }
 
         state = VisitStatement(statement.Body, state);
 
         if (state.IsReachable)
         {
-            foreach (var incrementor in statement.Incrementors)
-            {
-                VisitExpression(incrementor);
-            }
+            state = statement.Incrementors.Aggregate(
+                state,
+                (current, incrementor) => VisitExpression(incrementor, current)
+            );
         }
 
         _loopStack.Pop();
@@ -175,61 +182,67 @@ internal sealed class FunctionAnalysisBuilder
         throw new InvalidOperationException("Loop label not found");
     }
 
-    private void VisitExpression(BoundExpression? expression)
+    private FlowState VisitExpression(BoundExpression? expression, FlowState state)
     {
-        if (expression is null)
-            return;
-
-        switch (expression)
+        while (true)
         {
-            case BoundAddressOf addressOf:
-                if (TryGetAddressedLocal(addressOf.Operand) is { } local)
-                {
-                    _addressedLocals.Add(local);
-                }
+            if (expression is null)
+                return state;
 
-                VisitExpression(addressOf.Operand);
-                break;
+            switch (expression)
+            {
+                case BoundAddressOf addressOf:
+                    if (TryGetAddressedLocal(addressOf.Operand) is { } local)
+                    {
+                        _addressedLocals.Add(local);
+                    }
 
-            case BoundUnaryOperation unary:
-                VisitExpression(unary.Operand);
-                break;
+                    expression = addressOf.Operand;
+                    continue;
 
-            case BoundBinaryOperation binary:
-                VisitExpression(binary.Left);
-                VisitExpression(binary.Right);
-                break;
+                case BoundUnaryOperation unary:
+                    expression = unary.Operand;
+                    continue;
 
-            case BoundAssignmentOperation assignment:
-                VisitExpression(assignment.Left);
-                VisitExpression(assignment.Right);
-                break;
+                case BoundBinaryOperation binary:
+                    state = VisitExpression(binary.Left, state);
+                    expression = binary.Right;
+                    continue;
 
-            case BoundConditional conditional:
-                VisitExpression(conditional.Condition);
-                VisitExpression(conditional.WhenTrue);
-                VisitExpression(conditional.WhenFalse);
-                break;
+                case BoundAssignmentOperation assignment:
+                    state = VisitExpression(assignment.Left, state);
+                    expression = assignment.Right;
+                    continue;
 
-            case BoundInvocation invocation:
-                foreach (var argument in invocation.Arguments)
-                {
-                    VisitExpression(argument);
-                }
-                break;
+                case BoundConditional conditional:
+                    state = VisitExpression(conditional.Condition, state);
+                    state = VisitExpression(conditional.WhenTrue, state);
+                    state = VisitExpression(conditional.WhenFalse, state);
+                    break;
 
-            case BoundConversion conversion:
-                VisitExpression(conversion.Operand);
-                break;
+                case BoundInvocation invocation:
+                    state = invocation.Arguments.Aggregate(
+                        state,
+                        (current, argument) => VisitExpression(argument, current)
+                    );
 
-            case BoundDereference dereference:
-                VisitExpression(dereference.Operand);
-                break;
+                    return state;
 
-            case BoundIndex index:
-                VisitExpression(index.Operand);
-                VisitExpression(index.Index);
-                break;
+                case BoundConversion conversion:
+                    expression = conversion.Operand;
+                    continue;
+
+                case BoundDereference dereference:
+                    expression = dereference.Operand;
+                    continue;
+
+                case BoundIndex index:
+                    state = VisitExpression(index.Operand, state);
+                    expression = index.Index;
+                    continue;
+            }
+
+            return state;
         }
     }
 

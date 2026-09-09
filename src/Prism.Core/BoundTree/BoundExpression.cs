@@ -19,6 +19,9 @@ internal abstract record BoundExpression : BoundNode
 
     public virtual bool IsAddressable => false;
 
+    /// <summary>
+    /// Indicates if the expression represents a value that can be assigned to.
+    /// </summary>
     public virtual bool IsAssignable => false;
 
     public ConstantValue? ConstantValue
@@ -74,7 +77,13 @@ internal sealed record BoundVariableAccess : BoundExpression
 
     public override bool IsAddressable => true;
 
-    public override bool IsAssignable => Symbol.IsMutable;
+    /// <inheritdoc/>
+    /// <remarks>
+    ///  We want to treat locals without initializers as assignable, even if they aren't mutable, so that they can
+    ///  be assigned in a separate block, at which point our definite assignment analysis will flag reassignments.
+    /// </remarks>
+    public override bool IsAssignable =>
+        Symbol.IsMutable || Symbol is { IsLocal: true, HasInitializer: false };
 }
 
 internal sealed record BoundParameterAccess : BoundExpression
