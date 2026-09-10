@@ -100,6 +100,14 @@ func print_maybe(message: str&, value: i32) {
     }
 }
 
+func get_index(slice: i32[]&, index: usize): i32 {
+    return slice[index];
+}
+
+func get_index(slice: i32[4], index: usize): i32 {
+    return slice[index];
+}
+
 func main(): i32 {
     return add(1, 4);
 }

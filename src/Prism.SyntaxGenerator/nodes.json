@@ -2277,6 +2277,39 @@
           "name": "UnreachableCode",
           "severity": "Error",
           "format": "Unreachable code"
+        },
+        {
+          "name": "CannotReassign",
+          "severity": "Error",
+          "format": "Variable {Name} is not mutable, cannot be reassigned",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "ValueUninitialized",
+          "severity": "Error",
+          "format": "Variable {Name} is uninitialized",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NotInitializedOnAllPaths",
+          "severity": "Error",
+          "format": "Variable {Name} is not initialized on all paths",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
         }
       ]
     },

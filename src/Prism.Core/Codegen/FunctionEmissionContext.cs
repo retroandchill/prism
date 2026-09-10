@@ -50,7 +50,7 @@ internal sealed class FunctionEmissionContext(
 
     public bool RequiresStorage(ParameterSymbol parameter)
     {
-        if (parameter.IsMutable)
+        if (parameter.IsMutable || parameter.Type is ArrayTypeSymbol)
             return true;
 
         return analysis?.IsAddressTaken(parameter) ?? false;
@@ -58,7 +58,12 @@ internal sealed class FunctionEmissionContext(
 
     public bool RequiresStorage(VariableSymbol variable)
     {
-        if (variable.IsMutable || variable.IsGlobal || !variable.HasInitializer)
+        if (
+            variable.IsMutable
+            || variable.IsGlobal
+            || !variable.HasInitializer
+            || variable.Type is ArrayTypeSymbol
+        )
             return true;
 
         return analysis?.IsAddressTaken(variable) ?? false;

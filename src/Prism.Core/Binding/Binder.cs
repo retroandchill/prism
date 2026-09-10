@@ -723,6 +723,7 @@ internal abstract class Binder
             TernaryExpressionSyntax ternary => BindTernaryExpression(ternary, targetType, context),
             InvocationExpressionSyntax invocation => BindInvocationExpression(invocation, context),
             CastExpressionSyntax cast => BindCastExpression(cast, context),
+            IndexExpressionSyntax index => BindIndexExpression(index, context),
             _ => throw new ArgumentException("Invalid expression syntax", nameof(syntax)),
         };
     }
@@ -1038,6 +1039,38 @@ internal abstract class Binder
         return AddConversionIfNecessary(operand, targetType, context, isExplicit: true);
     }
 
+    private BoundIndex BindIndexExpression(IndexExpressionSyntax syntax, BindingContext context)
+    {
+        var operand = AutoDereferenceIfNecessary(BindExpression(syntax.Operand, context));
+        var index = BindExpression(syntax.Index, context);
+
+        TypeSymbol targetType;
+        switch (operand.Type)
+        {
+            case { SpecialType: SpecialType.Str }:
+                targetType = Compilation.GetSpecialType(SpecialType.Char);
+                index = AddConversionIfNecessary(
+                    index,
+                    Compilation.GetSpecialType(SpecialType.USize),
+                    context
+                );
+                break;
+            case ArrayTypeSymbol { ElementType: var elementType }:
+                targetType = elementType;
+                index = AddConversionIfNecessary(
+                    index,
+                    Compilation.GetSpecialType(SpecialType.USize),
+                    context
+                );
+                break;
+            default:
+                targetType = ErrorTypeSymbol.Unnamed;
+                break;
+        }
+
+        return new BoundIndex(syntax, operand, index, targetType);
+    }
+
     private BoundExpression AddConversionIfNecessary(
         BoundExpression expression,
         TypeSymbol type,
@@ -1085,6 +1118,32 @@ internal abstract class Binder
         }
 
         return expression;
+    }
+
+    private static BoundExpression AutoDereferenceIfNecessary(BoundExpression expression)
+    {
+        while (true)
+        {
+            if (
+                expression.Type is ReferenceTypeSymbol
+                {
+                    ReferencedType: var referenced,
+                    IsMutable: var isMutable
+                }
+            )
+            {
+                expression = new BoundDereference(
+                    expression.Syntax,
+                    expression,
+                    referenced,
+                    isMutable
+                );
+            }
+            else
+            {
+                return expression;
+            }
+        }
     }
 
     private ConstantValue EvaluateConstantExpression(

@@ -78,12 +78,7 @@ internal sealed record BoundVariableAccess : BoundExpression
     public override bool IsAddressable => true;
 
     /// <inheritdoc/>
-    /// <remarks>
-    ///  We want to treat locals without initializers as assignable, even if they aren't mutable, so that they can
-    ///  be assigned in a separate block, at which point our definite assignment analysis will flag reassignments.
-    /// </remarks>
-    public override bool IsAssignable =>
-        Symbol.IsMutable || Symbol is { IsLocal: true, HasInitializer: false };
+    public override bool IsAssignable => true;
 }
 
 internal sealed record BoundParameterAccess : BoundExpression
@@ -98,7 +93,7 @@ internal sealed record BoundParameterAccess : BoundExpression
 
     public override bool IsAddressable => true;
 
-    public override bool IsAssignable => Symbol.IsMutable;
+    public override bool IsAssignable => true;
 }
 
 internal sealed record BoundUnaryOperation : BoundExpression

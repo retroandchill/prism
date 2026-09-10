@@ -1004,7 +1004,9 @@ public static class CSharpEmitter
             using var scope = writer.EnterBlockScope(true);
             writer.WriteLine($"Id = DiagnosticCode.{diagnostic.CSharpName}.ToStringFast(),");
             writer.WriteLine($"Title = \"{diagnostic.Title}\",");
-            writer.Write($"MessageFormat = \"{diagnostic.Format}\",");
+            writer.Write("MessageFormat = \"");
+            writer.EmitCSharpFormatMessage(diagnostic);
+            writer.WriteLine("\",");
             writer.WriteLine($"Category = \"{diagnostic.Category.Name}\",");
             writer.WriteLine(
                 $"DefaultSeverity = DiagnosticSeverity.{GetCSharpSeverity(diagnostic.Severity)},"
@@ -1030,6 +1032,23 @@ public static class CSharpEmitter
                 }
             }
             writer.WriteLine("],");
+        }
+
+        private void EmitCSharpFormatMessage(CSharpDiagnostic diagnostic)
+        {
+            var argumentIndex = 0;
+            foreach (var part in diagnostic.MessageParts)
+            {
+                switch (part)
+                {
+                    case CSharpDiagnosticMessageTextPart text:
+                        writer.Write(text.Text);
+                        break;
+                    case CSharpDiagnosticMessageArgumentPart:
+                        writer.Write($"{{{argumentIndex++}}}");
+                        break;
+                }
+            }
         }
 
         private void EmitDescriptorLookupFunction(CSharpSyntaxModel model)

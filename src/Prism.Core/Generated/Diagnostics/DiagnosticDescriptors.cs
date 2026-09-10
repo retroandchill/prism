@@ -7,7 +7,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.UnexpectedToken.ToStringFast(),
         Title = "Unexpected token",
-        MessageFormat = "Unexpected token {Token}",
+        MessageFormat = "Unexpected token {0}",
         Category = "Syntax",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -25,7 +25,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.UnexpectedEscape.ToStringFast(),
         Title = "Unexpected escape",
-        MessageFormat = "Unexpected escape sequence: '{Sequence}'",
+        MessageFormat = "Unexpected escape sequence: '{0}'",
         Category = "Syntax",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -61,7 +61,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.UnresolvedSymbol.ToStringFast(),
         Title = "Unresolved symbol",
-        MessageFormat = "Unresolved symbol {Symbol}",
+        MessageFormat = "Unresolved symbol {0}",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -70,7 +70,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.InvalidSymbol.ToStringFast(),
         Title = "Invalid symbol",
-        MessageFormat = "Unexpected symbol {Symbol}, expected a {Expected}",
+        MessageFormat = "Unexpected symbol {0}, expected a {1}",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -88,7 +88,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.AmbiguousSymbol.ToStringFast(),
         Title = "Ambiguous symbol",
-        MessageFormat = "Ambiguous symbol reference {Symbol}",
+        MessageFormat = "Ambiguous symbol reference {0}",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -97,7 +97,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.SymbolInaccessible.ToStringFast(),
         Title = "Symbol inaccessible",
-        MessageFormat = "Symbol {Symbol} is inaccessible",
+        MessageFormat = "Symbol {0} is inaccessible",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -106,7 +106,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.NoConversion.ToStringFast(),
         Title = "No conversion",
-        MessageFormat = "No conversion exists between type {FromType} and type {ToType}",
+        MessageFormat = "No conversion exists between type {0} and type {1}",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -115,7 +115,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.ConversionIsExplicit.ToStringFast(),
         Title = "Conversion is explicit",
-        MessageFormat = "Conversion from {FromType} to type {ToType} is explicit",
+        MessageFormat = "Conversion from {0} to type {1} is explicit",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -169,7 +169,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.UnaryOperatorUndefined.ToStringFast(),
         Title = "Unary operator undefined",
-        MessageFormat = "Unary operator not defined for type {Type}",
+        MessageFormat = "Unary operator not defined for type {0}",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -187,7 +187,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.NoCompoundAssignmentOperator.ToStringFast(),
         Title = "No compound assignment operator",
-        MessageFormat = "No compound assignment operator defined for type {Type}",
+        MessageFormat = "No compound assignment operator defined for type {0}",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -196,7 +196,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.BinaryOperatorUndefined.ToStringFast(),
         Title = "Binary operator undefined",
-        MessageFormat = "Unary operator not defined for types {Type1} and {Type2}",
+        MessageFormat = "Unary operator not defined for types {0} and {1}",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -205,7 +205,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.NoOverloadMatchingArgCount.ToStringFast(),
         Title = "No overload matching arg count",
-        MessageFormat = "No overload that accepts {ArgCount} arguments",
+        MessageFormat = "No overload that accepts {0} arguments",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -214,7 +214,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.NoOverloadForArgTypes.ToStringFast(),
         Title = "No overload for arg types",
-        MessageFormat = "No overload for argument types {ArgTypes}",
+        MessageFormat = "No overload for argument types {0}",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -223,7 +223,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.NoCallOperatorDefined.ToStringFast(),
         Title = "No call operator defined",
-        MessageFormat = "Type {Type} is not callable",
+        MessageFormat = "Type {0} is not callable",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -241,7 +241,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.AmbiguousEntryPoint.ToStringFast(),
         Title = "Ambiguous entry point",
-        MessageFormat = "Ambiguous entry point, could be any of: {Names}",
+        MessageFormat = "Ambiguous entry point, could be any of: {0}",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -250,7 +250,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.InvalidEntryPointReturnType.ToStringFast(),
         Title = "Invalid entry point return type",
-        MessageFormat = "Return type {Type} will main function {Name} not usable as an entry point",
+        MessageFormat = "Return type {0} will main function {1} not usable as an entry point",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Warning,
     };
@@ -259,8 +259,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.InvalidEntryPointParameters.ToStringFast(),
         Title = "Invalid entry point parameters",
-        MessageFormat =
-            "Parameters ({Types}) will main function {Name} not usable as an entry point",
+        MessageFormat = "Parameters ({0}) will main function {1} not usable as an entry point",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Warning,
     };
@@ -314,7 +313,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.CannotDereferenceVariableLength.ToStringFast(),
         Title = "Cannot dereference variable length",
-        MessageFormat = "Cannot dereference a variable length type {Type}",
+        MessageFormat = "Cannot dereference a variable length type {0}",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -323,7 +322,7 @@ public static class DiagnosticDescriptors
     {
         Id = DiagnosticCode.NoIndexOperation.ToStringFast(),
         Title = "No index operation",
-        MessageFormat = "Cannot perform index operation on {Type}",
+        MessageFormat = "Cannot perform index operation on {0}",
         Category = "Semantic",
         DefaultSeverity = DiagnosticSeverity.Error,
     };
@@ -364,11 +363,38 @@ public static class DiagnosticDescriptors
         DefaultSeverity = DiagnosticSeverity.Error,
     };
 
+    public static readonly DiagnosticDescriptor CannotReassign = new()
+    {
+        Id = DiagnosticCode.CannotReassign.ToStringFast(),
+        Title = "Cannot reassign",
+        MessageFormat = "Variable {0} is not mutable, cannot be reassigned",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
+    public static readonly DiagnosticDescriptor ValueUninitialized = new()
+    {
+        Id = DiagnosticCode.ValueUninitialized.ToStringFast(),
+        Title = "Value uninitialized",
+        MessageFormat = "Variable {0} is uninitialized",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
+    public static readonly DiagnosticDescriptor NotInitializedOnAllPaths = new()
+    {
+        Id = DiagnosticCode.NotInitializedOnAllPaths.ToStringFast(),
+        Title = "Not initialized on all paths",
+        MessageFormat = "Variable {0} is not initialized on all paths",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
     public static readonly DiagnosticDescriptor ExternalDiagnostic = new()
     {
         Id = DiagnosticCode.ExternalDiagnostic.ToStringFast(),
         Title = "External diagnostic",
-        MessageFormat = "An external diagnostic occurred: {Message}",
+        MessageFormat = "An external diagnostic occurred: {0}",
         Category = "CodeGen",
         DefaultSeverity = DiagnosticSeverity.Info,
     };
@@ -418,6 +444,9 @@ public static class DiagnosticDescriptors
             DiagnosticCode.StatementMustReturnValue => StatementMustReturnValue,
             DiagnosticCode.CannotReturnValue => CannotReturnValue,
             DiagnosticCode.UnreachableCode => UnreachableCode,
+            DiagnosticCode.CannotReassign => CannotReassign,
+            DiagnosticCode.ValueUninitialized => ValueUninitialized,
+            DiagnosticCode.NotInitializedOnAllPaths => NotInitializedOnAllPaths,
             DiagnosticCode.ExternalDiagnostic => ExternalDiagnostic,
             _ => null,
         };

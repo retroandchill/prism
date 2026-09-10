@@ -688,6 +688,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             BoundConversion conversion => EmitConversion(conversion, context),
             BoundAddressOf addressOf => EmitAddress(addressOf.Operand, context),
             BoundDereference dereference => EmitDereference(dereference, context),
+            BoundIndex index => EmitIndex(index, context),
             _ => throw new InvalidOperationException("We probably added a new expression type"),
         };
     }
@@ -1190,13 +1191,34 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         return _builder.BuildLoad2(type, address);
     }
 
+    private LLVMValueRef EmitIndex(BoundIndex indexer, FunctionEmissionContext context)
+    {
+        var index = EmitExpression(indexer.Index, context);
+        var itemType = GetOrCreateType(indexer.Type);
+        var offset = _builder.BuildMul(index, itemType.SizeOf, "offset");
+
+        LLVMValueRef pointer;
+        if (indexer.Operand.Type.IsDynamicallySized)
+        {
+            var widePointer = EmitAddress(indexer.Operand, context);
+            pointer = _builder.BuildExtractValue(widePointer, 0, "pointer");
+        }
+        else
+        {
+            pointer = EmitAddress(indexer.Operand, context);
+        }
+
+        var element = _builder.BuildGEP2(itemType, pointer, [offset], "element".AsSpan());
+        return _builder.BuildLoad2(itemType, element);
+    }
+
     private LLVMValueRef EmitAddress(BoundExpression expression, FunctionEmissionContext context)
     {
         return expression switch
         {
             BoundVariableAccess access => EmitAccessCore(access, context),
             BoundParameterAccess access => EmitAccessCore(access, context),
-            BoundDereference dereference => EmitExpression(dereference.Operand, context),
+            BoundDereference dereference => EmitAddress(dereference.Operand, context),
             _ => throw new ArgumentException("Invalid expression type for address emission"),
         };
     }

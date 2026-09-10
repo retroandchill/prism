@@ -515,6 +515,43 @@ public static class DiagnosticExtensions
             return new DiagnosticInfo(DiagnosticDescriptors.UnreachableCode, severity);
         }
 
+        internal static DiagnosticInfo CannotReassign(string name)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.CannotReassign, name);
+        }
+
+        internal static DiagnosticInfo CannotReassign(DiagnosticSeverity severity, string name)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.CannotReassign, severity, name);
+        }
+
+        internal static DiagnosticInfo ValueUninitialized(string name)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.ValueUninitialized, name);
+        }
+
+        internal static DiagnosticInfo ValueUninitialized(DiagnosticSeverity severity, string name)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.ValueUninitialized, severity, name);
+        }
+
+        internal static DiagnosticInfo NotInitializedOnAllPaths(string name)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.NotInitializedOnAllPaths, name);
+        }
+
+        internal static DiagnosticInfo NotInitializedOnAllPaths(
+            DiagnosticSeverity severity,
+            string name
+        )
+        {
+            return new DiagnosticInfo(
+                DiagnosticDescriptors.NotInitializedOnAllPaths,
+                severity,
+                name
+            );
+        }
+
         internal static DiagnosticInfo ExternalDiagnostic(string message)
         {
             return new DiagnosticInfo(DiagnosticDescriptors.ExternalDiagnostic, message);
@@ -2364,6 +2401,148 @@ public static class DiagnosticExtensions
                 severity,
                 location,
                 additionalLocations
+            );
+        }
+
+        public static Diagnostic CannotReassign(Location location, string name)
+        {
+            return new Diagnostic(DiagnosticDescriptors.CannotReassign, location, name);
+        }
+
+        public static Diagnostic CannotReassign(
+            DiagnosticSeverity severity,
+            Location location,
+            string name
+        )
+        {
+            return new Diagnostic(DiagnosticDescriptors.CannotReassign, severity, location, name);
+        }
+
+        public static Diagnostic CannotReassign(
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            string name
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.CannotReassign,
+                location,
+                additionalLocations,
+                name
+            );
+        }
+
+        public static Diagnostic CannotReassign(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            string name
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.CannotReassign,
+                severity,
+                location,
+                additionalLocations,
+                name
+            );
+        }
+
+        public static Diagnostic ValueUninitialized(Location location, string name)
+        {
+            return new Diagnostic(DiagnosticDescriptors.ValueUninitialized, location, name);
+        }
+
+        public static Diagnostic ValueUninitialized(
+            DiagnosticSeverity severity,
+            Location location,
+            string name
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.ValueUninitialized,
+                severity,
+                location,
+                name
+            );
+        }
+
+        public static Diagnostic ValueUninitialized(
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            string name
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.ValueUninitialized,
+                location,
+                additionalLocations,
+                name
+            );
+        }
+
+        public static Diagnostic ValueUninitialized(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            string name
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.ValueUninitialized,
+                severity,
+                location,
+                additionalLocations,
+                name
+            );
+        }
+
+        public static Diagnostic NotInitializedOnAllPaths(Location location, string name)
+        {
+            return new Diagnostic(DiagnosticDescriptors.NotInitializedOnAllPaths, location, name);
+        }
+
+        public static Diagnostic NotInitializedOnAllPaths(
+            DiagnosticSeverity severity,
+            Location location,
+            string name
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.NotInitializedOnAllPaths,
+                severity,
+                location,
+                name
+            );
+        }
+
+        public static Diagnostic NotInitializedOnAllPaths(
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            string name
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.NotInitializedOnAllPaths,
+                location,
+                additionalLocations,
+                name
+            );
+        }
+
+        public static Diagnostic NotInitializedOnAllPaths(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            string name
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.NotInitializedOnAllPaths,
+                severity,
+                location,
+                additionalLocations,
+                name
             );
         }
 

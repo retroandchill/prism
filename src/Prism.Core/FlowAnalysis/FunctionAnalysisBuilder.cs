@@ -10,6 +10,7 @@ using Prism.Core.BoundTree;
 using Prism.Core.Diagnostics;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
+using Prism.Core.Symbols.Synthesized;
 
 namespace Prism.Core.FlowAnalysis;
 
@@ -57,7 +58,7 @@ internal sealed class FunctionAnalysisBuilder
 
     private FunctionBodyAnalysis BuildCore(BoundStatement statement)
     {
-        var state = new FlowState(new AnalysisState(), true);
+        var state = new FlowState(AnalysisState.Empty, true);
 
         state = VisitStatement(statement, state);
 
@@ -76,7 +77,7 @@ internal sealed class FunctionAnalysisBuilder
         return statement switch
         {
             BoundBlock block => VisitBlock(block, state),
-            BoundVariableDeclaration declaration => VisitExpression(declaration.Initializer, state),
+            BoundVariableDeclaration declaration => VisitLocal(declaration, state),
             BoundExpressionStatement expressionStatement => VisitExpression(
                 expressionStatement.Expression,
                 state
@@ -108,6 +109,15 @@ internal sealed class FunctionAnalysisBuilder
         }
 
         return state;
+    }
+
+    private FlowState VisitLocal(BoundVariableDeclaration declaration, FlowState state)
+    {
+        if (declaration.Initializer is null)
+            return state;
+
+        state = state with { State = state.State.MarkVariableInitialized(declaration.Variable) };
+        return VisitExpression(declaration.Initializer, state);
     }
 
     private FlowState VisitReturn(BoundReturnStatement statement, FlowState state)
@@ -209,6 +219,10 @@ internal sealed class FunctionAnalysisBuilder
     {
         if (statement.Variable is not null)
         {
+            state = state with
+            {
+                State = state.State.MarkVariableInitialized(statement.Variable.Variable),
+            };
             state = VisitExpression(statement.Variable.Initializer, state);
         }
 
@@ -330,7 +344,36 @@ internal sealed class FunctionAnalysisBuilder
                     expression = addressOf.Operand;
                     continue;
 
+                case BoundVariableAccess { Symbol: var variable, Syntax.Location: var location }:
+                    switch (state.State.GetVariableInitialization(variable))
+                    {
+                        case InitializationState.DefinitelyInitialized:
+                            break;
+                        case InitializationState.MaybeInitialized:
+                            _bindingContext.ReportDiagnostic(
+                                Diagnostic.NotInitializedOnAllPaths(location, variable.Name)
+                            );
+                            break;
+                        case InitializationState.Uninitialized:
+                            _bindingContext.ReportDiagnostic(
+                                Diagnostic.ValueUninitialized(location, variable.Name)
+                            );
+                            break;
+                        default:
+                            throw new ArgumentException("Invalid variable state");
+                    }
+
+                    return state;
+
                 case BoundUnaryOperation unary:
+                    if (unary.Operation.IsAssigning)
+                    {
+                        state = HandleAssignmentOperand(
+                            unary.Operand,
+                            unary.Syntax.Location,
+                            state
+                        );
+                    }
                     expression = unary.Operand;
                     continue;
 
@@ -340,6 +383,11 @@ internal sealed class FunctionAnalysisBuilder
                     continue;
 
                 case BoundAssignmentOperation assignment:
+                    state = HandleAssignmentOperand(
+                        assignment.Left,
+                        assignment.Syntax.Location,
+                        state
+                    );
                     state = VisitExpression(assignment.Left, state);
                     expression = assignment.Right;
                     continue;
@@ -384,5 +432,45 @@ internal sealed class FunctionAnalysisBuilder
             BoundParameterAccess parameterAccess => parameterAccess.Symbol,
             _ => null,
         };
+    }
+
+    private FlowState HandleAssignmentOperand(
+        BoundExpression operand,
+        Location location,
+        FlowState state
+    )
+    {
+        switch (operand)
+        {
+            case BoundParameterAccess { Symbol: { IsMutable: false } param }:
+                _bindingContext.ReportDiagnostic(Diagnostic.CannotReassign(location, param.Name));
+                return state;
+            case BoundVariableAccess { Symbol: var variable }:
+                if (variable.IsGlobal && _function is SynthesizedGlobalConstructor)
+                    return state;
+
+                if (variable.IsMutable)
+                    return state with { State = state.State.MarkVariableInitialized(variable) };
+
+                switch (state.State.GetVariableInitialization(variable))
+                {
+                    case InitializationState.DefinitelyInitialized:
+                        _bindingContext.ReportDiagnostic(
+                            Diagnostic.CannotReassign(location, variable.Name)
+                        );
+                        return state;
+                    case InitializationState.MaybeInitialized:
+                        _bindingContext.ReportDiagnostic(
+                            Diagnostic.CannotReassign(location, variable.Name)
+                        );
+                        return state with { State = state.State.MarkVariableInitialized(variable) };
+                    case InitializationState.Uninitialized:
+                        return state with { State = state.State.MarkVariableInitialized(variable) };
+                    default:
+                        throw new ArgumentException("Invalid variable state");
+                }
+            default:
+                return state;
+        }
     }
 }

@@ -131,6 +131,15 @@ public enum DiagnosticCode : uint
     [EnumMember(Value = "E2033")]
     UnreachableCode = 2033,
 
+    [EnumMember(Value = "E2034")]
+    CannotReassign = 2034,
+
+    [EnumMember(Value = "E2035")]
+    ValueUninitialized = 2035,
+
+    [EnumMember(Value = "E2036")]
+    NotInitializedOnAllPaths = 2036,
+
     // -- Code gen (3000-3999) ---
     [EnumMember(Value = "E3000")]
     ExternalDiagnostic = 3000,

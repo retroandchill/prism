@@ -511,7 +511,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 {
                     var openBracket = ConsumeToken();
                     var expression =
-                        PeekToken().Kind != SyntaxKind.CloseBraceToken ? ParseExpression() : null;
+                        PeekToken().Kind != SyntaxKind.CloseBracketToken ? ParseExpression() : null;
                     type = new GreenArrayType(
                         type,
                         openBracket,

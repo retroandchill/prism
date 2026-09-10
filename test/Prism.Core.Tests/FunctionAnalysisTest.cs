@@ -297,4 +297,90 @@ public class FunctionAnalysisTest
         Assert.That(bodyAnalysis.Diagnostics, Has.Length.EqualTo(1));
         Assert.That(bodyAnalysis.Diagnostics[0].Id, Is.EqualTo("UnreachableCode"));
     }
+
+    [Test]
+    public void ImmutableVariableCanBeAssignedOutOfLine()
+    {
+        var tree = SyntaxTree.Parse(
+            """
+            func f(p: i32) {
+                var v: i32;
+                v = p;
+            }
+            """
+        );
+
+        const string assemblyName = "test";
+        var compilation = Compilation.Create(assemblyName, [tree]);
+
+        var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
+        Assert.That(members, Has.Length.EqualTo(1));
+        Assert.That(members[0], Is.InstanceOf<FunctionSymbol>());
+
+        var function = (FunctionSymbol)members[0];
+        var bodyAnalysis = compilation.GetBoundBody(function);
+
+        Assert.That(bodyAnalysis.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void MustAssignOnAllPaths()
+    {
+        var tree = SyntaxTree.Parse(
+            """
+            func f(p: i32): i32 {
+                var v: i32;
+                if (p > 4) {
+                    v = p * 2;
+                }
+
+                return v;
+            }
+            """
+        );
+
+        const string assemblyName = "test";
+        var compilation = Compilation.Create(assemblyName, [tree]);
+
+        var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
+        Assert.That(members, Has.Length.EqualTo(1));
+        Assert.That(members[0], Is.InstanceOf<FunctionSymbol>());
+
+        var function = (FunctionSymbol)members[0];
+        var bodyAnalysis = compilation.GetBoundBody(function);
+
+        Assert.That(bodyAnalysis.Diagnostics, Has.Length.EqualTo(1));
+        Assert.That(bodyAnalysis.Diagnostics[0].Id, Is.EqualTo("NotInitializedOnAllPaths"));
+    }
+
+    [Test]
+    public void CannotReassignOnOtherPath()
+    {
+        var tree = SyntaxTree.Parse(
+            """
+            func f(p: i32): i32 {
+                var v: i32;
+                if (p > 4) {
+                    v = p * 2;
+                }
+
+                v = 0;
+                return v;
+            }
+            """
+        );
+
+        const string assemblyName = "test";
+        var compilation = Compilation.Create(assemblyName, [tree]);
+
+        var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
+        Assert.That(members, Has.Length.EqualTo(1));
+        Assert.That(members[0], Is.InstanceOf<FunctionSymbol>());
+
+        var function = (FunctionSymbol)members[0];
+        var bodyAnalysis = compilation.GetBoundBody(function);
+
+        Assert.That(bodyAnalysis.Diagnostics, Has.Length.EqualTo(1));
+        Assert.That(bodyAnalysis.Diagnostics[0].Id, Is.EqualTo("CannotReassign"));
+    }
 }
