@@ -164,8 +164,16 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
     private GreenReturnStatement ParseReturnStatement()
     {
+        var returnKeyword = ExpectToken(SyntaxKind.ReturnKeyword);
+
+        var semicolon = MatchToken(SyntaxKind.SemicolonToken);
+        if (semicolon is not null)
+        {
+            return new GreenReturnStatement(returnKeyword, null, semicolon);
+        }
+
         return new GreenReturnStatement(
-            ExpectToken(SyntaxKind.ReturnKeyword),
+            returnKeyword,
             ParseExpression(),
             ExpectToken(SyntaxKind.SemicolonToken)
         );
@@ -246,7 +254,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         var initializers = GreenSeparatedList.CreateBuilder<GreenExpression>();
         if (declaration is null)
         {
-            while (true)
+            while (PeekToken().Kind != SyntaxKind.SemicolonToken)
             {
                 initializers.AddItem(ParseExpression());
 
@@ -262,7 +270,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         var condition = PeekToken().Kind != SyntaxKind.SemicolonToken ? ParseExpression() : null;
         var secondSemicolon = ExpectToken(SyntaxKind.SemicolonToken);
         var incrementors = GreenSeparatedList.CreateBuilder<GreenExpression>();
-        while (true)
+        while (PeekToken().Kind != SyntaxKind.CloseParenToken)
         {
             incrementors.AddItem(ParseExpression());
 

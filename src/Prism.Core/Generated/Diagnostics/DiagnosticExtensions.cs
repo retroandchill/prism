@@ -475,6 +475,46 @@ public static class DiagnosticExtensions
             return new DiagnosticInfo(DiagnosticDescriptors.NoIndexOperation, severity, type);
         }
 
+        internal static DiagnosticInfo AllPathsMustReturnValue()
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.AllPathsMustReturnValue);
+        }
+
+        internal static DiagnosticInfo AllPathsMustReturnValue(DiagnosticSeverity severity)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.AllPathsMustReturnValue, severity);
+        }
+
+        internal static DiagnosticInfo StatementMustReturnValue()
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.StatementMustReturnValue);
+        }
+
+        internal static DiagnosticInfo StatementMustReturnValue(DiagnosticSeverity severity)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.StatementMustReturnValue, severity);
+        }
+
+        internal static DiagnosticInfo CannotReturnValue()
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.CannotReturnValue);
+        }
+
+        internal static DiagnosticInfo CannotReturnValue(DiagnosticSeverity severity)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.CannotReturnValue, severity);
+        }
+
+        internal static DiagnosticInfo UnreachableCode()
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.UnreachableCode);
+        }
+
+        internal static DiagnosticInfo UnreachableCode(DiagnosticSeverity severity)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.UnreachableCode, severity);
+        }
+
         internal static DiagnosticInfo ExternalDiagnostic(string message)
         {
             return new DiagnosticInfo(DiagnosticDescriptors.ExternalDiagnostic, message);
@@ -2166,6 +2206,164 @@ public static class DiagnosticExtensions
                 location,
                 additionalLocations,
                 type
+            );
+        }
+
+        public static Diagnostic AllPathsMustReturnValue(Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.AllPathsMustReturnValue, location);
+        }
+
+        public static Diagnostic AllPathsMustReturnValue(
+            DiagnosticSeverity severity,
+            Location location
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.AllPathsMustReturnValue,
+                severity,
+                location
+            );
+        }
+
+        public static Diagnostic AllPathsMustReturnValue(
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.AllPathsMustReturnValue,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic AllPathsMustReturnValue(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.AllPathsMustReturnValue,
+                severity,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic StatementMustReturnValue(Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.StatementMustReturnValue, location);
+        }
+
+        public static Diagnostic StatementMustReturnValue(
+            DiagnosticSeverity severity,
+            Location location
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.StatementMustReturnValue,
+                severity,
+                location
+            );
+        }
+
+        public static Diagnostic StatementMustReturnValue(
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.StatementMustReturnValue,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic StatementMustReturnValue(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.StatementMustReturnValue,
+                severity,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic CannotReturnValue(Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.CannotReturnValue, location);
+        }
+
+        public static Diagnostic CannotReturnValue(DiagnosticSeverity severity, Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.CannotReturnValue, severity, location);
+        }
+
+        public static Diagnostic CannotReturnValue(
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.CannotReturnValue,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic CannotReturnValue(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.CannotReturnValue,
+                severity,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic UnreachableCode(Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.UnreachableCode, location);
+        }
+
+        public static Diagnostic UnreachableCode(DiagnosticSeverity severity, Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.UnreachableCode, severity, location);
+        }
+
+        public static Diagnostic UnreachableCode(
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.UnreachableCode,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic UnreachableCode(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.UnreachableCode,
+                severity,
+                location,
+                additionalLocations
             );
         }
 

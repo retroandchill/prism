@@ -119,6 +119,18 @@ public enum DiagnosticCode : uint
     [EnumMember(Value = "E2029")]
     NoIndexOperation = 2029,
 
+    [EnumMember(Value = "E2030")]
+    AllPathsMustReturnValue = 2030,
+
+    [EnumMember(Value = "E2031")]
+    StatementMustReturnValue = 2031,
+
+    [EnumMember(Value = "E2032")]
+    CannotReturnValue = 2032,
+
+    [EnumMember(Value = "E2033")]
+    UnreachableCode = 2033,
+
     // -- Code gen (3000-3999) ---
     [EnumMember(Value = "E3000")]
     ExternalDiagnostic = 3000,

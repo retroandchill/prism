@@ -52,16 +52,16 @@ internal class GreenToken : GreenNode
     }
 
     public T GetValue<T>()
-        where T : struct, ISyntaxData
+        where T : struct, ISyntaxData<T>
     {
         return TryGetValue<T>()
             ?? throw new InvalidOperationException("Token does not have a value");
     }
 
     public T? TryGetValue<T>()
-        where T : struct, ISyntaxData
+        where T : struct, ISyntaxData<T>
     {
-        return this is GreenValueToken<T> valueToken ? valueToken.Value : null;
+        return T.TryGetFrom(this);
     }
 
     public GreenToken WithLeadingTrivia(GreenNode? leadingTrivia)

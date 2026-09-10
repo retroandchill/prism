@@ -193,7 +193,7 @@ internal static class BindingHelpers
             SpecialType.USize => IntegerTargetKind.USize,
             SpecialType.F32 => IntegerTargetKind.F32,
             SpecialType.F64 => IntegerTargetKind.F64,
-            _ => throw new ArgumentException("Invalid target type", nameof(targetType)),
+            _ => IntegerTargetKind.BestFit,
         };
     }
 

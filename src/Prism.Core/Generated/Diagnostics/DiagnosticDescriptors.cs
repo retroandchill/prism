@@ -328,6 +328,42 @@ public static class DiagnosticDescriptors
         DefaultSeverity = DiagnosticSeverity.Error,
     };
 
+    public static readonly DiagnosticDescriptor AllPathsMustReturnValue = new()
+    {
+        Id = DiagnosticCode.AllPathsMustReturnValue.ToStringFast(),
+        Title = "All paths must return value",
+        MessageFormat = "All control paths must return a value",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
+    public static readonly DiagnosticDescriptor StatementMustReturnValue = new()
+    {
+        Id = DiagnosticCode.StatementMustReturnValue.ToStringFast(),
+        Title = "Statement must return value",
+        MessageFormat = "Function must return a value",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
+    public static readonly DiagnosticDescriptor CannotReturnValue = new()
+    {
+        Id = DiagnosticCode.CannotReturnValue.ToStringFast(),
+        Title = "Cannot return value",
+        MessageFormat = "Function does not return a value",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
+    public static readonly DiagnosticDescriptor UnreachableCode = new()
+    {
+        Id = DiagnosticCode.UnreachableCode.ToStringFast(),
+        Title = "Unreachable code",
+        MessageFormat = "Unreachable code",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
     public static readonly DiagnosticDescriptor ExternalDiagnostic = new()
     {
         Id = DiagnosticCode.ExternalDiagnostic.ToStringFast(),
@@ -378,6 +414,10 @@ public static class DiagnosticDescriptors
             DiagnosticCode.CannotDereference => CannotDereference,
             DiagnosticCode.CannotDereferenceVariableLength => CannotDereferenceVariableLength,
             DiagnosticCode.NoIndexOperation => NoIndexOperation,
+            DiagnosticCode.AllPathsMustReturnValue => AllPathsMustReturnValue,
+            DiagnosticCode.StatementMustReturnValue => StatementMustReturnValue,
+            DiagnosticCode.CannotReturnValue => CannotReturnValue,
+            DiagnosticCode.UnreachableCode => UnreachableCode,
             DiagnosticCode.ExternalDiagnostic => ExternalDiagnostic,
             _ => null,
         };

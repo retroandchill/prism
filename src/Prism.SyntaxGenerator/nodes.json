@@ -2257,6 +2257,26 @@
               "type": "String"
             }
           ]
+        },
+        {
+          "name": "AllPathsMustReturnValue",
+          "severity": "Error",
+          "format": "All control paths must return a value"
+        },
+        {
+          "name": "StatementMustReturnValue",
+          "severity": "Error",
+          "format": "Function must return a value"
+        },
+        {
+          "name": "CannotReturnValue",
+          "severity": "Error",
+          "format": "Function does not return a value"
+        },
+        {
+          "name": "UnreachableCode",
+          "severity": "Error",
+          "format": "Unreachable code"
         }
       ]
     },

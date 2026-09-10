@@ -37,21 +37,22 @@ public sealed class SourceText
     public SourcePosition PositionOf(int index)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Text.Length);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, Text.Length);
 
         var line = _lineOffsets.BinarySearch(index);
         if (line < 0)
         {
-            line = ~line;
+            line = ~line - 1;
         }
-        var utfOffset = index - _lineOffsets[line - 1];
+        var lineStart = _lineOffsets[line];
+        var utfOffset = index - lineStart;
         var column = 1;
-        foreach (var _ in Text.AsSpan(index, utfOffset).EnumerateRunes())
+        foreach (var _ in Text.AsSpan(lineStart, utfOffset).EnumerateRunes())
         {
             column++;
         }
 
-        return new SourcePosition(line, column);
+        return new SourcePosition(line + 1, column);
     }
 
     public ReadOnlySpan<char> Slice(TextSpan span)

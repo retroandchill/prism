@@ -8,7 +8,7 @@ internal sealed class GreenValueToken<T>(
     GreenNode? leadingTrivia,
     GreenNode? trailingTrivia
 ) : GreenToken(data.Kind, data.Text.Length, leadingTrivia, trailingTrivia)
-    where T : struct, ISyntaxData
+    where T : struct, ISyntaxData<T>
 {
     public T Value { get; } = data;
 
@@ -35,7 +35,7 @@ internal static class GreenValueToken
         GreenNode? trailingTrivia = null,
         ImmutableArray<SyntaxDiagnosticInfo> diagnostics = default
     )
-        where T : struct, ISyntaxData
+        where T : struct, ISyntaxData<T>
     {
         return new GreenValueToken<T>(data, leadingTrivia, trailingTrivia)
         {
@@ -51,7 +51,7 @@ internal static class GreenValueToken
         GreenSyntaxList<GreenTrivia> trailingTrivia = default,
         ImmutableArray<SyntaxDiagnosticInfo> diagnostics = default
     )
-        where T : struct, ISyntaxData
+        where T : struct, ISyntaxData<T>
     {
         return Create(in data, leadingTrivia.Node, trailingTrivia.Node, diagnostics);
     }

@@ -73,14 +73,14 @@ public readonly struct SyntaxToken
     public bool HasTrailingTrivia => Green.HasTrailingTrivia;
 
     public T GetValue<T>()
-        where T : struct, ISyntaxData
+        where T : struct, ISyntaxData<T>
     {
         return TryGetValue<T>()
             ?? throw new InvalidOperationException("Token does not have a value");
     }
 
     public T? TryGetValue<T>()
-        where T : struct, ISyntaxData
+        where T : struct, ISyntaxData<T>
     {
         return Green.TryGetValue<T>();
     }

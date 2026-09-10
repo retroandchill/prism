@@ -521,6 +521,25 @@ internal abstract class Binder
             null => null,
         };
 
+        if (expression is not null)
+        {
+            if (returnType.IsVoid)
+            {
+                context.ReportDiagnostic(Diagnostic.CannotReturnValue(expression.Syntax.Location));
+            }
+            else
+            {
+                expression = AddConversionIfNecessary(expression, returnType, context);
+            }
+        }
+        else
+        {
+            if (!returnType.IsVoid)
+            {
+                context.ReportDiagnostic(Diagnostic.StatementMustReturnValue(syntax.Location));
+            }
+        }
+
         return new BoundReturnStatement(syntax, expression);
     }
 

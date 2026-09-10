@@ -4,19 +4,26 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Runtime.InteropServices;
+using Prism.Core.Binding;
 using Prism.Core.BoundTree;
+using Prism.Core.Diagnostics;
+using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 
 namespace Prism.Core.FlowAnalysis;
 
 internal sealed class FunctionAnalysisBuilder
 {
-    private readonly Stack<LoopContext> _loopStack = [];
+    private readonly FunctionSymbol _function;
+    private readonly BindingContext _bindingContext;
+
+    private readonly List<LoopContext> _loopStack = [];
 
     private readonly ImmutableHashSet<Symbol>.Builder _addressedLocals =
         ImmutableHashSet.CreateBuilder<Symbol>(ReferenceEqualityComparer.Instance);
 
-    private readonly record struct LoopContext(LabelSymbol Label);
+    private readonly record struct LoopContext(LabelSymbol Label, bool HasReachableBreak = false);
 
     private readonly record struct FlowState(AnalysisState State, bool IsReachable)
     {
@@ -32,11 +39,19 @@ internal sealed class FunctionAnalysisBuilder
         }
     }
 
-    private FunctionAnalysisBuilder() { }
-
-    public static FunctionBodyAnalysis Build(BoundStatement body)
+    private FunctionAnalysisBuilder(FunctionSymbol function, BindingContext bindingContext)
     {
-        var builder = new FunctionAnalysisBuilder();
+        _function = function;
+        _bindingContext = bindingContext;
+    }
+
+    public static FunctionBodyAnalysis Build(
+        FunctionSymbol function,
+        BoundStatement body,
+        BindingContext bindingContext
+    )
+    {
+        var builder = new FunctionAnalysisBuilder(function, bindingContext);
         return builder.BuildCore(body);
     }
 
@@ -44,7 +59,14 @@ internal sealed class FunctionAnalysisBuilder
     {
         var state = new FlowState(new AnalysisState(), true);
 
-        VisitStatement(statement, state);
+        state = VisitStatement(statement, state);
+
+        if (!_function.ReturnsVoid && state.IsReachable)
+        {
+            _bindingContext.ReportDiagnostic(
+                Diagnostic.AllPathsMustReturnValue(statement.Syntax.Location)
+            );
+        }
 
         return new FunctionBodyAnalysis(_addressedLocals.ToImmutable());
     }
@@ -74,12 +96,17 @@ internal sealed class FunctionAnalysisBuilder
     {
         foreach (var statement in block.Statements)
         {
-            state = VisitStatement(statement, state);
             if (!state.IsReachable)
+            {
+                _bindingContext.ReportDiagnostic(
+                    Diagnostic.UnreachableCode(statement.Syntax.Location)
+                );
                 break;
+            }
+
+            state = VisitStatement(statement, state);
         }
 
-        // TODO: We're going to copy Java and make unreachable code an explicit error
         return state;
     }
 
@@ -92,6 +119,32 @@ internal sealed class FunctionAnalysisBuilder
     private FlowState VisitIf(BoundIfStatement statement, FlowState state)
     {
         state = VisitExpression(statement.Condition, state);
+
+        if (statement.Condition.ConstantValue is { Kind: ConstantKind.Bool } constant)
+        {
+            if (constant.AsBoolean())
+            {
+                state = VisitStatement(statement.ThenStatement, state);
+                if (statement.ElseStatement is not null)
+                {
+                    _bindingContext.ReportDiagnostic(
+                        Diagnostic.UnreachableCode(statement.ElseStatement.Syntax.Location)
+                    );
+                }
+            }
+            else
+            {
+                _bindingContext.ReportDiagnostic(
+                    Diagnostic.UnreachableCode(statement.ThenStatement.Syntax.Location)
+                );
+                if (statement.ElseStatement is not null)
+                {
+                    state = VisitStatement(statement.ElseStatement, state);
+                }
+            }
+
+            return state;
+        }
 
         var thenState = VisitStatement(statement.ThenStatement, state);
 
@@ -106,23 +159,49 @@ internal sealed class FunctionAnalysisBuilder
 
     private FlowState VisitWhile(BoundWhileStatement statement, FlowState state)
     {
-        _loopStack.Push(new LoopContext(statement.Label));
+        _loopStack.Add(new LoopContext(statement.Label));
 
         state = VisitExpression(statement.Condition, state);
 
-        state = VisitStatement(statement.Body, state);
+        if (statement.Condition.ConstantValue is { Kind: ConstantKind.Bool } constant)
+        {
+            if (constant.AsBoolean())
+            {
+                state = VisitStatement(statement.Body, state);
 
-        _loopStack.Pop();
+                if (!_loopStack[^1].HasReachableBreak)
+                {
+                    state = state.AsUnreachable();
+                }
+            }
+            else
+            {
+                _bindingContext.ReportDiagnostic(
+                    Diagnostic.UnreachableCode(statement.Body.Syntax.Location)
+                );
+            }
+        }
+        else
+        {
+            var bodyState = VisitStatement(statement.Body, state);
+            state = state.Merge(bodyState);
+        }
+
+        _loopStack.RemoveAt(_loopStack.Count - 1);
         return state;
     }
 
     private FlowState VisitLoop(BoundLoopStatement statement, FlowState state)
     {
-        _loopStack.Push(new LoopContext(statement.Label));
+        _loopStack.Add(new LoopContext(statement.Label));
 
         state = VisitStatement(statement.Body, state);
 
-        _loopStack.Pop();
+        if (!_loopStack[^1].HasReachableBreak)
+        {
+            state = state.AsUnreachable();
+        }
+        _loopStack.RemoveAt(_loopStack.Count - 1);
         return state;
     }
 
@@ -138,45 +217,91 @@ internal sealed class FunctionAnalysisBuilder
             (current, initializer) => VisitExpression(initializer, current)
         );
 
-        _loopStack.Push(new LoopContext(statement.Label));
+        _loopStack.Add(new LoopContext(statement.Label));
 
         if (statement.Condition is not null)
         {
             state = VisitExpression(statement.Condition, state);
+
+            if (statement.Condition.ConstantValue is { Kind: ConstantKind.Bool } constant)
+            {
+                if (constant.AsBoolean())
+                {
+                    state = VisitStatement(statement.Body, state);
+
+                    if (state.IsReachable)
+                    {
+                        state = statement.Incrementors.Aggregate(
+                            state,
+                            (current, incrementor) => VisitExpression(incrementor, current)
+                        );
+                    }
+
+                    if (_loopStack[^1].HasReachableBreak)
+                    {
+                        state = state.AsUnreachable();
+                    }
+                }
+                else
+                {
+                    _bindingContext.ReportDiagnostic(
+                        Diagnostic.UnreachableCode(statement.Body.Syntax.Location)
+                    );
+                }
+            }
+            else
+            {
+                var bodyState = VisitStatement(statement.Body, state);
+
+                if (bodyState.IsReachable)
+                {
+                    var incrementorState = statement.Incrementors.Aggregate(
+                        bodyState,
+                        (current, incrementor) => VisitExpression(incrementor, current)
+                    );
+
+                    bodyState = bodyState.Merge(incrementorState);
+                }
+
+                state = state.Merge(bodyState);
+            }
         }
-
-        state = VisitStatement(statement.Body, state);
-
-        if (state.IsReachable)
+        else
         {
-            state = statement.Incrementors.Aggregate(
-                state,
-                (current, incrementor) => VisitExpression(incrementor, current)
-            );
+            state = VisitStatement(statement.Body, state);
+
+            if (state.IsReachable)
+            {
+                state = statement.Incrementors.Aggregate(
+                    state,
+                    (current, incrementor) => VisitExpression(incrementor, current)
+                );
+            }
         }
 
-        _loopStack.Pop();
+        _loopStack.RemoveAt(_loopStack.Count - 1);
         return state;
     }
 
     private FlowState VisitBreak(BoundBreakStatement statement, FlowState state)
     {
-        var target = LookupLoop(statement.Label);
+        ref var target = ref LookupLoop(statement.Label);
+        target = target with { HasReachableBreak = true };
         return state.AsUnreachable();
     }
 
     private FlowState VisitContinue(BoundContinueStatement statement, FlowState state)
     {
-        var target = LookupLoop(statement.Label);
+        // TODO: There's probably more we need to do here
         return state.AsUnreachable();
     }
 
-    private LoopContext LookupLoop(LabelSymbol label)
+    private ref LoopContext LookupLoop(LabelSymbol label)
     {
-        foreach (var loop in _loopStack)
+        foreach (ref var loop in CollectionsMarshal.AsSpan(_loopStack))
         {
             if (ReferenceEquals(loop.Label, label))
-                return loop;
+                return ref loop;
         }
 
         throw new InvalidOperationException("Loop label not found");
