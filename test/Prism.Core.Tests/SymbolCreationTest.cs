@@ -27,7 +27,7 @@ public class SymbolCreationTest
         var compilation = Compilation.Create(assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers();
-        Assert.That(members, Has.Length.EqualTo(1));
+        Assert.That(members, Has.Length.EqualTo(2));
         Assert.That(members[0].Name, Is.EqualTo("A"));
 
         Assert.That(members[0], Is.InstanceOf<NamespaceSymbol>());

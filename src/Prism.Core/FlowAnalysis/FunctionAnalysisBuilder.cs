@@ -237,7 +237,7 @@ internal sealed class FunctionAnalysisBuilder
                         );
                     }
 
-                    if (_loopStack[^1].HasReachableBreak)
+                    if (!_loopStack[^1].HasReachableBreak)
                     {
                         state = state.AsUnreachable();
                     }
@@ -276,6 +276,11 @@ internal sealed class FunctionAnalysisBuilder
                     state,
                     (current, incrementor) => VisitExpression(incrementor, current)
                 );
+            }
+
+            if (!_loopStack[^1].HasReachableBreak)
+            {
+                state = state.AsUnreachable();
             }
         }
 

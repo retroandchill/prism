@@ -19,12 +19,9 @@ internal sealed class SyntaxState
 
 internal sealed class SyntaxAndDeclarationManager(
     ImmutableArray<SyntaxTree> externalSyntaxTrees,
-    SyntaxState state
+    SyntaxState? state = null
 )
 {
-    public SyntaxAndDeclarationManager(ImmutableArray<SyntaxTree> externalSyntaxTrees)
-        : this(externalSyntaxTrees, null) { }
-
     public SyntaxState State
     {
         get
