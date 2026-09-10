@@ -4,6 +4,8 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using Prism.Core.Configuration;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 
@@ -22,7 +24,16 @@ public sealed class ArrayTypeSymbol : TypeSymbol
 
     public ulong? Size { get; }
 
+    [MemberNotNullWhen(false, nameof(Size))]
     public override bool IsDynamicallySized => Size is null;
+
+    public override ulong GetSizeInBytes(CompilationSettings settings)
+    {
+        if (IsDynamicallySized)
+            throw new InvalidOperationException("Cannot get size of dynamically sized type");
+
+        return ElementType.GetSizeInBytes(settings) * Size.Value;
+    }
 
     public override ImmutableArray<Location> Locations => [];
 
