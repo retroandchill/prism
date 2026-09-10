@@ -3,23 +3,11 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Diagnostics.CodeAnalysis;
 using Prism.Core.Diagnostics;
-using Prism.Core.Strings;
 using Prism.Core.Syntax.Green;
 using Prism.Core.Text;
 
 namespace Prism.Core.Syntax;
-
-public readonly record struct IdentifierInfo(Name Identifier, bool IsEscaped = false)
-{
-    public int Length => Identifier.ToString().Length + (IsEscaped ? 1 : 0);
-
-    public override string ToString()
-    {
-        return IsEscaped ? $"@{Identifier}" : Identifier.ToString();
-    }
-}
 
 public readonly struct SyntaxToken
 {
