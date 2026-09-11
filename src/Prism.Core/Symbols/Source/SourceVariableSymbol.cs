@@ -237,7 +237,11 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
     {
         Debug.Assert(_initializerBinder is not null);
         Debug.Assert(Syntax.Initializer is not null);
-        return _initializerBinder.BindExpression(Syntax.Initializer.Value, context);
+        return _initializerBinder.BindExpression(
+            Syntax.Initializer.Value,
+            context,
+            CancellationToken.None
+        );
     }
 }
 
@@ -285,6 +289,6 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
         var initializer = compilation.GetBoundInitializer(this);
-        return initializer?.ConstantValue;
+        return initializer.ConstantValue;
     }
 }

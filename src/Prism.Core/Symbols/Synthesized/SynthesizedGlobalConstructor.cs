@@ -5,6 +5,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using Prism.Core.Abi;
 using Prism.Core.BoundTree;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
@@ -18,6 +19,7 @@ internal sealed class SynthesizedGlobalConstructor(NamespaceSymbol containingNam
 {
     private ThreeState _shouldEmit = ThreeState.Unknown;
 
+    public override bool IsImplicitlyDeclared => true;
     public override ImmutableArray<Location> Locations => [];
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
     public override TypeSymbol ReturnType
@@ -30,6 +32,7 @@ internal sealed class SynthesizedGlobalConstructor(NamespaceSymbol containingNam
     }
 
     public override ImmutableArray<ParameterSymbol> Parameters => [];
+    internal override AbiKind AbiKind => AbiKind.Internal;
 
     internal bool ShouldEmit(ReadOnlySpan<BoundVariableInitializer> variables)
     {

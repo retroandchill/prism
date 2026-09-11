@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using Cysharp.Text;
+using Prism.Core.Abi;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Codegen;
@@ -207,6 +208,24 @@ public class Compilation
         return Cache.GetBinderFactory(tree);
     }
 
+    private AbiClassifierFactory AbiClassifierFactory
+    {
+        get
+        {
+            if (field is not null)
+                return field;
+
+            Interlocked.CompareExchange(ref field, new AbiClassifierFactory(this), null);
+            return field;
+        }
+    }
+
+    internal FunctionAbi GetFunctionAbi(FunctionSymbol function)
+    {
+        var classifier = AbiClassifierFactory.Get(function.AbiKind);
+        return Cache.GetFunctionAbi(classifier, function);
+    }
+
     internal ImmutableArray<VariableSymbol> GetGlobalVariables()
     {
         return Cache.GetGlobalVariables();
@@ -217,14 +236,20 @@ public class Compilation
         return Cache.GetGlobalFunctions();
     }
 
-    internal BoundVariableInitializer GetBoundInitializer(VariableSymbol variable)
+    internal BoundVariableInitializer GetBoundInitializer(
+        VariableSymbol variable,
+        CancellationToken cancellationToken = default
+    )
     {
-        return Cache.GetBoundInitializer(variable);
+        return Cache.GetBoundInitializer(variable, cancellationToken);
     }
 
-    internal BoundFunctionBody GetBoundBody(FunctionSymbol function)
+    internal BoundFunctionBody GetBoundBody(
+        FunctionSymbol function,
+        CancellationToken cancellationToken = default
+    )
     {
-        return Cache.GetBoundFunctionBody(function);
+        return Cache.GetBoundFunctionBody(function, cancellationToken);
     }
 
     internal EntryPoint GetEntryPointAndDiagnostics()

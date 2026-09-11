@@ -6,6 +6,7 @@
 using System.Diagnostics;
 using Cysharp.Text;
 using LLVMSharp.Interop;
+using Prism.Core.Abi;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Compiling;
@@ -154,6 +155,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             return function;
         }
 
+        var abi = _compilation.GetFunctionAbi(functionSymbol);
         var returnType = GetOrCreateType(functionSymbol.ReturnType);
         using var parameters = functionSymbol
             .Parameters.AsValueEnumerable()

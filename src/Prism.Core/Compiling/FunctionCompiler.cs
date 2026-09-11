@@ -70,7 +70,7 @@ internal sealed class FunctionCompiler
         _cancellationToken.ThrowIfCancellationRequested();
 
         Debug.Assert(variableSymbol.IsGlobal);
-        var initializer = _compilation.GetBoundInitializer(variableSymbol);
+        var initializer = _compilation.GetBoundInitializer(variableSymbol, _cancellationToken);
         _context.ReportDiagnostics(initializer.Diagnostics);
         if (initializer.HasErrors)
             return;
@@ -82,7 +82,7 @@ internal sealed class FunctionCompiler
     {
         _cancellationToken.ThrowIfCancellationRequested();
 
-        var body = _compilation.GetBoundBody(functionSymbol);
+        var body = _compilation.GetBoundBody(functionSymbol, _cancellationToken);
         _context.ReportDiagnostics(body.Diagnostics);
         if (body.HasErrors)
             return;
@@ -92,7 +92,7 @@ internal sealed class FunctionCompiler
             using var globals = _compilation
                 .GetGlobalVariables()
                 .AsValueEnumerable()
-                .Select(_compilation.GetBoundInitializer)
+                .Select(v => _compilation.GetBoundInitializer(v, _cancellationToken))
                 .ToArrayPool();
             if (_emitter is null || !globalCtor.ShouldEmit(globals.Span))
                 return;

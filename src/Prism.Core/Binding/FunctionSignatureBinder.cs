@@ -11,8 +11,8 @@ internal sealed class FunctionSignatureBinder(
     FunctionDeclarationSyntax syntax
 ) : Binder(next)
 {
-    public override SyntaxNode ScopeDesignator => syntax;
-    public override Symbol ContainingSymbol => symbol;
+    protected override SyntaxNode ScopeDesignator => syntax;
+    protected override Symbol ContainingSymbol => symbol;
 
     protected override LookupResult LookupLocal(
         string name,

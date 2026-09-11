@@ -34,14 +34,14 @@ internal abstract class Binder
 
     public Compilation Compilation { get; }
 
-    public Binder? Next { get; }
+    protected Binder? Next { get; }
 
     public Binder GetNextChecked()
     {
         return Next ?? throw new InvalidOperationException("No next binder");
     }
 
-    public ConversionClassifier ConversionClassifier
+    private ConversionClassifier ConversionClassifier
     {
         get
         {
@@ -64,7 +64,7 @@ internal abstract class Binder
         return GetBinder(node) ?? throw new InvalidOperationException("No binder");
     }
 
-    public virtual Symbol? ContainingSymbol
+    protected virtual Symbol? ContainingSymbol
     {
         get
         {
@@ -73,15 +73,7 @@ internal abstract class Binder
         }
     }
 
-    public virtual SyntaxNode? ScopeDesignator => null;
-
-    public virtual ImmutableArray<VariableSymbol> GetDeclaredLocalVariablesForScope(
-        SyntaxNode designator
-    )
-    {
-        Debug.Assert(Next is not null);
-        return Next.GetDeclaredLocalVariablesForScope(designator);
-    }
+    protected virtual SyntaxNode? ScopeDesignator => null;
 
     public TypeSymbol ResolveType(TypeSyntax syntax, BindingContext context)
     {
@@ -115,7 +107,8 @@ internal abstract class Binder
         var boundSize = BindExpression(
             syntax.Size,
             Compilation.GetSpecialType(SpecialType.USize),
-            context
+            context,
+            CancellationToken.None
         );
         if (
             boundSize.ConstantValue
@@ -142,7 +135,7 @@ internal abstract class Binder
         );
     }
 
-    public LookupResult LookupFromSyntax(
+    private LookupResult LookupFromSyntax(
         NameSyntax syntax,
         LookupOptions options,
         BindingContext context
@@ -156,7 +149,7 @@ internal abstract class Binder
         };
     }
 
-    public LookupResult LookupUnqualifiedName(
+    private LookupResult LookupUnqualifiedName(
         string name,
         LookupOptions options,
         BindingContext context
@@ -188,7 +181,7 @@ internal abstract class Binder
         return LookupResult.NotFound();
     }
 
-    public LookupResult LookupQualifiedName(
+    protected LookupResult LookupQualifiedName(
         string name,
         MemberContainerSymbol container,
         LookupOptions options
@@ -338,7 +331,7 @@ internal abstract class Binder
         return current;
     }
 
-    protected bool VisibleFrom(Symbol symbol)
+    private bool VisibleFrom(Symbol symbol)
     {
         switch (symbol.DeclaredVisibility)
         {
@@ -363,53 +356,76 @@ internal abstract class Binder
     public BoundExpression BindInitializer(
         VariableSymbol variable,
         InitializerSyntax initializer,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
         Debug.Assert(variable.IsGlobal);
-        var expression = BindExpression(initializer.Value, variable.Type, context);
+        var expression = BindExpression(
+            initializer.Value,
+            variable.Type,
+            context,
+            cancellationToken
+        );
         return AddConversionIfNecessary(expression, variable.Type, context);
     }
 
     public BoundStatement BindStatement(
         StatementSyntax syntax,
         TypeSymbol returnType,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
+        cancellationToken.ThrowIfCancellationRequested();
         return syntax switch
         {
-            BlockSyntax blockSyntax => BindBlock(blockSyntax, returnType, context),
+            BlockSyntax blockSyntax => BindBlock(
+                blockSyntax,
+                returnType,
+                context,
+                cancellationToken
+            ),
             ExpressionStatementSyntax expressionStatementSyntax => BindExpressionStatement(
                 expressionStatementSyntax,
-                context
+                context,
+                cancellationToken
             ),
             ReturnStatementSyntax returnStatementSyntax => BindReturnStatement(
                 returnStatementSyntax,
                 returnType,
-                context
+                context,
+                cancellationToken
             ),
             VariableDeclarationStatementSyntax variableDeclarationStatementSyntax =>
-                BindVariableDeclaration(variableDeclarationStatementSyntax, context),
+                BindVariableDeclaration(
+                    variableDeclarationStatementSyntax,
+                    context,
+                    cancellationToken
+                ),
             IfStatementSyntax ifStatementSyntax => BindIfStatement(
                 ifStatementSyntax,
                 returnType,
-                context
+                context,
+                cancellationToken
             ),
             WhileStatementSyntax whileStatementSyntax => BindWhileStatement(
                 whileStatementSyntax,
                 returnType,
-                context
+                context,
+                cancellationToken
             ),
             LoopStatementSyntax loopStatementSyntax => BindLoopStatement(
                 loopStatementSyntax,
                 returnType,
-                context
+                context,
+                cancellationToken
             ),
             ForStatementSyntax forStatementSyntax => BindForStatement(
                 forStatementSyntax,
                 returnType,
-                context
+                context,
+                cancellationToken
             ),
             BreakStatementSyntax breakStatementSyntax => BindBreakStatement(
                 breakStatementSyntax,
@@ -422,7 +438,8 @@ internal abstract class Binder
             LabeledStatementSyntax labeledStatementSyntax => BindLabelStatement(
                 labeledStatementSyntax,
                 returnType,
-                context
+                context,
+                cancellationToken
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(syntax)),
         };
@@ -431,21 +448,30 @@ internal abstract class Binder
     public BoundStatement BindExpressionBody(
         ExpressionBodySyntax syntax,
         TypeSymbol returnType,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
         if (returnType.IsVoid)
         {
-            return new BoundExpressionStatement(syntax, BindExpression(syntax.Expression, context));
+            return new BoundExpressionStatement(
+                syntax,
+                BindExpression(syntax.Expression, context, cancellationToken)
+            );
         }
 
         return new BoundReturnStatement(
             syntax,
-            BindExpression(syntax.Expression, returnType, context)
+            BindExpression(syntax.Expression, returnType, context, cancellationToken)
         );
     }
 
-    private BoundBlock BindBlock(BlockSyntax syntax, TypeSymbol returnType, BindingContext context)
+    private BoundBlock BindBlock(
+        BlockSyntax syntax,
+        TypeSymbol returnType,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
     {
         var builder = ImmutableArray.CreateBuilder<BoundStatement>(syntax.Statements.Count);
         var binder = GetRequiredBinder(syntax);
@@ -455,7 +481,7 @@ internal abstract class Binder
                 .Where(statement => statement is not EmptyStatementSyntax)
         )
         {
-            builder.Add(binder.BindStatement(statement, returnType, context));
+            builder.Add(binder.BindStatement(statement, returnType, context, cancellationToken));
         }
 
         return new BoundBlock(syntax, builder.DrainToImmutable());
@@ -463,7 +489,8 @@ internal abstract class Binder
 
     private BoundVariableDeclaration BindVariableDeclaration(
         VariableDeclarationStatementSyntax syntax,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
         var semanticModel = Compilation.GetSemanticModel(syntax.SyntaxTree);
@@ -481,7 +508,12 @@ internal abstract class Binder
 
         var initializer = declaration.Initializer switch
         {
-            not null => BindExpression(declaration.Initializer.Value, targetType, context),
+            not null => BindExpression(
+                declaration.Initializer.Value,
+                targetType,
+                context,
+                cancellationToken
+            ),
             null => null,
         };
 
@@ -503,21 +535,26 @@ internal abstract class Binder
 
     private BoundExpressionStatement BindExpressionStatement(
         ExpressionStatementSyntax syntax,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
-        return new BoundExpressionStatement(syntax, BindExpression(syntax.Expression, context));
+        return new BoundExpressionStatement(
+            syntax,
+            BindExpression(syntax.Expression, context, cancellationToken)
+        );
     }
 
     private BoundStatement BindReturnStatement(
         ReturnStatementSyntax syntax,
         TypeSymbol returnType,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
         var expression = syntax.Expression switch
         {
-            not null => BindExpression(syntax.Expression, returnType, context),
+            not null => BindExpression(syntax.Expression, returnType, context, cancellationToken),
             null => null,
         };
 
@@ -546,18 +583,25 @@ internal abstract class Binder
     private BoundIfStatement BindIfStatement(
         IfStatementSyntax syntax,
         TypeSymbol returnType,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
         var condition = BindExpression(
             syntax.Condition,
             Compilation.GetSpecialType(SpecialType.Bool),
-            context
+            context,
+            cancellationToken
         );
-        var thenStatement = BindBlock(syntax.Block, returnType, context);
+        var thenStatement = BindBlock(syntax.Block, returnType, context, cancellationToken);
         var elseStatement = syntax.ElseClause switch
         {
-            not null => BindStatement(syntax.ElseClause.Statement, returnType, context),
+            not null => BindStatement(
+                syntax.ElseClause.Statement,
+                returnType,
+                context,
+                cancellationToken
+            ),
             null => null,
         };
         return new BoundIfStatement(syntax, condition, thenStatement, elseStatement);
@@ -566,16 +610,18 @@ internal abstract class Binder
     private BoundWhileStatement BindWhileStatement(
         WhileStatementSyntax syntax,
         TypeSymbol returnType,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
         var binder = GetRequiredBinder(syntax);
         var condition = binder.BindExpression(
             syntax.Condition,
             Compilation.GetSpecialType(SpecialType.Bool),
-            context
+            context,
+            cancellationToken
         );
-        var loopBody = binder.BindBlock(syntax.Block, returnType, context);
+        var loopBody = binder.BindBlock(syntax.Block, returnType, context, cancellationToken);
         var label = binder.LookupLoopLabel("", context);
         Debug.Assert(label is not null);
         return new BoundWhileStatement(syntax, condition, loopBody, label);
@@ -584,11 +630,12 @@ internal abstract class Binder
     private BoundLoopStatement BindLoopStatement(
         LoopStatementSyntax syntax,
         TypeSymbol returnType,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
         var binder = GetRequiredBinder(syntax);
-        var loopBody = binder.BindBlock(syntax.Block, returnType, context);
+        var loopBody = binder.BindBlock(syntax.Block, returnType, context, cancellationToken);
         var label = binder.LookupLoopLabel("", context);
         Debug.Assert(label is not null);
         return new BoundLoopStatement(syntax, loopBody, label);
@@ -597,35 +644,41 @@ internal abstract class Binder
     private BoundForStatement BindForStatement(
         ForStatementSyntax syntax,
         TypeSymbol returnType,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
         var binder = GetRequiredBinder(syntax);
         var variable = syntax.Declaration switch
         {
-            not null => binder.BindVariableDeclaration(syntax.Declaration, context),
+            not null => binder.BindVariableDeclaration(
+                syntax.Declaration,
+                context,
+                cancellationToken
+            ),
             null => null,
         };
         var initializers = syntax
             .Initializers.AsValueEnumerable()
-            .Select(e => binder.BindExpression(e, context))
+            .Select(e => binder.BindExpression(e, context, cancellationToken))
             .ToImmutableArray();
         var condition = syntax.Condition switch
         {
             not null => binder.BindExpression(
                 syntax.Condition,
                 Compilation.GetSpecialType(SpecialType.Bool),
-                context
+                context,
+                cancellationToken
             ),
             null => null,
         };
 
         var incrementors = syntax
             .Incrementors.AsValueEnumerable()
-            .Select(e => binder.BindExpression(e, context))
+            .Select(e => binder.BindExpression(e, context, cancellationToken))
             .ToImmutableArray();
 
-        var loopBody = binder.BindBlock(syntax.Block, returnType, context);
+        var loopBody = binder.BindBlock(syntax.Block, returnType, context, cancellationToken);
         var label = binder.LookupLoopLabel("", context);
         Debug.Assert(label is not null);
         return new BoundForStatement(
@@ -676,7 +729,8 @@ internal abstract class Binder
     private BoundStatement BindLabelStatement(
         LabeledStatementSyntax syntax,
         TypeSymbol returnValue,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
         if (
@@ -689,24 +743,26 @@ internal abstract class Binder
             context.ReportDiagnostic(Diagnostic.InvalidUseOfLabel(syntax.Identifier.Location));
         }
 
-        return BindStatement(syntax.Statement, returnValue, context);
+        return BindStatement(syntax.Statement, returnValue, context, cancellationToken);
     }
 
     public BoundExpression BindExpression(
         ExpressionSyntax syntax,
         BindingContext context,
-        bool addressing = false
+        CancellationToken cancellationToken
     )
     {
-        return BindExpression(syntax, null, context);
+        return BindExpression(syntax, null, context, cancellationToken);
     }
 
     public BoundExpression BindExpression(
         ExpressionSyntax syntax,
         TypeSymbol? targetType,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
+        cancellationToken.ThrowIfCancellationRequested();
         return syntax switch
         {
             LiteralExpressionSyntax literal => BindLiteralExpression(literal, targetType, context),
@@ -714,16 +770,44 @@ internal abstract class Binder
             ParenthesizedExpressionSyntax parenthesized => BindExpression(
                 parenthesized.Expression,
                 targetType,
-                context
+                context,
+                cancellationToken
             ),
-            BinaryExpressionSyntax binary => BindBinaryExpression(binary, context),
-            AssignmentExpressionSyntax assignment => BindAssignmentExpression(assignment, context),
-            PrefixExpressionSyntax prefix => BindPrefixExpression(prefix, targetType, context),
-            PostfixExpressionSyntax postfix => BindPostfixExpression(postfix, targetType, context),
-            TernaryExpressionSyntax ternary => BindTernaryExpression(ternary, targetType, context),
-            InvocationExpressionSyntax invocation => BindInvocationExpression(invocation, context),
-            CastExpressionSyntax cast => BindCastExpression(cast, context),
-            IndexExpressionSyntax index => BindIndexExpression(index, context),
+            BinaryExpressionSyntax binary => BindBinaryExpression(
+                binary,
+                context,
+                cancellationToken
+            ),
+            AssignmentExpressionSyntax assignment => BindAssignmentExpression(
+                assignment,
+                context,
+                cancellationToken
+            ),
+            PrefixExpressionSyntax prefix => BindPrefixExpression(
+                prefix,
+                targetType,
+                context,
+                cancellationToken
+            ),
+            PostfixExpressionSyntax postfix => BindPostfixExpression(
+                postfix,
+                targetType,
+                context,
+                cancellationToken
+            ),
+            TernaryExpressionSyntax ternary => BindTernaryExpression(
+                ternary,
+                targetType,
+                context,
+                cancellationToken
+            ),
+            InvocationExpressionSyntax invocation => BindInvocationExpression(
+                invocation,
+                context,
+                cancellationToken
+            ),
+            CastExpressionSyntax cast => BindCastExpression(cast, context, cancellationToken),
+            IndexExpressionSyntax index => BindIndexExpression(index, context, cancellationToken),
             _ => throw new ArgumentException("Invalid expression syntax", nameof(syntax)),
         };
     }
@@ -761,11 +845,12 @@ internal abstract class Binder
 
     private BoundBinaryOperation BindBinaryExpression(
         BinaryExpressionSyntax syntax,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
-        var left = BindExpression(syntax.Left, context);
-        var right = BindExpression(syntax.Right, context);
+        var left = BindExpression(syntax.Left, context, cancellationToken);
+        var right = BindExpression(syntax.Right, context, cancellationToken);
         var operation = syntax.Op.Kind.ToBinaryOperation();
         var conversion = ConversionClassifier.ClassifyBinaryOperand(
             operation,
@@ -824,10 +909,11 @@ internal abstract class Binder
 
     private BoundAssignmentOperation BindAssignmentExpression(
         AssignmentExpressionSyntax syntax,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
-        var assignee = BindExpression(syntax.Left, context);
+        var assignee = BindExpression(syntax.Left, context, cancellationToken);
         var operation = syntax.Op.Kind.ToAssignmentOperation();
         if (!IsAssignmentValid(assignee.Type, operation))
         {
@@ -843,7 +929,7 @@ internal abstract class Binder
             context.ReportDiagnostic(Diagnostic.CannotAssignExpression(syntax.Location));
         }
 
-        var assigned = BindExpression(syntax.Right, context);
+        var assigned = BindExpression(syntax.Right, context, cancellationToken);
         return new BoundAssignmentOperation(
             syntax,
             Compilation.GetSpecialType(SpecialType.Void),
@@ -856,7 +942,8 @@ internal abstract class Binder
     private BoundExpression BindPrefixExpression(
         PrefixExpressionSyntax syntax,
         TypeSymbol? returnType,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
         // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
@@ -864,7 +951,7 @@ internal abstract class Binder
         {
             case SyntaxKind.AmpToken:
             {
-                var inner = BindExpression(syntax.Operand, context, true);
+                var inner = BindExpression(syntax.Operand, context, cancellationToken);
                 if (!inner.IsAddressable)
                 {
                     context.ReportDiagnostic(Diagnostic.CannotTakeAddress(syntax.Operand.Location));
@@ -878,7 +965,7 @@ internal abstract class Binder
             }
             case SyntaxKind.StarToken:
             {
-                var inner = BindExpression(syntax.Operand, context);
+                var inner = BindExpression(syntax.Operand, context, cancellationToken);
                 if (
                     inner.Type is ReferenceTypeSymbol
                     {
@@ -947,17 +1034,18 @@ internal abstract class Binder
             }
         }
 
-        var operand = BindExpression(syntax.Operand, returnType, context);
+        var operand = BindExpression(syntax.Operand, returnType, context, cancellationToken);
         return CreateUnaryOperation(syntax, op, operand, context);
     }
 
     private BoundUnaryOperation BindPostfixExpression(
         PostfixExpressionSyntax syntax,
         TypeSymbol? returnType,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
-        var operand = BindExpression(syntax.Operand, returnType, context);
+        var operand = BindExpression(syntax.Operand, returnType, context, cancellationToken);
         var op = syntax.Op.Kind.ToPostfixOperation();
         return CreateUnaryOperation(syntax, op, operand, context);
     }
@@ -965,17 +1053,18 @@ internal abstract class Binder
     private BoundConditional BindTernaryExpression(
         TernaryExpressionSyntax syntax,
         TypeSymbol? returnType,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
         var condition = AddConversionIfNecessary(
-            BindExpression(syntax.Condition, context),
+            BindExpression(syntax.Condition, context, cancellationToken),
             Compilation.GetSpecialType(SpecialType.Bool),
             context
         );
 
-        var whenTrue = BindExpression(syntax.WhenTrue, context);
-        var whenFalse = BindExpression(syntax.WhenFalse, context);
+        var whenTrue = BindExpression(syntax.WhenTrue, context, cancellationToken);
+        var whenFalse = BindExpression(syntax.WhenFalse, context, cancellationToken);
         if (returnType is not null)
         {
             whenTrue = AddConversionIfNecessary(whenTrue, returnType, context);
@@ -996,13 +1085,14 @@ internal abstract class Binder
 
     private BoundExpression BindInvocationExpression(
         InvocationExpressionSyntax syntax,
-        BindingContext context
+        BindingContext context,
+        CancellationToken cancellationToken
     )
     {
         var arguments = new BoundExpression[syntax.Arguments.Arguments.Count];
         foreach (var (i, argumentSyntax) in syntax.Arguments.Arguments.AsValueEnumerable().Index())
         {
-            arguments[i] = BindExpression(argumentSyntax.Value, context);
+            arguments[i] = BindExpression(argumentSyntax.Value, context, cancellationToken);
         }
 
         if (syntax.Callee is IdentifierExpressionSyntax nameSyntax)
@@ -1024,7 +1114,7 @@ internal abstract class Binder
             }
         }
 
-        var callee = BindExpression(syntax.Callee, context);
+        var callee = BindExpression(syntax.Callee, context, cancellationToken);
 
         context.ReportDiagnostic(
             Diagnostic.NoCallOperatorDefined(syntax.Callee.Location, callee.Type.ToDisplayString())
@@ -1032,17 +1122,27 @@ internal abstract class Binder
         return new BoundInvocation(syntax, ErrorFunctionSymbol.Unnamed, [callee, .. arguments]);
     }
 
-    private BoundExpression BindCastExpression(CastExpressionSyntax syntax, BindingContext context)
+    private BoundExpression BindCastExpression(
+        CastExpressionSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
     {
-        var operand = BindExpression(syntax.Operand, context);
+        var operand = BindExpression(syntax.Operand, context, cancellationToken);
         var targetType = ResolveType(syntax.Type, context);
         return AddConversionIfNecessary(operand, targetType, context, isExplicit: true);
     }
 
-    private BoundIndex BindIndexExpression(IndexExpressionSyntax syntax, BindingContext context)
+    private BoundIndex BindIndexExpression(
+        IndexExpressionSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
     {
-        var operand = AutoDereferenceIfNecessary(BindExpression(syntax.Operand, context));
-        var index = BindExpression(syntax.Index, context);
+        var operand = AutoDereferenceIfNecessary(
+            BindExpression(syntax.Operand, context, cancellationToken)
+        );
+        var index = BindExpression(syntax.Index, context, cancellationToken);
 
         TypeSymbol targetType;
         switch (operand.Type)
@@ -1407,18 +1507,11 @@ internal abstract class Binder
             return symbol;
         }
 
-        if (matchesArgSize)
-        {
-            context.ReportDiagnostic(
-                Diagnostic.NoOverloadForArgTypes(location, GetTypeNames(arguments))
-            );
-        }
-        else
-        {
-            context.ReportDiagnostic(
-                Diagnostic.NoOverloadMatchingArgCount(location, arguments.Length)
-            );
-        }
+        context.ReportDiagnostic(
+            matchesArgSize
+                ? Diagnostic.NoOverloadForArgTypes(location, GetTypeNames(arguments))
+                : Diagnostic.NoOverloadMatchingArgCount(location, arguments.Length)
+        );
 
         return (FunctionSymbol)result.Symbols[0];
     }

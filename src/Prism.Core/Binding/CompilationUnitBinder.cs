@@ -10,8 +10,8 @@ internal sealed class CompilationUnitBinder(Binder next, CompilationUnitSyntax s
 {
     private ImmutableArray<NamespaceSymbol> _usingNamespaces;
 
-    public override SyntaxNode ScopeDesignator => syntax;
-    public override Symbol ContainingSymbol => Compilation.GlobalNamespace;
+    protected override SyntaxNode ScopeDesignator => syntax;
+    protected override Symbol ContainingSymbol => Compilation.GlobalNamespace;
 
     protected override LookupResult LookupLocal(
         string name,

@@ -19,7 +19,8 @@ internal static class CompilerDriver
 {
     public static BoundVariableInitializer BindVariableInitializer(
         Compilation compilation,
-        VariableSymbol variable
+        VariableSymbol variable,
+        CancellationToken cancellationToken
     )
     {
         if (variable is not SourceGlobalVariableSymbol { Syntax: { Initializer: not null } syntax })
@@ -28,7 +29,12 @@ internal static class CompilerDriver
         var binder = binderFactory.GetBinder(syntax);
 
         using var context = BindingContext.Create();
-        var initializer = binder.BindInitializer(variable, syntax.Initializer, context);
+        var initializer = binder.BindInitializer(
+            variable,
+            syntax.Initializer,
+            context,
+            cancellationToken
+        );
         if (context.HasErrors)
         {
             initializer = initializer with { HasErrors = true };
@@ -39,7 +45,8 @@ internal static class CompilerDriver
 
     public static BoundFunctionBody BindFunctionBody(
         Compilation compilation,
-        FunctionSymbol function
+        FunctionSymbol function,
+        CancellationToken cancellationToken
     )
     {
         BoundStatement? body;
@@ -53,7 +60,12 @@ internal static class CompilerDriver
                 if (syntax.Body is not null)
                 {
                     var binder = binderFactory.GetBinder(syntax.Body);
-                    body = binder.BindStatement(syntax.Body, function.ReturnType, context);
+                    body = binder.BindStatement(
+                        syntax.Body,
+                        function.ReturnType,
+                        context,
+                        cancellationToken
+                    );
                 }
                 else if (syntax.ExpressionBody is not null)
                 {
@@ -61,7 +73,8 @@ internal static class CompilerDriver
                     body = binder.BindExpressionBody(
                         syntax.ExpressionBody,
                         function.ReturnType,
-                        context
+                        context,
+                        cancellationToken
                     );
                 }
                 else
@@ -82,7 +95,7 @@ internal static class CompilerDriver
                 using var globals = compilation
                     .GetGlobalVariables()
                     .AsValueEnumerable()
-                    .Select(compilation.GetBoundInitializer)
+                    .Select(v => compilation.GetBoundInitializer(v, cancellationToken))
                     .ToArrayPool();
 
                 // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
@@ -92,6 +105,7 @@ internal static class CompilerDriver
                     if (!global.HasInitializer || global.ConstantValue is not null)
                         continue;
 
+                    cancellationToken.ThrowIfCancellationRequested();
                     builder ??= ImmutableArray.CreateBuilder<BoundStatement>();
 
                     hasErrors |= global.HasErrors;
@@ -137,7 +151,7 @@ internal static class CompilerDriver
         if (body is null)
             return new BoundFunctionBody(function, context.CollectDiagnostics());
 
-        var analysis = FunctionAnalysisBuilder.Build(function, body, context);
+        var analysis = FunctionAnalysisBuilder.Build(function, body, context, cancellationToken);
         return new BoundFunctionBody(function, body, analysis, context.CollectDiagnostics());
     }
 }

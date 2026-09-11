@@ -18,6 +18,7 @@ internal sealed class FunctionAnalysisBuilder
 {
     private readonly FunctionSymbol _function;
     private readonly BindingContext _bindingContext;
+    private readonly CancellationToken _cancellationToken;
 
     private readonly List<LoopContext> _loopStack = [];
 
@@ -40,19 +41,25 @@ internal sealed class FunctionAnalysisBuilder
         }
     }
 
-    private FunctionAnalysisBuilder(FunctionSymbol function, BindingContext bindingContext)
+    private FunctionAnalysisBuilder(
+        FunctionSymbol function,
+        BindingContext bindingContext,
+        CancellationToken cancellationToken
+    )
     {
         _function = function;
         _bindingContext = bindingContext;
+        _cancellationToken = cancellationToken;
     }
 
     public static FunctionBodyAnalysis Build(
         FunctionSymbol function,
         BoundStatement body,
-        BindingContext bindingContext
+        BindingContext bindingContext,
+        CancellationToken cancellationToken
     )
     {
-        var builder = new FunctionAnalysisBuilder(function, bindingContext);
+        var builder = new FunctionAnalysisBuilder(function, bindingContext, cancellationToken);
         return builder.BuildCore(body);
     }
 
@@ -61,6 +68,8 @@ internal sealed class FunctionAnalysisBuilder
         var state = new FlowState(AnalysisState.Empty, true);
 
         state = VisitStatement(statement, state);
+
+        _cancellationToken.ThrowIfCancellationRequested();
 
         if (!_function.ReturnsVoid && state.IsReachable)
         {
@@ -95,6 +104,8 @@ internal sealed class FunctionAnalysisBuilder
 
     private FlowState VisitBlock(BoundBlock block, FlowState state)
     {
+        _cancellationToken.ThrowIfCancellationRequested();
+
         foreach (var statement in block.Statements)
         {
             if (!state.IsReachable)
@@ -113,6 +124,7 @@ internal sealed class FunctionAnalysisBuilder
 
     private FlowState VisitLocal(BoundVariableDeclaration declaration, FlowState state)
     {
+        _cancellationToken.ThrowIfCancellationRequested();
         if (declaration.Initializer is null)
             return state;
 
@@ -122,12 +134,14 @@ internal sealed class FunctionAnalysisBuilder
 
     private FlowState VisitReturn(BoundReturnStatement statement, FlowState state)
     {
+        _cancellationToken.ThrowIfCancellationRequested();
         state = VisitExpression(statement.Expression, state);
         return state.AsUnreachable();
     }
 
     private FlowState VisitIf(BoundIfStatement statement, FlowState state)
     {
+        _cancellationToken.ThrowIfCancellationRequested();
         state = VisitExpression(statement.Condition, state);
 
         if (statement.Condition.ConstantValue is { Kind: ConstantKind.Bool } constant)
@@ -169,6 +183,7 @@ internal sealed class FunctionAnalysisBuilder
 
     private FlowState VisitWhile(BoundWhileStatement statement, FlowState state)
     {
+        _cancellationToken.ThrowIfCancellationRequested();
         _loopStack.Add(new LoopContext(statement.Label));
 
         state = VisitExpression(statement.Condition, state);
@@ -203,6 +218,7 @@ internal sealed class FunctionAnalysisBuilder
 
     private FlowState VisitLoop(BoundLoopStatement statement, FlowState state)
     {
+        _cancellationToken.ThrowIfCancellationRequested();
         _loopStack.Add(new LoopContext(statement.Label));
 
         state = VisitStatement(statement.Body, state);
@@ -217,6 +233,7 @@ internal sealed class FunctionAnalysisBuilder
 
     private FlowState VisitFor(BoundForStatement statement, FlowState state)
     {
+        _cancellationToken.ThrowIfCancellationRequested();
         if (statement.Variable is not null)
         {
             state = state with
@@ -304,6 +321,7 @@ internal sealed class FunctionAnalysisBuilder
 
     private FlowState VisitBreak(BoundBreakStatement statement, FlowState state)
     {
+        _cancellationToken.ThrowIfCancellationRequested();
         ref var target = ref LookupLoop(statement.Label);
         target = target with { HasReachableBreak = true };
         return state.AsUnreachable();
@@ -311,6 +329,8 @@ internal sealed class FunctionAnalysisBuilder
 
     private FlowState VisitContinue(BoundContinueStatement statement, FlowState state)
     {
+        _cancellationToken.ThrowIfCancellationRequested();
+
         // TODO: There's probably more we need to do here
         return state.AsUnreachable();
     }
@@ -330,6 +350,7 @@ internal sealed class FunctionAnalysisBuilder
     {
         while (true)
         {
+            _cancellationToken.ThrowIfCancellationRequested();
             if (expression is null)
                 return state;
 

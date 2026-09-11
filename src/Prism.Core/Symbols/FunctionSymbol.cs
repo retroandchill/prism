@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Prism.Core.Abi;
 using ZLinq;
 
 namespace Prism.Core.Symbols;
@@ -13,6 +14,8 @@ public abstract class FunctionSymbol : Symbol
     public abstract ImmutableArray<ParameterSymbol> Parameters { get; }
 
     public bool ReturnsVoid => ReturnType.IsVoid;
+
+    internal abstract AbiKind AbiKind { get; }
 
     public sealed override void WriteDisplayString(TextWriter writer)
     {

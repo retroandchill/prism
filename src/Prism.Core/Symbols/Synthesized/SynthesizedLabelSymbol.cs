@@ -12,6 +12,7 @@ namespace Prism.Core.Symbols.Synthesized;
 internal sealed class SynthesizedLabelSymbol(FunctionSymbol containingFunction)
     : LabelSymbol("", containingFunction)
 {
+    public override bool IsImplicitlyDeclared => true;
     public override ImmutableArray<Location> Locations => [];
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
 }

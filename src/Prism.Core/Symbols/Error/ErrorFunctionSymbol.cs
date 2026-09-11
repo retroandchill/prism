@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Prism.Core.Abi;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 
@@ -25,4 +26,5 @@ internal sealed class ErrorFunctionSymbol : FunctionSymbol
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
     public override TypeSymbol ReturnType { get; }
     public override ImmutableArray<ParameterSymbol> Parameters => [];
+    internal override AbiKind AbiKind => AbiKind.Internal;
 }

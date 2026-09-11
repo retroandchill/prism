@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Prism.Core.Abi;
 using Prism.Core.Binding;
 using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
@@ -112,6 +113,8 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
             return field;
         }
     }
+
+    internal override AbiKind AbiKind => AbiKind.Internal;
 
     private ImmutableArray<ParameterSymbol> ComputeParameters()
     {

@@ -11,8 +11,8 @@ internal sealed class MemberContainerBinder(
     DeclarationSyntax syntax
 ) : Binder(next)
 {
-    public override SyntaxNode ScopeDesignator => syntax;
-    public override Symbol ContainingSymbol => symbol;
+    protected override SyntaxNode ScopeDesignator => syntax;
+    protected override Symbol ContainingSymbol => symbol;
     private ImmutableArray<NamespaceSymbol> _usingNamespaces;
 
     protected override LookupResult LookupLocal(

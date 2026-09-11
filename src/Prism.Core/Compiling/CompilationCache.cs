@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using Prism.Core.Abi;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Semantic;
@@ -40,6 +41,10 @@ internal sealed class CompilationCache(Compilation compilation)
         BoundVariableInitializer
     > _variableInitializers = new(ReferenceEqualityComparer.Instance);
     private readonly ConcurrentDictionary<FunctionSymbol, BoundFunctionBody> _functionBodies = new(
+        ReferenceEqualityComparer.Instance
+    );
+
+    private readonly ConcurrentDictionary<FunctionSymbol, FunctionAbi> _functionAbis = new(
         ReferenceEqualityComparer.Instance
     );
 
@@ -125,22 +130,34 @@ internal sealed class CompilationCache(Compilation compilation)
         );
     }
 
-    public BoundVariableInitializer GetBoundInitializer(VariableSymbol variable)
+    public BoundVariableInitializer GetBoundInitializer(
+        VariableSymbol variable,
+        CancellationToken cancellationToken
+    )
     {
         return _variableInitializers.GetOrAdd(
             variable,
-            static (v, c) => CompilerDriver.BindVariableInitializer(c, v),
-            compilation
+            static (v, T) =>
+                CompilerDriver.BindVariableInitializer(T.compilation, v, T.cancellationToken),
+            (compilation, cancellationToken)
         );
     }
 
-    public BoundFunctionBody GetBoundFunctionBody(FunctionSymbol function)
+    public BoundFunctionBody GetBoundFunctionBody(
+        FunctionSymbol function,
+        CancellationToken cancellationToken
+    )
     {
         return _functionBodies.GetOrAdd(
             function,
-            static (f, c) => CompilerDriver.BindFunctionBody(c, f),
-            compilation
+            static (f, t) => CompilerDriver.BindFunctionBody(t.compilation, f, t.cancellationToken),
+            (compilation, cancellationToken)
         );
+    }
+
+    public FunctionAbi GetFunctionAbi(IAbiClassifier classifier, FunctionSymbol functionSymbol)
+    {
+        return _functionAbis.GetOrAdd(functionSymbol, static (f, c) => c.Classify(f), classifier);
     }
 
     public ImmutableArray<VariableSymbol> GetGlobalVariables()
