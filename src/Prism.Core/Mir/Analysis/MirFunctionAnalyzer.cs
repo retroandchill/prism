@@ -5,6 +5,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using Prism.Core.Symbols;
 using Prism.Core.Utils;
 using ZLinq;
 
@@ -86,7 +87,7 @@ internal static class MirFunctionAnalyzer
     {
         var builders = function.Locals.ToDictionary(
             l => l.Id,
-            l => new MirLocalFlowInfoBuilder(l.Id) { WriteCount = l is MirParameter ? 1 : 0 }
+            l => new MirLocalFlowInfoBuilder(l) { WriteCount = l is MirParameter ? 1 : 0 }
         );
 
         foreach (var block in cfg.Blocks)
@@ -410,14 +411,17 @@ internal static class MirFunctionAnalyzer
         return false;
     }
 
-    public static MirLocalClassificationAnalysis ClassifyLocals(MirLocalFlowAnalysis localFlow)
+    public static MirLocalClassificationAnalysis ClassifyLocals(
+        MirLocalFlowAnalysis localFlow,
+        CancellationToken cancellationToken
+    )
     {
         var builder = ImmutableDictionary.CreateBuilder<MirLocalId, MirLocalClassification>();
 
-        foreach (var pair in localFlow.Locals)
+        foreach (var (key, local) in localFlow.Locals)
         {
-            var local = pair.Value;
-            builder.Add(pair.Key, ClassifyLocal(local));
+            cancellationToken.ThrowIfCancellationRequested();
+            builder.Add(key, ClassifyLocal(local));
         }
 
         return new MirLocalClassificationAnalysis { Locals = builder.ToImmutable() };
@@ -425,7 +429,7 @@ internal static class MirFunctionAnalyzer
 
     private static MirLocalClassification ClassifyLocal(MirLocalFlowInfo local)
     {
-        if (local.IsAddressTaken || local.HasMultipleDefinitions)
+        if (RequiresMemoryStorage(local))
         {
             return new MirLocalClassification
             {
@@ -451,5 +455,12 @@ internal static class MirFunctionAnalyzer
             StorageKind = MirLocalStorageKind.Ssa,
             IsSsaEligible = true,
         };
+    }
+
+    private static bool RequiresMemoryStorage(MirLocalFlowInfo local)
+    {
+        return local.IsAddressTaken
+            || local.HasMultipleDefinitions
+            || local.Local.Type is ArrayTypeSymbol;
     }
 }

@@ -9,7 +9,9 @@ namespace Prism.Core.Mir.Analysis;
 
 internal sealed class MirLocalFlowInfo
 {
-    public required MirLocalId LocalId { get; init; }
+    public MirLocalId LocalId => Local.Id;
+
+    public required MirLocal Local { get; init; }
 
     public required int WriteCount { get; init; }
     public required int ReadCount { get; init; }
@@ -26,9 +28,9 @@ internal sealed class MirLocalFlowInfo
     public required bool HasMergePotential { get; init; }
 }
 
-internal sealed class MirLocalFlowInfoBuilder(MirLocalId localId)
+internal sealed class MirLocalFlowInfoBuilder(MirLocal local)
 {
-    public MirLocalId LocalId { get; } = localId;
+    public MirLocal Local { get; } = local;
 
     public int ReadCount { get; set; }
     public int WriteCount { get; set; }
@@ -48,7 +50,7 @@ internal sealed class MirLocalFlowInfoBuilder(MirLocalId localId)
     {
         return new MirLocalFlowInfo
         {
-            LocalId = LocalId,
+            Local = Local,
             ReadCount = ReadCount,
             WriteCount = WriteCount,
             IsAddressTaken = IsAddressTaken,

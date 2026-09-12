@@ -16,7 +16,7 @@ internal sealed record MirLocalPlace(MirLocalId LocalId, TypeSymbol Type) : MirP
 }
 
 internal sealed record MirGlobalPlace(VariableSymbol Variable)
-    : MirPlace(Variable.EnsureLocal().Type);
+    : MirPlace(Variable.EnsureGlobal().Type);
 
 internal sealed record MirDerefPlace(MirValue Pointer, TypeSymbol Type) : MirPlace(Type);
 

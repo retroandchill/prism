@@ -11,7 +11,6 @@ using Prism.Core.Mappers;
 using Prism.Core.Mir;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
-using Prism.Core.Symbols.Synthesized;
 
 namespace Prism.Core.Codegen.Mir;
 
@@ -387,6 +386,7 @@ internal sealed class MirEmitter(Compilation compilation)
                 context,
                 cancellationToken
             ),
+            BoundIndex index => EmitIndex(index, context, cancellationToken),
             BoundBadExpression => throw new InvalidOperationException(
                 "Should only emit LLVM IR if the compilation is valid"
             ),
@@ -805,6 +805,16 @@ internal sealed class MirEmitter(Compilation compilation)
         return new MirReadValue(place);
     }
 
+    private MirReadValue EmitIndex(
+        BoundIndex index,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var place = EmitPlace(index, context, cancellationToken);
+        return new MirReadValue(place);
+    }
+
     private MirPlace EmitPlace(
         BoundExpression expression,
         MirEmissionContext context,
@@ -816,6 +826,7 @@ internal sealed class MirEmitter(Compilation compilation)
             BoundVariableAccess access => EmitPlace(access, context),
             BoundParameterAccess access => EmitPlace(access, context),
             BoundDereference dereference => EmitPlace(dereference, context, cancellationToken),
+            BoundIndex index => EmitPlace(index, context, cancellationToken),
             _ => throw new InvalidOperationException(
                 $"Cannot emit place for expression of type {expression.GetType()}"
             ),
@@ -847,6 +858,17 @@ internal sealed class MirEmitter(Compilation compilation)
         var pointer = EmitExpression(dereference.Operand, context, cancellationToken);
         var type = dereference.Type;
         return new MirDerefPlace(pointer, type);
+    }
+
+    private MirIndexPlace EmitPlace(
+        BoundIndex indexer,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var operand = EmitPlace(indexer.Operand, context, cancellationToken);
+        var index = EmitExpression(indexer.Index, context, cancellationToken);
+        return new MirIndexPlace(operand, index, indexer.Type);
     }
 
     private MirConstantValue CreateBoolConstant(bool value)

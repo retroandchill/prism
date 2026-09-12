@@ -75,7 +75,7 @@ internal sealed class FunctionCompiler
         if (initializer.HasErrors)
             return;
 
-        _emitter?.AddGlobalVariable(initializer, _context);
+        _emitter?.AddGlobalVariable(initializer, _context, _cancellationToken);
     }
 
     private void CompileFunction(FunctionSymbol functionSymbol)
@@ -97,12 +97,12 @@ internal sealed class FunctionCompiler
             if (_emitter is null || !globalCtor.ShouldEmit(globals.Span))
                 return;
 
-            _emitter.AddFunction(body, _context);
+            _emitter.AddFunction(body, _context, _cancellationToken);
             _emitter.RegisterGlobalConstructor(functionSymbol);
         }
         else
         {
-            _emitter?.AddFunction(body, _context);
+            _emitter?.AddFunction(body, _context, _cancellationToken);
         }
     }
 
