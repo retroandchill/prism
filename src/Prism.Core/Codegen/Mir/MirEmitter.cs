@@ -46,9 +46,9 @@ internal sealed class MirEmitter(Compilation compilation)
         compilation.GetSpecialType(SpecialType.Bool)
     );
 
-    public MirFunction EmitFunction(FunctionSymbol symbol)
+    public MirFunction EmitFunction(FunctionSymbol symbol, CancellationToken cancellationToken)
     {
-        var body = compilation.GetBoundBody(symbol);
+        var body = compilation.GetBoundBody(symbol, cancellationToken);
         var builder = new MirFunctionBuilder(symbol);
 
         var context = new MirEmissionContext(builder);
@@ -59,7 +59,7 @@ internal sealed class MirEmitter(Compilation compilation)
             builder.SetEntryBlock(entry.Id);
             context.SetCurrentBlock(entry);
 
-            EmitStatement(body.Body, context);
+            EmitStatement(body.Body, context, cancellationToken);
 
             if (!context.CurrentBlock.IsTerminated && symbol.ReturnsVoid)
             {
@@ -76,33 +76,38 @@ internal sealed class MirEmitter(Compilation compilation)
         return builder.Build();
     }
 
-    private void EmitStatement(BoundStatement statement, MirEmissionContext context)
+    private void EmitStatement(
+        BoundStatement statement,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
+        cancellationToken.ThrowIfCancellationRequested();
         switch (statement)
         {
             case BoundBlock boundBlock:
-                EmitBlock(boundBlock, context);
+                EmitBlock(boundBlock, context, cancellationToken);
                 break;
             case BoundVariableDeclaration boundVariableDeclaration:
-                EmitLocal(boundVariableDeclaration, context);
+                EmitLocal(boundVariableDeclaration, context, cancellationToken);
                 break;
             case BoundExpressionStatement boundExpressionStatement:
-                EmitExpressionStatement(boundExpressionStatement, context);
+                EmitExpressionStatement(boundExpressionStatement, context, cancellationToken);
                 break;
             case BoundReturnStatement boundReturnStatement:
-                EmitReturn(boundReturnStatement, context);
+                EmitReturn(boundReturnStatement, context, cancellationToken);
                 break;
             case BoundIfStatement boundIfStatement:
-                EmitIfStatement(boundIfStatement, context);
+                EmitIfStatement(boundIfStatement, context, cancellationToken);
                 break;
             case BoundWhileStatement boundWhileStatement:
-                EmitWhileStatement(boundWhileStatement, context);
+                EmitWhileStatement(boundWhileStatement, context, cancellationToken);
                 break;
             case BoundLoopStatement boundLoopStatement:
-                EmitLoopStatement(boundLoopStatement, context);
+                EmitLoopStatement(boundLoopStatement, context, cancellationToken);
                 break;
             case BoundForStatement boundForStatement:
-                EmitForLoop(boundForStatement, context);
+                EmitForLoop(boundForStatement, context, cancellationToken);
                 break;
             case BoundBreakStatement boundBreakStatement:
                 EmitBreakStatement(boundBreakStatement, context);
@@ -115,21 +120,29 @@ internal sealed class MirEmitter(Compilation compilation)
         }
     }
 
-    private void EmitBlock(BoundBlock block, MirEmissionContext context)
+    private void EmitBlock(
+        BoundBlock block,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
         foreach (var statement in block.Statements)
         {
-            EmitStatement(statement, context);
+            EmitStatement(statement, context, cancellationToken);
         }
     }
 
-    private void EmitLocal(BoundVariableDeclaration declaration, MirEmissionContext context)
+    private void EmitLocal(
+        BoundVariableDeclaration declaration,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
         var local = context.BindLocal(declaration.Variable);
         if (declaration.Initializer is null)
             return;
 
-        var operand = EmitExpression(declaration.Initializer, context);
+        var operand = EmitExpression(declaration.Initializer, context, cancellationToken);
         context.CurrentBlock.AddInstruction(
             new MirAssignInstruction(new MirLocalPlace(local.Id, local.Type), operand)
         );
@@ -137,17 +150,22 @@ internal sealed class MirEmitter(Compilation compilation)
 
     private void EmitExpressionStatement(
         BoundExpressionStatement expression,
-        MirEmissionContext context
+        MirEmissionContext context,
+        CancellationToken cancellationToken
     )
     {
-        _ = EmitExpression(expression.Expression, context);
+        _ = EmitExpression(expression.Expression, context, cancellationToken);
     }
 
-    private void EmitReturn(BoundReturnStatement statement, MirEmissionContext context)
+    private void EmitReturn(
+        BoundReturnStatement statement,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
         if (statement.Expression is not null)
         {
-            var result = EmitExpression(statement.Expression, context);
+            var result = EmitExpression(statement.Expression, context, cancellationToken);
             context.CurrentBlock.SetTerminator(new MirReturnTerminator(result));
         }
         else
@@ -156,7 +174,11 @@ internal sealed class MirEmitter(Compilation compilation)
         }
     }
 
-    private void EmitIfStatement(BoundIfStatement statement, MirEmissionContext context)
+    private void EmitIfStatement(
+        BoundIfStatement statement,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
         var thenBlock = context.AddBlock("then.cond");
         var elseBlock = statement.ElseStatement is not null
@@ -164,14 +186,14 @@ internal sealed class MirEmitter(Compilation compilation)
             : null;
         var mergeBlock = context.AddDetachedBlock("cond.merge");
 
-        var condition = EmitExpression(statement.Condition, context);
+        var condition = EmitExpression(statement.Condition, context, cancellationToken);
         context.CurrentBlock.SetTerminator(
             new MirBranchTerminator(condition, thenBlock.Id, elseBlock?.Id ?? mergeBlock.Id)
         );
 
         var thenFallsThrough = false;
         context.SetCurrentBlock(thenBlock);
-        EmitStatement(statement.ThenStatement, context);
+        EmitStatement(statement.ThenStatement, context, cancellationToken);
         if (!context.CurrentBlock.IsTerminated)
         {
             context.CurrentBlock.SetTerminator(new MirGotoTerminator(mergeBlock.Id));
@@ -184,7 +206,7 @@ internal sealed class MirEmitter(Compilation compilation)
             context.AddBlock(elseBlock);
             context.SetCurrentBlock(elseBlock);
             Debug.Assert(statement.ElseStatement is not null);
-            EmitStatement(statement.ElseStatement, context);
+            EmitStatement(statement.ElseStatement, context, cancellationToken);
             if (!context.CurrentBlock.IsTerminated)
             {
                 context.CurrentBlock.SetTerminator(new MirGotoTerminator(mergeBlock.Id));
@@ -199,7 +221,11 @@ internal sealed class MirEmitter(Compilation compilation)
         context.SetCurrentBlock(mergeBlock);
     }
 
-    private void EmitWhileStatement(BoundWhileStatement statement, MirEmissionContext context)
+    private void EmitWhileStatement(
+        BoundWhileStatement statement,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
         var loopHead = context.AddBlock("loop.head");
         var loopBody = context.AddDetachedBlock("loop.body");
@@ -208,14 +234,14 @@ internal sealed class MirEmitter(Compilation compilation)
 
         context.CurrentBlock.SetTerminator(new MirGotoTerminator(loopHead.Id));
         context.SetCurrentBlock(loopHead);
-        var condition = EmitExpression(statement.Condition, context);
+        var condition = EmitExpression(statement.Condition, context, cancellationToken);
         context.CurrentBlock.SetTerminator(
             new MirBranchTerminator(condition, loopBody.Id, loopTail.Id)
         );
 
         context.AddBlock(loopBody);
         context.SetCurrentBlock(loopBody);
-        EmitStatement(statement.Body, context);
+        EmitStatement(statement.Body, context, cancellationToken);
         if (!context.CurrentBlock.IsTerminated)
         {
             context.CurrentBlock.SetTerminator(new MirGotoTerminator(loopHead.Id));
@@ -225,7 +251,11 @@ internal sealed class MirEmitter(Compilation compilation)
         context.SetCurrentBlock(loopTail);
     }
 
-    private void EmitLoopStatement(BoundLoopStatement statement, MirEmissionContext context)
+    private void EmitLoopStatement(
+        BoundLoopStatement statement,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
         var loopHead = context.AddBlock("loop.head");
         var loopTail = context.AddDetachedBlock("loop.tail");
@@ -233,7 +263,7 @@ internal sealed class MirEmitter(Compilation compilation)
 
         context.CurrentBlock.SetTerminator(new MirGotoTerminator(loopHead.Id));
         context.SetCurrentBlock(loopHead);
-        EmitStatement(statement.Body, context);
+        EmitStatement(statement.Body, context, cancellationToken);
         if (!context.CurrentBlock.IsTerminated)
         {
             context.CurrentBlock.SetTerminator(new MirGotoTerminator(loopHead.Id));
@@ -243,16 +273,20 @@ internal sealed class MirEmitter(Compilation compilation)
         context.SetCurrentBlock(loopTail);
     }
 
-    private void EmitForLoop(BoundForStatement loop, MirEmissionContext context)
+    private void EmitForLoop(
+        BoundForStatement loop,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
         if (loop.Variable is not null)
         {
-            EmitLocal(loop.Variable, context);
+            EmitLocal(loop.Variable, context, cancellationToken);
         }
 
         foreach (var initializer in loop.Initializers)
         {
-            EmitExpression(initializer, context);
+            EmitExpression(initializer, context, cancellationToken);
         }
 
         var loopHead = context.AddBlock("loop.head");
@@ -267,7 +301,7 @@ internal sealed class MirEmitter(Compilation compilation)
         if (loopBody is not null)
         {
             Debug.Assert(loop.Condition is not null);
-            var condition = EmitExpression(loop.Condition, context);
+            var condition = EmitExpression(loop.Condition, context, cancellationToken);
             context.CurrentBlock.SetTerminator(
                 new MirBranchTerminator(condition, loopBody.Id, loopTail.Id)
             );
@@ -276,7 +310,7 @@ internal sealed class MirEmitter(Compilation compilation)
             context.SetCurrentBlock(loopBody);
         }
 
-        EmitStatement(loop.Body, context);
+        EmitStatement(loop.Body, context, cancellationToken);
 
         if (!context.CurrentBlock.IsTerminated)
         {
@@ -288,7 +322,7 @@ internal sealed class MirEmitter(Compilation compilation)
                 context.SetCurrentBlock(loopIncrement);
                 foreach (var incrementor in loop.Incrementors)
                 {
-                    EmitExpression(incrementor, context);
+                    EmitExpression(incrementor, context, cancellationToken);
                 }
             }
 
@@ -317,8 +351,13 @@ internal sealed class MirEmitter(Compilation compilation)
         context.CurrentBlock.SetTerminator(new MirGotoTerminator(continueTarget));
     }
 
-    private MirValue EmitExpression(BoundExpression expression, MirEmissionContext context)
+    private MirValue EmitExpression(
+        BoundExpression expression,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (expression.ConstantValue is { } constantValue)
         {
             return new MirConstantValue(constantValue, expression.Type);
@@ -328,14 +367,26 @@ internal sealed class MirEmitter(Compilation compilation)
         {
             BoundVariableAccess access => EmitAccess(access, context),
             BoundParameterAccess access => EmitAccess(access, context),
-            BoundUnaryOperation unary => EmitOperation(unary, context),
-            BoundBinaryOperation binary => EmitOperation(binary, context),
-            BoundAssignmentOperation assignment => EmitAssignment(assignment, context),
-            BoundConditional conditional => EmitConditional(conditional, context),
-            BoundInvocation invocation => EmitCall(invocation, context),
-            BoundConversion conversion => EmitConversion(conversion, context),
-            BoundAddressOf addressOf => EmitAddressOf(addressOf, context),
-            BoundDereference dereference => EmitDereference(dereference, context),
+            BoundUnaryOperation unary => EmitOperation(unary, context, cancellationToken),
+            BoundBinaryOperation binary => EmitOperation(binary, context, cancellationToken),
+            BoundAssignmentOperation assignment => EmitAssignment(
+                assignment,
+                context,
+                cancellationToken
+            ),
+            BoundConditional conditional => EmitConditional(
+                conditional,
+                context,
+                cancellationToken
+            ),
+            BoundInvocation invocation => EmitCall(invocation, context, cancellationToken),
+            BoundConversion conversion => EmitConversion(conversion, context, cancellationToken),
+            BoundAddressOf addressOf => EmitAddressOf(addressOf, context, cancellationToken),
+            BoundDereference dereference => EmitDereference(
+                dereference,
+                context,
+                cancellationToken
+            ),
             BoundBadExpression => throw new InvalidOperationException(
                 "Should only emit LLVM IR if the compilation is valid"
             ),
@@ -362,44 +413,71 @@ internal sealed class MirEmitter(Compilation compilation)
         return new MirReadValue(new MirLocalPlace(local.Id, local.Type));
     }
 
-    private MirValue EmitOperation(BoundUnaryOperation operation, MirEmissionContext context)
+    private MirValue EmitOperation(
+        BoundUnaryOperation operation,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
         return operation.Operation switch
         {
-            UnaryOperation.Identity => EmitExpression(operation.Operand, context),
+            UnaryOperation.Identity => EmitExpression(
+                operation.Operand,
+                context,
+                cancellationToken
+            ),
 
-            UnaryOperation.Negation => EmitSimpleUnary(operation, MirUnaryOp.Negation, context),
+            UnaryOperation.Negation => EmitSimpleUnary(
+                operation,
+                MirUnaryOp.Negation,
+                context,
+                cancellationToken
+            ),
 
-            UnaryOperation.LogicalNot => EmitSimpleUnary(operation, MirUnaryOp.LogicalNot, context),
+            UnaryOperation.LogicalNot => EmitSimpleUnary(
+                operation,
+                MirUnaryOp.LogicalNot,
+                context,
+                cancellationToken
+            ),
 
-            UnaryOperation.BitwiseNot => EmitSimpleUnary(operation, MirUnaryOp.BitwiseNot, context),
+            UnaryOperation.BitwiseNot => EmitSimpleUnary(
+                operation,
+                MirUnaryOp.BitwiseNot,
+                context,
+                cancellationToken
+            ),
 
             UnaryOperation.PreIncrement => EmitUnaryIncrementDecrement(
                 operation,
                 UnaryResultKind.Prefix,
                 UnaryArithmeticKind.Increment,
-                context
+                context,
+                cancellationToken
             ),
 
             UnaryOperation.PreDecrement => EmitUnaryIncrementDecrement(
                 operation,
                 UnaryResultKind.Prefix,
                 UnaryArithmeticKind.Decrement,
-                context
+                context,
+                cancellationToken
             ),
 
             UnaryOperation.PostIncrement => EmitUnaryIncrementDecrement(
                 operation,
                 UnaryResultKind.Postfix,
                 UnaryArithmeticKind.Increment,
-                context
+                context,
+                cancellationToken
             ),
 
             UnaryOperation.PostDecrement => EmitUnaryIncrementDecrement(
                 operation,
                 UnaryResultKind.Postfix,
                 UnaryArithmeticKind.Decrement,
-                context
+                context,
+                cancellationToken
             ),
 
             _ => throw new ArgumentOutOfRangeException(nameof(operation)),
@@ -409,12 +487,13 @@ internal sealed class MirEmitter(Compilation compilation)
     private MirReadValue EmitSimpleUnary(
         BoundUnaryOperation operation,
         MirUnaryOp mirOp,
-        MirEmissionContext context
+        MirEmissionContext context,
+        CancellationToken cancellationToken
     )
     {
         var temp = context.CreateTemp(operation.Type);
         var place = new MirLocalPlace(temp);
-        var operand = EmitExpression(operation.Operand, context);
+        var operand = EmitExpression(operation.Operand, context, cancellationToken);
         context.CurrentBlock.AddInstruction(new MirUnaryInstruction(place, mirOp, operand));
         return new MirReadValue(place);
     }
@@ -423,10 +502,11 @@ internal sealed class MirEmitter(Compilation compilation)
         BoundUnaryOperation operation,
         UnaryResultKind resultKind,
         UnaryArithmeticKind arithmeticKind,
-        MirEmissionContext context
+        MirEmissionContext context,
+        CancellationToken cancellationToken
     )
     {
-        var place = EmitPlace(operation.Operand, context);
+        var place = EmitPlace(operation.Operand, context, cancellationToken);
         var valueType = operation.Operand.Type;
 
         var temp = context.CreateTemp(valueType, "old");
@@ -460,11 +540,22 @@ internal sealed class MirEmitter(Compilation compilation)
         };
     }
 
-    private MirReadValue EmitOperation(BoundBinaryOperation operation, MirEmissionContext context)
+    private MirReadValue EmitOperation(
+        BoundBinaryOperation operation,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
-        var left = EmitExpression(operation.Left, context);
+        var left = EmitExpression(operation.Left, context, cancellationToken);
         var type = operation.Type;
-        return EmitBinaryOperation(operation.Operation, type, left, operation.Right, context);
+        return EmitBinaryOperation(
+            operation.Operation,
+            type,
+            left,
+            operation.Right,
+            context,
+            cancellationToken
+        );
     }
 
     private MirReadValue EmitBinaryOperation(
@@ -472,7 +563,8 @@ internal sealed class MirEmitter(Compilation compilation)
         TypeSymbol type,
         MirValue left,
         BoundExpression right,
-        MirEmissionContext context
+        MirEmissionContext context,
+        CancellationToken cancellationToken
     )
     {
         return operation switch
@@ -482,16 +574,25 @@ internal sealed class MirEmitter(Compilation compilation)
                 type,
                 left,
                 right,
-                context
+                context,
+                cancellationToken
             ),
             BinaryOperation.LogicalOr => EmitLogicalOperation(
                 LogicalOperation.Or,
                 type,
                 left,
                 right,
-                context
+                context,
+                cancellationToken
             ),
-            _ => EmitSimpleBinaryOperation(operation, type, left, right, context),
+            _ => EmitSimpleBinaryOperation(
+                operation,
+                type,
+                left,
+                right,
+                context,
+                cancellationToken
+            ),
         };
     }
 
@@ -500,7 +601,8 @@ internal sealed class MirEmitter(Compilation compilation)
         TypeSymbol type,
         MirValue left,
         BoundExpression right,
-        MirEmissionContext context
+        MirEmissionContext context,
+        CancellationToken cancellationToken
     )
     {
         var temp = context.CreateTemp(type);
@@ -519,7 +621,7 @@ internal sealed class MirEmitter(Compilation compilation)
 
         context.SetCurrentBlock(evalNext);
         context.CurrentBlock.AddInstruction(
-            new MirAssignInstruction(place, EmitExpression(right, context))
+            new MirAssignInstruction(place, EmitExpression(right, context, cancellationToken))
         );
         context.CurrentBlock.SetTerminator(new MirGotoTerminator(evalMerge.Id));
 
@@ -540,10 +642,11 @@ internal sealed class MirEmitter(Compilation compilation)
         TypeSymbol type,
         MirValue left,
         BoundExpression right,
-        MirEmissionContext context
+        MirEmissionContext context,
+        CancellationToken cancellationToken
     )
     {
-        var rightValue = EmitExpression(right, context);
+        var rightValue = EmitExpression(right, context, cancellationToken);
         var temp = context.CreateTemp(type);
         var place = new MirLocalPlace(temp.Id, temp.Type);
         context.CurrentBlock.AddInstruction(
@@ -554,14 +657,18 @@ internal sealed class MirEmitter(Compilation compilation)
 
     private MirNullValue EmitAssignment(
         BoundAssignmentOperation operation,
-        MirEmissionContext context
+        MirEmissionContext context,
+        CancellationToken cancellationToken
     )
     {
-        var place = EmitPlace(operation.Left, context);
+        var place = EmitPlace(operation.Left, context, cancellationToken);
         if (operation.Operation == AssignmentOperation.Simple)
         {
             context.CurrentBlock.AddInstruction(
-                new MirAssignInstruction(place, EmitExpression(operation.Right, context))
+                new MirAssignInstruction(
+                    place,
+                    EmitExpression(operation.Right, context, cancellationToken)
+                )
             );
         }
         else
@@ -573,7 +680,8 @@ internal sealed class MirEmitter(Compilation compilation)
                 place.Type,
                 loadPlace,
                 operation.Right,
-                context
+                context,
+                cancellationToken
             );
             context.CurrentBlock.AddInstruction(new MirAssignInstruction(place, binaryValue));
         }
@@ -581,7 +689,11 @@ internal sealed class MirEmitter(Compilation compilation)
         return _nullValue;
     }
 
-    private MirReadValue EmitConditional(BoundConditional operation, MirEmissionContext context)
+    private MirReadValue EmitConditional(
+        BoundConditional operation,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
         var type = operation.Type;
         var temp = context.CreateTemp(type, "result");
@@ -591,21 +703,27 @@ internal sealed class MirEmitter(Compilation compilation)
         var elseBlock = context.AddDetachedBlock("cond.else");
         var mergeBlock = context.AddDetachedBlock("cond.merge");
 
-        var condition = EmitExpression(operation.Condition, context);
+        var condition = EmitExpression(operation.Condition, context, cancellationToken);
         context.CurrentBlock.SetTerminator(
             new MirBranchTerminator(condition, thenBlock.Id, elseBlock.Id)
         );
 
         context.SetCurrentBlock(thenBlock);
         context.CurrentBlock.AddInstruction(
-            new MirAssignInstruction(place, EmitExpression(operation.WhenTrue, context))
+            new MirAssignInstruction(
+                place,
+                EmitExpression(operation.WhenTrue, context, cancellationToken)
+            )
         );
         context.CurrentBlock.SetTerminator(new MirGotoTerminator(mergeBlock.Id));
 
         context.AddBlock(elseBlock);
         context.SetCurrentBlock(elseBlock);
         context.CurrentBlock.AddInstruction(
-            new MirAssignInstruction(place, EmitExpression(operation.WhenFalse, context))
+            new MirAssignInstruction(
+                place,
+                EmitExpression(operation.WhenFalse, context, cancellationToken)
+            )
         );
         context.CurrentBlock.SetTerminator(new MirGotoTerminator(mergeBlock.Id));
 
@@ -614,7 +732,11 @@ internal sealed class MirEmitter(Compilation compilation)
         return new MirReadValue(place);
     }
 
-    private MirValue EmitCall(BoundInvocation call, MirEmissionContext context)
+    private MirValue EmitCall(
+        BoundInvocation call,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
         MirLocalPlace? place;
         if (!call.Function.ReturnsVoid)
@@ -632,7 +754,7 @@ internal sealed class MirEmitter(Compilation compilation)
             new MirCallInstruction(
                 place,
                 call.Function,
-                EmitExpressionList(call.Arguments, context)
+                EmitExpressionList(call.Arguments, context, cancellationToken)
             )
         );
         return place is not null ? new MirReadValue(place) : _nullValue;
@@ -640,15 +762,20 @@ internal sealed class MirEmitter(Compilation compilation)
 
     private ImmutableArray<MirValue> EmitExpressionList(
         ImmutableArray<BoundExpression> arguments,
-        MirEmissionContext context
+        MirEmissionContext context,
+        CancellationToken cancellationToken
     )
     {
-        return [.. arguments.Select(arg => EmitExpression(arg, context))];
+        return [.. arguments.Select(arg => EmitExpression(arg, context, cancellationToken))];
     }
 
-    private MirReadValue EmitConversion(BoundConversion conversion, MirEmissionContext context)
+    private MirReadValue EmitConversion(
+        BoundConversion conversion,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
-        var value = EmitExpression(conversion.Operand, context);
+        var value = EmitExpression(conversion.Operand, context, cancellationToken);
         var target = conversion.Type;
         var temp = context.CreateTemp(target);
         var place = new MirLocalPlace(temp);
@@ -658,25 +785,37 @@ internal sealed class MirEmitter(Compilation compilation)
         return new MirReadValue(place);
     }
 
-    private MirAddressOfValue EmitAddressOf(BoundAddressOf operation, MirEmissionContext context)
+    private MirAddressOfValue EmitAddressOf(
+        BoundAddressOf operation,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
-        var place = EmitPlace(operation.Operand, context);
+        var place = EmitPlace(operation.Operand, context, cancellationToken);
         return new MirAddressOfValue(place);
     }
 
-    private MirReadValue EmitDereference(BoundDereference expression, MirEmissionContext context)
+    private MirReadValue EmitDereference(
+        BoundDereference expression,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
-        var place = EmitPlace(expression, context);
+        var place = EmitPlace(expression, context, cancellationToken);
         return new MirReadValue(place);
     }
 
-    private MirPlace EmitPlace(BoundExpression expression, MirEmissionContext context)
+    private MirPlace EmitPlace(
+        BoundExpression expression,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
         return expression switch
         {
             BoundVariableAccess access => EmitPlace(access, context),
             BoundParameterAccess access => EmitPlace(access, context),
-            BoundDereference dereference => EmitPlace(dereference, context),
+            BoundDereference dereference => EmitPlace(dereference, context, cancellationToken),
             _ => throw new InvalidOperationException(
                 $"Cannot emit place for expression of type {expression.GetType()}"
             ),
@@ -699,9 +838,13 @@ internal sealed class MirEmitter(Compilation compilation)
         return new MirLocalPlace(local.Id, local.Type);
     }
 
-    private MirDerefPlace EmitPlace(BoundDereference dereference, MirEmissionContext context)
+    private MirDerefPlace EmitPlace(
+        BoundDereference dereference,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
-        var pointer = EmitExpression(dereference.Operand, context);
+        var pointer = EmitExpression(dereference.Operand, context, cancellationToken);
         var type = dereference.Type;
         return new MirDerefPlace(pointer, type);
     }

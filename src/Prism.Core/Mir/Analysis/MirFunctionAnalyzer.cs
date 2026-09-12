@@ -12,7 +12,10 @@ namespace Prism.Core.Mir.Analysis;
 
 internal static class MirFunctionAnalyzer
 {
-    public static MirControlFlowGraph AnalyzeControlFlow(MirFunction function)
+    public static MirControlFlowGraph AnalyzeControlFlow(
+        MirFunction function,
+        CancellationToken cancellationToken
+    )
     {
         // By using a builder instead of just copying the blocks outright, we can use this to essentially track
         // any blocks that are dead code.
@@ -26,6 +29,7 @@ internal static class MirFunctionAnalyzer
 
         while (toExplore.TryDequeue(out var blockId))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!explored.Add(blockId))
                 continue;
             var block = function.GetBlock(blockId);
@@ -76,7 +80,8 @@ internal static class MirFunctionAnalyzer
 
     public static MirLocalFlowAnalysis AnalyzeLocalFlow(
         MirFunction function,
-        MirControlFlowGraph cfg
+        MirControlFlowGraph cfg,
+        CancellationToken cancellationToken
     )
     {
         var builders = function.Locals.ToDictionary(
@@ -88,14 +93,17 @@ internal static class MirFunctionAnalyzer
         {
             foreach (var instruction in block.Instructions)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 AnalyzeInstructionLocalFlow(instruction, block.Id, builders);
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             AnalyzeTerminatorLocalFlow(block.Terminator, block.Id, builders);
         }
 
         foreach (var builder in builders.Values)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             FinalizeLocalFlow(builder, cfg);
         }
 
