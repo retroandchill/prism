@@ -1083,8 +1083,77 @@ internal abstract class Binder
         return new BoundConditional(syntax, returnType, condition, whenTrue, whenFalse);
     }
 
-    private BoundExpression BindInvocationExpression(
+    private BoundInvocation BindInvocationExpression(
         InvocationExpressionSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        if (syntax.Callee is IdentifierExpressionSyntax nameSyntax)
+        {
+            var overloads = LookupFromSyntax(nameSyntax.Value, LookupOptions.Callable, context);
+            if (overloads.IsViable)
+            {
+                return overloads.Symbols.Length == 1
+                    ? BindUnambiguousOverloadSet(syntax, overloads, context, cancellationToken)
+                    : BindAmbiguousOverloadSet(syntax, overloads, context, cancellationToken);
+            }
+        }
+
+        var callee = BindExpression(syntax.Callee, context, cancellationToken);
+
+        context.ReportDiagnostic(
+            Diagnostic.NoCallOperatorDefined(syntax.Callee.Location, callee.Type.ToDisplayString())
+        );
+
+        var unknownArguments = new BoundExpression[syntax.Arguments.Arguments.Count + 1];
+        unknownArguments[0] = callee;
+        foreach (var (i, argumentSyntax) in syntax.Arguments.Arguments.AsValueEnumerable().Index())
+        {
+            unknownArguments[i + 1] = BindExpression(
+                argumentSyntax.Value,
+                context,
+                cancellationToken
+            );
+        }
+
+        return new BoundInvocation(
+            syntax,
+            ErrorFunctionSymbol.Unnamed,
+            ImmutableCollectionsMarshal.AsImmutableArray(unknownArguments)
+        );
+    }
+
+    private BoundInvocation BindUnambiguousOverloadSet(
+        InvocationExpressionSyntax syntax,
+        LookupResult overloads,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var function = (FunctionSymbol)overloads.Symbols[0];
+        var parameters = function.Parameters;
+        var arguments = new BoundExpression[syntax.Arguments.Arguments.Count];
+        foreach (var (i, argumentSyntax) in syntax.Arguments.Arguments.AsValueEnumerable().Index())
+        {
+            arguments[i] = BindExpression(
+                argumentSyntax.Value,
+                parameters[i].Type,
+                context,
+                cancellationToken
+            );
+        }
+
+        return new BoundInvocation(
+            syntax,
+            function,
+            ImmutableCollectionsMarshal.AsImmutableArray(arguments)
+        );
+    }
+
+    private BoundInvocation BindAmbiguousOverloadSet(
+        InvocationExpressionSyntax syntax,
+        LookupResult overloads,
         BindingContext context,
         CancellationToken cancellationToken
     )
@@ -1095,31 +1164,12 @@ internal abstract class Binder
             arguments[i] = BindExpression(argumentSyntax.Value, context, cancellationToken);
         }
 
-        if (syntax.Callee is IdentifierExpressionSyntax nameSyntax)
-        {
-            var overloads = LookupFromSyntax(nameSyntax.Value, LookupOptions.Callable, context);
-            if (overloads.IsViable)
-            {
-                var overload = ResolveOverload(
-                    overloads,
-                    arguments,
-                    syntax.Callee.Location,
-                    context
-                );
-                return new BoundInvocation(
-                    syntax,
-                    overload,
-                    ImmutableCollectionsMarshal.AsImmutableArray(arguments)
-                );
-            }
-        }
-
-        var callee = BindExpression(syntax.Callee, context, cancellationToken);
-
-        context.ReportDiagnostic(
-            Diagnostic.NoCallOperatorDefined(syntax.Callee.Location, callee.Type.ToDisplayString())
+        var overload = ResolveOverload(overloads, arguments, syntax.Callee.Location, context);
+        return new BoundInvocation(
+            syntax,
+            overload,
+            ImmutableCollectionsMarshal.AsImmutableArray(arguments)
         );
-        return new BoundInvocation(syntax, ErrorFunctionSymbol.Unnamed, [callee, .. arguments]);
     }
 
     private BoundExpression BindCastExpression(
