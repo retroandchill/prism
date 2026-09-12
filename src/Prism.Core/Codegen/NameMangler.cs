@@ -64,6 +64,32 @@ public static class NameMangler
 
     private static void MangleType(TypeSymbol type, ref Utf16ValueStringBuilder builder)
     {
+        switch (type)
+        {
+            case ArrayTypeSymbol arrayType:
+                MangleType(arrayType.ElementType, ref builder);
+                if (arrayType.IsDynamicallySized)
+                {
+                    builder.Append("__slice");
+                }
+                else
+                {
+                    builder.Append("__arr_");
+                    builder.Append(arrayType.Size.Value);
+                }
+
+                return;
+            case ReferenceTypeSymbol referenceType:
+                MangleType(referenceType.ReferencedType, ref builder);
+                if (referenceType.IsMutable)
+                {
+                    builder.Append("__mut");
+                }
+                builder.Append("__ref");
+
+                return;
+        }
+
         switch (type.SpecialType)
         {
             case SpecialType.None:
