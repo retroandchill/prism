@@ -84,61 +84,64 @@ public enum DiagnosticCode : uint
     NoOverloadForArgTypes = 2017,
 
     [EnumMember(Value = "E2018")]
-    NoCallOperatorDefined = 2018,
+    AmbiguousOverloadDefined = 2018,
 
     [EnumMember(Value = "E2019")]
-    NoEntryPointDefined = 2019,
+    NoCallOperatorDefined = 2019,
 
     [EnumMember(Value = "E2020")]
-    AmbiguousEntryPoint = 2020,
+    NoEntryPointDefined = 2020,
 
     [EnumMember(Value = "E2021")]
-    InvalidEntryPointReturnType = 2021,
+    AmbiguousEntryPoint = 2021,
 
     [EnumMember(Value = "E2022")]
-    InvalidEntryPointParameters = 2022,
+    InvalidEntryPointReturnType = 2022,
 
     [EnumMember(Value = "E2023")]
-    InvalidUseOfLabel = 2023,
+    InvalidEntryPointParameters = 2023,
 
     [EnumMember(Value = "E2024")]
-    InvalidUseOfBreak = 2024,
+    InvalidUseOfLabel = 2024,
 
     [EnumMember(Value = "E2025")]
-    InvalidUseOfContinue = 2025,
+    InvalidUseOfBreak = 2025,
 
     [EnumMember(Value = "E2026")]
-    CannotTakeAddress = 2026,
+    InvalidUseOfContinue = 2026,
 
     [EnumMember(Value = "E2027")]
-    CannotDereference = 2027,
+    CannotTakeAddress = 2027,
 
     [EnumMember(Value = "E2028")]
-    CannotDereferenceVariableLength = 2028,
+    CannotDereference = 2028,
 
     [EnumMember(Value = "E2029")]
-    NoIndexOperation = 2029,
+    CannotDereferenceVariableLength = 2029,
 
     [EnumMember(Value = "E2030")]
-    AllPathsMustReturnValue = 2030,
+    NoIndexOperation = 2030,
 
     [EnumMember(Value = "E2031")]
-    StatementMustReturnValue = 2031,
+    AllPathsMustReturnValue = 2031,
 
     [EnumMember(Value = "E2032")]
-    CannotReturnValue = 2032,
+    StatementMustReturnValue = 2032,
 
     [EnumMember(Value = "E2033")]
-    UnreachableCode = 2033,
+    CannotReturnValue = 2033,
 
     [EnumMember(Value = "E2034")]
-    CannotReassign = 2034,
+    UnreachableCode = 2034,
 
     [EnumMember(Value = "E2035")]
-    ValueUninitialized = 2035,
+    CannotReassign = 2035,
 
     [EnumMember(Value = "E2036")]
-    NotInitializedOnAllPaths = 2036,
+    ValueUninitialized = 2036,
+
+    [EnumMember(Value = "E2037")]
+    NotInitializedOnAllPaths = 2037,
 
     // -- Code gen (3000-3999) ---
     [EnumMember(Value = "E3000")]

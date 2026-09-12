@@ -388,7 +388,7 @@ internal sealed class MirEmitter(Compilation compilation)
                 cancellationToken
             ),
             BoundIndex index => EmitIndex(index, context, cancellationToken),
-            BoundBadExpression => throw new InvalidOperationException(
+            BoundBadExpression or BoundSpeculativeExpression => throw new InvalidOperationException(
                 "Should only emit LLVM IR if the compilation is valid"
             ),
             BoundLiteral => throw new InvalidOperationException(

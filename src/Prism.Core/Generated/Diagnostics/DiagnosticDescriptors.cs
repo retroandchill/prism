@@ -219,6 +219,15 @@ public static class DiagnosticDescriptors
         DefaultSeverity = DiagnosticSeverity.Error,
     };
 
+    public static readonly DiagnosticDescriptor AmbiguousOverloadDefined = new()
+    {
+        Id = DiagnosticCode.AmbiguousOverloadDefined.ToStringFast(),
+        Title = "Ambiguous overload defined",
+        MessageFormat = "Ambiguous overload for argument types {0}",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
     public static readonly DiagnosticDescriptor NoCallOperatorDefined = new()
     {
         Id = DiagnosticCode.NoCallOperatorDefined.ToStringFast(),
@@ -428,6 +437,7 @@ public static class DiagnosticDescriptors
             DiagnosticCode.BinaryOperatorUndefined => BinaryOperatorUndefined,
             DiagnosticCode.NoOverloadMatchingArgCount => NoOverloadMatchingArgCount,
             DiagnosticCode.NoOverloadForArgTypes => NoOverloadForArgTypes,
+            DiagnosticCode.AmbiguousOverloadDefined => AmbiguousOverloadDefined,
             DiagnosticCode.NoCallOperatorDefined => NoCallOperatorDefined,
             DiagnosticCode.NoEntryPointDefined => NoEntryPointDefined,
             DiagnosticCode.AmbiguousEntryPoint => AmbiguousEntryPoint,

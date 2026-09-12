@@ -2155,6 +2155,17 @@
           ]
         },
         {
+          "name": "AmbiguousOverloadDefined",
+          "severity": "Error",
+          "format": "Ambiguous overload for argument types {ArgTypes}",
+          "args": [
+            {
+              "name": "ArgTypes",
+              "type": "String"
+            }
+          ]
+        },
+        {
           "name": "NoCallOperatorDefined",
           "severity": "Error",
           "format": "Type {Type} is not callable",

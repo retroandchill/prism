@@ -755,9 +755,30 @@ internal abstract class Binder
         return BindExpression(syntax, null, context, cancellationToken);
     }
 
-    public BoundExpression BindExpression(
+    private BoundExpression BindExpression(
+        ExpressionSyntax syntax,
+        bool isSpeculative,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        return BindExpression(syntax, null, isSpeculative, context, cancellationToken);
+    }
+
+    private BoundExpression BindExpression(
         ExpressionSyntax syntax,
         TypeSymbol? targetType,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        return BindExpression(syntax, targetType, false, context, cancellationToken);
+    }
+
+    private BoundExpression BindExpression(
+        ExpressionSyntax syntax,
+        TypeSymbol? targetType,
+        bool isSpeculative,
         BindingContext context,
         CancellationToken cancellationToken
     )
@@ -765,7 +786,12 @@ internal abstract class Binder
         cancellationToken.ThrowIfCancellationRequested();
         return syntax switch
         {
-            LiteralExpressionSyntax literal => BindLiteralExpression(literal, targetType, context),
+            LiteralExpressionSyntax literal => BindLiteralExpression(
+                literal,
+                targetType,
+                context,
+                isSpeculative
+            ),
             IdentifierExpressionSyntax identifier => BindIdentifierExpression(identifier, context),
             ParenthesizedExpressionSyntax parenthesized => BindExpression(
                 parenthesized.Expression,
@@ -786,6 +812,7 @@ internal abstract class Binder
             PrefixExpressionSyntax prefix => BindPrefixExpression(
                 prefix,
                 targetType,
+                isSpeculative,
                 context,
                 cancellationToken
             ),
@@ -799,6 +826,7 @@ internal abstract class Binder
                 ternary,
                 targetType,
                 context,
+                isSpeculative,
                 cancellationToken
             ),
             InvocationExpressionSyntax invocation => BindInvocationExpression(
@@ -812,13 +840,51 @@ internal abstract class Binder
         };
     }
 
-    private BoundLiteral BindLiteralExpression(
+    private BoundExpression BindLiteralExpression(
         LiteralExpressionSyntax syntax,
         TypeSymbol? returnType,
-        BindingContext context
+        BindingContext context,
+        bool isSpeculative
     )
     {
         var token = syntax.Value;
+        if (isSpeculative)
+        {
+            Debug.Assert(returnType is null);
+            if (
+                token.TryGetValue<IntegerLiteralData>() is
+                { Suffix: IntegerSuffix.None } integerValue
+            )
+            {
+                var constant = EvaluateNumericExpression(
+                    in integerValue,
+                    null,
+                    syntax.Location,
+                    BindingContext.Discarded
+                );
+                return new BoundUnfixedIntegerLiteral(
+                    syntax,
+                    integerValue,
+                    Compilation.GetSpecialType(constant.SpecialType)
+                );
+            }
+
+            if (token.TryGetValue<FloatLiteralData>() is { Suffix: FloatSuffix.None } floatingValue)
+            {
+                var constant = EvaluateNumericExpression(
+                    in floatingValue,
+                    null,
+                    syntax.Location,
+                    BindingContext.Discarded
+                );
+                return new BoundUnfixedFloatLiteral(
+                    syntax,
+                    floatingValue,
+                    Compilation.GetSpecialType(constant.SpecialType)
+                );
+            }
+        }
+
         var value = EvaluateConstantExpression(token, returnType, context);
         var type = Compilation.GetSpecialType(value.SpecialType);
         return new BoundLiteral(syntax, type, value);
@@ -942,6 +1008,7 @@ internal abstract class Binder
     private BoundExpression BindPrefixExpression(
         PrefixExpressionSyntax syntax,
         TypeSymbol? returnType,
+        bool isSpeculative,
         BindingContext context,
         CancellationToken cancellationToken
     )
@@ -983,6 +1050,7 @@ internal abstract class Binder
                             )
                         );
                     }
+
                     return new BoundDereference(syntax, inner, referencedType, isMutable);
                 }
 
@@ -1009,6 +1077,19 @@ internal abstract class Binder
                         context,
                         true
                     );
+
+                    if (intData.Suffix == IntegerSuffix.None && isSpeculative)
+                    {
+                        return new BoundUnfixedIntegerLiteral(
+                            syntax,
+                            intData,
+                            Compilation.GetSpecialType(negated.SpecialType)
+                        )
+                        {
+                            Negated = true,
+                        };
+                    }
+
                     return new BoundLiteral(
                         syntax,
                         Compilation.GetSpecialType(negated.SpecialType),
@@ -1025,6 +1106,19 @@ internal abstract class Binder
                         context,
                         true
                     );
+
+                    if (floatData.Suffix == FloatSuffix.None && isSpeculative)
+                    {
+                        return new BoundUnfixedFloatLiteral(
+                            syntax,
+                            floatData,
+                            Compilation.GetSpecialType(negated.SpecialType)
+                        )
+                        {
+                            Negated = true,
+                        };
+                    }
+
                     return new BoundLiteral(
                         syntax,
                         Compilation.GetSpecialType(negated.SpecialType),
@@ -1050,10 +1144,11 @@ internal abstract class Binder
         return CreateUnaryOperation(syntax, op, operand, context);
     }
 
-    private BoundConditional BindTernaryExpression(
+    private BoundExpression BindTernaryExpression(
         TernaryExpressionSyntax syntax,
         TypeSymbol? returnType,
         BindingContext context,
+        bool isSpeculative,
         CancellationToken cancellationToken
     )
     {
@@ -1063,8 +1158,50 @@ internal abstract class Binder
             context
         );
 
+        if (isSpeculative)
+        {
+            return BindSpeculativeConditional(syntax, condition, context, cancellationToken);
+        }
+
+        return BindRegularConditional(syntax, returnType, condition, context, cancellationToken);
+    }
+
+    private BoundSpeculativeConditional BindSpeculativeConditional(
+        TernaryExpressionSyntax syntax,
+        BoundExpression condition,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var whenTrue = BindExpression(syntax.WhenTrue, true, context, cancellationToken);
+        var whenFalse = BindExpression(syntax.WhenFalse, true, context, cancellationToken);
+
+        var returnType = whenTrue.Type == whenFalse.Type ? whenTrue.Type : ErrorTypeSymbol.Unnamed;
+        return new BoundSpeculativeConditional(syntax, returnType, condition, whenTrue, whenFalse);
+    }
+
+    private BoundConditional BindRegularConditional(
+        TernaryExpressionSyntax syntax,
+        TypeSymbol? returnType,
+        BoundExpression condition,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
         var whenTrue = BindExpression(syntax.WhenTrue, context, cancellationToken);
         var whenFalse = BindExpression(syntax.WhenFalse, context, cancellationToken);
+        return ConstructConditional(syntax, returnType, condition, whenTrue, whenFalse, context);
+    }
+
+    private BoundConditional ConstructConditional(
+        SyntaxNode syntax,
+        TypeSymbol? returnType,
+        BoundExpression condition,
+        BoundExpression whenTrue,
+        BoundExpression whenFalse,
+        BindingContext context
+    )
+    {
         if (returnType is not null)
         {
             whenTrue = AddConversionIfNecessary(whenTrue, returnType, context);
@@ -1072,11 +1209,7 @@ internal abstract class Binder
         }
         else
         {
-            whenFalse = AddConversionIfNecessary(
-                whenFalse,
-                Compilation.GetSpecialType(SpecialType.Void),
-                context
-            );
+            whenFalse = AddConversionIfNecessary(whenFalse, whenTrue.Type, context);
             returnType = whenTrue.Type;
         }
 
@@ -1158,18 +1291,30 @@ internal abstract class Binder
         CancellationToken cancellationToken
     )
     {
+        var arguments = GetOverloadArguments(syntax, context, cancellationToken);
+
+        var (overload, realArgs) = ResolveOverload(
+            overloads,
+            arguments,
+            syntax.Callee.Location,
+            context
+        );
+        return new BoundInvocation(syntax, overload, realArgs);
+    }
+
+    private ImmutableArray<BoundExpression> GetOverloadArguments(
+        InvocationExpressionSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
         var arguments = new BoundExpression[syntax.Arguments.Arguments.Count];
         foreach (var (i, argumentSyntax) in syntax.Arguments.Arguments.AsValueEnumerable().Index())
         {
-            arguments[i] = BindExpression(argumentSyntax.Value, context, cancellationToken);
+            arguments[i] = BindExpression(argumentSyntax.Value, true, context, cancellationToken);
         }
 
-        var overload = ResolveOverload(overloads, arguments, syntax.Callee.Location, context);
-        return new BoundInvocation(
-            syntax,
-            overload,
-            ImmutableCollectionsMarshal.AsImmutableArray(arguments)
-        );
+        return ImmutableCollectionsMarshal.AsImmutableArray(arguments);
     }
 
     private BoundExpression BindCastExpression(
@@ -1512,95 +1657,244 @@ internal abstract class Binder
         };
     }
 
-    private FunctionSymbol ResolveOverload(
+    private readonly record struct ResolvedOverload(
+        FunctionSymbol Function,
+        ImmutableArray<BoundExpression> Arguments
+    );
+
+    private readonly record struct OverloadResolutionResult(ResolvedOverload Match, bool IsExact);
+
+    private ResolvedOverload ResolveOverload(
         LookupResult result,
-        BoundExpression[] arguments,
+        ImmutableArray<BoundExpression> arguments,
         Location location,
         BindingContext context
     )
     {
         // TODO: We need to eventually actually resolve named/default parameters
-        Debug.Assert(result.IsViable);
-        if (result.Symbols.Length == 1)
-        {
-            var symbol = (FunctionSymbol)result.Symbol;
-            if (symbol.Parameters.Length != arguments.Length)
-            {
-                context.ReportDiagnostic(
-                    Diagnostic.NoOverloadMatchingArgCount(location, arguments.Length)
-                );
-                return symbol;
-            }
-
-            if (!TryMatchOverload(symbol, arguments, context))
-            {
-                context.ReportDiagnostic(
-                    Diagnostic.NoOverloadForArgTypes(location, GetTypeNames(arguments))
-                );
-            }
-
-            return symbol;
-        }
-
         var matchesArgSize = false;
-        foreach (var symbol in result.Symbols.AsValueEnumerable().Cast<FunctionSymbol>())
-        {
-            if (symbol.Parameters.Length == arguments.Length)
-            {
-                matchesArgSize = true;
-            }
+        var exactMatches = new List<ResolvedOverload>();
+        var convertibleMatches = new List<ResolvedOverload>();
 
-            if (!TryMatchOverload(symbol, arguments, context))
+        foreach (var overload in result.Symbols.AsValueEnumerable().Cast<FunctionSymbol>())
+        {
+            if (overload.Parameters.Length != arguments.Length)
                 continue;
 
-            // TODO: We need to figure out disambiguating cases where we get multiple overloads via implicit conversions
-            return symbol;
+            matchesArgSize = true;
+
+            if (TryMatchOverload(overload, arguments, context) is not var (resolved, isExact))
+            {
+                continue;
+            }
+
+            if (isExact)
+            {
+                exactMatches.Add(resolved);
+            }
+            else
+            {
+                convertibleMatches.Add(resolved);
+            }
         }
 
+        switch (exactMatches.Count)
+        {
+            case 1:
+                return exactMatches[0];
+            case > 1:
+            {
+                var match = exactMatches[0];
+                context.ReportDiagnostic(
+                    Diagnostic.AmbiguousOverloadDefined(location, GetTypeNames(match.Arguments))
+                );
+                return match;
+            }
+        }
+
+        switch (convertibleMatches.Count)
+        {
+            case 1:
+                return convertibleMatches[0];
+            case > 1:
+                arguments = RealizeSpeculativeBindingForDiagnostics(arguments, context);
+                context.ReportDiagnostic(
+                    Diagnostic.AmbiguousOverloadDefined(location, GetTypeNames(arguments))
+                );
+                return convertibleMatches[0];
+        }
+
+        arguments = RealizeSpeculativeBindingForDiagnostics(arguments, context);
         context.ReportDiagnostic(
             matchesArgSize
                 ? Diagnostic.NoOverloadForArgTypes(location, GetTypeNames(arguments))
                 : Diagnostic.NoOverloadMatchingArgCount(location, arguments.Length)
         );
 
-        return (FunctionSymbol)result.Symbols[0];
+        return new ResolvedOverload((FunctionSymbol)result.Symbols[0], arguments);
     }
 
-    private bool TryMatchOverload(
+    private OverloadResolutionResult? TryMatchOverload(
         FunctionSymbol overload,
-        BoundExpression[] arguments,
+        ImmutableArray<BoundExpression> arguments,
         BindingContext context
     )
     {
-        Debug.Assert(overload.Parameters.Length == arguments.Length);
-        var conversions = new Conversion[overload.Parameters.Length];
-
-        var classifier = ConversionClassifier;
-        for (var i = 0; i < overload.Parameters.Length; i++)
+        BoundExpression[]? remappedArgs = null;
+        var isExactMatch = true;
+        foreach (var (i, argument) in arguments.AsValueEnumerable().Index())
         {
-            var param = overload.Parameters[i];
-            var arg = arguments[i];
-            var conversion = classifier.ClassifyConversion(arg.Type, param.Type);
-            if (!conversion.IsImplicit)
-                return false;
+            var parameter = overload.Parameters[i];
 
-            conversions[i] = conversion;
+            if (argument.Type == parameter.Type)
+                continue;
+
+            BoundExpression newExpression;
+            if (argument is BoundSpeculativeExpression speculative)
+            {
+                isExactMatch &= parameter.Type == speculative.DefaultType;
+                newExpression = ApplySpeculativeBinding(speculative, parameter.Type, context);
+            }
+            else
+            {
+                isExactMatch = false;
+                var conversion = ConversionClassifier.ClassifyConversion(
+                    argument.Type,
+                    parameter.Type
+                );
+                if (!conversion.IsImplicit)
+                {
+                    return null;
+                }
+
+                newExpression = AddConversionIfNecessary(
+                    argument,
+                    parameter.Type,
+                    conversion,
+                    context
+                );
+            }
+
+            if (remappedArgs is null)
+            {
+                remappedArgs = new BoundExpression[arguments.Length];
+                arguments.CopyTo(remappedArgs);
+            }
+
+            remappedArgs[i] = newExpression;
         }
 
-        for (var i = 0; i < overload.Parameters.Length; i++)
-        {
-            var param = overload.Parameters[i];
-            ref var arg = ref arguments[i];
-            var conversion = conversions[i];
-
-            arg = AddConversionIfNecessary(arg, param.Type, conversion, context);
-        }
-
-        return true;
+        return remappedArgs is not null
+            ? new OverloadResolutionResult(
+                new ResolvedOverload(
+                    overload,
+                    ImmutableCollectionsMarshal.AsImmutableArray(remappedArgs)
+                ),
+                isExactMatch
+            )
+            : new OverloadResolutionResult(new ResolvedOverload(overload, arguments), isExactMatch);
     }
 
-    private static string GetTypeNames(BoundExpression[] arguments)
+    private static string GetTypeNames(ImmutableArray<BoundExpression> arguments)
     {
         return string.Join(", ", arguments.Select(a => a.Type.Name));
+    }
+
+    private ImmutableArray<BoundExpression> RealizeSpeculativeBindingForDiagnostics(
+        ImmutableArray<BoundExpression> arguments,
+        BindingContext context
+    )
+    {
+        BoundExpression[]? remappedArgs = null;
+        foreach (var (i, argument) in arguments.AsValueEnumerable().Index())
+        {
+            if (argument is not BoundSpeculativeExpression speculative)
+            {
+                continue;
+            }
+
+            var newExpression = ApplySpeculativeBinding(speculative, null, context);
+
+            if (remappedArgs is null)
+            {
+                remappedArgs = new BoundExpression[arguments.Length];
+                arguments.CopyTo(remappedArgs);
+            }
+
+            remappedArgs[i] = newExpression;
+        }
+
+        return remappedArgs is not null
+            ? ImmutableCollectionsMarshal.AsImmutableArray(remappedArgs)
+            : arguments;
+    }
+
+    private BoundExpression ApplySpeculativeBinding(
+        BoundExpression expression,
+        TypeSymbol? targetType,
+        BindingContext context
+    )
+    {
+        if (expression is not BoundSpeculativeExpression speculative)
+            return expression;
+
+        return ApplySpeculativeBinding(speculative, targetType, context);
+    }
+
+    private BoundExpression ApplySpeculativeBinding(
+        BoundSpeculativeExpression expression,
+        TypeSymbol? targetType,
+        BindingContext context
+    )
+    {
+        switch (expression)
+        {
+            case BoundUnfixedIntegerLiteral { Data: var integerLiteral, Negated: var negated }:
+            {
+                var constant = EvaluateNumericExpression(
+                    in integerLiteral,
+                    targetType,
+                    expression.Syntax.Location,
+                    context,
+                    negated
+                );
+                var type = Compilation.GetSpecialType(constant.SpecialType);
+                return new BoundLiteral(expression.Syntax, type, constant);
+            }
+            case BoundUnfixedFloatLiteral { Data: var floatLiteral, Negated: var negated }:
+            {
+                var constant = EvaluateNumericExpression(
+                    in floatLiteral,
+                    targetType,
+                    expression.Syntax.Location,
+                    context,
+                    negated
+                );
+                var type = Compilation.GetSpecialType(constant.SpecialType);
+                return new BoundLiteral(expression.Syntax, type, constant);
+            }
+            case BoundSpeculativeConditional conditional:
+                return ApplySpeculativeConditional(conditional, targetType, context);
+            default:
+                throw new InvalidOperationException("Unknown expression type");
+        }
+    }
+
+    private BoundConditional ApplySpeculativeConditional(
+        BoundSpeculativeConditional conditional,
+        TypeSymbol? targetType,
+        BindingContext context
+    )
+    {
+        var whenTrue = ApplySpeculativeBinding(conditional.WhenTrue, targetType, context);
+        var whenFalse = ApplySpeculativeBinding(conditional.WhenFalse, targetType, context);
+        return ConstructConditional(
+            conditional.Syntax,
+            targetType,
+            conditional.Condition,
+            whenTrue,
+            whenFalse,
+            context
+        );
     }
 }

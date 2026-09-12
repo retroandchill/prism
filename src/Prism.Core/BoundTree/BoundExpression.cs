@@ -1,6 +1,8 @@
 ﻿using System.Collections.Immutable;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
+using Prism.Core.Symbols.Error;
+using Prism.Core.Symbols.Intermediate;
 using Prism.Core.Syntax;
 
 namespace Prism.Core.BoundTree;
@@ -50,6 +52,51 @@ internal sealed record BoundBadExpression : BoundExpression
 {
     public BoundBadExpression(SyntaxNode syntax, TypeSymbol type)
         : base(syntax, type) { }
+}
+
+internal abstract record BoundSpeculativeExpression : BoundExpression
+{
+    protected BoundSpeculativeExpression(SyntaxNode syntax, TypeSymbol type, TypeSymbol defaultType)
+        : base(syntax, type)
+    {
+        DefaultType = defaultType;
+    }
+
+    public TypeSymbol DefaultType { get; }
+}
+
+internal sealed record BoundUnfixedIntegerLiteral : BoundSpeculativeExpression
+{
+    public BoundUnfixedIntegerLiteral(
+        SyntaxNode syntax,
+        IntegerLiteralData data,
+        TypeSymbol defaultType
+    )
+        : base(syntax, UnfixedIntegerTypeSymbol.Instance, defaultType)
+    {
+        Data = data;
+    }
+
+    public IntegerLiteralData Data { get; }
+
+    public bool Negated { get; init; }
+}
+
+internal sealed record BoundUnfixedFloatLiteral : BoundSpeculativeExpression
+{
+    public BoundUnfixedFloatLiteral(
+        SyntaxNode syntax,
+        FloatLiteralData data,
+        TypeSymbol defaultType
+    )
+        : base(syntax, UnfixedIntegerTypeSymbol.Instance, defaultType)
+    {
+        Data = data;
+    }
+
+    public FloatLiteralData Data { get; }
+
+    public bool Negated { get; init; }
 }
 
 internal sealed record BoundLiteral : BoundExpression
@@ -155,6 +202,33 @@ internal sealed record BoundAssignmentOperation : BoundExpression
     public BoundExpression Left { get; }
     public BoundExpression Right { get; }
     public AssignmentOperation Operation { get; }
+}
+
+internal sealed record BoundSpeculativeConditional : BoundSpeculativeExpression
+{
+    public BoundSpeculativeConditional(
+        SyntaxNode syntax,
+        TypeSymbol type,
+        BoundExpression condition,
+        BoundExpression whenTrue,
+        BoundExpression whenFalse
+    )
+        : base(
+            syntax,
+            type,
+            whenTrue is BoundSpeculativeExpression speculative
+                ? speculative.DefaultType
+                : whenTrue.Type
+        )
+    {
+        Condition = condition;
+        WhenTrue = whenTrue;
+        WhenFalse = whenFalse;
+    }
+
+    public BoundExpression Condition { get; }
+    public BoundExpression WhenTrue { get; }
+    public BoundExpression WhenFalse { get; }
 }
 
 internal sealed record BoundConditional : BoundExpression

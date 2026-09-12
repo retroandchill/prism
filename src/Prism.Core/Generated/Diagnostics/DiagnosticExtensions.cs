@@ -316,6 +316,23 @@ public static class DiagnosticExtensions
             );
         }
 
+        internal static DiagnosticInfo AmbiguousOverloadDefined(string argTypes)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.AmbiguousOverloadDefined, argTypes);
+        }
+
+        internal static DiagnosticInfo AmbiguousOverloadDefined(
+            DiagnosticSeverity severity,
+            string argTypes
+        )
+        {
+            return new DiagnosticInfo(
+                DiagnosticDescriptors.AmbiguousOverloadDefined,
+                severity,
+                argTypes
+            );
+        }
+
         internal static DiagnosticInfo NoCallOperatorDefined(string type)
         {
             return new DiagnosticInfo(DiagnosticDescriptors.NoCallOperatorDefined, type);
@@ -1697,6 +1714,59 @@ public static class DiagnosticExtensions
         {
             return new Diagnostic(
                 DiagnosticDescriptors.NoOverloadForArgTypes,
+                severity,
+                location,
+                additionalLocations,
+                argTypes
+            );
+        }
+
+        public static Diagnostic AmbiguousOverloadDefined(Location location, string argTypes)
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.AmbiguousOverloadDefined,
+                location,
+                argTypes
+            );
+        }
+
+        public static Diagnostic AmbiguousOverloadDefined(
+            DiagnosticSeverity severity,
+            Location location,
+            string argTypes
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.AmbiguousOverloadDefined,
+                severity,
+                location,
+                argTypes
+            );
+        }
+
+        public static Diagnostic AmbiguousOverloadDefined(
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            string argTypes
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.AmbiguousOverloadDefined,
+                location,
+                additionalLocations,
+                argTypes
+            );
+        }
+
+        public static Diagnostic AmbiguousOverloadDefined(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            string argTypes
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.AmbiguousOverloadDefined,
                 severity,
                 location,
                 additionalLocations,
