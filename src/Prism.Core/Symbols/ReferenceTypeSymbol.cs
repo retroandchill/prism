@@ -13,7 +13,7 @@ namespace Prism.Core.Symbols;
 public sealed class ReferenceTypeSymbol : TypeSymbol
 {
     internal ReferenceTypeSymbol(TypeSymbol referencedType, bool isMutable)
-        : base(referencedType.Name)
+        : base($"{referencedType.Name}{(isMutable ? " mutable" : "")}&")
     {
         ReferencedType = referencedType;
         IsMutable = isMutable;

@@ -14,7 +14,7 @@ namespace Prism.Core.Symbols;
 public sealed class ArrayTypeSymbol : TypeSymbol
 {
     internal ArrayTypeSymbol(TypeSymbol elementType, ulong? size = null)
-        : base(elementType.Name)
+        : base(size is { } s ? $"{elementType.Name}[{s}]" : $"{elementType.Name}[]")
     {
         ElementType = elementType;
         Size = size;
