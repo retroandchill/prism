@@ -391,6 +391,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             or SyntaxKind.CharacterLiteralToken
             or SyntaxKind.StringLiteralToken => new GreenLiteralExpression(ConsumeToken()),
             SyntaxKind.OpenParenToken => ParseParenthesizedExpression(),
+            SyntaxKind.OpenBracketToken => ParseCollectionExpression(),
             _ => new GreenIdentifierExpression(ParseName()),
         };
     }
@@ -429,12 +430,38 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         };
     }
 
-    private GreenExpression ParseParenthesizedExpression()
+    private GreenParenthesizedExpression ParseParenthesizedExpression()
     {
         return new GreenParenthesizedExpression(
             ExpectToken(SyntaxKind.OpenParenToken),
             ParseExpression(),
             ExpectToken(SyntaxKind.CloseParenToken)
+        );
+    }
+
+    private GreenCollectionExpression ParseCollectionExpression()
+    {
+        var openBracket = ExpectToken(SyntaxKind.OpenBracketToken);
+        var builder = GreenSeparatedList.CreateBuilder<GreenExpression>();
+        while (!AtEnd)
+        {
+            var next = PeekToken();
+            if (next.Kind == SyntaxKind.CloseBraceToken)
+                break;
+
+            var expression = ParseExpression();
+            builder.AddItem(expression);
+
+            if (MatchToken(SyntaxKind.CommaToken) is not { } comma)
+                break;
+
+            builder.AddSeparator(comma);
+        }
+
+        return new GreenCollectionExpression(
+            openBracket,
+            builder.BuildAndClear(),
+            ExpectToken(SyntaxKind.CloseBracketToken)
         );
     }
 

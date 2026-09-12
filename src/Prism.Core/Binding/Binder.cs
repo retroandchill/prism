@@ -519,7 +519,8 @@ internal abstract class Binder
 
         if (initializer is null)
             return new BoundVariableDeclaration(syntax, variable, initializer);
-        if (targetType is not null)
+
+        if (targetType is not null && !targetType.IsDynamicallySized)
         {
             initializer = AddConversionIfNecessary(initializer, targetType, context);
         }
@@ -545,7 +546,7 @@ internal abstract class Binder
         );
     }
 
-    private BoundStatement BindReturnStatement(
+    private BoundReturnStatement BindReturnStatement(
         ReturnStatementSyntax syntax,
         TypeSymbol returnType,
         BindingContext context,
@@ -836,6 +837,13 @@ internal abstract class Binder
             ),
             CastExpressionSyntax cast => BindCastExpression(cast, context, cancellationToken),
             IndexExpressionSyntax index => BindIndexExpression(index, context, cancellationToken),
+            CollectionExpressionSyntax collection => BindCollectionExpression(
+                collection,
+                targetType,
+                isSpeculative,
+                context,
+                cancellationToken
+            ),
             _ => throw new ArgumentException("Invalid expression syntax", nameof(syntax)),
         };
     }
@@ -1366,6 +1374,122 @@ internal abstract class Binder
         return new BoundIndex(syntax, operand, index, targetType);
     }
 
+    private BoundExpression BindCollectionExpression(
+        CollectionExpressionSyntax syntax,
+        TypeSymbol? targetType,
+        bool isSpeculative,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        if (isSpeculative)
+        {
+            var expressions = syntax
+                .Items.AsValueEnumerable()
+                .Select(s => BindExpression(s, true, context, cancellationToken))
+                .ToImmutableArray();
+
+            TypeSymbol defaultType =
+                expressions.Length > 0
+                    ? Compilation.CreateArrayTypeSymbol(
+                        expressions[0].Type,
+                        (ulong)expressions.Length
+                    )
+                    : ErrorTypeSymbol.Unnamed;
+
+            return new BoundSpeculativeCollectionExpression(syntax, expressions, defaultType);
+        }
+        else
+        {
+            var elementType = targetType is ArrayTypeSymbol { ElementType: var e } ? e : null;
+            var expressions = syntax
+                .Items.AsValueEnumerable()
+                .Select(s => BindExpression(s, elementType, context, cancellationToken))
+                .ToImmutableArray();
+
+            return ConstructCollectionExpression(
+                syntax,
+                targetType,
+                context,
+                elementType,
+                expressions
+            );
+        }
+    }
+
+    private BoundCollectionExpression ConstructCollectionExpression(
+        SyntaxNode syntax,
+        TypeSymbol? targetType,
+        BindingContext context,
+        TypeSymbol? elementType,
+        ImmutableArray<BoundExpression> expressions
+    )
+    {
+        TypeSymbol collectionType;
+        var foundElementType = elementType;
+        if (targetType is ArrayTypeSymbol arrayType)
+        {
+            if (arrayType.IsDynamicallySized)
+            {
+                collectionType = Compilation.CreateArrayTypeSymbol(
+                    arrayType.ElementType,
+                    (ulong)expressions.Length
+                );
+            }
+            else if (arrayType.Size != (ulong)expressions.Length)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.IncompatibleCollectionSizes(
+                        syntax.Location,
+                        arrayType.Size.Value,
+                        expressions.Length
+                    )
+                );
+                collectionType = Compilation.CreateArrayTypeSymbol(
+                    arrayType.ElementType,
+                    (ulong)expressions.Length
+                );
+            }
+            else
+            {
+                collectionType = arrayType;
+            }
+
+            foundElementType = arrayType.ElementType;
+        }
+        else if (expressions.Length > 0)
+        {
+            foundElementType = expressions[0].Type;
+            var mutableExpressions = ImmutableCollectionsMarshal.AsArray(expressions);
+            Debug.Assert(mutableExpressions is not null);
+            for (var i = 1; i < expressions.Length; i++)
+            {
+                mutableExpressions[i] = AddConversionIfNecessary(
+                    mutableExpressions[i],
+                    foundElementType,
+                    context
+                );
+            }
+
+            collectionType = Compilation.CreateArrayTypeSymbol(
+                foundElementType,
+                (ulong)expressions.Length
+            );
+        }
+        else
+        {
+            context.ReportDiagnostic(Diagnostic.CannotInferType(syntax.Location));
+            collectionType = ErrorTypeSymbol.Unnamed;
+        }
+
+        return new BoundCollectionExpression(
+            syntax,
+            collectionType,
+            foundElementType ?? ErrorTypeSymbol.Unnamed,
+            expressions
+        );
+    }
+
     private BoundExpression AddConversionIfNecessary(
         BoundExpression expression,
         TypeSymbol type,
@@ -1750,30 +1874,39 @@ internal abstract class Binder
                 continue;
 
             BoundExpression newExpression;
+            bool isSpeculative;
             if (argument is BoundSpeculativeExpression speculative)
             {
                 isExactMatch &= parameter.Type == speculative.DefaultType;
                 newExpression = ApplySpeculativeBinding(speculative, parameter.Type, context);
+                isSpeculative = true;
             }
             else
             {
-                isExactMatch = false;
-                var conversion = ConversionClassifier.ClassifyConversion(
-                    argument.Type,
-                    parameter.Type
-                );
-                if (!conversion.IsImplicit)
-                {
-                    return null;
-                }
-
-                newExpression = AddConversionIfNecessary(
-                    argument,
-                    parameter.Type,
-                    conversion,
-                    context
-                );
+                newExpression = argument;
+                isSpeculative = false;
             }
+
+            var conversion = ConversionClassifier.ClassifyConversion(
+                newExpression.Type,
+                parameter.Type
+            );
+            if (!conversion.IsImplicit)
+            {
+                return null;
+            }
+
+            if (!isSpeculative)
+            {
+                isExactMatch &= conversion.IsIdentity;
+            }
+
+            newExpression = AddConversionIfNecessary(
+                newExpression,
+                parameter.Type,
+                conversion,
+                context
+            );
 
             if (remappedArgs is null)
             {
@@ -1875,6 +2008,12 @@ internal abstract class Binder
             }
             case BoundSpeculativeConditional conditional:
                 return ApplySpeculativeConditional(conditional, targetType, context);
+            case BoundSpeculativeCollectionExpression collectionExpression:
+                return ApplySpeculativeCollectionExpression(
+                    collectionExpression,
+                    targetType,
+                    context
+                );
             default:
                 throw new InvalidOperationException("Unknown expression type");
         }
@@ -1896,5 +2035,52 @@ internal abstract class Binder
             whenFalse,
             context
         );
+    }
+
+    private BoundCollectionExpression ApplySpeculativeCollectionExpression(
+        BoundSpeculativeCollectionExpression collection,
+        TypeSymbol? targetType,
+        BindingContext context
+    )
+    {
+        var elementType = targetType is ArrayTypeSymbol { ElementType: var e } ? e : null;
+        var arguments = MaterializedArguments(collection.Expressions, elementType, context);
+        return ConstructCollectionExpression(
+            collection.Syntax,
+            targetType,
+            context,
+            elementType,
+            arguments
+        );
+    }
+
+    private ImmutableArray<BoundExpression> MaterializedArguments(
+        ImmutableArray<BoundExpression> arguments,
+        TypeSymbol? targetType,
+        BindingContext context
+    )
+    {
+        BoundExpression[]? remappedArgs = null;
+        foreach (var (i, argument) in arguments.AsValueEnumerable().Index())
+        {
+            if (argument is not BoundSpeculativeExpression speculative)
+            {
+                continue;
+            }
+
+            var newExpression = ApplySpeculativeBinding(speculative, targetType, context);
+
+            if (remappedArgs is null)
+            {
+                remappedArgs = new BoundExpression[arguments.Length];
+                arguments.CopyTo(remappedArgs);
+            }
+
+            remappedArgs[i] = newExpression;
+        }
+
+        return remappedArgs is not null
+            ? ImmutableCollectionsMarshal.AsImmutableArray(remappedArgs)
+            : arguments;
     }
 }

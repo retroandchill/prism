@@ -338,3 +338,36 @@ internal sealed record BoundIndex : BoundExpression
     public BoundExpression Operand { get; }
     public BoundExpression Index { get; }
 }
+
+internal sealed record BoundCollectionExpression : BoundExpression
+{
+    public BoundCollectionExpression(
+        SyntaxNode syntax,
+        TypeSymbol type,
+        TypeSymbol elementType,
+        ImmutableArray<BoundExpression> expressions
+    )
+        : base(syntax, type)
+    {
+        ElementType = elementType;
+        Expressions = expressions;
+    }
+
+    public TypeSymbol ElementType { get; }
+    public ImmutableArray<BoundExpression> Expressions { get; }
+}
+
+internal sealed record BoundSpeculativeCollectionExpression : BoundSpeculativeExpression
+{
+    public BoundSpeculativeCollectionExpression(
+        SyntaxNode syntax,
+        ImmutableArray<BoundExpression> expressions,
+        TypeSymbol defaultType
+    )
+        : base(syntax, UndeterminedCollectionTypeSymbol.Instance, defaultType)
+    {
+        Expressions = expressions;
+    }
+
+    public ImmutableArray<BoundExpression> Expressions { get; }
+}

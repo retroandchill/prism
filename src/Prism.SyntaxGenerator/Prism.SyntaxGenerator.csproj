@@ -10,7 +10,6 @@
 
     <ItemGroup>
       <PackageReference Include="DotMake.CommandLine" />
-      <PackageReference Include="Handlebars.Net" />
       <PackageReference Include="Humanizer" />
       <PackageReference Include="JetBrains.Annotations" />
       <PackageReference Include="Riok.Mapperly" />

@@ -319,6 +319,10 @@ internal sealed class MirFunctionAnalyzer
         {
             RecordWrite(local.LocalId, blockId, builders);
         }
+        else if (place is MirIndexPlace indexer)
+        {
+            AnalyzeWriteDestination(indexer.Base, blockId, builders);
+        }
     }
 
     private static void AnalyzeAddressOfPlace(

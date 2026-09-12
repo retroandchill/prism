@@ -452,3 +452,51 @@ public sealed class IndexExpressionSyntax : ExpressionSyntax
         };
     }
 };
+
+public sealed class CollectionExpressionSyntax : ExpressionSyntax
+{
+    internal CollectionExpressionSyntax(
+        GreenCollectionExpression node,
+        SyntaxNode? parent,
+        int position
+    )
+        : base(node, parent, position) { }
+
+    public SyntaxToken OpenBracket
+    {
+        get
+        {
+            return new SyntaxToken(((GreenCollectionExpression)Green).OpenBracket, this, Position);
+        }
+    }
+    private SyntaxNode? _items;
+    public SeparatedSyntaxList<ExpressionSyntax> Items
+    {
+        get
+        {
+            var red = GetRed(ref _items, 1);
+            return new SeparatedSyntaxList<ExpressionSyntax>(red);
+        }
+    }
+    public SyntaxToken CloseBracket
+    {
+        get
+        {
+            return new SyntaxToken(
+                ((GreenCollectionExpression)Green).CloseBracket,
+                this,
+                GetSlotPosition(2)
+            );
+        }
+    }
+
+    internal override SyntaxNode? GetNodeSlot(int index)
+    {
+        return index == 1 ? GetRed(ref _items) : null;
+    }
+
+    internal override SyntaxNode? GetCachedSlot(int index)
+    {
+        return index == 1 ? _items : null;
+    }
+};

@@ -1175,6 +1175,39 @@
               ]
             }
           ]
+        },
+        {
+          "name": "CollectionExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "open_bracket",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenBracketToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "items",
+              "type": "Expression",
+              "shape": "separated_list",
+              "separators": [
+                "CommaToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "close_bracket",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseBracketToken"
+              ]
+            }
+          ]
         }
       ]
     },
@@ -2321,6 +2354,26 @@
               "type": "String"
             }
           ]
+        },
+        {
+          "name": "IncompatibleCollectionSizes",
+          "severity": "Error",
+          "format": "Cannot initialize an array of size {M} with a size of {N}",
+          "args": [
+            {
+              "name": "M",
+              "type": "UInt64"
+            },
+            {
+              "name": "N",
+              "type": "Int32"
+            }
+          ]
+        },
+        {
+          "name": "CannotInferType",
+          "severity": "Error",
+          "format": "Cannot infer type from expression"
         }
       ]
     },

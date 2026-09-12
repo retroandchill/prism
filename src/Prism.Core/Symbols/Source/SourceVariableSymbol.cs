@@ -211,7 +211,9 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
     {
         if (Syntax.Type is not null)
         {
-            return _scopeBinder.ResolveType(Syntax.Type.Type, context);
+            var targetType = _scopeBinder.ResolveType(Syntax.Type.Type, context);
+            if (!targetType.IsDynamicallySized)
+                return targetType;
         }
 
         if (Syntax.Initializer is null)

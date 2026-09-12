@@ -976,7 +976,8 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 EmitAssignGlobal(mirGlobalPlace, value);
                 break;
             case MirIndexPlace mirIndexPlace:
-                throw new NotImplementedException();
+                EmitAssignIndex(mirIndexPlace, value, context);
+                break;
             case MirLocalPlace mirLocalPlace:
                 EmitAssignLocal(mirLocalPlace, value, context);
                 break;
@@ -1027,6 +1028,30 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     {
         var location = GetValue(destination.Pointer, context);
         _builder.BuildStore(value, location);
+    }
+
+    private void EmitAssignIndex(
+        MirIndexPlace indexer,
+        LLVMValueRef value,
+        FunctionEmissionContext context
+    )
+    {
+        var index = GetValue(indexer.Index, context);
+        var itemType = GetOrCreateType(indexer.Type);
+
+        LLVMValueRef pointer;
+        if (indexer.Base.Type.IsDynamicallySized)
+        {
+            var widePointer = EmitTakeAddress(indexer.Base, context);
+            pointer = _builder.BuildExtractValue(widePointer, 0, "pointer");
+        }
+        else
+        {
+            pointer = EmitTakeAddress(indexer.Base, context);
+        }
+
+        var element = _builder.BuildGEP2(itemType, pointer, [index], "element".AsSpan());
+        _builder.BuildStore(value, element);
     }
 
     private void WriteIR()

@@ -388,6 +388,11 @@ internal sealed class MirEmitter(Compilation compilation)
                 cancellationToken
             ),
             BoundIndex index => EmitIndex(index, context, cancellationToken),
+            BoundCollectionExpression collection => EmitCollection(
+                collection,
+                context,
+                cancellationToken
+            ),
             BoundBadExpression or BoundSpeculativeExpression => throw new InvalidOperationException(
                 "Should only emit LLVM IR if the compilation is valid"
             ),
@@ -813,6 +818,30 @@ internal sealed class MirEmitter(Compilation compilation)
     )
     {
         var place = EmitPlace(index, context, cancellationToken);
+        return new MirReadValue(place);
+    }
+
+    private MirReadValue EmitCollection(
+        BoundCollectionExpression collection,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var local = context.CreateTemp(collection.Type);
+        var place = new MirLocalPlace(local);
+        foreach (var (i, value) in collection.Expressions.AsValueEnumerable().Index())
+        {
+            var indexConstant = new MirConstantValue(
+                ConstantValue.USize((ulong)i),
+                compilation.GetSpecialType(SpecialType.USize)
+            );
+
+            var index = new MirIndexPlace(place, indexConstant, collection.ElementType);
+            context.CurrentBlock.AddInstruction(
+                new MirAssignInstruction(index, EmitExpression(value, context, cancellationToken))
+            );
+        }
+
         return new MirReadValue(place);
     }
 

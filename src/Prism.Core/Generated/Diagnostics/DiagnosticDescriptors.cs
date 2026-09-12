@@ -399,6 +399,24 @@ public static class DiagnosticDescriptors
         DefaultSeverity = DiagnosticSeverity.Error,
     };
 
+    public static readonly DiagnosticDescriptor IncompatibleCollectionSizes = new()
+    {
+        Id = DiagnosticCode.IncompatibleCollectionSizes.ToStringFast(),
+        Title = "Incompatible collection sizes",
+        MessageFormat = "Cannot initialize an array of size {0} with a size of {1}",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
+    public static readonly DiagnosticDescriptor CannotInferType = new()
+    {
+        Id = DiagnosticCode.CannotInferType.ToStringFast(),
+        Title = "Cannot infer type",
+        MessageFormat = "Cannot infer type from expression",
+        Category = "Semantic",
+        DefaultSeverity = DiagnosticSeverity.Error,
+    };
+
     public static readonly DiagnosticDescriptor ExternalDiagnostic = new()
     {
         Id = DiagnosticCode.ExternalDiagnostic.ToStringFast(),
@@ -457,6 +475,8 @@ public static class DiagnosticDescriptors
             DiagnosticCode.CannotReassign => CannotReassign,
             DiagnosticCode.ValueUninitialized => ValueUninitialized,
             DiagnosticCode.NotInitializedOnAllPaths => NotInitializedOnAllPaths,
+            DiagnosticCode.IncompatibleCollectionSizes => IncompatibleCollectionSizes,
+            DiagnosticCode.CannotInferType => CannotInferType,
             DiagnosticCode.ExternalDiagnostic => ExternalDiagnostic,
             _ => null,
         };

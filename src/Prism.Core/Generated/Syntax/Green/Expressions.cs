@@ -921,3 +921,105 @@ internal sealed class GreenIndexExpression : GreenExpression
         };
     }
 }
+
+internal sealed class GreenCollectionExpression : GreenExpression
+{
+    public GreenCollectionExpression(
+        GreenToken openBracket,
+        GreenSeparatedList<GreenExpression> items,
+        GreenToken closeBracket
+    )
+        : base(SyntaxKind.CollectionExpression)
+    {
+        SlotCount = 3;
+        OpenBracket = openBracket;
+        AdjustFlagsAndWidth(OpenBracket);
+        Items = items;
+        AdjustFlagsAndWidth(Items);
+        CloseBracket = closeBracket;
+        AdjustFlagsAndWidth(CloseBracket);
+    }
+
+    public GreenToken OpenBracket { get; }
+    public GreenSeparatedList<GreenExpression> Items { get; }
+    public GreenToken CloseBracket { get; }
+
+    public override GreenNode? GetSlot(int index)
+    {
+        return index switch
+        {
+            0 => OpenBracket,
+            1 => Items.Node,
+            2 => CloseBracket,
+            _ => null,
+        };
+    }
+
+    public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
+    {
+        return new CollectionExpressionSyntax(this, parent, position);
+    }
+
+    public GreenCollectionExpression WithOpenBracket(GreenToken openBracket)
+    {
+        if (OpenBracket == openBracket)
+            return this;
+
+        return new GreenCollectionExpression(openBracket, Items, CloseBracket)
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public GreenCollectionExpression WithItems(GreenSeparatedList<GreenExpression> items)
+    {
+        if (Items == items)
+            return this;
+
+        return new GreenCollectionExpression(OpenBracket, items, CloseBracket)
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public GreenCollectionExpression WithCloseBracket(GreenToken closeBracket)
+    {
+        if (CloseBracket == closeBracket)
+            return this;
+
+        return new GreenCollectionExpression(OpenBracket, Items, closeBracket)
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public override GreenCollectionExpression WithDiagnostics(
+        ImmutableArray<SyntaxDiagnosticInfo> diagnostics
+    )
+    {
+        if (Diagnostics == diagnostics)
+            return this;
+
+        return new GreenCollectionExpression(OpenBracket, Items, CloseBracket)
+        {
+            Diagnostics = diagnostics,
+        };
+    }
+
+    public GreenCollectionExpression Update(
+        GreenToken openBracket,
+        GreenSeparatedList<GreenExpression> items,
+        GreenToken closeBracket
+    )
+    {
+        if (OpenBracket == openBracket && Items == items && CloseBracket == closeBracket)
+        {
+            return this;
+        }
+
+        return new GreenCollectionExpression(openBracket, items, closeBracket)
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+}

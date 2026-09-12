@@ -569,6 +569,35 @@ public static class DiagnosticExtensions
             );
         }
 
+        internal static DiagnosticInfo IncompatibleCollectionSizes(ulong m, int n)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.IncompatibleCollectionSizes, m, n);
+        }
+
+        internal static DiagnosticInfo IncompatibleCollectionSizes(
+            DiagnosticSeverity severity,
+            ulong m,
+            int n
+        )
+        {
+            return new DiagnosticInfo(
+                DiagnosticDescriptors.IncompatibleCollectionSizes,
+                severity,
+                m,
+                n
+            );
+        }
+
+        internal static DiagnosticInfo CannotInferType()
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.CannotInferType);
+        }
+
+        internal static DiagnosticInfo CannotInferType(DiagnosticSeverity severity)
+        {
+            return new DiagnosticInfo(DiagnosticDescriptors.CannotInferType, severity);
+        }
+
         internal static DiagnosticInfo ExternalDiagnostic(string message)
         {
             return new DiagnosticInfo(DiagnosticDescriptors.ExternalDiagnostic, message);
@@ -2613,6 +2642,102 @@ public static class DiagnosticExtensions
                 location,
                 additionalLocations,
                 name
+            );
+        }
+
+        public static Diagnostic IncompatibleCollectionSizes(Location location, ulong m, int n)
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.IncompatibleCollectionSizes,
+                location,
+                m,
+                n
+            );
+        }
+
+        public static Diagnostic IncompatibleCollectionSizes(
+            DiagnosticSeverity severity,
+            Location location,
+            ulong m,
+            int n
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.IncompatibleCollectionSizes,
+                severity,
+                location,
+                m,
+                n
+            );
+        }
+
+        public static Diagnostic IncompatibleCollectionSizes(
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            ulong m,
+            int n
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.IncompatibleCollectionSizes,
+                location,
+                additionalLocations,
+                m,
+                n
+            );
+        }
+
+        public static Diagnostic IncompatibleCollectionSizes(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations,
+            ulong m,
+            int n
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.IncompatibleCollectionSizes,
+                severity,
+                location,
+                additionalLocations,
+                m,
+                n
+            );
+        }
+
+        public static Diagnostic CannotInferType(Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.CannotInferType, location);
+        }
+
+        public static Diagnostic CannotInferType(DiagnosticSeverity severity, Location location)
+        {
+            return new Diagnostic(DiagnosticDescriptors.CannotInferType, severity, location);
+        }
+
+        public static Diagnostic CannotInferType(
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.CannotInferType,
+                location,
+                additionalLocations
+            );
+        }
+
+        public static Diagnostic CannotInferType(
+            DiagnosticSeverity severity,
+            Location location,
+            IEnumerable<Location> additionalLocations
+        )
+        {
+            return new Diagnostic(
+                DiagnosticDescriptors.CannotInferType,
+                severity,
+                location,
+                additionalLocations
             );
         }
 

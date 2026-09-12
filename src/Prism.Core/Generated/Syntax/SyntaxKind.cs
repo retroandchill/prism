@@ -169,6 +169,7 @@ public enum SyntaxKind : ushort
     InvocationExpression = 6008,
     CastExpression = 6009,
     IndexExpression = 6010,
+    CollectionExpression = 6011,
     #endregion
 
     #region Statements
@@ -340,6 +341,7 @@ public static partial class SyntaxKindExtensions
                     SyntaxKind.InvocationExpression => "InvocationExpression",
                     SyntaxKind.CastExpression => "CastExpression",
                     SyntaxKind.IndexExpression => "IndexExpression",
+                    SyntaxKind.CollectionExpression => "CollectionExpression",
                     SyntaxKind.EmptyStatement => "EmptyStatement",
                     SyntaxKind.VariableDeclarationStatement => "VariableDeclarationStatement",
                     SyntaxKind.Block => "Block",
@@ -409,9 +411,9 @@ public static partial class SyntaxKindExtensions
         public bool IsClause => (ushort)kind >= 5000 && (ushort)kind <= 5008;
 
         public static SyntaxKind ExpressionStart => (SyntaxKind)6000;
-        public static SyntaxKind ExpressionEnd => (SyntaxKind)6010;
+        public static SyntaxKind ExpressionEnd => (SyntaxKind)6011;
 
-        public bool IsExpression => (ushort)kind >= 6000 && (ushort)kind <= 6010;
+        public bool IsExpression => (ushort)kind >= 6000 && (ushort)kind <= 6011;
 
         public static SyntaxKind StatementStart => (SyntaxKind)7000;
         public static SyntaxKind StatementEnd => (SyntaxKind)7011;

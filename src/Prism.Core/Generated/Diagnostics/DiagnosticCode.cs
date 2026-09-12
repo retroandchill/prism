@@ -143,6 +143,12 @@ public enum DiagnosticCode : uint
     [EnumMember(Value = "E2037")]
     NotInitializedOnAllPaths = 2037,
 
+    [EnumMember(Value = "E2038")]
+    IncompatibleCollectionSizes = 2038,
+
+    [EnumMember(Value = "E2039")]
+    CannotInferType = 2039,
+
     // -- Code gen (3000-3999) ---
     [EnumMember(Value = "E3000")]
     ExternalDiagnostic = 3000,

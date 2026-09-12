@@ -280,6 +280,7 @@ public static partial class CSharpModelMapper
         return name switch
         {
             "Int32" or "SizeT" => "int",
+            "UInt64" => "ulong",
             "String" or "Name" => "string",
             _ => GetPascalizedName(name),
         };
