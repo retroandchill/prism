@@ -17,15 +17,22 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
     private readonly ParameterSyntax _syntax;
     private SymbolCompletionState _completionState;
 
-    internal SourceParameterSymbol(string name, Symbol? containingSymbol, ParameterSyntax syntax)
+    internal SourceParameterSymbol(
+        string name,
+        FunctionSymbol containingSymbol,
+        ParameterSyntax syntax
+    )
         : base(name, containingSymbol)
     {
         _syntax = syntax;
+        ContainingFunction = containingSymbol;
 
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
         compilation.CacheSymbol(_syntax, this);
     }
+
+    public override FunctionSymbol ContainingFunction { get; }
 
     public override ImmutableArray<Location> Locations
     {

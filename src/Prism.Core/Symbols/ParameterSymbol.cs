@@ -5,6 +5,8 @@ public abstract class ParameterSymbol : Symbol
     private protected ParameterSymbol(string name, Symbol? containingSymbol)
         : base(name, containingSymbol) { }
 
+    public abstract FunctionSymbol ContainingFunction { get; }
+
     public abstract TypeSymbol Type { get; }
 
     public abstract bool IsMutable { get; }

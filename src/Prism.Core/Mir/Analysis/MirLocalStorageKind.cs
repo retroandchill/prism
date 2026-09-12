@@ -10,4 +10,5 @@ internal enum MirLocalStorageKind : byte
     Ssa,
     SsaWithPhi,
     Memory,
+    IndirectParam,
 }

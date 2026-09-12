@@ -31,7 +31,7 @@ internal sealed record MirConvertInstruction(
 ) : MirInstruction;
 
 internal sealed record MirCallInstruction(
-    MirPlace? Destination,
+    MirLocalPlace? Destination,
     FunctionSymbol Callee,
     ImmutableArray<MirValue> Arguments
 ) : MirInstruction;

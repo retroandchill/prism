@@ -5,14 +5,31 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
-using Prism.Core.Symbols;
+using System.Runtime.CompilerServices;
+using Prism.Core.Abi;
+using Prism.Core.Compiling;
 using Prism.Core.Utils;
 using ZLinq;
 
 namespace Prism.Core.Mir.Analysis;
 
-internal static class MirFunctionAnalyzer
+internal sealed class MirFunctionAnalyzer
 {
+    private readonly Compilation _compilation;
+
+    private static readonly ConditionalWeakTable<Compilation, MirFunctionAnalyzer> Analyzers =
+        new();
+
+    private MirFunctionAnalyzer(Compilation compilation)
+    {
+        _compilation = compilation;
+    }
+
+    private static MirFunctionAnalyzer GetAnalyzer(Compilation compilation)
+    {
+        return Analyzers.GetOrAdd(compilation, static c => new MirFunctionAnalyzer(c));
+    }
+
     public static MirControlFlowGraph AnalyzeControlFlow(
         MirFunction function,
         CancellationToken cancellationToken
@@ -80,6 +97,17 @@ internal static class MirFunctionAnalyzer
     }
 
     public static MirLocalFlowAnalysis AnalyzeLocalFlow(
+        Compilation compilation,
+        MirFunction function,
+        MirControlFlowGraph cfg,
+        CancellationToken cancellationToken
+    )
+    {
+        var analyzer = GetAnalyzer(compilation);
+        return analyzer.AnalyzeLocalFlow(function, cfg, cancellationToken);
+    }
+
+    private MirLocalFlowAnalysis AnalyzeLocalFlow(
         MirFunction function,
         MirControlFlowGraph cfg,
         CancellationToken cancellationToken
@@ -95,7 +123,7 @@ internal static class MirFunctionAnalyzer
             foreach (var instruction in block.Instructions)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                AnalyzeInstructionLocalFlow(instruction, block.Id, builders);
+                AnalyzeInstructionLocalFlow(function, instruction, block.Id, builders);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -114,7 +142,8 @@ internal static class MirFunctionAnalyzer
         };
     }
 
-    private static void AnalyzeInstructionLocalFlow(
+    private void AnalyzeInstructionLocalFlow(
+        MirFunction function,
         MirInstruction instruction,
         MirBlockId blockId,
         Dictionary<MirLocalId, MirLocalFlowInfoBuilder> builders
@@ -145,10 +174,21 @@ internal static class MirFunctionAnalyzer
 
             case MirCallInstruction call:
                 if (call.Destination is not null)
+                {
                     AnalyzeWriteDestination(call.Destination, blockId, builders);
 
+                    var abi = _compilation.GetFunctionAbi(function.Symbol);
+                    if (abi.Return.IsIndirect)
+                    {
+                        builders[call.Destination.LocalId].IsWrittenIndirectly = true;
+                    }
+                }
+
                 foreach (var argument in call.Arguments)
+                {
                     AnalyzeValue(argument, blockId, builders);
+                }
+
                 break;
 
             case MirStorageLiveInstruction:
@@ -412,23 +452,39 @@ internal static class MirFunctionAnalyzer
     }
 
     public static MirLocalClassificationAnalysis ClassifyLocals(
+        Compilation compilation,
+        MirFunction function,
         MirLocalFlowAnalysis localFlow,
         CancellationToken cancellationToken
     )
     {
         var builder = ImmutableDictionary.CreateBuilder<MirLocalId, MirLocalClassification>();
 
+        var abi = compilation.GetFunctionAbi(function.Symbol);
         foreach (var (key, local) in localFlow.Locals)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            builder.Add(key, ClassifyLocal(local));
+            builder.Add(key, ClassifyLocal(abi, local));
         }
 
         return new MirLocalClassificationAnalysis { Locals = builder.ToImmutable() };
     }
 
-    private static MirLocalClassification ClassifyLocal(MirLocalFlowInfo local)
+    private static MirLocalClassification ClassifyLocal(FunctionAbi abi, MirLocalFlowInfo local)
     {
+        if (
+            local.Local is MirParameter { Parameter: var parameter }
+            && abi.IsParameterIndirect(parameter)
+        )
+        {
+            return new MirLocalClassification
+            {
+                LocalId = local.LocalId,
+                StorageKind = MirLocalStorageKind.IndirectParam,
+                IsSsaEligible = false,
+            };
+        }
+
         if (RequiresMemoryStorage(local))
         {
             return new MirLocalClassification
@@ -459,8 +515,6 @@ internal static class MirFunctionAnalyzer
 
     private static bool RequiresMemoryStorage(MirLocalFlowInfo local)
     {
-        return local.IsAddressTaken
-            || local.HasMultipleDefinitions
-            || local.Local.Type is ArrayTypeSymbol;
+        return local.IsAddressTaken || local.HasMultipleDefinitions || local.IsWrittenIndirectly;
     }
 }

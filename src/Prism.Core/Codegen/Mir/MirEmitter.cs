@@ -11,6 +11,7 @@ using Prism.Core.Mappers;
 using Prism.Core.Mir;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
+using ZLinq;
 
 namespace Prism.Core.Codegen.Mir;
 

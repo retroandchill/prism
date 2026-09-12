@@ -37,6 +37,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         ReferenceEqualityComparer.Instance
     );
 
+    private static readonly uint ByValAttr = LookupEnumAttributeKind("byval");
     private LLVMValueRef? _lifetimeStartFunction;
     private LLVMValueRef? _lifetimeEndFunction;
 
@@ -94,8 +95,18 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
         var mirFunction = _mirEmitter.EmitFunction(function.Function, cancellationToken);
         var cfg = MirFunctionAnalyzer.AnalyzeControlFlow(mirFunction, cancellationToken);
-        var localFlow = MirFunctionAnalyzer.AnalyzeLocalFlow(mirFunction, cfg, cancellationToken);
-        var classifiedLocals = MirFunctionAnalyzer.ClassifyLocals(localFlow, cancellationToken);
+        var localFlow = MirFunctionAnalyzer.AnalyzeLocalFlow(
+            _compilation,
+            mirFunction,
+            cfg,
+            cancellationToken
+        );
+        var classifiedLocals = MirFunctionAnalyzer.ClassifyLocals(
+            _compilation,
+            mirFunction,
+            localFlow,
+            cancellationToken
+        );
 
         var context = new FunctionEmissionContext(mirFunction, llvmFunction, cfg, classifiedLocals);
         foreach (var block in mirFunction.Blocks)
@@ -144,15 +155,67 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         }
 
         var abi = _compilation.GetFunctionAbi(functionSymbol);
-        var returnType = GetOrCreateType(functionSymbol.ReturnType);
-        using var parameters = functionSymbol
-            .Parameters.AsValueEnumerable()
-            .Select(p => GetOrCreateType(p.Type))
-            .ToArrayPool();
+        var indirectReturn = abi.Return.IsIndirect;
+        var totalParameters = indirectReturn
+            ? functionSymbol.Parameters.Length + 1
+            : functionSymbol.Parameters.Length;
+        Span<LLVMTypeRef> parameters = stackalloc LLVMTypeRef[totalParameters];
+
+        LLVMTypeRef returnType;
+        int firstParamIndex;
+        if (indirectReturn)
+        {
+            returnType = _context.VoidType;
+            parameters[0] = _context.CreatePointerType(0);
+            ;
+            firstParamIndex = 1;
+        }
+        else
+        {
+            returnType = GetOrCreateType(functionSymbol.ReturnType);
+            firstParamIndex = 0;
+        }
+
+        Debug.Assert(abi.Parameters.Length + firstParamIndex == parameters.Length);
+        foreach (var (i, parameterAbi) in abi.Parameters.AsValueEnumerable().Index())
+        {
+            if (parameterAbi.IsIndirect)
+            {
+                parameters[i + firstParamIndex] = _context.CreatePointerType(0);
+            }
+            else
+            {
+                parameters[i + firstParamIndex] = GetOrCreateType(parameterAbi.Parameter.Type);
+            }
+        }
 
         var name = functionSymbol.Mangle();
-        var functionType = LLVMTypeRef.CreateFunction(returnType, parameters.Span, false);
+        var functionType = LLVMTypeRef.CreateFunction(returnType, parameters, false);
         var func = _module.AddFunction(name, functionType);
+
+        if (indirectReturn)
+        {
+            var byValAttr = _context.CreateTypeAttribute(
+                ByValAttr,
+                GetOrCreateType(functionSymbol.ReturnType)
+            );
+            func.AddAttributeAtIndex((LLVMAttributeIndex)1, byValAttr);
+        }
+
+        foreach (var (i, parameterAbi) in abi.Parameters.AsValueEnumerable().Index())
+        {
+            if (!parameterAbi.IsIndirect)
+                continue;
+            var byValAttr = _context.CreateTypeAttribute(
+                ByValAttr,
+                GetOrCreateType(parameterAbi.Parameter.Type)
+            );
+            func.AddAttributeAtIndex(
+                (LLVMAttributeIndex)(i + unchecked((uint)firstParamIndex) + 1),
+                byValAttr
+            );
+        }
+
         _symbolToValue[functionSymbol] = func;
         return func;
     }
@@ -189,6 +252,19 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             fixed (byte* p = builder.AsSpan())
             {
                 return LLVM.LookupIntrinsicID((sbyte*)p, (nuint)builder.Length);
+            }
+        }
+    }
+
+    private static uint LookupEnumAttributeKind(ReadOnlySpan<char> name)
+    {
+        using var builder = ZString.CreateUtf8StringBuilder();
+        builder.Append(name);
+        unsafe
+        {
+            fixed (byte* p = builder.AsSpan())
+            {
+                return LLVM.GetEnumAttributeKindForName((sbyte*)p, (nuint)builder.Length);
             }
         }
     }
@@ -570,17 +646,77 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
     private void EmitCall(MirCallInstruction call, FunctionEmissionContext context)
     {
+        var abi = _compilation.GetFunctionAbi(call.Callee);
         var function = call.Callee;
         var callee = GetOrCreateFunction(function);
-        using var parameters = call
-            .Arguments.AsValueEnumerable()
-            .Select(p => GetValue(p, context))
-            .ToArrayPool();
-        var result = _builder.BuildCall2(callee.FunctionType, callee, parameters.Span, "");
+        var isIndirectReturn = abi.Return.IsIndirect;
+        var parameterCount = isIndirectReturn ? call.Arguments.Length + 1 : call.Arguments.Length;
+        Span<LLVMValueRef> parameters = stackalloc LLVMValueRef[parameterCount];
+
+        int offsetIndex;
+        if (isIndirectReturn)
+        {
+            Debug.Assert(call.Destination is not null);
+            parameters[0] = context.LookupLocal(call.Destination.LocalId);
+            offsetIndex = 1;
+        }
+        else
+        {
+            offsetIndex = 0;
+        }
+
+        foreach (var (i, argument) in abi.Parameters.AsValueEnumerable().Index())
+        {
+            var value = call.Arguments[i];
+            var llvmValue = GetValue(value, context);
+            if (argument.IsIndirect)
+            {
+                var destination = CreateEntryAlloca(
+                    llvmValue.TypeOf,
+                    argument.Parameter.Name,
+                    context
+                );
+                _builder.BuildStore(llvmValue, destination);
+                parameters[i + offsetIndex] = destination;
+            }
+            else
+            {
+                parameters[i + offsetIndex] = llvmValue;
+            }
+        }
+
+        var result = _builder.BuildCall2(callee.FunctionType, callee, parameters, "");
         if (call.Destination is not null)
         {
             EmitWriteToDest(call.Destination, result, context);
         }
+    }
+
+    private LLVMValueRef CreateEntryAlloca(
+        LLVMTypeRef type,
+        string name,
+        FunctionEmissionContext context
+    )
+    {
+        var entry = context.LlvmFunction.EntryBasicBlock;
+        using var entryBuilder = _context.CreateBuilder();
+
+        var instruction = entry.FirstInstruction;
+        while (instruction is { IsNull: false, InstructionOpcode: LLVMOpcode.LLVMAlloca })
+        {
+            instruction = instruction.NextInstruction;
+        }
+
+        if (instruction.IsNull || instruction.InstructionOpcode == 0)
+        {
+            entryBuilder.PositionAtEnd(entry);
+        }
+        else
+        {
+            entryBuilder.PositionBefore(instruction);
+        }
+
+        return entryBuilder.BuildAlloca(type, name);
     }
 
     private void EmitConvert(MirConvertInstruction conversion, FunctionEmissionContext context)
@@ -672,7 +808,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     )
     {
         var classification = context.LocalClassification.Locals[storageLive.LocalId];
-        if (classification.StorageKind != MirLocalStorageKind.Memory)
+        if (!classification.IsIndirectStorage)
             return;
 
         var lifetimeStartFunction = GetLifetimeStartFunction();
@@ -690,7 +826,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     )
     {
         var classification = context.LocalClassification.Locals[storageDead.LocalId];
-        if (classification.StorageKind != MirLocalStorageKind.Memory)
+        if (!classification.IsIndirectStorage)
             return;
 
         var lifetimeEndFunction = GetLifetimeEndFunction();
@@ -795,7 +931,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     {
         var local = context.LookupLocal(place.LocalId);
         var classification = context.LocalClassification.Locals[place.LocalId];
-        if (classification.StorageKind != MirLocalStorageKind.Memory)
+        if (!classification.IsIndirectStorage)
             return local;
 
         var type = GetOrCreateType(place.Type);
@@ -872,7 +1008,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             case MirLocalStorageKind.SsaWithPhi:
                 context.AddPhiValue(destination.LocalId, value);
                 break;
-            case MirLocalStorageKind.Memory:
+            case MirLocalStorageKind.Memory or MirLocalStorageKind.IndirectParam:
                 {
                     var local = context.LookupLocal(destination.LocalId);
                     _builder.BuildStore(value, local);
