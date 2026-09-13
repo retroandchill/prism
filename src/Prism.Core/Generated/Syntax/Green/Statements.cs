@@ -63,19 +63,30 @@ internal sealed class GreenEmptyStatement : GreenStatement
 
 internal sealed class GreenVariableDeclarationStatement : GreenStatement
 {
-    public GreenVariableDeclarationStatement(GreenVariableDeclaration declaration)
+    public GreenVariableDeclarationStatement(
+        GreenLocalVariableDeclaration declaration,
+        GreenToken semicolon
+    )
         : base(SyntaxKind.VariableDeclarationStatement)
     {
-        SlotCount = 1;
+        SlotCount = 2;
         Declaration = declaration;
         AdjustFlagsAndWidth(Declaration);
+        Semicolon = semicolon;
+        AdjustFlagsAndWidth(Semicolon);
     }
 
-    public GreenVariableDeclaration Declaration { get; }
+    public GreenLocalVariableDeclaration Declaration { get; }
+    public GreenToken Semicolon { get; }
 
     public override GreenNode? GetSlot(int index)
     {
-        return index == 0 ? Declaration : null;
+        return index switch
+        {
+            0 => Declaration,
+            1 => Semicolon,
+            _ => null,
+        };
     }
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
@@ -83,12 +94,28 @@ internal sealed class GreenVariableDeclarationStatement : GreenStatement
         return new VariableDeclarationStatementSyntax(this, parent, position);
     }
 
-    public GreenVariableDeclarationStatement WithDeclaration(GreenVariableDeclaration declaration)
+    public GreenVariableDeclarationStatement WithDeclaration(
+        GreenLocalVariableDeclaration declaration
+    )
     {
         if (Declaration == declaration)
             return this;
 
-        return new GreenVariableDeclarationStatement(declaration) { Diagnostics = Diagnostics };
+        return new GreenVariableDeclarationStatement(declaration, Semicolon)
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public GreenVariableDeclarationStatement WithSemicolon(GreenToken semicolon)
+    {
+        if (Semicolon == semicolon)
+            return this;
+
+        return new GreenVariableDeclarationStatement(Declaration, semicolon)
+        {
+            Diagnostics = Diagnostics,
+        };
     }
 
     public override GreenVariableDeclarationStatement WithDiagnostics(
@@ -98,17 +125,26 @@ internal sealed class GreenVariableDeclarationStatement : GreenStatement
         if (Diagnostics == diagnostics)
             return this;
 
-        return new GreenVariableDeclarationStatement(Declaration) { Diagnostics = diagnostics };
+        return new GreenVariableDeclarationStatement(Declaration, Semicolon)
+        {
+            Diagnostics = diagnostics,
+        };
     }
 
-    public GreenVariableDeclarationStatement Update(GreenVariableDeclaration declaration)
+    public GreenVariableDeclarationStatement Update(
+        GreenLocalVariableDeclaration declaration,
+        GreenToken semicolon
+    )
     {
-        if (Declaration == declaration)
+        if (Declaration == declaration && Semicolon == semicolon)
         {
             return this;
         }
 
-        return new GreenVariableDeclarationStatement(declaration) { Diagnostics = Diagnostics };
+        return new GreenVariableDeclarationStatement(declaration, semicolon)
+        {
+            Diagnostics = Diagnostics,
+        };
     }
 }
 
@@ -742,7 +778,7 @@ internal sealed class GreenForStatement : GreenStatement
     public GreenForStatement(
         GreenToken forKeyword,
         GreenToken openParen,
-        GreenVariableDeclarationStatement? declaration,
+        GreenLocalVariableDeclaration? declaration,
         GreenSeparatedList<GreenExpression> initializers,
         GreenToken firstSemicolon,
         GreenExpression? condition,
@@ -780,7 +816,7 @@ internal sealed class GreenForStatement : GreenStatement
 
     public GreenToken ForKeyword { get; }
     public GreenToken OpenParen { get; }
-    public GreenVariableDeclarationStatement? Declaration { get; }
+    public GreenLocalVariableDeclaration? Declaration { get; }
     public GreenSeparatedList<GreenExpression> Initializers { get; }
     public GreenToken FirstSemicolon { get; }
     public GreenExpression? Condition { get; }
@@ -856,7 +892,7 @@ internal sealed class GreenForStatement : GreenStatement
         };
     }
 
-    public GreenForStatement WithDeclaration(GreenVariableDeclarationStatement? declaration)
+    public GreenForStatement WithDeclaration(GreenLocalVariableDeclaration? declaration)
     {
         if (Declaration == declaration)
             return this;
@@ -1059,7 +1095,7 @@ internal sealed class GreenForStatement : GreenStatement
     public GreenForStatement Update(
         GreenToken forKeyword,
         GreenToken openParen,
-        GreenVariableDeclarationStatement? declaration,
+        GreenLocalVariableDeclaration? declaration,
         GreenSeparatedList<GreenExpression> initializers,
         GreenToken firstSemicolon,
         GreenExpression? condition,

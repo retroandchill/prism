@@ -90,6 +90,6 @@ public class RootCommand
             program = await reader.ReadToEndAsync(cancellationToken);
         }
 
-        return SyntaxTree.Parse(program);
+        return SyntaxTree.Parse(fileInfo.Name, program);
     }
 }

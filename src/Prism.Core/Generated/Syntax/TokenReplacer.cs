@@ -104,8 +104,12 @@ public static partial class TokenReplacer
                 fileScopedNamespaceDeclaration,
                 newToken
             ),
-            GreenVariableDeclaration variableDeclaration => ReplaceFirstToken(
-                variableDeclaration,
+            GreenLocalVariableDeclaration localVariableDeclaration => ReplaceFirstToken(
+                localVariableDeclaration,
+                newToken
+            ),
+            GreenGlobalVariableDeclaration globalVariableDeclaration => ReplaceFirstToken(
+                globalVariableDeclaration,
                 newToken
             ),
             GreenFunctionDeclaration functionDeclaration => ReplaceFirstToken(
@@ -255,8 +259,12 @@ public static partial class TokenReplacer
                 fileScopedNamespaceDeclaration,
                 newToken
             ),
-            GreenVariableDeclaration variableDeclaration => ReplaceFirstToken(
-                variableDeclaration,
+            GreenLocalVariableDeclaration localVariableDeclaration => ReplaceFirstToken(
+                localVariableDeclaration,
+                newToken
+            ),
+            GreenGlobalVariableDeclaration globalVariableDeclaration => ReplaceFirstToken(
+                globalVariableDeclaration,
                 newToken
             ),
             GreenFunctionDeclaration functionDeclaration => ReplaceFirstToken(
@@ -282,6 +290,27 @@ public static partial class TokenReplacer
             ),
             GreenFileScopedNamespaceDeclaration fileScopedNamespaceDeclaration => ReplaceFirstToken(
                 fileScopedNamespaceDeclaration,
+                newToken
+            ),
+            _ => throw new InvalidOperationException("Invalid node type passed into visit"),
+        };
+    }
+
+    [return: NotNullIfNotNull(nameof(node))]
+    internal static GreenVariableDeclaration? ReplaceFirstToken(
+        GreenVariableDeclaration? node,
+        GreenToken newToken
+    )
+    {
+        return node switch
+        {
+            null => null,
+            GreenLocalVariableDeclaration localVariableDeclaration => ReplaceFirstToken(
+                localVariableDeclaration,
+                newToken
+            ),
+            GreenGlobalVariableDeclaration globalVariableDeclaration => ReplaceFirstToken(
+                globalVariableDeclaration,
                 newToken
             ),
             _ => throw new InvalidOperationException("Invalid node type passed into visit"),
@@ -1152,6 +1181,13 @@ public static partial class TokenReplacer
             return node.WithDeclaration(newDeclaration);
         }
 
+        var oldSemicolon = node.Semicolon;
+        var newSemicolon = ReplaceFirstToken(oldSemicolon, newToken);
+        if (newSemicolon != oldSemicolon)
+        {
+            return node.WithSemicolon(newSemicolon);
+        }
+
         return node;
     }
 
@@ -1684,8 +1720,55 @@ public static partial class TokenReplacer
     }
 
     [return: NotNullIfNotNull(nameof(node))]
-    internal static GreenVariableDeclaration? ReplaceFirstToken(
-        GreenVariableDeclaration? node,
+    internal static GreenLocalVariableDeclaration? ReplaceFirstToken(
+        GreenLocalVariableDeclaration? node,
+        GreenToken newToken
+    )
+    {
+        if (node is null)
+            return null;
+
+        var oldModifiers = node.Modifiers;
+        var newModifiers = ReplaceFirstToken(oldModifiers, newToken);
+        if (newModifiers != oldModifiers)
+        {
+            return node.WithModifiers(newModifiers);
+        }
+
+        var oldVarKeyword = node.VarKeyword;
+        var newVarKeyword = ReplaceFirstToken(oldVarKeyword, newToken);
+        if (newVarKeyword != oldVarKeyword)
+        {
+            return node.WithVarKeyword(newVarKeyword);
+        }
+
+        var oldIdentifier = node.Identifier;
+        var newIdentifier = ReplaceFirstToken(oldIdentifier, newToken);
+        if (newIdentifier != oldIdentifier)
+        {
+            return node.WithIdentifier(newIdentifier);
+        }
+
+        var oldType = node.Type;
+        var newType = ReplaceFirstToken(oldType, newToken);
+        if (newType != oldType)
+        {
+            return node.WithType(newType);
+        }
+
+        var oldInitializer = node.Initializer;
+        var newInitializer = ReplaceFirstToken(oldInitializer, newToken);
+        if (newInitializer != oldInitializer)
+        {
+            return node.WithInitializer(newInitializer);
+        }
+
+        return node;
+    }
+
+    [return: NotNullIfNotNull(nameof(node))]
+    internal static GreenGlobalVariableDeclaration? ReplaceFirstToken(
+        GreenGlobalVariableDeclaration? node,
         GreenToken newToken
     )
     {
@@ -1936,8 +2019,12 @@ public static partial class TokenReplacer
                 fileScopedNamespaceDeclaration,
                 newToken
             ),
-            GreenVariableDeclaration variableDeclaration => ReplaceLastToken(
-                variableDeclaration,
+            GreenLocalVariableDeclaration localVariableDeclaration => ReplaceLastToken(
+                localVariableDeclaration,
+                newToken
+            ),
+            GreenGlobalVariableDeclaration globalVariableDeclaration => ReplaceLastToken(
+                globalVariableDeclaration,
                 newToken
             ),
             GreenFunctionDeclaration functionDeclaration => ReplaceLastToken(
@@ -2087,8 +2174,12 @@ public static partial class TokenReplacer
                 fileScopedNamespaceDeclaration,
                 newToken
             ),
-            GreenVariableDeclaration variableDeclaration => ReplaceLastToken(
-                variableDeclaration,
+            GreenLocalVariableDeclaration localVariableDeclaration => ReplaceLastToken(
+                localVariableDeclaration,
+                newToken
+            ),
+            GreenGlobalVariableDeclaration globalVariableDeclaration => ReplaceLastToken(
+                globalVariableDeclaration,
                 newToken
             ),
             GreenFunctionDeclaration functionDeclaration => ReplaceLastToken(
@@ -2114,6 +2205,27 @@ public static partial class TokenReplacer
             ),
             GreenFileScopedNamespaceDeclaration fileScopedNamespaceDeclaration => ReplaceLastToken(
                 fileScopedNamespaceDeclaration,
+                newToken
+            ),
+            _ => throw new InvalidOperationException("Invalid node type passed into visit"),
+        };
+    }
+
+    [return: NotNullIfNotNull(nameof(node))]
+    internal static GreenVariableDeclaration? ReplaceLastToken(
+        GreenVariableDeclaration? node,
+        GreenToken newToken
+    )
+    {
+        return node switch
+        {
+            null => null,
+            GreenLocalVariableDeclaration localVariableDeclaration => ReplaceLastToken(
+                localVariableDeclaration,
+                newToken
+            ),
+            GreenGlobalVariableDeclaration globalVariableDeclaration => ReplaceLastToken(
+                globalVariableDeclaration,
                 newToken
             ),
             _ => throw new InvalidOperationException("Invalid node type passed into visit"),
@@ -2977,6 +3089,13 @@ public static partial class TokenReplacer
         if (node is null)
             return null;
 
+        var oldSemicolon = node.Semicolon;
+        var newSemicolon = ReplaceLastToken(oldSemicolon, newToken);
+        if (newSemicolon != oldSemicolon)
+        {
+            return node.WithSemicolon(newSemicolon);
+        }
+
         var oldDeclaration = node.Declaration;
         var newDeclaration = ReplaceLastToken(oldDeclaration, newToken);
         if (newDeclaration != oldDeclaration)
@@ -3516,8 +3635,55 @@ public static partial class TokenReplacer
     }
 
     [return: NotNullIfNotNull(nameof(node))]
-    internal static GreenVariableDeclaration? ReplaceLastToken(
-        GreenVariableDeclaration? node,
+    internal static GreenLocalVariableDeclaration? ReplaceLastToken(
+        GreenLocalVariableDeclaration? node,
+        GreenToken newToken
+    )
+    {
+        if (node is null)
+            return null;
+
+        var oldInitializer = node.Initializer;
+        var newInitializer = ReplaceLastToken(oldInitializer, newToken);
+        if (newInitializer != oldInitializer)
+        {
+            return node.WithInitializer(newInitializer);
+        }
+
+        var oldType = node.Type;
+        var newType = ReplaceLastToken(oldType, newToken);
+        if (newType != oldType)
+        {
+            return node.WithType(newType);
+        }
+
+        var oldIdentifier = node.Identifier;
+        var newIdentifier = ReplaceLastToken(oldIdentifier, newToken);
+        if (newIdentifier != oldIdentifier)
+        {
+            return node.WithIdentifier(newIdentifier);
+        }
+
+        var oldVarKeyword = node.VarKeyword;
+        var newVarKeyword = ReplaceLastToken(oldVarKeyword, newToken);
+        if (newVarKeyword != oldVarKeyword)
+        {
+            return node.WithVarKeyword(newVarKeyword);
+        }
+
+        var oldModifiers = node.Modifiers;
+        var newModifiers = ReplaceLastToken(oldModifiers, newToken);
+        if (newModifiers != oldModifiers)
+        {
+            return node.WithModifiers(newModifiers);
+        }
+
+        return node;
+    }
+
+    [return: NotNullIfNotNull(nameof(node))]
+    internal static GreenGlobalVariableDeclaration? ReplaceLastToken(
+        GreenGlobalVariableDeclaration? node,
         GreenToken newToken
     )
     {

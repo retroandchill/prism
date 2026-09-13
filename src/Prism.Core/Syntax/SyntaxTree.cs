@@ -17,9 +17,6 @@ public sealed class SyntaxTree
         Root.SyntaxTree = this;
     }
 
-    private SyntaxTree(SourceText text, GreenNode node)
-        : this("", text, node) { }
-
     internal SyntaxTree(SyntaxNode root)
     {
         Root = root;
@@ -27,14 +24,19 @@ public sealed class SyntaxTree
 
     public static SyntaxTree Parse(string text)
     {
-        return Parse(new SourceText(text));
+        return Parse("", new SourceText(text));
     }
 
-    public static SyntaxTree Parse(SourceText text)
+    public static SyntaxTree Parse(string filename, string text)
+    {
+        return Parse(filename, new SourceText(text));
+    }
+
+    private static SyntaxTree Parse(string filename, SourceText text)
     {
         var parser = new LanguageParser(text.Text);
         var root = parser.ParseCompilationUnit();
-        return new SyntaxTree(text, root);
+        return new SyntaxTree(filename, text, root);
     }
 
     public string Path { get; } = "";
@@ -84,7 +86,7 @@ public sealed class SyntaxTree
 
     private readonly record struct NodeIteration(
         GreenNode Node,
-        int SlotIndex = 0,
+        int SlotIndex = -1,
         bool ProcessedDiagnostics = false
     );
 

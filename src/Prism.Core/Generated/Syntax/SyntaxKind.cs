@@ -191,8 +191,9 @@ public enum SyntaxKind : ushort
     IncompleteDeclaration = 8000,
     BlockNamespaceDeclaration = 8001,
     FileScopedNamespaceDeclaration = 8002,
-    VariableDeclaration = 8003,
-    FunctionDeclaration = 8004,
+    LocalVariableDeclaration = 8003,
+    GlobalVariableDeclaration = 8004,
+    FunctionDeclaration = 8005,
     #endregion
 
     #region Directives
@@ -357,7 +358,8 @@ public static partial class SyntaxKindExtensions
                     SyntaxKind.IncompleteDeclaration => "IncompleteDeclaration",
                     SyntaxKind.BlockNamespaceDeclaration => "BlockNamespaceDeclaration",
                     SyntaxKind.FileScopedNamespaceDeclaration => "FileScopedNamespaceDeclaration",
-                    SyntaxKind.VariableDeclaration => "VariableDeclaration",
+                    SyntaxKind.LocalVariableDeclaration => "LocalVariableDeclaration",
+                    SyntaxKind.GlobalVariableDeclaration => "GlobalVariableDeclaration",
                     SyntaxKind.FunctionDeclaration => "FunctionDeclaration",
                     SyntaxKind.UsingDirective => "UsingDirective",
                     _ => throw new ArgumentException("Unknown SyntaxKind", nameof(kind)),
@@ -421,9 +423,9 @@ public static partial class SyntaxKindExtensions
         public bool IsStatement => (ushort)kind >= 7000 && (ushort)kind <= 7011;
 
         public static SyntaxKind DeclarationStart => (SyntaxKind)8000;
-        public static SyntaxKind DeclarationEnd => (SyntaxKind)8004;
+        public static SyntaxKind DeclarationEnd => (SyntaxKind)8005;
 
-        public bool IsDeclaration => (ushort)kind >= 8000 && (ushort)kind <= 8004;
+        public bool IsDeclaration => (ushort)kind >= 8000 && (ushort)kind <= 8005;
 
         public static SyntaxKind DirectiveStart => (SyntaxKind)9000;
         public static SyntaxKind DirectiveEnd => (SyntaxKind)9000;

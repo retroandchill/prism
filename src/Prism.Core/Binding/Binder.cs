@@ -493,23 +493,32 @@ internal abstract class Binder
         CancellationToken cancellationToken
     )
     {
-        var semanticModel = Compilation.GetSemanticModel(syntax.SyntaxTree);
         var declaration = syntax.Declaration;
+        return BindVariableDeclaration(declaration, context, cancellationToken);
+    }
+
+    private BoundVariableDeclaration BindVariableDeclaration(
+        VariableDeclarationSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var semanticModel = Compilation.GetSemanticModel(syntax.SyntaxTree);
         EnsureLocals();
         var variable =
-            semanticModel.GetDeclaredSymbol(declaration)
+            semanticModel.GetDeclaredSymbol(syntax)
             ?? throw new InvalidOperationException("Declared variable not found");
 
-        var targetType = declaration.Type switch
+        var targetType = syntax.Type switch
         {
             { Type: var typeSyntax } => ResolveType(typeSyntax, context),
             null => null,
         };
 
-        var initializer = declaration.Initializer switch
+        var initializer = syntax.Initializer switch
         {
             not null => BindExpression(
-                declaration.Initializer.Value,
+                syntax.Initializer.Value,
                 targetType,
                 context,
                 cancellationToken

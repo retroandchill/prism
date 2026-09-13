@@ -249,10 +249,25 @@ public sealed class FileScopedNamespaceDeclarationSyntax : NamespaceDeclarationS
     }
 };
 
-public sealed class VariableDeclarationSyntax : DeclarationSyntax
+public abstract class VariableDeclarationSyntax : DeclarationSyntax
 {
-    internal VariableDeclarationSyntax(
+    private protected VariableDeclarationSyntax(
         GreenVariableDeclaration node,
+        SyntaxNode? parent,
+        int position
+    )
+        : base(node, parent, position) { }
+
+    public abstract SyntaxToken VarKeyword { get; }
+    public abstract SyntaxToken Identifier { get; }
+    public abstract TypeSpecifierSyntax? Type { get; }
+    public abstract InitializerSyntax? Initializer { get; }
+};
+
+public sealed class LocalVariableDeclarationSyntax : VariableDeclarationSyntax
+{
+    internal LocalVariableDeclarationSyntax(
+        GreenLocalVariableDeclaration node,
         SyntaxNode? parent,
         int position
     )
@@ -262,38 +277,116 @@ public sealed class VariableDeclarationSyntax : DeclarationSyntax
     {
         get
         {
-            return new SyntaxTokenList(this, ((GreenVariableDeclaration)Green).Modifiers, Position);
+            return new SyntaxTokenList(
+                this,
+                ((GreenLocalVariableDeclaration)Green).Modifiers,
+                Position
+            );
         }
     }
-    public SyntaxToken VarKeyword
+    public override SyntaxToken VarKeyword
     {
         get
         {
             return new SyntaxToken(
-                ((GreenVariableDeclaration)Green).VarKeyword,
+                ((GreenLocalVariableDeclaration)Green).VarKeyword,
                 this,
                 GetSlotPosition(1)
             );
         }
     }
-    public SyntaxToken Identifier
+    public override SyntaxToken Identifier
     {
         get
         {
             return new SyntaxToken(
-                ((GreenVariableDeclaration)Green).Identifier,
+                ((GreenLocalVariableDeclaration)Green).Identifier,
                 this,
                 GetSlotPosition(2)
             );
         }
     }
     private TypeSpecifierSyntax? _type;
-    public TypeSpecifierSyntax? Type
+    public override TypeSpecifierSyntax? Type
     {
         get { return GetRed(ref _type, 3); }
     }
     private InitializerSyntax? _initializer;
-    public InitializerSyntax? Initializer
+    public override InitializerSyntax? Initializer
+    {
+        get { return GetRed(ref _initializer, 4); }
+    }
+
+    internal override SyntaxNode? GetNodeSlot(int index)
+    {
+        return index switch
+        {
+            3 => GetRed(ref _type, 3),
+            4 => GetRed(ref _initializer, 4),
+            _ => null,
+        };
+    }
+
+    internal override SyntaxNode? GetCachedSlot(int index)
+    {
+        return index switch
+        {
+            3 => _type,
+            4 => _initializer,
+            _ => null,
+        };
+    }
+};
+
+public sealed class GlobalVariableDeclarationSyntax : VariableDeclarationSyntax
+{
+    internal GlobalVariableDeclarationSyntax(
+        GreenGlobalVariableDeclaration node,
+        SyntaxNode? parent,
+        int position
+    )
+        : base(node, parent, position) { }
+
+    public override SyntaxTokenList Modifiers
+    {
+        get
+        {
+            return new SyntaxTokenList(
+                this,
+                ((GreenGlobalVariableDeclaration)Green).Modifiers,
+                Position
+            );
+        }
+    }
+    public override SyntaxToken VarKeyword
+    {
+        get
+        {
+            return new SyntaxToken(
+                ((GreenGlobalVariableDeclaration)Green).VarKeyword,
+                this,
+                GetSlotPosition(1)
+            );
+        }
+    }
+    public override SyntaxToken Identifier
+    {
+        get
+        {
+            return new SyntaxToken(
+                ((GreenGlobalVariableDeclaration)Green).Identifier,
+                this,
+                GetSlotPosition(2)
+            );
+        }
+    }
+    private TypeSpecifierSyntax? _type;
+    public override TypeSpecifierSyntax Type
+    {
+        get { return GetRed(ref _type, 3); }
+    }
+    private InitializerSyntax? _initializer;
+    public override InitializerSyntax? Initializer
     {
         get { return GetRed(ref _initializer, 4); }
     }
@@ -302,7 +395,7 @@ public sealed class VariableDeclarationSyntax : DeclarationSyntax
         get
         {
             return new SyntaxToken(
-                ((GreenVariableDeclaration)Green).Semicolon,
+                ((GreenGlobalVariableDeclaration)Green).Semicolon,
                 this,
                 GetSlotPosition(5)
             );

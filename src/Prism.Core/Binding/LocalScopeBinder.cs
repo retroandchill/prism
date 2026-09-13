@@ -49,7 +49,7 @@ internal abstract class LocalScopeBinder(Binder next) : Binder(next)
     }
 
     protected ImmutableArray<VariableSymbol> BuildLocalVariables(
-        ReadOnlySpan<StatementSyntax> statements,
+        ReadOnlySpan<SyntaxNode> statements,
         Binder enclosingBinder
     )
     {
@@ -64,15 +64,25 @@ internal abstract class LocalScopeBinder(Binder next) : Binder(next)
 
     private void BuildLocalVariables(
         Binder enclosingBinder,
-        StatementSyntax statement,
+        SyntaxNode statement,
         ImmutableArray<VariableSymbol>.Builder variables
     )
     {
-        if (statement is not VariableDeclarationStatementSyntax local)
-            return;
-
-        var declarationBinder = enclosingBinder.GetBinder(local) ?? enclosingBinder;
-        variables.Add(MakeLocal(local.Declaration, declarationBinder));
+        switch (statement)
+        {
+            case VariableDeclarationStatementSyntax local:
+            {
+                var declarationBinder = enclosingBinder.GetBinder(local) ?? enclosingBinder;
+                variables.Add(MakeLocal(local.Declaration, declarationBinder));
+                break;
+            }
+            case VariableDeclarationSyntax loopVariable:
+            {
+                var declarationBinder = enclosingBinder.GetBinder(loopVariable) ?? enclosingBinder;
+                variables.Add(MakeLocal(loopVariable, declarationBinder));
+                break;
+            }
+        }
     }
 
     private SourceLocalVariableSymbol MakeLocal(

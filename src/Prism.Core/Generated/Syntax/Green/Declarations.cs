@@ -569,19 +569,40 @@ internal sealed class GreenFileScopedNamespaceDeclaration : GreenNamespaceDeclar
     }
 }
 
-internal sealed class GreenVariableDeclaration : GreenDeclaration
+internal abstract class GreenVariableDeclaration : GreenDeclaration
 {
-    public GreenVariableDeclaration(
+    protected GreenVariableDeclaration(SyntaxKind kind)
+        : base(kind) { }
+
+    public abstract GreenToken VarKeyword { get; }
+
+    public abstract GreenVariableDeclaration WithVarKeyword(GreenToken value);
+
+    public abstract GreenToken Identifier { get; }
+
+    public abstract GreenVariableDeclaration WithIdentifier(GreenToken value);
+
+    public abstract GreenTypeSpecifier? Type { get; }
+
+    public abstract GreenVariableDeclaration WithType(GreenTypeSpecifier? value);
+
+    public abstract GreenInitializer? Initializer { get; }
+
+    public abstract GreenVariableDeclaration WithInitializer(GreenInitializer? value);
+}
+
+internal sealed class GreenLocalVariableDeclaration : GreenVariableDeclaration
+{
+    public GreenLocalVariableDeclaration(
         GreenSyntaxList<GreenToken> modifiers,
         GreenToken varKeyword,
         GreenToken identifier,
         GreenTypeSpecifier? type,
-        GreenInitializer? initializer,
-        GreenToken semicolon
+        GreenInitializer? initializer
     )
-        : base(SyntaxKind.VariableDeclaration)
+        : base(SyntaxKind.LocalVariableDeclaration)
     {
-        SlotCount = 6;
+        SlotCount = 5;
         Modifiers = modifiers;
         AdjustFlagsAndWidth(Modifiers);
         VarKeyword = varKeyword;
@@ -594,15 +615,203 @@ internal sealed class GreenVariableDeclaration : GreenDeclaration
         Initializer = initializer;
         if (Initializer is not null)
             AdjustFlagsAndWidth(Initializer);
+    }
+
+    public override GreenSyntaxList<GreenToken> Modifiers { get; }
+    public override GreenToken VarKeyword { get; }
+    public override GreenToken Identifier { get; }
+    public override GreenTypeSpecifier? Type { get; }
+    public override GreenInitializer? Initializer { get; }
+
+    public override GreenNode? GetSlot(int index)
+    {
+        return index switch
+        {
+            0 => Modifiers.Node,
+            1 => VarKeyword,
+            2 => Identifier,
+            3 => Type,
+            4 => Initializer,
+            _ => null,
+        };
+    }
+
+    public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
+    {
+        return new LocalVariableDeclarationSyntax(this, parent, position);
+    }
+
+    public override GreenLocalVariableDeclaration WithModifiers(
+        GreenSyntaxList<GreenToken> modifiers
+    )
+    {
+        if (Modifiers == modifiers)
+            return this;
+
+        return new GreenLocalVariableDeclaration(
+            modifiers,
+            VarKeyword,
+            Identifier,
+            Type,
+            Initializer
+        )
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public override GreenLocalVariableDeclaration WithVarKeyword(GreenToken varKeyword)
+    {
+        if (VarKeyword == varKeyword)
+            return this;
+
+        return new GreenLocalVariableDeclaration(
+            Modifiers,
+            varKeyword,
+            Identifier,
+            Type,
+            Initializer
+        )
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public override GreenLocalVariableDeclaration WithIdentifier(GreenToken identifier)
+    {
+        if (Identifier == identifier)
+            return this;
+
+        return new GreenLocalVariableDeclaration(
+            Modifiers,
+            VarKeyword,
+            identifier,
+            Type,
+            Initializer
+        )
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public override GreenLocalVariableDeclaration WithType(GreenTypeSpecifier? type)
+    {
+        if (Type == type)
+            return this;
+
+        return new GreenLocalVariableDeclaration(
+            Modifiers,
+            VarKeyword,
+            Identifier,
+            type,
+            Initializer
+        )
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public override GreenLocalVariableDeclaration WithInitializer(GreenInitializer? initializer)
+    {
+        if (Initializer == initializer)
+            return this;
+
+        return new GreenLocalVariableDeclaration(
+            Modifiers,
+            VarKeyword,
+            Identifier,
+            Type,
+            initializer
+        )
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+
+    public override GreenLocalVariableDeclaration WithDiagnostics(
+        ImmutableArray<SyntaxDiagnosticInfo> diagnostics
+    )
+    {
+        if (Diagnostics == diagnostics)
+            return this;
+
+        return new GreenLocalVariableDeclaration(
+            Modifiers,
+            VarKeyword,
+            Identifier,
+            Type,
+            Initializer
+        )
+        {
+            Diagnostics = diagnostics,
+        };
+    }
+
+    public GreenLocalVariableDeclaration Update(
+        GreenSyntaxList<GreenToken> modifiers,
+        GreenToken varKeyword,
+        GreenToken identifier,
+        GreenTypeSpecifier? type,
+        GreenInitializer? initializer
+    )
+    {
+        if (
+            Modifiers == modifiers
+            && VarKeyword == varKeyword
+            && Identifier == identifier
+            && Type == type
+            && Initializer == initializer
+        )
+        {
+            return this;
+        }
+
+        return new GreenLocalVariableDeclaration(
+            modifiers,
+            varKeyword,
+            identifier,
+            type,
+            initializer
+        )
+        {
+            Diagnostics = Diagnostics,
+        };
+    }
+}
+
+internal sealed class GreenGlobalVariableDeclaration : GreenVariableDeclaration
+{
+    public GreenGlobalVariableDeclaration(
+        GreenSyntaxList<GreenToken> modifiers,
+        GreenToken varKeyword,
+        GreenToken identifier,
+        GreenTypeSpecifier type,
+        GreenInitializer? initializer,
+        GreenToken semicolon
+    )
+        : base(SyntaxKind.GlobalVariableDeclaration)
+    {
+        SlotCount = 6;
+        Modifiers = modifiers;
+        AdjustFlagsAndWidth(Modifiers);
+        VarKeyword = varKeyword;
+        AdjustFlagsAndWidth(VarKeyword);
+        Identifier = identifier;
+        AdjustFlagsAndWidth(Identifier);
+        Type = type;
+        AdjustFlagsAndWidth(Type);
+        Initializer = initializer;
+        if (Initializer is not null)
+            AdjustFlagsAndWidth(Initializer);
         Semicolon = semicolon;
         AdjustFlagsAndWidth(Semicolon);
     }
 
     public override GreenSyntaxList<GreenToken> Modifiers { get; }
-    public GreenToken VarKeyword { get; }
-    public GreenToken Identifier { get; }
-    public GreenTypeSpecifier? Type { get; }
-    public GreenInitializer? Initializer { get; }
+    public override GreenToken VarKeyword { get; }
+    public override GreenToken Identifier { get; }
+    public override GreenTypeSpecifier Type { get; }
+    public override GreenInitializer? Initializer { get; }
     public GreenToken Semicolon { get; }
 
     public override GreenNode? GetSlot(int index)
@@ -621,15 +830,17 @@ internal sealed class GreenVariableDeclaration : GreenDeclaration
 
     public override SyntaxNode CreateRed(SyntaxNode? parent = null, int position = 0)
     {
-        return new VariableDeclarationSyntax(this, parent, position);
+        return new GlobalVariableDeclarationSyntax(this, parent, position);
     }
 
-    public override GreenVariableDeclaration WithModifiers(GreenSyntaxList<GreenToken> modifiers)
+    public override GreenGlobalVariableDeclaration WithModifiers(
+        GreenSyntaxList<GreenToken> modifiers
+    )
     {
         if (Modifiers == modifiers)
             return this;
 
-        return new GreenVariableDeclaration(
+        return new GreenGlobalVariableDeclaration(
             modifiers,
             VarKeyword,
             Identifier,
@@ -642,12 +853,12 @@ internal sealed class GreenVariableDeclaration : GreenDeclaration
         };
     }
 
-    public GreenVariableDeclaration WithVarKeyword(GreenToken varKeyword)
+    public override GreenGlobalVariableDeclaration WithVarKeyword(GreenToken varKeyword)
     {
         if (VarKeyword == varKeyword)
             return this;
 
-        return new GreenVariableDeclaration(
+        return new GreenGlobalVariableDeclaration(
             Modifiers,
             varKeyword,
             Identifier,
@@ -660,12 +871,12 @@ internal sealed class GreenVariableDeclaration : GreenDeclaration
         };
     }
 
-    public GreenVariableDeclaration WithIdentifier(GreenToken identifier)
+    public override GreenGlobalVariableDeclaration WithIdentifier(GreenToken identifier)
     {
         if (Identifier == identifier)
             return this;
 
-        return new GreenVariableDeclaration(
+        return new GreenGlobalVariableDeclaration(
             Modifiers,
             VarKeyword,
             identifier,
@@ -678,12 +889,12 @@ internal sealed class GreenVariableDeclaration : GreenDeclaration
         };
     }
 
-    public GreenVariableDeclaration WithType(GreenTypeSpecifier? type)
+    public override GreenGlobalVariableDeclaration WithType(GreenTypeSpecifier type)
     {
         if (Type == type)
             return this;
 
-        return new GreenVariableDeclaration(
+        return new GreenGlobalVariableDeclaration(
             Modifiers,
             VarKeyword,
             Identifier,
@@ -696,12 +907,12 @@ internal sealed class GreenVariableDeclaration : GreenDeclaration
         };
     }
 
-    public GreenVariableDeclaration WithInitializer(GreenInitializer? initializer)
+    public override GreenGlobalVariableDeclaration WithInitializer(GreenInitializer? initializer)
     {
         if (Initializer == initializer)
             return this;
 
-        return new GreenVariableDeclaration(
+        return new GreenGlobalVariableDeclaration(
             Modifiers,
             VarKeyword,
             Identifier,
@@ -714,12 +925,12 @@ internal sealed class GreenVariableDeclaration : GreenDeclaration
         };
     }
 
-    public GreenVariableDeclaration WithSemicolon(GreenToken semicolon)
+    public GreenGlobalVariableDeclaration WithSemicolon(GreenToken semicolon)
     {
         if (Semicolon == semicolon)
             return this;
 
-        return new GreenVariableDeclaration(
+        return new GreenGlobalVariableDeclaration(
             Modifiers,
             VarKeyword,
             Identifier,
@@ -732,14 +943,14 @@ internal sealed class GreenVariableDeclaration : GreenDeclaration
         };
     }
 
-    public override GreenVariableDeclaration WithDiagnostics(
+    public override GreenGlobalVariableDeclaration WithDiagnostics(
         ImmutableArray<SyntaxDiagnosticInfo> diagnostics
     )
     {
         if (Diagnostics == diagnostics)
             return this;
 
-        return new GreenVariableDeclaration(
+        return new GreenGlobalVariableDeclaration(
             Modifiers,
             VarKeyword,
             Identifier,
@@ -752,11 +963,11 @@ internal sealed class GreenVariableDeclaration : GreenDeclaration
         };
     }
 
-    public GreenVariableDeclaration Update(
+    public GreenGlobalVariableDeclaration Update(
         GreenSyntaxList<GreenToken> modifiers,
         GreenToken varKeyword,
         GreenToken identifier,
-        GreenTypeSpecifier? type,
+        GreenTypeSpecifier type,
         GreenInitializer? initializer,
         GreenToken semicolon
     )
@@ -773,7 +984,7 @@ internal sealed class GreenVariableDeclaration : GreenDeclaration
             return this;
         }
 
-        return new GreenVariableDeclaration(
+        return new GreenGlobalVariableDeclaration(
             modifiers,
             varKeyword,
             identifier,

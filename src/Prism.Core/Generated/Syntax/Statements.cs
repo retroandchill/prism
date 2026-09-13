@@ -41,10 +41,21 @@ public sealed class VariableDeclarationStatementSyntax : StatementSyntax
     )
         : base(node, parent, position) { }
 
-    private VariableDeclarationSyntax? _declaration;
-    public VariableDeclarationSyntax Declaration
+    private LocalVariableDeclarationSyntax? _declaration;
+    public LocalVariableDeclarationSyntax Declaration
     {
         get { return GetRed(ref _declaration); }
+    }
+    public SyntaxToken Semicolon
+    {
+        get
+        {
+            return new SyntaxToken(
+                ((GreenVariableDeclarationStatement)Green).Semicolon,
+                this,
+                GetSlotPosition(1)
+            );
+        }
     }
 
     internal override SyntaxNode? GetNodeSlot(int index)
@@ -333,8 +344,8 @@ public sealed class ForStatementSyntax : StatementSyntax
             return new SyntaxToken(((GreenForStatement)Green).OpenParen, this, GetSlotPosition(1));
         }
     }
-    private VariableDeclarationStatementSyntax? _declaration;
-    public VariableDeclarationStatementSyntax? Declaration
+    private LocalVariableDeclarationSyntax? _declaration;
+    public LocalVariableDeclarationSyntax? Declaration
     {
         get { return GetRed(ref _declaration, 2); }
     }

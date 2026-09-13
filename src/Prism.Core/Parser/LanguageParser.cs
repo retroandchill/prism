@@ -50,7 +50,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         return PeekToken().Kind switch
         {
             SyntaxKind.NamespaceKeyword => ParseNamespaceDeclaration(modifiers),
-            SyntaxKind.VarKeyword => ParseVariableDeclaration(modifiers),
+            SyntaxKind.VarKeyword => ParseGlobalVariableDeclaration(modifiers),
             SyntaxKind.FuncKeyword => ParseFunctionDeclaration(modifiers),
             _ => new GreenIncompleteDeclaration(modifiers),
         };
@@ -91,17 +91,41 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         }
     }
 
-    private GreenVariableDeclaration ParseVariableDeclaration(
+    private GreenVariableDeclaration ParseGlobalVariableDeclaration(
         GreenSyntaxList<GreenToken> modifiers = default
     )
     {
-        return new GreenVariableDeclaration(
+        return new GreenGlobalVariableDeclaration(
+            modifiers,
+            ExpectToken(SyntaxKind.VarKeyword),
+            ExpectToken(SyntaxKind.IdentifierToken),
+            ParseRequiredTypeSpecifier(),
+            ParseInitializer(),
+            ExpectToken(SyntaxKind.SemicolonToken)
+        );
+    }
+
+    private GreenLocalVariableDeclaration? ParseLocalVariableDeclaration()
+    {
+        GreenSyntaxList<GreenToken> modifiers;
+        switch (PeekToken().Kind)
+        {
+            case SyntaxKind.MutableKeyword:
+                modifiers = ParseModifiers();
+                break;
+            case SyntaxKind.VarKeyword:
+                modifiers = new GreenSyntaxList<GreenToken>();
+                break;
+            default:
+                return null;
+        }
+
+        return new GreenLocalVariableDeclaration(
             modifiers,
             ExpectToken(SyntaxKind.VarKeyword),
             ExpectToken(SyntaxKind.IdentifierToken),
             ParseTypeSpecifier(),
-            ParseInitializer(),
-            ExpectToken(SyntaxKind.SemicolonToken)
+            ParseInitializer()
         );
     }
 
@@ -181,16 +205,13 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
     private GreenVariableDeclarationStatement? ParseVariableDeclarationStatement()
     {
-        return PeekToken().Kind switch
+        var local = ParseLocalVariableDeclaration();
+        if (local is null)
         {
-            SyntaxKind.MutableKeyword => new GreenVariableDeclarationStatement(
-                ParseVariableDeclaration(ParseModifiers())
-            ),
-            SyntaxKind.VarKeyword => new GreenVariableDeclarationStatement(
-                ParseVariableDeclaration(ParseModifiers())
-            ),
-            _ => null,
-        };
+            return null;
+        }
+
+        return new GreenVariableDeclarationStatement(local, ExpectToken(SyntaxKind.SemicolonToken));
     }
 
     private GreenExpressionStatement ParseExpressionStatement()
@@ -250,7 +271,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     {
         var forKeyword = ExpectToken(SyntaxKind.ForKeyword);
         var openKeyword = ExpectToken(SyntaxKind.OpenParenToken);
-        var declaration = ParseVariableDeclarationStatement();
+        var declaration = ParseLocalVariableDeclaration();
         var initializers = GreenSeparatedList.CreateBuilder<GreenExpression>();
         if (declaration is null)
         {

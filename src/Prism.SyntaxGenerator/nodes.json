@@ -1240,8 +1240,17 @@
             {
               "$type": "item",
               "name": "declaration",
-              "type": "VariableDeclaration",
+              "type": "LocalVariableDeclaration",
               "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "semicolon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "SemicolonToken"
+              ]
             }
           ]
         },
@@ -1468,7 +1477,7 @@
             {
               "$type": "item",
               "name": "declaration",
-              "type": "VariableDeclarationStatement",
+              "type": "LocalVariableDeclaration",
               "shape": "optional"
             },
             {
@@ -1798,6 +1807,42 @@
           "properties": [
             {
               "$type": "item",
+              "name": "var_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "VarKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "identifier",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "type",
+              "type": "TypeSpecifier",
+              "shape": "optional"
+            },
+            {
+              "$type": "item",
+              "name": "initializer",
+              "type": "Initializer",
+              "shape": "optional"
+            }
+          ]
+        },
+        {
+          "name": "LocalVariableDeclaration",
+          "base": "VariableDeclaration",
+          "properties": [
+            {
+              "$type": "item",
               "name": "modifiers",
               "type": "Token",
               "shape": "list",
@@ -1829,6 +1874,52 @@
               "name": "type",
               "type": "TypeSpecifier",
               "shape": "optional"
+            },
+            {
+              "$type": "item",
+              "name": "initializer",
+              "type": "Initializer",
+              "shape": "optional"
+            }
+          ]
+        },
+        {
+          "name": "GlobalVariableDeclaration",
+          "base": "VariableDeclaration",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "modifiers",
+              "type": "Token",
+              "shape": "list",
+              "kinds": [
+                "ExternKeyword",
+                "MutableKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "var_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "VarKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "identifier",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "type",
+              "type": "TypeSpecifier",
+              "shape": "single"
             },
             {
               "$type": "item",

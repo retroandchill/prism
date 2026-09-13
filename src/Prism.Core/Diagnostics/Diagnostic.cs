@@ -77,6 +77,25 @@ public sealed class Diagnostic
 
     public override string ToString()
     {
-        return $"{Severity} {Location}: {GetMessage()}";
+        using var builder = ZString.CreateStringBuilder();
+        builder.Append(Severity);
+        builder.Append(": ");
+        switch (Location)
+        {
+            case NoLocation:
+                // Don't print anything
+                break;
+            case SourceLocation sourceLocation:
+                builder.Append(sourceLocation.PositionSpan.FilePath);
+                builder.Append(" (");
+                builder.Append(sourceLocation.PositionSpan.StartLinePosition);
+                builder.Append("): ");
+                break;
+            default:
+                throw new InvalidOperationException("Unknown location type");
+        }
+
+        builder.Append(GetMessage());
+        return builder.ToString();
     }
 }
