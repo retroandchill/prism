@@ -6,6 +6,7 @@
 using System.Runtime.InteropServices;
 using DotMake.CommandLine;
 using Prism.Core.Compiling;
+using Prism.Core.Configuration;
 using Prism.Core.Syntax;
 
 namespace Prism.Compiler;
@@ -13,6 +14,13 @@ namespace Prism.Compiler;
 [CliCommand(Description = "Invoke the Prism compiler")]
 public class RootCommand
 {
+    internal const string Executable = "executable";
+    private const string StaticLib = "static-lib";
+    private const string SharedLib = "shared-lib";
+
+    [CliOption(Alias = "n", Description = "The name of the target assembly", Required = true)]
+    public string Name { get; set; } = null!;
+
     [CliArgument(
         Description = "Input files to compile",
         Required = true,
@@ -20,34 +28,52 @@ public class RootCommand
     )]
     public IEnumerable<FileInfo> Input { get; set; } = null!;
 
-    [CliOption(Alias = "o", Description = "Output file")]
-    public FileInfo Output { get; set; } = null!;
+    [CliOption(
+        Alias = "k",
+        Description = "The type of output",
+        AllowedValues = [Executable, StaticLib, SharedLib]
+    )]
+    public string Kind { get; set; } = Executable;
 
     public async Task<int> RunAsync(CliContext context)
     {
-        Console.WriteLine("Parsing Program");
         var syntaxTress = await Task.WhenAll(
             Input.Select(f => ParseFile(f, context.CancellationToken)).ToArray()
         );
 
         var compilation = Compilation.Create(
-            "test",
-            ImmutableCollectionsMarshal.AsImmutableArray(syntaxTress)
+            Name,
+            ImmutableCollectionsMarshal.AsImmutableArray(syntaxTress),
+            new CompilationSettings { OutputKind = GetOutputKind() }
         );
 
-        if (compilation.Emit(Output.Directory!.FullName) is (false, var diagnostics))
+        if (compilation.Emit(Directory.GetCurrentDirectory()) is (false, var diagnostics))
         {
-            Console.WriteLine("Compilation Failed");
+            await context.Output.WriteLineAsync("Compilation Failed");
             foreach (var diagnostic in diagnostics)
-                Console.WriteLine(diagnostic);
+                await context.Output.WriteLineAsync(diagnostic.ToString());
             return 1;
         }
 
-        Console.WriteLine("Compilation Succeeded");
+        await context.Output.WriteLineAsync("Compilation Succeeded");
         return 0;
     }
 
-    private async Task<SyntaxTree> ParseFile(FileInfo fileInfo, CancellationToken cancellationToken)
+    private OutputKind GetOutputKind()
+    {
+        return Kind switch
+        {
+            Executable => OutputKind.Executable,
+            StaticLib => OutputKind.StaticLibrary,
+            SharedLib => OutputKind.SharedLibrary,
+            _ => throw new ArgumentOutOfRangeException(nameof(Kind), Kind, null),
+        };
+    }
+
+    private static async Task<SyntaxTree> ParseFile(
+        FileInfo fileInfo,
+        CancellationToken cancellationToken
+    )
     {
         string program;
         await using (var stream = fileInfo.OpenRead())

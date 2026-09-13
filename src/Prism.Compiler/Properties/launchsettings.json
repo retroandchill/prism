@@ -1,10 +1,19 @@
 ﻿{
   "$schema": "https://schemastore.org",
   "profiles": {
+    "DisplayHelp": {
+      "commandName": "Project",
+      "commandLineArgs": "--help"
+    },
     "HelloWorld": {
       "commandName": "Project",
-      "commandLineArgs": "main.pr --output main.exe",
+      "commandLineArgs": "main.pr --name hello_world",
       "workingDirectory": "../../examples/hello_world"
+    },
+    "TestFuncs": {
+      "commandName": "Project",
+      "commandLineArgs": "test_funcs.pr --name test_funcs --kind static-lib",
+      "workingDirectory": "../../examples/test_funcs"
     }
   }
 }
