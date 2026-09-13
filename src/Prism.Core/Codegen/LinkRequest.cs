@@ -27,7 +27,7 @@ public enum DebugInfoKind
     ProgramDatabase,
 }
 
-internal sealed class LinkRequest
+internal sealed record LinkRequest
 {
     public required LinkOutput OutputKind { get; init; }
 

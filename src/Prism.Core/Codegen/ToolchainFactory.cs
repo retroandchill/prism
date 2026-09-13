@@ -37,7 +37,6 @@ internal static class ToolchainFactory
         var toolset = MsvcDiscovery.LocateToolset(installation, request.Architecture);
         var windowsSdk = WindowsSdkDiscovery.LocateSdk(request.Architecture);
         return new MsvcToolchain(
-            installation,
             toolset,
             windowsSdk,
             Path.Combine(toolset.LinkerPath, "link.exe"),

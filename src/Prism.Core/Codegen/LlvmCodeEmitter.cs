@@ -1134,8 +1134,10 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 context,
                 cancellationToken
             ),
-            OutputKind.StaticLibrary => throw new NotSupportedException(
-                "Static library output is not supported"
+            OutputKind.StaticLibrary => await CreateStaticLibraryAsync(
+                outputFilename,
+                context,
+                cancellationToken
             ),
             OutputKind.SharedLibrary => await LinkAsync(
                 outputFilename,
@@ -1191,6 +1193,47 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             };
 
             var result = await toolchain.LinkAsync(request, cancellationToken);
+            if (result.Success)
+                return new EmitResult(true, context.CollectDiagnostics());
+
+            context.ReportDiagnostic(Diagnostic.ExternalDiagnostic(Location.None, result.StdErr));
+            return new EmitResult(false, context.CollectDiagnostics());
+        }
+        catch (Exception ex)
+        {
+            context.ReportDiagnostic(Diagnostic.ExternalDiagnostic(Location.None, ex.Message));
+            return new EmitResult(false, context.CollectDiagnostics());
+        }
+    }
+
+    private async Task<EmitResult> CreateStaticLibraryAsync(
+        string objFileName,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            var toolchain = ToolchainFactory.Create(
+                new ToolchainRequest(
+                    _compilation.Settings.Architecture,
+                    _compilation.Settings.OperatingSystem,
+                    _compilation.Settings.Toolchain
+                )
+            );
+
+            var targetPath = Path.Join(
+                _options.OutputDirectory,
+                $"{_compilation.AssemblyName}.lib"
+            );
+
+            var request = new StaticLibraryRequest
+            {
+                OutputPath = targetPath,
+                ObjectFiles = [objFileName],
+            };
+
+            var result = await toolchain.CreateStaticLibraryAsync(request, cancellationToken);
             if (result.Success)
                 return new EmitResult(true, context.CollectDiagnostics());
 

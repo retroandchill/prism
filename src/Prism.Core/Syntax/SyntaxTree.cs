@@ -132,28 +132,32 @@ public sealed class SyntaxTree
         if (node.SlotCount == 0)
         {
             position += node.Width;
-            return;
         }
-
-        Debug.Assert(stack.Count > 0, "Stack is empty");
-        for (
-            var nextSlotIndex = stack[^1].SlotIndex;
-            nextSlotIndex < node.SlotCount;
-            nextSlotIndex++
-        )
+        else
         {
-            var child = node.GetSlot(nextSlotIndex);
-            if (child is null)
-                continue;
-
-            if (!child.ContainsDiagnostics)
+            Debug.Assert(stack.Count > 0, "Stack is empty");
+            for (
+                var nextSlotIndex = stack[^1].SlotIndex + 1;
+                nextSlotIndex < node.SlotCount;
+                nextSlotIndex++
+            )
             {
-                position += child.FullWidth;
-                continue;
-            }
+                var child = node.GetSlot(nextSlotIndex);
+                if (child is null)
+                    continue;
 
-            stack[^1] = stack[^1] with { SlotIndex = nextSlotIndex };
-            stack.Add(new NodeIteration(child));
+                if (!child.ContainsDiagnostics)
+                {
+                    position += child.FullWidth;
+                    continue;
+                }
+
+                stack[^1] = stack[^1] with { SlotIndex = nextSlotIndex };
+                stack.Add(new NodeIteration(child));
+                return;
+            }
         }
+
+        stack.RemoveAt(stack.Count - 1);
     }
 }

@@ -13,4 +13,9 @@ public readonly record struct ToolResult(int ExitCode, string StdOut, string Std
 internal interface IToolchain
 {
     Task<ToolResult> LinkAsync(LinkRequest request, CancellationToken cancellationToken = default);
+
+    Task<ToolResult> CreateStaticLibraryAsync(
+        StaticLibraryRequest request,
+        CancellationToken cancellationToken = default
+    );
 }
