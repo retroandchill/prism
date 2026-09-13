@@ -47,22 +47,24 @@ public class RootCommand
             new CompilationSettings { OutputKind = GetOutputKind() }
         );
 
-        if (
-            await compilation.EmitAsync(
-                Directory.GetCurrentDirectory(),
-                context.CancellationToken
-            ) is
-            (false, var diagnostics)
-        )
+        var (succeeded, diagnostics) = await compilation.EmitAsync(
+            Directory.GetCurrentDirectory(),
+            context.CancellationToken
+        );
+
+        if (succeeded)
+        {
+            await context.Output.WriteLineAsync("Compilation Succeeded");
+        }
+        else
         {
             await context.Output.WriteLineAsync("Compilation Failed");
-            foreach (var diagnostic in diagnostics)
-                await context.Output.WriteLineAsync(diagnostic.ToString());
-            return 1;
         }
 
-        await context.Output.WriteLineAsync("Compilation Succeeded");
-        return 0;
+        foreach (var diagnostic in diagnostics)
+            await context.Output.WriteLineAsync(diagnostic.ToString());
+
+        return succeeded ? 0 : 1;
     }
 
     private OutputKind GetOutputKind()
