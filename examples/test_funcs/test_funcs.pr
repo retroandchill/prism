@@ -1,0 +1,117 @@
+﻿var a: i32 = 1;
+var b: i32 = a + 2;
+
+func add(a: i32, b: i32): i32 {
+    return a + b;
+}
+
+func add(a: f32, b: i32): f64 {
+    return a + b;
+}
+
+func max(a: i32, b: i32): i32 {
+    return a > b ? a : b;
+}
+
+func if_true(c: bool, a: i32, b: i32): i32 {
+    return c ? a : b;
+}
+
+func cast_check(a: i64): i32 {
+    return a as i32;
+}
+
+func min(a: i32, b: i32): i32 {
+    if (a < b) {
+        return a;
+    } else {
+        return b;
+    }
+}
+
+func compound_assign(mutable a: i32, b: i32): i32 {
+    a += b;
+    return a;
+}
+
+func while_loop(a: i32): i32 {
+    mutable var i = 0;
+
+    while (i < a) {
+        i++;
+    }
+
+    return i;
+}
+
+func unconditional_loop(a: i32): i32 {
+    mutable var i = 0;
+
+    loop {
+        // Line comment example
+        if (i == a) {
+            break;
+        }
+
+        i++;
+    }
+
+    return i;
+}
+
+func for_loop(a: i32) {
+    for (mutable var i = 0; i < a; i++) {
+        // Do nothing
+    }
+}
+
+func nested_break_and_continue() {
+    outer: for (mutable var i = 0; i < 10; i++) {
+        for (mutable var j = 0; j < 10; j++) {
+            if (i == 5 && j == 5) {
+                continue outer;
+            }
+
+            if (i == 5 && j == 7) {
+                break outer;
+            }
+        }
+    }
+}
+
+func print(msg: str&) {
+    // TODO: Implement me
+}
+
+func add_by_reference(a: i32 mutable&, b: i32) {
+    *a += b;
+}
+
+func act_on_by_reference(a: i32, b: i32): i32 {
+    var c = &a;
+    return *c + b;
+}
+
+func print_maybe(message: str&, value: i32) {
+    var should_print = value != 5;
+    if (should_print)
+    {
+        print(message);
+    }
+}
+
+func get_index(slice: i32[]&, index: usize): i32 {
+    return slice[index];
+}
+
+func get_index(slice: i32[4], index: usize): i32 {
+    return slice[index];
+}
+
+func get_second_item(slice: i32[4]): i32 {
+    return get_index(slice, 1);
+}
+
+func get_item_from_constant(slice: i32[4]): i32 {
+    return get_index([1, 2, 3, 4], 2);
+}

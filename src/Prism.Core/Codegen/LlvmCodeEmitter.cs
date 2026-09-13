@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
+using System.Text;
 using Cysharp.Text;
 using LLVMSharp.Interop;
 using Prism.Core.Binding;
@@ -409,9 +410,20 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 _context.DoubleType,
                 value.AsFloat64()
             ),
-            ConstantKind.Str => _builder.BuildGlobalString(value.AsString()),
+            ConstantKind.Str => CreateStringConstant(value.AsString()),
             _ => throw new ArgumentException("Invalid constant kind"),
         };
+    }
+
+    private LLVMValueRef CreateStringConstant(string value)
+    {
+        var globalString = _builder.BuildGlobalString(value);
+        var length = (ulong)Encoding.UTF8.GetByteCount(value);
+        var lengthValue = LLVMValueRef.CreateConstInt(
+            GetOrCreateType(_compilation.GetSpecialType(SpecialType.USize)),
+            length
+        );
+        return LLVMValueRef.CreateConstStruct([globalString, lengthValue], false);
     }
 
     private LLVMValueRef ConvertByteBoolToI1IfNeeded(LLVMValueRef value)

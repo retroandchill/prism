@@ -383,4 +383,31 @@ public class FunctionAnalysisTest
         Assert.That(bodyAnalysis.Diagnostics, Has.Length.EqualTo(1));
         Assert.That(bodyAnalysis.Diagnostics[0].Id, Is.EqualTo("CannotReassign"));
     }
+
+    [Test]
+    public void ReferencedLocalsGetMarked()
+    {
+        var tree = SyntaxTree.Parse(
+            """
+            extern func g(p: i32&);
+
+            func f(p: i32) {
+                g(&p);
+            }
+            """
+        );
+
+        const string assemblyName = "test";
+        var compilation = Compilation.Create(assemblyName, [tree]);
+
+        var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
+        Assert.That(members, Has.Length.EqualTo(1));
+        Assert.That(members[0], Is.InstanceOf<FunctionSymbol>());
+
+        var function = (FunctionSymbol)members[0];
+        var bodyAnalysis = compilation.GetBoundBody(function);
+
+        Assert.That(bodyAnalysis.Analysis, Is.Not.Null);
+        Assert.That(bodyAnalysis.Analysis.IsAddressTaken(function.Parameters[0]));
+    }
 }

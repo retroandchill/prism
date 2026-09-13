@@ -894,7 +894,11 @@ internal abstract class Binder
         }
 
         var value = EvaluateConstantExpression(token, returnType, context);
-        var type = Compilation.GetSpecialType(value.SpecialType);
+        TypeSymbol type = Compilation.GetSpecialType(value.SpecialType);
+        if (type.SpecialType == SpecialType.Str)
+        {
+            type = Compilation.CreateReferenceTypeSymbol(type);
+        }
         return new BoundLiteral(syntax, type, value);
     }
 
