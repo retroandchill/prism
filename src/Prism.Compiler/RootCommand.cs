@@ -47,7 +47,13 @@ public class RootCommand
             new CompilationSettings { OutputKind = GetOutputKind() }
         );
 
-        if (compilation.Emit(Directory.GetCurrentDirectory()) is (false, var diagnostics))
+        if (
+            await compilation.EmitAsync(
+                Directory.GetCurrentDirectory(),
+                context.CancellationToken
+            ) is
+            (false, var diagnostics)
+        )
         {
             await context.Output.WriteLineAsync("Compilation Failed");
             foreach (var diagnostic in diagnostics)

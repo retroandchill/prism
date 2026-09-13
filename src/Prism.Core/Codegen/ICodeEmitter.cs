@@ -27,5 +27,5 @@ internal interface ICodeEmitter : IDisposable
 
     void RegisterEntryPoint(FunctionSymbol function);
 
-    EmitResult Emit(BindingContext context);
+    Task<EmitResult> EmitAsync(BindingContext context, CancellationToken cancellationToken);
 }

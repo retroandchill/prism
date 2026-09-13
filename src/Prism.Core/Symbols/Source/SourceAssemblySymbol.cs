@@ -66,7 +66,7 @@ internal sealed class SourceAssemblySymbol(Compilation compilation)
             {
                 case CompletionPart.Members:
                     GlobalNamespace.ForceComplete(location, filter, cancellationToken);
-                    if (IsComplete(CompletionPart.Members))
+                    if (!IsComplete(CompletionPart.Members))
                     {
                         _completionState.MarkPartComplete(CompletionPart.Members);
                     }

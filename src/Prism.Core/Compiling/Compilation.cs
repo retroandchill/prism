@@ -139,15 +139,19 @@ public class Compilation
         return Cache.CreateErrorNamespaceSymbol(containingNamespace, name);
     }
 
-    public EmitResult Emit(string filepath)
+    public async Task<EmitResult> EmitAsync(
+        string filepath,
+        CancellationToken cancellationToken = default
+    )
     {
         using var emitter = new LlvmCodeEmitter(
             this,
             new CodeGenOptions { OutputDirectory = filepath }
         );
         using var context = BindingContext.Create();
-        FunctionCompiler.CompileFunctions(this, emitter, context, CancellationToken.None);
-        return emitter.Emit(context);
+        GetAllDiagnostics(CompilationStage.Declare, true, context, null, cancellationToken);
+        FunctionCompiler.CompileFunctions(this, emitter, context, cancellationToken);
+        return await emitter.EmitAsync(context, cancellationToken);
     }
 
     public FunctionSymbol? GetEntryPoint()

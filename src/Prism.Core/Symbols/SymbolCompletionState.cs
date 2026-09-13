@@ -10,7 +10,7 @@ internal struct SymbolCompletionState
 
     public bool IsComplete(CompletionPart part)
     {
-        return (_completeParts & part.AsUnderlyingType()) != part.AsUnderlyingType();
+        return (_completeParts & part.AsUnderlyingType()) == part.AsUnderlyingType();
     }
 
     public bool MarkPartComplete(CompletionPart part)

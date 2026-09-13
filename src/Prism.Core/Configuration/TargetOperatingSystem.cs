@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace Prism.Core.Configuration;
 
-public enum OperatingSystem : byte
+public enum TargetOperatingSystem : byte
 {
     Linux,
     Windows,
@@ -17,20 +17,20 @@ public enum OperatingSystem : byte
 
 public static class OperatingSystemExtensions
 {
-    extension(OperatingSystem)
+    extension(TargetOperatingSystem)
     {
-        public static OperatingSystem CurrentPlatform
+        public static TargetOperatingSystem CurrentPlatform
         {
             get
             {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                    return OperatingSystem.Linux;
+                    return TargetOperatingSystem.Linux;
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    return OperatingSystem.Windows;
+                    return TargetOperatingSystem.Windows;
 
                 return RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-                    ? OperatingSystem.MacOS
-                    : OperatingSystem.Freestanding;
+                    ? TargetOperatingSystem.MacOS
+                    : TargetOperatingSystem.Freestanding;
             }
         }
     }

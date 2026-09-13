@@ -116,6 +116,8 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
                 case CompletionPart.Type:
                     _ = Type;
                     break;
+                case CompletionPart.None:
+                    return;
                 default:
                     _completionState.MarkPartComplete(
                         CompletionPart.All & ~CompletionPart.ParameterAll

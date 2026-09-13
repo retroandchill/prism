@@ -6,9 +6,10 @@ namespace Prism.Core.Configuration;
 public sealed record CompilationSettings
 {
     public TargetArchitecture Architecture { get; init; } = TargetArchitecture.CurrentPlatform;
-    public OperatingSystem OperatingSystem { get; init; } = OperatingSystem.CurrentPlatform;
-    public RuntimeEnvironment Environment { get; init; } = RuntimeEnvironment.CurrentPlatform;
-    public PointerWidth PointerWidth { get; init; } = PointerWidth.CurrentPlatform;
+    public TargetOperatingSystem OperatingSystem { get; init; } =
+        TargetOperatingSystem.CurrentPlatform;
+    public ToolchainKind Toolchain { get; init; } = ToolchainKind.Auto;
+    public PointerWidth PointerWidth => Architecture.PointerWidth;
 
     public OutputKind OutputKind { get; init; } = OutputKind.Executable;
 

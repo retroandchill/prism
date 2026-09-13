@@ -12,6 +12,7 @@ using Prism.Core.BoundTree;
 using Prism.Core.Codegen.Mir;
 using Prism.Core.Compiling;
 using Prism.Core.Configuration;
+using Prism.Core.Diagnostics;
 using Prism.Core.Mir;
 using Prism.Core.Mir.Analysis;
 using Prism.Core.Semantic;
@@ -42,6 +43,8 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     private LLVMValueRef? _lifetimeStartFunction;
     private LLVMValueRef? _lifetimeEndFunction;
 
+    public string? _entryPoint;
+
     public LlvmCodeEmitter(Compilation compilation, CodeGenOptions options)
     {
         _compilation = compilation;
@@ -52,11 +55,14 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         _builder = _context.CreateBuilder();
     }
 
-    public EmitResult Emit(BindingContext context)
+    public async Task<EmitResult> EmitAsync(
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
     {
         WriteIR();
         return !context.HasErrors
-            ? OutputBinary(context)
+            ? await OutputBinaryAsync(context, cancellationToken)
             : new EmitResult(false, context.CollectDiagnostics());
     }
 
@@ -134,6 +140,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
     public void RegisterEntryPoint(FunctionSymbol entryPoint)
     {
+        _entryPoint = "main";
         var functionType = LLVMTypeRef.CreateFunction(_context.Int32Type, []);
         var mainFunc = _module.AddFunction("main", functionType);
         var entry = mainFunc.AppendBasicBlock("entry");
@@ -168,7 +175,6 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         {
             returnType = _context.VoidType;
             parameters[0] = _context.CreatePointerType(0);
-            ;
             firstParamIndex = 1;
         }
         else
@@ -1072,7 +1078,10 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         _module.PrintToFile(targetPath);
     }
 
-    private EmitResult OutputBinary(BindingContext context)
+    private async Task<EmitResult> OutputBinaryAsync(
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
     {
         LLVM.InitializeNativeTarget();
         LLVM.InitializeNativeAsmPrinter();
@@ -1117,7 +1126,82 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             return new EmitResult(false, context.CollectDiagnostics());
         }
 
-        return new EmitResult(true, context.CollectDiagnostics());
+        return _compilation.Settings.OutputKind switch
+        {
+            OutputKind.Executable => await LinkAsync(
+                outputFilename,
+                LinkOutput.Executable,
+                context,
+                cancellationToken
+            ),
+            OutputKind.StaticLibrary => throw new NotSupportedException(
+                "Static library output is not supported"
+            ),
+            OutputKind.SharedLibrary => await LinkAsync(
+                outputFilename,
+                LinkOutput.DynamicLibrary,
+                context,
+                cancellationToken
+            ),
+            _ => throw new InvalidOperationException("Unsupported output kind"),
+        };
+    }
+
+    private async Task<EmitResult> LinkAsync(
+        string objFileName,
+        LinkOutput kind,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            var toolchain = ToolchainFactory.Create(
+                new ToolchainRequest(
+                    _compilation.Settings.Architecture,
+                    _compilation.Settings.OperatingSystem,
+                    _compilation.Settings.Toolchain
+                )
+            );
+
+            var targetPath = kind switch
+            {
+                LinkOutput.Executable => Path.Join(
+                    _options.OutputDirectory,
+                    $"{_compilation.AssemblyName}.exe"
+                ),
+                LinkOutput.DynamicLibrary => Path.Join(
+                    _options.OutputDirectory,
+                    $"{_compilation.AssemblyName}.dll"
+                ),
+                _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+            };
+
+            var request = new LinkRequest
+            {
+                OutputPath = targetPath,
+                OutputKind = kind,
+                ObjectFiles = [objFileName],
+                EntryPoint = kind == LinkOutput.Executable ? _entryPoint : null,
+                Subsystem = kind == LinkOutput.Executable ? Subsystem.Console : null,
+                ImportLibraryPath =
+                    kind == LinkOutput.DynamicLibrary
+                        ? Path.Join(_options.OutputDirectory, $"{_compilation.AssemblyName}.lib")
+                        : null,
+            };
+
+            var result = await toolchain.LinkAsync(request, cancellationToken);
+            if (result.Success)
+                return new EmitResult(true, context.CollectDiagnostics());
+
+            context.ReportDiagnostic(Diagnostic.ExternalDiagnostic(Location.None, result.StdErr));
+            return new EmitResult(false, context.CollectDiagnostics());
+        }
+        catch (Exception ex)
+        {
+            context.ReportDiagnostic(Diagnostic.ExternalDiagnostic(Location.None, ex.Message));
+            return new EmitResult(false, context.CollectDiagnostics());
+        }
     }
 
     public void Dispose()
