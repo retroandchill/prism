@@ -40,4 +40,9 @@ internal sealed class GreenTrivia(SyntaxKind kind, string text) : GreenNode(kind
     {
         throw new InvalidOperationException("Cannot create a red node from a Green Trivia");
     }
+
+    public override void WriteTo(TextWriter writer)
+    {
+        writer.Write(Text);
+    }
 }
