@@ -91,7 +91,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         }
     }
 
-    private GreenVariableDeclaration ParseGlobalVariableDeclaration(
+    private GreenGlobalVariableDeclaration ParseGlobalVariableDeclaration(
         GreenSyntaxList<GreenToken> modifiers = default
     )
     {
