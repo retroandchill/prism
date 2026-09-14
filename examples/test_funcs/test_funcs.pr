@@ -123,3 +123,14 @@ func get_index_from_large_array(slice: i32[5]) : i32 {
 func materialize_temporary_into_function(): i32 {
     return get_index(&[1, 2, 3], 0);
 }
+
+func print_char_arrays() {
+    print(&['H', 'e', 'l', 'l', 'o']);
+
+    var world = ['W', 'o', 'r', 'l', 'd'];
+    print(&world);
+}
+
+func print_char_array(array: char[]&) {
+    print(array);
+}

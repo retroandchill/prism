@@ -1297,12 +1297,10 @@ internal abstract class Binder
         var arguments = new BoundExpression[syntax.Arguments.Arguments.Count];
         foreach (var (i, argumentSyntax) in syntax.Arguments.Arguments.AsValueEnumerable().Index())
         {
-            arguments[i] = BindExpression(
-                argumentSyntax.Value,
-                parameters[i].Type,
-                context,
-                cancellationToken
-            );
+            var paramType = parameters[i].Type;
+            var bound = BindExpression(argumentSyntax.Value, paramType, context, cancellationToken);
+
+            arguments[i] = AddConversionIfNecessary(bound, paramType, context);
         }
 
         return new BoundInvocation(

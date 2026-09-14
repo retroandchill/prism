@@ -500,6 +500,32 @@ internal sealed class ConversionClassifier(Binder binder)
             return Conversion.GetTrivial(ConversionKind.ImplicitReference);
         }
 
+        if (target.ReferencedType.SpecialType == SpecialType.Str)
+        {
+            if (
+                source.ReferencedType is ArrayTypeSymbol
+                {
+                    ElementType.SpecialType: SpecialType.Char
+                }
+            )
+            {
+                return Conversion.GetTrivial(ConversionKind.ImplicitSpan);
+            }
+        }
+
+        if (source.ReferencedType.SpecialType == SpecialType.Str)
+        {
+            if (
+                target.ReferencedType is ArrayTypeSymbol
+                {
+                    ElementType.SpecialType: SpecialType.Char
+                }
+            )
+            {
+                return Conversion.GetTrivial(ConversionKind.ImplicitSpan);
+            }
+        }
+
         if (
             source.ReferencedType is not ArrayTypeSymbol sourceArray
             || target.ReferencedType is not ArrayTypeSymbol targetArray
