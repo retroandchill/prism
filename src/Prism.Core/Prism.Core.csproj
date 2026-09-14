@@ -27,4 +27,12 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Prism.Core.Tests" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="nodes.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Prism.SourceGenerator\Prism.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
 </Project>

@@ -1,0 +1,8 @@
+﻿{
+  "profiles": {
+    "Prism.SourceGenerator": {
+      "commandName": "DebugRoslynComponent",
+      "targetProject": "..\\Prism.Core\\Prism.Core.csproj"
+    }
+  }
+}
