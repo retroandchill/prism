@@ -1020,7 +1020,8 @@
                 "BangToken",
                 "TildeToken",
                 "PlusPlusToken",
-                "MinusMinusToken"
+                "MinusMinusToken",
+                "StarToken"
               ]
             },
             {
@@ -1206,6 +1207,36 @@
               "kinds": [
                 "CloseBracketToken"
               ]
+            }
+          ]
+        },
+        {
+          "name": "AddressOfExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "ampersand",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "AmpToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "mutable_keyword",
+              "type": "Token",
+              "shape": "optional",
+              "kinds": [
+                "MutableKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "operand",
+              "type": "Expression",
+              "shape": "single"
             }
           ]
         }

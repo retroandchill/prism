@@ -419,8 +419,18 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
     private GreenExpression ParsePrefixExpression()
     {
-        if (!PeekToken().Kind.IsPrefixOperator)
+        var nextTokenKind = PeekToken().Kind;
+        if (!nextTokenKind.IsPrefixOperator)
             return ParsePostfixExpression();
+
+        if (nextTokenKind == SyntaxKind.AmpToken)
+        {
+            return new GreenAddressOfExpression(
+                ConsumeToken(),
+                MatchToken(SyntaxKind.MutableKeyword),
+                ParsePrefixExpression()
+            );
+        }
 
         return new GreenPrefixExpression(ConsumeToken(), ParsePrefixExpression());
     }

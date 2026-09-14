@@ -826,6 +826,11 @@ internal abstract class Binder
                 context,
                 cancellationToken
             ),
+            AddressOfExpressionSyntax addressOf => BindAddressOfExpression(
+                addressOf,
+                context,
+                cancellationToken
+            ),
             PostfixExpressionSyntax postfix => BindPostfixExpression(
                 postfix,
                 targetType,
@@ -1037,20 +1042,6 @@ internal abstract class Binder
         // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
         switch (syntax.Op.Kind)
         {
-            case SyntaxKind.AmpToken:
-            {
-                var inner = BindExpression(syntax.Operand, context, cancellationToken);
-                if (!inner.IsAddressable)
-                {
-                    context.ReportDiagnostic(Diagnostic.CannotTakeAddress(syntax.Operand.Location));
-                }
-
-                return new BoundAddressOf(
-                    syntax,
-                    inner,
-                    Compilation.CreateReferenceTypeSymbol(inner.Type, inner.IsAssignable)
-                );
-            }
             case SyntaxKind.StarToken:
             {
                 var inner = BindExpression(syntax.Operand, context, cancellationToken);
@@ -1151,6 +1142,26 @@ internal abstract class Binder
 
         var operand = BindExpression(syntax.Operand, returnType, context, cancellationToken);
         return CreateUnaryOperation(syntax, op, operand, context);
+    }
+
+    private BoundAddressOf BindAddressOfExpression(
+        AddressOfExpressionSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var inner = BindExpression(syntax.Operand, context, cancellationToken);
+        var isMutable = syntax.MutableKeyword is not null;
+        if (!inner.IsAddressable)
+        {
+            context.ReportDiagnostic(Diagnostic.CannotTakeAddress(syntax.Operand.Location));
+        }
+
+        return new BoundAddressOf(
+            syntax,
+            inner,
+            Compilation.CreateReferenceTypeSymbol(inner.Type, isMutable)
+        );
     }
 
     private BoundUnaryOperation BindPostfixExpression(
