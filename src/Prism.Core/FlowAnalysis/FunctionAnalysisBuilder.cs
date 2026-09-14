@@ -16,11 +16,37 @@ namespace Prism.Core.FlowAnalysis;
 
 internal sealed class FunctionAnalysisBuilder
 {
+    [Flags]
+    private enum Flags
+    {
+        None = 0,
+        ConstructingArguments = 1 << 0,
+    }
+
+    private readonly ref struct FlagScope : IDisposable
+    {
+        private readonly FunctionAnalysisBuilder _builder;
+        private readonly Flags _previousFlags;
+
+        public FlagScope(FunctionAnalysisBuilder builder, Flags flags)
+        {
+            _builder = builder;
+            _previousFlags = builder._flags;
+            builder._flags |= flags;
+        }
+
+        public void Dispose()
+        {
+            _builder._flags = _previousFlags;
+        }
+    }
+
     private readonly FunctionSymbol _function;
     private readonly BindingContext _bindingContext;
     private readonly CancellationToken _cancellationToken;
 
     private readonly List<LoopContext> _loopStack = [];
+    private Flags _flags;
 
     private readonly ImmutableHashSet<Symbol>.Builder _addressedLocals =
         ImmutableHashSet.CreateBuilder<Symbol>(ReferenceEqualityComparer.Instance);
@@ -361,6 +387,29 @@ internal sealed class FunctionAnalysisBuilder
                     {
                         _addressedLocals.Add(local);
                     }
+                    else if (!addressOf.Operand.IsAddressable)
+                    {
+                        if (!_flags.HasFlag(Flags.ConstructingArguments))
+                        {
+                            _bindingContext.ReportDiagnostic(
+                                Diagnostic.CannotTakeAddress(addressOf.Operand.Syntax.Location)
+                            );
+                        }
+                        else if (addressOf.IsMutable)
+                        {
+                            _bindingContext.ReportDiagnostic(
+                                Diagnostic.NoMutableTemporaryRefs(addressOf.Syntax.Location)
+                            );
+                        }
+                    }
+
+                    if (addressOf.IsMutable)
+                    {
+                        HandleMutableReferencing(
+                            addressOf.Operand,
+                            addressOf.Operand.Syntax.Location
+                        );
+                    }
 
                     expression = addressOf.Operand;
                     continue;
@@ -420,12 +469,15 @@ internal sealed class FunctionAnalysisBuilder
                     break;
 
                 case BoundInvocation invocation:
+                {
+                    using var scope = new FlagScope(this, Flags.ConstructingArguments);
                     state = invocation.Arguments.Aggregate(
                         state,
                         (current, argument) => VisitExpression(argument, current)
                     );
 
                     return state;
+                }
 
                 case BoundConversion conversion:
                     expression = conversion.Operand;
@@ -492,6 +544,23 @@ internal sealed class FunctionAnalysisBuilder
                 }
             default:
                 return state;
+        }
+    }
+
+    private void HandleMutableReferencing(BoundExpression operand, Location location)
+    {
+        switch (operand)
+        {
+            case BoundParameterAccess { Symbol: { IsMutable: false } param }:
+                _bindingContext.ReportDiagnostic(
+                    Diagnostic.CannotTakeMutableAddress(location, param.Name)
+                );
+                break;
+            case BoundVariableAccess { Symbol: { IsMutable: false } variable }:
+                _bindingContext.ReportDiagnostic(
+                    Diagnostic.CannotTakeMutableAddress(location, variable.Name)
+                );
+                break;
         }
     }
 }

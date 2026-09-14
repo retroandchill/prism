@@ -1152,15 +1152,11 @@ internal abstract class Binder
     {
         var inner = BindExpression(syntax.Operand, context, cancellationToken);
         var isMutable = syntax.MutableKeyword is not null;
-        if (!inner.IsAddressable)
-        {
-            context.ReportDiagnostic(Diagnostic.CannotTakeAddress(syntax.Operand.Location));
-        }
-
         return new BoundAddressOf(
             syntax,
             inner,
-            Compilation.CreateReferenceTypeSymbol(inner.Type, isMutable)
+            Compilation.CreateReferenceTypeSymbol(inner.Type, isMutable),
+            isMutable
         );
     }
 

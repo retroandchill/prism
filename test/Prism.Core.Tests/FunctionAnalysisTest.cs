@@ -410,4 +410,109 @@ public class FunctionAnalysisTest
         Assert.That(bodyAnalysis.Analysis, Is.Not.Null);
         Assert.That(bodyAnalysis.Analysis.IsAddressTaken(function.Parameters[0]));
     }
+
+    [Test]
+    public void CannotReferenceImmutableVariableAsMutable()
+    {
+        var tree = SyntaxTree.Parse(
+            """
+            extern func g(p: i32 mutable&);
+
+            func f(p: i32) {
+                g(&mutable p);
+            }
+            """
+        );
+
+        const string assemblyName = "test";
+        var compilation = Compilation.Create(assemblyName, [tree]);
+
+        var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
+        Assert.That(members, Has.Length.EqualTo(1));
+        Assert.That(members[0], Is.InstanceOf<FunctionSymbol>());
+
+        var function = (FunctionSymbol)members[0];
+        var bodyAnalysis = compilation.GetBoundBody(function);
+
+        Assert.That(bodyAnalysis.Diagnostics, Has.Length.EqualTo(1));
+        Assert.That(bodyAnalysis.Diagnostics[0].Id, Is.EqualTo("CannotTakeMutableAddress"));
+    }
+
+    [Test]
+    public void CannotReferenceTemporaries()
+    {
+        var tree = SyntaxTree.Parse(
+            """
+            func f(p: i32) {
+                var v = &2;
+            }
+            """
+        );
+
+        const string assemblyName = "test";
+        var compilation = Compilation.Create(assemblyName, [tree]);
+
+        var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
+        Assert.That(members, Has.Length.EqualTo(1));
+        Assert.That(members[0], Is.InstanceOf<FunctionSymbol>());
+
+        var function = (FunctionSymbol)members[0];
+        var bodyAnalysis = compilation.GetBoundBody(function);
+
+        Assert.That(bodyAnalysis.Diagnostics, Has.Length.EqualTo(1));
+        Assert.That(bodyAnalysis.Diagnostics[0].Id, Is.EqualTo("CannotTakeAddress"));
+    }
+
+    [Test]
+    public void CanReferenceTemporariesWhenPassing()
+    {
+        var tree = SyntaxTree.Parse(
+            """
+            extern func g(p: i32&);
+
+            func f() {
+                g(&3);
+            }
+            """
+        );
+
+        const string assemblyName = "test";
+        var compilation = Compilation.Create(assemblyName, [tree]);
+
+        var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
+        Assert.That(members, Has.Length.EqualTo(1));
+        Assert.That(members[0], Is.InstanceOf<FunctionSymbol>());
+
+        var function = (FunctionSymbol)members[0];
+        var bodyAnalysis = compilation.GetBoundBody(function);
+
+        Assert.That(bodyAnalysis.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void MaterializedTemporariesCannotBeMutableReferences()
+    {
+        var tree = SyntaxTree.Parse(
+            """
+            extern func g(p: i32&);
+
+            func f() {
+                g(&mutable 3);
+            }
+            """
+        );
+
+        const string assemblyName = "test";
+        var compilation = Compilation.Create(assemblyName, [tree]);
+
+        var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
+        Assert.That(members, Has.Length.EqualTo(1));
+        Assert.That(members[0], Is.InstanceOf<FunctionSymbol>());
+
+        var function = (FunctionSymbol)members[0];
+        var bodyAnalysis = compilation.GetBoundBody(function);
+
+        Assert.That(bodyAnalysis.Diagnostics, Has.Length.EqualTo(1));
+        Assert.That(bodyAnalysis.Diagnostics[0].Id, Is.EqualTo("NoMutableTemporaryRefs"));
+    }
 }

@@ -291,13 +291,21 @@ internal sealed record BoundConversion : BoundExpression
 
 internal sealed record BoundAddressOf : BoundExpression
 {
-    public BoundAddressOf(SyntaxNode syntax, BoundExpression operand, TypeSymbol type)
+    public BoundAddressOf(
+        SyntaxNode syntax,
+        BoundExpression operand,
+        TypeSymbol type,
+        bool isMutable
+    )
         : base(syntax, type)
     {
         Operand = operand;
+        IsMutable = isMutable;
     }
 
     public BoundExpression Operand { get; }
+
+    public bool IsMutable { get; }
 }
 
 internal sealed record BoundDereference : BoundExpression

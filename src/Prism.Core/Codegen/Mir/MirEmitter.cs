@@ -797,7 +797,26 @@ internal sealed class MirEmitter(Compilation compilation)
         CancellationToken cancellationToken
     )
     {
-        var place = EmitPlace(operation.Operand, context, cancellationToken);
+        // If the operand is not directly addressable, then we're probably materializing a temporary
+        MirPlace place;
+        if (!operation.Operand.IsAddressable)
+        {
+            var value = EmitExpression(operation.Operand, context, cancellationToken);
+            if (value is MirReadValue readValue)
+            {
+                place = readValue.Place;
+            }
+            else
+            {
+                var local = context.CreateTemp(operation.Operand.Type);
+                place = new MirLocalPlace(local);
+                context.CurrentBlock.AddInstruction(new MirAssignInstruction(place, value));
+            }
+        }
+        else
+        {
+            place = EmitPlace(operation.Operand, context, cancellationToken);
+        }
         return new MirAddressOfValue(place, operation.Type);
     }
 
