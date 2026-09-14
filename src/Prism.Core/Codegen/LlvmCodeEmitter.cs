@@ -805,7 +805,6 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             }
         }
 
-        // ReSharper disable once InvertIf
         if (conversion.IsCharacter)
         {
             if (source.IntWidth < target.IntWidth)
@@ -815,6 +814,34 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
             Debug.Assert(source.IntWidth > target.IntWidth);
             return _builder.BuildTrunc(operand, target);
+        }
+
+        if (conversion.IsReference)
+        {
+            // Pointers are pointers, so it shouldn't matter here
+            return operand;
+        }
+
+        // ReSharper disable once InvertIf
+        if (conversion.IsSpan)
+        {
+            var sourceReference = (ReferenceTypeSymbol)sourceType;
+
+            // ReSharper disable once InvertIf
+            if (sourceReference.ReferencedType is ArrayTypeSymbol { Size: { } size })
+            {
+                var structType = GetOrCreateType(targetType);
+                var structValue = structType.Undef;
+                structValue = _builder.BuildInsertValue(structValue, operand, 0);
+
+                var lengthValue = LLVMValueRef.CreateConstInt(
+                    GetOrCreateType(_compilation.GetSpecialType(SpecialType.USize)),
+                    size
+                );
+                structValue = _builder.BuildInsertValue(structValue, lengthValue, 1);
+
+                return structValue;
+            }
         }
 
         throw new InvalidOperationException("If we get here, the conversion is invalid");

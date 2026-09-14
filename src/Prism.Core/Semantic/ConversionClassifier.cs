@@ -23,6 +23,11 @@ internal sealed class ConversionClassifier(Binder binder)
             return Conversion.GetTrivial(ConversionKind.Identity);
         }
 
+        if (source is ReferenceTypeSymbol refSource && target is ReferenceTypeSymbol refTarget)
+        {
+            return ClassifyReferenceConversion(refSource, refTarget);
+        }
+
         if (IsNumericType(source) && IsNumericType(target))
         {
             return ClassifyNumericConversion(source.SpecialType, target.SpecialType);
@@ -89,7 +94,6 @@ internal sealed class ConversionClassifier(Binder binder)
                         operand
                     );
                 }
-                break;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
@@ -481,6 +485,31 @@ internal sealed class ConversionClassifier(Binder binder)
         Debug.Assert(sourceWidth != destinationWidth);
 
         return sourceWidth > destinationWidth ? left : right;
+    }
+
+    private static Conversion ClassifyReferenceConversion(
+        ReferenceTypeSymbol source,
+        ReferenceTypeSymbol target
+    )
+    {
+        if (!source.IsMutable && target.IsMutable)
+            return Conversion.None;
+
+        if (source.ReferencedType == target.ReferencedType)
+        {
+            return Conversion.GetTrivial(ConversionKind.ImplicitReference);
+        }
+
+        if (
+            source.ReferencedType is not ArrayTypeSymbol sourceArray
+            || target.ReferencedType is not ArrayTypeSymbol targetArray
+            || sourceArray.ElementType != targetArray.ElementType
+        )
+            return Conversion.None;
+
+        return targetArray.IsDynamicallySized
+            ? Conversion.GetTrivial(ConversionKind.ImplicitSpan)
+            : Conversion.None;
     }
 
     private enum NumericFamily : byte

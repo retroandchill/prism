@@ -962,7 +962,6 @@ public static class CSharpEmitter
 
         private void EmitDiagnosticCodeEnum(CSharpSyntaxModel model)
         {
-            writer.WriteLine("[EnumExtensions]");
             writer.WriteLine("public enum DiagnosticCode : uint");
             using var scope = writer.EnterBlockScope();
             writer.WriteLine("Unknown = 0,");

@@ -115,3 +115,7 @@ func get_second_item(slice: i32[4]): i32 {
 func get_item_from_constant(slice: i32[4]): i32 {
     return get_index([1, 2, 3, 4], 2);
 }
+
+func get_index_from_large_array(slice: i32[5]) : i32 {
+    return get_index(&slice, 2);
+}

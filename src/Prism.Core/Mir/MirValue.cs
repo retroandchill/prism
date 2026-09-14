@@ -15,6 +15,6 @@ internal sealed record MirConstantValue(ConstantValue Constant, TypeSymbol Type)
 
 internal sealed record MirReadValue(MirPlace Place) : MirValue(Place.Type);
 
-internal sealed record MirAddressOfValue(MirPlace Place) : MirValue(Place.Type);
+internal sealed record MirAddressOfValue(MirPlace Place, TypeSymbol Type) : MirValue(Type);
 
 internal sealed record MirNullValue(TypeSymbol Type) : MirValue(Type);

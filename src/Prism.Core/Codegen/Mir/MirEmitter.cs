@@ -798,7 +798,7 @@ internal sealed class MirEmitter(Compilation compilation)
     )
     {
         var place = EmitPlace(operation.Operand, context, cancellationToken);
-        return new MirAddressOfValue(place);
+        return new MirAddressOfValue(place, operation.Type);
     }
 
     private MirReadValue EmitDereference(

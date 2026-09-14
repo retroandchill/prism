@@ -32,4 +32,9 @@ public readonly struct Conversion
 
     public bool IsCharacter =>
         _kind is ConversionKind.ImplicitCharacter or ConversionKind.ExplicitCharacter;
+
+    public bool IsReference =>
+        _kind is ConversionKind.ImplicitReference or ConversionKind.ExplicitReference;
+
+    public bool IsSpan => _kind is ConversionKind.ImplicitSpan;
 }
