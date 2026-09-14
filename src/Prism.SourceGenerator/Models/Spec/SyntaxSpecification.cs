@@ -14,5 +14,4 @@ public sealed record SyntaxSpecification
     public required TokenDefinitions Tokens { get; init; }
     public required ImmutableArray<ModuleDefinition> Modules { get; init; }
     public required ImmutableArray<DiagnosticCategoryDefinition> Diagnostics { get; init; }
-    public required ImmutableArray<BoundNodeDefinition> BoundNodes { get; init; } = [];
 }

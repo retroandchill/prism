@@ -338,32 +338,6 @@
           "diagnostics"
         ]
       }
-    },
-    "boundNodes": {
-      "type": "array",
-      "items": {
-        "type": [
-          "object",
-          "null"
-        ],
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "hasModule": {
-            "type": "boolean"
-          },
-          "children": {
-            "type": "array",
-            "items": {
-              "$ref": "#/properties/boundNodes/items"
-            }
-          }
-        },
-        "required": [
-          "name"
-        ]
-      }
     }
   },
   "required": [
@@ -371,7 +345,6 @@
     "trivia",
     "tokens",
     "modules",
-    "diagnostics",
-    "boundNodes"
+    "diagnostics"
   ]
 }

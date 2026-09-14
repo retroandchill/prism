@@ -51,7 +51,6 @@ public sealed class SyntaxModelBuilder
         LoadTokens(spec);
         LoadNodes(spec);
         LoadDiagnostics(spec);
-        LoadBoundNodes(spec);
         ResolveInheritance();
         ResolveProperties();
         ResolveProductions();
@@ -615,33 +614,6 @@ public sealed class SyntaxModelBuilder
         {
             _dispatchGroups[baseClass].AddNode(node);
             baseClass = baseClass.Base;
-        }
-    }
-
-    private void LoadBoundNodes(SyntaxSpecification spec)
-    {
-        foreach (var definition in spec.BoundNodes)
-        {
-            LoadBoundNode(definition, []);
-        }
-    }
-
-    private void LoadBoundNode(BoundNodeDefinition definition, ImmutableArray<BoundNode> parents)
-    {
-        var boundNode = new BoundNode(definition.Name, definition.HasModule);
-        _boundNodes.Add(boundNode);
-
-        foreach (var childDefinition in definition.Children)
-        {
-            LoadBoundNode(childDefinition, parents.Add(boundNode));
-        }
-
-        if (!definition.Children.IsEmpty)
-            return;
-
-        foreach (var parent in parents)
-        {
-            parent.AddLeafNode(boundNode);
         }
     }
 }
