@@ -4,13 +4,16 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using Prism.Core.Diagnostics;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
-using Prism.Core.Utils;
 
 namespace Prism.Core.Mir;
 
-internal abstract record MirInstruction;
+internal abstract record MirInstruction
+{
+    public SourceLocation? Location { get; init; }
+}
 
 internal sealed record MirAssignInstruction(MirPlace Destination, MirValue Source) : MirInstruction;
 

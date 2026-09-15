@@ -32,7 +32,6 @@ internal sealed class MirEmissionContext
 
     private readonly MirFunctionBuilder _builder;
     private MirScope _scope = new();
-    private readonly MirScope _functionScope;
 
     public MirEmissionContext(MirFunctionBuilder builder)
     {
@@ -44,8 +43,6 @@ internal sealed class MirEmissionContext
                 _locals.Add(local.Symbol, local);
             }
         }
-
-        _functionScope = _scope;
     }
 
     public MirBasicBlockBuilder CurrentBlock { get; private set; } = null!;
