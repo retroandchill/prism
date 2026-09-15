@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 
 namespace Prism.Core.BoundTree;
@@ -21,6 +22,9 @@ internal abstract record BoundNode
     }
 
     public SyntaxNode Syntax { get; }
+
+    public SourceLocation Location => Syntax.Location;
+
     private readonly BoundNodeFlags _flags;
 
     public bool HasAnyErrors

@@ -110,7 +110,7 @@ public abstract class SyntaxNode
         return tree;
     }
 
-    public Location Location
+    public SourceLocation Location
     {
         get
         {
