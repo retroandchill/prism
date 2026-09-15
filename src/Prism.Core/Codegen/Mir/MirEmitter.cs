@@ -50,7 +50,7 @@ internal sealed class MirEmitter(Compilation compilation)
     public MirFunction EmitFunction(FunctionSymbol symbol, CancellationToken cancellationToken)
     {
         var body = compilation.GetBoundBody(symbol, cancellationToken);
-        var builder = new MirFunctionBuilder(symbol);
+        var builder = new MirFunctionBuilder(symbol) { Location = body.Location };
 
         var context = new MirEmissionContext(builder);
 

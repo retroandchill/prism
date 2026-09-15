@@ -24,6 +24,24 @@ public static class DictionaryExtensions
         return value;
     }
 
+    public static TValue GetOrAdd<TKey, TValue, TContext>(
+        this IDictionary<TKey, TValue> dict,
+        TKey key,
+        Func<TKey, TContext, TValue> factory,
+        TContext context
+    )
+        where TKey : notnull
+    {
+        if (dict.TryGetValue(key, out var value))
+        {
+            return value;
+        }
+
+        value = factory(key, context);
+        dict.Add(key, value);
+        return value;
+    }
+
     public static TValue GetValueOrDefault<TKey, TValue>(
         this IReadOnlyDictionary<TKey, TValue> dict,
         TKey key,

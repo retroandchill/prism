@@ -30,6 +30,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     private LLVMContextRef _context;
     private LLVMModuleRef _module;
     private LLVMBuilderRef _builder;
+    private LlvmDebugInfo? _debugInfo;
 
     private readonly Dictionary<Symbol, LLVMValueRef> _symbolToValue = new(
         ReferenceEqualityComparer.Instance
@@ -53,6 +54,9 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         _context = LLVMContextRef.Create();
         _module = _context.CreateModuleWithName(compilation.AssemblyName);
         _builder = _context.CreateBuilder();
+        _debugInfo = compilation.Settings.GenerateDebugInfo
+            ? new LlvmDebugInfo(_compilation, _context, _module)
+            : null;
     }
 
     public async Task<EmitResult> EmitAsync(
@@ -1403,6 +1407,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
     public void Dispose()
     {
+        _debugInfo?.Dispose();
         _builder.Dispose();
         _module.Dispose();
         _context.Dispose();

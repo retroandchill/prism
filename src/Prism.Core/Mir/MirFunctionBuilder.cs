@@ -5,6 +5,7 @@
 
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Prism.Core.Diagnostics;
 using Prism.Core.Mir;
 using Prism.Core.Symbols;
 
@@ -39,6 +40,8 @@ internal sealed class MirFunctionBuilder
         _entryBlock ?? throw new InvalidOperationException("Entry block has not been set.");
 
     public IReadOnlyList<MirLocal> Locals => _locals;
+
+    public SourceLocation? Location { get; init; }
 
     public MirLocal AddLocalVariable(VariableSymbol variable)
     {
@@ -98,6 +101,9 @@ internal sealed class MirFunctionBuilder
             [.. _locals],
             ImmutableCollectionsMarshal.AsImmutableArray(blocks),
             _entryBlock.Value
-        );
+        )
+        {
+            Location = Location,
+        };
     }
 }

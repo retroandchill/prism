@@ -19,5 +19,11 @@ public sealed record CompilationSettings
 
     public bool IsSharedLibrary => OutputKind == OutputKind.SharedLibrary;
 
+    public bool GenerateDebugInfo { get; init; } = false;
+
+    public OptimizationLevel OptimizationLevel { get; init; } = OptimizationLevel.Default;
+
     public static readonly CompilationSettings CurrentPlatform = new();
+
+    public bool IsOptimized => OptimizationLevel != OptimizationLevel.None;
 }

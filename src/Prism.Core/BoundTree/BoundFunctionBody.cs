@@ -41,6 +41,8 @@ internal sealed class BoundFunctionBody
 
     public FunctionBodyAnalysis? Analysis { get; }
 
+    public SourceLocation? Location => Body?.Location;
+
     public ImmutableArray<Diagnostic> Diagnostics { get; }
 
     private ThreeState _hasErrors;

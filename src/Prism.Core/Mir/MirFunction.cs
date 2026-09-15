@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using Prism.Core.Diagnostics;
 using Prism.Core.Symbols;
 using Prism.Core.Utils;
 
@@ -47,6 +48,8 @@ internal sealed class MirFunction
     public ImmutableArray<MirBasicBlock> Blocks { get; }
 
     public MirBlockId EntryBlock { get; }
+
+    public SourceLocation? Location { get; init; }
 
     public MirBasicBlock GetEntryBlock() => GetBlock(EntryBlock);
 
