@@ -11,21 +11,28 @@ internal sealed class BoundFunctionBody
 {
     public BoundFunctionBody(
         FunctionSymbol function,
+        SourceLocation? location,
         BoundStatement body,
         FunctionBodyAnalysis analysis,
         ImmutableArray<Diagnostic> diagnostics
     )
     {
         Function = function;
+        Location = location;
         Body = body;
         Analysis = analysis;
         HasBody = true;
         Diagnostics = diagnostics;
     }
 
-    public BoundFunctionBody(FunctionSymbol function, ImmutableArray<Diagnostic> diagnostics)
+    public BoundFunctionBody(
+        FunctionSymbol function,
+        SourceLocation? location,
+        ImmutableArray<Diagnostic> diagnostics
+    )
     {
         Function = function;
+        Location = location;
         Body = null;
         Analysis = null;
         HasBody = false;
@@ -41,7 +48,7 @@ internal sealed class BoundFunctionBody
 
     public FunctionBodyAnalysis? Analysis { get; }
 
-    public SourceLocation? Location => Body?.Location;
+    public SourceLocation? Location { get; }
 
     public ImmutableArray<Diagnostic> Diagnostics { get; }
 

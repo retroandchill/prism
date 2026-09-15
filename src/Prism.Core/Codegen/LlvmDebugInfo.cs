@@ -22,10 +22,9 @@ internal sealed class LlvmDebugInfo : IDisposable
     private readonly LLVMContextRef _context;
     private readonly LLVMModuleRef _module;
     private LLVMDIBuilderRef _builder;
-    private readonly Dictionary<SyntaxTree, LLVMMetadataRef> _files = new(
+    private readonly Dictionary<SyntaxTree, LLVMMetadataRef> _compileUnits = new(
         ReferenceEqualityComparer.Instance
     );
-    private LLVMMetadataRef _compileUnit;
     private readonly Dictionary<FunctionSymbol, LLVMMetadataRef> _subprograms = new(
         ReferenceEqualityComparer.Instance
     );
@@ -38,30 +37,14 @@ internal sealed class LlvmDebugInfo : IDisposable
         _builder = _module.CreateDIBuilder();
     }
 
-    public LLVMMetadataRef GetFile(SyntaxTree tree)
-    {
-        return _files.GetOrAdd(tree, static (t, self) => self.CreateFile(t), this);
-    }
-
-    private LLVMMetadataRef CreateFile(SyntaxTree tree)
-    {
-        return _builder.CreateFile(tree.Path, "");
-    }
-
     public LLVMMetadataRef GetCompileUnit(SyntaxTree tree)
     {
-        if (_compileUnit != default)
-        {
-            return _compileUnit;
-        }
-
-        _compileUnit = CreateCompileUnit(tree);
-        return _compileUnit;
+        return _compileUnits.GetOrAdd(tree, static (t, self) => self.CreateCompileUnit(t), this);
     }
 
     private LLVMMetadataRef CreateCompileUnit(SyntaxTree tree)
     {
-        var file = GetFile(tree);
+        var file = CreateFile(tree);
         return _builder.CreateCompileUnit(
             SourceLanguage,
             file,
@@ -77,6 +60,11 @@ internal sealed class LlvmDebugInfo : IDisposable
             "",
             ""
         );
+    }
+
+    private LLVMMetadataRef CreateFile(SyntaxTree tree)
+    {
+        return _builder.CreateFile(tree.Path, "");
     }
 
     public void Dispose()
