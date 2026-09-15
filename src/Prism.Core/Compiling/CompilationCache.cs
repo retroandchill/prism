@@ -32,6 +32,9 @@ internal sealed class CompilationCache(Compilation compilation)
     private readonly ConcurrentDictionary<ArrayLookupKey, ArrayTypeSymbol> _arrayTypes = new();
     private readonly ConcurrentDictionary<ReferenceLookupKey, ReferenceTypeSymbol> _referenceTypes =
         new();
+    private readonly ConcurrentDictionary<TypeSymbol, NullableTypeSymbol> _nullableTypes = new(
+        ReferenceEqualityComparer.Instance
+    );
     private readonly ConcurrentDictionary<SymbolLookupKey, NamedTypeSymbol> _errorTypes = new();
     private readonly ConcurrentDictionary<SymbolLookupKey, NamespaceSymbol> _errorNamespaces =
         new();
@@ -104,6 +107,11 @@ internal sealed class CompilationCache(Compilation compilation)
             new ReferenceLookupKey(elementType, isMutable),
             static k => new ReferenceTypeSymbol(k.ReferencedType, k.IsMutable)
         );
+    }
+
+    public NullableTypeSymbol CreateNullableTypeSymbol(TypeSymbol elementType)
+    {
+        return _nullableTypes.GetOrAdd(elementType, static e => new NullableTypeSymbol(e));
     }
 
     public NamedTypeSymbol CreateErrorTypeSymbol(Symbol? container, string name)

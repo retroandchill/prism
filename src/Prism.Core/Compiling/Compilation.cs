@@ -126,6 +126,11 @@ public class Compilation
         return Cache.CreateReferenceTypeSymbol(elementType, isMutable);
     }
 
+    public NullableTypeSymbol CreateNullableTypeSymbol(TypeSymbol elementType)
+    {
+        return Cache.CreateNullableTypeSymbol(elementType);
+    }
+
     public NamedTypeSymbol CreateErrorTypeSymbol(Symbol? containingSymbol, string name)
     {
         return Cache.CreateErrorTypeSymbol(containingSymbol, name);

@@ -78,6 +78,10 @@
         "text": "continue"
       },
       {
+        "name": "NullKeyword",
+        "text": "null"
+      },
+      {
         "name": "TrueKeyword",
         "text": "true"
       },
@@ -572,6 +576,27 @@
               ]
             }
           ]
+        },
+        {
+          "name": "NullableType",
+          "base": "Type",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "element_type",
+              "type": "Type",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "question_mark",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "QuestionToken"
+              ]
+            }
+          ]
         }
       ]
     },
@@ -872,6 +897,21 @@
                 "NumericLiteralToken",
                 "CharacterLiteralToken",
                 "StringLiteralToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "NullLiteralExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "value",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "NullKeyword"
               ]
             }
           ]
@@ -2512,6 +2552,17 @@
           "name": "CannotInferType",
           "severity": "Error",
           "format": "Cannot infer type from expression"
+        },
+        {
+          "name": "CannotBeNull",
+          "severity": "Error",
+          "format": "Type {Type} cannot be null",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
         }
       ]
     },

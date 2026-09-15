@@ -25,10 +25,13 @@ public sealed class ReferenceTypeSymbol : TypeSymbol
 
     public override bool IsDynamicallySized => false;
 
-    public override ulong GetSizeInBytes(CompilationSettings settings)
+    public override SizeAndAlignment GetSizeAndAlignment(CompilationSettings settings)
     {
         var pointerWidth = unchecked((ulong)settings.PointerWidth.BitWidth / 8);
-        return ReferencedType.IsDynamicallySized ? pointerWidth * 2 : pointerWidth;
+        return new SizeAndAlignment(
+            ReferencedType.IsDynamicallySized ? pointerWidth * 2 : pointerWidth,
+            pointerWidth
+        );
     }
 
     public override ImmutableArray<Location> Locations => [];

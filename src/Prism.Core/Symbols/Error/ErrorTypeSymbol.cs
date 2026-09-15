@@ -27,7 +27,7 @@ internal sealed class ErrorTypeSymbol : NamedTypeSymbol
 
     public override bool IsDynamicallySized => false;
 
-    public override ulong GetSizeInBytes(CompilationSettings settings)
+    public override SizeAndAlignment GetSizeAndAlignment(CompilationSettings settings)
     {
         throw new InvalidOperationException("Error type has no size");
     }

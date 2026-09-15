@@ -95,6 +95,9 @@ internal abstract class Binder
                 ResolveType(referenceTypeSyntax.ReferencedType, context),
                 referenceTypeSyntax.MutableKeyword is not null
             ),
+            NullableTypeSyntax nullableTypeSyntax => Compilation.CreateNullableTypeSymbol(
+                ResolveType(nullableTypeSyntax.ElementType, context)
+            ),
             _ => throw new ArgumentOutOfRangeException(nameof(syntax)),
         };
     }
@@ -802,6 +805,12 @@ internal abstract class Binder
                 context,
                 isSpeculative
             ),
+            NullLiteralExpressionSyntax nullLiteral => BindNullLiteralExpression(
+                nullLiteral,
+                targetType,
+                context,
+                isSpeculative
+            ),
             IdentifierExpressionSyntax identifier => BindIdentifierExpression(identifier, context),
             ParenthesizedExpressionSyntax parenthesized => BindExpression(
                 parenthesized.Expression,
@@ -916,6 +925,34 @@ internal abstract class Binder
         return new BoundLiteral(syntax, type, value);
     }
 
+    private static BoundExpression BindNullLiteralExpression(
+        NullLiteralExpressionSyntax syntax,
+        TypeSymbol? returnType,
+        BindingContext context,
+        bool isSpeculative
+    )
+    {
+        if (isSpeculative)
+        {
+            return new BoundSpeculativeNullLiteral(syntax);
+        }
+
+        if (returnType is null)
+        {
+            context.ReportDiagnostic(Diagnostic.CannotInferType(syntax.Location));
+            return new BoundNullLiteral(syntax, ErrorTypeSymbol.Unnamed);
+        }
+
+        if (returnType is not NullableTypeSymbol)
+        {
+            context.ReportDiagnostic(
+                Diagnostic.CannotBeNull(syntax.Location, returnType.ToDisplayString())
+            );
+        }
+
+        return new BoundNullLiteral(syntax, returnType);
+    }
+
     private BoundExpression BindIdentifierExpression(
         IdentifierExpressionSyntax syntax,
         BindingContext context
@@ -1021,7 +1058,8 @@ internal abstract class Binder
             context.ReportDiagnostic(Diagnostic.CannotAssignExpression(syntax.Location));
         }
 
-        var assigned = BindExpression(syntax.Right, context, cancellationToken);
+        var assigned = BindExpression(syntax.Right, assignee.Type, context, cancellationToken);
+        assigned = AddConversionIfNecessary(assigned, assignee.Type, context);
         return new BoundAssignmentOperation(
             syntax,
             Compilation.GetSpecialType(SpecialType.Void),
@@ -1216,8 +1254,13 @@ internal abstract class Binder
         CancellationToken cancellationToken
     )
     {
-        var whenTrue = BindExpression(syntax.WhenTrue, context, cancellationToken);
-        var whenFalse = BindExpression(syntax.WhenFalse, context, cancellationToken);
+        var whenTrue = BindExpression(syntax.WhenTrue, returnType, context, cancellationToken);
+        var whenFalse = BindExpression(
+            syntax.WhenFalse,
+            returnType ?? whenTrue.Type,
+            context,
+            cancellationToken
+        );
         return ConstructConditional(syntax, returnType, condition, whenTrue, whenFalse, context);
     }
 

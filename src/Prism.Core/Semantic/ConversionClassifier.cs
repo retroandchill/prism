@@ -20,12 +20,22 @@ internal sealed class ConversionClassifier(Binder binder)
     {
         if (source == target)
         {
-            return Conversion.GetTrivial(ConversionKind.Identity);
+            return Conversion.Identity;
         }
 
         if (source is ReferenceTypeSymbol refSource && target is ReferenceTypeSymbol refTarget)
         {
             return ClassifyReferenceConversion(refSource, refTarget);
+        }
+
+        if (target is NullableTypeSymbol nullableTarget)
+        {
+            return ClassifyToNullableConversion(source, nullableTarget);
+        }
+
+        if (source is NullableTypeSymbol nullableSource)
+        {
+            return ClassifyFromNullableConversion(nullableSource, target);
         }
 
         if (IsNumericType(source) && IsNumericType(target))
@@ -67,10 +77,7 @@ internal sealed class ConversionClassifier(Binder binder)
             case UnaryOperation.LogicalNot:
                 if (operand.SpecialType == SpecialType.Bool)
                 {
-                    return new OperandConversion(
-                        Conversion.GetTrivial(ConversionKind.Identity),
-                        operand
-                    );
+                    return new OperandConversion(Conversion.Identity, operand);
                 }
                 break;
             case UnaryOperation.BitwiseNot:
@@ -89,10 +96,7 @@ internal sealed class ConversionClassifier(Binder binder)
             case UnaryOperation.PostDecrement:
                 if (IsNumericType(operand))
                 {
-                    return new OperandConversion(
-                        Conversion.GetTrivial(ConversionKind.Identity),
-                        operand
-                    );
+                    return new OperandConversion(Conversion.Identity, operand);
                 }
                 break;
             default:
@@ -136,8 +140,8 @@ internal sealed class ConversionClassifier(Binder binder)
                 if (left.SpecialType == SpecialType.Bool && right.SpecialType == SpecialType.Bool)
                 {
                     return new BinaryOperandConversion(
-                        Conversion.GetTrivial(ConversionKind.Identity),
-                        Conversion.GetTrivial(ConversionKind.Identity),
+                        Conversion.Identity,
+                        Conversion.Identity,
                         left
                     );
                 }
@@ -147,8 +151,8 @@ internal sealed class ConversionClassifier(Binder binder)
                 if (left.SpecialType == SpecialType.Bool && right.SpecialType == SpecialType.Bool)
                 {
                     return new BinaryOperandConversion(
-                        Conversion.GetTrivial(ConversionKind.Identity),
-                        Conversion.GetTrivial(ConversionKind.Identity),
+                        Conversion.Identity,
+                        Conversion.Identity,
                         left
                     );
                 }
@@ -162,8 +166,8 @@ internal sealed class ConversionClassifier(Binder binder)
                 {
                     var promoted = GetCommonCharacterType(left, right);
                     return new BinaryOperandConversion(
-                        Conversion.GetTrivial(ConversionKind.Identity),
-                        Conversion.GetTrivial(ConversionKind.Identity),
+                        Conversion.Identity,
+                        Conversion.Identity,
                         promoted
                     );
                 }
@@ -214,14 +218,12 @@ internal sealed class ConversionClassifier(Binder binder)
     {
         if (source == destination)
         {
-            return Conversion.GetTrivial(ConversionKind.Identity);
+            return Conversion.Identity;
         }
 
-        return Conversion.GetTrivial(
-            IsImplicitNumericConversion(source, destination)
-                ? ConversionKind.ImplicitNumeric
-                : ConversionKind.ExplicitNumeric
-        );
+        return IsImplicitNumericConversion(source, destination)
+            ? Conversion.ImplicitNumeric
+            : Conversion.ExplicitNumeric;
     }
 
     private bool IsImplicitNumericConversion(SpecialType source, SpecialType destination)
@@ -464,15 +466,15 @@ internal sealed class ConversionClassifier(Binder binder)
     )
     {
         if (source == destination)
-            return Conversion.GetTrivial(ConversionKind.Identity);
+            return Conversion.Identity;
 
         var sourceWidth = CharacterWidth(source);
         var destinationWidth = CharacterWidth(destination);
         Debug.Assert(sourceWidth != destinationWidth);
 
         return sourceWidth > destinationWidth
-            ? Conversion.GetTrivial(ConversionKind.ExplicitCharacter)
-            : Conversion.GetTrivial(ConversionKind.ImplicitCharacter);
+            ? Conversion.ExplicitCharacter
+            : Conversion.ImplicitCharacter;
     }
 
     private static TypeSymbol GetCommonCharacterType(TypeSymbol left, TypeSymbol right)
@@ -497,7 +499,7 @@ internal sealed class ConversionClassifier(Binder binder)
 
         if (source.ReferencedType == target.ReferencedType)
         {
-            return Conversion.GetTrivial(ConversionKind.ImplicitReference);
+            return Conversion.ImplicitReference;
         }
 
         if (target.ReferencedType.SpecialType == SpecialType.Str)
@@ -509,7 +511,7 @@ internal sealed class ConversionClassifier(Binder binder)
                 }
             )
             {
-                return Conversion.GetTrivial(ConversionKind.ImplicitSpan);
+                return Conversion.ImplicitSpan;
             }
         }
 
@@ -522,7 +524,7 @@ internal sealed class ConversionClassifier(Binder binder)
                 }
             )
             {
-                return Conversion.GetTrivial(ConversionKind.ImplicitSpan);
+                return Conversion.ImplicitSpan;
             }
         }
 
@@ -533,9 +535,45 @@ internal sealed class ConversionClassifier(Binder binder)
         )
             return Conversion.None;
 
-        return targetArray.IsDynamicallySized
-            ? Conversion.GetTrivial(ConversionKind.ImplicitSpan)
-            : Conversion.None;
+        return targetArray.IsDynamicallySized ? Conversion.ImplicitSpan : Conversion.None;
+    }
+
+    private Conversion ClassifyToNullableConversion(TypeSymbol source, NullableTypeSymbol target)
+    {
+        if (source is NullableTypeSymbol nullableSource)
+        {
+            var innerConversion = ClassifyConversion(
+                nullableSource.ElementType,
+                target.ElementType
+            );
+            return innerConversion.IsIdentity
+                ? Conversion.ImplicitNullable()
+                : Conversion.ImplicitNullable(innerConversion);
+        }
+
+        var sourceToTargetElement = ClassifyConversion(source, target.ElementType);
+        return sourceToTargetElement.IsIdentity
+            ? Conversion.ImplicitNullable()
+            : Conversion.ImplicitNullable(sourceToTargetElement);
+    }
+
+    private Conversion ClassifyFromNullableConversion(NullableTypeSymbol source, TypeSymbol target)
+    {
+        if (target is NullableTypeSymbol nullableTarget)
+        {
+            var innerConversion = ClassifyConversion(
+                source.ElementType,
+                nullableTarget.ElementType
+            );
+            return innerConversion.IsIdentity
+                ? Conversion.ImplicitNullable()
+                : Conversion.ImplicitNullable(innerConversion);
+        }
+
+        var sourceToTargetElement = ClassifyConversion(source.ElementType, target);
+        return sourceToTargetElement.IsIdentity
+            ? Conversion.ExplicitNullable()
+            : Conversion.ExplicitNullable(sourceToTargetElement);
     }
 
     private enum NumericFamily : byte

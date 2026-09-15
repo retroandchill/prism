@@ -36,6 +36,15 @@ internal sealed record MirCallInstruction(
     ImmutableArray<MirValue> Arguments
 ) : MirInstruction;
 
+internal sealed record MirIsNotNullInstruction(MirPlace Destination, MirValue Value)
+    : MirInstruction;
+
+internal sealed record MirGetNullablePayloadInstruction(MirPlace Destination, MirValue Value)
+    : MirInstruction;
+
+internal sealed record MirMakeNullableInstruction(MirPlace Destination, MirValue? Payload)
+    : MirInstruction;
+
 internal sealed record MirStorageLiveInstruction(MirLocalId LocalId) : MirInstruction;
 
 internal sealed record MirStorageDeadInstruction(MirLocalId LocalId) : MirInstruction;

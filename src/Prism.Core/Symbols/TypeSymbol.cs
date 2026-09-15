@@ -3,6 +3,11 @@ using Prism.Core.Semantic;
 
 namespace Prism.Core.Symbols;
 
+public readonly record struct SizeAndAlignment(ulong Size, ulong Alignment)
+{
+    public bool IsZero => Size == 0 && Alignment == 0;
+}
+
 public abstract class TypeSymbol : MemberContainerSymbol
 {
     private protected TypeSymbol(
@@ -23,5 +28,5 @@ public abstract class TypeSymbol : MemberContainerSymbol
 
     public abstract bool IsDynamicallySized { get; }
 
-    public abstract ulong GetSizeInBytes(CompilationSettings settings);
+    public abstract SizeAndAlignment GetSizeAndAlignment(CompilationSettings settings);
 }

@@ -322,6 +322,20 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             }
             case ArrayTypeSymbol { ElementType: var elementType, Size: { } size }:
                 return LLVMTypeRef.CreateArray2(GetOrCreateType(elementType), size);
+            case NullableTypeSymbol { ElementType: var elementType }:
+            {
+                var nonNullType = GetOrCreateType(elementType);
+                if (elementType is ReferenceTypeSymbol)
+                {
+                    // Nullable reference types are represented the same
+                    return nonNullType;
+                }
+
+                return LLVMTypeRef.CreateStruct(
+                    [nonNullType, GetOrCreateType(_compilation.GetSpecialType(SpecialType.Bool))],
+                    false
+                );
+            }
             default:
                 return symbol.SpecialType switch
                 {
@@ -526,6 +540,15 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 break;
             case MirConvertInstruction mirConvertInstruction:
                 EmitConvert(mirConvertInstruction, context);
+                break;
+            case MirIsNotNullInstruction mirIsNotNullInstruction:
+                EmitIsNotNull(mirIsNotNullInstruction, context);
+                break;
+            case MirGetNullablePayloadInstruction getNullablePayloadInstruction:
+                EmitGetNullablePayload(getNullablePayloadInstruction, context);
+                break;
+            case MirMakeNullableInstruction makeNullableInstruction:
+                EmitMakeNullable(makeNullableInstruction, context);
                 break;
             case MirStorageLiveInstruction mirStorageLiveInstruction:
                 EmitStorageLive(mirStorageLiveInstruction, context);
@@ -847,6 +870,69 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         throw new InvalidOperationException("If we get here, the conversion is invalid");
     }
 
+    private void EmitIsNotNull(MirIsNotNullInstruction notNull, FunctionEmissionContext context)
+    {
+        var underlyingType = (NullableTypeSymbol)notNull.Value.Type;
+        var llvmType = GetOrCreateType(underlyingType.ElementType);
+        var operand = GetValue(notNull.Value, context);
+        var notNullState =
+            underlyingType.ElementType is ReferenceTypeSymbol
+                ? _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntNE,
+                    operand,
+                    LLVMValueRef.CreateConstNull(llvmType)
+                )
+                : ConvertByteBoolToI1IfNeeded(_builder.BuildExtractValue(operand, 1));
+
+        EmitWriteToDest(notNull.Destination, notNullState, context);
+    }
+
+    private void EmitGetNullablePayload(
+        MirGetNullablePayloadInstruction getNullablePayload,
+        FunctionEmissionContext context
+    )
+    {
+        var underlyingType = (NullableTypeSymbol)getNullablePayload.Value.Type;
+        var value = GetValue(getNullablePayload.Value, context);
+        if (underlyingType.ElementType is not ReferenceTypeSymbol)
+        {
+            value = _builder.BuildExtractValue(value, 0);
+        }
+
+        EmitWriteToDest(getNullablePayload.Destination, value, context);
+    }
+
+    private void EmitMakeNullable(
+        MirMakeNullableInstruction makeNullable,
+        FunctionEmissionContext context
+    )
+    {
+        var underlyingType = (NullableTypeSymbol)makeNullable.Destination.Type;
+        var structType = GetOrCreateType(underlyingType);
+        LLVMValueRef value;
+        if (makeNullable.Payload is not null)
+        {
+            value = GetValue(makeNullable.Payload, context);
+            if (underlyingType.ElementType is not ReferenceTypeSymbol)
+            {
+                var nullableValue = structType.Undef;
+                nullableValue = _builder.BuildInsertValue(nullableValue, value, 0);
+
+                var lengthValue = LLVMValueRef.CreateConstInt(
+                    GetOrCreateType(_compilation.GetSpecialType(SpecialType.Bool)),
+                    1
+                );
+                value = _builder.BuildInsertValue(nullableValue, lengthValue, 1);
+            }
+        }
+        else
+        {
+            value = LLVMValueRef.CreateConstNull(structType);
+        }
+
+        EmitWriteToDest(makeNullable.Destination, value, context);
+    }
+
     private void EmitStorageLive(
         MirStorageLiveInstruction storageLive,
         FunctionEmissionContext context
@@ -927,7 +1013,8 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         {
             MirAddressOfValue mirAddressOfValue => EmitTakeAddress(mirAddressOfValue, context),
             MirConstantValue mirConstantValue => MakeConstant(mirConstantValue.Constant),
-            MirNullValue => throw new InvalidOperationException("Cannot get a null value"),
+            MirNullValue nullValue => LLVMValueRef.CreateConstNull(GetOrCreateType(nullValue.Type)),
+            MirVoidValue => throw new InvalidOperationException("Cannot get a null value"),
             MirReadValue mirReadValue => EmitReadValue(mirReadValue, context),
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };

@@ -191,6 +191,22 @@ internal sealed class MirFunctionAnalyzer
 
                 break;
 
+            case MirIsNotNullInstruction isNotNull:
+                AnalyzeValue(isNotNull.Value, blockId, builders);
+                break;
+
+            case MirGetNullablePayloadInstruction getNullablePayload:
+                AnalyzeValue(getNullablePayload.Value, blockId, builders);
+                break;
+
+            case MirMakeNullableInstruction makeNullable:
+                if (makeNullable.Payload is not null)
+                {
+                    AnalyzeValue(makeNullable.Payload, blockId, builders);
+                }
+
+                break;
+
             case MirStorageLiveInstruction:
             case MirStorageDeadInstruction:
                 break;
@@ -236,6 +252,7 @@ internal sealed class MirFunctionAnalyzer
         {
             case MirConstantValue:
             case MirNullValue:
+            case MirVoidValue:
                 return;
 
             case MirReadValue read:

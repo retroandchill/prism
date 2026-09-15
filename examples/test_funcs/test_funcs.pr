@@ -134,3 +134,9 @@ func print_char_arrays() {
 func print_char_array(array: char[]&) {
     print(array);
 }
+
+func nullable_checks(cond: bool) {
+    mutable var x: i32? = null;
+    var y: i32? = cond ? 3 : null;
+    x = 4;
+}

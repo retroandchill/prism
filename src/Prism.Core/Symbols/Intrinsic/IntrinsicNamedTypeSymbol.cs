@@ -1,8 +1,6 @@
 ﻿using System.Collections.Immutable;
-using System.Text;
 using Prism.Core.Configuration;
 using Prism.Core.Diagnostics;
-using Prism.Core.Semantic;
 using Prism.Core.Syntax;
 using Prism.Core.Utils;
 
@@ -51,7 +49,7 @@ internal sealed class IntrinsicNamedTypeSymbol : NamedTypeSymbol
 
     public override bool IsDynamicallySized => SpecialType == SpecialType.Str;
 
-    public override ulong GetSizeInBytes(CompilationSettings settings)
+    public override SizeAndAlignment GetSizeAndAlignment(CompilationSettings settings)
     {
         if (IsDynamicallySized)
             throw new InvalidOperationException("Cannot get size of dynamically sized type");
@@ -59,15 +57,21 @@ internal sealed class IntrinsicNamedTypeSymbol : NamedTypeSymbol
         return SpecialType switch
         {
             SpecialType.Void => throw new InvalidOperationException("Void has no size"),
-            SpecialType.Bool or SpecialType.I8 or SpecialType.U8 or SpecialType.Char => 1,
-            SpecialType.I16 or SpecialType.U16 or SpecialType.Char16 => 2,
-            SpecialType.I32 or SpecialType.U32 or SpecialType.F32 or SpecialType.Rune => 4,
-            SpecialType.I64 or SpecialType.U64 or SpecialType.F64 => 8,
-            SpecialType.I128 or SpecialType.U128 => 16,
-            SpecialType.ISize or SpecialType.USize => unchecked(
-                (ulong)settings.PointerWidth.BitWidth / 8
-            ),
+            SpecialType.Bool or SpecialType.I8 or SpecialType.U8 or SpecialType.Char =>
+                new SizeAndAlignment(1, 1),
+            SpecialType.I16 or SpecialType.U16 or SpecialType.Char16 => new SizeAndAlignment(2, 2),
+            SpecialType.I32 or SpecialType.U32 or SpecialType.F32 or SpecialType.Rune =>
+                new SizeAndAlignment(4, 4),
+            SpecialType.I64 or SpecialType.U64 or SpecialType.F64 => new SizeAndAlignment(8, 8),
+            SpecialType.I128 or SpecialType.U128 => new SizeAndAlignment(16, 16),
+            SpecialType.ISize or SpecialType.USize => GetNativeIntSize(settings),
             _ => throw new ArgumentException("Unknown special type"),
         };
+
+        static SizeAndAlignment GetNativeIntSize(CompilationSettings settings)
+        {
+            var size = unchecked((ulong)settings.PointerWidth.BitWidth / 8);
+            return new SizeAndAlignment(size, size);
+        }
     }
 }

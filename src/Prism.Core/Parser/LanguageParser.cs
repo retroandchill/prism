@@ -411,6 +411,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             or SyntaxKind.FloatingPointLiteralToken
             or SyntaxKind.CharacterLiteralToken
             or SyntaxKind.StringLiteralToken => new GreenLiteralExpression(ConsumeToken()),
+            SyntaxKind.NullKeyword => new GreenNullLiteralExpression(ConsumeToken()),
             SyntaxKind.OpenParenToken => ParseParenthesizedExpression(),
             SyntaxKind.OpenBracketToken => ParseCollectionExpression(),
             _ => new GreenIdentifierExpression(ParseName()),
@@ -578,6 +579,9 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                     );
                     break;
                 }
+                case SyntaxKind.QuestionToken:
+                    type = new GreenNullableType(type, ConsumeToken());
+                    break;
                 default:
                     return type;
             }

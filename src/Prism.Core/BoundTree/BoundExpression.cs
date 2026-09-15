@@ -89,7 +89,7 @@ internal sealed record BoundUnfixedFloatLiteral : BoundSpeculativeExpression
         FloatLiteralData data,
         TypeSymbol defaultType
     )
-        : base(syntax, UnfixedIntegerTypeSymbol.Instance, defaultType)
+        : base(syntax, UnfixedFloatTypeSymbol.Instance, defaultType)
     {
         Data = data;
     }
@@ -110,6 +110,18 @@ internal sealed record BoundLiteral : BoundExpression
     public ConstantValue Value { get; }
 
     protected override ConstantValue? ComputeConstantValue() => Value;
+}
+
+internal sealed record BoundNullLiteral : BoundExpression
+{
+    public BoundNullLiteral(SyntaxNode syntax, TypeSymbol type)
+        : base(syntax, type) { }
+}
+
+internal sealed record BoundSpeculativeNullLiteral : BoundSpeculativeExpression
+{
+    public BoundSpeculativeNullLiteral(SyntaxNode syntax)
+        : base(syntax, UnboundNullTypeSymbol.Instance, ErrorTypeSymbol.Unnamed) { }
 }
 
 internal sealed record BoundVariableAccess : BoundExpression
