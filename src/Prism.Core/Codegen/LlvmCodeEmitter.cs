@@ -43,7 +43,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     private LLVMValueRef? _lifetimeStartFunction;
     private LLVMValueRef? _lifetimeEndFunction;
 
-    public string? _entryPoint;
+    private string? _entryPoint;
 
     public LlvmCodeEmitter(Compilation compilation, CodeGenOptions options)
     {

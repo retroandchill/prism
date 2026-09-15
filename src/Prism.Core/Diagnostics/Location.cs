@@ -5,6 +5,7 @@
 
 using Prism.Core.Syntax;
 using Prism.Core.Text;
+using Prism.Core.Utils;
 
 namespace Prism.Core.Diagnostics;
 
@@ -27,7 +28,7 @@ public sealed record SourceLocation(SyntaxTree SyntaxTree, TextSpan SourceSpan) 
         : this(node.SyntaxTree, node.FullSpan) { }
 
     public SourceLocation(in SyntaxToken token)
-        : this(token.SyntaxTree, token.FullSpan) { }
+        : this(token.SyntaxTree.RequireNonNull(), token.FullSpan) { }
 
     public FileSourcePositionSpan PositionSpan => SyntaxTree.GetPositionSpan(SourceSpan);
 

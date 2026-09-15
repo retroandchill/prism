@@ -126,10 +126,13 @@ internal sealed class MirEmitter(Compilation compilation)
         CancellationToken cancellationToken
     )
     {
+        context.EnterScope();
         foreach (var statement in block.Statements)
         {
             EmitStatement(statement, context, cancellationToken);
         }
+
+        context.ExitScope();
     }
 
     private void EmitLocal(
@@ -166,10 +169,12 @@ internal sealed class MirEmitter(Compilation compilation)
         if (statement.Expression is not null)
         {
             var result = EmitExpression(statement.Expression, context, cancellationToken);
+            context.EmitEarlyReturnExit();
             context.CurrentBlock.SetTerminator(new MirReturnTerminator(result));
         }
         else
         {
+            context.EmitEarlyReturnExit();
             context.CurrentBlock.SetTerminator(MirReturnTerminator.Void);
         }
     }
@@ -279,6 +284,14 @@ internal sealed class MirEmitter(Compilation compilation)
         CancellationToken cancellationToken
     )
     {
+        var loopHead = context.AddBlock("loop.head");
+        var loopBody = loop.Condition is not null ? context.AddDetachedBlock("loop.body") : null;
+        var loopIncrement =
+            loop.Incrementors.Length > 0 ? context.AddDetachedBlock("loop.increment") : null;
+        var loopTail = context.AddDetachedBlock("loop.tail");
+        context.BindLoop(loop.Label, loopTail.Id, loopIncrement?.Id ?? loopHead.Id);
+
+        context.EnterScope();
         if (loop.Variable is not null)
         {
             EmitLocal(loop.Variable, context, cancellationToken);
@@ -288,13 +301,6 @@ internal sealed class MirEmitter(Compilation compilation)
         {
             EmitExpression(initializer, context, cancellationToken);
         }
-
-        var loopHead = context.AddBlock("loop.head");
-        var loopBody = loop.Condition is not null ? context.AddDetachedBlock("loop.body") : null;
-        var loopIncrement =
-            loop.Incrementors.Length > 0 ? context.AddDetachedBlock("loop.increment") : null;
-        var loopTail = context.AddDetachedBlock("loop.tail");
-        context.BindLoop(loop.Label, loopTail.Id, loopIncrement?.Id ?? loopHead.Id);
 
         context.CurrentBlock.SetTerminator(new MirGotoTerminator(loopHead.Id));
         context.SetCurrentBlock(loopHead);
@@ -331,6 +337,7 @@ internal sealed class MirEmitter(Compilation compilation)
 
         context.AddBlock(loopTail);
         context.SetCurrentBlock(loopTail);
+        context.ExitScope();
     }
 
     private static void EmitBreakStatement(
@@ -338,7 +345,8 @@ internal sealed class MirEmitter(Compilation compilation)
         MirEmissionContext context
     )
     {
-        var (breakTarget, _) = context.GetLoopTargets(statement.Label);
+        var (breakTarget, _, targetScope) = context.GetLoopTargets(statement.Label);
+        context.EmitExitTo(targetScope);
         context.CurrentBlock.SetTerminator(new MirGotoTerminator(breakTarget));
     }
 
@@ -347,7 +355,8 @@ internal sealed class MirEmitter(Compilation compilation)
         MirEmissionContext context
     )
     {
-        var (_, continueTarget) = context.GetLoopTargets(statement.Label);
+        var (_, continueTarget, targetScope) = context.GetLoopTargets(statement.Label);
+        context.EmitExitTo(targetScope);
         context.CurrentBlock.SetTerminator(new MirGotoTerminator(continueTarget));
     }
 
@@ -673,10 +682,8 @@ internal sealed class MirEmitter(Compilation compilation)
             var isEqualityCheck = operation == BinaryOperation.Equality;
 
             if (
-                left.Type
-                    is NullableTypeSymbol { ElementType: not ReferenceTypeSymbol } nullableLeft
-                && rightValue.Type
-                    is NullableTypeSymbol { ElementType: not ReferenceTypeSymbol } nullableRight
+                left.Type is NullableTypeSymbol { ElementType: not ReferenceTypeSymbol }
+                && rightValue.Type is NullableTypeSymbol { ElementType: not ReferenceTypeSymbol }
             )
             {
                 MirPlace tempPlace;

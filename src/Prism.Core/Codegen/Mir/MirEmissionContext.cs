@@ -5,11 +5,23 @@
 
 using Prism.Core.Mir;
 using Prism.Core.Symbols;
+using Prism.Core.Utils;
 using ZLinq;
 
 namespace Prism.Core.Codegen.Mir;
 
-internal readonly record struct MirLoopTargets(MirBlockId BreakTarget, MirBlockId ContinueTarget);
+internal readonly record struct MirLoopTargets(
+    MirBlockId BreakTarget,
+    MirBlockId ContinueTarget,
+    MirScope EnclosingScope
+);
+
+internal sealed class MirScope(MirScope? parent = null)
+{
+    public MirScope? Parent { get; } = parent;
+
+    public List<VariableSymbol> Locals { get; } = [];
+}
 
 internal sealed class MirEmissionContext
 {
@@ -19,6 +31,8 @@ internal sealed class MirEmissionContext
     );
 
     private readonly MirFunctionBuilder _builder;
+    private MirScope _scope = new();
+    private readonly MirScope _functionScope;
 
     public MirEmissionContext(MirFunctionBuilder builder)
     {
@@ -30,6 +44,8 @@ internal sealed class MirEmissionContext
                 _locals.Add(local.Symbol, local);
             }
         }
+
+        _functionScope = _scope;
     }
 
     public MirBasicBlockBuilder CurrentBlock { get; private set; } = null!;
@@ -54,11 +70,53 @@ internal sealed class MirEmissionContext
         CurrentBlock = block;
     }
 
+    public void EnterScope()
+    {
+        _scope = new MirScope(_scope);
+    }
+
+    public void ExitScope()
+    {
+        if (!CurrentBlock.IsTerminated)
+        {
+            EmitScopeCleanup(_scope);
+        }
+
+        _scope = _scope.Parent.RequireNonNull();
+    }
+
+    public void EmitExitTo(MirScope target)
+    {
+        for (var scope = _scope; scope != target; scope = scope.Parent.RequireNonNull())
+        {
+            EmitScopeCleanup(scope);
+        }
+    }
+
+    public void EmitEarlyReturnExit()
+    {
+        for (var scope = _scope; scope is not null; scope = scope.Parent)
+        {
+            EmitScopeCleanup(scope);
+        }
+    }
+
+    private void EmitScopeCleanup(MirScope scope)
+    {
+        foreach (var variable in scope.Locals.AsValueEnumerable().Reverse())
+        {
+            var local = GetLocal(variable);
+            CurrentBlock.AddInstruction(new MirStorageDeadInstruction(local.Id));
+        }
+    }
+
     public MirLocal BindLocal(VariableSymbol variable)
     {
         var local = _builder.AddLocalVariable(variable);
 
         _locals.Add(variable, local);
+        _scope.Locals.Add(variable);
+        CurrentBlock.AddInstruction(new MirStorageLiveInstruction(local.Id));
         return local;
     }
 
@@ -80,7 +138,7 @@ internal sealed class MirEmissionContext
 
     public void BindLoop(LabelSymbol label, MirBlockId breakTarget, MirBlockId continueTarget)
     {
-        _loopTargets.Add(label, new MirLoopTargets(breakTarget, continueTarget));
+        _loopTargets.Add(label, new MirLoopTargets(breakTarget, continueTarget, _scope));
     }
 
     public MirLoopTargets GetLoopTargets(LabelSymbol label)

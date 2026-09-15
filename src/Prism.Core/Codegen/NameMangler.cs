@@ -88,6 +88,10 @@ public static class NameMangler
                 builder.Append("__ref");
 
                 return;
+            case NullableTypeSymbol nullableType:
+                MangleType(nullableType.ElementType, ref builder);
+                builder.Append("__nullable");
+                return;
         }
 
         switch (type.SpecialType)
