@@ -3,6 +3,7 @@ using Prism.Core.Binding;
 using Prism.Core.Compiling;
 using Prism.Core.Configuration;
 using Prism.Core.Symbols;
+using Prism.Core.Symbols.Intermediate;
 
 namespace Prism.Core.Semantic;
 
@@ -46,6 +47,11 @@ internal sealed class ConversionClassifier(Binder binder)
         if (IsCharacterType(source) && IsCharacterType(target))
         {
             return ClassifyCharacterConversion(source.SpecialType, target.SpecialType);
+        }
+
+        if (source is UnboundNullTypeSymbol nullType && target is NullableTypeSymbol)
+        {
+            return Conversion.NullToNullable;
         }
 
         return Conversion.None;
@@ -101,6 +107,17 @@ internal sealed class ConversionClassifier(Binder binder)
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
+        }
+
+        if (
+            operand is NullableTypeSymbol nullableOperand
+            && ClassifyUnaryOperand(operation, nullableOperand.ElementType) is { } conversion
+        )
+        {
+            return conversion with
+            {
+                Conversion = Conversion.UnwrapNullable(conversion.Conversion),
+            };
         }
 
         return null;
@@ -172,6 +189,33 @@ internal sealed class ConversionClassifier(Binder binder)
                     );
                 }
 
+                if (left is UnboundNullTypeSymbol && right is NullableTypeSymbol)
+                {
+                    return new BinaryOperandConversion(
+                        Conversion.NullToNullable,
+                        Conversion.Identity,
+                        right
+                    );
+                }
+
+                if (right is UnboundNullTypeSymbol && left is NullableTypeSymbol)
+                {
+                    return new BinaryOperandConversion(
+                        Conversion.Identity,
+                        Conversion.NullToNullable,
+                        left
+                    );
+                }
+
+                if (left is NullableTypeSymbol && right is NullableTypeSymbol)
+                {
+                    return new BinaryOperandConversion(
+                        Conversion.Identity,
+                        Conversion.Identity,
+                        right
+                    );
+                }
+
                 break;
             case BinaryOperation.LessThan:
             case BinaryOperation.LessThanOrEquals:
@@ -185,6 +229,46 @@ internal sealed class ConversionClassifier(Binder binder)
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
+        }
+
+        if (left is NullableTypeSymbol nullableLeft)
+        {
+            if (
+                right is NullableTypeSymbol nullableRight
+                && ClassifyBinaryOperand(
+                    operation,
+                    nullableLeft.ElementType,
+                    nullableRight.ElementType
+                )
+                    is { } conversion1
+            )
+            {
+                return conversion1 with
+                {
+                    LeftConversion = Conversion.UnwrapNullable(conversion1.LeftConversion),
+                    RightConversion = Conversion.UnwrapNullable(conversion1.RightConversion),
+                };
+            }
+
+            if (
+                ClassifyBinaryOperand(operation, nullableLeft.ElementType, right) is { } conversion2
+            )
+            {
+                return conversion2 with
+                {
+                    LeftConversion = Conversion.UnwrapNullable(conversion2.LeftConversion),
+                };
+            }
+        }
+        else if (right is NullableTypeSymbol nullableRight)
+        {
+            if (ClassifyBinaryOperand(operation, left, nullableRight.ElementType) is { } conversion)
+            {
+                return conversion with
+                {
+                    RightConversion = Conversion.UnwrapNullable(conversion.RightConversion),
+                };
+            }
         }
 
         return null;
@@ -572,8 +656,8 @@ internal sealed class ConversionClassifier(Binder binder)
 
         var sourceToTargetElement = ClassifyConversion(source.ElementType, target);
         return sourceToTargetElement.IsIdentity
-            ? Conversion.ExplicitNullable()
-            : Conversion.ExplicitNullable(sourceToTargetElement);
+            ? Conversion.UnwrapNullable()
+            : Conversion.UnwrapNullable(sourceToTargetElement);
     }
 
     private enum NumericFamily : byte

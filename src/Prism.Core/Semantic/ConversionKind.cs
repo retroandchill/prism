@@ -17,7 +17,9 @@ public enum ConversionKind : byte
     ExplicitNumeric,
     ExplicitCharacter,
     ExplicitReference,
-    ExplicitNullable,
+
+    UnwrapNullable,
+    NullToNullable,
 }
 
 public static partial class ConversionKindExtensions
@@ -31,19 +33,8 @@ public static partial class ConversionKindExtensions
                     or ConversionKind.Identity
                     or ConversionKind.ImplicitReference
                     or ConversionKind.ImplicitSpan
-                    or ConversionKind.ImplicitNullable;
-
-        public bool IsTrivial =>
-            kind
-                is ConversionKind.Identity
-                    or ConversionKind.ImplicitNumeric
-                    or ConversionKind.ImplicitCharacter
-                    or ConversionKind.ImplicitReference
-                    or ConversionKind.ImplicitSpan
                     or ConversionKind.ImplicitNullable
-                    or ConversionKind.ExplicitCharacter
-                    or ConversionKind.ExplicitNumeric
-                    or ConversionKind.ExplicitReference
-                    or ConversionKind.ExplicitNullable;
+                    or ConversionKind.UnwrapNullable
+                    or ConversionKind.NullToNullable;
     }
 }

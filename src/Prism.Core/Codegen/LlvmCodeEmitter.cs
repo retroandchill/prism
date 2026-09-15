@@ -60,7 +60,6 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         CancellationToken cancellationToken
     )
     {
-        WriteIR();
         return !context.HasErrors
             ? await OutputBinaryAsync(context, cancellationToken)
             : new EmitResult(false, context.CollectDiagnostics());
@@ -457,9 +456,19 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             : value;
     }
 
-    private LLVMValueRef ConvertI1ToByteBoolIfNeeded(LLVMValueRef value)
+    private LLVMValueRef NormalizeValueForType(LLVMValueRef value, TypeSymbol targetType)
     {
-        return value.TypeOf.IntWidth == 1 ? _builder.BuildZExt(value, _context.Int8Type) : value;
+        var llvmTargetType = GetOrCreateType(targetType);
+
+        if (value.TypeOf == llvmTargetType)
+            return value;
+
+        if (targetType.SpecialType == SpecialType.Bool && value.TypeOf.IntWidth == 1)
+        {
+            return _builder.BuildZExt(value, llvmTargetType);
+        }
+
+        return value;
     }
 
     private void InitializeLocalVariables(MirFunction function, FunctionEmissionContext context)
@@ -575,7 +584,15 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             MirUnaryOp.Negation => operation.Value.Type.SpecialType.IsInteger
                 ? _builder.BuildNeg(source)
                 : _builder.BuildFNeg(source),
-            MirUnaryOp.LogicalNot or MirUnaryOp.BitwiseNot => _builder.BuildNot(source),
+            MirUnaryOp.LogicalNot => NormalizeValueForType(
+                _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntEQ,
+                    source,
+                    LLVMValueRef.CreateConstInt(source.TypeOf, 0)
+                ),
+                operation.Destination.Type
+            ),
+            MirUnaryOp.BitwiseNot => _builder.BuildNot(source),
             _ => throw new InvalidOperationException("Unknown unary operation"),
         };
         EmitWriteToDest(operation.Destination, result, context);
@@ -1133,6 +1150,8 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     )
     {
         var classification = context.LocalClassification.Locals[destination.LocalId];
+        value = NormalizeValueForType(value, destination.Type);
+
         switch (classification.StorageKind)
         {
             case MirLocalStorageKind.Ssa:
@@ -1192,6 +1211,15 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         _module.PrintToFile(targetPath);
     }
 
+    private void WriteOptimizedIR()
+    {
+        var targetPath = Path.Combine(
+            _options.OutputDirectory,
+            $"{_compilation.AssemblyName}.opt.ll"
+        );
+        _module.PrintToFile(targetPath);
+    }
+
     private async Task<EmitResult> OutputBinaryAsync(
         BindingContext context,
         CancellationToken cancellationToken
@@ -1214,13 +1242,19 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             tripleString,
             cpu,
             features,
-            LLVMCodeGenOptLevel.LLVMCodeGenLevelNone,
+            LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault,
             LLVMRelocMode.LLVMRelocPIC,
             LLVMCodeModel.LLVMCodeModelDefault
         );
 
         _module.Target = tripleString;
         _module.DataLayoutObject = targetMachine.CreateTargetDataLayout();
+
+        WriteIR();
+
+        OptimizeModule(targetMachine);
+
+        WriteOptimizedIR();
 
         var outputFilename = Path.Combine(
             _options.OutputDirectory,
@@ -1261,6 +1295,12 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             ),
             _ => throw new InvalidOperationException("Unsupported output kind"),
         };
+    }
+
+    private void OptimizeModule(LLVMTargetMachineRef targetMachine)
+    {
+        using var passBuilderOptions = LLVMPassBuilderOptionsRef.Create();
+        _module.RunPasses("default<O2>", targetMachine, passBuilderOptions);
     }
 
     private async Task<EmitResult> LinkAsync(

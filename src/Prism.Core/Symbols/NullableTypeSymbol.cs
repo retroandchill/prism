@@ -13,7 +13,7 @@ namespace Prism.Core.Symbols;
 public sealed class NullableTypeSymbol : TypeSymbol
 {
     internal NullableTypeSymbol(TypeSymbol elementType)
-        : base($"{elementType}?")
+        : base($"{elementType.Name}?")
     {
         ElementType = elementType;
     }

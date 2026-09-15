@@ -1,3 +1,4 @@
 test_funcs.lib
 test_funcs.ll
 test_funcs.obj
+test_funcs.opt.ll

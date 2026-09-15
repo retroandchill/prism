@@ -140,3 +140,7 @@ func nullable_checks(cond: bool) {
     var y: i32? = cond ? 3 : null;
     x = 4;
 }
+
+func nullable_arithmetic_check(x: i32?, y: i32?): i32 {
+    return x != null && y != null ? x + y : 0;
+}

@@ -10,6 +10,7 @@ using Prism.Core.Mappers;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Error;
+using Prism.Core.Symbols.Intermediate;
 using Prism.Core.Symbols.Source;
 using Prism.Core.Syntax;
 using Prism.Core.Utils;
@@ -808,8 +809,7 @@ internal abstract class Binder
             NullLiteralExpressionSyntax nullLiteral => BindNullLiteralExpression(
                 nullLiteral,
                 targetType,
-                context,
-                isSpeculative
+                context
             ),
             IdentifierExpressionSyntax identifier => BindIdentifierExpression(identifier, context),
             ParenthesizedExpressionSyntax parenthesized => BindExpression(
@@ -925,22 +925,15 @@ internal abstract class Binder
         return new BoundLiteral(syntax, type, value);
     }
 
-    private static BoundExpression BindNullLiteralExpression(
+    private static BoundNullLiteral BindNullLiteralExpression(
         NullLiteralExpressionSyntax syntax,
         TypeSymbol? returnType,
-        BindingContext context,
-        bool isSpeculative
+        BindingContext context
     )
     {
-        if (isSpeculative)
-        {
-            return new BoundSpeculativeNullLiteral(syntax);
-        }
-
         if (returnType is null)
         {
-            context.ReportDiagnostic(Diagnostic.CannotInferType(syntax.Location));
-            return new BoundNullLiteral(syntax, ErrorTypeSymbol.Unnamed);
+            return new BoundNullLiteral(syntax, UnboundNullTypeSymbol.Instance);
         }
 
         if (returnType is not NullableTypeSymbol)
@@ -1583,6 +1576,11 @@ internal abstract class Binder
         }
         else if (!conversion.IsIdentity)
         {
+            if (conversion.IsNullToNullable)
+            {
+                return new BoundNullLiteral(syntax, type);
+            }
+
             if (!conversion.IsImplicit && !isExplicit)
             {
                 context.ReportDiagnostic(

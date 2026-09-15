@@ -59,13 +59,17 @@ internal sealed class FunctionAnalysisBuilder
 
         public FlowState Merge(FlowState other)
         {
-            // If either side is reachable, then there is a path to keep going
-            return new FlowState(
-                State: State.Merge(other.State),
-                IsReachable: IsReachable || other.IsReachable
-            );
+            if (!IsReachable)
+                return other;
+
+            if (!other.IsReachable)
+                return this;
+
+            return new FlowState(State: State.Merge(other.State), IsReachable: true);
         }
     }
+
+    internal readonly record struct ConditionFlow(AnalysisState WhenTrue, AnalysisState WhenFalse);
 
     private FunctionAnalysisBuilder(
         FunctionSymbol function,
@@ -170,11 +174,15 @@ internal sealed class FunctionAnalysisBuilder
         _cancellationToken.ThrowIfCancellationRequested();
         state = VisitExpression(statement.Condition, state);
 
+        var conditionFlow = AnalyzeCondition(statement.Condition, state.State);
+        var thenInputState = state with { State = conditionFlow.WhenTrue };
+        var elseInputState = state with { State = conditionFlow.WhenFalse };
+
         if (statement.Condition.ConstantValue is { Kind: ConstantKind.Bool } constant)
         {
             if (constant.AsBoolean())
             {
-                state = VisitStatement(statement.ThenStatement, state);
+                state = VisitStatement(statement.ThenStatement, thenInputState);
                 if (statement.ElseStatement is not null)
                 {
                     _bindingContext.ReportDiagnostic(
@@ -189,21 +197,21 @@ internal sealed class FunctionAnalysisBuilder
                 );
                 if (statement.ElseStatement is not null)
                 {
-                    state = VisitStatement(statement.ElseStatement, state);
+                    state = VisitStatement(statement.ElseStatement, elseInputState);
                 }
             }
 
             return state;
         }
 
-        var thenState = VisitStatement(statement.ThenStatement, state);
+        var thenState = VisitStatement(statement.ThenStatement, thenInputState);
 
         if (statement.ElseStatement is null)
         {
-            return thenState.Merge(state);
+            return thenState.Merge(elseInputState);
         }
 
-        var elseState = VisitStatement(statement.ElseStatement, state);
+        var elseState = VisitStatement(statement.ElseStatement, elseInputState);
         return thenState.Merge(elseState);
     }
 
@@ -214,11 +222,15 @@ internal sealed class FunctionAnalysisBuilder
 
         state = VisitExpression(statement.Condition, state);
 
+        var conditionAnalysis = AnalyzeCondition(statement.Condition, state.State);
+        var enterLoopState = state with { State = conditionAnalysis.WhenTrue };
+        var skipLoopState = state with { State = conditionAnalysis.WhenFalse };
+
         if (statement.Condition.ConstantValue is { Kind: ConstantKind.Bool } constant)
         {
             if (constant.AsBoolean())
             {
-                state = VisitStatement(statement.Body, state);
+                state = VisitStatement(statement.Body, enterLoopState);
 
                 if (!_loopStack[^1].HasReachableBreak)
                 {
@@ -234,8 +246,8 @@ internal sealed class FunctionAnalysisBuilder
         }
         else
         {
-            var bodyState = VisitStatement(statement.Body, state);
-            state = state.Merge(bodyState);
+            var bodyState = VisitStatement(statement.Body, enterLoopState);
+            state = skipLoopState.Merge(bodyState);
         }
 
         _loopStack.RemoveAt(_loopStack.Count - 1);
@@ -278,13 +290,17 @@ internal sealed class FunctionAnalysisBuilder
 
         if (statement.Condition is not null)
         {
+            var conditionAnalysis = AnalyzeCondition(statement.Condition, state.State);
+            var enterLoopState = state with { State = conditionAnalysis.WhenTrue };
+            var skipLoopState = state with { State = conditionAnalysis.WhenFalse };
+
             state = VisitExpression(statement.Condition, state);
 
             if (statement.Condition.ConstantValue is { Kind: ConstantKind.Bool } constant)
             {
                 if (constant.AsBoolean())
                 {
-                    state = VisitStatement(statement.Body, state);
+                    state = VisitStatement(statement.Body, enterLoopState);
 
                     if (state.IsReachable)
                     {
@@ -308,7 +324,7 @@ internal sealed class FunctionAnalysisBuilder
             }
             else
             {
-                var bodyState = VisitStatement(statement.Body, state);
+                var bodyState = VisitStatement(statement.Body, enterLoopState);
 
                 if (bodyState.IsReachable)
                 {
@@ -320,7 +336,7 @@ internal sealed class FunctionAnalysisBuilder
                     bodyState = bodyState.Merge(incrementorState);
                 }
 
-                state = state.Merge(bodyState);
+                state = skipLoopState.Merge(bodyState);
             }
         }
         else
@@ -458,15 +474,24 @@ internal sealed class FunctionAnalysisBuilder
                         assignment.Syntax.Location,
                         state
                     );
+                    state = HandleNullableAssignment(assignment.Left, assignment.Right, state);
                     state = VisitExpression(assignment.Left, state);
                     expression = assignment.Right;
                     continue;
 
                 case BoundConditional conditional:
+                {
                     state = VisitExpression(conditional.Condition, state);
-                    state = VisitExpression(conditional.WhenTrue, state);
-                    state = VisitExpression(conditional.WhenFalse, state);
+
+                    var conditionAnalysis = AnalyzeCondition(conditional.Condition, state.State);
+                    var trueState = state with { State = conditionAnalysis.WhenTrue };
+                    var falseState = state with { State = conditionAnalysis.WhenFalse };
+
+                    trueState = VisitExpression(conditional.WhenTrue, trueState);
+                    falseState = VisitExpression(conditional.WhenFalse, falseState);
+                    state = trueState.Merge(falseState);
                     break;
+                }
 
                 case BoundInvocation invocation:
                 {
@@ -480,6 +505,10 @@ internal sealed class FunctionAnalysisBuilder
                 }
 
                 case BoundConversion conversion:
+                    if (conversion.Conversion.IsUnwrapping)
+                    {
+                        HandleNullableUnwrapping(conversion.Operand, state);
+                    }
                     expression = conversion.Operand;
                     continue;
 
@@ -562,5 +591,168 @@ internal sealed class FunctionAnalysisBuilder
                 );
                 break;
         }
+    }
+
+    private static ValueSymbol? GetAssociatedSymbol(BoundExpression expression)
+    {
+        return expression switch
+        {
+            BoundVariableAccess variable => variable.Symbol,
+            BoundParameterAccess parameter => parameter.Symbol,
+            _ => null,
+        };
+    }
+
+    private static bool NeedsNullabilityAnalysis(ValueSymbol symbol)
+    {
+        return NeedsNullabilityAnalysis(symbol.Type);
+    }
+
+    private static bool NeedsNullabilityAnalysis(TypeSymbol type)
+    {
+        return type is NullableTypeSymbol;
+    }
+
+    private static FlowState HandleNullableAssignment(
+        BoundExpression assignee,
+        BoundExpression operand,
+        FlowState flowState
+    )
+    {
+        var associated = GetAssociatedSymbol(assignee);
+        if (associated is null || NeedsNullabilityAnalysis(associated))
+            return flowState;
+
+        return flowState with
+        {
+            State = flowState.State.MarkNullableState(
+                associated,
+                GetNullableState(operand, flowState)
+            ),
+        };
+    }
+
+    private static NullableState GetNullableState(BoundExpression expression, FlowState flowState)
+    {
+        if (!NeedsNullabilityAnalysis(expression.Type))
+            return NullableState.NotNull;
+
+        return expression switch
+        {
+            BoundVariableAccess variable => flowState.State.GetValueNullableState(variable.Symbol),
+            BoundParameterAccess parameter => flowState.State.GetValueNullableState(
+                parameter.Symbol
+            ),
+            BoundConversion conversion => GetNullableState(conversion.Operand, flowState),
+            _ => NullableState.MaybeNull,
+        };
+    }
+
+    private void HandleNullableUnwrapping(BoundExpression expression, FlowState state)
+    {
+        var nullableState = GetNullableState(expression, state);
+        if (nullableState == NullableState.NotNull)
+            return;
+
+        _bindingContext.ReportDiagnostic(Diagnostic.MayBeNull(expression.Syntax.Location));
+    }
+
+    private ConditionFlow AnalyzeCondition(BoundExpression condition, AnalysisState state)
+    {
+        switch (condition)
+        {
+            case BoundUnaryOperation { Operation: UnaryOperation.LogicalNot, Operand: var operand }:
+            {
+                var inner = AnalyzeCondition(operand, state);
+                return new ConditionFlow(inner.WhenFalse, inner.WhenTrue);
+            }
+
+            case BoundBinaryOperation
+            {
+                Operation: BinaryOperation.LogicalAnd,
+                Left: var left,
+                Right: var right
+            }:
+            {
+                var leftFlow = AnalyzeCondition(left, state);
+                var rightFlow = AnalyzeCondition(right, leftFlow.WhenTrue);
+                return new ConditionFlow(
+                    rightFlow.WhenTrue,
+                    leftFlow.WhenFalse.Merge(rightFlow.WhenFalse)
+                );
+            }
+
+            case BoundBinaryOperation
+            {
+                Operation: BinaryOperation.LogicalOr,
+                Left: var left,
+                Right: var right
+            }:
+            {
+                var leftFlow = AnalyzeCondition(left, state);
+                var rightFlow = AnalyzeCondition(right, leftFlow.WhenFalse);
+                return new ConditionFlow(
+                    leftFlow.WhenTrue.Merge(rightFlow.WhenTrue),
+                    rightFlow.WhenFalse
+                );
+            }
+
+            default:
+            {
+                if (TryAnalyzeDirectNullTest(condition, state) is { } flow)
+                    return flow;
+
+                return new ConditionFlow(state, state);
+            }
+        }
+    }
+
+    private ConditionFlow? TryAnalyzeDirectNullTest(BoundExpression condition, AnalysisState state)
+    {
+        if (
+            condition
+            is not BoundBinaryOperation
+            {
+                Operation: var operation,
+                Left: var left,
+                Right: var right
+            }
+        )
+        {
+            return null;
+        }
+
+        var symbol = TryGetNullCheckedSymbol(left, right) ?? TryGetNullCheckedSymbol(right, left);
+        if (symbol is null)
+            return null;
+
+        return operation switch
+        {
+            BinaryOperation.NotEquals => new ConditionFlow(
+                state.MarkNullableState(symbol, NullableState.NotNull),
+                state.MarkNullableState(symbol, NullableState.MaybeNull)
+            ),
+            BinaryOperation.Equality => new ConditionFlow(
+                state.MarkNullableState(symbol, NullableState.MaybeNull),
+                state.MarkNullableState(symbol, NullableState.NotNull)
+            ),
+            _ => null,
+        };
+    }
+
+    private static ValueSymbol? TryGetNullCheckedSymbol(
+        BoundExpression value,
+        BoundExpression other
+    )
+    {
+        if (other is not BoundNullLiteral)
+            return null;
+
+        return value switch
+        {
+            BoundVariableAccess variable => variable.Symbol,
+            BoundParameterAccess parameter => parameter.Symbol,
+            _ => null,
+        };
     }
 }

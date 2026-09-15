@@ -33,13 +33,15 @@ public readonly struct Conversion
     internal static Conversion ExplicitCharacter => new(ConversionKind.ExplicitCharacter);
     internal static Conversion ExplicitReference => new(ConversionKind.ExplicitReference);
 
-    internal static Conversion ExplicitNullable(params ImmutableArray<Conversion> nestedConversions)
+    internal static Conversion UnwrapNullable(params ImmutableArray<Conversion> nestedConversions)
     {
         return new Conversion(
-            ConversionKind.ExplicitNullable,
+            ConversionKind.UnwrapNullable,
             !nestedConversions.IsEmpty ? new NestedData(nestedConversions) : null
         );
     }
+
+    internal static Conversion NullToNullable => new(ConversionKind.NullToNullable);
 
     public bool Exists => _kind != ConversionKind.NoConversion;
 
@@ -61,7 +63,11 @@ public readonly struct Conversion
     public bool IsSpan => _kind is ConversionKind.ImplicitSpan;
 
     public bool IsNullable =>
-        _kind is ConversionKind.ImplicitNullable or ConversionKind.ExplicitNullable;
+        _kind is ConversionKind.ImplicitNullable or ConversionKind.UnwrapNullable;
+
+    public bool IsUnwrapping => _kind is ConversionKind.UnwrapNullable;
+
+    public bool IsNullToNullable => _kind is ConversionKind.NullToNullable;
 
     public ImmutableArray<Conversion> UnderlyingConversions =>
         _specialData is NestedData nestedData ? nestedData.NestedConversions : [];

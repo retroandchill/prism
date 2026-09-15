@@ -130,6 +130,8 @@ public abstract class Symbol
         return writer.ToString();
     }
 
+    public override string ToString() => ToDisplayString();
+
     internal virtual Compilation? DeclaringCompilation => ContainingAssembly?.DeclaringCompilation;
 
     private protected void AddDeclarationDiagnostics(BindingContext diagnostics)

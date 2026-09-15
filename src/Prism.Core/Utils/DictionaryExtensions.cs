@@ -23,4 +23,14 @@ public static class DictionaryExtensions
         dict.Add(key, value);
         return value;
     }
+
+    public static TValue GetValueOrDefault<TKey, TValue>(
+        this IReadOnlyDictionary<TKey, TValue> dict,
+        TKey key,
+        Func<TKey, TValue> factory
+    )
+        where TKey : notnull
+    {
+        return dict.TryGetValue(key, out var value) ? value : factory(key);
+    }
 }

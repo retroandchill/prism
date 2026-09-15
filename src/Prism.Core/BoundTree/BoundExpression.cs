@@ -118,12 +118,6 @@ internal sealed record BoundNullLiteral : BoundExpression
         : base(syntax, type) { }
 }
 
-internal sealed record BoundSpeculativeNullLiteral : BoundSpeculativeExpression
-{
-    public BoundSpeculativeNullLiteral(SyntaxNode syntax)
-        : base(syntax, UnboundNullTypeSymbol.Instance, ErrorTypeSymbol.Unnamed) { }
-}
-
 internal sealed record BoundVariableAccess : BoundExpression
 {
     public BoundVariableAccess(SyntaxNode syntax, VariableSymbol symbol)

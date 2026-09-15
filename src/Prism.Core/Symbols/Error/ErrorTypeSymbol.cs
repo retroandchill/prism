@@ -14,7 +14,7 @@ internal sealed class ErrorTypeSymbol : NamedTypeSymbol
     }
 
     private ErrorTypeSymbol()
-        : this("") { }
+        : this("<Error>") { }
 
     public static readonly ErrorTypeSymbol Unnamed = new();
 

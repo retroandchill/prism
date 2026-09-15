@@ -26,6 +26,7 @@ internal sealed class MirLocalFlowInfo
     public required bool IsUsedAcrossBlocks { get; init; }
     public required bool HasMultipleDefinitions { get; init; }
     public required bool HasMergePotential { get; init; }
+    public required bool HasCyclicDefinitionFlow { get; init; }
 }
 
 internal sealed class MirLocalFlowInfoBuilder(MirLocal local)
@@ -45,6 +46,7 @@ internal sealed class MirLocalFlowInfoBuilder(MirLocal local)
     public bool IsUsedAcrossBlocks { get; set; }
     public bool HasMultipleDefinitions { get; set; }
     public bool HasMergePotential { get; set; }
+    public bool HasCyclicDefinitionFlow { get; set; }
 
     public MirLocalFlowInfo Build()
     {
@@ -61,6 +63,7 @@ internal sealed class MirLocalFlowInfoBuilder(MirLocal local)
             IsUsedAcrossBlocks = IsUsedAcrossBlocks,
             HasMultipleDefinitions = HasMultipleDefinitions,
             HasMergePotential = HasMergePotential,
+            HasCyclicDefinitionFlow = HasCyclicDefinitionFlow,
         };
     }
 }

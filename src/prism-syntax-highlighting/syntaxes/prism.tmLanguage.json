@@ -42,6 +42,10 @@
 			{
 				"name": "keyword.boolean.prism",
 				"match": "\\b(true|false)\\b"
+			},
+			{
+				"name": "keyword.null.prism",
+				"match": "\\b(null)\\b"
 			}]
 		},
 		"numbers": {

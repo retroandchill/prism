@@ -2315,7 +2315,7 @@
         {
           "name": "BinaryOperatorUndefined",
           "severity": "Error",
-          "format": "Unary operator not defined for types {Type1} and {Type2}",
+          "format": "Binary operator not defined for types {Type1} and {Type2}",
           "args": [
             {
               "name": "Type1",
@@ -2563,6 +2563,11 @@
               "type": "String"
             }
           ]
+        },
+        {
+          "name": "MayBeNull",
+          "severity": "Error",
+          "format": "Value may be null"
         }
       ]
     },

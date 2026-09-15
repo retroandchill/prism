@@ -2,14 +2,10 @@
 
 namespace Prism.Core.Symbols;
 
-public abstract class VariableSymbol : Symbol
+public abstract class VariableSymbol : ValueSymbol
 {
     private protected VariableSymbol(string name, Symbol? containingSymbol)
         : base(name, containingSymbol) { }
-
-    public abstract TypeSymbol Type { get; }
-
-    public abstract bool IsMutable { get; }
 
     public abstract bool IsGlobal { get; }
 

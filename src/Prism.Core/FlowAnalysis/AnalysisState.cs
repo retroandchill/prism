@@ -5,6 +5,7 @@
 
 using System.Collections.Immutable;
 using Prism.Core.Symbols;
+using Prism.Core.Utils;
 
 namespace Prism.Core.FlowAnalysis;
 
@@ -13,6 +14,12 @@ internal enum InitializationState : byte
     DefinitelyInitialized,
     MaybeInitialized,
     Uninitialized,
+}
+
+internal enum NullableState : byte
+{
+    NotNull,
+    MaybeNull,
 }
 
 internal readonly record struct VariableAnalysisState(InitializationState Initialization)
@@ -28,18 +35,41 @@ internal readonly record struct VariableAnalysisState(InitializationState Initia
     }
 }
 
+internal readonly record struct ValueNullableState(NullableState Null)
+{
+    public static ValueNullableState DefaultState(ValueSymbol symbol)
+    {
+        return symbol.Type is NullableTypeSymbol
+            ? new ValueNullableState(NullableState.MaybeNull)
+            : new ValueNullableState(NullableState.NotNull);
+    }
+
+    public ValueNullableState Merge(ValueNullableState other)
+    {
+        return Null == other.Null ? this : new ValueNullableState(NullableState.MaybeNull);
+    }
+}
+
 internal sealed record AnalysisState
 {
     private ImmutableDictionary<VariableSymbol, VariableAnalysisState> Variables { get; init; }
+    private ImmutableDictionary<ValueSymbol, ValueNullableState> Nullability { get; init; }
 
-    private AnalysisState(ImmutableDictionary<VariableSymbol, VariableAnalysisState> variables)
+    private AnalysisState(
+        ImmutableDictionary<VariableSymbol, VariableAnalysisState> variables,
+        ImmutableDictionary<ValueSymbol, ValueNullableState> nullability
+    )
     {
         Variables = variables;
+        Nullability = nullability;
     }
 
     public static AnalysisState Empty { get; } =
         new(
             ImmutableDictionary.Create<VariableSymbol, VariableAnalysisState>(
+                ReferenceEqualityComparer.Instance
+            ),
+            ImmutableDictionary.Create<ValueSymbol, ValueNullableState>(
                 ReferenceEqualityComparer.Instance
             )
         );
@@ -75,7 +105,25 @@ internal sealed record AnalysisState
             );
         }
 
-        return ReferenceEquals(variables, Variables) ? this : new AnalysisState(variables);
+        return ReferenceEquals(variables, Variables) ? this : this with { Variables = variables };
+    }
+
+    public NullableState GetValueNullableState(ValueSymbol value)
+    {
+        var state = Nullability.GetValueOrDefault(value, ValueNullableState.DefaultState);
+        return state.Null;
+    }
+
+    public AnalysisState MarkNullableState(ValueSymbol symbol, NullableState nullableState)
+    {
+        var nullability = Nullability.SetItem(symbol, new ValueNullableState(nullableState));
+        if (ReferenceEquals(Nullability, nullability))
+            return this;
+
+        return this with
+        {
+            Nullability = nullability,
+        };
     }
 
     public AnalysisState Merge(AnalysisState other)
@@ -83,13 +131,17 @@ internal sealed record AnalysisState
         if (ReferenceEquals(this, other))
             return this;
 
-        if (Variables.Count == 0)
-            return other == Empty ? this : MergeIntoEmpty(other);
+        var mergedVariables = MergeVariables(other);
+        var mergedNullability = MergeNullableStates(other);
+        return mergedVariables == Variables && mergedNullability == Nullability
+            ? this
+            : new AnalysisState(mergedVariables, mergedNullability);
+    }
 
-        if (other.Variables.Count == 0)
-            return MergeIntoEmpty(this);
-
-        var result = Variables;
+    private ImmutableDictionary<VariableSymbol, VariableAnalysisState> MergeVariables(
+        AnalysisState other
+    )
+    {
         ImmutableDictionary<VariableSymbol, VariableAnalysisState>.Builder? builder = null;
 
         foreach (var (variable, otherState) in other.Variables)
@@ -104,7 +156,7 @@ internal sealed record AnalysisState
             if (mergedState == thisState)
                 continue;
 
-            builder ??= result.ToBuilder();
+            builder ??= Variables.ToBuilder();
 
             if (mergedState == VariableAnalysisState.Uninitialized)
                 builder.Remove(variable);
@@ -122,7 +174,7 @@ internal sealed record AnalysisState
             if (mergedState.Equals(thisState))
                 continue;
 
-            builder ??= result.ToBuilder();
+            builder ??= Variables.ToBuilder();
 
             if (mergedState == VariableAnalysisState.Uninitialized)
                 builder.Remove(variable);
@@ -130,32 +182,43 @@ internal sealed record AnalysisState
                 builder[variable] = mergedState;
         }
 
-        if (builder is null)
-            return this;
-
-        var mergedVariables = builder.ToImmutable();
-        return mergedVariables == Variables ? this : new AnalysisState(mergedVariables);
+        return builder is null ? Variables : builder.ToImmutable();
     }
 
-    private static AnalysisState MergeIntoEmpty(AnalysisState nonEmpty)
+    private ImmutableDictionary<ValueSymbol, ValueNullableState> MergeNullableStates(
+        AnalysisState other
+    )
     {
-        ImmutableDictionary<VariableSymbol, VariableAnalysisState>.Builder? builder = null;
+        ImmutableDictionary<ValueSymbol, ValueNullableState>.Builder? builder = null;
 
-        foreach (var (variable, state) in nonEmpty.Variables)
+        foreach (var (symbol, otherState) in other.Nullability)
         {
-            var mergedState = VariableAnalysisState.Uninitialized.Merge(state);
+            var thisState = Nullability.GetValueOrDefault(symbol, ValueNullableState.DefaultState);
 
-            if (mergedState == state)
+            var mergedState = thisState.Merge(otherState);
+
+            if (mergedState == thisState)
                 continue;
 
-            builder ??= nonEmpty.Variables.ToBuilder();
+            builder ??= Nullability.ToBuilder();
 
-            if (mergedState == VariableAnalysisState.Uninitialized)
-                builder.Remove(variable);
-            else
-                builder[variable] = mergedState;
+            builder[symbol] = mergedState;
         }
 
-        return builder is not null ? new AnalysisState(builder.ToImmutable()) : nonEmpty;
+        foreach (var (symbol, thisState) in Nullability)
+        {
+            if (other.Nullability.ContainsKey(symbol))
+                continue;
+
+            var mergedState = thisState.Merge(ValueNullableState.DefaultState(symbol));
+
+            if (mergedState.Equals(thisState))
+                continue;
+
+            builder ??= Nullability.ToBuilder();
+            builder[symbol] = mergedState;
+        }
+
+        return builder is null ? Nullability : builder.ToImmutable();
     }
 }

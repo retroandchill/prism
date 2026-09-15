@@ -394,6 +394,7 @@ internal sealed class MirFunctionAnalyzer
     {
         builder.IsUsedAcrossBlocks = IsUsedAcrossBlocks(builder);
         builder.HasMultipleDefinitions = HasMultipleDefinitions(builder);
+        builder.HasCyclicDefinitionFlow = HasCyclicDefinitionFlow(builder, cfg);
         builder.HasMergePotential = HasMergePotential(builder, cfg);
     }
 
@@ -413,6 +414,20 @@ internal sealed class MirFunctionAnalyzer
         return builder.WriteCount > 1;
     }
 
+    private static bool HasCyclicDefinitionFlow(
+        MirLocalFlowInfoBuilder builder,
+        MirControlFlowGraph cfg
+    )
+    {
+        foreach (var defBlock in builder.DefBlocks.Distinct())
+        {
+            if (IsInCycle(defBlock, cfg))
+                return true;
+        }
+
+        return false;
+    }
+
     private static bool HasMergePotential(MirLocalFlowInfoBuilder builder, MirControlFlowGraph cfg)
     {
         if (builder.DefBlocks.Count < 2)
@@ -430,13 +445,32 @@ internal sealed class MirFunctionAnalyzer
             foreach (
                 var _ in builder
                     .DefBlocks.AsValueEnumerable()
-                    .Where(defBlock => CanReach(defBlock, block.Id, cfg))
+                    .Where(defBlock =>
+                        CanReach(defBlock, block.Id, cfg) && cfg.Successors[defBlock].Length == 1
+                    )
             )
             {
                 reachingDefCount++;
                 if (reachingDefCount >= 2)
                     return true;
             }
+        }
+
+        return false;
+    }
+
+    private static bool IsInCycle(MirBlockId block, MirControlFlowGraph cfg)
+    {
+        if (!cfg.Successors.TryGetValue(block, out var successors))
+            return false;
+
+        foreach (var successor in successors)
+        {
+            if (successor == block)
+                return true;
+
+            if (CanReach(successor, block, cfg))
+                return true;
         }
 
         return false;
@@ -536,6 +570,9 @@ internal sealed class MirFunctionAnalyzer
 
     private static bool RequiresMemoryStorage(MirLocalFlowInfo local)
     {
-        return local.IsAddressTaken || local.HasMultipleDefinitions || local.IsWrittenIndirectly;
+        return local.IsAddressTaken
+            || local.IsWrittenIndirectly
+            || local.HasCyclicDefinitionFlow
+            || local is { HasMultipleDefinitions: true, HasMergePotential: false };
     }
 }
