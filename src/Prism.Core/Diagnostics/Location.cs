@@ -9,7 +9,7 @@ using Prism.Core.Utils;
 
 namespace Prism.Core.Diagnostics;
 
-public abstract record Location
+public closed record Location
 {
     public static readonly NoLocation None = new();
 }

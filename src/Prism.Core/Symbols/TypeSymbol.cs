@@ -8,7 +8,7 @@ public readonly record struct SizeAndAlignment(ulong Size, ulong Alignment)
     public bool IsZero => Size == 0 && Alignment == 0;
 }
 
-public abstract class TypeSymbol : MemberContainerSymbol
+public closed class TypeSymbol : MemberContainerSymbol
 {
     private protected TypeSymbol(
         string name,

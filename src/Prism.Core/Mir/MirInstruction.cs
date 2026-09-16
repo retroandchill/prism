@@ -10,7 +10,7 @@ using Prism.Core.Symbols;
 
 namespace Prism.Core.Mir;
 
-internal abstract record MirInstruction
+internal closed record MirInstruction
 {
     public SourceLocation? Location { get; init; }
 }

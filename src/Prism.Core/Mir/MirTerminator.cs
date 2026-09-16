@@ -7,7 +7,7 @@ using Prism.Core.Diagnostics;
 
 namespace Prism.Core.Mir;
 
-internal abstract record MirTerminator
+internal closed record MirTerminator
 {
     public SourceLocation? Location { get; init; }
 }

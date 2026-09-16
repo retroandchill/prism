@@ -7,7 +7,7 @@ internal enum DeclarationKind
     Namespace,
 }
 
-internal abstract class Declaration(string name)
+internal closed class Declaration(string name)
 {
     public string Name { get; } = name;
 

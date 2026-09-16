@@ -9,7 +9,7 @@ namespace Prism.Core.Mir;
 
 internal readonly record struct MirLocalId(int Value);
 
-internal abstract record MirLocal(MirLocalId Id, string Name, TypeSymbol Type)
+internal closed record MirLocal(MirLocalId Id, string Name, TypeSymbol Type)
 {
     public abstract Symbol? Symbol { get; }
 }

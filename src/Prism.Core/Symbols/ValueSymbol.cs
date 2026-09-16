@@ -1,6 +1,6 @@
 ﻿namespace Prism.Core.Symbols;
 
-public abstract class ValueSymbol : Symbol
+public closed class ValueSymbol : Symbol
 {
     private protected ValueSymbol(string name, Symbol? containingSymbol = null)
         : base(name, containingSymbol) { }

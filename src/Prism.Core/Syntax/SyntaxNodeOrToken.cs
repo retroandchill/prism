@@ -5,7 +5,8 @@ using Prism.Core.Syntax.Green;
 
 namespace Prism.Core.Syntax;
 
-public readonly struct SyntaxNodeOrToken
+[Union]
+public readonly struct SyntaxNodeOrToken : IUnion
 {
     private readonly SyntaxNode? _nodeOrParent;
     private readonly GreenToken? _token;
@@ -59,13 +60,6 @@ public readonly struct SyntaxNodeOrToken
         }
     }
 
-    public SyntaxNode AsSyntaxNode()
-    {
-        return IsNode
-            ? _nodeOrParent!
-            : throw new InvalidOperationException("SyntaxNodeOrToken is not a node");
-    }
-
     public bool TryGetValue([NotNullWhen(true)] out SyntaxNode? value)
     {
         if (IsNode)
@@ -76,13 +70,6 @@ public readonly struct SyntaxNodeOrToken
 
         value = null;
         return false;
-    }
-
-    public SyntaxToken AsSyntaxToken()
-    {
-        return IsToken
-            ? new SyntaxToken(_token, _nodeOrParent, Position)
-            : throw new InvalidOperationException("SyntaxNodeOrToken is not a token");
     }
 
     public bool TryGetValue(out SyntaxToken value)
@@ -96,8 +83,4 @@ public readonly struct SyntaxNodeOrToken
         value = default;
         return false;
     }
-
-    public static implicit operator SyntaxNodeOrToken(SyntaxNode node) => new(node);
-
-    public static implicit operator SyntaxNodeOrToken(SyntaxToken token) => new(token);
 }

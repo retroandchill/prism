@@ -4,7 +4,7 @@ using Prism.Core.Syntax;
 
 namespace Prism.Core.Declarations;
 
-internal abstract class SingleDeclaration(
+internal closed class SingleDeclaration(
     string name,
     SyntaxReference syntaxReference,
     SourceLocation nameLocation,
@@ -33,11 +33,11 @@ internal abstract class SingleDeclaration(
 
     public ImmutableArray<Diagnostic> Diagnostics { get; init; } = [];
 
-    public new ImmutableArray<SingleDeclaration> Children => GetSingleMembers();
+    public new ImmutableArray<SingleDeclaration> Members => GetSingleMembers();
 
     protected sealed override ImmutableArray<Declaration> GetMembers()
     {
-        return ImmutableArray<Declaration>.CastUp(Children);
+        return ImmutableArray<Declaration>.CastUp(Members);
     }
 
     protected abstract ImmutableArray<SingleDeclaration> GetSingleMembers();

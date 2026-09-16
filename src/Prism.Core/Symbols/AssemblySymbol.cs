@@ -1,6 +1,6 @@
 ﻿namespace Prism.Core.Symbols;
 
-public abstract class AssemblySymbol : Symbol
+public closed class AssemblySymbol : Symbol
 {
     private protected AssemblySymbol(string name)
         : base(name) { }

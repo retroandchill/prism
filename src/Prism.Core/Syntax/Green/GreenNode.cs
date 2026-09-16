@@ -8,7 +8,7 @@ using Prism.Core.Diagnostics;
 
 namespace Prism.Core.Syntax.Green;
 
-internal abstract class GreenNode(SyntaxKind kind, int fullWidth = 0)
+internal closed class GreenNode(SyntaxKind kind, int fullWidth = 0)
 {
     public SyntaxKind Kind { get; } = kind;
 

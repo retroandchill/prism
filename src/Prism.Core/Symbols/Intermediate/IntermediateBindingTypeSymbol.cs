@@ -10,7 +10,7 @@ using Prism.Core.Syntax;
 
 namespace Prism.Core.Symbols.Intermediate;
 
-internal abstract class IntermediateBindingTypeSymbol(string name) : NamedTypeSymbol(name, null)
+internal closed class IntermediateBindingTypeSymbol(string name) : NamedTypeSymbol(name, null)
 {
     public sealed override ImmutableArray<Location> Locations => [];
     public sealed override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];

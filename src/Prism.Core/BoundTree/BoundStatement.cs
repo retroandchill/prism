@@ -4,7 +4,7 @@ using Prism.Core.Syntax;
 
 namespace Prism.Core.BoundTree;
 
-internal abstract record BoundStatement : BoundNode
+internal closed record BoundStatement : BoundNode
 {
     protected BoundStatement(SyntaxNode syntax)
         : base(syntax) { }
@@ -83,7 +83,7 @@ internal sealed record BoundIfStatement : BoundStatement
     public BoundStatement? ElseStatement { get; }
 }
 
-internal abstract record BoundLoopBase : BoundStatement
+internal closed record BoundLoopBase : BoundStatement
 {
     protected BoundLoopBase(SyntaxNode syntax, BoundStatement loopBody, LabelSymbol label)
         : base(syntax)

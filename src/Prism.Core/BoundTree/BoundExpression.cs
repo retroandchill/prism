@@ -7,7 +7,7 @@ using Prism.Core.Syntax;
 
 namespace Prism.Core.BoundTree;
 
-internal abstract record BoundExpression : BoundNode
+internal closed record BoundExpression : BoundNode
 {
     private Lazy<ConstantValue?>? _constantValue;
 
@@ -54,7 +54,7 @@ internal sealed record BoundBadExpression : BoundExpression
         : base(syntax, type) { }
 }
 
-internal abstract record BoundSpeculativeExpression : BoundExpression
+internal closed record BoundSpeculativeExpression : BoundExpression
 {
     protected BoundSpeculativeExpression(SyntaxNode syntax, TypeSymbol type, TypeSymbol defaultType)
         : base(syntax, type)

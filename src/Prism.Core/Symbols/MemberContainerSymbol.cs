@@ -2,7 +2,7 @@
 
 namespace Prism.Core.Symbols;
 
-public abstract class MemberContainerSymbol : Symbol
+public closed class MemberContainerSymbol : Symbol
 {
     private protected MemberContainerSymbol(string name, Symbol? containingSymbol)
         : base(name, containingSymbol) { }

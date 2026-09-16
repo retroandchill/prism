@@ -9,7 +9,6 @@ namespace Prism.Core.Declarations;
 internal sealed class DeclarationTreeBuilder
 {
     private readonly SyntaxTree _syntaxTree;
-    private int _currentTypeIndex;
 
     private DeclarationTreeBuilder(SyntaxTree syntaxTree)
     {

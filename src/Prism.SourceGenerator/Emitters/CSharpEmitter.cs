@@ -95,10 +95,8 @@ public static class CSharpEmitter
                 }
 
                 writer.WriteLine();
-                writer.EmitIsSyntaxCategory(
-                    model,
-                    "StructuredTrivia",
-                    k => k.Kind == SyntaxGroupKind.StructuredTrivia
+                writer.EmitIsSyntaxCategory(model, "StructuredTrivia", k =>
+                    k.Kind == SyntaxGroupKind.StructuredTrivia
                 );
                 writer.WriteLine();
                 writer.EmitIsSyntaxCategory(model, "Token", k => k.Kind == SyntaxGroupKind.Token);
@@ -252,7 +250,7 @@ public static class CSharpEmitter
 
         private void EmitGreenNodeClass(CSharpNode node)
         {
-            var qualifier = node.IsAbstract ? "abstract " : "sealed";
+            var qualifier = node.IsAbstract ? "closed " : "sealed";
             var baseName =
                 node.Base?.GreenClassName
                 ?? node.Module.Kind switch
@@ -513,6 +511,7 @@ public static class CSharpEmitter
             writer.WriteLine("using System.Collections.Immutable;");
             writer.WriteLine("using Prism.Core.Diagnostics;");
             writer.WriteLine("using Prism.Core.Syntax.Green;");
+            writer.WriteLine("using Prism.Core.Utils;");
             writer.WriteLine();
 
             writer.WriteLine("namespace Prism.Core.Syntax;");
@@ -528,7 +527,7 @@ public static class CSharpEmitter
 
         private void EmitRedNodeClass(CSharpNode node)
         {
-            var qualified = node.IsAbstract ? "abstract" : "sealed";
+            var qualified = node.IsAbstract ? "closed" : "sealed";
             var baseName =
                 node.Base?.RedClassName
                 ?? node.Module.Kind switch
@@ -678,7 +677,13 @@ public static class CSharpEmitter
             {
                 switch (property.Shape)
                 {
-                    case PropertyShape.Single or PropertyShape.Optional:
+                    case PropertyShape.Single:
+                        writer.Write($"return GetRed(ref {property.FieldName}");
+                        if (index > 0)
+                            writer.Write($", {index}");
+                        writer.WriteLine(").RequireNonNull();");
+                        break;
+                    case PropertyShape.Optional:
                         writer.Write($"return GetRed(ref {property.FieldName}");
                         if (index > 0)
                             writer.Write($", {index}");
@@ -925,10 +930,6 @@ public static class CSharpEmitter
             {
                 writer.EmitNodeTypeCase(methodName, node.GreenClassName, node.CSharpVariableName);
             }
-
-            const string exceptionLine =
-                "throw new InvalidOperationException(\"Invalid node type passed into visit\")";
-            writer.WriteLine($"_ => {exceptionLine}");
         }
 
         private void EmitTokenReplacerPartial(string methodName, string className)

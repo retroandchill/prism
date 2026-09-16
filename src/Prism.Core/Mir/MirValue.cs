@@ -9,7 +9,7 @@ using Prism.Core.Symbols;
 
 namespace Prism.Core.Mir;
 
-internal abstract record MirValue(TypeSymbol Type);
+internal closed record MirValue(TypeSymbol Type);
 
 internal sealed record MirConstantValue(ConstantValue Constant, TypeSymbol Type) : MirValue(Type);
 

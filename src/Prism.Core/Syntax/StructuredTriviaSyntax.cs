@@ -2,7 +2,7 @@
 
 namespace Prism.Core.Syntax;
 
-public abstract class StructuredTriviaSyntax : SyntaxNode
+public closed class StructuredTriviaSyntax : SyntaxNode
 {
     public SyntaxTrivia? ParentTrivia { get; private set; }
 

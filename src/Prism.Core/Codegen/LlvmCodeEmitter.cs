@@ -569,8 +569,6 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             case MirStorageDeadInstruction mirStorageDeadInstruction:
                 EmitStorageDead(mirStorageDeadInstruction, context);
                 break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(instruction));
         }
     }
 
@@ -1023,8 +1021,6 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             case MirUnreachableTerminator:
                 _builder.BuildUnreachable();
                 break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(instruction));
         }
     }
 
@@ -1037,7 +1033,6 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             MirNullValue nullValue => LLVMValueRef.CreateConstNull(GetOrCreateType(nullValue.Type)),
             MirVoidValue => throw new InvalidOperationException("Cannot get a null value"),
             MirReadValue mirReadValue => EmitReadValue(mirReadValue, context),
-            _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
     }
 
@@ -1057,7 +1052,6 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             MirGlobalPlace mirGlobalPlace => GetOrCreateGlobal(mirGlobalPlace.Variable),
             MirIndexPlace mirIndexPlace => throw new NotImplementedException(),
             MirLocalPlace mirLocalPlace => context.LookupLocal(mirLocalPlace.LocalId),
-            _ => throw new InvalidOperationException("Invalid place"),
         };
     }
 
@@ -1069,7 +1063,6 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             MirIndexPlace mirIndexPlace => EmitReadIndex(mirIndexPlace, context),
             MirLocalPlace mirLocalPlace => EmitReadLocal(mirLocalPlace, context),
             MirDerefPlace mirDerefPlace => EmitDerefLocal(mirDerefPlace, context),
-            _ => throw new InvalidOperationException("Invalid place"),
         };
     }
 
@@ -1137,8 +1130,6 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             case MirDerefPlace mirDerefPlace:
                 EmitAssignDeref(mirDerefPlace, value, context);
                 break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(destination));
         }
     }
 

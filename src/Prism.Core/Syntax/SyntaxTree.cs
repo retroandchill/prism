@@ -79,9 +79,11 @@ public sealed class SyntaxTree
 
     public IEnumerable<Diagnostic> GetDiagnostics(in SyntaxNodeOrToken node)
     {
-        return node.TryGetValue(out SyntaxNode? syntaxNode)
-            ? GetDiagnostics(syntaxNode)
-            : GetDiagnostics(node.AsSyntaxToken());
+        return node switch
+        {
+            SyntaxNode syntaxNode => GetDiagnostics(syntaxNode),
+            SyntaxToken token => GetDiagnostics(token),
+        };
     }
 
     private readonly record struct NodeIteration(

@@ -4,7 +4,7 @@ using ZLinq;
 
 namespace Prism.Core.Symbols;
 
-public abstract class FunctionSymbol : Symbol
+public closed class FunctionSymbol : Symbol
 {
     private protected FunctionSymbol(string name, Symbol? containingSymbol)
         : base(name, containingSymbol) { }
@@ -19,7 +19,12 @@ public abstract class FunctionSymbol : Symbol
 
     public sealed override void WriteDisplayString(TextWriter writer)
     {
-        if (ContainingSymbol is not null or AssemblySymbol or NamespaceSymbol { IsGlobal: false })
+        if (
+            ContainingSymbol
+            is not null
+                and not AssemblySymbol
+                and NamespaceSymbol { IsGlobal: false }
+        )
         {
             ContainingSymbol.WriteDisplayString(writer);
             writer.Write("::");

@@ -7,7 +7,7 @@ using Prism.Core.Symbols;
 
 namespace Prism.Core.Mir;
 
-internal abstract record MirPlace(TypeSymbol Type);
+internal closed record MirPlace(TypeSymbol Type);
 
 internal sealed record MirLocalPlace(MirLocalId LocalId, TypeSymbol Type) : MirPlace(Type)
 {

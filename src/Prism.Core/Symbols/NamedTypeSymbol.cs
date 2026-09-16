@@ -1,6 +1,6 @@
 ﻿namespace Prism.Core.Symbols;
 
-public abstract class NamedTypeSymbol : TypeSymbol
+public closed class NamedTypeSymbol : TypeSymbol
 {
     private protected NamedTypeSymbol(
         string name,

@@ -5,7 +5,7 @@
 
 namespace Prism.Core.Symbols;
 
-public abstract class LabelSymbol(string name, FunctionSymbol containingFunction)
+public closed class LabelSymbol(string name, FunctionSymbol containingFunction)
     : Symbol(name, containingFunction)
 {
     public FunctionSymbol ContainingFunction => (FunctionSymbol)ContainingSymbol!;

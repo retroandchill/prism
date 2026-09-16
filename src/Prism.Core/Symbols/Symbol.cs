@@ -9,7 +9,7 @@ using Prism.Core.Text;
 
 namespace Prism.Core.Symbols;
 
-public abstract class Symbol
+public closed class Symbol
 {
     private protected Symbol(string name, Symbol? containingSymbol = null)
     {

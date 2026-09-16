@@ -2,7 +2,7 @@
 
 namespace Prism.Core.Symbols;
 
-public abstract class VariableSymbol : ValueSymbol
+public closed class VariableSymbol : ValueSymbol
 {
     private protected VariableSymbol(string name, Symbol? containingSymbol)
         : base(name, containingSymbol) { }

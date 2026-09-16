@@ -10,7 +10,7 @@ public enum NamespaceKind
     Compilation,
 }
 
-public abstract class NamespaceSymbol : MemberContainerSymbol
+public closed class NamespaceSymbol : MemberContainerSymbol
 {
     private protected NamespaceSymbol(string name, Symbol? containingSymbol)
         : base(name, containingSymbol) { }

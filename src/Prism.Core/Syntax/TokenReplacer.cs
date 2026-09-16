@@ -12,7 +12,7 @@ public static partial class TokenReplacer
     }
 
     [DoesNotReturn]
-    internal static partial GreenTrivia ReplaceFirstToken(GreenTrivia? node, GreenToken newToken)
+    internal static partial GreenTrivia? ReplaceFirstToken(GreenTrivia? node, GreenToken newToken)
     {
         throw new InvalidOperationException("Cannot replace first token in trivia.");
     }
@@ -61,7 +61,7 @@ public static partial class TokenReplacer
     }
 
     [DoesNotReturn]
-    internal static partial GreenTrivia ReplaceLastToken(GreenTrivia? node, GreenToken newToken)
+    internal static partial GreenTrivia? ReplaceLastToken(GreenTrivia? node, GreenToken newToken)
     {
         throw new InvalidOperationException("Cannot replace first token in trivia.");
     }

@@ -11,7 +11,7 @@ using ZLinq;
 
 namespace Prism.Core.Syntax;
 
-public abstract class SyntaxNode
+public closed class SyntaxNode
 {
     private protected SyntaxNode(GreenNode green, SyntaxNode? parent, int position)
     {
@@ -226,7 +226,7 @@ public abstract class SyntaxNode
     {
         foreach (var child in ChildNodesAndTokens())
         {
-            if (child.TryGetValue(out SyntaxNode? node))
+            if (child is SyntaxNode node)
                 yield return node;
         }
     }
@@ -235,7 +235,7 @@ public abstract class SyntaxNode
     {
         foreach (var child in ChildNodesAndTokens())
         {
-            if (child.TryGetValue(out SyntaxToken token))
+            if (child is SyntaxToken token)
                 yield return token;
         }
     }
@@ -245,13 +245,17 @@ public abstract class SyntaxNode
         get
         {
             var first = ChildNodesAndTokens().AsValueEnumerable().First();
-            SyntaxToken token;
-            while (!first.TryGetValue(out token))
+            while (true)
             {
-                first = first.AsSyntaxNode().ChildNodesAndTokens().AsValueEnumerable().First();
+                switch (first)
+                {
+                    case SyntaxNode node:
+                        first = node.ChildNodesAndTokens().AsValueEnumerable().First();
+                        continue;
+                    case SyntaxToken token:
+                        return token;
+                }
             }
-
-            return token;
         }
     }
 
@@ -260,17 +264,17 @@ public abstract class SyntaxNode
         get
         {
             var last = ChildNodesAndTokens().Reverse().AsValueEnumerable().First();
-            SyntaxToken token;
-            while (!last.TryGetValue(out token))
+            while (true)
             {
-                last = last.AsSyntaxNode()
-                    .ChildNodesAndTokens()
-                    .Reverse()
-                    .AsValueEnumerable()
-                    .First();
+                switch (last)
+                {
+                    case SyntaxNode node:
+                        last = node.ChildNodesAndTokens().Reverse().AsValueEnumerable().First();
+                        continue;
+                    case SyntaxToken token:
+                        return token;
+                }
             }
-
-            return token;
         }
     }
 }

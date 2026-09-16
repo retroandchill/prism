@@ -5,7 +5,7 @@ using Prism.Core.Utils;
 
 namespace Prism.Core.Declarations;
 
-internal abstract class SingleNamespaceDeclaration(
+internal closed class SingleNamespaceDeclaration(
     string name,
     SyntaxReference syntaxReference,
     SourceLocation nameLocation,

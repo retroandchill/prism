@@ -445,7 +445,9 @@ internal abstract class Binder
                 context,
                 cancellationToken
             ),
-            _ => throw new ArgumentOutOfRangeException(nameof(syntax)),
+            EmptyStatementSyntax => throw new InvalidOperationException(
+                "Empty statement is not allowed in a statement list"
+            ),
         };
     }
 
@@ -867,7 +869,6 @@ internal abstract class Binder
                 context,
                 cancellationToken
             ),
-            _ => throw new ArgumentException("Invalid expression syntax", nameof(syntax)),
         };
     }
 
@@ -2039,43 +2040,58 @@ internal abstract class Binder
         BindingContext context
     )
     {
-        switch (expression)
+        return expression switch
         {
-            case BoundUnfixedIntegerLiteral { Data: var integerLiteral, Negated: var negated }:
-            {
-                var constant = EvaluateNumericExpression(
-                    in integerLiteral,
-                    targetType,
-                    expression.Syntax.Location,
-                    context,
-                    negated
-                );
-                var type = Compilation.GetSpecialType(constant.SpecialType);
-                return new BoundLiteral(expression.Syntax, type, constant);
-            }
-            case BoundUnfixedFloatLiteral { Data: var floatLiteral, Negated: var negated }:
-            {
-                var constant = EvaluateNumericExpression(
-                    in floatLiteral,
-                    targetType,
-                    expression.Syntax.Location,
-                    context,
-                    negated
-                );
-                var type = Compilation.GetSpecialType(constant.SpecialType);
-                return new BoundLiteral(expression.Syntax, type, constant);
-            }
-            case BoundSpeculativeConditional conditional:
-                return ApplySpeculativeConditional(conditional, targetType, context);
-            case BoundSpeculativeCollectionExpression collectionExpression:
-                return ApplySpeculativeCollectionExpression(
-                    collectionExpression,
-                    targetType,
-                    context
-                );
-            default:
-                throw new InvalidOperationException("Unknown expression type");
-        }
+            BoundUnfixedIntegerLiteral { Data: var integerLiteral, Negated: var negated } =>
+                ApplyNumericBinding(expression, targetType, context, integerLiteral, negated),
+            BoundUnfixedFloatLiteral { Data: var floatLiteral, Negated: var negated } =>
+                ApplyNumericBinding(expression, targetType, context, floatLiteral, negated),
+            BoundSpeculativeConditional conditional => ApplySpeculativeConditional(
+                conditional,
+                targetType,
+                context
+            ),
+            BoundSpeculativeCollectionExpression collectionExpression =>
+                ApplySpeculativeCollectionExpression(collectionExpression, targetType, context),
+        };
+    }
+
+    private BoundExpression ApplyNumericBinding(
+        BoundSpeculativeExpression expression,
+        TypeSymbol? targetType,
+        BindingContext context,
+        FloatLiteralData floatLiteral,
+        bool negated
+    )
+    {
+        var constant = EvaluateNumericExpression(
+            in floatLiteral,
+            targetType,
+            expression.Syntax.Location,
+            context,
+            negated
+        );
+        var type = Compilation.GetSpecialType(constant.SpecialType);
+        return new BoundLiteral(expression.Syntax, type, constant);
+    }
+
+    private BoundExpression ApplyNumericBinding(
+        BoundSpeculativeExpression expression,
+        TypeSymbol? targetType,
+        BindingContext context,
+        IntegerLiteralData integerLiteral,
+        bool negated
+    )
+    {
+        var constant = EvaluateNumericExpression(
+            in integerLiteral,
+            targetType,
+            expression.Syntax.Location,
+            context,
+            negated
+        );
+        var type = Compilation.GetSpecialType(constant.SpecialType);
+        return new BoundLiteral(expression.Syntax, type, constant);
     }
 
     private BoundConditional ApplySpeculativeConditional(

@@ -4,7 +4,7 @@ using Prism.Core.Syntax;
 
 namespace Prism.Core.BoundTree;
 
-internal abstract record BoundNode
+internal closed record BoundNode
 {
     [Flags]
     private enum BoundNodeFlags : ushort

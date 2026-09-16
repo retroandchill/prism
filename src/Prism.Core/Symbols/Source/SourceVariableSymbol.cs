@@ -12,7 +12,7 @@ using ZLinq;
 
 namespace Prism.Core.Symbols.Source;
 
-internal abstract class SourceVariableSymbol : VariableSymbol
+internal closed class SourceVariableSymbol : VariableSymbol
 {
     private SymbolCompletionState _completionState;
     public VariableDeclarationSyntax Syntax { get; }

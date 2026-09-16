@@ -2,7 +2,7 @@
 
 namespace Prism.Core.Declarations;
 
-internal abstract class MergedDeclaration(string name) : Declaration(name)
+internal closed class MergedDeclaration(string name) : Declaration(name)
 {
     public sealed override bool IsMerged => true;
 

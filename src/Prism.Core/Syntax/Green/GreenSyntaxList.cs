@@ -120,7 +120,7 @@ internal readonly struct GreenSyntaxList<T>(GreenNode? children)
         private readonly GreenSyntaxList<T> _list = list;
         private int _index = -1;
 
-        public T Current { get; private set; }
+        public T Current { get; private set; } = null!;
 
         object? IEnumerator.Current => Current;
 

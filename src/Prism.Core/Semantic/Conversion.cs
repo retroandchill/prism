@@ -72,7 +72,7 @@ public readonly struct Conversion
     public ImmutableArray<Conversion> UnderlyingConversions =>
         _specialData is NestedData nestedData ? nestedData.NestedConversions : [];
 
-    private abstract record SpecialData;
+    private closed record SpecialData;
 
     private sealed record NestedData(ImmutableArray<Conversion> NestedConversions) : SpecialData;
 }
