@@ -1,4 +1,4 @@
-﻿// @file RootCommand.cs
+﻿// @file CompileCommand.cs
 //
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
@@ -12,7 +12,7 @@ using Prism.Core.Syntax;
 namespace Prism.Compiler;
 
 [CliCommand(Description = "Invoke the Prism compiler")]
-public class RootCommand
+public class CompileCommand
 {
     internal const string Executable = "executable";
     private const string StaticLib = "static-lib";
@@ -35,16 +35,36 @@ public class RootCommand
     )]
     public string Kind { get; set; } = Executable;
 
+    [CliOption(
+        Alias = "O",
+        Description = "Disable optimizations",
+        AllowedValues = ["0", "1", "2", "3"]
+    )]
+    public int Optimization { get; set; } = 2;
+
     public async Task<int> RunAsync(CliContext context)
     {
         var syntaxTress = await Task.WhenAll(
             Input.Select(f => ParseFile(f, context.CancellationToken)).ToArray()
         );
 
+        var optimizationLevel = Optimization switch
+        {
+            0 => OptimizationLevel.None,
+            1 => OptimizationLevel.Less,
+            2 => OptimizationLevel.Default,
+            3 => OptimizationLevel.Aggressive,
+            _ => throw new InvalidOperationException($"Invalid optimization level: {Optimization}"),
+        };
+
         var compilation = Compilation.Create(
             Name,
             ImmutableCollectionsMarshal.AsImmutableArray(syntaxTress),
-            new CompilationSettings { OutputKind = GetOutputKind() }
+            new CompilationSettings
+            {
+                OutputKind = GetOutputKind(),
+                OptimizationLevel = optimizationLevel,
+            }
         );
 
         var (succeeded, diagnostics) = await compilation.EmitAsync(
