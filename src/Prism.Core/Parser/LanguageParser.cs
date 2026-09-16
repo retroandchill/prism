@@ -52,6 +52,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             SyntaxKind.NamespaceKeyword => ParseNamespaceDeclaration(modifiers),
             SyntaxKind.VarKeyword => ParseGlobalVariableDeclaration(modifiers),
             SyntaxKind.FuncKeyword => ParseFunctionDeclaration(modifiers),
+            SyntaxKind.AttributeKeyword => ParseAttributeDeclaration(modifiers),
             _ => new GreenIncompleteDeclaration(modifiers),
         };
     }
@@ -161,6 +162,19 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             expressionBody,
             semicolon
         );
+    }
+
+    private GreenAttributeDeclaration ParseAttributeDeclaration(
+        GreenSyntaxList<GreenToken> modifiers
+    )
+    {
+        var keyword = ExpectToken(SyntaxKind.AttributeKeyword);
+        var identifier = ExpectToken(SyntaxKind.IdentifierToken);
+        var parameters =
+            PeekToken().Kind == SyntaxKind.OpenParenToken ? ParseParameterList() : null;
+        var semicolon = ExpectToken(SyntaxKind.SemicolonToken);
+
+        return new GreenAttributeDeclaration(modifiers, keyword, identifier, parameters, semicolon);
     }
 
     public GreenStatement ParseStatement()
