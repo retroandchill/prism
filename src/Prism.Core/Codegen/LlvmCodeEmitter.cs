@@ -1304,7 +1304,19 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     private void OptimizeModule(LLVMTargetMachineRef targetMachine)
     {
         using var passBuilderOptions = LLVMPassBuilderOptionsRef.Create();
-        _module.RunPasses("default<O2>", targetMachine, passBuilderOptions);
+        _module.RunPasses(GetPassesName(), targetMachine, passBuilderOptions);
+    }
+
+    private string GetPassesName()
+    {
+        return _compilation.Settings.OptimizationLevel switch
+        {
+            OptimizationLevel.None => "default<O0>",
+            OptimizationLevel.Less => "default<O1>",
+            OptimizationLevel.Default => "default<O2>",
+            OptimizationLevel.Aggressive => "default<O3>",
+            _ => throw new InvalidOperationException("Unsupported optimization level"),
+        };
     }
 
     private async Task<EmitResult> LinkAsync(
