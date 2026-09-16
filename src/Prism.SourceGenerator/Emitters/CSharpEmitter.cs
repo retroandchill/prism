@@ -104,6 +104,8 @@ public static class CSharpEmitter
                 writer.EmitIsSyntaxCategory(model, "Node", k => k.Kind == SyntaxGroupKind.Node);
 
                 writer.WriteLine();
+                writer.EmitIsContextualKeywordProperty(model);
+                writer.WriteLine();
                 writer.EmitKeywordLookup(model);
                 writer.WriteLine();
                 writer.EmitPunctuationTrie(model);
@@ -137,6 +139,25 @@ public static class CSharpEmitter
             writer.WriteLine(';');
         }
 
+        private void EmitIsContextualKeywordProperty(CSharpSyntaxModel model)
+        {
+            writer.Write("public bool IsContextual => kind is ");
+
+            foreach (
+                var (i, keyword) in model
+                    .Tokens.AsValueEnumerable()
+                    .Where(t => t.Category == TokenCategory.Keyword && t.Contextual)
+                    .Index()
+            )
+            {
+                if (i > 0)
+                    writer.Write(" or ");
+
+                writer.Write($"SyntaxKind.{keyword.Name}");
+            }
+            writer.WriteLine(';');
+        }
+
         private void EmitKeywordLookup(CSharpSyntaxModel model)
         {
             writer.WriteLine(
@@ -156,7 +177,12 @@ public static class CSharpEmitter
                 {
                     writer.WriteLine($"case {sizeClass.Key}:");
                     using var indent = writer.EnterIndentationScope();
-                    foreach (var keyword in sizeClass.AsValueEnumerable().OrderBy(k => k.Text))
+                    foreach (
+                        var keyword in sizeClass
+                            .AsValueEnumerable()
+                            .Where(k => !k.Contextual)
+                            .OrderBy(k => k.Text)
+                    )
                     {
                         writer.WriteLine(
                             $"if (text.Equals(\"{keyword.Text!}\", StringComparison.Ordinal)) return {SyntaxKindClass}.{keyword.Kind.CSharpName};"

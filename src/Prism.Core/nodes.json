@@ -26,6 +26,19 @@
         "text": "using"
       },
       {
+        "name": "PublicKeyword",
+        "text": "public"
+      },
+      {
+        "name": "InternalKeyword",
+        "text": "internal"
+      },
+      {
+        "name": "FileKeyword",
+        "text": "file",
+        "contextual": true
+      },
+      {
         "name": "VarKeyword",
         "text": "var"
       },

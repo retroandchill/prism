@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 using Prism.Core.Syntax.Green;
+using Prism.Core.Utils;
 
 namespace Prism.Core.Parser;
 
@@ -26,7 +27,9 @@ internal abstract class SyntaxParser(string text)
     {
         var token = PeekToken();
         if (token.Kind != kind)
-            return null;
+        {
+            return TryMatchContextualKeyword(kind, token);
+        }
 
         _stream.Advance();
         return token;
@@ -37,15 +40,39 @@ internal abstract class SyntaxParser(string text)
         var next = PeekToken();
         if (next.Kind != kind)
         {
-            return GreenToken
-                .GetMissing(kind)
-                .WithDiagnostics([
-                    new SyntaxDiagnosticInfo(DiagnosticInfo.UnexpectedToken(next.ToString())),
-                ]);
+            return TryMatchContextualKeyword(kind, next)
+                ?? GreenToken
+                    .GetMissing(kind)
+                    .WithDiagnostics([
+                        new SyntaxDiagnosticInfo(DiagnosticInfo.UnexpectedToken(next.ToString())),
+                    ]);
         }
 
         _stream.Advance();
         return next;
+    }
+
+    private GreenToken? TryMatchContextualKeyword(SyntaxKind kind, GreenToken next)
+    {
+        if (
+            !kind.IsContextual
+            || next.TryGetValue<IdentifierData>() is not { IsEscaped: false, Value: var name }
+            || !kind.DisplayText.Equals(name, StringComparison.Ordinal)
+        )
+            return null;
+
+        return ReplaceWithContextualKeyword(kind, next);
+    }
+
+    protected GreenToken ReplaceWithContextualKeyword(SyntaxKind kind, GreenToken next)
+    {
+        var correctKind = GreenToken
+            .From(kind)
+            .RequireNonNull()
+            .Update(next.LeadingTrivia, next.TrailingTrivia)
+            .WithDiagnostics(next.Diagnostics);
+        _stream.ReplaceNext(correctKind);
+        return _stream.Consume();
     }
 
     protected static T AddLeadingSkippedSyntax<T>(T node, GreenNode skippedSyntax)

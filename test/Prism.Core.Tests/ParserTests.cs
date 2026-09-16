@@ -16,7 +16,7 @@ public sealed class ParserTests
     public void CanParseVariableDeclarations()
     {
         var parser = new LanguageParser("var value: i32 = 5;");
-        var declaration = parser.ParseDeclaration();
+        var declaration = parser.ParseTopLevelDeclaration();
 
         Assert.That(declaration.ContainsDiagnostics, Is.False);
         Assert.That(declaration is GreenVariableDeclaration, Is.True);
@@ -63,7 +63,7 @@ public sealed class ParserTests
             "func add(x: i32, y: i32): i32 {\n" + "    return x + y;\n" + "}"
         );
 
-        var declaration = parser.ParseDeclaration();
+        var declaration = parser.ParseTopLevelDeclaration();
 
         Assert.That(declaration.ContainsDiagnostics, Is.False);
         Assert.That(declaration is GreenFunctionDeclaration, Is.True);
@@ -208,5 +208,15 @@ public sealed class ParserTests
         var cast = (GreenCastExpression)expression;
         Assert.That(cast.Type is GreenPredefinedType, Is.True);
         Assert.That(cast.Operand is GreenIdentifierExpression, Is.True);
+    }
+
+    [Test]
+    public void PicksUpFileModifierInTopLevelDeclarations()
+    {
+        var parser = new LanguageParser("file var x = 1;");
+        var declaration = parser.ParseTopLevelDeclaration();
+
+        Assert.That(declaration.Modifiers, Has.Count.EqualTo(1));
+        Assert.That(declaration.Modifiers[0].Kind, Is.EqualTo(SyntaxKind.FileKeyword));
     }
 }

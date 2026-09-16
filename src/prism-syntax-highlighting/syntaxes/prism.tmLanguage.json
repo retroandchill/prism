@@ -29,7 +29,7 @@
 			},
 			{
 				"name": "keyword.declaration.prism",
-				"match": "\\b(var|func|namespace)\\b"
+				"match": "\\b(var|func|namespace|attribute)\\b"
 			},
 			{
 				"name": "keyword.type.prism",
@@ -46,6 +46,10 @@
 			{
 				"name": "keyword.null.prism",
 				"match": "\\b(null)\\b"
+			},
+			{
+				"name": "keyword.access.prism",
+				"match": "\\b(public|internal)\\b"
 			}]
 		},
 		"numbers": {

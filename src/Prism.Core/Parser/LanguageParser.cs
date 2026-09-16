@@ -13,6 +13,13 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         GreenSyntaxList<GreenDeclaration> Members
     );
 
+    [Flags]
+    private enum ContextualModifiers : uint
+    {
+        None = 0,
+        File = 1 << 0,
+    }
+
     public T ConsumeUnexpectedTokens<T>(T node)
         where T : GreenNode
     {
@@ -44,9 +51,9 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         return new GreenCompilationUnit(usings, members);
     }
 
-    public GreenDeclaration ParseDeclaration()
+    public GreenDeclaration ParseTopLevelDeclaration()
     {
-        var modifiers = ParseModifiers();
+        var modifiers = ParseModifiers(ContextualModifiers.File);
         return PeekToken().Kind switch
         {
             SyntaxKind.NamespaceKeyword => ParseNamespaceDeclaration(modifiers),
@@ -522,7 +529,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         var members = GreenSyntaxList.CreateBuilder<GreenDeclaration>();
         while (!AtEnd && predicate?.Invoke(PeekToken()) != false)
         {
-            members.Add(ParseDeclaration());
+            members.Add(ParseTopLevelDeclaration());
         }
 
         return new NamespaceBody(usingDirectives.BuildAndClear(), members.BuildAndClear());
@@ -537,15 +544,43 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         );
     }
 
-    private GreenSyntaxList<GreenToken> ParseModifiers()
+    private GreenSyntaxList<GreenToken> ParseModifiers(
+        ContextualModifiers contextualModifiers = ContextualModifiers.None
+    )
     {
         var builder = GreenSyntaxList.CreateBuilder<GreenToken>();
-        while (!AtEnd && PeekToken().Kind.IsModifier)
+        while (!AtEnd)
         {
-            builder.Add(ConsumeToken());
+            var next = PeekToken();
+            if (next.Kind.IsModifier)
+            {
+                builder.Add(ConsumeToken());
+            }
+            else if (TryParseContextualModifier(next, contextualModifiers) is { } contextual)
+            {
+                builder.Add(contextual);
+            }
+            else
+            {
+                break;
+            }
         }
 
         return builder.BuildAndClear();
+    }
+
+    private GreenToken? TryParseContextualModifier(GreenToken next, ContextualModifiers modifiers)
+    {
+        if (
+            modifiers == ContextualModifiers.None
+            || next.TryGetValue<IdentifierData>() is not { IsEscaped: false, Value: var value }
+        )
+            return null;
+
+        if (modifiers.HasFlag(ContextualModifiers.File) && value == "file")
+            return ReplaceWithContextualKeyword(SyntaxKind.FileKeyword, next);
+
+        return null;
     }
 
     private GreenTypeSpecifier? ParseTypeSpecifier()
