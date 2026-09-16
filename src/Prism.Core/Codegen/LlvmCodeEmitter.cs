@@ -55,7 +55,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         _module = _context.CreateModuleWithName(compilation.AssemblyName);
         _builder = _context.CreateBuilder();
         _debugInfo = compilation.Settings.GenerateDebugInfo
-            ? new LlvmDebugInfo(_compilation, _context, _module)
+            ? new LlvmDebugInfo(_compilation, _module)
             : null;
     }
 

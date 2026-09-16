@@ -9,7 +9,7 @@ public enum PointerWidth : ushort
     X64 = 64,
 }
 
-public static partial class PointWidthExtensions
+public static partial class PointerWidthExtensions
 {
     extension(PointerWidth width)
     {
