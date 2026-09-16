@@ -8,7 +8,7 @@ namespace Prism.Core.Symbols.Error;
 internal sealed class ErrorTypeSymbol : NamedTypeSymbol
 {
     internal ErrorTypeSymbol(string name, Symbol? containingSymbol = null)
-        : base(name, containingSymbol)
+        : base(name, containingSymbol, NamedTypeKind.Class)
     {
         IsErrorType = true;
     }

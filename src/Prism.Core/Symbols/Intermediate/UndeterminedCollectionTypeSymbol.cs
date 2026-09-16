@@ -8,7 +8,7 @@ namespace Prism.Core.Symbols.Intermediate;
 internal sealed class UndeterminedCollectionTypeSymbol : IntermediateBindingTypeSymbol
 {
     private UndeterminedCollectionTypeSymbol()
-        : base("<Undetermined Collection>") { }
+        : base("<Undetermined Collection>", NamedTypeKind.Class) { }
 
     public static UndeterminedCollectionTypeSymbol Instance { get; } = new();
 }

@@ -8,7 +8,7 @@ namespace Prism.Core.Symbols.Intermediate;
 internal sealed class UnfixedIntegerTypeSymbol : IntermediateBindingTypeSymbol
 {
     private UnfixedIntegerTypeSymbol()
-        : base("<Unfixed Integer>") { }
+        : base("<Unfixed Integer>", NamedTypeKind.Primitive) { }
 
     public static UnfixedIntegerTypeSymbol Instance { get; } = new();
 }

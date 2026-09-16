@@ -1,13 +1,30 @@
 ﻿namespace Prism.Core.Symbols;
 
+public enum NamedTypeKind : byte
+{
+    Primitive,
+    Class,
+    Interface,
+    Concept,
+    Enum,
+    Variant,
+    Attribute,
+}
+
 public closed class NamedTypeSymbol : TypeSymbol
 {
     private protected NamedTypeSymbol(
         string name,
         Symbol? containingSymbol,
+        NamedTypeKind kind,
         SpecialType specialType = SpecialType.None
     )
-        : base(name, containingSymbol, specialType) { }
+        : base(name, containingSymbol, specialType)
+    {
+        Kind = kind;
+    }
+
+    public NamedTypeKind Kind { get; }
 
     public sealed override void WriteDisplayString(TextWriter writer)
     {

@@ -8,7 +8,7 @@ namespace Prism.Core.Symbols.Intermediate;
 internal sealed class UnboundNullTypeSymbol : IntermediateBindingTypeSymbol
 {
     private UnboundNullTypeSymbol()
-        : base("null") { }
+        : base("null", NamedTypeKind.Primitive) { }
 
     public static UnboundNullTypeSymbol Instance { get; } = new();
 }

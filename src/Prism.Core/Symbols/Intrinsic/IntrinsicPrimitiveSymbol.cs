@@ -6,10 +6,10 @@ using Prism.Core.Utils;
 
 namespace Prism.Core.Symbols.Intrinsic;
 
-internal sealed class IntrinsicNamedTypeSymbol : NamedTypeSymbol
+internal sealed class IntrinsicPrimitiveSymbol : NamedTypeSymbol
 {
-    internal IntrinsicNamedTypeSymbol(SpecialType type, NamespaceSymbol containing)
-        : base(GetBuiltInTypeName(type), containing, type) { }
+    internal IntrinsicPrimitiveSymbol(SpecialType type, NamespaceSymbol containing)
+        : base(GetBuiltInTypeName(type), containing, NamedTypeKind.Primitive) { }
 
     private static string GetBuiltInTypeName(SpecialType type)
     {

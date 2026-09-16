@@ -8,7 +8,7 @@ namespace Prism.Core.Symbols.Intermediate;
 internal sealed class UnfixedFloatTypeSymbol : IntermediateBindingTypeSymbol
 {
     private UnfixedFloatTypeSymbol()
-        : base("<Unfixed Float>") { }
+        : base("<Unfixed Float>", NamedTypeKind.Primitive) { }
 
     public static UnfixedFloatTypeSymbol Instance { get; } = new();
 }
