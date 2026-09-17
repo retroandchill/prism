@@ -249,19 +249,26 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
 
 internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
 {
+    private readonly DeclarationModifiers _modifiers;
+
     public SourceGlobalVariableSymbol(
         string name,
-        Symbol? containingSymbol,
+        MemberContainerSymbol containingSymbol,
         VariableDeclarationSyntax syntax
     )
         : base(name, containingSymbol, syntax)
     {
+        _modifiers = DeclarationModifiers.MakeModifiers(containingSymbol, syntax.Modifiers);
+
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
         compilation.CacheSymbol(Syntax, this);
     }
 
     public override bool IsGlobal => true;
+
+    public override DeclaredVisibility DeclaredVisibility =>
+        DeclaredVisibility.FromDeclarationModifiers(_modifiers);
 
     protected override BindingContext CreateBindingContext()
     {

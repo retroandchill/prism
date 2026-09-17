@@ -34,6 +34,14 @@
         "text": "internal"
       },
       {
+        "name": "ProtectedKeyword",
+        "text": "protected"
+      },
+      {
+        "name": "PrivateKeyword",
+        "text": "private"
+      },
+      {
         "name": "FileKeyword",
         "text": "file",
         "contextual": true

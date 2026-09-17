@@ -53,4 +53,57 @@ public class SymbolCreationTest
         var p = ((FunctionSymbol)members[1]).Parameters[0].Type;
         Assert.That(p.SpecialType, Is.EqualTo(SpecialType.I32));
     }
+
+    [Test]
+    public void DefaultTopLevelVisibilityIsInternal()
+    {
+        var tree = SyntaxTree.Parse(
+            """
+            func foo() {}
+
+            namespace a {
+                func bar() {}
+
+                var baz: i32 = 5;
+            }
+            """
+        );
+
+        const string assemblyName = "test";
+        var compilation = Compilation.Create(assemblyName, [tree]);
+
+        var members = compilation.Assembly.GlobalNamespace.GetMembers();
+        Assert.That(members, Has.Length.EqualTo(3));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(members[0].Name, Is.EqualTo("foo"));
+            Assert.That(members[0], Is.InstanceOf<FunctionSymbol>());
+            Assert.That(members[0].DeclaredVisibility, Is.EqualTo(DeclaredVisibility.Internal));
+        }
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(members[1].Name, Is.EqualTo("a"));
+            Assert.That(members[1], Is.InstanceOf<NamespaceSymbol>());
+        }
+
+        var ns = (NamespaceSymbol)members[1];
+        members = ns.GetMembers();
+
+        Assert.That(members, Has.Length.EqualTo(2));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(members[0].Name, Is.EqualTo("bar"));
+            Assert.That(members[0], Is.InstanceOf<FunctionSymbol>());
+            Assert.That(members[0].DeclaredVisibility, Is.EqualTo(DeclaredVisibility.Internal));
+        }
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(members[1].Name, Is.EqualTo("baz"));
+            Assert.That(members[1], Is.InstanceOf<VariableSymbol>());
+            Assert.That(members[1].DeclaredVisibility, Is.EqualTo(DeclaredVisibility.Internal));
+        }
+    }
 }

@@ -14,15 +14,17 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
 {
     private SymbolCompletionState _completionState;
     private readonly Lock _functionChecksLock = new();
+    private readonly DeclarationModifiers _modifiers;
 
     internal SourceFunctionSymbol(
         string name,
-        Symbol? containingSymbol,
+        MemberContainerSymbol containingSymbol,
         FunctionDeclarationSyntax syntax
     )
         : base(name, containingSymbol)
     {
         Syntax = syntax;
+        _modifiers = DeclarationModifiers.MakeModifiers(containingSymbol, syntax.Modifiers);
 
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
@@ -30,6 +32,9 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
     }
 
     public FunctionDeclarationSyntax Syntax { get; }
+
+    public override DeclaredVisibility DeclaredVisibility =>
+        DeclaredVisibility.FromDeclarationModifiers(_modifiers);
 
     public override ImmutableArray<Location> Locations
     {

@@ -343,7 +343,15 @@ internal abstract class Binder
             case DeclaredVisibility.Public:
                 return true;
             case DeclaredVisibility.Internal:
-                return symbol.ContainingAssembly == Compilation.Assembly;
+                return IsInternalMemberVisible(symbol);
+            case DeclaredVisibility.Protected:
+                return IsProtectedMemberVisible(symbol);
+            case DeclaredVisibility.ProtectedOrInternal:
+                return IsProtectedMemberVisible(symbol) || IsInternalMemberVisible(symbol);
+            case DeclaredVisibility.ProtectedAndInternal:
+                return IsProtectedMemberVisible(symbol) && IsInternalMemberVisible(symbol);
+            case DeclaredVisibility.Private:
+                return IsPrivateMemberVisible(symbol);
             case DeclaredVisibility.File:
             {
                 var designator = ScopeDesignator;
@@ -355,6 +363,46 @@ internal abstract class Binder
             default:
                 throw new ArgumentException("Unexpected declared visibility", nameof(symbol));
         }
+    }
+
+    private bool IsInternalMemberVisible(Symbol symbol)
+    {
+        return symbol.ContainingAssembly == Compilation.Assembly;
+    }
+
+    private bool IsProtectedMemberVisible(Symbol symbol)
+    {
+        if (ContainingSymbol is not TypeSymbol type)
+            return false;
+
+        // TODO: There is more to this, but it's not able to be implemented until inheritance is supported.
+        var containingType = symbol.ContainingType;
+        while (containingType is not null)
+        {
+            if (containingType == type)
+                return true;
+
+            containingType = containingType.ContainingType;
+        }
+
+        return false;
+    }
+
+    private bool IsPrivateMemberVisible(Symbol symbol)
+    {
+        if (ContainingSymbol is not TypeSymbol type)
+            return false;
+
+        var containingType = symbol.ContainingType;
+        while (containingType is not null)
+        {
+            if (containingType == type)
+                return true;
+
+            containingType = containingType.ContainingType;
+        }
+
+        return false;
     }
 
     public BoundExpression BindInitializer(
