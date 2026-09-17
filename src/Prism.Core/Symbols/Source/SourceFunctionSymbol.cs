@@ -31,6 +31,18 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
         compilation.CacheSymbol(Syntax, this);
     }
 
+    public override string MetadataName
+    {
+        get
+        {
+            if (field is not null)
+                return field;
+
+            Interlocked.CompareExchange(ref field, ProduceMetadataName(Syntax.SyntaxTree), null);
+            return field;
+        }
+    }
+
     public FunctionDeclarationSyntax Syntax { get; }
 
     public override DeclaredVisibility DeclaredVisibility =>

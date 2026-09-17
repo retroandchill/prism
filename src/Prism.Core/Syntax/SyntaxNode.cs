@@ -277,4 +277,9 @@ public closed class SyntaxNode
             }
         }
     }
+
+    public override string ToString()
+    {
+        return Green.ToString();
+    }
 }

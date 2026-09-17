@@ -24,7 +24,7 @@ public static class NameMangler
 
             builder.Append("_V_");
             MangleContainerPath(variable, ref builder);
-            MangleName(variable.Name, ref builder);
+            MangleName(variable.MetadataName, ref builder);
             return builder.ToString();
         }
         finally
@@ -45,7 +45,7 @@ public static class NameMangler
             }
             builder.Append("_F_");
             MangleContainerPath(function, ref builder);
-            MangleName(function.Name, ref builder);
+            MangleName(function.MetadataName, ref builder);
             builder.Append("E_");
             foreach (var param in function.Parameters)
             {
@@ -98,7 +98,7 @@ public static class NameMangler
         {
             case SpecialType.None:
                 MangleContainerPath(type, ref builder);
-                MangleName(type.Name, ref builder);
+                MangleName(type.MetadataName, ref builder);
                 break;
             case SpecialType.Void:
                 builder.Append('V');
@@ -174,7 +174,7 @@ public static class NameMangler
             current is not null and not AssemblySymbol and not NamespaceSymbol { IsGlobal: true }
         )
         {
-            names.Add(current.Name);
+            names.Add(current.MetadataName);
             current = current.ContainingSymbol;
         }
 

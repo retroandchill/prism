@@ -23,7 +23,7 @@ internal enum DeclarationModifiers : uint
     File = 1 << 7,
 
     AccessibilityMask =
-        Public | Internal | Protected | ProtectedInternal | Private | PrivateProtected,
+        Public | Internal | Protected | ProtectedInternal | Private | PrivateProtected | File,
 }
 
 internal static class DeclarationModifiersExtensions
@@ -105,6 +105,7 @@ internal static class DeclarationModifiersExtensions
                         }
                         break;
                     case SyntaxKind.FileKeyword:
+                        accessModifierSeen = true;
                         result |= DeclarationModifiers.File;
                         break;
                 }

@@ -19,6 +19,8 @@ public closed class Symbol
 
     public string Name { get; }
 
+    public virtual string MetadataName => Name;
+
     // TODO: For now symbol visibility does not apply but eventually it will
     public virtual DeclaredVisibility DeclaredVisibility => DeclaredVisibility.NotApplicable;
 
@@ -173,5 +175,12 @@ public closed class Symbol
         {
             member.ForceComplete(location, predicate, cancellationToken);
         }
+    }
+
+    private protected string ProduceMetadataName(SyntaxTree syntaxTree)
+    {
+        return DeclaredVisibility != DeclaredVisibility.File
+            ? Name
+            : $"{Name}_{syntaxTree.Md5Hash}";
     }
 }

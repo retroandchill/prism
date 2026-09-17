@@ -265,6 +265,18 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
         compilation.CacheSymbol(Syntax, this);
     }
 
+    public override string MetadataName
+    {
+        get
+        {
+            if (field is not null)
+                return field;
+
+            Interlocked.CompareExchange(ref field, ProduceMetadataName(Syntax.SyntaxTree), null);
+            return field;
+        }
+    }
+
     public override bool IsGlobal => true;
 
     public override DeclaredVisibility DeclaredVisibility =>

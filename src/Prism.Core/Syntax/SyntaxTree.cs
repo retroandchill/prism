@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
+using System.Text;
 using Prism.Core.Diagnostics;
 using Prism.Core.Parser;
 using Prism.Core.Syntax.Green;
@@ -42,6 +44,22 @@ public sealed class SyntaxTree
     public string Path { get; } = "";
 
     public SourceText? Text { get; }
+
+    public string Md5Hash
+    {
+        get
+        {
+            if (field is not null)
+                return field;
+
+            var text = Text?.Text ?? Root.ToString();
+
+            var inputBytes = Encoding.UTF8.GetBytes(text);
+            var hashBytes = MD5.HashData(inputBytes);
+            var hashString = Convert.ToHexString(hashBytes);
+            return Interlocked.CompareExchange(ref field, hashString, null) ?? hashString;
+        }
+    }
 
     public SyntaxNode Root { get; }
 
