@@ -2585,7 +2585,7 @@
         {
           "name": "ValueUninitialized",
           "severity": "Error",
-          "format": "Variable {Name} is uninitialized",
+          "format": "Variable '{Name}' is uninitialized",
           "args": [
             {
               "name": "Name",
@@ -2639,6 +2639,72 @@
           "name": "MayBeNull",
           "severity": "Error",
           "format": "Value may be null"
+        },
+        {
+          "name": "DuplicateDeclaration",
+          "severity": "Error",
+          "format": "Duplicate declaration of '{Name}'",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "DefaultValueAfterNonDefaultValue",
+          "severity": "Error",
+          "format": "Parameter '{Name}' must specify a default value",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "CannotUseUndeclaredVariable",
+          "severity": "Error",
+          "format": "Cannot use variable '{Name}' before it is declared",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "LocalNameShadowing",
+          "severity": "Error",
+          "format": "Variable '{Name}' shadows a value from an outer scope",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "ExternFunctionWithBody",
+          "severity": "Error",
+          "format": "Extern function '{Name}' cannot have a body",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "FunctionWithoutBody",
+          "severity": "Error",
+          "format": "Function '{Name}' must either define a body or be marked 'extern'",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
         }
       ]
     },

@@ -27,4 +27,5 @@ internal sealed class ErrorFunctionSymbol : FunctionSymbol
     public override TypeSymbol ReturnType { get; }
     public override ImmutableArray<ParameterSymbol> Parameters => [];
     internal override AbiKind AbiKind => AbiKind.Internal;
+    public override bool IsExtern => false;
 }

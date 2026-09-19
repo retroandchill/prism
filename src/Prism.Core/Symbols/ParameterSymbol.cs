@@ -7,6 +7,8 @@ public closed class ParameterSymbol : ValueSymbol
 
     public abstract FunctionSymbol ContainingFunction { get; }
 
+    public abstract bool HasDefaultValue { get; }
+
     public sealed override void WriteDisplayString(TextWriter writer)
     {
         writer.Write(Name);

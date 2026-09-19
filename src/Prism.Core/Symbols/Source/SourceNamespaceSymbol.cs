@@ -191,12 +191,21 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
         if (_nameToMembersMap is not null)
             return _nameToMembersMap;
 
-        Interlocked.CompareExchange(ref _nameToMembersMap, MakeNameToMembersMap(), null);
+        using var context = BindingContext.Create();
+        if (
+            Interlocked.CompareExchange(ref _nameToMembersMap, MakeNameToMembersMap(context), null)
+            is not null
+        )
+            return _nameToMembersMap;
+
+        AddDeclarationDiagnostics(context);
         _completionState.MarkPartComplete(CompletionPart.Members);
         return _nameToMembersMap;
     }
 
-    private ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap()
+    private ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
+        BindingContext context
+    )
     {
         var result = new Dictionary<string, ImmutableArray<Symbol>.Builder>();
 
@@ -226,7 +235,14 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
 
         AddSynthesizedMembers(result);
 
-        return result.ToImmutableDictionary(x => x.Key, x => x.Value.DrainToImmutable());
+        var output = result.ToImmutableDictionary(x => x.Key, x => x.Value.DrainToImmutable());
+
+        foreach (var (name, members) in output)
+        {
+            ValidateMembers(name, members, context);
+        }
+
+        return output;
 
         SyntaxList<DeclarationSyntax> GetSyntaxMembers(SingleNamespaceDeclaration x)
         {
@@ -237,6 +253,67 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
                 _ => new SyntaxList<DeclarationSyntax>(),
             };
         }
+    }
+
+    private static void ValidateMembers(
+        string name,
+        ImmutableArray<Symbol> members,
+        BindingContext context
+    )
+    {
+        if (members.Length == 1)
+            return;
+
+        Dictionary<OverloadSignature, List<Symbol>>? overloads = null;
+        foreach (var member in members)
+        {
+            if (member is not FunctionSymbol function)
+            {
+                break;
+            }
+
+            overloads ??= new Dictionary<OverloadSignature, List<Symbol>>();
+            var signature = OverloadSignature.Create(function);
+            var list = overloads.GetOrAdd(signature, () => []);
+            list.Add(function);
+        }
+
+        if (overloads is null)
+        {
+            ReportDuplicateDefinitions(name, members.AsSpan(), context);
+        }
+        else
+        {
+            foreach (var (_, functions) in overloads)
+            {
+                if (functions.Count == 1)
+                    continue;
+
+                ReportDuplicateDefinitions(name, CollectionsMarshal.AsSpan(functions), context);
+            }
+        }
+    }
+
+    private static void ReportDuplicateDefinitions(
+        string name,
+        ReadOnlySpan<Symbol> members,
+        BindingContext context
+    )
+    {
+        var primaryMemberLocations = members[0].Locations.AsSpan();
+        var primaryLocation = primaryMemberLocations[0];
+        context.ReportDiagnostic(
+            Diagnostic.DuplicateDeclaration(
+                primaryLocation,
+                [
+                    .. primaryMemberLocations[1..],
+                    .. members[1..]
+                        .AsValueEnumerable()
+                        .SelectMany(x => x.Locations.AsValueEnumerable()),
+                ],
+                name
+            )
+        );
     }
 
     private Symbol BuildSymbol(MergedDeclaration declaration)

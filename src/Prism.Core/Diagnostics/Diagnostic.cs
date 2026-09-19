@@ -45,6 +45,14 @@ public sealed class Diagnostic
     public Diagnostic(
         DiagnosticDescriptor descriptor,
         Location location,
+        IEnumerable<Location> additionalLocations,
+        params ImmutableArray<object?> args
+    )
+        : this(new DiagnosticInfo(descriptor, args), location, [.. additionalLocations]) { }
+
+    public Diagnostic(
+        DiagnosticDescriptor descriptor,
+        Location location,
         ImmutableArray<Location> additionalLocations,
         params ImmutableArray<object?> args
     )

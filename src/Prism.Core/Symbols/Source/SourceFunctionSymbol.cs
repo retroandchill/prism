@@ -3,9 +3,9 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Prism.Core.Abi;
 using Prism.Core.Binding;
-using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
+using Prism.Core.Utils;
 using ZLinq;
 
 namespace Prism.Core.Symbols.Source;
@@ -122,34 +122,65 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
             if (!field.IsDefault)
                 return field;
 
-            ImmutableInterlocked.InterlockedCompareExchange(
-                ref field,
-                ComputeParameters(),
-                default
-            );
+            using var context = BindingContext.Create();
+            if (!ImmutableInterlocked.InterlockedInitialize(ref field, ComputeParameters(context)))
+                return field;
+
+            AddDeclarationDiagnostics(context);
             return field;
         }
     }
 
     internal override AbiKind AbiKind => AbiKind.Internal;
+    public override bool IsExtern => _modifiers.HasFlag(DeclarationModifiers.Extern);
 
-    private ImmutableArray<ParameterSymbol> ComputeParameters()
+    private ImmutableArray<ParameterSymbol> ComputeParameters(BindingContext context)
     {
         var source = Syntax.Parameters.Parameters;
         if (source.Count == 0)
             return [];
 
         var parameters = new ParameterSymbol[source.Count];
+        var parametersByName = new Dictionary<string, List<ParameterSyntax>>();
+        var seenDefaultValue = false;
         foreach (var (i, syntax) in source.AsValueEnumerable().Index())
         {
             var name = syntax.Name.IdentifierName;
-            parameters[i] = new SourceParameterSymbol(name, this, syntax);
+            var list = parametersByName.GetOrAdd(name, () => []);
+            list.Add(syntax);
+            var param = new SourceParameterSymbol(name, this, syntax);
+            parameters[i] = param;
+
+            if (param.HasDefaultValue)
+            {
+                seenDefaultValue = true;
+            }
+            else if (seenDefaultValue)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.DefaultValueAfterNonDefaultValue(syntax.Location, name)
+                );
+            }
+        }
+
+        foreach (var (name, syntax) in parametersByName)
+        {
+            if (syntax.Count == 1)
+                continue;
+
+            context.ReportDiagnostic(
+                Diagnostic.DuplicateDeclaration(
+                    syntax[0].Location,
+                    [.. syntax[1..].Select(x => x.Location)],
+                    name
+                )
+            );
         }
 
         return ImmutableCollectionsMarshal.AsImmutableArray(parameters);
     }
 
-    internal override bool NeedsCompletion => false;
+    internal override bool NeedsCompletion => true;
 
     internal override void ForceComplete(
         SourceLocation? location,
@@ -216,7 +247,15 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
 
     private void FunctionChecks(BindingContext context)
     {
-        // TODO: Actually validate
+        switch (this)
+        {
+            case { IsExtern: true, Syntax.Body: not null }:
+                context.ReportDiagnostic(Diagnostic.ExternFunctionWithBody(Syntax.Location, Name));
+                break;
+            case { IsExtern: false, Syntax.Body: null }:
+                context.ReportDiagnostic(Diagnostic.FunctionWithoutBody(Syntax.Location, Name));
+                break;
+        }
     }
 
     internal override bool IsComplete(CompletionPart part)

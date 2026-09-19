@@ -136,7 +136,7 @@ internal closed class SourceVariableSymbol : VariableSymbol
         return IsDefinedInSourceTree(new SyntaxReference(Syntax), tree, definedWithin);
     }
 
-    internal sealed override bool NeedsCompletion => false;
+    internal sealed override bool NeedsCompletion => true;
 
     internal sealed override void ForceComplete(
         SourceLocation? location,

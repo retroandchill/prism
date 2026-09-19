@@ -33,6 +33,7 @@ internal sealed class SynthesizedGlobalConstructor(NamespaceSymbol containingNam
 
     public override ImmutableArray<ParameterSymbol> Parameters => [];
     internal override AbiKind AbiKind => AbiKind.Internal;
+    public override bool IsExtern => false;
 
     internal bool ShouldEmit(ReadOnlySpan<BoundVariableInitializer> variables)
     {

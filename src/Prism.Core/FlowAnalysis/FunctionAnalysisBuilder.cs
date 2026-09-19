@@ -11,6 +11,7 @@ using Prism.Core.Diagnostics;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Synthesized;
+using Prism.Core.Utils;
 
 namespace Prism.Core.FlowAnalysis;
 
@@ -46,7 +47,8 @@ internal sealed class FunctionAnalysisBuilder
     private readonly CancellationToken _cancellationToken;
 
     private readonly List<LoopContext> _loopStack = [];
-    private Flags _flags;
+    private readonly Dictionary<string, List<VariableSymbol>> _localsByName = new();
+    private Flags _flags = Flags.None;
 
     private readonly ImmutableHashSet<Symbol>.Builder _addressedLocals =
         ImmutableHashSet.CreateBuilder<Symbol>(ReferenceEqualityComparer.Instance);
@@ -155,8 +157,24 @@ internal sealed class FunctionAnalysisBuilder
     private FlowState VisitLocal(BoundVariableDeclaration declaration, FlowState state)
     {
         _cancellationToken.ThrowIfCancellationRequested();
+
+        var locals = _localsByName.GetOrAdd(declaration.Variable.Name, () => []);
+        if (
+            _function.Parameters.Any(x => x.Name == declaration.Variable.Name)
+            || locals
+                .Select(local => state.State.GetVariableInitialization(local))
+                .Any(initialization => initialization != InitializationState.Undeclared)
+        )
+        {
+            _bindingContext.ReportDiagnostic(
+                Diagnostic.LocalNameShadowing(declaration.Location, declaration.Variable.Name)
+            );
+        }
+
+        locals.Add(declaration.Variable);
+
         if (declaration.Initializer is null)
-            return state;
+            return state with { State = state.State.MarkVariableDeclared(declaration.Variable) };
 
         state = state with { State = state.State.MarkVariableInitialized(declaration.Variable) };
         return VisitExpression(declaration.Initializer, state);
@@ -281,9 +299,8 @@ internal sealed class FunctionAnalysisBuilder
             state = VisitExpression(statement.Variable.Initializer, state);
         }
 
-        state = statement.Initializers.Aggregate(
-            state,
-            (current, initializer) => VisitExpression(initializer, current)
+        state = statement.Initializers.Aggregate(state, (current, initializer) =>
+            VisitExpression(initializer, current)
         );
 
         _loopStack.Add(new LoopContext(statement.Label));
@@ -304,9 +321,8 @@ internal sealed class FunctionAnalysisBuilder
 
                     if (state.IsReachable)
                     {
-                        state = statement.Incrementors.Aggregate(
-                            state,
-                            (current, incrementor) => VisitExpression(incrementor, current)
+                        state = statement.Incrementors.Aggregate(state, (current, incrementor) =>
+                            VisitExpression(incrementor, current)
                         );
                     }
 
@@ -345,9 +361,8 @@ internal sealed class FunctionAnalysisBuilder
 
             if (state.IsReachable)
             {
-                state = statement.Incrementors.Aggregate(
-                    state,
-                    (current, incrementor) => VisitExpression(incrementor, current)
+                state = statement.Incrementors.Aggregate(state, (current, incrementor) =>
+                    VisitExpression(incrementor, current)
                 );
             }
 
@@ -496,9 +511,8 @@ internal sealed class FunctionAnalysisBuilder
                 case BoundInvocation invocation:
                 {
                     using var scope = new FlagScope(this, Flags.ConstructingArguments);
-                    state = invocation.Arguments.Aggregate(
-                        state,
-                        (current, argument) => VisitExpression(argument, current)
+                    state = invocation.Arguments.Aggregate(state, (current, argument) =>
+                        VisitExpression(argument, current)
                     );
 
                     return state;
@@ -552,7 +566,18 @@ internal sealed class FunctionAnalysisBuilder
                     return state;
 
                 if (variable.IsMutable)
+                {
+                    if (
+                        state.State.GetVariableInitialization(variable)
+                        == InitializationState.Undeclared
+                    )
+                    {
+                        _bindingContext.ReportDiagnostic(
+                            Diagnostic.CannotUseUndeclaredVariable(location, variable.Name)
+                        );
+                    }
                     return state with { State = state.State.MarkVariableInitialized(variable) };
+                }
 
                 switch (state.State.GetVariableInitialization(variable))
                 {
@@ -568,6 +593,12 @@ internal sealed class FunctionAnalysisBuilder
                         return state with { State = state.State.MarkVariableInitialized(variable) };
                     case InitializationState.Uninitialized:
                         return state with { State = state.State.MarkVariableInitialized(variable) };
+                    case InitializationState.Undeclared:
+                        _bindingContext.ReportDiagnostic(
+                            Diagnostic.CannotUseUndeclaredVariable(location, variable.Name)
+                        );
+                        return state with { State = state.State.MarkVariableInitialized(variable) };
+
                     default:
                         throw new ArgumentException("Invalid variable state");
                 }

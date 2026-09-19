@@ -829,7 +829,7 @@ internal abstract class Binder
         return BindExpression(syntax, null, isSpeculative, context, cancellationToken);
     }
 
-    private BoundExpression BindExpression(
+    public BoundExpression BindExpression(
         ExpressionSyntax syntax,
         TypeSymbol? targetType,
         BindingContext context,

@@ -14,6 +14,7 @@ internal enum InitializationState : byte
     DefinitelyInitialized,
     MaybeInitialized,
     Uninitialized,
+    Undeclared,
 }
 
 internal enum NullableState : byte
@@ -24,14 +25,18 @@ internal enum NullableState : byte
 
 internal readonly record struct VariableAnalysisState(InitializationState Initialization)
 {
-    public static VariableAnalysisState Uninitialized { get; } =
-        new(InitializationState.Uninitialized);
+    public static VariableAnalysisState Undeclared { get; } = new(InitializationState.Undeclared);
 
     public VariableAnalysisState Merge(VariableAnalysisState other)
     {
-        return Initialization == other.Initialization
-            ? this
-            : new VariableAnalysisState(InitializationState.MaybeInitialized);
+        if (Initialization == other.Initialization)
+            return this;
+
+        return
+            Initialization != InitializationState.Undeclared
+            && other.Initialization != InitializationState.Undeclared
+            ? new VariableAnalysisState(InitializationState.MaybeInitialized)
+            : new VariableAnalysisState(InitializationState.Undeclared);
     }
 }
 
@@ -81,7 +86,35 @@ internal sealed record AnalysisState
 
         return Variables.TryGetValue(variable, out var variableState)
             ? variableState.Initialization
-            : InitializationState.Uninitialized;
+            : InitializationState.Undeclared;
+    }
+
+    public AnalysisState MarkVariableDeclared(VariableSymbol variable)
+    {
+        var variables = Variables;
+        if (Variables.TryGetValue(variable, out var variableState))
+        {
+            if (
+                variableState.Initialization
+                is InitializationState.DefinitelyInitialized
+                    or InitializationState.MaybeInitialized
+            )
+                return this;
+
+            variables = variables.SetItem(
+                variable,
+                new VariableAnalysisState(InitializationState.Uninitialized)
+            );
+        }
+        else
+        {
+            variables = variables.Add(
+                variable,
+                new VariableAnalysisState(InitializationState.Uninitialized)
+            );
+        }
+
+        return ReferenceEquals(variables, Variables) ? this : this with { Variables = variables };
     }
 
     public AnalysisState MarkVariableInitialized(VariableSymbol variable)
@@ -146,10 +179,7 @@ internal sealed record AnalysisState
 
         foreach (var (variable, otherState) in other.Variables)
         {
-            var thisState = Variables.GetValueOrDefault(
-                variable,
-                VariableAnalysisState.Uninitialized
-            );
+            var thisState = Variables.GetValueOrDefault(variable, VariableAnalysisState.Undeclared);
 
             var mergedState = thisState.Merge(otherState);
 
@@ -158,7 +188,7 @@ internal sealed record AnalysisState
 
             builder ??= Variables.ToBuilder();
 
-            if (mergedState == VariableAnalysisState.Uninitialized)
+            if (mergedState == VariableAnalysisState.Undeclared)
                 builder.Remove(variable);
             else
                 builder[variable] = mergedState;
@@ -169,14 +199,14 @@ internal sealed record AnalysisState
             if (other.Variables.ContainsKey(variable))
                 continue;
 
-            var mergedState = thisState.Merge(VariableAnalysisState.Uninitialized);
+            var mergedState = thisState.Merge(VariableAnalysisState.Undeclared);
 
             if (mergedState.Equals(thisState))
                 continue;
 
             builder ??= Variables.ToBuilder();
 
-            if (mergedState == VariableAnalysisState.Uninitialized)
+            if (mergedState == VariableAnalysisState.Undeclared)
                 builder.Remove(variable);
             else
                 builder[variable] = mergedState;

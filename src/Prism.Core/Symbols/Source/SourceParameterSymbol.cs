@@ -34,6 +34,8 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
 
     public override FunctionSymbol ContainingFunction { get; }
 
+    public override bool HasDefaultValue => _syntax.DefaultValue is not null;
+
     public override ImmutableArray<Location> Locations
     {
         get
@@ -96,7 +98,7 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
 
     public override bool IsMutable => _syntax.MutableKeyword is not null;
 
-    internal override bool NeedsCompletion => false;
+    internal override bool NeedsCompletion => true;
 
     internal override void ForceComplete(
         SourceLocation? location,

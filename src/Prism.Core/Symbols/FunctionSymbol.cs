@@ -17,6 +17,23 @@ public closed class FunctionSymbol : Symbol
 
     internal abstract AbiKind AbiKind { get; }
 
+    internal ImmutableArray<TypeSymbol> ParameterTypes
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                [.. Parameters.Select(p => p.Type)]
+            );
+            return field;
+        }
+    }
+
+    public abstract bool IsExtern { get; }
+
     public sealed override void WriteDisplayString(TextWriter writer)
     {
         if (
