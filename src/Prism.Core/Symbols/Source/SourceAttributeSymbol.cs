@@ -4,8 +4,10 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Prism.Core.Binding;
 using Prism.Core.Configuration;
+using Prism.Core.Declarations;
 using Prism.Core.Syntax;
 using Prism.Core.Utils;
 
@@ -15,14 +17,14 @@ internal sealed class SourceAttributeSymbol : SourceNamedTypeSymbol
 {
     private readonly AttributeDeclarationSyntax _syntax;
 
-    internal SourceAttributeSymbol(
-        string name,
-        Symbol containingSymbol,
-        AttributeDeclarationSyntax syntax
-    )
-        : base(name, containingSymbol, NamedTypeKind.Attribute)
+    internal SourceAttributeSymbol(MergedTypeDeclaration declaration, Symbol containingSymbol)
+        : base(declaration, containingSymbol)
     {
-        _syntax = syntax;
+        Debug.Assert(declaration.Kind == DeclarationKind.Attribute);
+
+        var references = DeclaringSyntaxReferences;
+        Debug.Assert(references.Length == 1);
+        _syntax = (AttributeDeclarationSyntax)references[0].Syntax;
     }
 
     protected override TypeDeclarationSyntax Syntax => _syntax;

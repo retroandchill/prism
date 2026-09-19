@@ -2,7 +2,9 @@
 using System.Diagnostics;
 using Prism.Core.Binding;
 using Prism.Core.Diagnostics;
+using Prism.Core.Symbols;
 using Prism.Core.Syntax;
+using ZLinq;
 
 namespace Prism.Core.Declarations;
 
@@ -41,9 +43,13 @@ internal sealed class DeclarationTreeBuilder
         var builder = ImmutableArray.CreateBuilder<SingleDeclaration>();
         foreach (var member in members)
         {
-            var namespaceOrType = member switch
+            SingleDeclaration? namespaceOrType = member switch
             {
                 NamespaceDeclarationSyntax ns => VisitNamespaceDeclaration(ns),
+                AttributeDeclarationSyntax attribute => VisitAttributeDeclaration(
+                    attribute,
+                    DeclarationModifiers.Internal
+                ),
                 _ => null,
             };
 
@@ -60,7 +66,9 @@ internal sealed class DeclarationTreeBuilder
         return CreateSingleRootNamespaceDeclaration(syntax, children);
     }
 
-    private SingleDeclaration VisitNamespaceDeclaration(NamespaceDeclarationSyntax node)
+    private SingleNamedNamespaceDeclaration VisitNamespaceDeclaration(
+        NamespaceDeclarationSyntax node
+    )
     {
         var children = VisitNamespaceChildren(node, node.Members);
 
@@ -156,7 +164,7 @@ internal sealed class DeclarationTreeBuilder
         };
     }
 
-    private SingleRootNamespaceDeclaration CreateSingleRootNamespaceDeclaration(
+    private static SingleRootNamespaceDeclaration CreateSingleRootNamespaceDeclaration(
         CompilationUnitSyntax syntax,
         ImmutableArray<SingleDeclaration> children
     )
@@ -191,5 +199,26 @@ internal sealed class DeclarationTreeBuilder
         }
 
         return memberNames.ToImmutable();
+    }
+
+    private SingleTypeDeclaration VisitAttributeDeclaration(
+        AttributeDeclarationSyntax attribute,
+        DeclarationModifiers defaultVisibility
+    )
+    {
+        var name = attribute.Identifier.IdentifierName;
+        var memberNames = attribute.Parameters is { Parameters: { Count: > 0 } parameters }
+            ? parameters.AsValueEnumerable().Select(x => x.Name.IdentifierName).ToImmutableHashSet()
+            : ImmutableHashSet<string>.Empty;
+        var modifiers = DeclarationModifiers.MakeModifiers(defaultVisibility, attribute.Modifiers);
+        return new SingleTypeDeclaration(
+            DeclarationKind.Attribute,
+            name,
+            new SyntaxReference(attribute),
+            modifiers,
+            new SourceLocation(attribute.Identifier),
+            memberNames,
+            []
+        );
     }
 }

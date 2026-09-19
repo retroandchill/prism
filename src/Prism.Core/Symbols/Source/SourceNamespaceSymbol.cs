@@ -37,21 +37,7 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
         }
     }
 
-    public override ImmutableArray<Location> Locations
-    {
-        get
-        {
-            if (!field.IsDefault)
-                return field;
-
-            ImmutableInterlocked.InterlockedCompareExchange(
-                ref field,
-                [.. _mergedDeclaration.Declarations.Select(Location (d) => d.NameLocation)],
-                default
-            );
-            return field;
-        }
-    }
+    public override ImmutableArray<Location> Locations => _mergedDeclaration.NameLocations;
 
     public override AssemblySymbol ContainingAssembly { get; }
 
@@ -225,7 +211,6 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
                 NamespaceDeclarationSyntax => null,
                 VariableDeclarationSyntax variable => BuildSymbol(variable),
                 FunctionDeclarationSyntax function => BuildSymbol(function),
-                AttributeDeclarationSyntax attribute => BuildSymbol(attribute),
                 _ => null,
             };
             if (symbol is null)
@@ -265,7 +250,19 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
                 ContainingAssembly,
                 this
             ),
-            _ => throw new ArgumentOutOfRangeException(nameof(declaration), declaration, null),
+            MergedTypeDeclaration t => BuildSymbol(t),
+        };
+    }
+
+    private Symbol BuildSymbol(MergedTypeDeclaration declaration)
+    {
+        return declaration.Kind switch
+        {
+            DeclarationKind.Namespace => throw new InvalidOperationException(
+                "Namespace declaration cannot be built as a type"
+            ),
+            DeclarationKind.Attribute => new SourceAttributeSymbol(declaration, this),
+            _ => throw new InvalidOperationException("Unknown declaration kind"),
         };
     }
 
@@ -284,15 +281,6 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
             functionDeclaration.Identifier.IdentifierName,
             this,
             functionDeclaration
-        );
-    }
-
-    private SourceAttributeSymbol BuildSymbol(AttributeDeclarationSyntax attributeDeclaration)
-    {
-        return new SourceAttributeSymbol(
-            attributeDeclaration.Identifier.IdentifierName,
-            this,
-            attributeDeclaration
         );
     }
 

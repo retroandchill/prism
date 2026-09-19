@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Prism.Core.Binding;
+using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 using ZLinq;
@@ -15,12 +16,28 @@ namespace Prism.Core.Symbols.Source;
 
 internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
 {
+    private readonly MergedTypeDeclaration _mergedDeclaration;
     private ImmutableArray<Symbol> _members;
     private ImmutableDictionary<string, ImmutableArray<Symbol>>? _nameToMembersMap;
     private SymbolCompletionState _completionState;
 
-    internal SourceNamedTypeSymbol(string name, Symbol containingSymbol, NamedTypeKind kind)
-        : base(name, containingSymbol, kind) { }
+    internal SourceNamedTypeSymbol(MergedTypeDeclaration mergedDeclaration, Symbol containingSymbol)
+        : base(mergedDeclaration.Name, containingSymbol, GetTypeKind(mergedDeclaration))
+    {
+        _mergedDeclaration = mergedDeclaration;
+    }
+
+    private static NamedTypeKind GetTypeKind(MergedTypeDeclaration declaration)
+    {
+        return declaration.Kind switch
+        {
+            DeclarationKind.Namespace => throw new InvalidOperationException(
+                "Type kind cannot be a namespace"
+            ),
+            DeclarationKind.Attribute => NamedTypeKind.Attribute,
+            _ => throw new InvalidOperationException("Invalid declaration kind"),
+        };
+    }
 
     protected abstract TypeDeclarationSyntax Syntax { get; }
 
@@ -55,6 +72,8 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
             return field;
         }
     }
+    public override DeclaredVisibility DeclaredVisibility =>
+        DeclaredVisibility.FromDeclarationModifiers(_mergedDeclaration.Modifiers);
 
     public sealed override ImmutableArray<Symbol> GetMembers()
     {

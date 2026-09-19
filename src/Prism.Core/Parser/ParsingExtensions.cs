@@ -6,7 +6,14 @@ internal static class ParsingExtensions
 {
     extension(SyntaxKind kind)
     {
-        public bool IsModifier => kind is SyntaxKind.ExternKeyword or SyntaxKind.MutableKeyword;
+        public bool IsModifier =>
+            kind
+                is SyntaxKind.ExternKeyword
+                    or SyntaxKind.MutableKeyword
+                    or SyntaxKind.PublicKeyword
+                    or SyntaxKind.InternalKeyword
+                    or SyntaxKind.ProtectedKeyword
+                    or SyntaxKind.PrivateKeyword;
 
         public bool IsBuiltInType =>
             kind

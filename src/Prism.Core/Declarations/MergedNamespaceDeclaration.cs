@@ -21,11 +21,6 @@ internal sealed class MergedNamespaceDeclaration : MergedDeclaration
         return new MergedNamespaceDeclaration(declarations);
     }
 
-    public static MergedNamespaceDeclaration Create(SingleNamespaceDeclaration declaration)
-    {
-        return Create([declaration]);
-    }
-
     public override DeclarationKind Kind => DeclarationKind.Namespace;
 
     public LexicalSortKey GetLexicalSortKey(Compilation compilation)
@@ -90,28 +85,47 @@ internal sealed class MergedNamespaceDeclaration : MergedDeclaration
         var namespaces = ImmutableArray.CreateBuilder<SingleNamespaceDeclaration>();
         var allNamespacesHaveSameName = true;
 
+        var types = ImmutableArray.CreateBuilder<SingleTypeDeclaration>();
+        var allTypesHaveSameIdentity = true;
+
         foreach (
             var child in Declarations
                 .AsValueEnumerable()
                 .SelectMany(d => d.Members.AsValueEnumerable())
         )
         {
-            if (child is not SingleNamespaceDeclaration asNamespace)
-                continue;
-            if (
-                namespaces.Count > 0
-                && allNamespacesHaveSameName
-                && asNamespace.Name != namespaces[0].Name
-            )
+            switch (child)
             {
-                allNamespacesHaveSameName = false;
-            }
+                case SingleNamespaceDeclaration asNamespace:
+                    if (
+                        namespaces.Count > 0
+                        && allNamespacesHaveSameName
+                        && asNamespace.Name != namespaces[0].Name
+                    )
+                    {
+                        allNamespacesHaveSameName = false;
+                    }
 
-            namespaces.Add(asNamespace);
+                    namespaces.Add(asNamespace);
+                    break;
+                case SingleTypeDeclaration asType:
+                    if (
+                        types.Count > 0
+                        && allTypesHaveSameIdentity
+                        && asType.Identity != types[0].Identity
+                    )
+                    {
+                        allTypesHaveSameIdentity = false;
+                    }
+
+                    types.Add(asType);
+                    break;
+            }
         }
 
         var children = ImmutableArray.CreateBuilder<MergedDeclaration>();
         AddNamespacesToChildren(namespaces, allNamespacesHaveSameName, children);
+        AddTypesToChildren(types, allTypesHaveSameIdentity, children);
 
         return children.DrainToImmutable();
     }
@@ -134,6 +148,27 @@ internal sealed class MergedNamespaceDeclaration : MergedDeclaration
         foreach (var grouping in namespaces.GroupBy(ns => ns.Name))
         {
             children.Add(Create([.. grouping]));
+        }
+    }
+
+    private static void AddTypesToChildren(
+        ImmutableArray<SingleTypeDeclaration>.Builder types,
+        bool allTypesHaveSameName,
+        ImmutableArray<MergedDeclaration>.Builder children
+    )
+    {
+        if (types.Count == 0)
+            return;
+
+        if (allTypesHaveSameName)
+        {
+            children.Add(MergedTypeDeclaration.Create(types.DrainToImmutable()));
+            return;
+        }
+
+        foreach (var grouping in types.GroupBy(ns => ns.Name))
+        {
+            children.Add(MergedTypeDeclaration.Create([.. grouping]));
         }
     }
 }

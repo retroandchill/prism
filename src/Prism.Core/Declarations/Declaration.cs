@@ -5,6 +5,7 @@ namespace Prism.Core.Declarations;
 internal enum DeclarationKind
 {
     Namespace,
+    Attribute,
 }
 
 internal closed class Declaration(string name)

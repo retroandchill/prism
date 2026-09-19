@@ -47,7 +47,14 @@ internal static class DeclarationModifiersExtensions
         )
         {
             var defaultAccess = containingSymbol.GetDefaultMemberVisibility();
+            return DeclarationModifiers.MakeModifiers(defaultAccess, modifiers);
+        }
 
+        public static DeclarationModifiers MakeModifiers(
+            DeclarationModifiers defaultAccess,
+            SyntaxTokenList modifiers
+        )
+        {
             var result = DeclarationModifiers.None;
             var accessModifierSeen = false;
             foreach (var modifier in modifiers)
