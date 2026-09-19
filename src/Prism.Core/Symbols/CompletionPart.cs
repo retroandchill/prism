@@ -37,5 +37,5 @@ internal enum CompletionPart : uint
     NamespaceAll = Members | MembersCompleted,
     VariableAll = Type | ConstantValue,
     FunctionAll = Parameters | Type | StartChecks | FinishChecks,
-    ParameterAll = Type,
+    ParameterAll = Type | ConstantValue,
 }

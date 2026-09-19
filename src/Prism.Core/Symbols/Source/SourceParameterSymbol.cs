@@ -6,7 +6,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Core.Binding;
-using Prism.Core.Declarations;
+using Prism.Core.BoundTree;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 
@@ -33,8 +33,6 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
     }
 
     public override FunctionSymbol ContainingFunction { get; }
-
-    public override bool HasDefaultValue => _syntax.DefaultValue is not null;
 
     public override ImmutableArray<Location> Locations
     {
@@ -98,6 +96,61 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
 
     public override bool IsMutable => _syntax.MutableKeyword is not null;
 
+    public override ParameterDefault? DefaultValue
+    {
+        get
+        {
+            if (_syntax.DefaultValue is null)
+                return null;
+
+            if (field is not null)
+                return field;
+
+            using var context = BindingContext.Create();
+            if (
+                Interlocked.CompareExchange(ref field, CreateParameterDefault(context), null)
+                is not null
+            )
+                return field;
+
+            AddDeclarationDiagnostics(context);
+            _completionState.MarkPartComplete(CompletionPart.ConstantValue);
+            return field;
+        }
+    }
+
+    private ParameterDefault CreateParameterDefault(BindingContext context)
+    {
+        Debug.Assert(_syntax.DefaultValue is not null);
+
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        var factory = compilation.GetBinderFactory(_syntax.SyntaxTree);
+        var binder = factory.GetBinder(_syntax);
+
+        var expression = binder.BindExpression(
+            _syntax.DefaultValue.Value,
+            Type,
+            context,
+            CancellationToken.None
+        );
+        switch (expression)
+        {
+            case BoundNullLiteral:
+                return new NullParameterDefault(_syntax.DefaultValue.Value);
+            case BoundLiteral literal:
+                return new ConstantParameterDefault(literal.Value, _syntax.DefaultValue.Value);
+            default:
+                // Use null for a non-constant default value
+                context.ReportDiagnostic(
+                    Diagnostic.DefaultParameterValueMustBeConstant(
+                        _syntax.DefaultValue.Value.Location
+                    )
+                );
+                return new NullParameterDefault(_syntax.DefaultValue.Value);
+        }
+    }
+
     internal override bool NeedsCompletion => true;
 
     internal override void ForceComplete(
@@ -117,6 +170,10 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
             {
                 case CompletionPart.Type:
                     _ = Type;
+                    break;
+                case CompletionPart.ConstantValue:
+                    _ = DefaultValue;
+                    _completionState.MarkPartComplete(CompletionPart.ConstantValue);
                     break;
                 case CompletionPart.None:
                     return;

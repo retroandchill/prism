@@ -13,7 +13,6 @@ internal sealed class BoundFunctionBody
         FunctionSymbol function,
         SourceLocation? location,
         BoundStatement body,
-        ImmutableArray<BoundExpression?> parameterDefaults,
         FunctionBodyAnalysis analysis,
         ImmutableArray<Diagnostic> diagnostics
     )
@@ -21,7 +20,6 @@ internal sealed class BoundFunctionBody
         Function = function;
         Location = location;
         Body = body;
-        ParameterDefaults = parameterDefaults;
         Analysis = analysis;
         HasBody = true;
         Diagnostics = diagnostics;
@@ -51,8 +49,6 @@ internal sealed class BoundFunctionBody
     public FunctionBodyAnalysis? Analysis { get; }
 
     public SourceLocation? Location { get; }
-
-    public ImmutableArray<BoundExpression?> ParameterDefaults { get; } = [];
 
     public ImmutableArray<Diagnostic> Diagnostics { get; }
 

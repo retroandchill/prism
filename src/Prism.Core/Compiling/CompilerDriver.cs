@@ -53,7 +53,6 @@ internal static class CompilerDriver
     {
         BoundStatement? body;
         SourceLocation? location = null;
-        ImmutableArray<BoundExpression?> parameterDefaults;
         using var context = BindingContext.Create();
         switch (function)
         {
@@ -86,26 +85,6 @@ internal static class CompilerDriver
                 {
                     body = null;
                 }
-
-                var parameters = function.Parameters;
-                var parameterTemp = new BoundExpression?[parameters.Length];
-                foreach (var (i, param) in parameters.AsValueEnumerable().Index())
-                {
-                    var paramSyntax = syntax.Parameters.Parameters[i];
-                    if (paramSyntax.DefaultValue is null)
-                        continue;
-
-                    var binder = binderFactory.GetBinder(syntax);
-                    var defaultValue = binder.BindExpression(
-                        paramSyntax.DefaultValue.Value,
-                        param.Type,
-                        context,
-                        cancellationToken
-                    );
-                    parameterTemp[i] = defaultValue;
-                }
-
-                parameterDefaults = ImmutableCollectionsMarshal.AsImmutableArray(parameterTemp);
 
                 if (context.HasErrors && body is not null)
                 {
@@ -166,13 +145,10 @@ internal static class CompilerDriver
                     body = null;
                 }
 
-                parameterDefaults = [];
-
                 break;
             }
             default:
                 body = null;
-                parameterDefaults = [];
                 break;
         }
 
@@ -184,7 +160,6 @@ internal static class CompilerDriver
             function,
             location,
             body,
-            parameterDefaults,
             analysis,
             context.CollectDiagnostics()
         );

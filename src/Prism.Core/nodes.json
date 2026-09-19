@@ -2705,6 +2705,16 @@
               "type": "String"
             }
           ]
+        },
+        {
+          "name": "PositionalArgumentsFirst",
+          "severity": "Error",
+          "format": "Positional arguments must come before named arguments"
+        },
+        {
+          "name": "DefaultParameterValueMustBeConstant",
+          "severity": "Error",
+          "format": "Default parameter value must be a constant"
         }
       ]
     },

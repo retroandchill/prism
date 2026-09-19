@@ -1,4 +1,15 @@
-﻿namespace Prism.Core.Symbols;
+﻿using System.Diagnostics.CodeAnalysis;
+using Prism.Core.Semantic;
+using Prism.Core.Syntax;
+
+namespace Prism.Core.Symbols;
+
+public closed record ParameterDefault(SyntaxNode? Syntax);
+
+public sealed record NullParameterDefault(SyntaxNode? Syntax = null) : ParameterDefault(Syntax);
+
+public sealed record ConstantParameterDefault(ConstantValue Value, SyntaxNode? Syntax = null)
+    : ParameterDefault(Syntax);
 
 public closed class ParameterSymbol : ValueSymbol
 {
@@ -7,7 +18,10 @@ public closed class ParameterSymbol : ValueSymbol
 
     public abstract FunctionSymbol ContainingFunction { get; }
 
-    public abstract bool HasDefaultValue { get; }
+    [MemberNotNullWhen(true, nameof(DefaultValue))]
+    public bool HasDefaultValue => DefaultValue is not null;
+
+    public abstract ParameterDefault? DefaultValue { get; }
 
     public sealed override void WriteDisplayString(TextWriter writer)
     {

@@ -1340,9 +1340,7 @@ internal abstract class Binder
             var overloads = LookupFromSyntax(nameSyntax.Value, LookupOptions.Callable, context);
             if (overloads.IsViable)
             {
-                return overloads.Symbols.Length == 1
-                    ? BindUnambiguousOverloadSet(syntax, overloads, context, cancellationToken)
-                    : BindAmbiguousOverloadSet(syntax, overloads, context, cancellationToken);
+                return BindOverloadSet(syntax, overloads, context, cancellationToken);
             }
         }
 
@@ -1370,32 +1368,7 @@ internal abstract class Binder
         );
     }
 
-    private BoundInvocation BindUnambiguousOverloadSet(
-        InvocationExpressionSyntax syntax,
-        LookupResult overloads,
-        BindingContext context,
-        CancellationToken cancellationToken
-    )
-    {
-        var function = (FunctionSymbol)overloads.Symbols[0];
-        var parameters = function.Parameters;
-        var arguments = new BoundExpression[syntax.Arguments.Arguments.Count];
-        foreach (var (i, argumentSyntax) in syntax.Arguments.Arguments.AsValueEnumerable().Index())
-        {
-            var paramType = parameters[i].Type;
-            var bound = BindExpression(argumentSyntax.Value, paramType, context, cancellationToken);
-
-            arguments[i] = AddConversionIfNecessary(bound, paramType, context);
-        }
-
-        return new BoundInvocation(
-            syntax,
-            function,
-            ImmutableCollectionsMarshal.AsImmutableArray(arguments)
-        );
-    }
-
-    private BoundInvocation BindAmbiguousOverloadSet(
+    private BoundInvocation BindOverloadSet(
         InvocationExpressionSyntax syntax,
         LookupResult overloads,
         BindingContext context,
@@ -1404,25 +1377,25 @@ internal abstract class Binder
     {
         var arguments = GetOverloadArguments(syntax, context, cancellationToken);
 
-        var (overload, realArgs) = ResolveOverload(
-            overloads,
-            arguments,
-            syntax.Callee.Location,
-            context
-        );
+        var (overload, realArgs) = ResolveOverload(overloads, arguments, syntax.Callee, context);
         return new BoundInvocation(syntax, overload, realArgs);
     }
 
-    private ImmutableArray<BoundExpression> GetOverloadArguments(
+    private readonly record struct CallArgument(string? Name, BoundExpression Expression);
+
+    private ImmutableArray<CallArgument> GetOverloadArguments(
         InvocationExpressionSyntax syntax,
         BindingContext context,
         CancellationToken cancellationToken
     )
     {
-        var arguments = new BoundExpression[syntax.Arguments.Arguments.Count];
+        var arguments = new CallArgument[syntax.Arguments.Arguments.Count];
         foreach (var (i, argumentSyntax) in syntax.Arguments.Arguments.AsValueEnumerable().Index())
         {
-            arguments[i] = BindExpression(argumentSyntax.Value, true, context, cancellationToken);
+            arguments[i] = new CallArgument(
+                argumentSyntax.Name?.Name.IdentifierName,
+                BindExpression(argumentSyntax.Value, true, context, cancellationToken)
+            );
         }
 
         return ImmutableCollectionsMarshal.AsImmutableArray(arguments);
@@ -1898,24 +1871,32 @@ internal abstract class Binder
 
     private ResolvedOverload ResolveOverload(
         LookupResult result,
-        ImmutableArray<BoundExpression> arguments,
-        Location location,
+        ImmutableArray<CallArgument> arguments,
+        SyntaxNode overloadSyntax,
         BindingContext context
     )
     {
-        // TODO: We need to eventually actually resolve named/default parameters
-        var matchesArgSize = false;
+        var hadStructurallyCallableCandidate = false;
         var exactMatches = new List<ResolvedOverload>();
         var convertibleMatches = new List<ResolvedOverload>();
 
+        var reportedPositionalArgumentsFirst = false;
         foreach (var overload in result.Symbols.AsValueEnumerable().Cast<FunctionSymbol>())
         {
-            if (overload.Parameters.Length != arguments.Length)
+            var mappedArguments = TryMapArgumentsToParameters(
+                overload,
+                arguments,
+                overloadSyntax,
+                ref reportedPositionalArgumentsFirst,
+                context
+            );
+            if (mappedArguments is null)
                 continue;
 
-            matchesArgSize = true;
+            hadStructurallyCallableCandidate = true;
 
-            if (TryMatchOverload(overload, arguments, context) is not var (resolved, isExact))
+            var mappedImmutable = ImmutableCollectionsMarshal.AsImmutableArray(mappedArguments);
+            if (TryMatchOverload(overload, mappedImmutable, context) is not var (resolved, isExact))
             {
                 continue;
             }
@@ -1938,7 +1919,10 @@ internal abstract class Binder
             {
                 var match = exactMatches[0];
                 context.ReportDiagnostic(
-                    Diagnostic.AmbiguousOverloadDefined(location, GetTypeNames(match.Arguments))
+                    Diagnostic.AmbiguousOverloadDefined(
+                        overloadSyntax.Location,
+                        GetTypeNames(match.Arguments)
+                    )
                 );
                 return match;
             }
@@ -1949,21 +1933,136 @@ internal abstract class Binder
             case 1:
                 return convertibleMatches[0];
             case > 1:
-                arguments = RealizeSpeculativeBindingForDiagnostics(arguments, context);
+                var realized = RealizeSpeculativeBindingForDiagnostics(arguments, context);
                 context.ReportDiagnostic(
-                    Diagnostic.AmbiguousOverloadDefined(location, GetTypeNames(arguments))
+                    Diagnostic.AmbiguousOverloadDefined(
+                        overloadSyntax.Location,
+                        GetTypeNames(realized)
+                    )
                 );
                 return convertibleMatches[0];
         }
 
-        arguments = RealizeSpeculativeBindingForDiagnostics(arguments, context);
-        context.ReportDiagnostic(
-            matchesArgSize
-                ? Diagnostic.NoOverloadForArgTypes(location, GetTypeNames(arguments))
-                : Diagnostic.NoOverloadMatchingArgCount(location, arguments.Length)
-        );
+        var diagnosticArguments = RealizeSpeculativeBindingForDiagnostics(arguments, context);
+        if (!reportedPositionalArgumentsFirst)
+        {
+            context.ReportDiagnostic(
+                hadStructurallyCallableCandidate
+                    ? Diagnostic.NoOverloadForArgTypes(
+                        overloadSyntax.Location,
+                        GetTypeNames(diagnosticArguments)
+                    )
+                    : Diagnostic.NoOverloadMatchingArgCount(
+                        overloadSyntax.Location,
+                        arguments.Length
+                    )
+            );
+        }
 
-        return new ResolvedOverload((FunctionSymbol)result.Symbols[0], arguments);
+        return new ResolvedOverload((FunctionSymbol)result.Symbols[0], diagnosticArguments);
+    }
+
+    private static BoundExpression[]? TryMapArgumentsToParameters(
+        FunctionSymbol overload,
+        ImmutableArray<CallArgument> callArguments,
+        SyntaxNode fallbackSyntax,
+        ref bool reportedPositionalArgumentsFirst,
+        BindingContext context
+    )
+    {
+        var parameterCount = overload.Parameters.Length;
+        var mapped = new BoundExpression?[parameterCount];
+        var seenNamedArgument = false;
+
+        foreach (var arg in callArguments)
+        {
+            if (arg.Name is null)
+            {
+                if (seenNamedArgument)
+                {
+                    if (reportedPositionalArgumentsFirst)
+                        return null;
+
+                    context.ReportDiagnostic(
+                        Diagnostic.PositionalArgumentsFirst(arg.Expression.Syntax.Location)
+                    );
+                    reportedPositionalArgumentsFirst = true;
+                    return null;
+                }
+
+                var index = GetNextUnassignedParameterIndex(mapped);
+                if (index < 0)
+                    return null;
+
+                mapped[index] = arg.Expression;
+            }
+            else
+            {
+                seenNamedArgument = true;
+
+                var index = FindParameterIndexByName(overload, arg.Name);
+                if (index < 0 || mapped[index] is not null)
+                    return null;
+
+                mapped[index] = arg.Expression;
+            }
+        }
+
+        for (var i = 0; i < parameterCount; i++)
+        {
+            if (mapped[i] is not null)
+                continue;
+
+            var defaultValue = GetDefaultValue(overload.Parameters[i], fallbackSyntax);
+            if (defaultValue is null)
+                return null;
+
+            mapped[i] = defaultValue;
+        }
+
+        return mapped!;
+    }
+
+    private static int FindParameterIndexByName(FunctionSymbol overload, string name)
+    {
+        foreach (var (i, parameter) in overload.Parameters.AsValueEnumerable().Index())
+        {
+            if (parameter.Name == name)
+                return i;
+        }
+
+        return -1;
+    }
+
+    private static BoundExpression? GetDefaultValue(
+        ParameterSymbol parameter,
+        SyntaxNode fallbackSyntax
+    )
+    {
+        return parameter.DefaultValue switch
+        {
+            ConstantParameterDefault(var constant, var syntax) => new BoundLiteral(
+                syntax ?? fallbackSyntax,
+                parameter.Type,
+                constant
+            ),
+            NullParameterDefault(var syntax) => new BoundNullLiteral(
+                syntax ?? fallbackSyntax,
+                parameter.Type
+            ),
+            null => null,
+        };
+    }
+
+    private static int GetNextUnassignedParameterIndex(BoundExpression?[] mapped)
+    {
+        for (var i = 0; i < mapped.Length; i++)
+        {
+            if (mapped[i] is null)
+                return i;
+        }
+
+        return -1;
     }
 
     private OverloadResolutionResult? TryMatchOverload(
@@ -2042,32 +2141,17 @@ internal abstract class Binder
     }
 
     private ImmutableArray<BoundExpression> RealizeSpeculativeBindingForDiagnostics(
-        ImmutableArray<BoundExpression> arguments,
+        ImmutableArray<CallArgument> arguments,
         BindingContext context
     )
     {
-        BoundExpression[]? remappedArgs = null;
+        var realized = new BoundExpression[arguments.Length];
         foreach (var (i, argument) in arguments.AsValueEnumerable().Index())
         {
-            if (argument is not BoundSpeculativeExpression speculative)
-            {
-                continue;
-            }
-
-            var newExpression = ApplySpeculativeBinding(speculative, null, context);
-
-            if (remappedArgs is null)
-            {
-                remappedArgs = new BoundExpression[arguments.Length];
-                arguments.CopyTo(remappedArgs);
-            }
-
-            remappedArgs[i] = newExpression;
+            realized[i] = ApplySpeculativeBinding(argument.Expression, null, context);
         }
 
-        return remappedArgs is not null
-            ? ImmutableCollectionsMarshal.AsImmutableArray(remappedArgs)
-            : arguments;
+        return ImmutableCollectionsMarshal.AsImmutableArray(realized);
     }
 
     private BoundExpression ApplySpeculativeBinding(
