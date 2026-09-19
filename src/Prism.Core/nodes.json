@@ -779,6 +779,12 @@
           "properties": [
             {
               "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
               "name": "name",
               "type": "NamedParameter",
               "shape": "optional"
@@ -895,6 +901,55 @@
               "name": "statement",
               "type": "Statement",
               "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "AttributeList",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "open_bracket",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenBracketToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "attributes",
+              "type": "Attribute",
+              "shape": "separated_list",
+              "separators": [
+                "CommaToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "close_bracket",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenBracketToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Attribute",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "name",
+              "type": "Name",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "arguments",
+              "type": "ArgumentList",
+              "shape": "optional"
             }
           ]
         }
@@ -1741,6 +1796,12 @@
           "properties": [
             {
               "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
               "name": "modifiers",
               "type": "Token",
               "shape": "list"
@@ -1751,6 +1812,12 @@
           "name": "IncompleteDeclaration",
           "base": "Declaration",
           "properties": [
+            {
+              "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
             {
               "$type": "item",
               "name": "modifiers",
@@ -1796,6 +1863,12 @@
           "name": "BlockNamespaceDeclaration",
           "base": "NamespaceDeclaration",
           "properties": [
+            {
+              "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
             {
               "$type": "item",
               "name": "modifiers",
@@ -1853,6 +1926,12 @@
           "name": "FileScopedNamespaceDeclaration",
           "base": "NamespaceDeclaration",
           "properties": [
+            {
+              "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
             {
               "$type": "item",
               "name": "modifiers",
@@ -1939,6 +2018,12 @@
           "properties": [
             {
               "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
               "name": "modifiers",
               "type": "Token",
               "shape": "list",
@@ -1983,6 +2068,12 @@
           "name": "GlobalVariableDeclaration",
           "base": "VariableDeclaration",
           "properties": [
+            {
+              "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
             {
               "$type": "item",
               "name": "modifiers",
@@ -2038,6 +2129,12 @@
           "name": "FunctionDeclaration",
           "base": "Declaration",
           "properties": [
+            {
+              "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
             {
               "$type": "item",
               "name": "modifiers",
@@ -2118,6 +2215,12 @@
           "name": "AttributeDeclaration",
           "base": "Declaration",
           "properties": [
+            {
+              "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
             {
               "$type": "item",
               "name": "modifiers",

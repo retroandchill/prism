@@ -53,18 +53,20 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
     public GreenDeclaration ParseTopLevelDeclaration()
     {
+        var attributes = ParseAttributes();
         var modifiers = ParseModifiers(ContextualModifiers.File);
         return PeekToken().Kind switch
         {
-            SyntaxKind.NamespaceKeyword => ParseNamespaceDeclaration(modifiers),
-            SyntaxKind.VarKeyword => ParseGlobalVariableDeclaration(modifiers),
-            SyntaxKind.FuncKeyword => ParseFunctionDeclaration(modifiers),
-            SyntaxKind.AttributeKeyword => ParseAttributeDeclaration(modifiers),
-            _ => new GreenIncompleteDeclaration(modifiers),
+            SyntaxKind.NamespaceKeyword => ParseNamespaceDeclaration(attributes, modifiers),
+            SyntaxKind.VarKeyword => ParseGlobalVariableDeclaration(attributes, modifiers),
+            SyntaxKind.FuncKeyword => ParseFunctionDeclaration(attributes, modifiers),
+            SyntaxKind.AttributeKeyword => ParseAttributeDeclaration(attributes, modifiers),
+            _ => new GreenIncompleteDeclaration(attributes, modifiers),
         };
     }
 
     private GreenNamespaceDeclaration ParseNamespaceDeclaration(
+        GreenSyntaxList<GreenAttributeList> attributes,
         GreenSyntaxList<GreenToken> modifiers
     )
     {
@@ -75,6 +77,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         {
             var (usings, members) = ParseNamespaceBody();
             return new GreenFileScopedNamespaceDeclaration(
+                attributes,
                 modifiers,
                 namespaceKeyword,
                 identifier,
@@ -88,6 +91,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             var openBrace = ExpectToken(SyntaxKind.OpenBraceToken);
             var (usings, members) = ParseNamespaceBody(t => t.Kind != SyntaxKind.CloseBraceToken);
             return new GreenBlockNamespaceDeclaration(
+                attributes,
                 modifiers,
                 namespaceKeyword,
                 identifier,
@@ -100,10 +104,12 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     }
 
     private GreenGlobalVariableDeclaration ParseGlobalVariableDeclaration(
-        GreenSyntaxList<GreenToken> modifiers = default
+        GreenSyntaxList<GreenAttributeList> attributes,
+        GreenSyntaxList<GreenToken> modifiers
     )
     {
         return new GreenGlobalVariableDeclaration(
+            attributes,
             modifiers,
             ExpectToken(SyntaxKind.VarKeyword),
             ExpectToken(SyntaxKind.IdentifierToken),
@@ -129,6 +135,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         }
 
         return new GreenLocalVariableDeclaration(
+            [],
             modifiers,
             ExpectToken(SyntaxKind.VarKeyword),
             ExpectToken(SyntaxKind.IdentifierToken),
@@ -137,7 +144,10 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         );
     }
 
-    private GreenFunctionDeclaration ParseFunctionDeclaration(GreenSyntaxList<GreenToken> modifiers)
+    private GreenFunctionDeclaration ParseFunctionDeclaration(
+        GreenSyntaxList<GreenAttributeList> attributes,
+        GreenSyntaxList<GreenToken> modifiers
+    )
     {
         var funcKeyword = ExpectToken(SyntaxKind.FuncKeyword);
         var name = ExpectToken(SyntaxKind.IdentifierToken);
@@ -160,6 +170,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         };
 
         return new GreenFunctionDeclaration(
+            attributes,
             modifiers,
             funcKeyword,
             name,
@@ -172,6 +183,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     }
 
     private GreenAttributeDeclaration ParseAttributeDeclaration(
+        GreenSyntaxList<GreenAttributeList> attributes,
         GreenSyntaxList<GreenToken> modifiers
     )
     {
@@ -181,7 +193,14 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             PeekToken().Kind == SyntaxKind.OpenParenToken ? ParseParameterList() : null;
         var semicolon = ExpectToken(SyntaxKind.SemicolonToken);
 
-        return new GreenAttributeDeclaration(modifiers, keyword, identifier, parameters, semicolon);
+        return new GreenAttributeDeclaration(
+            attributes,
+            modifiers,
+            keyword,
+            identifier,
+            parameters,
+            semicolon
+        );
     }
 
     public GreenStatement ParseStatement()
@@ -544,6 +563,52 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         );
     }
 
+    private GreenSyntaxList<GreenAttributeList> ParseAttributes()
+    {
+        var builder = GreenSyntaxList.CreateBuilder<GreenAttributeList>();
+        while (!AtEnd)
+        {
+            var next = PeekToken();
+            if (next.Kind != SyntaxKind.OpenBracketToken)
+                break;
+
+            builder.Add(ParseAttributeList());
+        }
+
+        return builder.BuildAndClear();
+    }
+
+    private GreenAttributeList ParseAttributeList()
+    {
+        var openBracket = ExpectToken(SyntaxKind.OpenBracketToken);
+        var attributes = GreenSeparatedList.CreateBuilder<GreenAttribute>();
+        while (!AtEnd)
+        {
+            if (PeekToken().Kind != SyntaxKind.IdentifierToken)
+            {
+                break;
+            }
+
+            var name = ParseName();
+            var arguments =
+                PeekToken().Kind == SyntaxKind.OpenParenToken ? ParseArgumentList() : null;
+            attributes.AddItem(new GreenAttribute(name, arguments));
+
+            if (PeekToken().Kind != SyntaxKind.CommaToken)
+            {
+                break;
+            }
+
+            attributes.AddSeparator(ConsumeToken());
+        }
+
+        return new GreenAttributeList(
+            openBracket,
+            attributes.BuildAndClear(),
+            ExpectToken(SyntaxKind.CloseBracketToken)
+        );
+    }
+
     private GreenSyntaxList<GreenToken> ParseModifiers(
         ContextualModifiers contextualModifiers = ContextualModifiers.None
     )
@@ -740,7 +805,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
     private GreenArgument ParseArgument()
     {
-        return new GreenArgument(ParseNamedParameter(), ParseExpression());
+        return new GreenArgument(ParseAttributes(), ParseNamedParameter(), ParseExpression());
     }
 
     private GreenNamedParameter? ParseNamedParameter()
