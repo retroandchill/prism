@@ -761,6 +761,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
             builder.AddItem(
                 new GreenParameter(
+                    ParseAttributes(),
                     MatchToken(SyntaxKind.MutableKeyword),
                     ExpectToken(SyntaxKind.IdentifierToken),
                     ParseRequiredTypeSpecifier(),
@@ -805,7 +806,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
     private GreenArgument ParseArgument()
     {
-        return new GreenArgument(ParseAttributes(), ParseNamedParameter(), ParseExpression());
+        return new GreenArgument(ParseNamedParameter(), ParseExpression());
     }
 
     private GreenNamedParameter? ParseNamedParameter()

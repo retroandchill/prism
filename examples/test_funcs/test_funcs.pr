@@ -135,12 +135,29 @@ func print_char_array(array: char[]&) {
     print(array);
 }
 
-func nullable_checks(cond: bool) {
+func nullable_checks(cond: bool): i32? {
     mutable var x: i32? = null;
     var y: i32? = cond ? 3 : null;
     x = 4;
+    return y;
 }
 
 func nullable_arithmetic_check(x: i32?, y: i32?): i32 {
     return x != null && y != null ? x + y : 0;
+}
+
+func handle_nullable_reference(x: i32&?) {
+
+}
+
+func handle_nullable_span(msg: str&?) {
+    if (msg != null) {
+        print(msg);
+    }
+}
+
+func optional_bool(cond: bool?) {
+    if (cond != null) {
+        print("Hello world!");
+    }
 }

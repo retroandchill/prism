@@ -1,17 +1,23 @@
 ﻿namespace Prism.Core.Semantic.Layout;
 
+internal readonly record struct TypeLayoutInfo(ulong Size, ulong Alignment)
+{
+    public TypeLayoutInfo(ulong sizeAndAlignment)
+        : this(sizeAndAlignment, sizeAndAlignment) { }
+
+    public static TypeLayoutInfo Empty => new(0, 0);
+}
+
 public closed class TypeLayout
 {
-    private protected TypeLayout(int size, int alignment)
+    private protected TypeLayout(TypeLayoutInfo info)
     {
-        Size = size;
-        Alignment = alignment;
+        Info = info;
     }
 
-    private protected TypeLayout(int size)
-        : this(size, size) { }
+    internal TypeLayoutInfo Info { get; }
 
-    public int Size { get; }
+    public ulong Size => Info.Size;
 
-    public int Alignment { get; }
+    public ulong Alignment => Info.Alignment;
 }

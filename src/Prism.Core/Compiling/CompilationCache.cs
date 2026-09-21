@@ -5,6 +5,7 @@ using Prism.Core.Abi;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Semantic;
+using Prism.Core.Semantic.Layout;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Error;
 using Prism.Core.Syntax;
@@ -33,6 +34,9 @@ internal sealed class CompilationCache(Compilation compilation)
     private readonly ConcurrentDictionary<ReferenceLookupKey, ReferenceTypeSymbol> _referenceTypes =
         new();
     private readonly ConcurrentDictionary<TypeSymbol, NullableTypeSymbol> _nullableTypes = new(
+        ReferenceEqualityComparer.Instance
+    );
+    private readonly ConcurrentDictionary<TypeSymbol, TypeLayout> _typeLayouts = new(
         ReferenceEqualityComparer.Instance
     );
     private readonly ConcurrentDictionary<SymbolLookupKey, NamedTypeSymbol> _errorTypes = new();
@@ -114,6 +118,18 @@ internal sealed class CompilationCache(Compilation compilation)
         return _nullableTypes.GetOrAdd(elementType, static e => new NullableTypeSymbol(e));
     }
 
+    public TypeLayout GetTypeLayout(TypeSymbol typeSymbol, CancellationToken cancellationToken)
+    {
+        return !typeSymbol.IsDynamicallySized
+            ? _typeLayouts.GetOrAdd(
+                typeSymbol,
+                static (s, t) =>
+                    LayoutCalculator.GetTypeLayout(t.compilation, s, t.cancellationToken),
+                (compilation, cancellationToken)
+            )
+            : throw new InvalidOperationException("Cannot get layout of dynamically sized type");
+    }
+
     public NamedTypeSymbol CreateErrorTypeSymbol(Symbol? container, string name)
     {
         var key = new SymbolLookupKey(container, name);
@@ -123,10 +139,10 @@ internal sealed class CompilationCache(Compilation compilation)
     public NamespaceSymbol CreateErrorNamespaceSymbol(NamespaceSymbol? container, string name)
     {
         var key = new SymbolLookupKey(container, name);
-        return _errorNamespaces.GetOrAdd(
-            key,
-            static k => new ErrorNamespaceSymbol(k.Name, k.Container)
-        );
+        return _errorNamespaces.GetOrAdd(key, static k => new ErrorNamespaceSymbol(
+            k.Name,
+            k.Container
+        ));
     }
 
     public BinderFactory GetBinderFactory(SyntaxTree syntaxTree)

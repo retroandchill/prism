@@ -9,6 +9,7 @@ using Prism.Core.Configuration;
 using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
 using Prism.Core.Semantic;
+using Prism.Core.Semantic.Layout;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Intrinsic;
 using Prism.Core.Symbols.Source;
@@ -129,6 +130,14 @@ public class Compilation
     public NullableTypeSymbol CreateNullableTypeSymbol(TypeSymbol elementType)
     {
         return Cache.CreateNullableTypeSymbol(elementType);
+    }
+
+    public TypeLayout GetTypeLayout(
+        TypeSymbol typeSymbol,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return Cache.GetTypeLayout(typeSymbol, cancellationToken);
     }
 
     public NamedTypeSymbol CreateErrorTypeSymbol(Symbol? containingSymbol, string name)

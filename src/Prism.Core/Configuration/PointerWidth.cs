@@ -13,6 +13,6 @@ public static partial class PointerWidthExtensions
 {
     extension(PointerWidth width)
     {
-        public int BitWidth => width.AsUnderlyingType();
+        public ushort BitWidth => width.AsUnderlyingType();
     }
 }

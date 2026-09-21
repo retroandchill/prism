@@ -779,12 +779,6 @@
           "properties": [
             {
               "$type": "item",
-              "name": "attributes",
-              "type": "AttributeList",
-              "shape": "list"
-            },
-            {
-              "$type": "item",
               "name": "name",
               "type": "NamedParameter",
               "shape": "optional"
@@ -832,6 +826,12 @@
         {
           "name": "Parameter",
           "properties": [
+            {
+              "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
             {
               "$type": "item",
               "name": "mutable_keyword",

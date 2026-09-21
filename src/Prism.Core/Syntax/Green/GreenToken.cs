@@ -141,7 +141,7 @@ internal class GreenToken : GreenNode
 
     private static ImmutableArray<GreenToken> GetMissingTokenList(SyntaxKind start, SyntaxKind end)
     {
-        var size = end.AsUnderlyingType() - start.AsUnderlyingType();
+        var size = end.AsUnderlyingType() - start.AsUnderlyingType() + 1;
         Debug.Assert(size > 0);
         var result = new GreenToken[size];
         for (var i = 0; i < size; i++)

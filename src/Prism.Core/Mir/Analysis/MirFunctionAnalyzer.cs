@@ -419,6 +419,9 @@ internal sealed class MirFunctionAnalyzer
         MirControlFlowGraph cfg
     )
     {
+        if (builder.Local.Symbol is null)
+            return false;
+
         foreach (var defBlock in builder.DefBlocks.Distinct())
         {
             if (IsInCycle(defBlock, cfg))

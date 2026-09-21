@@ -16,6 +16,7 @@ using Prism.Core.Diagnostics;
 using Prism.Core.Mir;
 using Prism.Core.Mir.Analysis;
 using Prism.Core.Semantic;
+using Prism.Core.Semantic.Layout;
 using Prism.Core.Symbols;
 using ZLinq;
 
@@ -36,7 +37,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         ReferenceEqualityComparer.Instance
     );
 
-    private readonly Dictionary<TypeSymbol, LLVMTypeRef> _symbolToType = new(
+    private readonly Dictionary<TypeLayout, LLVMTypeRef> _layoutToType = new(
         ReferenceEqualityComparer.Instance
     );
 
@@ -296,72 +297,56 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
     private LLVMTypeRef GetOrCreateType(TypeSymbol symbol)
     {
-        if (_symbolToType.TryGetValue(symbol, out var type))
+        if (symbol.IsVoid)
+            return _context.VoidType;
+
+        var layout = _compilation.GetTypeLayout(symbol);
+        return GetOrCreateType(layout);
+    }
+
+    private LLVMTypeRef GetOrCreateType(TypeLayout layout)
+    {
+        if (_layoutToType.TryGetValue(layout, out var type))
         {
             return type;
         }
 
-        type = CreateType(symbol);
-        _symbolToType[symbol] = type;
+        type = CreateType(layout);
+        _layoutToType[layout] = type;
         return type;
     }
 
-    private LLVMTypeRef CreateType(TypeSymbol symbol)
+    private LLVMTypeRef CreateType(TypeLayout layout)
     {
-        switch (symbol)
+        return layout switch
         {
-            case ReferenceTypeSymbol { ReferencedType: var referencedType }:
+            EmptyLayout => _context.VoidType,
+            IntegerLayout integer => _context.GetIntType((uint)integer.BitWidth),
+            FloatLayout floating => floating.Kind switch
             {
-                var pointer = _context.CreatePointerType(0);
-                if (referencedType.IsDynamicallySized)
-                {
-                    return LLVMTypeRef.CreateStruct(
-                        [pointer, GetOrCreateType(_compilation.GetSpecialType(SpecialType.USize))],
-                        false
-                    );
-                }
-
-                return pointer;
-            }
-            case ArrayTypeSymbol { ElementType: var elementType, Size: { } size }:
-                return LLVMTypeRef.CreateArray2(GetOrCreateType(elementType), size);
-            case NullableTypeSymbol { ElementType: var elementType }:
-            {
-                var nonNullType = GetOrCreateType(elementType);
-                if (elementType is ReferenceTypeSymbol)
-                {
-                    // Nullable reference types are represented the same
-                    return nonNullType;
-                }
-
-                return LLVMTypeRef.CreateStruct(
-                    [nonNullType, GetOrCreateType(_compilation.GetSpecialType(SpecialType.Bool))],
-                    false
-                );
-            }
-            default:
-                return symbol.SpecialType switch
-                {
-                    SpecialType.Void => _context.VoidType,
-                    SpecialType.Bool or SpecialType.I8 or SpecialType.U8 or SpecialType.Char =>
-                        _context.Int8Type,
-                    SpecialType.I16 or SpecialType.U16 or SpecialType.Char16 => _context.Int16Type,
-                    SpecialType.I32 or SpecialType.U32 or SpecialType.Rune => _context.Int32Type,
-                    SpecialType.I64 or SpecialType.U64 => _context.Int64Type,
-                    SpecialType.I128 or SpecialType.U128 => _context.Int128Type,
-                    SpecialType.ISize or SpecialType.USize => _compilation
-                        .Settings
-                        .PointerWidth switch
-                    {
-                        PointerWidth.X32 => _context.Int32Type,
-                        PointerWidth.X64 => _context.Int64Type,
-                        _ => throw new InvalidOperationException("Invalid pointer width"),
-                    },
-                    SpecialType.F32 => _context.FloatType,
-                    SpecialType.F64 => _context.DoubleType,
-                    _ => throw new NotImplementedException(),
-                };
-        }
+                FloatKind.Half => _context.HalfType,
+                FloatKind.Single => _context.FloatType,
+                FloatKind.Double => _context.DoubleType,
+                FloatKind.FP128 => _context.FP128Type,
+                FloatKind.X86_FP80 => _context.X86FP80Type,
+                _ => throw new ArgumentException("Invalid floating point kind"),
+            },
+            PointerLayout pointer => _context.CreatePointerType(pointer.AddressSpace),
+            ArrayLayout arrayLayout => LLVMTypeRef.CreateArray2(
+                GetOrCreateType(arrayLayout.ElementType),
+                arrayLayout.ElementCount
+            ),
+            StructLayout structLayout => _context.GetStructType(
+                structLayout.Fields.Select(f => GetOrCreateType(f.Type)).ToArray(),
+                structLayout.IsPacked
+            ),
+            TaggedNullableLayout nullableLayout => GetOrCreateType(
+                nullableLayout.StructRepresentation
+            ),
+            OptimizedNullableLayout nullableLayout => GetOrCreateType(
+                nullableLayout.UnderlyingLayout
+            ),
+        };
     }
 
     private LLVMValueRef MakeConstant(in ConstantValue value)
@@ -486,7 +471,9 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 var rawParam = context.LlvmFunction.GetParam(paramIndex);
                 if (classification.StorageKind == MirLocalStorageKind.Memory)
                 {
-                    var alloca = _builder.BuildAlloca(GetOrCreateType(local.Type), local.Name);
+                    var layout = _compilation.GetTypeLayout(local.Type);
+                    var alloca = _builder.BuildAlloca(GetOrCreateType(layout), local.Name);
+                    alloca.SetAlignment((uint)layout.Alignment);
                     context.BindLocal(local.Id, alloca);
                     _builder.BuildStore(rawParam, alloca);
                 }
@@ -499,7 +486,9 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             }
             else if (classification.StorageKind == MirLocalStorageKind.Memory)
             {
-                var alloca = _builder.BuildAlloca(GetOrCreateType(local.Type), local.Name);
+                var layout = _compilation.GetTypeLayout(local.Type);
+                var alloca = _builder.BuildAlloca(GetOrCreateType(layout), local.Name);
+                alloca.SetAlignment((uint)layout.Alignment);
                 context.BindLocal(local.Id, alloca);
             }
         }
@@ -736,6 +725,10 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                     argument.Parameter.Name,
                     context
                 );
+
+                var layout = _compilation.GetTypeLayout(argument.Parameter.Type);
+                destination.SetAlignment((uint)layout.Alignment);
+
                 _builder.BuildStore(llvmValue, destination);
                 parameters[i + offsetIndex] = destination;
             }
@@ -891,19 +884,126 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
     private void EmitIsNotNull(MirIsNotNullInstruction notNull, FunctionEmissionContext context)
     {
-        var underlyingType = (NullableTypeSymbol)notNull.Value.Type;
-        var llvmType = GetOrCreateType(underlyingType.ElementType);
+        var layout = (NullableLayout)_compilation.GetTypeLayout(notNull.Value.Type);
         var operand = GetValue(notNull.Value, context);
-        var notNullState =
-            underlyingType.ElementType is ReferenceTypeSymbol
-                ? _builder.BuildICmp(
-                    LLVMIntPredicate.LLVMIntNE,
-                    operand,
-                    LLVMValueRef.CreateConstNull(llvmType)
-                )
-                : ConvertByteBoolToI1IfNeeded(_builder.BuildExtractValue(operand, 1));
+        var notNullState = layout switch
+        {
+            TaggedNullableLayout => ConvertByteBoolToI1IfNeeded(
+                _builder.BuildExtractValue(operand, 0)
+            ),
+            OptimizedNullableLayout optimized => CompareToOptimizedNullValue(operand, optimized),
+        };
 
         EmitWriteToDest(notNull.Destination, notNullState, context);
+    }
+
+    private LLVMValueRef CreateTaggedNullValue(TaggedNullableLayout layout)
+    {
+        return LLVMValueRef.CreateConstNull(GetOrCreateType(layout));
+    }
+
+    private LLVMValueRef CompareToOptimizedNullValue(
+        LLVMValueRef operand,
+        OptimizedNullableLayout layout
+    )
+    {
+        return CompareToOptimizedNullValue(operand, layout.NullValue, layout.UnderlyingLayout);
+    }
+
+    private LLVMValueRef CompareToOptimizedNullValue(
+        LLVMValueRef operand,
+        NullValue value,
+        TypeLayout underlyingType
+    )
+    {
+        return value switch
+        {
+            ScalarNullValue scalar => CompareToOptimizedNullValue(operand, scalar, underlyingType),
+            CompositeNullValue composite => CompareToOptimizedNullValue(
+                operand,
+                composite,
+                underlyingType
+            ),
+        };
+    }
+
+    private LLVMValueRef CompareToOptimizedNullValue(
+        LLVMValueRef operand,
+        ScalarNullValue scalar,
+        TypeLayout underlyingType
+    )
+    {
+        var comparand = CreateOptimizedNullValue(scalar, underlyingType);
+        return _builder.BuildICmp(LLVMIntPredicate.LLVMIntNE, operand, comparand);
+    }
+
+    private LLVMValueRef CompareToOptimizedNullValue(
+        LLVMValueRef operand,
+        CompositeNullValue composite,
+        TypeLayout underlyingType
+    )
+    {
+        var fieldType = ((StructLayout)underlyingType).Fields[composite.FieldIndex].Type;
+        return CompareToOptimizedNullValue(
+            _builder.BuildExtractValue(operand, (uint)composite.FieldIndex),
+            composite.Value,
+            fieldType
+        );
+    }
+
+    private LLVMValueRef CreateOptimizedNullValue(NullValue value, TypeLayout underlyingType)
+    {
+        return value switch
+        {
+            ScalarNullValue scalar => CreateOptimizedNullValue(scalar, underlyingType),
+            CompositeNullValue composite => CreateOptimizedNullValue(composite, underlyingType),
+        };
+    }
+
+    private LLVMValueRef CreateOptimizedNullValue(ScalarNullValue scalar, TypeLayout underlyingType)
+    {
+        var llvmType = GetOrCreateType(underlyingType);
+        return underlyingType switch
+        {
+            IntegerLayout => LLVMValueRef.CreateConstInt(llvmType, scalar.BitPattern),
+            PointerLayout pointer => scalar.BitPattern == 0
+                ? LLVMValueRef.CreateConstPointerNull(llvmType)
+                : LLVMValueRef.CreateConstPointerCast(
+                    LLVMValueRef.CreateConstInt(
+                        _context.GetIntType((uint)pointer.BitWidth),
+                        scalar.BitPattern
+                    ),
+                    llvmType
+                ),
+            _ => throw new InvalidOperationException("Cannot have an optimized scalar null value"),
+        };
+    }
+
+    private LLVMValueRef CreateOptimizedNullValue(
+        CompositeNullValue composite,
+        TypeLayout underlyingType
+    )
+    {
+        var llvmType = GetOrCreateType(underlyingType);
+        var structType = (StructLayout)underlyingType;
+        var fieldType = structType.Fields[composite.FieldIndex].Type;
+        var keyValue = CreateOptimizedNullValue(composite.Value, fieldType);
+        if (keyValue.IsNull)
+            return LLVMValueRef.CreateConstNull(llvmType);
+
+        var fieldCount = llvmType.StructElementTypesCount;
+        Span<LLVMValueRef> elements = new LLVMValueRef[fieldCount];
+        for (var i = 0; i < fieldCount; i++)
+        {
+            var elementType = structType.Fields[i].Type;
+            var llvmElementType = GetOrCreateType(elementType);
+            elements[i] =
+                i == composite.FieldIndex
+                    ? keyValue
+                    : LLVMValueRef.CreateConstNull(llvmElementType);
+        }
+
+        return LLVMValueRef.CreateConstStruct(elements, false);
     }
 
     private void EmitGetNullablePayload(
@@ -911,11 +1011,11 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         FunctionEmissionContext context
     )
     {
-        var underlyingType = (NullableTypeSymbol)getNullablePayload.Value.Type;
+        var layout = (NullableLayout)_compilation.GetTypeLayout(getNullablePayload.Value.Type);
         var value = GetValue(getNullablePayload.Value, context);
-        if (underlyingType.ElementType is not ReferenceTypeSymbol)
+        if (layout is TaggedNullableLayout)
         {
-            value = _builder.BuildExtractValue(value, 0);
+            value = _builder.BuildExtractValue(value, 1);
         }
 
         EmitWriteToDest(getNullablePayload.Destination, value, context);
@@ -926,27 +1026,27 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         FunctionEmissionContext context
     )
     {
-        var underlyingType = (NullableTypeSymbol)makeNullable.Destination.Type;
-        var structType = GetOrCreateType(underlyingType);
+        var layout = (NullableLayout)_compilation.GetTypeLayout(makeNullable.Destination.Type);
+        var structType = GetOrCreateType(layout);
         LLVMValueRef value;
         if (makeNullable.Payload is not null)
         {
             value = GetValue(makeNullable.Payload, context);
-            if (underlyingType.ElementType is not ReferenceTypeSymbol)
+            if (layout is TaggedNullableLayout)
             {
                 var nullableValue = structType.Undef;
-                nullableValue = _builder.BuildInsertValue(nullableValue, value, 0);
 
-                var lengthValue = LLVMValueRef.CreateConstInt(
+                var hasValue = LLVMValueRef.CreateConstInt(
                     GetOrCreateType(_compilation.GetSpecialType(SpecialType.Bool)),
                     1
                 );
-                value = _builder.BuildInsertValue(nullableValue, lengthValue, 1);
+                nullableValue = _builder.BuildInsertValue(nullableValue, hasValue, 0);
+                value = _builder.BuildInsertValue(nullableValue, value, 1);
             }
         }
         else
         {
-            value = LLVMValueRef.CreateConstNull(structType);
+            value = GetNullValue(layout);
         }
 
         EmitWriteToDest(makeNullable.Destination, value, context);
@@ -1030,9 +1130,27 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         {
             MirAddressOfValue mirAddressOfValue => EmitTakeAddress(mirAddressOfValue, context),
             MirConstantValue mirConstantValue => MakeConstant(mirConstantValue.Constant),
-            MirNullValue nullValue => LLVMValueRef.CreateConstNull(GetOrCreateType(nullValue.Type)),
+            MirNullValue nullValue => GetNullValue(nullValue),
             MirVoidValue => throw new InvalidOperationException("Cannot get a null value"),
             MirReadValue mirReadValue => EmitReadValue(mirReadValue, context),
+        };
+    }
+
+    private LLVMValueRef GetNullValue(MirNullValue value)
+    {
+        var layout = (NullableLayout)_compilation.GetTypeLayout(value.Type);
+        return GetNullValue(layout);
+    }
+
+    private LLVMValueRef GetNullValue(NullableLayout layout)
+    {
+        return layout switch
+        {
+            TaggedNullableLayout tagged => CreateTaggedNullValue(tagged),
+            OptimizedNullableLayout optimizedNullableLayout => CreateOptimizedNullValue(
+                optimizedNullableLayout.NullValue,
+                optimizedNullableLayout.UnderlyingLayout
+            ),
         };
     }
 

@@ -708,10 +708,7 @@ internal sealed class MirEmitter(Compilation compilation)
         {
             var isEqualityCheck = operation == BinaryOperation.Equality;
 
-            if (
-                left.Type is NullableTypeSymbol { ElementType: not ReferenceTypeSymbol }
-                && rightValue.Type is NullableTypeSymbol { ElementType: not ReferenceTypeSymbol }
-            )
+            if (left.Type is NullableTypeSymbol && rightValue.Type is NullableTypeSymbol)
             {
                 MirPlace tempPlace;
                 if (isEqualityCheck)
