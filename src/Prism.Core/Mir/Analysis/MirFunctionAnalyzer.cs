@@ -151,7 +151,7 @@ internal sealed class MirFunctionAnalyzer
     {
         switch (instruction)
         {
-            case MirAssignInstruction assign:
+            case MirStoreInstruction assign:
                 AnalyzeWriteDestination(assign.Destination, blockId, builders);
                 AnalyzeValue(assign.Source, blockId, builders);
                 break;

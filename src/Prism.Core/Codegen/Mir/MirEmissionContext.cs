@@ -133,6 +133,11 @@ internal sealed class MirEmissionContext
         return _builder.AddTemporary(name, type);
     }
 
+    public MirSsaValue CreateSsaValue(TypeSymbol type)
+    {
+        return new MirSsaValue(_builder.NextValueId(), type);
+    }
+
     public void BindLoop(LabelSymbol label, MirBlockId breakTarget, MirBlockId continueTarget)
     {
         _loopTargets.Add(label, new MirLoopTargets(breakTarget, continueTarget, _scope));

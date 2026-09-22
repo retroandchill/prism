@@ -20,6 +20,7 @@ internal sealed class MirFunctionBuilder
 
     private int _nextLocalId;
     private int _nextBlockId;
+    private int _nextValueId;
     private MirBlockId? _entryBlock;
 
     public MirFunctionBuilder(FunctionSymbol function)
@@ -83,6 +84,11 @@ internal sealed class MirFunctionBuilder
             );
 
         _entryBlock = blockId;
+    }
+
+    public MirValueId NextValueId()
+    {
+        return new MirValueId(_nextValueId++);
     }
 
     public MirFunction Build()

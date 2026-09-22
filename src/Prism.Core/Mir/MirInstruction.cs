@@ -15,37 +15,43 @@ internal closed record MirInstruction
     public SourceLocation? Location { get; init; }
 }
 
-internal sealed record MirAssignInstruction(MirPlace Destination, MirValue Source) : MirInstruction;
+internal sealed record MirLoadInstruction(MirValueId Result, MirPlace Source) : MirInstruction;
 
-internal sealed record MirUnaryInstruction(MirPlace Destination, MirUnaryOp Op, MirValue Value)
+internal sealed record MirStoreInstruction(MirPlace Destination, MirValue Source) : MirInstruction;
+
+internal readonly record struct PhiSource(MirValue Value, MirBlockId Block);
+
+internal sealed record MirPhiInstruction(MirValueId Result, ImmutableArray<PhiSource> Sources)
+    : MirInstruction;
+
+internal sealed record MirUnaryInstruction(MirValueId Result, MirUnaryOp Op, MirValue Value)
     : MirInstruction;
 
 internal sealed record MirBinaryInstruction(
-    MirPlace Destination,
+    MirValueId Result,
     MirBinaryOp Op,
     MirValue Left,
     MirValue Right
 ) : MirInstruction;
 
 internal sealed record MirConvertInstruction(
-    MirPlace Destination,
+    MirValueId Result,
     Conversion Conversion,
     MirValue Value
 ) : MirInstruction;
 
 internal sealed record MirCallInstruction(
-    MirLocalPlace? Destination,
+    MirValueId? Result,
     FunctionSymbol Callee,
     ImmutableArray<MirValue> Arguments
 ) : MirInstruction;
 
-internal sealed record MirIsNotNullInstruction(MirPlace Destination, MirValue Value)
+internal sealed record MirIsNotNullInstruction(MirValueId Result, MirValue Value) : MirInstruction;
+
+internal sealed record MirGetNullablePayloadInstruction(MirValueId Result, MirValue Value)
     : MirInstruction;
 
-internal sealed record MirGetNullablePayloadInstruction(MirPlace Destination, MirValue Value)
-    : MirInstruction;
-
-internal sealed record MirMakeNullableInstruction(MirPlace Destination, MirValue? Payload)
+internal sealed record MirMakeNullableInstruction(MirValueId Result, MirValue? Payload)
     : MirInstruction;
 
 internal sealed record MirStorageLiveInstruction(MirLocalId LocalId) : MirInstruction;

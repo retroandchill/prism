@@ -528,7 +528,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     {
         switch (instruction)
         {
-            case MirAssignInstruction mirAssignInstruction:
+            case MirStoreInstruction mirAssignInstruction:
                 EmitAssignment(mirAssignInstruction, context);
                 break;
             case MirUnaryInstruction mirUnaryInstruction:
@@ -561,7 +561,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         }
     }
 
-    private void EmitAssignment(MirAssignInstruction assignment, FunctionEmissionContext context)
+    private void EmitAssignment(MirStoreInstruction assignment, FunctionEmissionContext context)
     {
         var source = GetValue(assignment.Source, context);
         EmitWriteToDest(assignment.Destination, source, context);
