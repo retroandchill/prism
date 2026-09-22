@@ -425,20 +425,23 @@ internal sealed class MirEmitter(Compilation compilation)
         };
     }
 
-    private static MirReadValue EmitAccess(BoundVariableAccess access, MirEmissionContext context)
+    private static MirSsaValue EmitAccess(BoundVariableAccess access, MirEmissionContext context)
     {
-        if (context.TryGetLocal(access.Symbol) is { } local)
-        {
-            return new MirReadValue(new MirLocalPlace(local.Id, local.Type));
-        }
-
-        return new MirReadValue(new MirGlobalPlace(access.Symbol));
+        var result = context.CreateSsaValue(access.Type);
+        MirPlace place = context.TryGetLocal(access.Symbol) is { } local
+            ? new MirLocalPlace(local.Id, local.Type)
+            : new MirGlobalPlace(access.Symbol);
+        context.CurrentBlock.AddInstruction(new MirLoadInstruction(result, place));
+        return result;
     }
 
-    private static MirReadValue EmitAccess(BoundParameterAccess access, MirEmissionContext context)
+    private static MirSsaValue EmitAccess(BoundParameterAccess access, MirEmissionContext context)
     {
+        var result = context.CreateSsaValue(access.Type);
         var local = context.GetLocal(access.Symbol);
-        return new MirReadValue(new MirLocalPlace(local.Id, local.Type));
+        var place = new MirLocalPlace(local.Id, local.Type);
+        context.CurrentBlock.AddInstruction(new MirLoadInstruction(result, place));
+        return result;
     }
 
     private MirValue EmitOperation(
@@ -522,7 +525,7 @@ internal sealed class MirEmitter(Compilation compilation)
         var operand = EmitExpression(operation.Operand, context, cancellationToken);
         var value = context.CreateSsaValue(operation.Type);
         context.CurrentBlock.AddInstruction(
-            new MirUnaryInstruction(value.Id, mirOp, operand) { Location = operation.Location }
+            new MirUnaryInstruction(value, mirOp, operand) { Location = operation.Location }
         );
         return value;
     }
@@ -540,7 +543,7 @@ internal sealed class MirEmitter(Compilation compilation)
 
         var oldValue = context.CreateSsaValue(valueType);
         context.CurrentBlock.AddInstruction(
-            new MirLoadInstruction(oldValue.Id, place) { Location = operation.Location }
+            new MirLoadInstruction(oldValue, place) { Location = operation.Location }
         );
 
         var one = CreateUnitConstant(operation.Operand.Type, valueType);
@@ -552,7 +555,7 @@ internal sealed class MirEmitter(Compilation compilation)
         };
         var newValue = context.CreateSsaValue(valueType);
         context.CurrentBlock.AddInstruction(
-            new MirBinaryInstruction(newValue.Id, binaryOp, oldValue, one)
+            new MirBinaryInstruction(newValue, binaryOp, oldValue, one)
             {
                 Location = operation.Location,
             }
@@ -664,7 +667,7 @@ internal sealed class MirEmitter(Compilation compilation)
         var result = context.CreateSsaValue(type);
         context.CurrentBlock.AddInstruction(
             new MirPhiInstruction(
-                result.Id,
+                result,
                 [new PhiSource(rightResult, evalNext.Id), new PhiSource(skipResult, evalSkip.Id)]
             )
         );
@@ -705,7 +708,7 @@ internal sealed class MirEmitter(Compilation compilation)
                 if (left is MirNullValue)
                 {
                     context.CurrentBlock.AddInstruction(
-                        new MirIsNotNullInstruction(nullCheckResult.Id, rightValue)
+                        new MirIsNotNullInstruction(nullCheckResult, rightValue)
                         {
                             Location = location,
                         }
@@ -714,10 +717,7 @@ internal sealed class MirEmitter(Compilation compilation)
                 else if (rightValue is MirNullValue)
                 {
                     context.CurrentBlock.AddInstruction(
-                        new MirIsNotNullInstruction(nullCheckResult.Id, left)
-                        {
-                            Location = location,
-                        }
+                        new MirIsNotNullInstruction(nullCheckResult, left) { Location = location }
                     );
                 }
 
@@ -727,7 +727,7 @@ internal sealed class MirEmitter(Compilation compilation)
                 var invertedNullCheck = context.CreateSsaValue(type);
                 context.CurrentBlock.AddInstruction(
                     new MirUnaryInstruction(
-                        invertedNullCheck.Id,
+                        invertedNullCheck,
                         MirUnaryOp.LogicalNot,
                         nullCheckResult
                     )
@@ -741,7 +741,7 @@ internal sealed class MirEmitter(Compilation compilation)
 
         var result = context.CreateSsaValue(type);
         context.CurrentBlock.AddInstruction(
-            new MirBinaryInstruction(result.Id, operation.ToMirBinaryOperation(), left, rightValue)
+            new MirBinaryInstruction(result, operation.ToMirBinaryOperation(), left, rightValue)
             {
                 Location = location,
             }
@@ -771,7 +771,8 @@ internal sealed class MirEmitter(Compilation compilation)
         else
         {
             var binaryOperation = operation.Operation.ToBinaryOperation();
-            var loadPlace = new MirReadValue(place);
+            var loadPlace = context.CreateSsaValue(place.Type);
+            context.CurrentBlock.AddInstruction(new MirLoadInstruction(loadPlace, place));
             var binaryValue = EmitBinaryOperation(
                 binaryOperation,
                 operation.Location,
@@ -787,15 +788,13 @@ internal sealed class MirEmitter(Compilation compilation)
         return _voidValue;
     }
 
-    private MirReadValue EmitConditional(
+    private MirSsaValue EmitConditional(
         BoundConditional operation,
         MirEmissionContext context,
         CancellationToken cancellationToken
     )
     {
         var type = operation.Type;
-        var temp = context.CreateTemp(type, "result");
-        var place = new MirLocalPlace(temp.Id, temp.Type);
 
         var condition = EmitExpression(operation.Condition, context, cancellationToken);
 
@@ -808,27 +807,25 @@ internal sealed class MirEmitter(Compilation compilation)
         );
 
         context.SetCurrentBlock(thenBlock);
-        context.CurrentBlock.AddInstruction(
-            new MirStoreInstruction(
-                place,
-                EmitExpression(operation.WhenTrue, context, cancellationToken)
-            )
-        );
+        var thenResult = EmitExpression(operation.WhenTrue, context, cancellationToken);
         context.CurrentBlock.SetTerminator(new MirGotoTerminator(mergeBlock.Id));
 
         context.AddBlock(elseBlock);
         context.SetCurrentBlock(elseBlock);
-        context.CurrentBlock.AddInstruction(
-            new MirStoreInstruction(
-                place,
-                EmitExpression(operation.WhenFalse, context, cancellationToken)
-            )
-        );
+        var elseResult = EmitExpression(operation.WhenFalse, context, cancellationToken);
         context.CurrentBlock.SetTerminator(new MirGotoTerminator(mergeBlock.Id));
 
         context.AddBlock(mergeBlock);
         context.SetCurrentBlock(mergeBlock);
-        return new MirReadValue(place);
+
+        var result = context.CreateSsaValue(type);
+        context.CurrentBlock.AddInstruction(
+            new MirPhiInstruction(
+                result,
+                [new PhiSource(thenResult, thenBlock.Id), new PhiSource(elseResult, elseBlock.Id)]
+            )
+        );
+        return result;
     }
 
     private MirValue EmitCall(
@@ -850,7 +847,7 @@ internal sealed class MirEmitter(Compilation compilation)
 
         context.CurrentBlock.AddInstruction(
             new MirCallInstruction(
-                result?.Id,
+                result,
                 call.Function,
                 EmitExpressionList(call.Arguments, context, cancellationToken)
             )
@@ -924,7 +921,7 @@ internal sealed class MirEmitter(Compilation compilation)
 
             var nullableValue = context.CreateSsaValue(type);
             context.CurrentBlock.AddInstruction(
-                new MirMakeNullableInstruction(nullableValue.Id, value) { Location = location }
+                new MirMakeNullableInstruction(nullableValue, value) { Location = location }
             );
 
             return nullableValue;
@@ -932,7 +929,7 @@ internal sealed class MirEmitter(Compilation compilation)
 
         var convertedValue = context.CreateSsaValue(type);
         context.CurrentBlock.AddInstruction(
-            new MirConvertInstruction(convertedValue.Id, conversion, value) { Location = location }
+            new MirConvertInstruction(convertedValue, conversion, value) { Location = location }
         );
         return convertedValue;
     }
@@ -952,7 +949,7 @@ internal sealed class MirEmitter(Compilation compilation)
             Debug.Assert(targetType.ElementType is ReferenceTypeSymbol);
             var converted = context.CreateSsaValue(type);
             context.CurrentBlock.AddInstruction(
-                new MirConvertInstruction(converted.Id, conversion, value) { Location = location }
+                new MirConvertInstruction(converted, conversion, value) { Location = location }
             );
             return converted;
         }
@@ -962,7 +959,7 @@ internal sealed class MirEmitter(Compilation compilation)
         var condMerge = context.AddDetachedBlock("cond.merge");
 
         var nullableState = context.CreateSsaValue(compilation.GetSpecialType(SpecialType.Bool));
-        context.CurrentBlock.AddInstruction(new MirIsNotNullInstruction(nullableState.Id, value));
+        context.CurrentBlock.AddInstruction(new MirIsNotNullInstruction(nullableState, value));
         context.CurrentBlock.SetTerminator(
             new MirBranchTerminator(nullableState, condNotNull.Id, condNull.Id)
         );
@@ -970,9 +967,7 @@ internal sealed class MirEmitter(Compilation compilation)
         context.SetCurrentBlock(condNotNull);
 
         var payload = context.CreateSsaValue(sourceType.ElementType);
-        context.CurrentBlock.AddInstruction(
-            new MirGetNullablePayloadInstruction(payload.Id, value)
-        );
+        context.CurrentBlock.AddInstruction(new MirGetNullablePayloadInstruction(payload, value));
 
         MirValue payloadValue = payload;
         var underlyingConversions = conversion.UnderlyingConversions;
@@ -991,7 +986,7 @@ internal sealed class MirEmitter(Compilation compilation)
 
         var notNullValue = context.CreateSsaValue(targetType.ElementType);
         context.CurrentBlock.AddInstruction(
-            new MirMakeNullableInstruction(notNullValue.Id, payloadValue) { Location = location }
+            new MirMakeNullableInstruction(notNullValue, payloadValue) { Location = location }
         );
         context.CurrentBlock.SetTerminator(new MirGotoTerminator(condMerge.Id));
 
@@ -999,7 +994,7 @@ internal sealed class MirEmitter(Compilation compilation)
         context.SetCurrentBlock(condNull);
         var nullValue = context.CreateSsaValue(targetType.ElementType);
         context.CurrentBlock.AddInstruction(
-            new MirMakeNullableInstruction(nullValue.Id, null) { Location = location }
+            new MirMakeNullableInstruction(nullValue, null) { Location = location }
         );
         context.CurrentBlock.SetTerminator(new MirGotoTerminator(condMerge.Id));
 
@@ -1008,7 +1003,7 @@ internal sealed class MirEmitter(Compilation compilation)
         var phi = context.CreateSsaValue(targetType.ElementType);
         context.CurrentBlock.AddInstruction(
             new MirPhiInstruction(
-                phi.Id,
+                phi,
                 [new PhiSource(notNullValue, condNotNull.Id), new PhiSource(nullValue, condNull.Id)]
             )
         );
@@ -1029,18 +1024,13 @@ internal sealed class MirEmitter(Compilation compilation)
             Debug.Assert(type is ReferenceTypeSymbol);
             var payloadValue = context.CreateSsaValue(type);
             context.CurrentBlock.AddInstruction(
-                new MirConvertInstruction(payloadValue.Id, conversion, value)
-                {
-                    Location = location,
-                }
+                new MirConvertInstruction(payloadValue, conversion, value) { Location = location }
             );
             return payloadValue;
         }
 
         var payload = context.CreateSsaValue(sourceType.ElementType);
-        context.CurrentBlock.AddInstruction(
-            new MirGetNullablePayloadInstruction(payload.Id, value)
-        );
+        context.CurrentBlock.AddInstruction(new MirGetNullablePayloadInstruction(payload, value));
 
         var underlyingConversions = conversion.UnderlyingConversions;
         if (underlyingConversions.Length <= 0)
@@ -1068,16 +1058,9 @@ internal sealed class MirEmitter(Compilation compilation)
         if (!operation.Operand.IsAddressable)
         {
             var value = EmitExpression(operation.Operand, context, cancellationToken);
-            if (value is MirReadValue readValue)
-            {
-                place = readValue.Place;
-            }
-            else
-            {
-                var local = context.CreateTemp(operation.Operand.Type);
-                place = new MirLocalPlace(local);
-                context.CurrentBlock.AddInstruction(new MirStoreInstruction(place, value));
-            }
+            var local = context.CreateTemp(operation.Operand.Type);
+            place = new MirLocalPlace(local);
+            context.CurrentBlock.AddInstruction(new MirStoreInstruction(place, value));
         }
         else
         {
@@ -1086,27 +1069,31 @@ internal sealed class MirEmitter(Compilation compilation)
         return new MirAddressOfValue(place, operation.Type);
     }
 
-    private MirReadValue EmitDereference(
+    private MirSsaValue EmitDereference(
         BoundDereference expression,
         MirEmissionContext context,
         CancellationToken cancellationToken
     )
     {
         var place = EmitPlace(expression, context, cancellationToken);
-        return new MirReadValue(place);
+        var result = context.CreateSsaValue(expression.Type);
+        context.CurrentBlock.AddInstruction(new MirLoadInstruction(result, place));
+        return result;
     }
 
-    private MirReadValue EmitIndex(
+    private MirSsaValue EmitIndex(
         BoundIndex index,
         MirEmissionContext context,
         CancellationToken cancellationToken
     )
     {
         var place = EmitPlace(index, context, cancellationToken);
-        return new MirReadValue(place);
+        var result = context.CreateSsaValue(index.Type);
+        context.CurrentBlock.AddInstruction(new MirLoadInstruction(result, place));
+        return result;
     }
 
-    private MirReadValue EmitCollection(
+    private MirSsaValue EmitCollection(
         BoundCollectionExpression collection,
         MirEmissionContext context,
         CancellationToken cancellationToken
@@ -1127,7 +1114,9 @@ internal sealed class MirEmitter(Compilation compilation)
             );
         }
 
-        return new MirReadValue(place);
+        var result = context.CreateSsaValue(collection.Type);
+        context.CurrentBlock.AddInstruction(new MirLoadInstruction(result, place));
+        return result;
     }
 
     private MirPlace EmitPlace(

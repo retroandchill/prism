@@ -20,6 +20,7 @@ internal sealed class FunctionEmissionContext(
 )
 {
     private readonly Dictionary<MirLocalId, LLVMValueRef> _locals = new();
+    private readonly Dictionary<MirValueId, LLVMValueRef> _values = new();
     private readonly Dictionary<MirBlockId, LLVMBasicBlockRef> _blocks = new();
     private readonly Dictionary<
         MirLocalId,
@@ -44,6 +45,18 @@ internal sealed class FunctionEmissionContext(
         return _locals.TryGetValue(local, out var value)
             ? value
             : throw new KeyNotFoundException("Invalid local ID");
+    }
+
+    public void AddValue(MirValueId id, LLVMValueRef value)
+    {
+        _values.Add(id, value);
+    }
+
+    public LLVMValueRef LookupValue(MirValueId id)
+    {
+        return _values.TryGetValue(id, out var value)
+            ? value
+            : throw new KeyNotFoundException("Invalid value ID");
     }
 
     public void AddPhiValue(MirLocalId local, LLVMValueRef value)

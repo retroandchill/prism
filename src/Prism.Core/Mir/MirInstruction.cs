@@ -15,43 +15,43 @@ internal closed record MirInstruction
     public SourceLocation? Location { get; init; }
 }
 
-internal sealed record MirLoadInstruction(MirValueId Result, MirPlace Source) : MirInstruction;
+internal sealed record MirLoadInstruction(MirSsaValue Result, MirPlace Source) : MirInstruction;
 
 internal sealed record MirStoreInstruction(MirPlace Destination, MirValue Source) : MirInstruction;
 
 internal readonly record struct PhiSource(MirValue Value, MirBlockId Block);
 
-internal sealed record MirPhiInstruction(MirValueId Result, ImmutableArray<PhiSource> Sources)
+internal sealed record MirPhiInstruction(MirSsaValue Result, ImmutableArray<PhiSource> Sources)
     : MirInstruction;
 
-internal sealed record MirUnaryInstruction(MirValueId Result, MirUnaryOp Op, MirValue Value)
+internal sealed record MirUnaryInstruction(MirSsaValue Result, MirUnaryOp Op, MirValue Value)
     : MirInstruction;
 
 internal sealed record MirBinaryInstruction(
-    MirValueId Result,
+    MirSsaValue Result,
     MirBinaryOp Op,
     MirValue Left,
     MirValue Right
 ) : MirInstruction;
 
 internal sealed record MirConvertInstruction(
-    MirValueId Result,
+    MirSsaValue Result,
     Conversion Conversion,
     MirValue Value
 ) : MirInstruction;
 
 internal sealed record MirCallInstruction(
-    MirValueId? Result,
+    MirSsaValue? Result,
     FunctionSymbol Callee,
     ImmutableArray<MirValue> Arguments
 ) : MirInstruction;
 
-internal sealed record MirIsNotNullInstruction(MirValueId Result, MirValue Value) : MirInstruction;
+internal sealed record MirIsNotNullInstruction(MirSsaValue Result, MirValue Value) : MirInstruction;
 
-internal sealed record MirGetNullablePayloadInstruction(MirValueId Result, MirValue Value)
+internal sealed record MirGetNullablePayloadInstruction(MirSsaValue Result, MirValue Value)
     : MirInstruction;
 
-internal sealed record MirMakeNullableInstruction(MirValueId Result, MirValue? Payload)
+internal sealed record MirMakeNullableInstruction(MirSsaValue Result, MirValue? Payload)
     : MirInstruction;
 
 internal sealed record MirStorageLiveInstruction(MirLocalId LocalId) : MirInstruction;
