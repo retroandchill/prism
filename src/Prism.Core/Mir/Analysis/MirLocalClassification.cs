@@ -8,7 +8,6 @@ namespace Prism.Core.Mir.Analysis;
 internal sealed class MirLocalClassification
 {
     public required MirLocalId LocalId { get; init; }
-    public required bool IsSsaEligible { get; init; }
     public required MirLocalStorageKind StorageKind { get; init; }
 
     public bool IsIndirectStorage =>

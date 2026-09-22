@@ -106,12 +106,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
         var mirFunction = _mirEmitter.EmitFunction(function.Function, cancellationToken);
         var cfg = MirFunctionAnalyzer.AnalyzeControlFlow(mirFunction, cancellationToken);
-        var localFlow = MirFunctionAnalyzer.AnalyzeLocalFlow(
-            _compilation,
-            mirFunction,
-            cfg,
-            cancellationToken
-        );
+        var localFlow = MirFunctionAnalyzer.AnalyzeLocalFlow(mirFunction, cfg, cancellationToken);
         var classifiedLocals = MirFunctionAnalyzer.ClassifyLocals(
             _compilation,
             mirFunction,
@@ -119,7 +114,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             cancellationToken
         );
 
-        var context = new FunctionEmissionContext(mirFunction, llvmFunction, cfg, classifiedLocals);
+        var context = new FunctionEmissionContext(mirFunction, llvmFunction, classifiedLocals);
         foreach (var block in mirFunction.Blocks)
         {
             var blockRef = LLVMBasicBlockRef.CreateInContext(_context, block.Name);
@@ -502,19 +497,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             context.LlvmFunction.AppendExistingBasicBlock(llvmBlock);
         }
 
-        context.CurrentBlock = block.Id;
         _builder.PositionAtEnd(llvmBlock);
-
-        var phiLocals = context.LookupPhiLocals(block.Id);
-        foreach (var local in phiLocals)
-        {
-            var (values, blocks) = context.LookupPhiValues(local);
-            Debug.Assert(values.Length > 1);
-            var localType = context.MirFunction.GetLocal(local).Type;
-            var phi = _builder.BuildPhi(GetOrCreateType(localType));
-            phi.AddIncoming(values, blocks, (uint)values.Length);
-            context.BindLocal(local, phi);
-        }
 
         foreach (var instruction in block.Instructions)
         {
@@ -533,6 +516,9 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 break;
             case MirStoreInstruction mirAssignInstruction:
                 EmitStore(mirAssignInstruction, context);
+                break;
+            case MirPhiInstruction mirPhiInstruction:
+                EmitPhi(mirPhiInstruction, context);
                 break;
             case MirUnaryInstruction mirUnaryInstruction:
                 EmitUnaryOperation(mirUnaryInstruction, context);
@@ -564,12 +550,33 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         }
     }
 
-    private void EmitLoad(MirLoadInstruction loadInstruction, FunctionEmissionContext context) { }
+    private void EmitLoad(MirLoadInstruction loadInstruction, FunctionEmissionContext context)
+    {
+        var result = loadInstruction.Source switch
+        {
+            MirGlobalPlace mirGlobalPlace => EmitReadGlobal(mirGlobalPlace),
+            MirIndexPlace mirIndexPlace => EmitReadIndex(mirIndexPlace, context),
+            MirLocalPlace mirLocalPlace => EmitReadLocal(mirLocalPlace, context),
+            MirDerefPlace mirDerefPlace => EmitDerefLocal(mirDerefPlace, context),
+        };
+        context.AddValue(loadInstruction.Result.Id, result);
+    }
 
     private void EmitStore(MirStoreInstruction assignment, FunctionEmissionContext context)
     {
         var source = GetValue(assignment.Source, context);
         EmitWriteToDest(assignment.Destination, source, context);
+    }
+
+    private void EmitPhi(MirPhiInstruction phiInstruction, FunctionEmissionContext context)
+    {
+        var values = phiInstruction.Sources.Select(s => GetValue(s.Value, context)).ToArray();
+        var blocks = phiInstruction.Sources.Select(s => context.LookupBlock(s.Block)).ToArray();
+
+        var type = GetOrCreateType(phiInstruction.Result.Type);
+        var value = _builder.BuildPhi(type);
+        value.AddIncoming(values, blocks, (uint)values.Length);
+        context.AddValue(phiInstruction.Result.Id, value);
     }
 
     private void EmitUnaryOperation(MirUnaryInstruction operation, FunctionEmissionContext context)
@@ -591,7 +598,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             MirUnaryOp.BitwiseNot => _builder.BuildNot(source),
             _ => throw new InvalidOperationException("Unknown unary operation"),
         };
-        EmitWriteToDest(operation.Destination, result, context);
+        context.AddValue(operation.Result.Id, result);
     }
 
     private void EmitBinaryOperation(
@@ -695,7 +702,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             MirBinaryOp.UnsignedShiftRight => _builder.BuildLShr(left, right),
             _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
         };
-        EmitWriteToDest(operation.Destination, result, context);
+        context.AddValue(operation.Result.Id, result);
     }
 
     private void EmitCall(MirCallInstruction call, FunctionEmissionContext context)
@@ -711,7 +718,11 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         if (isIndirectReturn)
         {
             Debug.Assert(call.Result is not null);
-            parameters[0] = context.LookupLocal(call.Destination.LocalId);
+            var typeLayout = _compilation.GetTypeLayout(call.Result.Type);
+            var llvmType = GetOrCreateType(call.Result.Type);
+            var temporary = CreateEntryAlloca(llvmType, "return", context);
+            temporary.SetAlignment((uint)typeLayout.Alignment);
+            parameters[0] = temporary;
             offsetIndex = 1;
         }
         else
@@ -744,9 +755,18 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         }
 
         var result = _builder.BuildCall2(callee.FunctionType, callee, parameters, "");
-        if (call.Destination is not null)
+        if (call.Result is null)
+            return;
+
+        if (isIndirectReturn)
         {
-            EmitWriteToDest(call.Destination, result, context);
+            var resultType = GetOrCreateType(call.Result.Type);
+            var loadedValue = _builder.BuildLoad2(resultType, parameters[0]);
+            context.AddValue(call.Result.Id, loadedValue);
+        }
+        else
+        {
+            context.AddValue(call.Result.Id, result);
         }
     }
 
@@ -784,9 +804,9 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             baseValue,
             conversion.Conversion,
             conversion.Value.Type,
-            conversion.Destination.Type
+            conversion.Result.Type
         );
-        EmitWriteToDest(conversion.Destination, convertedValue, context);
+        context.AddValue(conversion.Result.Id, convertedValue);
     }
 
     private LLVMValueRef EmitScalarConversion(
@@ -899,7 +919,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             OptimizedNullableLayout optimized => CompareToOptimizedNullValue(operand, optimized),
         };
 
-        EmitWriteToDest(notNull.Destination, notNullState, context);
+        context.AddValue(notNull.Result.Id, notNullState);
     }
 
     private LLVMValueRef CreateTaggedNullValue(TaggedNullableLayout layout)
@@ -1023,7 +1043,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             value = _builder.BuildExtractValue(value, 1);
         }
 
-        EmitWriteToDest(getNullablePayload.Destination, value, context);
+        context.AddValue(getNullablePayload.Result.Id, value);
     }
 
     private void EmitMakeNullable(
@@ -1054,7 +1074,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             value = GetNullValue(layout);
         }
 
-        EmitWriteToDest(makeNullable.Destination, value, context);
+        context.AddValue(makeNullable.Result.Id, value);
     }
 
     private void EmitStorageLive(
@@ -1178,6 +1198,50 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         };
     }
 
+    private LLVMValueRef EmitReadGlobal(MirGlobalPlace place)
+    {
+        var global = GetOrCreateGlobal(place.Variable);
+        var type = GetOrCreateType(place.Type);
+        return _builder.BuildLoad2(type, global);
+    }
+
+    private LLVMValueRef EmitReadLocal(MirLocalPlace place, FunctionEmissionContext context)
+    {
+        var local = context.LookupLocal(place.LocalId);
+        var classification = context.LocalClassification.Locals[place.LocalId];
+        if (!classification.IsIndirectStorage)
+            return local;
+
+        var type = GetOrCreateType(place.Type);
+        return _builder.BuildLoad2(type, local);
+    }
+
+    private LLVMValueRef EmitDerefLocal(MirDerefPlace place, FunctionEmissionContext context)
+    {
+        var location = GetValue(place.Pointer, context);
+        return _builder.BuildLoad2(GetOrCreateType(place.Type), location);
+    }
+
+    private LLVMValueRef EmitReadIndex(MirIndexPlace indexer, FunctionEmissionContext context)
+    {
+        var index = GetValue(indexer.Index, context);
+        var itemType = GetOrCreateType(indexer.Type);
+
+        LLVMValueRef pointer;
+        if (indexer.Base.Type.IsDynamicallySized)
+        {
+            var widePointer = EmitTakeAddress(indexer.Base, context);
+            pointer = _builder.BuildExtractValue(widePointer, 0, "pointer");
+        }
+        else
+        {
+            pointer = EmitTakeAddress(indexer.Base, context);
+        }
+
+        var element = _builder.BuildGEP2(itemType, pointer, [index], "element".AsSpan());
+        return _builder.BuildLoad2(itemType, element);
+    }
+
     private void EmitWriteToDest(
         MirPlace destination,
         LLVMValueRef value,
@@ -1219,9 +1283,6 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         {
             case MirLocalStorageKind.Ssa:
                 context.BindLocal(destination.LocalId, value);
-                break;
-            case MirLocalStorageKind.SsaWithPhi:
-                context.AddPhiValue(destination.LocalId, value);
                 break;
             case MirLocalStorageKind.Memory or MirLocalStorageKind.IndirectParam:
                 {

@@ -8,7 +8,6 @@ namespace Prism.Core.Mir.Analysis;
 internal enum MirLocalStorageKind : byte
 {
     Ssa,
-    SsaWithPhi,
     Memory,
     IndirectParam,
 }

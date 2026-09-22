@@ -43,7 +43,6 @@ public class LocalClassificationTest
 
         var cfg = MirFunctionAnalyzer.AnalyzeControlFlow(mirFunction, CancellationToken.None);
         var localFlow = MirFunctionAnalyzer.AnalyzeLocalFlow(
-            compilation,
             mirFunction,
             cfg,
             CancellationToken.None

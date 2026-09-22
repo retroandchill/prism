@@ -5,31 +5,14 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using Prism.Core.Abi;
 using Prism.Core.Compiling;
 using Prism.Core.Utils;
-using ZLinq;
 
 namespace Prism.Core.Mir.Analysis;
 
-internal sealed class MirFunctionAnalyzer
+internal static class MirFunctionAnalyzer
 {
-    private readonly Compilation _compilation;
-
-    private static readonly ConditionalWeakTable<Compilation, MirFunctionAnalyzer> Analyzers =
-        new();
-
-    private MirFunctionAnalyzer(Compilation compilation)
-    {
-        _compilation = compilation;
-    }
-
-    private static MirFunctionAnalyzer GetAnalyzer(Compilation compilation)
-    {
-        return Analyzers.GetOrAdd(compilation, static c => new MirFunctionAnalyzer(c));
-    }
-
     public static MirControlFlowGraph AnalyzeControlFlow(
         MirFunction function,
         CancellationToken cancellationToken
@@ -97,17 +80,6 @@ internal sealed class MirFunctionAnalyzer
     }
 
     public static MirLocalFlowAnalysis AnalyzeLocalFlow(
-        Compilation compilation,
-        MirFunction function,
-        MirControlFlowGraph cfg,
-        CancellationToken cancellationToken
-    )
-    {
-        var analyzer = GetAnalyzer(compilation);
-        return analyzer.AnalyzeLocalFlow(function, cfg, cancellationToken);
-    }
-
-    private MirLocalFlowAnalysis AnalyzeLocalFlow(
         MirFunction function,
         MirControlFlowGraph cfg,
         CancellationToken cancellationToken
@@ -123,7 +95,7 @@ internal sealed class MirFunctionAnalyzer
             foreach (var instruction in block.Instructions)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                AnalyzeInstructionLocalFlow(function, instruction, block.Id, builders);
+                AnalyzeInstructionLocalFlow(instruction, block.Id, builders);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -142,8 +114,7 @@ internal sealed class MirFunctionAnalyzer
         };
     }
 
-    private void AnalyzeInstructionLocalFlow(
-        MirFunction function,
+    private static void AnalyzeInstructionLocalFlow(
         MirInstruction instruction,
         MirBlockId blockId,
         Dictionary<MirLocalId, MirLocalFlowInfoBuilder> builders
@@ -151,39 +122,29 @@ internal sealed class MirFunctionAnalyzer
     {
         switch (instruction)
         {
+            case MirLoadInstruction load:
+                AnalyzeReadFromPlace(load.Source, blockId, builders);
+                break;
+
             case MirStoreInstruction assign:
                 AnalyzeWriteDestination(assign.Destination, blockId, builders);
                 AnalyzeValue(assign.Source, blockId, builders);
                 break;
 
             case MirUnaryInstruction unary:
-                AnalyzeWriteDestination(unary.Destination, blockId, builders);
                 AnalyzeValue(unary.Value, blockId, builders);
                 break;
 
             case MirBinaryInstruction binary:
-                AnalyzeWriteDestination(binary.Destination, blockId, builders);
                 AnalyzeValue(binary.Left, blockId, builders);
                 AnalyzeValue(binary.Right, blockId, builders);
                 break;
 
             case MirConvertInstruction convert:
-                AnalyzeWriteDestination(convert.Destination, blockId, builders);
                 AnalyzeValue(convert.Value, blockId, builders);
                 break;
 
             case MirCallInstruction call:
-                if (call.Destination is not null)
-                {
-                    AnalyzeWriteDestination(call.Destination, blockId, builders);
-
-                    var abi = _compilation.GetFunctionAbi(function.Symbol);
-                    if (abi.Return.IsIndirect)
-                    {
-                        builders[call.Destination.LocalId].IsWrittenIndirectly = true;
-                    }
-                }
-
                 foreach (var argument in call.Arguments)
                 {
                     AnalyzeValue(argument, blockId, builders);
@@ -207,6 +168,7 @@ internal sealed class MirFunctionAnalyzer
 
                 break;
 
+            case MirPhiInstruction:
             case MirStorageLiveInstruction:
             case MirStorageDeadInstruction:
                 break;
@@ -253,10 +215,7 @@ internal sealed class MirFunctionAnalyzer
             case MirConstantValue:
             case MirNullValue:
             case MirVoidValue:
-                return;
-
-            case MirReadValue read:
-                AnalyzeReadFromPlace(read.Place, blockId, builders);
+            case MirSsaValue:
                 return;
 
             case MirAddressOfValue addressOf:
@@ -394,8 +353,6 @@ internal sealed class MirFunctionAnalyzer
     {
         builder.IsUsedAcrossBlocks = IsUsedAcrossBlocks(builder);
         builder.HasMultipleDefinitions = HasMultipleDefinitions(builder);
-        builder.HasCyclicDefinitionFlow = HasCyclicDefinitionFlow(builder, cfg);
-        builder.HasMergePotential = HasMergePotential(builder, cfg);
     }
 
     private static bool IsUsedAcrossBlocks(MirLocalFlowInfoBuilder builder)
@@ -412,101 +369,6 @@ internal sealed class MirFunctionAnalyzer
     private static bool HasMultipleDefinitions(MirLocalFlowInfoBuilder builder)
     {
         return builder.WriteCount > 1;
-    }
-
-    private static bool HasCyclicDefinitionFlow(
-        MirLocalFlowInfoBuilder builder,
-        MirControlFlowGraph cfg
-    )
-    {
-        if (builder.Local.Symbol is null)
-            return false;
-
-        foreach (var defBlock in builder.DefBlocks.Distinct())
-        {
-            if (IsInCycle(defBlock, cfg))
-                return true;
-        }
-
-        return false;
-    }
-
-    private static bool HasMergePotential(MirLocalFlowInfoBuilder builder, MirControlFlowGraph cfg)
-    {
-        if (builder.DefBlocks.Count < 2)
-            return false;
-
-        foreach (var block in cfg.Blocks)
-        {
-            if (
-                !cfg.Predecessors.TryGetValue(block.Id, out var predecessors)
-                || predecessors.Length < 2
-            )
-                continue;
-
-            var reachingDefCount = 0;
-            foreach (
-                var _ in builder
-                    .DefBlocks.AsValueEnumerable()
-                    .Where(defBlock =>
-                        CanReach(defBlock, block.Id, cfg) && cfg.Successors[defBlock].Length == 1
-                    )
-            )
-            {
-                reachingDefCount++;
-                if (reachingDefCount >= 2)
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool IsInCycle(MirBlockId block, MirControlFlowGraph cfg)
-    {
-        if (!cfg.Successors.TryGetValue(block, out var successors))
-            return false;
-
-        foreach (var successor in successors)
-        {
-            if (successor == block)
-                return true;
-
-            if (CanReach(successor, block, cfg))
-                return true;
-        }
-
-        return false;
-    }
-
-    private static bool CanReach(MirBlockId from, MirBlockId to, MirControlFlowGraph cfg)
-    {
-        if (from == to)
-            return true;
-
-        var visited = new HashSet<MirBlockId>();
-        var queue = new Queue<MirBlockId>();
-        queue.Enqueue(from);
-
-        while (queue.TryDequeue(out var current))
-        {
-            if (!visited.Add(current))
-                continue;
-
-            if (!cfg.Successors.TryGetValue(current, out var successors))
-                continue;
-
-            foreach (var successor in successors)
-            {
-                if (successor == to)
-                    return true;
-
-                if (!visited.Contains(successor))
-                    queue.Enqueue(successor);
-            }
-        }
-
-        return false;
     }
 
     public static MirLocalClassificationAnalysis ClassifyLocals(
@@ -539,7 +401,6 @@ internal sealed class MirFunctionAnalyzer
             {
                 LocalId = local.LocalId,
                 StorageKind = MirLocalStorageKind.IndirectParam,
-                IsSsaEligible = false,
             };
         }
 
@@ -549,17 +410,6 @@ internal sealed class MirFunctionAnalyzer
             {
                 LocalId = local.LocalId,
                 StorageKind = MirLocalStorageKind.Memory,
-                IsSsaEligible = false,
-            };
-        }
-
-        if (local.HasMergePotential)
-        {
-            return new MirLocalClassification
-            {
-                LocalId = local.LocalId,
-                StorageKind = MirLocalStorageKind.SsaWithPhi,
-                IsSsaEligible = true,
             };
         }
 
@@ -567,15 +417,11 @@ internal sealed class MirFunctionAnalyzer
         {
             LocalId = local.LocalId,
             StorageKind = MirLocalStorageKind.Ssa,
-            IsSsaEligible = true,
         };
     }
 
     private static bool RequiresMemoryStorage(MirLocalFlowInfo local)
     {
-        return local.IsAddressTaken
-            || local.IsWrittenIndirectly
-            || local.HasCyclicDefinitionFlow
-            || local is { HasMultipleDefinitions: true, HasMergePotential: false };
+        return local.IsAddressTaken || local.IsWrittenIndirectly || local.HasMultipleDefinitions;
     }
 }
