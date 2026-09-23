@@ -39,8 +39,8 @@ internal sealed class InternalAbiClassifier(Compilation compilation) : IAbiClass
         if (type is ArrayTypeSymbol)
             return AbiValueClassification.Indirect;
 
-        var (size, _) = type.GetSizeAndAlignment(compilation.Settings);
-        return size switch
+        var layout = compilation.GetTypeLayout(type);
+        return layout.Size switch
         {
             0 => AbiValueClassification.Ignore,
             <= MaxDirectSize => AbiValueClassification.Direct,

@@ -1,4 +1,5 @@
-﻿using Prism.Core.Semantic;
+﻿using System.Diagnostics.CodeAnalysis;
+using Prism.Core.Semantic;
 
 namespace Prism.Core.Symbols;
 
@@ -12,6 +13,9 @@ public closed class VariableSymbol : ValueSymbol
     public bool IsLocal => !IsGlobal;
 
     public abstract bool HasInitializer { get; }
+
+    [MemberNotNullWhen(true, nameof(ConstantValue))]
+    public bool IsConst => ConstantValue is not null;
 
     public abstract ConstantValue? ConstantValue { get; }
 

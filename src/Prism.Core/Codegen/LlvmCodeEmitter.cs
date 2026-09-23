@@ -70,6 +70,21 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             : new EmitResult(false, context.CollectDiagnostics());
     }
 
+    public void AddGlobalConstant(
+        VariableSymbol variable,
+        BindingContext bindingContext,
+        CancellationToken cancellationToken
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var llvmVariable = GetOrCreateGlobal(variable);
+        llvmVariable.IsGlobalConstant = true;
+
+        var constant = variable.ConstantValue;
+        Debug.Assert(constant is not null);
+        llvmVariable.Initializer = MakeConstant(constant.Value, variable.Type);
+    }
+
     public void AddGlobalVariable(
         BoundVariableInitializer variable,
         BindingContext bindingContext,
@@ -87,7 +102,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         if (variable.ConstantValue is not { } constant)
             return;
 
-        llvmVariable.Initializer = MakeConstant(constant);
+        llvmVariable.Initializer = MakeConstant(constant, variable.Variable.Type);
     }
 
     public void AddFunction(
@@ -344,48 +359,62 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         };
     }
 
-    private LLVMValueRef MakeConstant(in ConstantValue value)
+    private LLVMValueRef MakeConstant(in ConstantValue value, TypeSymbol type)
     {
         return value.Kind switch
         {
-            ConstantKind.Bool => LLVMValueRef.CreateConstInt(
+            ConstantKind.Null => GetNullValue(type),
+            ConstantKind.Primitive => MakePrimitiveConstant(in value),
+            ConstantKind.Array => throw new NotImplementedException(),
+            _ => throw new ArgumentException("Invalid constant kind"),
+        };
+    }
+
+    private LLVMValueRef MakePrimitiveConstant(in ConstantValue value)
+    {
+        return value.PrimitiveKind switch
+        {
+            PrimitiveKind.Bool => LLVMValueRef.CreateConstInt(
                 _context.Int8Type,
                 value.AsBoolean() ? 1UL : 0UL
             ),
-            ConstantKind.Char => LLVMValueRef.CreateConstInt(
+            PrimitiveKind.Char => LLVMValueRef.CreateConstInt(
                 _context.Int8Type,
                 (ulong)value.AsCharacter().Value
             ),
-            ConstantKind.Char16 => LLVMValueRef.CreateConstInt(
+            PrimitiveKind.Char16 => LLVMValueRef.CreateConstInt(
                 _context.Int16Type,
                 (ulong)value.AsCharacter().Value
             ),
-            ConstantKind.Rune => LLVMValueRef.CreateConstInt(
+            PrimitiveKind.Rune => LLVMValueRef.CreateConstInt(
                 _context.Int32Type,
                 (ulong)value.AsCharacter().Value
             ),
-            ConstantKind.I8 => LLVMValueRef.CreateConstInt(
+            PrimitiveKind.I8 => LLVMValueRef.CreateConstInt(
                 _context.Int8Type,
                 unchecked((ulong)value.AsInt64()),
                 true
             ),
-            ConstantKind.I16 => LLVMValueRef.CreateConstInt(
+            PrimitiveKind.I16 => LLVMValueRef.CreateConstInt(
                 _context.Int16Type,
                 unchecked((ulong)value.AsInt64()),
                 true
             ),
-            ConstantKind.I32 => LLVMValueRef.CreateConstInt(
+            PrimitiveKind.I32 => LLVMValueRef.CreateConstInt(
                 _context.Int32Type,
                 unchecked((ulong)value.AsInt64()),
                 true
             ),
-            ConstantKind.I64 => LLVMValueRef.CreateConstInt(
+            PrimitiveKind.I64 => LLVMValueRef.CreateConstInt(
                 _context.Int64Type,
                 unchecked((ulong)value.AsInt64()),
                 true
             ),
-            ConstantKind.I128 => LLVMValueRef.CreateConstInt(_context.Int128Type, value.AsInt128()),
-            ConstantKind.ISize => LLVMValueRef.CreateConstInt(
+            PrimitiveKind.I128 => LLVMValueRef.CreateConstInt(
+                _context.Int128Type,
+                value.AsInt128()
+            ),
+            PrimitiveKind.ISize => LLVMValueRef.CreateConstInt(
                 _compilation.Settings.PointerWidth switch
                 {
                     PointerWidth.X32 => _context.Int32Type,
@@ -394,12 +423,15 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 },
                 value.AsInt64()
             ),
-            ConstantKind.U8 => LLVMValueRef.CreateConstInt(_context.Int8Type, value.AsUInt64()),
-            ConstantKind.U16 => LLVMValueRef.CreateConstInt(_context.Int16Type, value.AsUInt64()),
-            ConstantKind.U32 => LLVMValueRef.CreateConstInt(_context.Int32Type, value.AsUInt64()),
-            ConstantKind.U64 => LLVMValueRef.CreateConstInt(_context.Int64Type, value.AsUInt64()),
-            ConstantKind.U128 => LLVMValueRef.CreateConstInt(_context.Int64Type, value.AsUInt128()),
-            ConstantKind.USize => LLVMValueRef.CreateConstInt(
+            PrimitiveKind.U8 => LLVMValueRef.CreateConstInt(_context.Int8Type, value.AsUInt64()),
+            PrimitiveKind.U16 => LLVMValueRef.CreateConstInt(_context.Int16Type, value.AsUInt64()),
+            PrimitiveKind.U32 => LLVMValueRef.CreateConstInt(_context.Int32Type, value.AsUInt64()),
+            PrimitiveKind.U64 => LLVMValueRef.CreateConstInt(_context.Int64Type, value.AsUInt64()),
+            PrimitiveKind.U128 => LLVMValueRef.CreateConstInt(
+                _context.Int64Type,
+                value.AsUInt128()
+            ),
+            PrimitiveKind.USize => LLVMValueRef.CreateConstInt(
                 _compilation.Settings.PointerWidth switch
                 {
                     PointerWidth.X32 => _context.Int32Type,
@@ -408,12 +440,15 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 },
                 value.AsUInt64()
             ),
-            ConstantKind.F32 => LLVMValueRef.CreateConstReal(_context.FloatType, value.AsFloat32()),
-            ConstantKind.F64 => LLVMValueRef.CreateConstReal(
+            PrimitiveKind.F32 => LLVMValueRef.CreateConstReal(
+                _context.FloatType,
+                value.AsFloat32()
+            ),
+            PrimitiveKind.F64 => LLVMValueRef.CreateConstReal(
                 _context.DoubleType,
                 value.AsFloat64()
             ),
-            ConstantKind.Str => CreateStringConstant(value.AsString()),
+            PrimitiveKind.Str => CreateStringConstant(value.AsString()),
             _ => throw new ArgumentException("Invalid constant kind"),
         };
     }
@@ -1154,16 +1189,18 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         return value switch
         {
             MirAddressOfValue mirAddressOfValue => EmitTakeAddress(mirAddressOfValue, context),
-            MirConstantValue mirConstantValue => MakeConstant(mirConstantValue.Constant),
-            MirNullValue nullValue => GetNullValue(nullValue),
+            MirConstantValue mirConstantValue => MakeConstant(
+                mirConstantValue.Constant,
+                value.Type
+            ),
             MirSsaValue ssaValue => context.LookupValue(ssaValue.Id),
             MirVoidValue => throw new InvalidOperationException("Cannot get a null value"),
         };
     }
 
-    private LLVMValueRef GetNullValue(MirNullValue value)
+    private LLVMValueRef GetNullValue(TypeSymbol type)
     {
-        var layout = (NullableLayout)_compilation.GetTypeLayout(value.Type);
+        var layout = (NullableLayout)_compilation.GetTypeLayout(type);
         return GetNullValue(layout);
     }
 

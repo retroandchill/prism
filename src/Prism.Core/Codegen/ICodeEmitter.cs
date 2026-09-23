@@ -11,6 +11,12 @@ namespace Prism.Core.Codegen;
 
 internal interface ICodeEmitter : IDisposable
 {
+    void AddGlobalConstant(
+        VariableSymbol variable,
+        BindingContext bindingContext,
+        CancellationToken cancellationToken
+    );
+
     void AddGlobalVariable(
         BoundVariableInitializer variable,
         BindingContext bindingContext,

@@ -70,6 +70,12 @@ internal sealed class FunctionCompiler
         _cancellationToken.ThrowIfCancellationRequested();
 
         Debug.Assert(variableSymbol.IsGlobal);
+        if (variableSymbol.IsConst)
+        {
+            _emitter?.AddGlobalConstant(variableSymbol, _context, _cancellationToken);
+            return;
+        }
+
         var initializer = _compilation.GetBoundInitializer(variableSymbol, _cancellationToken);
         _context.ReportDiagnostics(initializer.Diagnostics);
         if (initializer.HasErrors)

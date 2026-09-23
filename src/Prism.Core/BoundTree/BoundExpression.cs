@@ -1,7 +1,6 @@
 ﻿using System.Collections.Immutable;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
-using Prism.Core.Symbols.Error;
 using Prism.Core.Symbols.Intermediate;
 using Prism.Core.Syntax;
 
@@ -112,12 +111,6 @@ internal sealed record BoundLiteral : BoundExpression
     protected override ConstantValue? ComputeConstantValue() => Value;
 }
 
-internal sealed record BoundNullLiteral : BoundExpression
-{
-    public BoundNullLiteral(SyntaxNode syntax, TypeSymbol type)
-        : base(syntax, type) { }
-}
-
 internal sealed record BoundVariableAccess : BoundExpression
 {
     public BoundVariableAccess(SyntaxNode syntax, VariableSymbol symbol)
@@ -132,6 +125,8 @@ internal sealed record BoundVariableAccess : BoundExpression
 
     /// <inheritdoc/>
     public override bool IsAssignable => true;
+
+    protected override ConstantValue? ComputeConstantValue() => Symbol.ConstantValue;
 }
 
 internal sealed record BoundParameterAccess : BoundExpression

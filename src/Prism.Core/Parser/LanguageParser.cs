@@ -58,7 +58,11 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         return PeekToken().Kind switch
         {
             SyntaxKind.NamespaceKeyword => ParseNamespaceDeclaration(attributes, modifiers),
-            SyntaxKind.VarKeyword => ParseGlobalVariableDeclaration(attributes, modifiers),
+            SyntaxKind.VarKeyword or SyntaxKind.ConstKeyword => ParseGlobalVariableDeclaration(
+                attributes,
+                modifiers,
+                ConsumeToken()
+            ),
             SyntaxKind.FuncKeyword => ParseFunctionDeclaration(attributes, modifiers),
             SyntaxKind.AttributeKeyword => ParseAttributeDeclaration(attributes, modifiers),
             _ => new GreenIncompleteDeclaration(attributes, modifiers),
@@ -105,13 +109,14 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
     private GreenGlobalVariableDeclaration ParseGlobalVariableDeclaration(
         GreenSyntaxList<GreenAttributeList> attributes,
-        GreenSyntaxList<GreenToken> modifiers
+        GreenSyntaxList<GreenToken> modifiers,
+        GreenToken keyword
     )
     {
         return new GreenGlobalVariableDeclaration(
             attributes,
             modifiers,
-            ExpectToken(SyntaxKind.VarKeyword),
+            keyword,
             ExpectToken(SyntaxKind.IdentifierToken),
             ParseRequiredTypeSpecifier(),
             ParseInitializer(),
@@ -122,13 +127,17 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     private GreenLocalVariableDeclaration? ParseLocalVariableDeclaration()
     {
         GreenSyntaxList<GreenToken> modifiers;
+        GreenToken keyword;
         switch (PeekToken().Kind)
         {
             case SyntaxKind.MutableKeyword:
                 modifiers = ParseModifiers();
+                keyword = ExpectToken(SyntaxKind.VarKeyword);
                 break;
             case SyntaxKind.VarKeyword:
+            case SyntaxKind.ConstKeyword:
                 modifiers = new GreenSyntaxList<GreenToken>();
+                keyword = ConsumeToken();
                 break;
             default:
                 return null;
@@ -137,7 +146,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         return new GreenLocalVariableDeclaration(
             [],
             modifiers,
-            ExpectToken(SyntaxKind.VarKeyword),
+            keyword,
             ExpectToken(SyntaxKind.IdentifierToken),
             ParseTypeSpecifier(),
             ParseInitializer()
@@ -589,10 +598,10 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 break;
             }
 
-            var name = ParseName();
+            var type = ParseNamedType();
             var arguments =
                 PeekToken().Kind == SyntaxKind.OpenParenToken ? ParseArgumentList() : null;
-            attributes.AddItem(new GreenAttribute(name, arguments));
+            attributes.AddItem(new GreenAttribute(type, arguments));
 
             if (PeekToken().Kind != SyntaxKind.CommaToken)
             {
@@ -708,7 +717,12 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     {
         return PeekToken().Kind.IsBuiltInType
             ? new GreenPredefinedType(ConsumeToken())
-            : new GreenNamedType(ParseName());
+            : ParseNamedType();
+    }
+
+    private GreenNamedType ParseNamedType()
+    {
+        return new GreenNamedType(ParseName());
     }
 
     private GreenName ParseName()

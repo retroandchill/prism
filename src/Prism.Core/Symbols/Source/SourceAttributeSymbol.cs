@@ -6,8 +6,8 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Core.Binding;
-using Prism.Core.Configuration;
 using Prism.Core.Declarations;
+using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 using Prism.Core.Utils;
 
@@ -29,7 +29,7 @@ internal sealed class SourceAttributeSymbol : SourceNamedTypeSymbol
 
     protected override TypeDeclarationSyntax Syntax => _syntax;
 
-    protected override ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
+    protected override ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMapCore(
         BindingContext context
     )
     {
@@ -39,21 +39,30 @@ internal sealed class SourceAttributeSymbol : SourceNamedTypeSymbol
         var builder = new Dictionary<string, ImmutableArray<Symbol>.Builder>(
             _syntax.Parameters.Parameters.Count
         );
+        var seenDefaultValue = false;
         foreach (var parameter in _syntax.Parameters.Parameters)
         {
             var name = parameter.Name.IdentifierName;
             var subBuilder = builder.GetOrAdd(name, () => ImmutableArray.CreateBuilder<Symbol>(1));
-            // TODO: Add the parameters
+
+            var symbol = new SourceAttributeParameterSymbol(name, this, parameter);
+            subBuilder.Add(symbol);
+
+            if (symbol.HasDefaultValue)
+            {
+                seenDefaultValue = true;
+            }
+            else if (seenDefaultValue)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.DefaultValueAfterNonDefaultValue(parameter.Location, name)
+                );
+            }
         }
 
         return builder.ToImmutableDictionary(
             pair => pair.Key,
             pair => pair.Value.DrainToImmutable()
         );
-    }
-
-    public override SizeAndAlignment GetSizeAndAlignment(CompilationSettings settings)
-    {
-        throw new NotSupportedException("Attributes are compile-time only constructs");
     }
 }

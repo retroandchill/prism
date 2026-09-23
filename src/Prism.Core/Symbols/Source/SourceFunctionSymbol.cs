@@ -148,7 +148,7 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
             var name = syntax.Name.IdentifierName;
             var list = parametersByName.GetOrAdd(name, () => []);
             list.Add(syntax);
-            var param = new SourceParameterSymbol(name, this, syntax);
+            var param = new SourceFunctionParameterSymbol(name, this, syntax);
             parameters[i] = param;
 
             if (param.HasDefaultValue)

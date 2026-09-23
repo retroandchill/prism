@@ -51,6 +51,10 @@
         "text": "var"
       },
       {
+        "name": "ConstKeyword",
+        "text": "const"
+      },
+      {
         "name": "FuncKeyword",
         "text": "func"
       },
@@ -941,8 +945,8 @@
           "properties": [
             {
               "$type": "item",
-              "name": "name",
-              "type": "Name",
+              "name": "type",
+              "type": "NamedType",
               "shape": "single"
             },
             {
@@ -1982,11 +1986,12 @@
           "properties": [
             {
               "$type": "item",
-              "name": "var_keyword",
+              "name": "keyword",
               "type": "Token",
               "shape": "single",
               "kinds": [
-                "VarKeyword"
+                "VarKeyword",
+                "ConstKeyword"
               ]
             },
             {
@@ -2034,11 +2039,12 @@
             },
             {
               "$type": "item",
-              "name": "var_keyword",
+              "name": "keyword",
               "type": "Token",
               "shape": "single",
               "kinds": [
-                "VarKeyword"
+                "VarKeyword",
+                "ConstKeyword"
               ]
             },
             {
@@ -2086,11 +2092,12 @@
             },
             {
               "$type": "item",
-              "name": "var_keyword",
+              "name": "keyword",
               "type": "Token",
               "shape": "single",
               "kinds": [
-                "VarKeyword"
+                "VarKeyword",
+                "ConstKeyword"
               ]
             },
             {
@@ -2840,6 +2847,28 @@
           "name": "DefaultParameterValueMustBeConstant",
           "severity": "Error",
           "format": "Default parameter value must be a constant"
+        },
+        {
+          "name": "NotConstantExpression",
+          "severity": "Error",
+          "format": "Default expression '{Expression}' does not evaluate to a constant",
+          "args": [
+            {
+              "name": "Expression",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "TypeIsNotAttribute",
+          "severity": "Error",
+          "format": "Type '{Type}' is not an attribute",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
         }
       ]
     },

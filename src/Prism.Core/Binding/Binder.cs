@@ -116,7 +116,7 @@ internal abstract class Binder
         );
         if (
             boundSize.ConstantValue
-            is not { IsUnsignedInteger: true, Kind: not ConstantKind.U128 } constant
+            is not { IsUnsignedInteger: true, PrimitiveKind: not PrimitiveKind.U128 } constant
         )
             return null;
 
@@ -974,7 +974,7 @@ internal abstract class Binder
         return new BoundLiteral(syntax, type, value);
     }
 
-    private static BoundNullLiteral BindNullLiteralExpression(
+    private static BoundLiteral BindNullLiteralExpression(
         NullLiteralExpressionSyntax syntax,
         TypeSymbol? returnType,
         BindingContext context
@@ -982,7 +982,7 @@ internal abstract class Binder
     {
         if (returnType is null)
         {
-            return new BoundNullLiteral(syntax, UnboundNullTypeSymbol.Instance);
+            return new BoundLiteral(syntax, UnboundNullTypeSymbol.Instance, ConstantValue.Null());
         }
 
         if (returnType is not NullableTypeSymbol)
@@ -992,7 +992,7 @@ internal abstract class Binder
             );
         }
 
-        return new BoundNullLiteral(syntax, returnType);
+        return new BoundLiteral(syntax, returnType, ConstantValue.Null());
     }
 
     private BoundExpression BindIdentifierExpression(
@@ -1600,7 +1600,7 @@ internal abstract class Binder
         {
             if (conversion.IsNullToNullable)
             {
-                return new BoundNullLiteral(syntax, type);
+                return new BoundLiteral(syntax, type, ConstantValue.Null());
             }
 
             if (!conversion.IsImplicit && !isExplicit)
@@ -2046,10 +2046,6 @@ internal abstract class Binder
                 parameter.Type,
                 constant
             ),
-            NullParameterDefault(var syntax) => new BoundNullLiteral(
-                syntax ?? fallbackSyntax,
-                parameter.Type
-            ),
             null => null,
         };
     }
@@ -2160,10 +2156,9 @@ internal abstract class Binder
         BindingContext context
     )
     {
-        if (expression is not BoundSpeculativeExpression speculative)
-            return expression;
-
-        return ApplySpeculativeBinding(speculative, targetType, context);
+        return expression is not BoundSpeculativeExpression speculative
+            ? expression
+            : ApplySpeculativeBinding(speculative, targetType, context);
     }
 
     private BoundExpression ApplySpeculativeBinding(
@@ -2188,7 +2183,7 @@ internal abstract class Binder
         };
     }
 
-    private BoundExpression ApplyNumericBinding(
+    private BoundLiteral ApplyNumericBinding(
         BoundSpeculativeExpression expression,
         TypeSymbol? targetType,
         BindingContext context,
@@ -2207,7 +2202,7 @@ internal abstract class Binder
         return new BoundLiteral(expression.Syntax, type, constant);
     }
 
-    private BoundExpression ApplyNumericBinding(
+    private BoundLiteral ApplyNumericBinding(
         BoundSpeculativeExpression expression,
         TypeSymbol? targetType,
         BindingContext context,

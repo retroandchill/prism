@@ -8,33 +8,23 @@ using System.Diagnostics;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Diagnostics;
+using Prism.Core.Semantic;
 using Prism.Core.Syntax;
 
 namespace Prism.Core.Symbols.Source;
 
-internal sealed class SourceParameterSymbol : ParameterSymbol
+internal closed class SourceParameterSymbol : ParameterSymbol
 {
-    private readonly ParameterSyntax _syntax;
+    protected ParameterSyntax Syntax { get; }
     private SymbolCompletionState _completionState;
 
-    internal SourceParameterSymbol(
-        string name,
-        FunctionSymbol containingSymbol,
-        ParameterSyntax syntax
-    )
+    internal SourceParameterSymbol(string name, Symbol containingSymbol, ParameterSyntax syntax)
         : base(name, containingSymbol)
     {
-        _syntax = syntax;
-        ContainingFunction = containingSymbol;
-
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        compilation.CacheSymbol(_syntax, this);
+        Syntax = syntax;
     }
 
-    public override FunctionSymbol ContainingFunction { get; }
-
-    public override ImmutableArray<Location> Locations
+    public sealed override ImmutableArray<Location> Locations
     {
         get
         {
@@ -43,14 +33,14 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
 
             ImmutableInterlocked.InterlockedCompareExchange(
                 ref field,
-                [_syntax.Name.Location],
+                [Syntax.Name.Location],
                 default
             );
             return field;
         }
     }
 
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
+    public sealed override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
     {
         get
         {
@@ -59,14 +49,14 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
 
             ImmutableInterlocked.InterlockedCompareExchange(
                 ref field,
-                [new SyntaxReference(_syntax)],
+                [new SyntaxReference(Syntax)],
                 default
             );
             return field;
         }
     }
 
-    public override TypeSymbol Type
+    public sealed override TypeSymbol Type
     {
         get
         {
@@ -87,20 +77,18 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
     {
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
-        var factory = compilation.GetBinderFactory(_syntax.SyntaxTree);
-        var binder = factory.GetBinder(_syntax);
+        var factory = compilation.GetBinderFactory(Syntax.SyntaxTree);
+        var binder = factory.GetBinder(Syntax);
 
-        Debug.Assert(_syntax.TypeSpecifier is not null);
-        return binder.ResolveType(_syntax.TypeSpecifier.Type, context);
+        Debug.Assert(Syntax.TypeSpecifier is not null);
+        return binder.ResolveType(Syntax.TypeSpecifier.Type, context);
     }
 
-    public override bool IsMutable => _syntax.MutableKeyword is not null;
-
-    public override ParameterDefault? DefaultValue
+    public sealed override ParameterDefault? DefaultValue
     {
         get
         {
-            if (_syntax.DefaultValue is null)
+            if (Syntax.DefaultValue is null)
                 return null;
 
             if (field is not null)
@@ -121,39 +109,40 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
 
     private ParameterDefault CreateParameterDefault(BindingContext context)
     {
-        Debug.Assert(_syntax.DefaultValue is not null);
+        Debug.Assert(Syntax.DefaultValue is not null);
 
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
-        var factory = compilation.GetBinderFactory(_syntax.SyntaxTree);
-        var binder = factory.GetBinder(_syntax);
+        var factory = compilation.GetBinderFactory(Syntax.SyntaxTree);
+        var binder = factory.GetBinder(Syntax);
 
         var expression = binder.BindExpression(
-            _syntax.DefaultValue.Value,
+            Syntax.DefaultValue.Value,
             Type,
             context,
             CancellationToken.None
         );
         switch (expression)
         {
-            case BoundNullLiteral:
-                return new NullParameterDefault(_syntax.DefaultValue.Value);
             case BoundLiteral literal:
-                return new ConstantParameterDefault(literal.Value, _syntax.DefaultValue.Value);
+                return new ConstantParameterDefault(literal.Value, Syntax.DefaultValue.Value);
             default:
                 // Use null for a non-constant default value
                 context.ReportDiagnostic(
                     Diagnostic.DefaultParameterValueMustBeConstant(
-                        _syntax.DefaultValue.Value.Location
+                        Syntax.DefaultValue.Value.Location
                     )
                 );
-                return new NullParameterDefault(_syntax.DefaultValue.Value);
+                return new ConstantParameterDefault(
+                    ConstantValue.Null(),
+                    Syntax.DefaultValue.Value
+                );
         }
     }
 
-    internal override bool NeedsCompletion => true;
+    internal sealed override bool NeedsCompletion => true;
 
-    internal override void ForceComplete(
+    internal sealed override void ForceComplete(
         SourceLocation? location,
         Predicate<Symbol>? filter,
         CancellationToken cancellationToken
@@ -188,8 +177,47 @@ internal sealed class SourceParameterSymbol : ParameterSymbol
         }
     }
 
-    internal override bool IsComplete(CompletionPart part)
+    internal sealed override bool IsComplete(CompletionPart part)
     {
         return _completionState.IsComplete(part);
     }
+}
+
+internal sealed class SourceFunctionParameterSymbol : SourceParameterSymbol
+{
+    internal SourceFunctionParameterSymbol(
+        string name,
+        FunctionSymbol containingSymbol,
+        ParameterSyntax syntax
+    )
+        : base(name, containingSymbol, syntax)
+    {
+        ContainingFunction = containingSymbol;
+
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        compilation.CacheSymbol(Syntax, this);
+    }
+
+    public override FunctionSymbol ContainingFunction { get; }
+
+    public override bool IsMutable => Syntax.MutableKeyword is not null;
+}
+
+internal sealed class SourceAttributeParameterSymbol : SourceParameterSymbol
+{
+    public SourceAttributeParameterSymbol(
+        string name,
+        Symbol containingSymbol,
+        ParameterSyntax syntax
+    )
+        : base(name, containingSymbol, syntax)
+    {
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        compilation.CacheSymbol(Syntax, this);
+    }
+
+    public override bool IsMutable => false;
+    public override FunctionSymbol? ContainingFunction => null;
 }

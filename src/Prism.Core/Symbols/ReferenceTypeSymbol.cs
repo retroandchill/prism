@@ -4,7 +4,6 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
-using Prism.Core.Configuration;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 
@@ -24,15 +23,6 @@ public sealed class ReferenceTypeSymbol : TypeSymbol
     public bool IsMutable { get; }
 
     public override bool IsDynamicallySized => false;
-
-    public override SizeAndAlignment GetSizeAndAlignment(CompilationSettings settings)
-    {
-        var pointerWidth = unchecked((ulong)settings.PointerWidth.BitWidth / 8);
-        return new SizeAndAlignment(
-            ReferencedType.IsDynamicallySized ? pointerWidth * 2 : pointerWidth,
-            pointerWidth
-        );
-    }
 
     public override ImmutableArray<Location> Locations => [];
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];

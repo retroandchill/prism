@@ -1,5 +1,4 @@
-﻿using Prism.Core.Configuration;
-using Prism.Core.Semantic;
+﻿using Prism.Core.Semantic;
 
 namespace Prism.Core.Symbols;
 
@@ -27,6 +26,4 @@ public closed class TypeSymbol : MemberContainerSymbol
     public bool IsVoid => SpecialType == SpecialType.Void;
 
     public abstract bool IsDynamicallySized { get; }
-
-    public abstract SizeAndAlignment GetSizeAndAlignment(CompilationSettings settings);
 }

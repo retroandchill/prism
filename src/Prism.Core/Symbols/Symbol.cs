@@ -20,7 +20,6 @@ public closed class Symbol
 
     public virtual string MetadataName => Name;
 
-    // TODO: For now symbol visibility does not apply but eventually it will
     public virtual DeclaredVisibility DeclaredVisibility => DeclaredVisibility.NotApplicable;
 
     public abstract ImmutableArray<Location> Locations { get; }
@@ -93,6 +92,11 @@ public closed class Symbol
     }
 
     public abstract ImmutableArray<SyntaxReference> DeclaringSyntaxReferences { get; }
+
+    public virtual ImmutableArray<AttributeData> GetAttribute()
+    {
+        return [];
+    }
 
     public virtual bool IsDefinedInSourceTree(SyntaxTree tree, TextSpan? definedWithin)
     {

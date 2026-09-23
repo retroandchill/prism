@@ -196,7 +196,7 @@ internal sealed class FunctionAnalysisBuilder
         var thenInputState = state with { State = conditionFlow.WhenTrue };
         var elseInputState = state with { State = conditionFlow.WhenFalse };
 
-        if (statement.Condition.ConstantValue is { Kind: ConstantKind.Bool } constant)
+        if (statement.Condition.ConstantValue is { PrimitiveKind: PrimitiveKind.Bool } constant)
         {
             if (constant.AsBoolean())
             {
@@ -244,7 +244,7 @@ internal sealed class FunctionAnalysisBuilder
         var enterLoopState = state with { State = conditionAnalysis.WhenTrue };
         var skipLoopState = state with { State = conditionAnalysis.WhenFalse };
 
-        if (statement.Condition.ConstantValue is { Kind: ConstantKind.Bool } constant)
+        if (statement.Condition.ConstantValue is { PrimitiveKind: PrimitiveKind.Bool } constant)
         {
             if (constant.AsBoolean())
             {
@@ -313,7 +313,7 @@ internal sealed class FunctionAnalysisBuilder
 
             state = VisitExpression(statement.Condition, state);
 
-            if (statement.Condition.ConstantValue is { Kind: ConstantKind.Bool } constant)
+            if (statement.Condition.ConstantValue is { PrimitiveKind: PrimitiveKind.Bool } constant)
             {
                 if (constant.AsBoolean())
                 {
@@ -776,7 +776,7 @@ internal sealed class FunctionAnalysisBuilder
         BoundExpression other
     )
     {
-        if (other is not BoundNullLiteral)
+        if (other is not BoundLiteral { Value.IsNull: true })
             return null;
 
         return value switch

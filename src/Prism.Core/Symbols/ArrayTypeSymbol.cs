@@ -5,7 +5,6 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using Prism.Core.Configuration;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 
@@ -26,15 +25,6 @@ public sealed class ArrayTypeSymbol : TypeSymbol
 
     [MemberNotNullWhen(false, nameof(Size))]
     public override bool IsDynamicallySized => Size is null;
-
-    public override SizeAndAlignment GetSizeAndAlignment(CompilationSettings settings)
-    {
-        if (IsDynamicallySized)
-            throw new InvalidOperationException("Cannot get size of dynamically sized type");
-
-        var (size, alignment) = ElementType.GetSizeAndAlignment(settings);
-        return new SizeAndAlignment(size * Size.Value, alignment);
-    }
 
     public override ImmutableArray<Location> Locations => [];
 

@@ -386,7 +386,6 @@ internal sealed class MirEmitter(Compilation compilation)
 
         return expression switch
         {
-            BoundNullLiteral => new MirNullValue(expression.Type),
             BoundVariableAccess access => EmitAccess(access, context),
             BoundParameterAccess access => EmitAccess(access, context),
             BoundUnaryOperation unary => EmitOperation(unary, context, cancellationToken),
@@ -705,7 +704,7 @@ internal sealed class MirEmitter(Compilation compilation)
             {
                 var nullCheckResult = context.CreateSsaValue(type);
 
-                if (left is MirNullValue)
+                if (left is MirConstantValue { IsNull: true })
                 {
                     context.CurrentBlock.AddInstruction(
                         new MirIsNotNullInstruction(nullCheckResult, rightValue)
@@ -714,7 +713,7 @@ internal sealed class MirEmitter(Compilation compilation)
                         }
                     );
                 }
-                else if (rightValue is MirNullValue)
+                else if (rightValue is MirConstantValue { IsNull: true })
                 {
                     context.CurrentBlock.AddInstruction(
                         new MirIsNotNullInstruction(nullCheckResult, left) { Location = location }

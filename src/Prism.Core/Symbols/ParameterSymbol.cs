@@ -6,8 +6,6 @@ namespace Prism.Core.Symbols;
 
 public closed record ParameterDefault(SyntaxNode? Syntax);
 
-public sealed record NullParameterDefault(SyntaxNode? Syntax = null) : ParameterDefault(Syntax);
-
 public sealed record ConstantParameterDefault(ConstantValue Value, SyntaxNode? Syntax = null)
     : ParameterDefault(Syntax);
 
@@ -16,7 +14,7 @@ public closed class ParameterSymbol : ValueSymbol
     private protected ParameterSymbol(string name, Symbol? containingSymbol)
         : base(name, containingSymbol) { }
 
-    public abstract FunctionSymbol ContainingFunction { get; }
+    public abstract FunctionSymbol? ContainingFunction { get; }
 
     [MemberNotNullWhen(true, nameof(DefaultValue))]
     public bool HasDefaultValue => DefaultValue is not null;

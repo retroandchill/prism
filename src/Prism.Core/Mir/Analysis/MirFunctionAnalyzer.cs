@@ -213,7 +213,6 @@ internal static class MirFunctionAnalyzer
         switch (value)
         {
             case MirConstantValue:
-            case MirNullValue:
             case MirVoidValue:
             case MirSsaValue:
                 return;

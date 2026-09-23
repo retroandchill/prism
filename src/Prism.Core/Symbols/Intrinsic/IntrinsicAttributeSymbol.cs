@@ -4,7 +4,6 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
-using Prism.Core.Configuration;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 using ZLinq;
@@ -47,9 +46,4 @@ internal sealed class IntrinsicAttributeSymbol : NamedTypeSymbol
     }
 
     public override bool IsDynamicallySized => false;
-
-    public override SizeAndAlignment GetSizeAndAlignment(CompilationSettings settings)
-    {
-        throw new NotSupportedException("Attributes are compile-time only artifacts.");
-    }
 }

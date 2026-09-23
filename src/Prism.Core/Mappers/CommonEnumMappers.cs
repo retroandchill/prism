@@ -13,7 +13,7 @@ namespace Prism.Core.Mappers;
 )]
 internal static partial class CommonEnumMappers
 {
-    public static partial SpecialType ToSpecialType(this ConstantKind kind);
+    public static partial SpecialType ToSpecialType(this PrimitiveKind kind);
 
     [MapperIgnoreSourceValue(BinaryOperation.Equality)]
     [MapperIgnoreSourceValue(BinaryOperation.NotEquals)]

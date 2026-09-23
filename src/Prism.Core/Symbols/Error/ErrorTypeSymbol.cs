@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using Prism.Core.Configuration;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 
@@ -26,9 +25,4 @@ internal sealed class ErrorTypeSymbol : NamedTypeSymbol
     public override ImmutableArray<Symbol> GetMembers(string name) => [];
 
     public override bool IsDynamicallySized => false;
-
-    public override SizeAndAlignment GetSizeAndAlignment(CompilationSettings settings)
-    {
-        throw new InvalidOperationException("Error type has no size");
-    }
 }

@@ -129,7 +129,28 @@ internal closed class SourceVariableSymbol : VariableSymbol
             : (_constantValue, false);
     }
 
-    protected abstract ConstantValue? ComputeConstantValue(BindingContext context);
+    private ConstantValue? ComputeConstantValue(BindingContext context)
+    {
+        if (Syntax.Initializer is null || Syntax.Keyword.Kind != SyntaxKind.ConstKeyword)
+            return null;
+
+        var initializer = GetInitializer(context);
+        var value = initializer.ConstantValue;
+
+        if (value is null)
+        {
+            context.ReportDiagnostic(
+                Diagnostic.NotConstantExpression(
+                    Syntax.Initializer.Location,
+                    Syntax.Initializer.ToString()
+                )
+            );
+        }
+
+        return value;
+    }
+
+    protected abstract BoundExpression GetInitializer(BindingContext context);
 
     public sealed override bool IsDefinedInSourceTree(SyntaxTree tree, TextSpan? definedWithin)
     {
@@ -226,16 +247,7 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
         return initializer.Type;
     }
 
-    protected override ConstantValue? ComputeConstantValue(BindingContext context)
-    {
-        if (Syntax.Initializer is null)
-            return null;
-
-        var initializer = GetInitializer(context);
-        return initializer.ConstantValue;
-    }
-
-    private BoundExpression GetInitializer(BindingContext context)
+    protected override BoundExpression GetInitializer(BindingContext context)
     {
         Debug.Assert(_initializerBinder is not null);
         Debug.Assert(Syntax.Initializer is not null);
@@ -302,14 +314,14 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
         return binder.ResolveType(Syntax.Type.Type, context);
     }
 
-    protected override ConstantValue? ComputeConstantValue(BindingContext context)
+    protected override BoundExpression GetInitializer(BindingContext context)
     {
-        if (Syntax.Initializer is null)
-            return null;
+        Debug.Assert(Syntax.Initializer is not null);
 
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
-        var initializer = compilation.GetBoundInitializer(this);
-        return initializer.ConstantValue;
+        var factory = compilation.GetBinderFactory(Syntax.SyntaxTree);
+        var binder = factory.GetBinder(Syntax);
+        return binder.BindInitializer(this, Syntax.Initializer, context, CancellationToken.None);
     }
 }

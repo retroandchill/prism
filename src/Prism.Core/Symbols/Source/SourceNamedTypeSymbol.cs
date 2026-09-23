@@ -122,7 +122,21 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
         return _nameToMembersMap;
     }
 
-    protected abstract ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
+    private ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
+        BindingContext context
+    )
+    {
+        var output = MakeNameToMembersMapCore(context);
+
+        foreach (var (name, members) in output)
+        {
+            ValidateMembers(name, members, context);
+        }
+
+        return output;
+    }
+
+    protected abstract ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMapCore(
         BindingContext context
     );
 
