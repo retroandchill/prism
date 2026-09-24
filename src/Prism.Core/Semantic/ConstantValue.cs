@@ -238,6 +238,8 @@ public readonly struct ConstantValue
     public bool IsCharacter =>
         PrimitiveKind is PrimitiveKind.Char or PrimitiveKind.Char16 or PrimitiveKind.Rune;
 
+    public bool IsString => PrimitiveKind == PrimitiveKind.Str;
+
     private void ThrowIfNotValidType(bool condition)
     {
         if (!condition)

@@ -93,7 +93,7 @@ public closed class Symbol
 
     public abstract ImmutableArray<SyntaxReference> DeclaringSyntaxReferences { get; }
 
-    public virtual ImmutableArray<AttributeData> GetAttribute()
+    public virtual ImmutableArray<AttributeData> GetAttributes()
     {
         return [];
     }

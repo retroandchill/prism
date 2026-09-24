@@ -22,12 +22,10 @@ internal sealed class SourceAttributeSymbol : SourceNamedTypeSymbol
     {
         Debug.Assert(declaration.Kind == DeclarationKind.Attribute);
 
-        var references = DeclaringSyntaxReferences;
-        Debug.Assert(references.Length == 1);
-        _syntax = (AttributeDeclarationSyntax)references[0].Syntax;
+        var declarations = declaration.Declarations;
+        Debug.Assert(declarations.Length == 1);
+        _syntax = (AttributeDeclarationSyntax)declarations[0].SyntaxReference.Syntax;
     }
-
-    protected override TypeDeclarationSyntax Syntax => _syntax;
 
     protected override ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMapCore(
         BindingContext context

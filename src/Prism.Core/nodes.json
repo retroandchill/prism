@@ -2839,11 +2839,6 @@
           ]
         },
         {
-          "name": "PositionalArgumentsFirst",
-          "severity": "Error",
-          "format": "Positional arguments must come before named arguments"
-        },
-        {
           "name": "DefaultParameterValueMustBeConstant",
           "severity": "Error",
           "format": "Default parameter value must be a constant"
@@ -2864,6 +2859,36 @@
           "severity": "Error",
           "format": "Type '{Type}' is not an attribute",
           "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "InvalidNumberOfArgumentsForAttribute",
+          "severity": "Error",
+          "format": "Cannot create attribute '{Type}' with arguments of types {Arguments}",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            },
+            {
+              "name": "Arguments",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NonConstantAttributeArg",
+          "severity": "Error",
+          "format": "Argument '{Name}' for attribute '{Type}' is not a constant",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            },
             {
               "name": "Type",
               "type": "String"

@@ -422,6 +422,103 @@ internal abstract class Binder
         return AddConversionIfNecessary(expression, variable.Type, context);
     }
 
+    public ImmutableArray<AttributeData> BindAttributes(
+        SyntaxList<AttributeListSyntax> attributes,
+        BindingContext context,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (attributes.Count == 0)
+            return [];
+
+        var builder = ImmutableArray.CreateBuilder<AttributeData>();
+
+        foreach (
+            var attribute in attributes
+                .AsValueEnumerable()
+                .SelectMany(l => l.Attributes.AsValueEnumerable())
+        )
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var attributeType = (NamedTypeSymbol)ResolveType(attribute.Type, context);
+            if (attributeType.Kind != NamedTypeKind.Attribute)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.TypeIsNotAttribute(
+                        attribute.Type.Location,
+                        attributeType.ToDisplayString()
+                    )
+                );
+                continue;
+            }
+
+            using var parameters = attributeType
+                .GetMembers()
+                .AsValueEnumerable()
+                .OfType<ParameterSymbol>()
+                .ToArrayPool();
+
+            var callArguments = GetCallArguments(attribute.Arguments, context, cancellationToken);
+            var mappedParameters = TryMapArgumentsToParameters(
+                parameters.Span,
+                callArguments,
+                attribute.Type
+            );
+
+            ImmutableArray<AttributeArgument> attributeParams;
+            if (mappedParameters is null)
+            {
+                var diagnosticArguments = RealizeSpeculativeBindingForDiagnostics(
+                    callArguments,
+                    context
+                );
+                context.ReportDiagnostic(
+                    Diagnostic.InvalidNumberOfArgumentsForAttribute(
+                        attribute.Location,
+                        attributeType.ToDisplayString(),
+                        GetTypeNames(diagnosticArguments)
+                    )
+                );
+                attributeParams = [];
+            }
+            else
+            {
+                Debug.Assert(parameters.Size == mappedParameters.Length);
+                var arguments = new AttributeArgument[parameters.Size];
+                foreach (var (i, param) in parameters.Span.AsValueEnumerable().Index())
+                {
+                    var arg = mappedParameters[i];
+                    var newExpression = ApplySpeculativeBinding(arg, param.Type, context);
+                    var converted = AddConversionIfNecessary(newExpression, param.Type, context);
+                    if (converted.ConstantValue is { } constant)
+                    {
+                        arguments[i] = new AttributeArgument(param, constant);
+                    }
+                    else
+                    {
+                        arguments[i] = new AttributeArgument(param, ConstantValue.Null());
+                        context.ReportDiagnostic(
+                            Diagnostic.NonConstantAttributeArg(
+                                arg.Location,
+                                param.Name,
+                                attributeType.Name
+                            )
+                        );
+                    }
+                }
+
+                attributeParams = ImmutableCollectionsMarshal.AsImmutableArray(arguments);
+            }
+
+            // TODO: We need to actually parse the arguments
+            builder.Add(
+                new AttributeData(new SyntaxReference(attribute), attributeType, attributeParams)
+            );
+        }
+
+        return builder.DrainToImmutable();
+    }
+
     public BoundStatement BindStatement(
         StatementSyntax syntax,
         TypeSymbol returnType,
@@ -1375,7 +1472,7 @@ internal abstract class Binder
         CancellationToken cancellationToken
     )
     {
-        var arguments = GetOverloadArguments(syntax, context, cancellationToken);
+        var arguments = GetCallArguments(syntax.Arguments, context, cancellationToken);
 
         var (overload, realArgs) = ResolveOverload(overloads, arguments, syntax.Callee, context);
         return new BoundInvocation(syntax, overload, realArgs);
@@ -1383,14 +1480,17 @@ internal abstract class Binder
 
     private readonly record struct CallArgument(string? Name, BoundExpression Expression);
 
-    private ImmutableArray<CallArgument> GetOverloadArguments(
-        InvocationExpressionSyntax syntax,
+    private ImmutableArray<CallArgument> GetCallArguments(
+        ArgumentListSyntax? syntax,
         BindingContext context,
         CancellationToken cancellationToken
     )
     {
-        var arguments = new CallArgument[syntax.Arguments.Arguments.Count];
-        foreach (var (i, argumentSyntax) in syntax.Arguments.Arguments.AsValueEnumerable().Index())
+        if (syntax is null)
+            return [];
+
+        var arguments = new CallArgument[syntax.Arguments.Count];
+        foreach (var (i, argumentSyntax) in syntax.Arguments.AsValueEnumerable().Index())
         {
             arguments[i] = new CallArgument(
                 argumentSyntax.Name?.Name.IdentifierName,
@@ -1880,15 +1980,15 @@ internal abstract class Binder
         var exactMatches = new List<ResolvedOverload>();
         var convertibleMatches = new List<ResolvedOverload>();
 
-        var reportedPositionalArgumentsFirst = false;
         foreach (var overload in result.Symbols.AsValueEnumerable().Cast<FunctionSymbol>())
         {
+            if (overload.Parameters.Length < arguments.Length)
+                continue;
+
             var mappedArguments = TryMapArgumentsToParameters(
-                overload,
+                overload.Parameters.AsSpan(),
                 arguments,
-                overloadSyntax,
-                ref reportedPositionalArgumentsFirst,
-                context
+                overloadSyntax
             );
             if (mappedArguments is null)
                 continue;
@@ -1944,63 +2044,36 @@ internal abstract class Binder
         }
 
         var diagnosticArguments = RealizeSpeculativeBindingForDiagnostics(arguments, context);
-        if (!reportedPositionalArgumentsFirst)
-        {
-            context.ReportDiagnostic(
-                hadStructurallyCallableCandidate
-                    ? Diagnostic.NoOverloadForArgTypes(
-                        overloadSyntax.Location,
-                        GetTypeNames(diagnosticArguments)
-                    )
-                    : Diagnostic.NoOverloadMatchingArgCount(
-                        overloadSyntax.Location,
-                        arguments.Length
-                    )
-            );
-        }
+        context.ReportDiagnostic(
+            hadStructurallyCallableCandidate
+                ? Diagnostic.NoOverloadForArgTypes(
+                    overloadSyntax.Location,
+                    GetTypeNames(diagnosticArguments)
+                )
+                : Diagnostic.NoOverloadMatchingArgCount(overloadSyntax.Location, arguments.Length)
+        );
 
         return new ResolvedOverload((FunctionSymbol)result.Symbols[0], diagnosticArguments);
     }
 
     private static BoundExpression[]? TryMapArgumentsToParameters(
-        FunctionSymbol overload,
+        ReadOnlySpan<ParameterSymbol> parameters,
         ImmutableArray<CallArgument> callArguments,
-        SyntaxNode fallbackSyntax,
-        ref bool reportedPositionalArgumentsFirst,
-        BindingContext context
+        SyntaxNode fallbackSyntax
     )
     {
-        var parameterCount = overload.Parameters.Length;
+        var parameterCount = parameters.Length;
         var mapped = new BoundExpression?[parameterCount];
-        var seenNamedArgument = false;
 
-        foreach (var arg in callArguments)
+        foreach (var (i, arg) in callArguments.AsValueEnumerable().Index())
         {
             if (arg.Name is null)
             {
-                if (seenNamedArgument)
-                {
-                    if (reportedPositionalArgumentsFirst)
-                        return null;
-
-                    context.ReportDiagnostic(
-                        Diagnostic.PositionalArgumentsFirst(arg.Expression.Syntax.Location)
-                    );
-                    reportedPositionalArgumentsFirst = true;
-                    return null;
-                }
-
-                var index = GetNextUnassignedParameterIndex(mapped);
-                if (index < 0)
-                    return null;
-
-                mapped[index] = arg.Expression;
+                mapped[i] = arg.Expression;
             }
             else
             {
-                seenNamedArgument = true;
-
-                var index = FindParameterIndexByName(overload, arg.Name);
+                var index = FindParameterIndexByName(parameters, arg.Name);
                 if (index < 0 || mapped[index] is not null)
                     return null;
 
@@ -2013,7 +2086,7 @@ internal abstract class Binder
             if (mapped[i] is not null)
                 continue;
 
-            var defaultValue = GetDefaultValue(overload.Parameters[i], fallbackSyntax);
+            var defaultValue = GetDefaultValue(parameters[i], fallbackSyntax);
             if (defaultValue is null)
                 return null;
 
@@ -2023,9 +2096,12 @@ internal abstract class Binder
         return mapped!;
     }
 
-    private static int FindParameterIndexByName(FunctionSymbol overload, string name)
+    private static int FindParameterIndexByName(
+        ReadOnlySpan<ParameterSymbol> parameters,
+        string name
+    )
     {
-        foreach (var (i, parameter) in overload.Parameters.AsValueEnumerable().Index())
+        foreach (var (i, parameter) in parameters.AsValueEnumerable().Index())
         {
             if (parameter.Name == name)
                 return i;
@@ -2048,17 +2124,6 @@ internal abstract class Binder
             ),
             null => null,
         };
-    }
-
-    private static int GetNextUnassignedParameterIndex(BoundExpression?[] mapped)
-    {
-        for (var i = 0; i < mapped.Length; i++)
-        {
-            if (mapped[i] is null)
-                return i;
-        }
-
-        return -1;
     }
 
     private OverloadResolutionResult? TryMatchOverload(

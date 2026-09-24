@@ -15,6 +15,7 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
     private SymbolCompletionState _completionState;
     private readonly Lock _functionChecksLock = new();
     private readonly DeclarationModifiers _modifiers;
+    private ImmutableArray<AttributeData> _attributes;
 
     internal SourceFunctionSymbol(
         string name,
@@ -180,6 +181,31 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
         return ImmutableCollectionsMarshal.AsImmutableArray(parameters);
     }
 
+    public override ImmutableArray<AttributeData> GetAttributes()
+    {
+        if (!_attributes.IsDefault)
+            return _attributes;
+
+        using var context = BindingContext.Create();
+        if (
+            !ImmutableInterlocked.InterlockedInitialize(ref _attributes, ComputeAttributes(context))
+        )
+            return _attributes;
+
+        AddDeclarationDiagnostics(context);
+        _completionState.MarkPartComplete(CompletionPart.Attributes);
+        return _attributes;
+    }
+
+    private ImmutableArray<AttributeData> ComputeAttributes(BindingContext context)
+    {
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        var semanticModel = compilation.GetSemanticModel(Syntax.SyntaxTree);
+        var binder = semanticModel.GetBinder(Syntax);
+        return binder.BindAttributes(Syntax.Attributes, context);
+    }
+
     internal override bool NeedsCompletion => true;
 
     internal override void ForceComplete(
@@ -197,6 +223,9 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
             var incompletePart = _completionState.NextIncompletePart;
             switch (incompletePart)
             {
+                case CompletionPart.Attributes:
+                    _ = GetAttributes();
+                    break;
                 case CompletionPart.Type:
                     _ = ReturnType;
                     break;

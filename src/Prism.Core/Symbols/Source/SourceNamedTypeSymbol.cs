@@ -20,6 +20,7 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
     private ImmutableArray<Symbol> _members;
     private ImmutableDictionary<string, ImmutableArray<Symbol>>? _nameToMembersMap;
     private SymbolCompletionState _completionState;
+    private ImmutableArray<AttributeData> _attributes;
 
     internal SourceNamedTypeSymbol(MergedTypeDeclaration mergedDeclaration, Symbol containingSymbol)
         : base(mergedDeclaration.Name, containingSymbol, GetTypeKind(mergedDeclaration))
@@ -39,8 +40,6 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
         };
     }
 
-    protected abstract TypeDeclarationSyntax Syntax { get; }
-
     public override ImmutableArray<Location> Locations
     {
         get
@@ -50,7 +49,7 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
 
             ImmutableInterlocked.InterlockedCompareExchange(
                 ref field,
-                [Syntax.Identifier.Location],
+                [.. _mergedDeclaration.Declarations.Select(d => d.Location)],
                 default
             );
             return field;
@@ -66,7 +65,7 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
 
             ImmutableInterlocked.InterlockedCompareExchange(
                 ref field,
-                [new SyntaxReference(Syntax)],
+                [.. _mergedDeclaration.Declarations.Select(d => d.SyntaxReference)],
                 default
             );
             return field;
@@ -141,4 +140,103 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
     );
 
     public sealed override bool IsDynamicallySized => false;
+
+    public override ImmutableArray<AttributeData> GetAttributes()
+    {
+        if (!_attributes.IsDefault)
+            return _attributes;
+
+        using var context = BindingContext.Create();
+        if (
+            !ImmutableInterlocked.InterlockedInitialize(ref _attributes, ComputeAttributes(context))
+        )
+            return _attributes;
+
+        AddDeclarationDiagnostics(context);
+        _completionState.MarkPartComplete(CompletionPart.Attributes);
+        return _attributes;
+    }
+
+    private ImmutableArray<AttributeData> ComputeAttributes(BindingContext context)
+    {
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        return _mergedDeclaration
+            .Declarations.AsValueEnumerable()
+            .SelectMany(x =>
+            {
+                var semanticModel = compilation.GetSemanticModel(x.SyntaxReference.SyntaxTree);
+                var typeSyntax = (TypeDeclarationSyntax)x.SyntaxReference.Syntax;
+                var binder = semanticModel.GetBinder(typeSyntax);
+                return binder.BindAttributes(typeSyntax.Attributes, context).AsValueEnumerable();
+            })
+            .ToImmutableArray();
+    }
+
+    internal sealed override bool NeedsCompletion => true;
+
+    internal sealed override void ForceComplete(
+        SourceLocation? location,
+        Predicate<Symbol>? filter,
+        CancellationToken cancellationToken
+    )
+    {
+        if (filter?.Invoke(this) == false)
+            return;
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var incompletePart = _completionState.NextIncompletePart;
+            switch (incompletePart)
+            {
+                case CompletionPart.Attributes:
+                    _ = GetAttributes();
+                    break;
+                case CompletionPart.Members:
+                    _ = GetNameToMembersMap();
+                    break;
+                case CompletionPart.MembersCompleted:
+                {
+                    var allCompleted = true;
+
+                    foreach (var member in GetMembers())
+                    {
+                        ForceCompleteMemberConditionally(
+                            location,
+                            filter,
+                            member,
+                            cancellationToken
+                        );
+                        allCompleted &= member.IsComplete(CompletionPart.Members);
+                    }
+
+                    if (allCompleted)
+                    {
+                        _completionState.MarkPartComplete(CompletionPart.MembersCompleted);
+                        break;
+                    }
+                    var allParts =
+                        location is null && filter is null
+                            ? CompletionPart.TypeAll
+                            : CompletionPart.TypeAll & ~CompletionPart.MembersCompleted;
+                    _completionState.MarkPartComplete(allParts);
+                    return;
+                }
+                case CompletionPart.None:
+                    return;
+                default:
+                    // Any other values are for other kinds of symbols
+                    _completionState.MarkPartComplete(CompletionPart.All & ~CompletionPart.TypeAll);
+                    break;
+            }
+
+            _completionState.WaitPartComplete(incompletePart, cancellationToken);
+        }
+    }
+
+    internal sealed override bool IsComplete(CompletionPart part)
+    {
+        return _completionState.IsComplete(part);
+    }
 }

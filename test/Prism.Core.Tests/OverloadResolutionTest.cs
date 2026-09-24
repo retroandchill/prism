@@ -154,7 +154,7 @@ public class OverloadResolutionTest
     }
 
     [Test]
-    public void PositionalBeforeNamedOnlyGetsReportedOnce()
+    public void TrailingNamedArgumentsMustBeInPosition()
     {
         var tree = SyntaxTree.Parse(
             """
@@ -163,6 +163,7 @@ public class OverloadResolutionTest
 
             func bar(x: i32) {
                 foo(y: 5, x);
+                foo(x, y: 5, 4);
             }
             """
         );
@@ -178,6 +179,6 @@ public class OverloadResolutionTest
 
         var body = compilation.GetBoundBody(bar);
         Assert.That(body.Diagnostics, Has.Length.EqualTo(1));
-        Assert.That(body.Diagnostics[0].Id, Is.EqualTo("PositionalArgumentsFirst"));
+        Assert.That(body.Diagnostics[0].Id, Is.EqualTo("NoOverloadMatchingArgCount"));
     }
 }

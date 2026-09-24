@@ -20,6 +20,7 @@ internal closed class SourceVariableSymbol : VariableSymbol
     private ConstantValue? _constantValue;
     private bool _constantValueComputed;
     private TypeSymbol? _type;
+    private ImmutableArray<AttributeData> _attributes;
 
     protected SourceVariableSymbol(
         string name,
@@ -157,6 +158,31 @@ internal closed class SourceVariableSymbol : VariableSymbol
         return IsDefinedInSourceTree(new SyntaxReference(Syntax), tree, definedWithin);
     }
 
+    public override ImmutableArray<AttributeData> GetAttributes()
+    {
+        if (!_attributes.IsDefault)
+            return _attributes;
+
+        using var context = BindingContext.Create();
+        if (
+            !ImmutableInterlocked.InterlockedInitialize(ref _attributes, ComputeAttributes(context))
+        )
+            return _attributes;
+
+        AddDeclarationDiagnostics(context);
+        _completionState.MarkPartComplete(CompletionPart.Attributes);
+        return _attributes;
+    }
+
+    private ImmutableArray<AttributeData> ComputeAttributes(BindingContext context)
+    {
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        var semanticModel = compilation.GetSemanticModel(Syntax.SyntaxTree);
+        var binder = semanticModel.GetBinder(Syntax);
+        return binder.BindAttributes(Syntax.Attributes, context);
+    }
+
     internal sealed override bool NeedsCompletion => true;
 
     internal sealed override void ForceComplete(
@@ -174,6 +200,9 @@ internal closed class SourceVariableSymbol : VariableSymbol
             var incompletePart = _completionState.NextIncompletePart;
             switch (incompletePart)
             {
+                case CompletionPart.Attributes:
+                    _ = GetAttributes();
+                    break;
                 case CompletionPart.Type:
                     _ = Type;
                     break;
