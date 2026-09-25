@@ -1,0 +1,8 @@
+﻿namespace std::native;
+
+/**
+ * Specifies that the function has C-linkage.
+ *
+ * @param name The name of the function symbol. If omitted it uses the name of the function.
+ */
+public attribute CLinkage(name: str& = "");

@@ -94,7 +94,8 @@
 				},
 				{
 					"name": "comment.block.prism",
-					"match": "/\\*.*\\*/"
+					"begin": "/\\*",
+					"end": "\\*/"
 				}
 			]
 		},

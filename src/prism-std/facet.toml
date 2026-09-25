@@ -1,0 +1,6 @@
+﻿#:schema ../Prism.Build/Manifest/schema.json
+[package]
+name = "prism-std"
+
+[output]
+kind = "static-library"

@@ -1,0 +1,19 @@
+﻿namespace std::io;
+
+/**
+ * Print the supplied text to the console.
+ *
+ * @param msg The text to print
+ */
+public func print(msg: str&) {
+    // TODO: Fill me out
+}
+
+/**
+ * Print the supplied text to the console, followed by a new line.
+ *
+ * @param msg The text to print
+ */
+public func println(msg: str&) {
+    // TODO: Fill me out
+}

@@ -1,0 +1,14 @@
+﻿{
+  "$schema": "https://schemastore.org",
+  "profiles": {
+    "DisplayHelp": {
+      "commandName": "Project",
+      "commandLineArgs": "build --help"
+    },
+    "StandardLibrary": {
+      "commandName": "Project",
+      "commandLineArgs": "build",
+      "workingDirectory": "../prism-std"
+    }
+  }
+}
