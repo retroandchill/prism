@@ -212,6 +212,38 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         );
     }
 
+    private GreenClassDeclaration ParseClassDeclaration(
+        GreenSyntaxList<GreenAttributeList> attributes,
+        GreenSyntaxList<GreenToken> modifiers
+    )
+    {
+        var keyword = ExpectToken(SyntaxKind.ClassKeyword);
+        var identifier = ExpectToken(SyntaxKind.IdentifierToken);
+
+        if (MatchToken(SyntaxKind.SemicolonToken) is { } semicolon)
+        {
+            return new GreenClassDeclaration(
+                attributes,
+                modifiers,
+                keyword,
+                identifier,
+                null,
+                semicolon
+            );
+        }
+
+        var body = ParseClassBody();
+        return new GreenClassDeclaration(attributes, modifiers, keyword, identifier, body, null);
+    }
+
+    public GreenClassBody ParseClassBody()
+    {
+        var openBrace = ExpectToken(SyntaxKind.OpenBraceToken);
+
+        // TODO: Actually parse the member declarations
+        return new GreenClassBody(openBrace, [], ExpectToken(SyntaxKind.CloseBraceToken));
+    }
+
     public GreenStatement ParseStatement()
     {
         var variableDeclaration = ParseVariableDeclarationStatement();

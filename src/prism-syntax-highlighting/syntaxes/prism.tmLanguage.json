@@ -29,7 +29,7 @@
 			},
 			{
 				"name": "keyword.declaration.prism",
-				"match": "\\b(var|func|namespace|attribute)\\b"
+				"match": "\\b(var|func|namespace|attribute|class)\\b"
 			},
 			{
 				"name": "keyword.type.prism",
