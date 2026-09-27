@@ -74,7 +74,7 @@ internal sealed class DeclarationTreeBuilder
 
         var hasUsings = node.Usings.Count > 0;
         var name = node.Name;
-        SyntaxNode? currentNode = node;
+        SyntaxNode currentNode = node;
         var memberNames = GetNonTypeMemberNames(node.Members);
         while (name is QualifiedNameSyntax qualified)
         {
@@ -201,7 +201,7 @@ internal sealed class DeclarationTreeBuilder
         return memberNames.ToImmutable();
     }
 
-    private SingleTypeDeclaration VisitAttributeDeclaration(
+    private static SingleTypeDeclaration VisitAttributeDeclaration(
         AttributeDeclarationSyntax attribute,
         DeclarationModifiers defaultVisibility
     )

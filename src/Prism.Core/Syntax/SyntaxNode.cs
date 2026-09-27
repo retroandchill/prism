@@ -7,6 +7,7 @@ using System.Diagnostics;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax.Green;
 using Prism.Core.Text;
+using Prism.Core.Utils;
 using ZLinq;
 
 namespace Prism.Core.Syntax;
@@ -138,7 +139,10 @@ public closed class SyntaxNode
         var green = Green.GetSlot(0);
         if (green == null)
             return result;
-        Interlocked.CompareExchange(ref slot, green.CreateRed(this, Position), null);
+
+        var parent = Green.IsList ? Parent : this;
+        Debug.Assert(parent is not null);
+        Interlocked.CompareExchange(ref slot, green.CreateRed(parent, Position), null);
         result = slot;
 
         return result;
