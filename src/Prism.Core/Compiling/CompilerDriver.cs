@@ -115,10 +115,12 @@ internal static class CompilerDriver
                     hasErrors |= global.HasErrors;
 
                     var reference = new BoundVariableAccess(
+                        compilation,
                         global.Initializer.Syntax,
                         global.Variable
                     );
                     var assignment = new BoundAssignmentOperation(
+                        compilation,
                         global.Initializer.Syntax,
                         compilation.GetSpecialType(SpecialType.Void),
                         reference,
@@ -126,13 +128,18 @@ internal static class CompilerDriver
                         AssignmentOperation.Simple
                     );
                     builder.Add(
-                        new BoundExpressionStatement(global.Initializer.Syntax, assignment)
+                        new BoundExpressionStatement(
+                            compilation,
+                            global.Initializer.Syntax,
+                            assignment
+                        )
                     );
                 }
 
                 if (builder is not null)
                 {
                     body = new BoundBlock(
+                        compilation,
                         compilation.SyntaxTrees[0].Root,
                         builder.DrainToImmutable()
                     )

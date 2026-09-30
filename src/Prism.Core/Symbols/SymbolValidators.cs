@@ -18,7 +18,7 @@ internal static class SymbolValidators
 
         public VariableSymbol EnsureGlobal()
         {
-            return variable.IsGlobal
+            return variable.IsStaticStorage
                 ? variable
                 : throw new ArgumentException("Variable is not global", nameof(variable));
         }

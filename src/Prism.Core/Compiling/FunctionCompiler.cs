@@ -69,7 +69,6 @@ internal sealed class FunctionCompiler
     {
         _cancellationToken.ThrowIfCancellationRequested();
 
-        Debug.Assert(variableSymbol.IsGlobal);
         if (variableSymbol.IsConst)
         {
             _emitter?.AddGlobalConstant(variableSymbol, _context, _cancellationToken);
@@ -81,7 +80,10 @@ internal sealed class FunctionCompiler
         if (initializer.HasErrors)
             return;
 
-        _emitter?.AddGlobalVariable(initializer, _context, _cancellationToken);
+        if (variableSymbol.IsStaticStorage)
+        {
+            _emitter?.AddGlobalVariable(initializer, _context, _cancellationToken);
+        }
     }
 
     private void CompileFunction(FunctionSymbol functionSymbol)

@@ -81,6 +81,7 @@ public sealed class Project
         var settings = CompilationSettings.CurrentPlatform with
         {
             OutputKind = _manifest.Output.Kind,
+            BuildingCoreLibrary = _manifest.Package.IsCoreLibrary,
         };
         return Compilation.Create(_manifest.Package.Name, trees, settings);
     }

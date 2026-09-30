@@ -428,7 +428,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             PrimitiveKind.U32 => LLVMValueRef.CreateConstInt(_context.Int32Type, value.AsUInt64()),
             PrimitiveKind.U64 => LLVMValueRef.CreateConstInt(_context.Int64Type, value.AsUInt64()),
             PrimitiveKind.U128 => LLVMValueRef.CreateConstInt(
-                _context.Int64Type,
+                _context.Int128Type,
                 value.AsUInt128()
             ),
             PrimitiveKind.USize => LLVMValueRef.CreateConstInt(

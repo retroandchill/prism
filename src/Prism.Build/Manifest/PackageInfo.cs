@@ -9,4 +9,6 @@ public sealed record PackageInfo
     public required string Name { get; init; }
 
     public SemVersion Version { get; init; } = DefaultVersion;
+
+    public bool IsCoreLibrary { get; init; } = false;
 }

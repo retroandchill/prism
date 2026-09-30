@@ -26,4 +26,6 @@ public sealed record CompilationSettings
     public static readonly CompilationSettings CurrentPlatform = new();
 
     public bool IsOptimized => OptimizationLevel != OptimizationLevel.None;
+
+    public bool BuildingCoreLibrary { get; init; } = false;
 }

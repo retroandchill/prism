@@ -562,7 +562,7 @@ internal sealed class FunctionAnalysisBuilder
                 _bindingContext.ReportDiagnostic(Diagnostic.CannotReassign(location, param.Name));
                 return state;
             case BoundVariableAccess { Symbol: var variable }:
-                if (variable.IsGlobal && _function is SynthesizedGlobalConstructor)
+                if (variable.IsStaticStorage && _function is SynthesizedGlobalConstructor)
                     return state;
 
                 if (variable.IsMutable)

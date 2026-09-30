@@ -132,7 +132,7 @@ internal closed class SourceVariableSymbol : VariableSymbol
 
     private ConstantValue? ComputeConstantValue(BindingContext context)
     {
-        if (Syntax.Initializer is null || Syntax.Keyword.Kind != SyntaxKind.ConstKeyword)
+        if (Syntax.Initializer is null || !Syntax.IsConst)
             return null;
 
         var initializer = GetInitializer(context);
@@ -236,7 +236,7 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
     public SourceLocalVariableSymbol(
         string name,
         Symbol? containingSymbol,
-        VariableDeclarationSyntax syntax,
+        LocalVariableDeclarationSyntax syntax,
         Binder scopeBinder,
         Binder? initializerBinder
     )
@@ -250,7 +250,7 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
         compilation.CacheSymbol(Syntax, this);
     }
 
-    public override bool IsGlobal => false;
+    public override VariableKind Kind => VariableKind.Local;
 
     protected override BindingContext CreateBindingContext()
     {
@@ -295,7 +295,7 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
     public SourceGlobalVariableSymbol(
         string name,
         MemberContainerSymbol containingSymbol,
-        VariableDeclarationSyntax syntax
+        GlobalVariableDeclarationSyntax syntax
     )
         : base(name, containingSymbol, syntax)
     {
@@ -305,6 +305,8 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
         Debug.Assert(compilation is not null);
         compilation.CacheSymbol(Syntax, this);
     }
+
+    public override VariableKind Kind => VariableKind.Global;
 
     public override string MetadataName
     {
@@ -318,7 +320,70 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
         }
     }
 
-    public override bool IsGlobal => true;
+    public override DeclaredVisibility DeclaredVisibility =>
+        DeclaredVisibility.FromDeclarationModifiers(_modifiers);
+
+    protected override BindingContext CreateBindingContext()
+    {
+        return BindingContext.Create();
+    }
+
+    protected override TypeSymbol ComputeType(BindingContext context)
+    {
+        Debug.Assert(Syntax.Type is not null);
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        var factory = compilation.GetBinderFactory(Syntax.SyntaxTree);
+        var binder = factory.GetBinder(Syntax);
+        return binder.ResolveType(Syntax.Type.Type, context);
+    }
+
+    protected override BoundExpression GetInitializer(BindingContext context)
+    {
+        Debug.Assert(Syntax.Initializer is not null);
+
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        var factory = compilation.GetBinderFactory(Syntax.SyntaxTree);
+        var binder = factory.GetBinder(Syntax);
+        return binder.BindInitializer(this, Syntax.Initializer, context, CancellationToken.None);
+    }
+}
+
+internal sealed class SourceFieldSymbol : SourceVariableSymbol
+{
+    private readonly DeclarationModifiers _modifiers;
+
+    public SourceFieldSymbol(
+        string name,
+        MemberContainerSymbol containingSymbol,
+        FieldDeclarationSyntax syntax
+    )
+        : base(name, containingSymbol, syntax)
+    {
+        _modifiers = DeclarationModifiers.MakeModifiers(containingSymbol, syntax.Modifiers);
+
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        compilation.CacheSymbol(Syntax, this);
+    }
+
+    public override VariableKind Kind =>
+        _modifiers.HasFlag(DeclarationModifiers.Static) || Syntax.IsConst
+            ? VariableKind.Class
+            : VariableKind.Instance;
+
+    public override string MetadataName
+    {
+        get
+        {
+            if (field is not null)
+                return field;
+
+            Interlocked.CompareExchange(ref field, ProduceMetadataName(Syntax.SyntaxTree), null);
+            return field;
+        }
+    }
 
     public override DeclaredVisibility DeclaredVisibility =>
         DeclaredVisibility.FromDeclarationModifiers(_modifiers);
@@ -330,11 +395,7 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
 
     protected override TypeSymbol ComputeType(BindingContext context)
     {
-        if (Syntax.Type is null)
-        {
-            context.ReportDiagnostic(Diagnostic.ExpectedTypeSpecifier(Syntax.Identifier.Location));
-            return ErrorTypeSymbol.Unnamed;
-        }
+        Debug.Assert(Syntax.Type is not null);
 
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);

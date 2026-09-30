@@ -276,7 +276,7 @@ public static class CSharpEmitter
 
         private void EmitGreenNodeClass(CSharpNode node)
         {
-            var qualifier = node.IsAbstract ? "closed " : "sealed";
+            var qualifier = node.IsAbstract ? "closed" : "sealed";
             var baseName =
                 node.Base?.GreenClassName
                 ?? node.Module.Kind switch
@@ -286,7 +286,9 @@ public static class CSharpEmitter
                     _ => throw new InvalidOperationException("Invalid module kind"),
                 };
 
-            writer.WriteLine($"internal {qualifier} class {node.GreenClassName} : {baseName}");
+            writer.WriteLine(
+                $"internal {qualifier} partial class {node.GreenClassName} : {baseName}"
+            );
             using var blockScope = writer.EnterBlockScope();
             if (node.IsAbstract)
             {
@@ -562,7 +564,7 @@ public static class CSharpEmitter
                     ModuleKind.StructuredTrivia => StructuredTriviaSyntaxClass,
                     _ => throw new InvalidOperationException("Invalid module kind"),
                 };
-            writer.WriteLine($"public {qualified} class {node.RedClassName} : {baseName}");
+            writer.WriteLine($"public {qualified} partial class {node.RedClassName} : {baseName}");
             using var scope = writer.EnterBlockScope(true);
             var constructorSpecifier = node.IsAbstract ? "private protected" : "internal";
 

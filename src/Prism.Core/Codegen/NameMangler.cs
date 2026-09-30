@@ -178,6 +178,7 @@ public static class NameMangler
             current = current.ContainingSymbol;
         }
 
+        names.Reverse();
         foreach (var n in names)
         {
             MangleName(n, ref builder);

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Prism.Core.Compiling;
 using Prism.Core.Symbols;
 using Prism.Core.Syntax;
 
@@ -6,14 +7,18 @@ namespace Prism.Core.BoundTree;
 
 internal closed record BoundStatement : BoundNode
 {
-    protected BoundStatement(SyntaxNode syntax)
-        : base(syntax) { }
+    protected BoundStatement(Compilation compilation, SyntaxNode syntax)
+        : base(compilation, syntax) { }
 }
 
 internal sealed record BoundBlock : BoundStatement
 {
-    public BoundBlock(SyntaxNode syntax, ImmutableArray<BoundStatement> statements)
-        : base(syntax)
+    public BoundBlock(
+        Compilation compilation,
+        SyntaxNode syntax,
+        ImmutableArray<BoundStatement> statements
+    )
+        : base(compilation, syntax)
     {
         Statements = statements;
     }
@@ -24,11 +29,12 @@ internal sealed record BoundBlock : BoundStatement
 internal sealed record BoundVariableDeclaration : BoundStatement
 {
     public BoundVariableDeclaration(
+        Compilation compilation,
         SyntaxNode syntax,
         VariableSymbol variable,
         BoundExpression? initializer
     )
-        : base(syntax)
+        : base(compilation, syntax)
     {
         Variable = variable;
         Initializer = initializer;
@@ -41,8 +47,12 @@ internal sealed record BoundVariableDeclaration : BoundStatement
 
 internal sealed record BoundExpressionStatement : BoundStatement
 {
-    public BoundExpressionStatement(SyntaxNode syntax, BoundExpression expression)
-        : base(syntax)
+    public BoundExpressionStatement(
+        Compilation compilation,
+        SyntaxNode syntax,
+        BoundExpression expression
+    )
+        : base(compilation, syntax)
     {
         Expression = expression;
     }
@@ -52,8 +62,12 @@ internal sealed record BoundExpressionStatement : BoundStatement
 
 internal sealed record BoundReturnStatement : BoundStatement
 {
-    public BoundReturnStatement(SyntaxNode syntax, BoundExpression? expression)
-        : base(syntax)
+    public BoundReturnStatement(
+        Compilation compilation,
+        SyntaxNode syntax,
+        BoundExpression? expression
+    )
+        : base(compilation, syntax)
     {
         Expression = expression;
     }
@@ -64,12 +78,13 @@ internal sealed record BoundReturnStatement : BoundStatement
 internal sealed record BoundIfStatement : BoundStatement
 {
     public BoundIfStatement(
+        Compilation compilation,
         SyntaxNode syntax,
         BoundExpression condition,
         BoundStatement thenStatement,
         BoundStatement? elseStatement
     )
-        : base(syntax)
+        : base(compilation, syntax)
     {
         Condition = condition;
         ThenStatement = thenStatement;
@@ -85,8 +100,13 @@ internal sealed record BoundIfStatement : BoundStatement
 
 internal closed record BoundLoopBase : BoundStatement
 {
-    protected BoundLoopBase(SyntaxNode syntax, BoundStatement loopBody, LabelSymbol label)
-        : base(syntax)
+    protected BoundLoopBase(
+        Compilation compilation,
+        SyntaxNode syntax,
+        BoundStatement loopBody,
+        LabelSymbol label
+    )
+        : base(compilation, syntax)
     {
         Body = loopBody;
         Label = label;
@@ -100,12 +120,13 @@ internal closed record BoundLoopBase : BoundStatement
 internal sealed record BoundWhileStatement : BoundLoopBase
 {
     public BoundWhileStatement(
+        Compilation compilation,
         SyntaxNode syntax,
         BoundExpression condition,
         BoundStatement body,
         LabelSymbol label
     )
-        : base(syntax, body, label)
+        : base(compilation, syntax, body, label)
     {
         Condition = condition;
     }
@@ -115,13 +136,19 @@ internal sealed record BoundWhileStatement : BoundLoopBase
 
 internal sealed record BoundLoopStatement : BoundLoopBase
 {
-    public BoundLoopStatement(SyntaxNode syntax, BoundStatement loopBody, LabelSymbol label)
-        : base(syntax, loopBody, label) { }
+    public BoundLoopStatement(
+        Compilation compilation,
+        SyntaxNode syntax,
+        BoundStatement loopBody,
+        LabelSymbol label
+    )
+        : base(compilation, syntax, loopBody, label) { }
 }
 
 internal sealed record BoundForStatement : BoundLoopBase
 {
     public BoundForStatement(
+        Compilation compilation,
         SyntaxNode syntax,
         BoundVariableDeclaration? variable,
         ImmutableArray<BoundExpression> initializers,
@@ -130,7 +157,7 @@ internal sealed record BoundForStatement : BoundLoopBase
         BoundStatement body,
         LabelSymbol label
     )
-        : base(syntax, body, label)
+        : base(compilation, syntax, body, label)
     {
         Variable = variable;
         Initializers = initializers;
@@ -149,8 +176,8 @@ internal sealed record BoundForStatement : BoundLoopBase
 
 internal sealed record BoundBreakStatement : BoundStatement
 {
-    public BoundBreakStatement(SyntaxNode syntax, LabelSymbol label)
-        : base(syntax)
+    public BoundBreakStatement(Compilation compilation, SyntaxNode syntax, LabelSymbol label)
+        : base(compilation, syntax)
     {
         Label = label;
     }
@@ -160,8 +187,8 @@ internal sealed record BoundBreakStatement : BoundStatement
 
 internal sealed record BoundContinueStatement : BoundStatement
 {
-    public BoundContinueStatement(SyntaxNode syntax, LabelSymbol label)
-        : base(syntax)
+    public BoundContinueStatement(Compilation compilation, SyntaxNode syntax, LabelSymbol label)
+        : base(compilation, syntax)
     {
         Label = label;
     }

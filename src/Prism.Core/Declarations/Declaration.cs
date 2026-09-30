@@ -6,6 +6,7 @@ internal enum DeclarationKind
 {
     Namespace,
     Attribute,
+    Class,
 }
 
 internal closed class Declaration(string name)

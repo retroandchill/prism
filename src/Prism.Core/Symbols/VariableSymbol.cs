@@ -3,14 +3,26 @@ using Prism.Core.Semantic;
 
 namespace Prism.Core.Symbols;
 
+public enum VariableKind : byte
+{
+    Global,
+    Class,
+    Instance,
+    Local,
+}
+
 public closed class VariableSymbol : ValueSymbol
 {
     private protected VariableSymbol(string name, Symbol? containingSymbol)
         : base(name, containingSymbol) { }
 
-    public abstract bool IsGlobal { get; }
+    public abstract VariableKind Kind { get; }
 
-    public bool IsLocal => !IsGlobal;
+    public bool IsStaticStorage => Kind is VariableKind.Global or VariableKind.Class;
+
+    public bool IsInstance => Kind is VariableKind.Instance;
+
+    public bool IsLocal => Kind == VariableKind.Local;
 
     public abstract bool HasInitializer { get; }
 

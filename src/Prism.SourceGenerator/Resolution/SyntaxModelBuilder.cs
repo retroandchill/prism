@@ -394,7 +394,7 @@ public sealed class SyntaxModelBuilder
 
             foreach (var (property, count) in productionCounts)
             {
-                if (count != node.Productions.Count)
+                if (count != node.Productions.Count && property.Shape == PropertyShape.Single)
                 {
                     property.Shape = PropertyShape.Optional;
                 }

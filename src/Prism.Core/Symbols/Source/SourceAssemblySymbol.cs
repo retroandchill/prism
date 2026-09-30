@@ -8,7 +8,7 @@ namespace Prism.Core.Symbols.Source;
 internal sealed class SourceAssemblySymbol(Compilation compilation)
     : AssemblySymbol(compilation.AssemblyName)
 {
-    private SymbolCompletionState _completionState = new();
+    private SymbolCompletionState _completionState;
 
     public override ImmutableArray<Location> Locations
     {

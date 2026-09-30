@@ -9,6 +9,7 @@ using Prism.Core.Semantic.Layout;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Error;
 using Prism.Core.Syntax;
+using Prism.Core.Utils;
 
 namespace Prism.Core.Compiling;
 
@@ -19,6 +20,8 @@ internal sealed class CompilationCache(Compilation compilation)
     private readonly record struct ArrayLookupKey(TypeSymbol ElementType, ulong? Size);
 
     private readonly record struct ReferenceLookupKey(TypeSymbol ReferencedType, bool IsMutable);
+
+    public readonly ConcurrentDictionary<SpecialType, NamedTypeSymbol> SpecialTypes = new();
 
     private readonly ConcurrentDictionary<
         NamespaceSymbol,
@@ -145,6 +148,27 @@ internal sealed class CompilationCache(Compilation compilation)
         ));
     }
 
+    public NamespaceSymbol StdNamespace
+    {
+        get
+        {
+            if (field is not null)
+                return field;
+
+            Interlocked.Exchange(ref field, compilation.FindStdNamespace());
+            return field;
+        }
+    }
+
+    public NamedTypeSymbol GetSpecialType(SpecialType specialType)
+    {
+        return SpecialTypes.GetOrAdd(
+            specialType,
+            static (t, c) => c.FindSpecialType(t),
+            compilation
+        );
+    }
+
     public BinderFactory GetBinderFactory(SyntaxTree syntaxTree)
     {
         return _binderFactories.GetOrAdd(
@@ -209,7 +233,7 @@ internal sealed class CompilationCache(Compilation compilation)
         {
             switch (member)
             {
-                case VariableSymbol variable:
+                case VariableSymbol { IsStaticStorage: true } variable:
                     variables.Add(variable);
                     break;
                 case NamespaceSymbol nestedNamespace:

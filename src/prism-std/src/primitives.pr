@@ -1,0 +1,92 @@
+﻿namespace std;
+
+public class Void;
+
+public class Boolean;
+
+public class Int8 {
+    public const MAX_VALUE: i8 = 0x7F;
+
+    public const MIN_VALUE: i8 = 0x80 as i8;
+}
+
+public class Int16 {
+    public const MAX_VALUE: i16 = 0x7FFF;
+
+    public const MIN_VALUE: i16 = 0x8000 as i16;
+}
+
+public class Int32 {
+    public const MAX_VALUE: i32 = 0x7FFFFFFF;
+
+    public const MIN_VALUE: i32 = 0x80000000 as i32;
+}
+
+public class Int64 {
+    public const MAX_VALUE: i64 = 0x7FFFFFFFFFFFFFFF;
+
+    public const MIN_VALUE: i64 = 0x8000000000000000 as i64;
+}
+
+public class Int128 {
+    public const MAX_VALUE: i128 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
+    public const MIN_VALUE: i128 = 0x80000000000000000000000000000000 as i128;
+}
+
+public class ISize {
+    private const BIT_WIDTH: usize = sizeof(isize) * 8uz;
+
+    public const MAX_VALUE: isize = ((1i128 << (BIT_WIDTH - 1)) - 1) as isize;
+
+    public const MIN_VALUE: isize = -(1i128 << (BIT_WIDTH - 1)) as isize;
+}
+
+public class UInt8 {
+    public const MAX_VALUE: u8 = 0xFF;
+
+    public const MIN_VALUE: u8 = 0;
+}
+
+public class UInt16 {
+    public const MAX_VALUE: u16 = 0xFFFF;
+
+    public const MIN_VALUE: u16 = 0;
+}
+
+public class UInt32 {
+    public const MAX_VALUE: u32 = 0xFFFFFFFF;
+
+    public const MIN_VALUE: u32 = 0;
+}
+
+public class UInt64 {
+    public const MAX_VALUE: u64 = 0xFFFFFFFFFFFFFFFF;
+
+    public const MIN_VALUE: u64 = 0;
+}
+
+public class UInt128 {
+    public const MAX_VALUE: u128 = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
+
+    public const MIN_VALUE: u128 = 0;
+}
+
+public class USize {
+    private const BIT_WIDTH: usize = sizeof(usize) * 8uz;
+
+    public const MAX_VALUE: usize = ((1u128 << BIT_WIDTH) - 1uz) as usize;
+
+    public const MIN_VALUE: usize = 0;
+}
+
+public class Float32;
+
+public class Float64;
+
+public class Char;
+
+public class Char16;
+
+public class Rune;
+
+public class Str;

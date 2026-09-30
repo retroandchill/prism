@@ -25,6 +25,10 @@ internal sealed class SourceAttributeSymbol : SourceNamedTypeSymbol
         var declarations = declaration.Declarations;
         Debug.Assert(declarations.Length == 1);
         _syntax = (AttributeDeclarationSyntax)declarations[0].SyntaxReference.Syntax;
+
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        compilation.CacheSymbol(_syntax, this);
     }
 
     protected override ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMapCore(

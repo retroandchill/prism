@@ -29,7 +29,7 @@
 			},
 			{
 				"name": "keyword.declaration.prism",
-				"match": "\\b(var|func|namespace|attribute|class)\\b"
+				"match": "\\b(var|const|func|namespace|attribute|class)\\b"
 			},
 			{
 				"name": "keyword.type.prism",
@@ -48,8 +48,12 @@
 				"match": "\\b(null)\\b"
 			},
 			{
+			    "name": "keyword.builtin.prism",
+				"match": "\\b(sizeof)\\b"
+			},
+			{
 				"name": "keyword.access.prism",
-				"match": "\\b(public|internal)\\b"
+				"match": "\\b(public|internal|protected|private)\\b"
 			}]
 		},
 		"numbers": {
@@ -60,7 +64,7 @@
 				},
 				{
 					"name": "constant.numeric.integer",
-					"match": "(?<![\\w.])[0-9]+([iu](8|16|32|64|128|z)|f(32|64))?(?!\\w)"
+					"match": "(?<![\\w.])([0-9]+|0[Xx][0-9a-fA-F]+|0[Bb][0-1]+)([iu](8|16|32|64|128|z)|f(32|64))?(?!\\w)"
 				}
 			]
 		},

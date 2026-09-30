@@ -84,6 +84,7 @@ internal sealed class BinderFactory(Compilation compilation, SyntaxTree syntaxTr
         return node
             is CompilationUnitSyntax
                 or NamespaceDeclarationSyntax
+                or TypeDeclarationSyntax
                 or FunctionDeclarationSyntax;
     }
 
@@ -100,6 +101,11 @@ internal sealed class BinderFactory(Compilation compilation, SyntaxTree syntaxTr
                 GetDeclaredNamespaceSymbol(namespaceDecl),
                 namespaceDecl
             ),
+            TypeDeclarationSyntax typeDecl => new MemberContainerBinder(
+                GetEnclosingDeclarationBinder(typeDecl.Parent!),
+                GetDeclaredTypeSymbol(typeDecl),
+                typeDecl
+            ),
             FunctionDeclarationSyntax functionDecl => new FunctionSignatureBinder(
                 GetEnclosingDeclarationBinder(functionDecl.Parent!),
                 GetDeclaredFunctionSymbol(functionDecl),
@@ -113,6 +119,12 @@ internal sealed class BinderFactory(Compilation compilation, SyntaxTree syntaxTr
     {
         return compilation.GetSemanticModel(syntaxTree).GetDeclaredSymbol(namespaceDecl)
             ?? throw new InvalidOperationException("Namespace is not declared");
+    }
+
+    private NamedTypeSymbol GetDeclaredTypeSymbol(TypeDeclarationSyntax classDeclarationSyntax)
+    {
+        return compilation.GetSemanticModel(syntaxTree).GetDeclaredSymbol(classDeclarationSyntax)
+            ?? throw new InvalidOperationException("Class is not declared");
     }
 
     private FunctionSymbol GetDeclaredFunctionSymbol(FunctionDeclarationSyntax functionDecl)

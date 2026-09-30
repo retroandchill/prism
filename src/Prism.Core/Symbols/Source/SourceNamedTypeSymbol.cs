@@ -10,6 +10,7 @@ using Prism.Core.Binding;
 using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
+using Prism.Core.Utils;
 using ZLinq;
 
 namespace Prism.Core.Symbols.Source;
@@ -23,7 +24,15 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
     private ImmutableArray<AttributeData> _attributes;
 
     internal SourceNamedTypeSymbol(MergedTypeDeclaration mergedDeclaration, Symbol containingSymbol)
-        : base(mergedDeclaration.Name, containingSymbol, GetTypeKind(mergedDeclaration))
+        : base(
+            mergedDeclaration.Name,
+            containingSymbol,
+            GetTypeKind(mergedDeclaration),
+            SpecialTypeFacts.FromMetadataName(
+                mergedDeclaration.Name,
+                containingSymbol as NamespaceSymbol
+            )
+        )
     {
         _mergedDeclaration = mergedDeclaration;
     }
@@ -36,6 +45,7 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
                 "Type kind cannot be a namespace"
             ),
             DeclarationKind.Attribute => NamedTypeKind.Attribute,
+            DeclarationKind.Class => NamedTypeKind.Class,
             _ => throw new InvalidOperationException("Invalid declaration kind"),
         };
     }
@@ -135,11 +145,83 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
         return output;
     }
 
-    protected abstract ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMapCore(
+    protected virtual ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMapCore(
         BindingContext context
-    );
+    )
+    {
+        var builder = new Dictionary<string, ImmutableArray<Symbol>.Builder>();
 
-    public sealed override bool IsDynamicallySized => false;
+        foreach (var symbol in _mergedDeclaration.Members.Select(BuildSymbol))
+        {
+            builder.GetOrAdd(symbol.Name, ImmutableArray.CreateBuilder<Symbol>).Add(symbol);
+        }
+
+        foreach (
+            var syntax in _mergedDeclaration
+                .Declarations.AsValueEnumerable()
+                .SelectMany(x => GetSyntaxMembers(x).AsValueEnumerable())
+        )
+        {
+            Symbol? symbol = syntax switch
+            {
+                TypeDeclarationSyntax => null,
+                FieldDeclarationSyntax field => BuildSymbol(field),
+                FunctionDeclarationSyntax function => BuildSymbol(function),
+                _ => null,
+            };
+            if (symbol is null)
+                continue;
+
+            builder.GetOrAdd(symbol.Name, ImmutableArray.CreateBuilder<Symbol>).Add(symbol);
+        }
+
+        return builder.ToImmutableDictionary(
+            pair => pair.Key,
+            pair => pair.Value.DrainToImmutable()
+        );
+
+        SyntaxList<DeclarationSyntax> GetSyntaxMembers(SingleTypeDeclaration x)
+        {
+            return x.SyntaxReference.Syntax switch
+            {
+                ClassDeclarationSyntax cu => cu.Members,
+                _ => new SyntaxList<DeclarationSyntax>(),
+            };
+        }
+    }
+
+    private Symbol BuildSymbol(MergedTypeDeclaration declaration)
+    {
+        return declaration.Kind switch
+        {
+            DeclarationKind.Namespace => throw new InvalidOperationException(
+                "Namespace declaration cannot be built as a type"
+            ),
+            DeclarationKind.Class => new SourceClassSymbol(declaration, this),
+            DeclarationKind.Attribute => new SourceAttributeSymbol(declaration, this),
+            _ => throw new InvalidOperationException("Unknown declaration kind"),
+        };
+    }
+
+    private SourceFieldSymbol BuildSymbol(FieldDeclarationSyntax fieldDeclaration)
+    {
+        return new SourceFieldSymbol(
+            fieldDeclaration.Identifier.IdentifierName,
+            this,
+            fieldDeclaration
+        );
+    }
+
+    private SourceFunctionSymbol BuildSymbol(FunctionDeclarationSyntax functionDeclaration)
+    {
+        return new SourceFunctionSymbol(
+            functionDeclaration.Identifier.IdentifierName,
+            this,
+            functionDeclaration
+        );
+    }
+
+    public sealed override bool IsDynamicallySized => SpecialType == SpecialType.Str;
 
     public override ImmutableArray<AttributeData> GetAttributes()
     {

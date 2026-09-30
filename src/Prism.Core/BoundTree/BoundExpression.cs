@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Prism.Core.Compiling;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Intermediate;
@@ -10,8 +11,8 @@ internal closed record BoundExpression : BoundNode
 {
     private Lazy<ConstantValue?>? _constantValue;
 
-    protected BoundExpression(SyntaxNode syntax, TypeSymbol type)
-        : base(syntax)
+    protected BoundExpression(Compilation compilation, SyntaxNode syntax, TypeSymbol type)
+        : base(compilation, syntax)
     {
         Type = type;
     }
@@ -49,14 +50,19 @@ internal closed record BoundExpression : BoundNode
 
 internal sealed record BoundBadExpression : BoundExpression
 {
-    public BoundBadExpression(SyntaxNode syntax, TypeSymbol type)
-        : base(syntax, type) { }
+    public BoundBadExpression(Compilation compilation, SyntaxNode syntax, TypeSymbol type)
+        : base(compilation, syntax, type) { }
 }
 
 internal closed record BoundSpeculativeExpression : BoundExpression
 {
-    protected BoundSpeculativeExpression(SyntaxNode syntax, TypeSymbol type, TypeSymbol defaultType)
-        : base(syntax, type)
+    protected BoundSpeculativeExpression(
+        Compilation compilation,
+        SyntaxNode syntax,
+        TypeSymbol type,
+        TypeSymbol defaultType
+    )
+        : base(compilation, syntax, type)
     {
         DefaultType = defaultType;
     }
@@ -67,11 +73,12 @@ internal closed record BoundSpeculativeExpression : BoundExpression
 internal sealed record BoundUnfixedIntegerLiteral : BoundSpeculativeExpression
 {
     public BoundUnfixedIntegerLiteral(
+        Compilation compilation,
         SyntaxNode syntax,
         IntegerLiteralData data,
         TypeSymbol defaultType
     )
-        : base(syntax, UnfixedIntegerTypeSymbol.Instance, defaultType)
+        : base(compilation, syntax, UnfixedIntegerTypeSymbol.Instance, defaultType)
     {
         Data = data;
     }
@@ -84,11 +91,12 @@ internal sealed record BoundUnfixedIntegerLiteral : BoundSpeculativeExpression
 internal sealed record BoundUnfixedFloatLiteral : BoundSpeculativeExpression
 {
     public BoundUnfixedFloatLiteral(
+        Compilation compilation,
         SyntaxNode syntax,
         FloatLiteralData data,
         TypeSymbol defaultType
     )
-        : base(syntax, UnfixedFloatTypeSymbol.Instance, defaultType)
+        : base(compilation, syntax, UnfixedFloatTypeSymbol.Instance, defaultType)
     {
         Data = data;
     }
@@ -100,8 +108,13 @@ internal sealed record BoundUnfixedFloatLiteral : BoundSpeculativeExpression
 
 internal sealed record BoundLiteral : BoundExpression
 {
-    public BoundLiteral(SyntaxNode syntax, TypeSymbol type, ConstantValue value)
-        : base(syntax, type)
+    public BoundLiteral(
+        Compilation compilation,
+        SyntaxNode syntax,
+        TypeSymbol type,
+        ConstantValue value
+    )
+        : base(compilation, syntax, type)
     {
         Value = value;
     }
@@ -111,10 +124,30 @@ internal sealed record BoundLiteral : BoundExpression
     protected override ConstantValue? ComputeConstantValue() => Value;
 }
 
+internal sealed record BoundTypeSize : BoundExpression
+{
+    public BoundTypeSize(Compilation compilation, SyntaxNode syntax, TypeSymbol targetType)
+        : base(compilation, syntax, compilation.GetSpecialType(SpecialType.USize))
+    {
+        TargetType = targetType;
+    }
+
+    public TypeSymbol TargetType { get; }
+
+    protected override ConstantValue? ComputeConstantValue()
+    {
+        if (TargetType.IsDynamicallySized)
+            return null;
+
+        var layout = Compilation.GetTypeLayout(TargetType);
+        return Semantic.ConstantValue.USize(layout.Size);
+    }
+}
+
 internal sealed record BoundVariableAccess : BoundExpression
 {
-    public BoundVariableAccess(SyntaxNode syntax, VariableSymbol symbol)
-        : base(syntax, symbol.Type)
+    public BoundVariableAccess(Compilation compilation, SyntaxNode syntax, VariableSymbol symbol)
+        : base(compilation, syntax, symbol.Type)
     {
         Symbol = symbol;
     }
@@ -131,8 +164,8 @@ internal sealed record BoundVariableAccess : BoundExpression
 
 internal sealed record BoundParameterAccess : BoundExpression
 {
-    public BoundParameterAccess(SyntaxNode syntax, ParameterSymbol symbol)
-        : base(syntax, symbol.Type)
+    public BoundParameterAccess(Compilation compilation, SyntaxNode syntax, ParameterSymbol symbol)
+        : base(compilation, syntax, symbol.Type)
     {
         Symbol = symbol;
     }
@@ -147,12 +180,13 @@ internal sealed record BoundParameterAccess : BoundExpression
 internal sealed record BoundUnaryOperation : BoundExpression
 {
     public BoundUnaryOperation(
+        Compilation compilation,
         SyntaxNode syntax,
         TypeSymbol type,
         BoundExpression operand,
         UnaryOperation operation
     )
-        : base(syntax, type)
+        : base(compilation, syntax, type)
     {
         Operand = operand;
         Operation = operation;
@@ -161,18 +195,31 @@ internal sealed record BoundUnaryOperation : BoundExpression
     public BoundExpression Operand { get; }
 
     public UnaryOperation Operation { get; }
+
+    protected override ConstantValue? ComputeConstantValue()
+    {
+        return Operation switch
+        {
+            UnaryOperation.Identity => Operand.ConstantValue,
+            UnaryOperation.Negation => Operand.ConstantValue?.TryNegate(Compilation.Settings),
+            UnaryOperation.LogicalNot => Operand.ConstantValue?.TryLogicalNot(),
+            UnaryOperation.BitwiseNot => Operand.ConstantValue?.TryBitwiseNot(Compilation.Settings),
+            _ => null,
+        };
+    }
 }
 
 internal sealed record BoundBinaryOperation : BoundExpression
 {
     public BoundBinaryOperation(
+        Compilation compilation,
         SyntaxNode syntax,
         TypeSymbol type,
         BoundExpression left,
         BoundExpression right,
         BinaryOperation operation
     )
-        : base(syntax, type)
+        : base(compilation, syntax, type)
     {
         Left = left;
         Right = right;
@@ -182,18 +229,27 @@ internal sealed record BoundBinaryOperation : BoundExpression
     public BoundExpression Left { get; }
     public BoundExpression Right { get; }
     public BinaryOperation Operation { get; }
+
+    protected override ConstantValue? ComputeConstantValue()
+    {
+        if (Left.ConstantValue is not { } leftConst || Right.ConstantValue is not { } rightConst)
+            return null;
+
+        return leftConst.TryBinary(Operation, in rightConst, Compilation.Settings);
+    }
 }
 
 internal sealed record BoundAssignmentOperation : BoundExpression
 {
     public BoundAssignmentOperation(
+        Compilation compilation,
         SyntaxNode syntax,
         TypeSymbol type,
         BoundExpression left,
         BoundExpression right,
         AssignmentOperation operation
     )
-        : base(syntax, type)
+        : base(compilation, syntax, type)
     {
         Left = left;
         Right = right;
@@ -208,6 +264,7 @@ internal sealed record BoundAssignmentOperation : BoundExpression
 internal sealed record BoundSpeculativeConditional : BoundSpeculativeExpression
 {
     public BoundSpeculativeConditional(
+        Compilation compilation,
         SyntaxNode syntax,
         TypeSymbol type,
         BoundExpression condition,
@@ -215,6 +272,7 @@ internal sealed record BoundSpeculativeConditional : BoundSpeculativeExpression
         BoundExpression whenFalse
     )
         : base(
+            compilation,
             syntax,
             type,
             whenTrue is BoundSpeculativeExpression speculative
@@ -235,13 +293,14 @@ internal sealed record BoundSpeculativeConditional : BoundSpeculativeExpression
 internal sealed record BoundConditional : BoundExpression
 {
     public BoundConditional(
+        Compilation compilation,
         SyntaxNode syntax,
         TypeSymbol type,
         BoundExpression condition,
         BoundExpression whenTrue,
         BoundExpression whenFalse
     )
-        : base(syntax, type)
+        : base(compilation, syntax, type)
     {
         Condition = condition;
         WhenTrue = whenTrue;
@@ -256,11 +315,12 @@ internal sealed record BoundConditional : BoundExpression
 internal sealed record BoundInvocation : BoundExpression
 {
     public BoundInvocation(
+        Compilation compilation,
         SyntaxNode syntax,
         FunctionSymbol function,
         ImmutableArray<BoundExpression> arguments
     )
-        : base(syntax, function.ReturnType)
+        : base(compilation, syntax, function.ReturnType)
     {
         Function = function;
         Arguments = arguments;
@@ -274,12 +334,13 @@ internal sealed record BoundInvocation : BoundExpression
 internal sealed record BoundConversion : BoundExpression
 {
     public BoundConversion(
+        Compilation compilation,
         SyntaxNode syntax,
         TypeSymbol type,
         BoundExpression operand,
         Conversion conversion
     )
-        : base(syntax, type)
+        : base(compilation, syntax, type)
     {
         Operand = operand;
         Conversion = conversion;
@@ -288,17 +349,23 @@ internal sealed record BoundConversion : BoundExpression
     public BoundExpression Operand { get; }
 
     public Conversion Conversion { get; }
+
+    protected override ConstantValue? ComputeConstantValue()
+    {
+        return Operand.ConstantValue?.TryConvert(Type, Compilation.Settings);
+    }
 }
 
 internal sealed record BoundAddressOf : BoundExpression
 {
     public BoundAddressOf(
+        Compilation compilation,
         SyntaxNode syntax,
         BoundExpression operand,
         TypeSymbol type,
         bool isMutable
     )
-        : base(syntax, type)
+        : base(compilation, syntax, type)
     {
         Operand = operand;
         IsMutable = isMutable;
@@ -312,12 +379,13 @@ internal sealed record BoundAddressOf : BoundExpression
 internal sealed record BoundDereference : BoundExpression
 {
     public BoundDereference(
+        Compilation compilation,
         SyntaxNode syntax,
         BoundExpression operand,
         TypeSymbol type,
         bool isMutable
     )
-        : base(syntax, type)
+        : base(compilation, syntax, type)
     {
         Operand = operand;
         IsAssignable = isMutable;
@@ -333,12 +401,13 @@ internal sealed record BoundDereference : BoundExpression
 internal sealed record BoundIndex : BoundExpression
 {
     public BoundIndex(
+        Compilation compilation,
         SyntaxNode syntax,
         BoundExpression operand,
         BoundExpression index,
         TypeSymbol type
     )
-        : base(syntax, type)
+        : base(compilation, syntax, type)
     {
         Operand = operand;
         Index = index;
@@ -351,12 +420,13 @@ internal sealed record BoundIndex : BoundExpression
 internal sealed record BoundCollectionExpression : BoundExpression
 {
     public BoundCollectionExpression(
+        Compilation compilation,
         SyntaxNode syntax,
         TypeSymbol type,
         TypeSymbol elementType,
         ImmutableArray<BoundExpression> expressions
     )
-        : base(syntax, type)
+        : base(compilation, syntax, type)
     {
         ElementType = elementType;
         Expressions = expressions;
@@ -369,11 +439,12 @@ internal sealed record BoundCollectionExpression : BoundExpression
 internal sealed record BoundSpeculativeCollectionExpression : BoundSpeculativeExpression
 {
     public BoundSpeculativeCollectionExpression(
+        Compilation compilation,
         SyntaxNode syntax,
         ImmutableArray<BoundExpression> expressions,
         TypeSymbol defaultType
     )
-        : base(syntax, UndeterminedCollectionTypeSymbol.Instance, defaultType)
+        : base(compilation, syntax, UndeterminedCollectionTypeSymbol.Instance, defaultType)
     {
         Expressions = expressions;
     }

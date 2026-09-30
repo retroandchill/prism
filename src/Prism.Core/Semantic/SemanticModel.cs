@@ -39,6 +39,11 @@ public class SemanticModel
         return GetDeclaredSymbol((SyntaxNode)syntax) as NamespaceSymbol;
     }
 
+    public NamedTypeSymbol? GetDeclaredSymbol(TypeDeclarationSyntax syntax)
+    {
+        return GetDeclaredSymbol((SyntaxNode)syntax) as NamedTypeSymbol;
+    }
+
     internal SemanticModelState State
     {
         get

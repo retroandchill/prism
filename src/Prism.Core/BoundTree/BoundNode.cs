@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Prism.Core.Compiling;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 
@@ -15,11 +16,14 @@ internal closed record BoundNode
     }
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    protected BoundNode(SyntaxNode syntax)
+    protected BoundNode(Compilation compilation, SyntaxNode syntax)
     {
+        Compilation = compilation;
         Syntax = syntax;
         _flags = BoundNodeFlags.None;
     }
+
+    public Compilation Compilation { get; }
 
     public SyntaxNode Syntax { get; }
 

@@ -14,7 +14,7 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
     private ImmutableArray<Symbol> _members;
     private readonly ConcurrentDictionary<string, ImmutableArray<Symbol>> _nameToMembers = new();
 
-    public MergedNamespaceSymbol(
+    private MergedNamespaceSymbol(
         string name,
         Symbol? containingSymbol,
         Compilation compilation,
@@ -136,12 +136,36 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
 
     private ImmutableArray<Symbol> ComputeMembers(string name)
     {
-        return
-        [
-            .. _namespaces
-                .AsValueEnumerable()
-                .SelectMany(x => x.GetMembers(name).AsValueEnumerable()),
-        ];
+        using var foundSymbols = _namespaces
+            .AsValueEnumerable()
+            .SelectMany(x => x.GetMembers(name).AsValueEnumerable())
+            .ToArrayPool();
+
+        var namespaces = foundSymbols
+            .Span.AsValueEnumerable()
+            .OfType<NamespaceSymbol>()
+            .ToImmutableArray();
+
+        var allSymbols = ImmutableArray.CreateBuilder<Symbol>(foundSymbols.Size);
+        var namespacesMerged = false;
+        foreach (var symbol in foundSymbols.Span)
+        {
+            if (symbol is NamespaceSymbol)
+            {
+                if (namespacesMerged)
+                    continue;
+
+                var mergedNamespace = Create(ContainingCompilation, this, namespaces);
+                allSymbols.Add(mergedNamespace);
+                namespacesMerged = true;
+            }
+            else
+            {
+                allSymbols.Add(symbol);
+            }
+        }
+
+        return allSymbols.DrainToImmutable();
     }
 
     public override NamespaceKind NamespaceKind => NamespaceKind.Compilation;

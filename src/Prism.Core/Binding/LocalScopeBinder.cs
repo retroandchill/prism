@@ -76,7 +76,7 @@ internal abstract class LocalScopeBinder(Binder next) : Binder(next)
                 variables.Add(MakeLocal(local.Declaration, declarationBinder));
                 break;
             }
-            case VariableDeclarationSyntax loopVariable:
+            case LocalVariableDeclarationSyntax loopVariable:
             {
                 var declarationBinder = enclosingBinder.GetBinder(loopVariable) ?? enclosingBinder;
                 variables.Add(MakeLocal(loopVariable, declarationBinder));
@@ -86,7 +86,7 @@ internal abstract class LocalScopeBinder(Binder next) : Binder(next)
     }
 
     private SourceLocalVariableSymbol MakeLocal(
-        VariableDeclarationSyntax declaration,
+        LocalVariableDeclarationSyntax declaration,
         Binder? initializerBinder = null
     )
     {

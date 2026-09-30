@@ -208,8 +208,8 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
         {
             Symbol? symbol = syntax switch
             {
-                NamespaceDeclarationSyntax => null,
-                VariableDeclarationSyntax variable => BuildSymbol(variable),
+                NamespaceDeclarationSyntax or TypeDeclarationSyntax => null,
+                GlobalVariableDeclarationSyntax variable => BuildSymbol(variable),
                 FunctionDeclarationSyntax function => BuildSymbol(function),
                 _ => null,
             };
@@ -261,12 +261,15 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
             DeclarationKind.Namespace => throw new InvalidOperationException(
                 "Namespace declaration cannot be built as a type"
             ),
+            DeclarationKind.Class => new SourceClassSymbol(declaration, this),
             DeclarationKind.Attribute => new SourceAttributeSymbol(declaration, this),
             _ => throw new InvalidOperationException("Unknown declaration kind"),
         };
     }
 
-    private SourceGlobalVariableSymbol BuildSymbol(VariableDeclarationSyntax variableDeclaration)
+    private SourceGlobalVariableSymbol BuildSymbol(
+        GlobalVariableDeclarationSyntax variableDeclaration
+    )
     {
         return new SourceGlobalVariableSymbol(
             variableDeclaration.Identifier.IdentifierName,

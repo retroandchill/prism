@@ -80,10 +80,14 @@ public class Compilation
             if (field is not null)
                 return field;
 
+            ReadOnlySpan<NamespaceSymbol> additionalNamespaces = Settings.BuildingCoreLibrary
+                ? []
+                : [IntrinsicSymbols.GlobalNamespace];
+
             var mergedNamespace = MergedNamespaceSymbol.Create(
                 this,
                 null,
-                [Assembly.GlobalNamespace, IntrinsicSymbols.GlobalNamespace]
+                [Assembly.GlobalNamespace, .. additionalNamespaces]
             );
             Interlocked.CompareExchange(ref field, mergedNamespace, null);
             return field;
@@ -107,12 +111,53 @@ public class Compilation
         return Cache.GetSemanticModel(tree);
     }
 
-#pragma warning disable CA1822
     public NamedTypeSymbol GetSpecialType(SpecialType specialType)
     {
-        return IntrinsicSymbols.GetType(specialType);
+        return Cache.GetSpecialType(specialType);
     }
-#pragma warning restore CA1822
+
+    internal NamespaceSymbol StdNamespace => Cache.StdNamespace;
+
+    internal NamespaceSymbol FindStdNamespace()
+    {
+        return GlobalNamespace.GetMembers(CommonNames.Std).OfType<NamespaceSymbol>().Single();
+    }
+
+    internal NamedTypeSymbol FindSpecialType(SpecialType type)
+    {
+        var stdNamespace = Cache.StdNamespace;
+        var typeName = GetBuiltInTypeName(type);
+        return stdNamespace.GetMembers(typeName).OfType<NamedTypeSymbol>().Single();
+    }
+
+    private static string GetBuiltInTypeName(SpecialType type)
+    {
+        return type switch
+        {
+            SpecialType.Void => CommonNames.Void,
+            SpecialType.Bool => CommonNames.Bool,
+            SpecialType.I8 => CommonNames.Int8,
+            SpecialType.I16 => CommonNames.Int16,
+            SpecialType.I32 => CommonNames.Int32,
+            SpecialType.I64 => CommonNames.Int64,
+            SpecialType.I128 => CommonNames.Int128,
+            SpecialType.ISize => CommonNames.ISize,
+            SpecialType.U8 => CommonNames.UInt8,
+            SpecialType.U16 => CommonNames.UInt16,
+            SpecialType.U32 => CommonNames.UInt32,
+            SpecialType.U64 => CommonNames.UInt64,
+            SpecialType.U128 => CommonNames.UInt128,
+            SpecialType.USize => CommonNames.USize,
+            SpecialType.F32 => CommonNames.Float32,
+            SpecialType.F64 => CommonNames.Float64,
+            SpecialType.Char => CommonNames.Char,
+            SpecialType.Char16 => CommonNames.Char16,
+            SpecialType.Rune => CommonNames.Rune,
+            SpecialType.Str => CommonNames.Str,
+            SpecialType.None => throw new InvalidOperationException("Invalid special type"),
+            _ => throw new InvalidOperationException("Invalid special type"),
+        };
+    }
 
     public ArrayTypeSymbol CreateArrayTypeSymbol(TypeSymbol elementType, ulong? size = null)
     {

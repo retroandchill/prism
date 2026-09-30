@@ -412,7 +412,7 @@ internal abstract class Binder
         CancellationToken cancellationToken
     )
     {
-        Debug.Assert(variable.IsGlobal);
+        Debug.Assert(!variable.IsLocal);
         var expression = BindExpression(
             initializer.Value,
             variable.Type,
@@ -606,12 +606,14 @@ internal abstract class Binder
         if (returnType.IsVoid)
         {
             return new BoundExpressionStatement(
+                Compilation,
                 syntax,
                 BindExpression(syntax.Expression, context, cancellationToken)
             );
         }
 
         return new BoundReturnStatement(
+            Compilation,
             syntax,
             BindExpression(syntax.Expression, returnType, context, cancellationToken)
         );
@@ -635,7 +637,7 @@ internal abstract class Binder
             builder.Add(binder.BindStatement(statement, returnType, context, cancellationToken));
         }
 
-        return new BoundBlock(syntax, builder.DrainToImmutable());
+        return new BoundBlock(Compilation, syntax, builder.DrainToImmutable());
     }
 
     private BoundVariableDeclaration BindVariableDeclaration(
@@ -678,7 +680,7 @@ internal abstract class Binder
         };
 
         if (initializer is null)
-            return new BoundVariableDeclaration(syntax, variable, initializer);
+            return new BoundVariableDeclaration(Compilation, syntax, variable, initializer);
 
         if (targetType is not null && !targetType.IsDynamicallySized)
         {
@@ -691,7 +693,7 @@ internal abstract class Binder
             sourceSymbol.ForceSetType(initializer.Type);
         }
 
-        return new BoundVariableDeclaration(syntax, variable, initializer);
+        return new BoundVariableDeclaration(Compilation, syntax, variable, initializer);
     }
 
     private BoundExpressionStatement BindExpressionStatement(
@@ -701,6 +703,7 @@ internal abstract class Binder
     )
     {
         return new BoundExpressionStatement(
+            Compilation,
             syntax,
             BindExpression(syntax.Expression, context, cancellationToken)
         );
@@ -738,7 +741,7 @@ internal abstract class Binder
             }
         }
 
-        return new BoundReturnStatement(syntax, expression);
+        return new BoundReturnStatement(Compilation, syntax, expression);
     }
 
     private BoundIfStatement BindIfStatement(
@@ -765,7 +768,7 @@ internal abstract class Binder
             ),
             null => null,
         };
-        return new BoundIfStatement(syntax, condition, thenStatement, elseStatement);
+        return new BoundIfStatement(Compilation, syntax, condition, thenStatement, elseStatement);
     }
 
     private BoundWhileStatement BindWhileStatement(
@@ -785,7 +788,7 @@ internal abstract class Binder
         var loopBody = binder.BindBlock(syntax.Block, returnType, context, cancellationToken);
         var label = binder.LookupLoopLabel("", context);
         Debug.Assert(label is not null);
-        return new BoundWhileStatement(syntax, condition, loopBody, label);
+        return new BoundWhileStatement(Compilation, syntax, condition, loopBody, label);
     }
 
     private BoundLoopStatement BindLoopStatement(
@@ -799,7 +802,7 @@ internal abstract class Binder
         var loopBody = binder.BindBlock(syntax.Block, returnType, context, cancellationToken);
         var label = binder.LookupLoopLabel("", context);
         Debug.Assert(label is not null);
-        return new BoundLoopStatement(syntax, loopBody, label);
+        return new BoundLoopStatement(Compilation, syntax, loopBody, label);
     }
 
     private BoundForStatement BindForStatement(
@@ -843,6 +846,7 @@ internal abstract class Binder
         var label = binder.LookupLoopLabel("", context);
         Debug.Assert(label is not null);
         return new BoundForStatement(
+            Compilation,
             syntax,
             variable,
             initializers,
@@ -861,13 +865,13 @@ internal abstract class Binder
         var labelName = syntax.Label?.IdentifierName ?? "";
         var label = LookupLoopLabel(labelName, context);
         if (label is not null)
-            return new BoundBreakStatement(syntax, label);
+            return new BoundBreakStatement(Compilation, syntax, label);
 
         context.ReportDiagnostic(Diagnostic.InvalidUseOfBreak(syntax.Location));
         var enclosingFunction = ContainingSymbol as FunctionSymbol ?? ErrorFunctionSymbol.Unnamed;
         label = new ErrorLabelSymbol(labelName, enclosingFunction);
 
-        return new BoundBreakStatement(syntax, label);
+        return new BoundBreakStatement(Compilation, syntax, label);
     }
 
     private BoundContinueStatement BindContinueStatement(
@@ -878,13 +882,13 @@ internal abstract class Binder
         var labelName = syntax.Label?.IdentifierName ?? "";
         var label = LookupLoopLabel(labelName, context);
         if (label is not null)
-            return new BoundContinueStatement(syntax, label);
+            return new BoundContinueStatement(Compilation, syntax, label);
 
         context.ReportDiagnostic(Diagnostic.InvalidUseOfBreak(syntax.Location));
         var enclosingFunction = ContainingSymbol as FunctionSymbol ?? ErrorFunctionSymbol.Unnamed;
         label = new ErrorLabelSymbol(labelName, enclosingFunction);
 
-        return new BoundContinueStatement(syntax, label);
+        return new BoundContinueStatement(Compilation, syntax, label);
     }
 
     private BoundStatement BindLabelStatement(
@@ -956,6 +960,10 @@ internal abstract class Binder
             NullLiteralExpressionSyntax nullLiteral => BindNullLiteralExpression(
                 nullLiteral,
                 targetType,
+                context
+            ),
+            SizeOfExpressionSyntax sizeOfExpression => BindSizeOfExpression(
+                sizeOfExpression,
                 context
             ),
             IdentifierExpressionSyntax identifier => BindIdentifierExpression(identifier, context),
@@ -1040,6 +1048,7 @@ internal abstract class Binder
                     BindingContext.Discarded
                 );
                 return new BoundUnfixedIntegerLiteral(
+                    Compilation,
                     syntax,
                     integerValue,
                     Compilation.GetSpecialType(constant.SpecialType)
@@ -1055,6 +1064,7 @@ internal abstract class Binder
                     BindingContext.Discarded
                 );
                 return new BoundUnfixedFloatLiteral(
+                    Compilation,
                     syntax,
                     floatingValue,
                     Compilation.GetSpecialType(constant.SpecialType)
@@ -1068,10 +1078,10 @@ internal abstract class Binder
         {
             type = Compilation.CreateReferenceTypeSymbol(type);
         }
-        return new BoundLiteral(syntax, type, value);
+        return new BoundLiteral(Compilation, syntax, type, value);
     }
 
-    private static BoundLiteral BindNullLiteralExpression(
+    private BoundLiteral BindNullLiteralExpression(
         NullLiteralExpressionSyntax syntax,
         TypeSymbol? returnType,
         BindingContext context
@@ -1079,7 +1089,12 @@ internal abstract class Binder
     {
         if (returnType is null)
         {
-            return new BoundLiteral(syntax, UnboundNullTypeSymbol.Instance, ConstantValue.Null());
+            return new BoundLiteral(
+                Compilation,
+                syntax,
+                UnboundNullTypeSymbol.Instance,
+                ConstantValue.Null()
+            );
         }
 
         if (returnType is not NullableTypeSymbol)
@@ -1089,7 +1104,23 @@ internal abstract class Binder
             );
         }
 
-        return new BoundLiteral(syntax, returnType, ConstantValue.Null());
+        return new BoundLiteral(Compilation, syntax, returnType, ConstantValue.Null());
+    }
+
+    private BoundTypeSize BindSizeOfExpression(
+        SizeOfExpressionSyntax syntax,
+        BindingContext context
+    )
+    {
+        var targetType = ResolveType(syntax.Type, context);
+        if (targetType.IsDynamicallySized)
+        {
+            context.ReportDiagnostic(
+                Diagnostic.TypeHasNoSize(syntax.Type.Location, targetType.ToDisplayString())
+            );
+        }
+
+        return new BoundTypeSize(Compilation, syntax, targetType);
     }
 
     private BoundExpression BindIdentifierExpression(
@@ -1099,12 +1130,12 @@ internal abstract class Binder
     {
         var result = LookupFromSyntax(syntax.Value, LookupOptions.Value, context);
         if (!result.IsViable)
-            return new BoundBadExpression(syntax, ErrorTypeSymbol.Unnamed);
+            return new BoundBadExpression(Compilation, syntax, ErrorTypeSymbol.Unnamed);
 
         return result.Symbol switch
         {
-            VariableSymbol v => new BoundVariableAccess(syntax, v),
-            ParameterSymbol p => new BoundParameterAccess(syntax, p),
+            VariableSymbol v => new BoundVariableAccess(Compilation, syntax, v),
+            ParameterSymbol p => new BoundParameterAccess(Compilation, syntax, p),
             _ => throw new InvalidOperationException(
                 "We must have added a symbol type that can hold a value that we haven't accounted for yet."
             ),
@@ -1167,6 +1198,7 @@ internal abstract class Binder
         };
 
         return new BoundBinaryOperation(
+            Compilation,
             syntax,
             targetType ?? ErrorTypeSymbol.Unnamed,
             left,
@@ -1200,6 +1232,7 @@ internal abstract class Binder
         var assigned = BindExpression(syntax.Right, assignee.Type, context, cancellationToken);
         assigned = AddConversionIfNecessary(assigned, assignee.Type, context);
         return new BoundAssignmentOperation(
+            Compilation,
             syntax,
             Compilation.GetSpecialType(SpecialType.Void),
             assignee,
@@ -1240,11 +1273,17 @@ internal abstract class Binder
                         );
                     }
 
-                    return new BoundDereference(syntax, inner, referencedType, isMutable);
+                    return new BoundDereference(
+                        Compilation,
+                        syntax,
+                        inner,
+                        referencedType,
+                        isMutable
+                    );
                 }
 
                 context.ReportDiagnostic(Diagnostic.CannotDereference(syntax.Operand.Location));
-                return new BoundDereference(syntax, inner, inner.Type, false);
+                return new BoundDereference(Compilation, syntax, inner, inner.Type, false);
             }
         }
 
@@ -1270,6 +1309,7 @@ internal abstract class Binder
                     if (intData.Suffix == IntegerSuffix.None && isSpeculative)
                     {
                         return new BoundUnfixedIntegerLiteral(
+                            Compilation,
                             syntax,
                             intData,
                             Compilation.GetSpecialType(negated.SpecialType)
@@ -1280,6 +1320,7 @@ internal abstract class Binder
                     }
 
                     return new BoundLiteral(
+                        Compilation,
                         syntax,
                         Compilation.GetSpecialType(negated.SpecialType),
                         negated
@@ -1299,6 +1340,7 @@ internal abstract class Binder
                     if (floatData.Suffix == FloatSuffix.None && isSpeculative)
                     {
                         return new BoundUnfixedFloatLiteral(
+                            Compilation,
                             syntax,
                             floatData,
                             Compilation.GetSpecialType(negated.SpecialType)
@@ -1309,6 +1351,7 @@ internal abstract class Binder
                     }
 
                     return new BoundLiteral(
+                        Compilation,
                         syntax,
                         Compilation.GetSpecialType(negated.SpecialType),
                         negated
@@ -1330,6 +1373,7 @@ internal abstract class Binder
         var inner = BindExpression(syntax.Operand, context, cancellationToken);
         var isMutable = syntax.MutableKeyword is not null;
         return new BoundAddressOf(
+            Compilation,
             syntax,
             inner,
             Compilation.CreateReferenceTypeSymbol(inner.Type, isMutable),
@@ -1382,7 +1426,14 @@ internal abstract class Binder
         var whenFalse = BindExpression(syntax.WhenFalse, true, context, cancellationToken);
 
         var returnType = whenTrue.Type == whenFalse.Type ? whenTrue.Type : ErrorTypeSymbol.Unnamed;
-        return new BoundSpeculativeConditional(syntax, returnType, condition, whenTrue, whenFalse);
+        return new BoundSpeculativeConditional(
+            Compilation,
+            syntax,
+            returnType,
+            condition,
+            whenTrue,
+            whenFalse
+        );
     }
 
     private BoundConditional BindRegularConditional(
@@ -1423,7 +1474,14 @@ internal abstract class Binder
             returnType = whenTrue.Type;
         }
 
-        return new BoundConditional(syntax, returnType, condition, whenTrue, whenFalse);
+        return new BoundConditional(
+            Compilation,
+            syntax,
+            returnType,
+            condition,
+            whenTrue,
+            whenFalse
+        );
     }
 
     private BoundInvocation BindInvocationExpression(
@@ -1459,6 +1517,7 @@ internal abstract class Binder
         }
 
         return new BoundInvocation(
+            Compilation,
             syntax,
             ErrorFunctionSymbol.Unnamed,
             ImmutableCollectionsMarshal.AsImmutableArray(unknownArguments)
@@ -1475,7 +1534,7 @@ internal abstract class Binder
         var arguments = GetCallArguments(syntax.Arguments, context, cancellationToken);
 
         var (overload, realArgs) = ResolveOverload(overloads, arguments, syntax.Callee, context);
-        return new BoundInvocation(syntax, overload, realArgs);
+        return new BoundInvocation(Compilation, syntax, overload, realArgs);
     }
 
     private readonly record struct CallArgument(string? Name, BoundExpression Expression);
@@ -1547,7 +1606,7 @@ internal abstract class Binder
                 break;
         }
 
-        return new BoundIndex(syntax, operand, index, targetType);
+        return new BoundIndex(Compilation, syntax, operand, index, targetType);
     }
 
     private BoundExpression BindCollectionExpression(
@@ -1573,7 +1632,12 @@ internal abstract class Binder
                     )
                     : ErrorTypeSymbol.Unnamed;
 
-            return new BoundSpeculativeCollectionExpression(syntax, expressions, defaultType);
+            return new BoundSpeculativeCollectionExpression(
+                Compilation,
+                syntax,
+                expressions,
+                defaultType
+            );
         }
         else
         {
@@ -1659,6 +1723,7 @@ internal abstract class Binder
         }
 
         return new BoundCollectionExpression(
+            Compilation,
             syntax,
             collectionType,
             foundElementType ?? ErrorTypeSymbol.Unnamed,
@@ -1677,7 +1742,7 @@ internal abstract class Binder
         return AddConversionIfNecessary(expression, type, conversion, context, isExplicit);
     }
 
-    private static BoundExpression AddConversionIfNecessary(
+    private BoundExpression AddConversionIfNecessary(
         BoundExpression expression,
         TypeSymbol type,
         Conversion conversion,
@@ -1700,7 +1765,7 @@ internal abstract class Binder
         {
             if (conversion.IsNullToNullable)
             {
-                return new BoundLiteral(syntax, type, ConstantValue.Null());
+                return new BoundLiteral(Compilation, syntax, type, ConstantValue.Null());
             }
 
             if (!conversion.IsImplicit && !isExplicit)
@@ -1714,13 +1779,13 @@ internal abstract class Binder
                 );
             }
 
-            return new BoundConversion(syntax, type, expression, conversion);
+            return new BoundConversion(Compilation, syntax, type, expression, conversion);
         }
 
         return expression;
     }
 
-    private static BoundExpression AutoDereferenceIfNecessary(BoundExpression expression)
+    private BoundExpression AutoDereferenceIfNecessary(BoundExpression expression)
     {
         while (true)
         {
@@ -1733,6 +1798,7 @@ internal abstract class Binder
             )
             {
                 expression = new BoundDereference(
+                    Compilation,
                     expression.Syntax,
                     expression,
                     referenced,
@@ -1795,7 +1861,8 @@ internal abstract class Binder
     )
     {
         var targetType = GetIntegerTargetKind(in data, returnType);
-        if (!data.Value.FitsIn(targetType, Compilation.Settings))
+        var possiblyNegated = MaybeNegative(data.Value, isNegative);
+        if (!possiblyNegated.FitsIn(targetType, Compilation.Settings))
         {
             context.ReportDiagnostic(Diagnostic.LiteralValueTooBig(location));
         }
@@ -1803,57 +1870,56 @@ internal abstract class Binder
         switch (targetType)
         {
             case IntegerTargetKind.I8:
-                return ConstantValue.I8((sbyte)MaybeNegative(data.Value, isNegative));
+                return ConstantValue.I8((sbyte)possiblyNegated);
             case IntegerTargetKind.I16:
-                return ConstantValue.I16((short)MaybeNegative(data.Value, isNegative));
+                return ConstantValue.I16((short)possiblyNegated);
             case IntegerTargetKind.I32:
-                return ConstantValue.I32((int)MaybeNegative(data.Value, isNegative));
+                return ConstantValue.I32((int)possiblyNegated);
             case IntegerTargetKind.I64:
-                return ConstantValue.I64((long)MaybeNegative(data.Value, isNegative));
+                return ConstantValue.I64((long)possiblyNegated);
             case IntegerTargetKind.I128:
-                return ConstantValue.I128((Int128)MaybeNegative(data.Value, isNegative));
+                return ConstantValue.I128((Int128)possiblyNegated);
             case IntegerTargetKind.ISize:
-                return ConstantValue.ISize((long)MaybeNegative(data.Value, isNegative));
+                return ConstantValue.ISize((long)possiblyNegated);
             case IntegerTargetKind.U8:
                 ThrowIfNegative(isNegative);
-                return ConstantValue.U8((byte)MaybeNegative(data.Value, isNegative));
+                return ConstantValue.U8((byte)possiblyNegated);
             case IntegerTargetKind.U16:
                 ThrowIfNegative(isNegative);
-                return ConstantValue.U16((ushort)MaybeNegative(data.Value, isNegative));
+                return ConstantValue.U16((ushort)possiblyNegated);
             case IntegerTargetKind.U32:
                 ThrowIfNegative(isNegative);
-                return ConstantValue.U32((uint)MaybeNegative(data.Value, isNegative));
+                return ConstantValue.U32((uint)possiblyNegated);
             case IntegerTargetKind.U64:
                 ThrowIfNegative(isNegative);
-                return ConstantValue.U64((ulong)MaybeNegative(data.Value, isNegative));
+                return ConstantValue.U64((ulong)possiblyNegated);
             case IntegerTargetKind.U128:
                 ThrowIfNegative(isNegative);
-                return ConstantValue.U128((UInt128)MaybeNegative(data.Value, isNegative));
+                return ConstantValue.U128((UInt128)possiblyNegated);
             case IntegerTargetKind.USize:
                 ThrowIfNegative(isNegative);
-                return ConstantValue.USize((ulong)MaybeNegative(data.Value, isNegative));
+                return ConstantValue.USize((ulong)possiblyNegated);
             case IntegerTargetKind.F32:
-                return ConstantValue.F32((float)MaybeNegative(data.Value, isNegative));
+                return ConstantValue.F32((float)possiblyNegated);
             case IntegerTargetKind.F64:
-                return ConstantValue.F64((double)MaybeNegative(data.Value, isNegative));
+                return ConstantValue.F64((double)possiblyNegated);
             case IntegerTargetKind.BestFit:
             {
-                var value = MaybeNegative(data.Value, isNegative);
-                if (value.FitsIn<int>())
-                    return ConstantValue.I32((int)value);
+                if (possiblyNegated.FitsIn<int>())
+                    return ConstantValue.I32((int)possiblyNegated);
 
-                if (value.FitsIn<uint>())
-                    return ConstantValue.U32((uint)value);
+                if (possiblyNegated.FitsIn<uint>())
+                    return ConstantValue.U32((uint)possiblyNegated);
 
-                if (value.FitsIn<long>())
-                    return ConstantValue.I64((long)value);
+                if (possiblyNegated.FitsIn<long>())
+                    return ConstantValue.I64((long)possiblyNegated);
 
-                if (value.FitsIn<ulong>())
-                    return ConstantValue.U64((ulong)value);
+                if (possiblyNegated.FitsIn<ulong>())
+                    return ConstantValue.U64((ulong)possiblyNegated);
 
-                return value.FitsIn<Int128>()
-                    ? ConstantValue.I128((Int128)value)
-                    : ConstantValue.U128((UInt128)value);
+                return possiblyNegated.FitsIn<Int128>()
+                    ? ConstantValue.I128((Int128)possiblyNegated)
+                    : ConstantValue.U128((UInt128)possiblyNegated);
             }
             default:
                 throw new InvalidOperationException("Invalid target type");
@@ -1937,7 +2003,7 @@ internal abstract class Binder
         }
 
         var finalType = resultType?.Type ?? ErrorTypeSymbol.Unnamed;
-        return new BoundUnaryOperation(syntax, finalType, operand, operation);
+        return new BoundUnaryOperation(Compilation, syntax, finalType, operand, operation);
     }
 
     private static bool IsAssignmentValid(TypeSymbol type, AssignmentOperation operation)
@@ -2056,7 +2122,7 @@ internal abstract class Binder
         return new ResolvedOverload((FunctionSymbol)result.Symbols[0], diagnosticArguments);
     }
 
-    private static BoundExpression[]? TryMapArgumentsToParameters(
+    private BoundExpression[]? TryMapArgumentsToParameters(
         ReadOnlySpan<ParameterSymbol> parameters,
         ImmutableArray<CallArgument> callArguments,
         SyntaxNode fallbackSyntax
@@ -2110,14 +2176,12 @@ internal abstract class Binder
         return -1;
     }
 
-    private static BoundExpression? GetDefaultValue(
-        ParameterSymbol parameter,
-        SyntaxNode fallbackSyntax
-    )
+    private BoundExpression? GetDefaultValue(ParameterSymbol parameter, SyntaxNode fallbackSyntax)
     {
         return parameter.DefaultValue switch
         {
             ConstantParameterDefault(var constant, var syntax) => new BoundLiteral(
+                Compilation,
                 syntax ?? fallbackSyntax,
                 parameter.Type,
                 constant
@@ -2264,7 +2328,7 @@ internal abstract class Binder
             negated
         );
         var type = Compilation.GetSpecialType(constant.SpecialType);
-        return new BoundLiteral(expression.Syntax, type, constant);
+        return new BoundLiteral(Compilation, expression.Syntax, type, constant);
     }
 
     private BoundLiteral ApplyNumericBinding(
@@ -2283,7 +2347,7 @@ internal abstract class Binder
             negated
         );
         var type = Compilation.GetSpecialType(constant.SpecialType);
-        return new BoundLiteral(expression.Syntax, type, constant);
+        return new BoundLiteral(Compilation, expression.Syntax, type, constant);
     }
 
     private BoundConditional ApplySpeculativeConditional(

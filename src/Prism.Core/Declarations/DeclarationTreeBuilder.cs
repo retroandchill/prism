@@ -50,11 +50,48 @@ internal sealed class DeclarationTreeBuilder
                     attribute,
                     DeclarationModifiers.Internal
                 ),
+                ClassDeclarationSyntax classDeclaration => VisitClassDeclaration(
+                    classDeclaration,
+                    DeclarationModifiers.Internal
+                ),
                 _ => null,
             };
 
             if (namespaceOrType is not null)
                 builder.Add(namespaceOrType);
+        }
+
+        return builder.DrainToImmutable();
+    }
+
+    private ImmutableArray<SingleTypeDeclaration> VisitClassChildren(
+        SyntaxNode node,
+        SyntaxList<DeclarationSyntax> members
+    )
+    {
+        Debug.Assert(node is ClassDeclarationSyntax);
+
+        if (members.Count == 0)
+            return [];
+
+        var builder = ImmutableArray.CreateBuilder<SingleTypeDeclaration>();
+        foreach (var member in members)
+        {
+            var type = member switch
+            {
+                AttributeDeclarationSyntax attribute => VisitAttributeDeclaration(
+                    attribute,
+                    DeclarationModifiers.Internal
+                ),
+                ClassDeclarationSyntax classDeclaration => VisitClassDeclaration(
+                    classDeclaration,
+                    DeclarationModifiers.Internal
+                ),
+                _ => null,
+            };
+
+            if (type is not null)
+                builder.Add(type);
         }
 
         return builder.DrainToImmutable();
@@ -219,6 +256,27 @@ internal sealed class DeclarationTreeBuilder
             new SourceLocation(attribute.Identifier),
             memberNames,
             []
+        );
+    }
+
+    private SingleTypeDeclaration VisitClassDeclaration(
+        ClassDeclarationSyntax @class,
+        DeclarationModifiers defaultVisibility
+    )
+    {
+        var name = @class.Identifier.IdentifierName;
+
+        var modifiers = DeclarationModifiers.MakeModifiers(defaultVisibility, @class.Modifiers);
+        var members = VisitClassChildren(@class, @class.Members);
+        var memberNames = GetNonTypeMemberNames(@class.Members);
+        return new SingleTypeDeclaration(
+            DeclarationKind.Class,
+            name,
+            new SyntaxReference(@class),
+            modifiers,
+            new SourceLocation(@class.Identifier),
+            memberNames,
+            members
         );
     }
 }

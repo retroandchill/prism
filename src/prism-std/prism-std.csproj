@@ -3,8 +3,5 @@
     <!-- Use a dummy framework to satisfy MSBuild tooling -->
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
-  <ItemGroup>
-    <Folder Include="src\" />
-  </ItemGroup>
 
 </Project>
