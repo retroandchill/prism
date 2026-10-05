@@ -364,15 +364,15 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         return value.Kind switch
         {
             ConstantKind.Null => GetNullValue(type),
-            ConstantKind.Primitive => MakePrimitiveConstant(in value),
+            ConstantKind.Primitive => MakePrimitiveConstant(in value, type),
             ConstantKind.Array => throw new NotImplementedException(),
             _ => throw new ArgumentException("Invalid constant kind"),
         };
     }
 
-    private LLVMValueRef MakePrimitiveConstant(in ConstantValue value)
+    private LLVMValueRef MakePrimitiveConstant(in ConstantValue value, TypeSymbol type)
     {
-        return value.PrimitiveKind switch
+        var innerValue = value.PrimitiveKind switch
         {
             PrimitiveKind.Bool => LLVMValueRef.CreateConstInt(
                 _context.Int8Type,
@@ -448,12 +448,22 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 _context.DoubleType,
                 value.AsFloat64()
             ),
-            PrimitiveKind.Str => CreateStringConstant(value.AsString()),
+            PrimitiveKind.Str => CreateStringConstant(value.AsString(), type),
             _ => throw new ArgumentException("Invalid constant kind"),
         };
+
+        if (type is not NullableTypeSymbol)
+            return innerValue;
+
+        var hasValue = LLVMValueRef.CreateConstInt(
+            GetOrCreateType(_compilation.GetSpecialType(SpecialType.Bool)),
+            1
+        );
+        var structType = GetOrCreateType(type);
+        return LLVMValueRef.CreateConstNamedStruct(structType, [hasValue, innerValue]);
     }
 
-    private LLVMValueRef CreateStringConstant(string value)
+    private LLVMValueRef CreateStringConstant(string value, TypeSymbol type)
     {
         var globalString = _builder.BuildGlobalString(value);
         var length = (ulong)Encoding.UTF8.GetByteCount(value);
@@ -461,7 +471,8 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             GetOrCreateType(_compilation.GetSpecialType(SpecialType.USize)),
             length
         );
-        return LLVMValueRef.CreateConstStruct([globalString, lengthValue], false);
+        var structType = GetOrCreateType(type);
+        return LLVMValueRef.CreateConstNamedStruct(structType, [globalString, lengthValue]);
     }
 
     private LLVMValueRef ConvertByteBoolToI1IfNeeded(LLVMValueRef value)
@@ -1063,7 +1074,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                     : LLVMValueRef.CreateConstNull(llvmElementType);
         }
 
-        return LLVMValueRef.CreateConstStruct(elements, false);
+        return LLVMValueRef.CreateConstNamedStruct(llvmType, elements);
     }
 
     private void EmitGetNullablePayload(

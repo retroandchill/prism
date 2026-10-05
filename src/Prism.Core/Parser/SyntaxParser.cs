@@ -103,6 +103,14 @@ internal abstract class SyntaxParser(string text)
         return (T)TokenReplacer.ReplaceLastToken(node, firstToken);
     }
 
+    protected static void AddTrailingSkippedSyntax(
+        GreenListNode.Builder builder,
+        GreenNode skippedSyntax
+    )
+    {
+        builder[^1] = AddTrailingSkippedSyntax(builder[^1], skippedSyntax);
+    }
+
     protected static GreenToken AddSkippedSyntax(
         GreenToken target,
         GreenNode skippedSyntax,
@@ -187,5 +195,18 @@ internal abstract class SyntaxParser(string text)
 
         builder.AddRange(target.LeadingTrivia);
         return target.WithLeadingTrivia(builder.BuildAndClear());
+    }
+
+    protected bool IsMakingProgress(ref int lastTokenPosition, bool assertIfFalse = true)
+    {
+        var pos = _stream.Position;
+        if (pos > lastTokenPosition)
+        {
+            lastTokenPosition = pos;
+            return true;
+        }
+
+        Debug.Assert(!assertIfFalse);
+        return false;
     }
 }

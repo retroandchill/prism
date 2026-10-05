@@ -31,7 +31,7 @@ internal sealed class SourceAttributeSymbol : SourceNamedTypeSymbol
         compilation.CacheSymbol(_syntax, this);
     }
 
-    protected override ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMapCore(
+    protected override ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
         BindingContext context
     )
     {

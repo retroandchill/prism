@@ -8,19 +8,19 @@ namespace Prism.Core.Parser;
 internal sealed class TokenStream(string text)
 {
     private readonly Lexer _lexer = new(text);
-    private readonly List<GreenToken> _tokens = [];
+    private GreenToken? _previous;
     private readonly Deque<GreenToken> _lookahead = [];
 
     public bool AtEnd => Peek().Kind == SyntaxKind.EofToken;
 
-    public IReadOnlyList<GreenToken> Tokens => _tokens;
+    public int Position { get; private set; }
 
     public GreenToken Previous
     {
         get
         {
-            Debug.Assert(_tokens.Count > 0);
-            return _tokens[^1];
+            Debug.Assert(_previous is not null);
+            return _previous;
         }
     }
 
@@ -31,22 +31,21 @@ internal sealed class TokenStream(string text)
             BufferTokens();
         }
 
-        return _lookahead.Count > 0 ? _lookahead[count - 1] : Previous;
+        return _lookahead[count - 1];
     }
 
     public GreenToken Consume()
     {
         var token = Peek();
-        _tokens.Add(token);
         _lookahead.RemoveFromFront();
+        _previous = token;
+        Position++;
         return token;
     }
 
     public void Advance()
     {
-        var token = Peek();
-        _tokens.Add(token);
-        _lookahead.RemoveFromFront();
+        _ = Consume();
     }
 
     public void ReplaceNext(GreenToken token)

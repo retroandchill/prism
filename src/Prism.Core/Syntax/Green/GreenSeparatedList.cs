@@ -90,6 +90,8 @@ internal readonly struct GreenSeparatedList<T>
         private readonly GreenSyntaxList<GreenNode>.Builder _builder =
             GreenSyntaxList.CreateBuilder<GreenNode>();
 
+        internal GreenListNode.Builder UnderlyingBuilder => _builder.UnderlyingBuilder;
+
         public int Count => (_builder.Count + 1) / 2;
 
         public int SeparatorsCount => _builder.Count / 2;

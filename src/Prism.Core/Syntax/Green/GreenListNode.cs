@@ -53,6 +53,12 @@ internal sealed class GreenListNode : GreenNode
 
         public int Count => _children.Count;
 
+        public GreenNode this[int index]
+        {
+            get => _children[index];
+            set => _children[index] = value;
+        }
+
         public void Add(GreenNode node)
         {
             _children.Add(node);

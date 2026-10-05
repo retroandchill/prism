@@ -19,6 +19,7 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
     private ImmutableArray<Symbol> _members;
     private ImmutableDictionary<string, ImmutableArray<Symbol>>? _nameToMembersMap;
     private SymbolCompletionState _completionState;
+    private readonly Lock _memberChecksLock = new();
 
     public SourceNamespaceSymbol(
         MergedNamespaceDeclaration declaration,
@@ -127,6 +128,9 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
                     _completionState.MarkPartComplete(allParts);
                     return;
                 }
+                case CompletionPart.StartChecks or CompletionPart.FinishChecks:
+                    LazyMemberChecks();
+                    break;
                 case CompletionPart.None:
                     return;
                 default:
@@ -144,6 +148,30 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
     internal override bool IsComplete(CompletionPart part)
     {
         return _completionState.IsComplete(part);
+    }
+
+    private void LazyMemberChecks()
+    {
+        if (_completionState.IsComplete(CompletionPart.FinishChecks))
+            return;
+
+        using var scope = _memberChecksLock.EnterScope();
+        if (!_completionState.MarkPartComplete(CompletionPart.StartChecks))
+            return;
+
+        using var context = BindingContext.Create();
+        try
+        {
+            foreach (var (name, members) in GetNameToMembersMap())
+            {
+                ValidateMembers(name, members, context);
+            }
+            AddDeclarationDiagnostics(context);
+        }
+        finally
+        {
+            _completionState.MarkPartComplete(CompletionPart.FinishChecks);
+        }
     }
 
     public override ImmutableArray<Symbol> GetMembers()
@@ -221,14 +249,7 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
 
         AddSynthesizedMembers(result);
 
-        var output = result.ToImmutableDictionary(x => x.Key, x => x.Value.DrainToImmutable());
-
-        foreach (var (name, members) in output)
-        {
-            ValidateMembers(name, members, context);
-        }
-
-        return output;
+        return result.ToImmutableDictionary(x => x.Key, x => x.Value.DrainToImmutable());
 
         SyntaxList<DeclarationSyntax> GetSyntaxMembers(SingleNamespaceDeclaration x)
         {

@@ -20,6 +20,109 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         File = 1 << 0,
     }
 
+    private enum PostSkipAction
+    {
+        Continue,
+        Abort,
+    }
+
+    private delegate PostSkipAction SkipBadTokens<TNode>(
+        LanguageParser parser,
+        ref GreenToken openToken,
+        GreenSeparatedList<TNode>.Builder builder,
+        SyntaxKind expectedKind,
+        SyntaxKind closeTokenKind
+    )
+        where TNode : GreenNode;
+
+    private PostSkipAction SkipBadSeparatedListTokensWithExpectedKind<T, TNode>(
+        ref T startToken,
+        GreenSeparatedList<TNode>.Builder list,
+        Func<LanguageParser, bool> isNotExpectedFunction,
+        Func<LanguageParser, SyntaxKind, bool> abortFunction,
+        SyntaxKind expected,
+        SyntaxKind closeKind = SyntaxKind.None
+    )
+        where T : GreenNode
+        where TNode : GreenNode
+    {
+        var (action, trailingTrivia) = SkipBadListTokensWithExpectedKindHelper(
+            list.UnderlyingBuilder,
+            isNotExpectedFunction,
+            abortFunction,
+            expected,
+            closeKind
+        );
+        if (trailingTrivia is not null)
+        {
+            startToken = AddTrailingSkippedSyntax(startToken, trailingTrivia);
+        }
+
+        return action;
+    }
+
+    private (PostSkipAction, GreenNode?) SkipBadTokensWithExpectedKind(
+        Func<LanguageParser, bool> isNotExpected,
+        Func<LanguageParser, SyntaxKind, bool> abort,
+        SyntaxKind expected,
+        SyntaxKind closeKind
+    )
+    {
+        var nodes = GreenSyntaxList.CreateBuilder<GreenNode>();
+        var first = true;
+        var action = PostSkipAction.Continue;
+        while (isNotExpected(this))
+        {
+            if (abort(this, closeKind) || IsTerminator())
+            {
+                action = PostSkipAction.Abort;
+                break;
+            }
+
+            var token =
+                (first && !PeekToken().ContainsDiagnostics)
+                    ? ExpectToken(expected)
+                    : ConsumeToken();
+            first = false;
+            nodes.Add(token);
+        }
+
+        var trailingTrivia = nodes.BuildAndClear();
+        return (action, trailingTrivia.Node);
+    }
+
+    private (PostSkipAction, GreenNode?) SkipBadListTokensWithExpectedKindHelper(
+        GreenListNode.Builder list,
+        Func<LanguageParser, bool> isNotExpectedFunction,
+        Func<LanguageParser, SyntaxKind, bool> abortFunction,
+        SyntaxKind expected,
+        SyntaxKind closeKind
+    )
+    {
+        if (list.Count == 0)
+        {
+            return SkipBadTokensWithExpectedKind(
+                isNotExpectedFunction,
+                abortFunction,
+                expected,
+                closeKind
+            );
+        }
+
+        var (action, lastItemTrailingTrivia) = SkipBadTokensWithExpectedKind(
+            isNotExpectedFunction,
+            abortFunction,
+            expected,
+            closeKind
+        );
+        if (lastItemTrailingTrivia is not null)
+        {
+            AddTrailingSkippedSyntax(list, lastItemTrailingTrivia);
+        }
+
+        return (action, null);
+    }
+
     public T ConsumeUnexpectedTokens<T>(T node)
         where T : GreenNode
     {
@@ -43,6 +146,136 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         );
         Debug.Assert(list.Node is not null);
         return AddTrailingSkippedSyntax(copy, list.Node);
+    }
+
+    private bool IsTerminator()
+    {
+        return AtEnd;
+    }
+
+    private bool IsTrueIdentifier()
+    {
+        return PeekToken().Kind == SyntaxKind.IdentifierToken;
+    }
+
+    private GreenSeparatedList<TNode> ParseCommaSeparatedSyntaxList<TNode>(
+        ref GreenToken openToken,
+        SyntaxKind closeTokenKind,
+        Func<LanguageParser, bool> isPossibleElement,
+        Func<LanguageParser, TNode> parseElement,
+        SkipBadTokens<TNode> skipBadTokens,
+        bool allowTrailingSeparator,
+        bool requireOneElement
+    )
+        where TNode : GreenNode
+    {
+        return ParseCommaSeparatedSyntaxList(
+            ref openToken,
+            closeTokenKind,
+            isPossibleElement,
+            parseElement,
+            null,
+            skipBadTokens,
+            allowTrailingSeparator,
+            requireOneElement
+        );
+    }
+
+    private GreenSeparatedList<TNode> ParseCommaSeparatedSyntaxList<TNode>(
+        ref GreenToken openToken,
+        SyntaxKind closeTokenKind,
+        Func<LanguageParser, bool> isPossibleElement,
+        Func<LanguageParser, TNode> parseElement,
+        Func<TNode, bool>? immediatelyAbort,
+        SkipBadTokens<TNode> skipBadTokens,
+        bool allowTrailingSeparator,
+        bool requireOneElement
+    )
+        where TNode : GreenNode
+    {
+        var nodes = GreenSeparatedList.CreateBuilder<TNode>();
+
+        tryAgain:
+        while (true)
+        {
+            if (!requireOneElement && PeekToken().Kind == closeTokenKind)
+            {
+                break;
+            }
+
+            if (requireOneElement || ShouldParseSeparatorOrElement())
+            {
+                var node = parseElement(this);
+                nodes.AddItem(node);
+
+                requireOneElement = false;
+
+                var lastTokenPosition = -1;
+
+                while (
+                    immediatelyAbort?.Invoke(node) is not true
+                    || IsMakingProgress(ref lastTokenPosition)
+                )
+                {
+                    if (PeekToken().Kind == closeTokenKind)
+                        break tryAgain;
+
+                    if (ShouldParseSeparatorOrElement())
+                    {
+                        nodes.AddSeparator(ExpectToken(SyntaxKind.CommaToken));
+
+                        if (allowTrailingSeparator)
+                        {
+                            if (PeekToken().Kind == closeTokenKind)
+                                break tryAgain;
+
+                            if (!isPossibleElement(this))
+                            {
+                                continue tryAgain;
+                            }
+                        }
+
+                        node = parseElement(this);
+                        nodes.AddItem(node);
+                        continue;
+                    }
+
+                    if (
+                        skipBadTokens(
+                            this,
+                            ref openToken,
+                            nodes,
+                            SyntaxKind.CommaToken,
+                            closeTokenKind
+                        ) == PostSkipAction.Abort
+                    )
+                    {
+                        break;
+                    }
+                }
+            }
+            else if (
+                skipBadTokens(
+                    this,
+                    ref openToken,
+                    nodes,
+                    SyntaxKind.IdentifierToken,
+                    closeTokenKind
+                ) == PostSkipAction.Continue
+            )
+            {
+                continue;
+            }
+
+            break;
+        }
+
+        return nodes.Build();
+
+        bool ShouldParseSeparatorOrElement()
+        {
+            return PeekToken().Kind == SyntaxKind.CommaToken || isPossibleElement(this);
+        }
     }
 
     public GreenCompilationUnit ParseCompilationUnit()
@@ -471,6 +704,27 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         );
     }
 
+    private bool IsPossibleExpression()
+    {
+        var kind = PeekToken().Kind;
+        return kind switch
+        {
+            SyntaxKind.TrueKeyword
+            or SyntaxKind.FalseKeyword
+            or SyntaxKind.NullKeyword
+            or SyntaxKind.SizeOfKeyword
+            or SyntaxKind.OpenBracketToken
+            or SyntaxKind.OpenParenToken
+            or SyntaxKind.IntegerLiteralToken
+            or SyntaxKind.FloatingPointLiteralToken
+            or SyntaxKind.CharacterLiteralToken
+            or SyntaxKind.StringLiteralToken
+            or { IsPrefixOperator: true } => true,
+            SyntaxKind.IdentifierToken => IsTrueIdentifier(),
+            _ => false,
+        };
+    }
+
     public GreenExpression ParseExpression()
     {
         return ParseExpression(ParsePrefixExpression(), 0);
@@ -613,27 +867,40 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     private GreenCollectionExpression ParseCollectionExpression()
     {
         var openBracket = ExpectToken(SyntaxKind.OpenBracketToken);
-        var builder = GreenSeparatedList.CreateBuilder<GreenExpression>();
-        while (!AtEnd)
-        {
-            var next = PeekToken();
-            if (next.Kind == SyntaxKind.CloseBraceToken)
-                break;
-
-            var expression = ParseExpression();
-            builder.AddItem(expression);
-
-            if (MatchToken(SyntaxKind.CommaToken) is not { } comma)
-                break;
-
-            builder.AddSeparator(comma);
-        }
+        var elements = ParseCommaSeparatedSyntaxList(
+            ref openBracket,
+            SyntaxKind.CloseBracketToken,
+            static @this => @this.IsPossibleExpression(),
+            static @this => @this.ParseExpression(),
+            SkipBadCollectionElementTokens,
+            allowTrailingSeparator: false,
+            requireOneElement: true
+        );
 
         return new GreenCollectionExpression(
             openBracket,
-            builder.BuildAndClear(),
+            elements,
             ExpectToken(SyntaxKind.CloseBracketToken)
         );
+
+        static PostSkipAction SkipBadCollectionElementTokens(
+            LanguageParser @this,
+            ref GreenToken openBracket,
+            GreenSeparatedList<GreenExpression>.Builder list,
+            SyntaxKind expectedKind,
+            SyntaxKind closeKind
+        )
+        {
+            return @this.SkipBadSeparatedListTokensWithExpectedKind(
+                ref openBracket,
+                list,
+                static p =>
+                    p.PeekToken().Kind != SyntaxKind.CommaToken && !p.IsPossibleExpression(),
+                static (p, closeKind) => p.PeekToken().Kind == closeKind,
+                expectedKind,
+                closeKind
+            );
+        }
     }
 
     private NamespaceBody ParseNamespaceBody(Predicate<GreenToken>? predicate = null)
@@ -680,32 +947,51 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     private GreenAttributeList ParseAttributeList()
     {
         var openBracket = ExpectToken(SyntaxKind.OpenBracketToken);
-        var attributes = GreenSeparatedList.CreateBuilder<GreenAttribute>();
-        while (!AtEnd)
-        {
-            if (PeekToken().Kind != SyntaxKind.IdentifierToken)
-            {
-                break;
-            }
-
-            var type = ParseNamedType();
-            var arguments =
-                PeekToken().Kind == SyntaxKind.OpenParenToken ? ParseArgumentList() : null;
-            attributes.AddItem(new GreenAttribute(type, arguments));
-
-            if (PeekToken().Kind != SyntaxKind.CommaToken)
-            {
-                break;
-            }
-
-            attributes.AddSeparator(ConsumeToken());
-        }
+        var attributes = ParseCommaSeparatedSyntaxList(
+            ref openBracket,
+            SyntaxKind.CloseBracketToken,
+            static @this => @this.IsPossibleAttribute(),
+            static @this => @this.ParseAttribute(),
+            SkipBadAttributeListTokens,
+            allowTrailingSeparator: false,
+            requireOneElement: true
+        );
 
         return new GreenAttributeList(
             openBracket,
-            attributes.BuildAndClear(),
+            attributes,
             ExpectToken(SyntaxKind.CloseBracketToken)
         );
+
+        static PostSkipAction SkipBadAttributeListTokens(
+            LanguageParser @this,
+            ref GreenToken openBracket,
+            GreenSeparatedList<GreenAttribute>.Builder list,
+            SyntaxKind expectedKind,
+            SyntaxKind closeKind
+        )
+        {
+            return @this.SkipBadSeparatedListTokensWithExpectedKind(
+                ref openBracket,
+                list,
+                static p => p.PeekToken().Kind != SyntaxKind.CommaToken && !p.IsPossibleAttribute(),
+                static (p, closeKind) => p.PeekToken().Kind == closeKind,
+                expectedKind,
+                closeKind
+            );
+        }
+    }
+
+    private bool IsPossibleAttribute()
+    {
+        return IsTrueIdentifier();
+    }
+
+    private GreenAttribute ParseAttribute()
+    {
+        var type = ParseNamedType();
+        var arguments = PeekToken().Kind == SyntaxKind.OpenParenToken ? ParseArgumentList() : null;
+        return new GreenAttribute(type, arguments);
     }
 
     private GreenSyntaxList<GreenToken> ParseModifiers(
@@ -844,39 +1130,58 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
     private GreenParameterList ParseParameterList()
     {
-        return new GreenParameterList(
-            ExpectToken(SyntaxKind.OpenParenToken),
-            ParseParameters(),
-            ExpectToken(SyntaxKind.CloseParenToken)
+        var open = ExpectToken(SyntaxKind.OpenParenToken);
+
+        var parameters = ParseCommaSeparatedSyntaxList(
+            ref open,
+            SyntaxKind.CloseParenToken,
+            static @this => @this.IsPossibleParameter(),
+            static @this => @this.ParseParameter(),
+            SkipBadParameterListTokens,
+            allowTrailingSeparator: false,
+            requireOneElement: false
         );
+
+        return new GreenParameterList(open, parameters, ExpectToken(SyntaxKind.CloseParenToken));
+
+        static PostSkipAction SkipBadParameterListTokens(
+            LanguageParser @this,
+            ref GreenToken open,
+            GreenSeparatedList<GreenParameter>.Builder list,
+            SyntaxKind expectedKind,
+            SyntaxKind closeKind
+        )
+        {
+            return @this.SkipBadSeparatedListTokensWithExpectedKind(
+                ref open,
+                list,
+                static p => p.PeekToken().Kind != SyntaxKind.CommaToken && !p.IsPossibleParameter(),
+                static (p, closeKind) => p.PeekToken().Kind == closeKind,
+                expectedKind,
+                closeKind
+            );
+        }
     }
 
-    private GreenSeparatedList<GreenParameter> ParseParameters()
+    private bool IsPossibleParameter()
     {
-        var builder = GreenSeparatedList.CreateBuilder<GreenParameter>();
-
-        var next = PeekToken();
-        while (!AtEnd && next.Kind != SyntaxKind.CloseParenToken)
+        return PeekToken().Kind switch
         {
-            if (builder.Count > 0)
-            {
-                builder.AddSeparator(ExpectToken(SyntaxKind.CommaToken));
-            }
+            SyntaxKind.OpenBracketToken or SyntaxKind.MutableKeyword => true,
+            SyntaxKind.IdentifierToken => IsTrueIdentifier(),
+            _ => false,
+        };
+    }
 
-            builder.AddItem(
-                new GreenParameter(
-                    ParseAttributes(),
-                    MatchToken(SyntaxKind.MutableKeyword),
-                    ExpectToken(SyntaxKind.IdentifierToken),
-                    ParseRequiredTypeSpecifier(),
-                    ParseInitializer()
-                )
-            );
-
-            next = PeekToken();
-        }
-
-        return builder.BuildAndClear();
+    private GreenParameter ParseParameter()
+    {
+        return new GreenParameter(
+            ParseAttributes(),
+            MatchToken(SyntaxKind.MutableKeyword),
+            ExpectToken(SyntaxKind.IdentifierToken),
+            ParseRequiredTypeSpecifier(),
+            ParseInitializer()
+        );
     }
 
     private GreenToken? ParseRefQualifier()
@@ -892,25 +1197,40 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     private GreenArgumentList ParseArgumentList()
     {
         var openParen = ExpectToken(SyntaxKind.OpenParenToken);
-        var next = PeekToken();
-
-        var builder = GreenSeparatedList.CreateBuilder<GreenArgument>();
-        while (!AtEnd && next.Kind != SyntaxKind.CloseParenToken)
-        {
-            if (builder.Count > 0)
-            {
-                builder.AddSeparator(ExpectToken(SyntaxKind.CommaToken));
-            }
-
-            builder.AddItem(ParseArgument());
-            next = PeekToken();
-        }
-
-        return new GreenArgumentList(
-            openParen,
-            builder.BuildAndClear(),
-            ExpectToken(SyntaxKind.CloseParenToken)
+        var args = ParseCommaSeparatedSyntaxList(
+            ref openParen,
+            SyntaxKind.CloseParenToken,
+            static @this => @this.IsPossibleArgument(),
+            static @this => @this.ParseArgument(),
+            SkipBadArgumentTokens,
+            allowTrailingSeparator: false,
+            requireOneElement: true
         );
+
+        return new GreenArgumentList(openParen, args, ExpectToken(SyntaxKind.CloseParenToken));
+
+        static PostSkipAction SkipBadArgumentTokens(
+            LanguageParser @this,
+            ref GreenToken openBracket,
+            GreenSeparatedList<GreenArgument>.Builder list,
+            SyntaxKind expectedKind,
+            SyntaxKind closeKind
+        )
+        {
+            return @this.SkipBadSeparatedListTokensWithExpectedKind(
+                ref openBracket,
+                list,
+                static p => p.PeekToken().Kind != SyntaxKind.CommaToken && !p.IsPossibleArgument(),
+                static (p, closeKind) => p.PeekToken().Kind == closeKind,
+                expectedKind,
+                closeKind
+            );
+        }
+    }
+
+    private bool IsPossibleArgument()
+    {
+        return PeekToken().Kind == SyntaxKind.IdentifierToken || IsPossibleExpression();
     }
 
     private GreenArgument ParseArgument()

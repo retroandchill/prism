@@ -34,9 +34,9 @@ internal enum CompletionPart : uint
     All = (1 << 14) - 1,
 
     AssemblyAll = Members,
-    NamespaceAll = Members | MembersCompleted,
+    NamespaceAll = Members | StartChecks | FinishChecks | MembersCompleted,
     VariableAll = Attributes | Type | ConstantValue,
     FunctionAll = Attributes | Parameters | Type | StartChecks | FinishChecks,
     ParameterAll = Attributes | Type | ConstantValue,
-    TypeAll = Attributes | Members | MembersCompleted,
+    TypeAll = Attributes | Members | StartChecks | FinishChecks | MembersCompleted,
 }

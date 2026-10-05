@@ -99,6 +99,8 @@ internal readonly struct GreenSyntaxList<T>(GreenNode? children)
 
         public int Count => _builder.Count;
 
+        internal GreenListNode.Builder UnderlyingBuilder => _builder;
+
         public void Add(T node)
         {
             _builder.Add(node);

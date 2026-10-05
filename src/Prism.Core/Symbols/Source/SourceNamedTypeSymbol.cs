@@ -22,6 +22,7 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
     private ImmutableDictionary<string, ImmutableArray<Symbol>>? _nameToMembersMap;
     private SymbolCompletionState _completionState;
     private ImmutableArray<AttributeData> _attributes;
+    private readonly Lock _memberChecksLock = new();
 
     internal SourceNamedTypeSymbol(MergedTypeDeclaration mergedDeclaration, Symbol containingSymbol)
         : base(
@@ -131,21 +132,7 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
         return _nameToMembersMap;
     }
 
-    private ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
-        BindingContext context
-    )
-    {
-        var output = MakeNameToMembersMapCore(context);
-
-        foreach (var (name, members) in output)
-        {
-            ValidateMembers(name, members, context);
-        }
-
-        return output;
-    }
-
-    protected virtual ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMapCore(
+    protected virtual ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
         BindingContext context
     )
     {
@@ -187,6 +174,30 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
                 ClassDeclarationSyntax cu => cu.Members,
                 _ => new SyntaxList<DeclarationSyntax>(),
             };
+        }
+    }
+
+    private void LazyMemberChecks()
+    {
+        if (_completionState.IsComplete(CompletionPart.FinishChecks))
+            return;
+
+        using var scope = _memberChecksLock.EnterScope();
+        if (!_completionState.MarkPartComplete(CompletionPart.StartChecks))
+            return;
+
+        using var context = BindingContext.Create();
+        try
+        {
+            foreach (var (name, members) in GetNameToMembersMap())
+            {
+                ValidateMembers(name, members, context);
+            }
+            AddDeclarationDiagnostics(context);
+        }
+        finally
+        {
+            _completionState.MarkPartComplete(CompletionPart.FinishChecks);
         }
     }
 
@@ -305,6 +316,9 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
                     _completionState.MarkPartComplete(allParts);
                     return;
                 }
+                case CompletionPart.StartChecks or CompletionPart.FinishChecks:
+                    LazyMemberChecks();
+                    break;
                 case CompletionPart.None:
                     return;
                 default:
