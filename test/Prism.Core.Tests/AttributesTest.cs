@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using Prism.Core.Compiling;
+using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Syntax;
 
@@ -110,11 +111,15 @@ public class AttributesTest
         var parameters = attribute.Arguments;
         Assert.That(parameters, Has.Length.EqualTo(1));
         var parameter = parameters[0];
-        using (Assert.EnterMultipleScope())
+
+        Assert.That(parameter.Parameter.Name, Is.EqualTo("name"));
+        if (parameter.Value is StringConstant(var str))
         {
-            Assert.That(parameter.Parameter.Name, Is.EqualTo("name"));
-            Assert.That(parameter.Value.IsString);
+            Assert.That(str, Is.EqualTo("baz"));
         }
-        Assert.That(parameter.Value.AsString(), Is.EqualTo("baz"));
+        else
+        {
+            Assert.Fail("Expected parameter value to be a StringConstant");
+        }
     }
 }

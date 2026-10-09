@@ -31,6 +31,8 @@ internal sealed class SynthesizedGlobalConstructor(NamespaceSymbol containingNam
         }
     }
 
+    public override TypeSymbol? ReceiverType => null;
+
     public override ImmutableArray<ParameterSymbol> Parameters => [];
     internal override AbiKind AbiKind => AbiKind.Internal;
     public override bool IsExtern => false;

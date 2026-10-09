@@ -39,11 +39,11 @@ internal sealed class MirEmitter(Compilation compilation)
     private readonly MirVoidValue _voidValue = new(compilation.GetSpecialType(SpecialType.Void));
 
     private readonly MirConstantValue _falseValue = new(
-        ConstantValue.Boolean(false),
+        new BoolConstant(false),
         compilation.GetSpecialType(SpecialType.Bool)
     );
     private readonly MirConstantValue _trueValue = new(
-        ConstantValue.Boolean(true),
+        new BoolConstant(true),
         compilation.GetSpecialType(SpecialType.Bool)
     );
 
@@ -1103,7 +1103,7 @@ internal sealed class MirEmitter(Compilation compilation)
         foreach (var (i, value) in collection.Expressions.AsValueEnumerable().Index())
         {
             var indexConstant = new MirConstantValue(
-                ConstantValue.USize((ulong)i),
+                new USizeConstant((ulong)i),
                 compilation.GetSpecialType(SpecialType.USize)
             );
 
@@ -1183,24 +1183,24 @@ internal sealed class MirEmitter(Compilation compilation)
     {
         return sourceType.SpecialType switch
         {
-            SpecialType.I8 => new MirConstantValue(ConstantValue.I8(1), targetType),
-            SpecialType.I16 => new MirConstantValue(ConstantValue.I16(1), targetType),
-            SpecialType.I32 => new MirConstantValue(ConstantValue.I32(1), targetType),
-            SpecialType.I64 => new MirConstantValue(ConstantValue.I64(1), targetType),
-            SpecialType.I128 => new MirConstantValue(ConstantValue.I128(1), targetType),
+            SpecialType.I8 => new MirConstantValue(new I8Constant(1), targetType),
+            SpecialType.I16 => new MirConstantValue(new I16Constant(1), targetType),
+            SpecialType.I32 => new MirConstantValue(new I32Constant(1), targetType),
+            SpecialType.I64 => new MirConstantValue(new I64Constant(1), targetType),
+            SpecialType.I128 => new MirConstantValue(new I128Constant(1), targetType),
 
-            SpecialType.ISize => new MirConstantValue(ConstantValue.ISize(1), targetType),
+            SpecialType.ISize => new MirConstantValue(new ISizeConstant(1), targetType),
 
-            SpecialType.U8 => new MirConstantValue(ConstantValue.U8(1), targetType),
-            SpecialType.U16 => new MirConstantValue(ConstantValue.U16(1), targetType),
-            SpecialType.U32 => new MirConstantValue(ConstantValue.U32(1), targetType),
-            SpecialType.U64 => new MirConstantValue(ConstantValue.U64(1), targetType),
-            SpecialType.U128 => new MirConstantValue(ConstantValue.U128(1), targetType),
+            SpecialType.U8 => new MirConstantValue(new U8Constant(1), targetType),
+            SpecialType.U16 => new MirConstantValue(new U16Constant(1), targetType),
+            SpecialType.U32 => new MirConstantValue(new U32Constant(1), targetType),
+            SpecialType.U64 => new MirConstantValue(new U64Constant(1), targetType),
+            SpecialType.U128 => new MirConstantValue(new U128Constant(1), targetType),
 
-            SpecialType.USize => new MirConstantValue(ConstantValue.USize(1), targetType),
+            SpecialType.USize => new MirConstantValue(new USizeConstant(1), targetType),
 
-            SpecialType.F32 => new MirConstantValue(ConstantValue.F32(1), targetType),
-            SpecialType.F64 => new MirConstantValue(ConstantValue.F64(1), targetType),
+            SpecialType.F32 => new MirConstantValue(new F32Constant(1), targetType),
+            SpecialType.F64 => new MirConstantValue(new F64Constant(1), targetType),
 
             _ => throw new InvalidOperationException(
                 "Increment/decrement requires a numeric operand."

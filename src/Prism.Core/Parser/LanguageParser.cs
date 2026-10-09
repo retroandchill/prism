@@ -794,6 +794,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             or SyntaxKind.CharacterLiteralToken
             or SyntaxKind.StringLiteralToken => new GreenLiteralExpression(ConsumeToken()),
             SyntaxKind.NullKeyword => new GreenNullLiteralExpression(ConsumeToken()),
+            SyntaxKind.ThisKeyword => new GreenThisExpression(ConsumeToken()),
             SyntaxKind.SizeOfKeyword => ParseSizeOfExpression(),
             SyntaxKind.OpenParenToken => ParseParenthesizedExpression(),
             SyntaxKind.OpenBracketToken => ParseCollectionExpression(),
@@ -835,6 +836,11 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 ParseType()
             ),
             { IsPostfixOperator: true } => new GreenPostfixExpression(expression, ConsumeToken()),
+            SyntaxKind.PeriodToken => new GreenMemberAccessExpression(
+                expression,
+                ConsumeToken(),
+                ParseSimpleName()
+            ),
             SyntaxKind.OpenBracketToken => new GreenIndexExpression(
                 expression,
                 ConsumeToken(),

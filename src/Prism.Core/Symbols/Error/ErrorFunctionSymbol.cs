@@ -25,6 +25,7 @@ internal sealed class ErrorFunctionSymbol : FunctionSymbol
     public override ImmutableArray<Location> Locations => [];
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
     public override TypeSymbol ReturnType { get; }
+    public override TypeSymbol? ReceiverType => null;
     public override ImmutableArray<ParameterSymbol> Parameters => [];
     internal override AbiKind AbiKind => AbiKind.Internal;
     public override bool IsExtern => false;

@@ -196,9 +196,9 @@ internal sealed class FunctionAnalysisBuilder
         var thenInputState = state with { State = conditionFlow.WhenTrue };
         var elseInputState = state with { State = conditionFlow.WhenFalse };
 
-        if (statement.Condition.ConstantValue is { PrimitiveKind: PrimitiveKind.Bool } constant)
+        if (statement.Condition.ConstantValue is BoolConstant(var constant))
         {
-            if (constant.AsBoolean())
+            if (constant)
             {
                 state = VisitStatement(statement.ThenStatement, thenInputState);
                 if (statement.ElseStatement is not null)
@@ -244,9 +244,9 @@ internal sealed class FunctionAnalysisBuilder
         var enterLoopState = state with { State = conditionAnalysis.WhenTrue };
         var skipLoopState = state with { State = conditionAnalysis.WhenFalse };
 
-        if (statement.Condition.ConstantValue is { PrimitiveKind: PrimitiveKind.Bool } constant)
+        if (statement.Condition.ConstantValue is BoolConstant(var constant))
         {
-            if (constant.AsBoolean())
+            if (constant)
             {
                 state = VisitStatement(statement.Body, enterLoopState);
 
@@ -313,9 +313,9 @@ internal sealed class FunctionAnalysisBuilder
 
             state = VisitExpression(statement.Condition, state);
 
-            if (statement.Condition.ConstantValue is { PrimitiveKind: PrimitiveKind.Bool } constant)
+            if (statement.Condition.ConstantValue is BoolConstant(var constant))
             {
-                if (constant.AsBoolean())
+                if (constant)
                 {
                     state = VisitStatement(statement.Body, enterLoopState);
 

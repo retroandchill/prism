@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Prism.Core.BoundTree;
 using Prism.Core.Symbols;
 using Prism.Core.Syntax;
 using ZLinq;
@@ -13,6 +14,25 @@ internal sealed class FunctionSignatureBinder(
 {
     protected override SyntaxNode ScopeDesignator => syntax;
     protected override Symbol ContainingSymbol => symbol;
+
+    private BoundExpression? _implicitReceiver;
+
+    public override BoundExpression? TryGetImplicitReceiver()
+    {
+        if (_implicitReceiver is not null)
+            return _implicitReceiver;
+
+        var receiver = symbol.ReceiverType;
+        if (receiver is null)
+            return null;
+
+        Interlocked.CompareExchange(
+            ref _implicitReceiver,
+            new BoundThisExpression(Compilation, syntax, receiver),
+            null
+        );
+        return _implicitReceiver;
+    }
 
     protected override LookupResult LookupLocal(
         string name,

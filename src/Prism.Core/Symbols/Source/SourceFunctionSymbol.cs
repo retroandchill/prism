@@ -116,6 +116,40 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
         return binder.ResolveType(Syntax.ReturnType.Type, context);
     }
 
+    public override TypeSymbol? ReceiverType
+    {
+        get
+        {
+            if (field is not null)
+                return field;
+
+            var containerType = ContainingType;
+            if (containerType is null || _modifiers.HasFlag(DeclarationModifiers.Static))
+                return null;
+
+            Interlocked.CompareExchange(ref field, ComputeReceiverType(containerType), null);
+            return field;
+        }
+    }
+
+    private TypeSymbol ComputeReceiverType(TypeSymbol containerType)
+    {
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+
+        if (Syntax.RefQualifier is null)
+        {
+            return compilation.CreateReferenceTypeSymbol(containerType);
+        }
+
+        return Syntax.RefQualifier.Value.Kind switch
+        {
+            SyntaxKind.MutableKeyword => compilation.CreateReferenceTypeSymbol(containerType, true),
+            SyntaxKind.ValueKeyword => containerType,
+            _ => throw new InvalidOperationException("Invalid ref qualifier"),
+        };
+    }
+
     public override ImmutableArray<ParameterSymbol> Parameters
     {
         get

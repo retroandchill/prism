@@ -134,10 +134,7 @@ internal closed class SourceParameterSymbol : ParameterSymbol
                         Syntax.DefaultValue.Value.Location
                     )
                 );
-                return new ConstantParameterDefault(
-                    ConstantValue.Null(),
-                    Syntax.DefaultValue.Value
-                );
+                return new ConstantParameterDefault(new NullConstant(), Syntax.DefaultValue.Value);
         }
     }
 

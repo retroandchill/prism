@@ -14,7 +14,7 @@ internal closed record MirValue(TypeSymbol Type);
 
 internal sealed record MirConstantValue(ConstantValue Constant, TypeSymbol Type) : MirValue(Type)
 {
-    public bool IsNull => Constant.Kind == ConstantKind.Null;
+    public bool IsNull => Constant is NullConstant;
 }
 
 internal sealed record MirSsaValue(MirValueId Id, TypeSymbol Type) : MirValue(Type);

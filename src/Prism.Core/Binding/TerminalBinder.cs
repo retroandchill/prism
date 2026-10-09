@@ -1,4 +1,5 @@
-﻿using Prism.Core.Compiling;
+﻿using Prism.Core.BoundTree;
+using Prism.Core.Compiling;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Syntax;
@@ -12,6 +13,8 @@ internal sealed class TerminalBinder(Compilation compilation) : Binder(compilati
     protected override SyntaxNode? ScopeDesignator => null;
 
     public override Binder? GetBinder(SyntaxNode node) => null;
+
+    public override BoundExpression? TryGetImplicitReceiver() => null;
 
     protected override void EnsureLocals()
     {

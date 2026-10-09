@@ -361,105 +361,71 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
     private LLVMValueRef MakeConstant(in ConstantValue value, TypeSymbol type)
     {
-        return value.Kind switch
+        var innerValue = value switch
         {
-            ConstantKind.Null => GetNullValue(type),
-            ConstantKind.Primitive => MakePrimitiveConstant(in value, type),
-            ConstantKind.Array => throw new NotImplementedException(),
-            _ => throw new ArgumentException("Invalid constant kind"),
-        };
-    }
-
-    private LLVMValueRef MakePrimitiveConstant(in ConstantValue value, TypeSymbol type)
-    {
-        var innerValue = value.PrimitiveKind switch
-        {
-            PrimitiveKind.Bool => LLVMValueRef.CreateConstInt(
+            NullConstant => GetNullValue(type),
+            BoolConstant(var v) => LLVMValueRef.CreateConstInt(_context.Int8Type, v ? 1UL : 0UL),
+            Char8Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int8Type, v),
+            Char16Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int16Type, v),
+            RuneConstant(var v) => LLVMValueRef.CreateConstInt(_context.Int32Type, (ulong)v.Value),
+            I8Constant(var v) => LLVMValueRef.CreateConstInt(
                 _context.Int8Type,
-                value.AsBoolean() ? 1UL : 0UL
+                unchecked((ulong)v),
+                true
             ),
-            PrimitiveKind.Char => LLVMValueRef.CreateConstInt(
-                _context.Int8Type,
-                (ulong)value.AsCharacter().Value
-            ),
-            PrimitiveKind.Char16 => LLVMValueRef.CreateConstInt(
+            I16Constant(var v) => LLVMValueRef.CreateConstInt(
                 _context.Int16Type,
-                (ulong)value.AsCharacter().Value
+                unchecked((ulong)v),
+                true
             ),
-            PrimitiveKind.Rune => LLVMValueRef.CreateConstInt(
+            I32Constant(var v) => LLVMValueRef.CreateConstInt(
                 _context.Int32Type,
-                (ulong)value.AsCharacter().Value
-            ),
-            PrimitiveKind.I8 => LLVMValueRef.CreateConstInt(
-                _context.Int8Type,
-                unchecked((ulong)value.AsInt64()),
+                unchecked((ulong)v),
                 true
             ),
-            PrimitiveKind.I16 => LLVMValueRef.CreateConstInt(
-                _context.Int16Type,
-                unchecked((ulong)value.AsInt64()),
-                true
-            ),
-            PrimitiveKind.I32 => LLVMValueRef.CreateConstInt(
-                _context.Int32Type,
-                unchecked((ulong)value.AsInt64()),
-                true
-            ),
-            PrimitiveKind.I64 => LLVMValueRef.CreateConstInt(
+            I64Constant(var v) => LLVMValueRef.CreateConstInt(
                 _context.Int64Type,
-                unchecked((ulong)value.AsInt64()),
+                unchecked((ulong)v),
                 true
             ),
-            PrimitiveKind.I128 => LLVMValueRef.CreateConstInt(
-                _context.Int128Type,
-                value.AsInt128()
-            ),
-            PrimitiveKind.ISize => LLVMValueRef.CreateConstInt(
+            I128Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int128Type, v),
+            ISizeConstant(var v) => LLVMValueRef.CreateConstInt(
                 _compilation.Settings.PointerWidth switch
                 {
                     PointerWidth.X32 => _context.Int32Type,
                     PointerWidth.X64 => _context.Int64Type,
                     _ => throw new InvalidOperationException("Invalid pointer width"),
                 },
-                value.AsInt64()
+                v
             ),
-            PrimitiveKind.U8 => LLVMValueRef.CreateConstInt(_context.Int8Type, value.AsUInt64()),
-            PrimitiveKind.U16 => LLVMValueRef.CreateConstInt(_context.Int16Type, value.AsUInt64()),
-            PrimitiveKind.U32 => LLVMValueRef.CreateConstInt(_context.Int32Type, value.AsUInt64()),
-            PrimitiveKind.U64 => LLVMValueRef.CreateConstInt(_context.Int64Type, value.AsUInt64()),
-            PrimitiveKind.U128 => LLVMValueRef.CreateConstInt(
-                _context.Int128Type,
-                value.AsUInt128()
-            ),
-            PrimitiveKind.USize => LLVMValueRef.CreateConstInt(
+            U8Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int8Type, v),
+            U16Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int16Type, v),
+            U32Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int32Type, v),
+            U64Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int64Type, v),
+            U128Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int128Type, v),
+            USizeConstant(var v) => LLVMValueRef.CreateConstInt(
                 _compilation.Settings.PointerWidth switch
                 {
                     PointerWidth.X32 => _context.Int32Type,
                     PointerWidth.X64 => _context.Int64Type,
                     _ => throw new InvalidOperationException("Invalid pointer width"),
                 },
-                value.AsUInt64()
+                v
             ),
-            PrimitiveKind.F32 => LLVMValueRef.CreateConstReal(
-                _context.FloatType,
-                value.AsFloat32()
-            ),
-            PrimitiveKind.F64 => LLVMValueRef.CreateConstReal(
-                _context.DoubleType,
-                value.AsFloat64()
-            ),
-            PrimitiveKind.Str => CreateStringConstant(value.AsString(), type),
-            _ => throw new ArgumentException("Invalid constant kind"),
+            F32Constant(var v) => LLVMValueRef.CreateConstReal(_context.FloatType, v),
+            F64Constant(var v) => LLVMValueRef.CreateConstReal(_context.DoubleType, v),
+            StringConstant(var v) => CreateStringConstant(v, type),
+            ArrayConstant => throw new NotImplementedException(),
         };
 
-        if (type is not NullableTypeSymbol)
+        var structType = GetOrCreateType(type);
+        if (type is not NullableTypeSymbol || innerValue.TypeOf == structType)
             return innerValue;
 
         var hasValue = LLVMValueRef.CreateConstInt(
             GetOrCreateType(_compilation.GetSpecialType(SpecialType.Bool)),
             1
         );
-        var structType = GetOrCreateType(type);
         return LLVMValueRef.CreateConstNamedStruct(structType, [hasValue, innerValue]);
     }
 

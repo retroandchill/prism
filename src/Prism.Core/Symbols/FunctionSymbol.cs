@@ -11,6 +11,8 @@ public closed class FunctionSymbol : Symbol
 
     public abstract TypeSymbol ReturnType { get; }
 
+    public abstract TypeSymbol? ReceiverType { get; }
+
     public abstract ImmutableArray<ParameterSymbol> Parameters { get; }
 
     public bool ReturnsVoid => ReturnType.IsVoid;

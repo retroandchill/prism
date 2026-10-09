@@ -124,6 +124,12 @@ internal sealed record BoundLiteral : BoundExpression
     protected override ConstantValue? ComputeConstantValue() => Value;
 }
 
+internal sealed record BoundThisExpression : BoundExpression
+{
+    public BoundThisExpression(Compilation compilation, SyntaxNode syntax, TypeSymbol type)
+        : base(compilation, syntax, type) { }
+}
+
 internal sealed record BoundTypeSize : BoundExpression
 {
     public BoundTypeSize(Compilation compilation, SyntaxNode syntax, TypeSymbol targetType)
@@ -140,7 +146,7 @@ internal sealed record BoundTypeSize : BoundExpression
             return null;
 
         var layout = Compilation.GetTypeLayout(TargetType);
-        return Semantic.ConstantValue.USize(layout.Size);
+        return new USizeConstant(layout.Size);
     }
 }
 
@@ -151,6 +157,20 @@ internal sealed record BoundVariableAccess : BoundExpression
     {
         Symbol = symbol;
     }
+
+    public BoundVariableAccess(
+        Compilation compilation,
+        SyntaxNode syntax,
+        BoundExpression? owner,
+        VariableSymbol symbol
+    )
+        : base(compilation, syntax, symbol.Type)
+    {
+        Owner = owner;
+        Symbol = symbol;
+    }
+
+    public BoundExpression? Owner { get; }
 
     public VariableSymbol Symbol { get; }
 
@@ -318,15 +338,19 @@ internal sealed record BoundInvocation : BoundExpression
         Compilation compilation,
         SyntaxNode syntax,
         FunctionSymbol function,
+        BoundExpression? receiver,
         ImmutableArray<BoundExpression> arguments
     )
         : base(compilation, syntax, function.ReturnType)
     {
         Function = function;
+        Receiver = receiver;
         Arguments = arguments;
     }
 
     public FunctionSymbol Function { get; }
+
+    public BoundExpression? Receiver { get; }
 
     public ImmutableArray<BoundExpression> Arguments { get; }
 }

@@ -124,6 +124,10 @@
         "contextual": true
       },
       {
+        "name": "ThisKeyword",
+        "text": "this"
+      },
+      {
         "name": "NullKeyword",
         "text": "null"
       },
@@ -1018,6 +1022,21 @@
           ]
         },
         {
+          "name": "ThisExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "value",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ThisKeyword"
+              ]
+            }
+          ]
+        },
+        {
           "name": "SizeOfExpression",
           "base": "Expression",
           "properties": [
@@ -1354,6 +1373,33 @@
               "kinds": [
                 "CloseBracketToken"
               ]
+            }
+          ]
+        },
+        {
+          "name": "MemberAccessExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "expression",
+              "type": "Expression",
+              "shape": "single"
+            },
+            {
+              "$type": "item",
+              "name": "operator_token",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "PeriodToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "name",
+              "type": "SimpleName",
+              "shape": "single"
             }
           ]
         },
@@ -3096,6 +3142,41 @@
               "type": "String"
             }
           ]
+        },
+        {
+          "name": "StaticAccessThroughInstance",
+          "severity": "Error",
+          "format": "Cannot access static member '{Member}' through instance of type '{Type}'",
+          "args": [
+            {
+              "name": "Member",
+              "type": "String"
+            },
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NoSuchMember",
+          "severity": "Error",
+          "format": "No such member '{Member}' in type '{Type}'",
+          "args": [
+            {
+              "name": "Member",
+              "type": "String"
+            },
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "InvalidThisAccess",
+          "severity": "Error",
+          "format": "Cannot access 'this' in a static context"
         }
       ]
     },
