@@ -231,7 +231,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             }
         }
 
-        var name = functionSymbol.Mangle();
+        var name = functionSymbol.Mangle(_compilation);
         var functionType = LLVMTypeRef.CreateFunction(returnType, parameters, false);
         var func = _module.AddFunction(name, functionType);
 

@@ -21,7 +21,7 @@ internal sealed class CompilationCache(Compilation compilation)
 
     private readonly record struct ReferenceLookupKey(TypeSymbol ReferencedType, bool IsMutable);
 
-    public readonly ConcurrentDictionary<SpecialType, NamedTypeSymbol> SpecialTypes = new();
+    private readonly ConcurrentDictionary<SpecialType, NamedTypeSymbol> _specialTypes = new();
 
     private readonly ConcurrentDictionary<
         NamespaceSymbol,
@@ -57,6 +57,11 @@ internal sealed class CompilationCache(Compilation compilation)
     private readonly ConcurrentDictionary<FunctionSymbol, FunctionAbi> _functionAbis = new(
         ReferenceEqualityComparer.Instance
     );
+
+    private readonly ConcurrentDictionary<
+        WellKnownAttribute,
+        NamedTypeSymbol?
+    > _wellKnownAttributes = new();
 
     private ImmutableArray<VariableSymbol> _topLevelVariables;
     private ImmutableArray<FunctionSymbol> _topLevelFunctions;
@@ -162,9 +167,18 @@ internal sealed class CompilationCache(Compilation compilation)
 
     public NamedTypeSymbol GetSpecialType(SpecialType specialType)
     {
-        return SpecialTypes.GetOrAdd(
+        return _specialTypes.GetOrAdd(
             specialType,
             static (t, c) => c.FindSpecialType(t),
+            compilation
+        );
+    }
+
+    public NamedTypeSymbol? GetWellKnownAttribute(WellKnownAttribute attribute)
+    {
+        return _wellKnownAttributes.GetOrAdd(
+            attribute,
+            static (a, c) => c.FindWellKnownAttribute(a),
             compilation
         );
     }

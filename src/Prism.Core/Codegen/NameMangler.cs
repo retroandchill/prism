@@ -5,6 +5,8 @@
 
 using System.Diagnostics;
 using Cysharp.Text;
+using Prism.Core.Compiling;
+using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 
 namespace Prism.Core.Codegen;
@@ -33,10 +35,28 @@ public static class NameMangler
         }
     }
 
-    public static string Mangle(this FunctionSymbol function)
+    public static string Mangle(this FunctionSymbol function, Compilation compilation)
     {
-        var builder = ZString.CreateStringBuilder();
+        var cLinkageAttribute = compilation.GetWellKnownAttribute(WellKnownAttribute.CLinkage);
+        if (cLinkageAttribute is not null)
+        {
+            // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
+            foreach (var attribute in function.GetAttributes())
+            {
+                if (attribute.Attribute != cLinkageAttribute)
+                    continue;
 
+                var arg = attribute.Arguments[0].Value;
+                if (arg is not StringConstant(var str))
+                    throw new InvalidOperationException(
+                        "Expected string constant for CLinkage attribute"
+                    );
+
+                return string.IsNullOrWhiteSpace(str) ? function.Name : str;
+            }
+        }
+
+        var builder = ZString.CreateStringBuilder();
         try
         {
             if (function.ContainingAssembly is { Name: var assemblyName })

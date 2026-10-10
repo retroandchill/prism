@@ -130,6 +130,33 @@ public class Compilation
         return stdNamespace.GetMembers(typeName).OfType<NamedTypeSymbol>().Single();
     }
 
+    internal NamedTypeSymbol? GetWellKnownAttribute(WellKnownAttribute attribute)
+    {
+        return Cache.GetWellKnownAttribute(attribute);
+    }
+
+    internal NamedTypeSymbol? FindWellKnownAttribute(WellKnownAttribute attribute)
+    {
+        const string nativeNamespaceName = "native";
+
+        switch (attribute)
+        {
+            case WellKnownAttribute.None:
+                return null;
+            case WellKnownAttribute.CLinkage:
+            {
+                var stdNamespace = Cache.StdNamespace;
+                var nativeNamespace = stdNamespace
+                    .GetMembers(nativeNamespaceName)
+                    .OfType<NamespaceSymbol>()
+                    .Single();
+                return nativeNamespace.GetMembers("CLinkage").OfType<NamedTypeSymbol>().Single();
+            }
+            default:
+                throw new ArgumentOutOfRangeException(nameof(attribute), attribute, null);
+        }
+    }
+
     private static string GetBuiltInTypeName(SpecialType type)
     {
         return type switch
