@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
@@ -8,10 +9,11 @@ namespace Prism.Core.Parser;
 
 internal sealed class LanguageParser(string text) : SyntaxParser(text)
 {
-    private readonly record struct NamespaceBody(
-        GreenSyntaxList<GreenUsingDirective> Usings,
-        GreenSyntaxList<GreenDeclaration> Members
-    );
+    private readonly struct NamespaceBodyBuilder()
+    {
+        public readonly GreenSyntaxList<GreenUsingDirective>.Builder Usings = new();
+        public readonly GreenSyntaxList<GreenDeclaration>.Builder Members = new();
+    }
 
     [Flags]
     private enum ContextualModifiers : uint
@@ -34,6 +36,31 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         SyntaxKind closeTokenKind
     )
         where TNode : GreenNode;
+
+    [Flags]
+    private enum TerminatorState
+    {
+        EndOfFile = 0,
+        IsNamespaceMemberStartOrStop = 1 << 1,
+        IsAttributeTerminator = 1 << 2,
+        IsPossibleMemberStartOrStop = 1 << 3,
+        IsEndOfParameterList = 1 << 4,
+    }
+
+    private const int LastTerminatorState = (int)TerminatorState.IsEndOfParameterList;
+
+    private readonly ref struct TerminatorStateScope(
+        LanguageParser parser,
+        TerminatorState oldState
+    ) : IDisposable
+    {
+        public void Dispose()
+        {
+            parser._terminatorState = oldState;
+        }
+    }
+
+    private TerminatorState _terminatorState = TerminatorState.EndOfFile;
 
     private PostSkipAction SkipBadSeparatedListTokensWithExpectedKind<T, TNode>(
         ref T startToken,
@@ -148,9 +175,35 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         return AddTrailingSkippedSyntax(copy, list.Node);
     }
 
+    private TerminatorStateScope EnterTerminatorStateScope(TerminatorState state)
+    {
+        var oldState = _terminatorState;
+        _terminatorState |= state;
+        return new TerminatorStateScope(this, oldState);
+    }
+
     private bool IsTerminator()
     {
-        return AtEnd;
+        if (AtEnd)
+        {
+            return true;
+        }
+
+        for (var i = 0; i < LastTerminatorState; i++)
+        {
+            // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
+            switch (_terminatorState & (TerminatorState)i)
+            {
+                case TerminatorState.IsNamespaceMemberStartOrStop
+                    when IsNamespaceMemberStartOrStop():
+                case TerminatorState.IsAttributeTerminator when IsAttributeTerminator():
+                case TerminatorState.IsPossibleMemberStartOrStop when IsPossibleMemberStartOrStop():
+                case TerminatorState.IsEndOfParameterList when IsEndOfParameterList():
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     private bool IsTrueIdentifier()
@@ -280,11 +333,28 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
     public GreenCompilationUnit ParseCompilationUnit()
     {
-        var (usings, members) = ParseNamespaceBody();
-        return new GreenCompilationUnit(usings, members);
+        GreenToken? tmp = null;
+        var body = new NamespaceBodyBuilder();
+        var initialBadNodes = new GreenListNode.Builder();
+        ParseNamespaceBody(ref tmp, ref body, ref initialBadNodes);
+
+        var eof = ExpectToken(SyntaxKind.EofToken);
+        var result = new GreenCompilationUnit(
+            body.Usings.BuildAndClear(),
+            body.Members.BuildAndClear(),
+            eof
+        );
+
+        var skippedSyntax = initialBadNodes.BuildAndClear();
+        if (skippedSyntax is not null)
+        {
+            result = AddLeadingSkippedSyntax(result, skippedSyntax);
+        }
+
+        return result;
     }
 
-    public GreenDeclaration ParseTopLevelDeclaration()
+    public GreenDeclaration? ParseTopLevelDeclaration()
     {
         var attributes = ParseAttributes();
         var modifiers = ParseModifiers(ContextualModifiers.File);
@@ -299,11 +369,22 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             SyntaxKind.FuncKeyword => ParseFunctionDeclaration(attributes, modifiers),
             SyntaxKind.AttributeKeyword => ParseAttributeDeclaration(attributes, modifiers),
             SyntaxKind.ClassKeyword => ParseClassDeclaration(attributes, modifiers),
-            _ => new GreenIncompleteDeclaration(attributes, modifiers),
+            _ => ParseIncompleteDeclaration(attributes, modifiers),
         };
     }
 
-    private GreenDeclaration ParseClassLevelDeclaration()
+    private static GreenIncompleteDeclaration? ParseIncompleteDeclaration(
+        GreenSyntaxList<GreenAttributeList> attributes,
+        GreenSyntaxList<GreenToken> modifiers
+    )
+    {
+        if (attributes.Count == 0 && modifiers.Count == 0)
+            return null;
+
+        return new GreenIncompleteDeclaration(attributes, modifiers);
+    }
+
+    private GreenDeclaration? ParseClassLevelDeclaration()
     {
         var attributes = ParseAttributes();
         var modifiers = ParseModifiers();
@@ -314,8 +395,35 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             SyntaxKind.FuncKeyword => ParseFunctionDeclaration(attributes, modifiers),
             SyntaxKind.AttributeKeyword => ParseAttributeDeclaration(attributes, modifiers),
             SyntaxKind.ClassKeyword => ParseClassDeclaration(attributes, modifiers),
-            _ => new GreenIncompleteDeclaration(attributes, modifiers),
+            _ => ParseIncompleteDeclaration(attributes, modifiers),
         };
+    }
+
+    private bool IsPossibleMemberStartOrStop()
+    {
+        return IsPossibleMemberStart() || PeekToken().Kind == SyntaxKind.CloseBraceToken;
+    }
+
+    private bool IsPossibleMemberStart()
+    {
+        return CanStartMember(PeekToken().Kind);
+    }
+
+    private static bool CanStartMember(SyntaxKind kind)
+    {
+        return kind
+            is SyntaxKind.PublicKeyword
+                or SyntaxKind.InternalKeyword
+                or SyntaxKind.ProtectedKeyword
+                or SyntaxKind.PrivateKeyword
+                or SyntaxKind.ExternKeyword
+                or SyntaxKind.StaticKeyword
+                or SyntaxKind.FuncKeyword
+                or SyntaxKind.IdentifierToken
+                or SyntaxKind.ClassKeyword
+                or SyntaxKind.AttributeKeyword
+                or SyntaxKind.ConstKeyword
+                or SyntaxKind.OpenBracketToken;
     }
 
     private GreenNamespaceDeclaration ParseNamespaceDeclaration(
@@ -328,29 +436,34 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         var semicolon = MatchToken(SyntaxKind.SemicolonToken);
         if (semicolon is not null)
         {
-            var (usings, members) = ParseNamespaceBody();
+            var body = new NamespaceBodyBuilder();
+            var initialBadNodes = new GreenListNode.Builder();
+            ParseNamespaceBody(ref semicolon, ref body, ref initialBadNodes);
             return new GreenFileScopedNamespaceDeclaration(
                 attributes,
                 modifiers,
                 namespaceKeyword,
                 identifier,
                 semicolon,
-                usings,
-                members
+                body.Usings.BuildAndClear(),
+                body.Members.BuildAndClear()
             );
         }
         else
         {
             var openBrace = ExpectToken(SyntaxKind.OpenBraceToken);
-            var (usings, members) = ParseNamespaceBody(t => t.Kind != SyntaxKind.CloseBraceToken);
+            var body = new NamespaceBodyBuilder();
+            var initialBadNodes = new GreenListNode.Builder();
+            ParseNamespaceBody(ref openBrace, ref body, ref initialBadNodes);
+            Debug.Assert(initialBadNodes.Count == 0);
             return new GreenBlockNamespaceDeclaration(
                 attributes,
                 modifiers,
                 namespaceKeyword,
                 identifier,
                 openBrace,
-                usings,
-                members,
+                body.Usings.BuildAndClear(),
+                body.Members.BuildAndClear(),
                 ExpectToken(SyntaxKind.CloseBraceToken)
             );
         }
@@ -551,7 +664,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         var keyword = ExpectToken(SyntaxKind.ClassKeyword);
         var identifier = ExpectToken(SyntaxKind.IdentifierToken);
 
-        if (MatchToken(SyntaxKind.OpenBraceToken) is not { } openBrace)
+        if (MatchToken(SyntaxKind.SemicolonToken) is { } semicolon)
         {
             return new GreenClassDeclaration(
                 attributes,
@@ -561,18 +674,53 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 null,
                 null,
                 null,
-                ExpectToken(SyntaxKind.SemicolonToken)
+                semicolon
             );
         }
 
-        var members = GreenSyntaxList.CreateBuilder<GreenDeclaration>();
-        while (!AtEnd)
-        {
-            if (PeekToken().Kind == SyntaxKind.CloseBraceToken)
-                break;
+        var openBrace = ExpectToken(SyntaxKind.OpenBraceToken);
 
-            members.Add(ParseClassLevelDeclaration());
+        var parseMembers = !openBrace.IsMissing;
+
+        var members = GreenSyntaxList.CreateBuilder<GreenDeclaration>();
+        if (parseMembers)
+        {
+            while (true)
+            {
+                var kind = PeekToken().Kind;
+                if (CanStartMember(kind))
+                {
+                    using var scope = EnterTerminatorStateScope(
+                        TerminatorState.IsPossibleMemberStartOrStop
+                    );
+
+                    var member = ParseClassLevelDeclaration();
+                    if (member is not null)
+                    {
+                        members.Add(member);
+                    }
+                    else
+                    {
+                        SkipBadMemberListTokens(ref openBrace, ref members);
+                    }
+                }
+                else if (
+                    kind is SyntaxKind.CloseBraceToken or SyntaxKind.EofToken
+                    || IsTerminator()
+                )
+                {
+                    break;
+                }
+                else
+                {
+                    SkipBadMemberListTokens(ref openBrace, ref members);
+                }
+            }
         }
+
+        var closeBrace = openBrace.IsMissing
+            ? GreenToken.GetMissing(SyntaxKind.CloseBraceToken)
+            : ExpectToken(SyntaxKind.CloseBraceToken);
 
         return new GreenClassDeclaration(
             attributes,
@@ -581,9 +729,83 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             identifier,
             openBrace,
             members.BuildAndClear(),
-            ExpectToken(SyntaxKind.CloseBraceToken),
+            closeBrace,
             null
         );
+    }
+
+    private void SkipBadMemberListTokens(
+        [NotNullIfNotNull(nameof(openBrace))] ref GreenToken? openBrace,
+        ref GreenSyntaxList<GreenDeclaration>.Builder members
+    )
+    {
+        if (members.Count > 0)
+        {
+            var tmp = members[^1];
+            SkipBadMemberListTokens(ref tmp);
+            members[^1] = tmp;
+        }
+        else
+        {
+            Debug.Assert(openBrace is not null);
+            var tmp = openBrace;
+            SkipBadMemberListTokens(ref tmp);
+            openBrace = tmp;
+        }
+    }
+
+    private void SkipBadMemberListTokens<TNode>(ref TNode previousNode)
+        where TNode : GreenNode
+    {
+        var curlyCount = 0;
+        var tokens = new GreenListNode.Builder();
+
+        var done = false;
+
+        var token = ConsumeToken();
+        token = token.WithDiagnostics(
+            token.Diagnostics.Add(
+                new SyntaxDiagnosticInfo(DiagnosticInfo.InvalidMemberDeclaration(token.Text))
+            )
+        );
+        tokens.Add(token);
+
+        while (!done)
+        {
+            var kind = PeekToken().Kind;
+
+            if (CanStartMember(kind))
+            {
+                done = true;
+                continue;
+            }
+
+            switch (kind)
+            {
+                case SyntaxKind.OpenBraceToken:
+                    curlyCount++;
+                    break;
+                case SyntaxKind.CloseBraceToken:
+                    if (curlyCount-- == 0)
+                    {
+                        done = true;
+                        continue;
+                    }
+
+                    break;
+                case SyntaxKind.EofToken:
+                    done = true;
+                    continue;
+            }
+
+            tokens.Add(ConsumeToken());
+        }
+
+        var skippedSyntax = tokens.BuildAndClear();
+        if (skippedSyntax is not null)
+        {
+            previousNode = AddTrailingSkippedSyntax(previousNode, skippedSyntax);
+        }
     }
 
     public GreenStatement ParseStatement()
@@ -988,21 +1210,272 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         }
     }
 
-    private NamespaceBody ParseNamespaceBody(Predicate<GreenToken>? predicate = null)
+    private void ParseNamespaceBody(
+        [NotNullIfNotNull(nameof(openBraceOrSemicolon))] ref GreenToken? openBraceOrSemicolon,
+        ref NamespaceBodyBuilder body,
+        ref GreenListNode.Builder initialBadNodes
+    )
     {
-        var usingDirectives = GreenSyntaxList.CreateBuilder<GreenUsingDirective>();
-        while (!AtEnd && PeekToken().Kind == SyntaxKind.UsingKeyword)
+        var isGlobal = openBraceOrSemicolon is null;
+
+        var pendingIncompleteMembers = GreenSyntaxList.CreateBuilder<GreenDeclaration>();
+        var seen = NamespaceParts.None;
+        var reportUnexpectedToken = true;
+
+        try
         {
-            usingDirectives.Add(ParseUsingDirective());
+            using var scope = EnterTerminatorStateScope(
+                TerminatorState.IsNamespaceMemberStartOrStop
+            );
+
+            while (true)
+            {
+                switch (PeekToken().Kind)
+                {
+                    case SyntaxKind.NamespaceKeyword:
+                        AddIncompleteMembers(ref pendingIncompleteMembers, ref body);
+
+                        body.Members.Add(AdjustState(ref seen, ParseNamespaceDeclaration([], [])));
+                        reportUnexpectedToken = true;
+                        break;
+                    case SyntaxKind.EofToken:
+                        return;
+
+                    case SyntaxKind.CloseBraceToken:
+                        if (!isGlobal)
+                            return;
+
+                        ReduceIncompleteMembers(
+                            ref pendingIncompleteMembers,
+                            ref openBraceOrSemicolon,
+                            ref body,
+                            ref initialBadNodes
+                        );
+
+                        var token = ConsumeToken();
+                        token = token.WithDiagnostics(
+                            token.Diagnostics.Add(
+                                new SyntaxDiagnosticInfo(DiagnosticInfo.ExpectedEOF())
+                            )
+                        );
+
+                        AddSkippedNamespaceText(
+                            ref openBraceOrSemicolon,
+                            ref body,
+                            ref initialBadNodes,
+                            token
+                        );
+                        reportUnexpectedToken = true;
+                        break;
+                    case SyntaxKind.UsingKeyword:
+                    {
+                        ReduceIncompleteMembers(
+                            ref pendingIncompleteMembers,
+                            ref openBraceOrSemicolon,
+                            ref body,
+                            ref initialBadNodes
+                        );
+
+                        var @using = ParseUsingDirective();
+                        if (seen > NamespaceParts.Usings)
+                        {
+                            @using = @using.WithDiagnostics(
+                                @using.Diagnostics.Add(
+                                    new SyntaxDiagnosticInfo(DiagnosticInfo.UsingAfterElements())
+                                )
+                            );
+                            AddSkippedNamespaceText(
+                                ref openBraceOrSemicolon,
+                                ref body,
+                                ref initialBadNodes,
+                                @using
+                            );
+                        }
+                        else
+                        {
+                            body.Usings.Add(@using);
+                            seen = NamespaceParts.Usings;
+                        }
+
+                        break;
+                    }
+
+                    default:
+                        var member = ParseTopLevelDeclaration();
+                        if (member is null)
+                        {
+                            ReduceIncompleteMembers(
+                                ref pendingIncompleteMembers,
+                                ref openBraceOrSemicolon,
+                                ref body,
+                                ref initialBadNodes
+                            );
+
+                            var skippedToken = ConsumeToken();
+                            if (reportUnexpectedToken && !skippedToken.ContainsDiagnostics)
+                            {
+                                skippedToken = skippedToken.WithDiagnostics(
+                                    skippedToken.Diagnostics.Add(
+                                        new SyntaxDiagnosticInfo(DiagnosticInfo.ExpectedEOF())
+                                    )
+                                );
+                                reportUnexpectedToken = false;
+                            }
+
+                            AddSkippedNamespaceText(
+                                ref openBraceOrSemicolon,
+                                ref body,
+                                ref initialBadNodes,
+                                skippedToken
+                            );
+                        }
+                        else if (
+                            member.Kind == SyntaxKind.IncompleteDeclaration
+                            && seen < NamespaceParts.Members
+                        )
+                        {
+                            pendingIncompleteMembers.Add(member);
+                            reportUnexpectedToken = true;
+                        }
+                        else
+                        {
+                            AddIncompleteMembers(ref pendingIncompleteMembers, ref body);
+                            body.Members.Add(AdjustState(ref seen, member));
+                            reportUnexpectedToken = true;
+                        }
+
+                        break;
+                }
+            }
+        }
+        finally
+        {
+            AddIncompleteMembers(ref pendingIncompleteMembers, ref body);
         }
 
-        var members = GreenSyntaxList.CreateBuilder<GreenDeclaration>();
-        while (!AtEnd && predicate?.Invoke(PeekToken()) != false)
+        static GreenDeclaration AdjustState(ref NamespaceParts seen, GreenDeclaration declaration)
         {
-            members.Add(ParseTopLevelDeclaration());
+            switch (declaration.Kind)
+            {
+                case SyntaxKind.BlockNamespaceDeclaration:
+                case SyntaxKind.FileScopedNamespaceDeclaration:
+                case SyntaxKind.ClassDeclaration:
+                case SyntaxKind.GlobalVariableDeclaration:
+                case SyntaxKind.FunctionDeclaration:
+                    if (seen < NamespaceParts.Members)
+                    {
+                        seen = NamespaceParts.Members;
+                    }
+                    break;
+            }
+
+            return declaration;
+        }
+    }
+
+    private static void AddIncompleteMembers(
+        ref GreenSyntaxList<GreenDeclaration>.Builder incompleteMembers,
+        ref NamespaceBodyBuilder body
+    )
+    {
+        if (incompleteMembers.Count > 0)
+        {
+            body.Members.AddRange(incompleteMembers.BuildAndClear());
+        }
+    }
+
+    private void ReduceIncompleteMembers(
+        ref GreenSyntaxList<GreenDeclaration>.Builder incompleteMembers,
+        ref GreenToken? openBraceOrSemicolon,
+        ref NamespaceBodyBuilder body,
+        ref GreenListNode.Builder initialBadNodes
+    )
+    {
+        for (var i = 0; i < incompleteMembers.Count; i++)
+        {
+            AddSkippedNamespaceText(
+                ref openBraceOrSemicolon,
+                ref body,
+                ref initialBadNodes,
+                incompleteMembers[i]
+            );
         }
 
-        return new NamespaceBody(usingDirectives.BuildAndClear(), members.BuildAndClear());
+        incompleteMembers.Clear();
+    }
+
+    private enum NamespaceParts
+    {
+        None = 0,
+        Usings = 1,
+        Members = 2,
+    }
+
+    private void AddSkippedNamespaceText(
+        [NotNullIfNotNull(nameof(openBraceOrSemicolon))] ref GreenToken? openBraceOrSemicolon,
+        ref NamespaceBodyBuilder body,
+        ref GreenListNode.Builder initialBadNodes,
+        GreenNode skippedSyntax
+    )
+    {
+        if (body.Members.Count > 0)
+        {
+            AddTrailingSkippedSyntax(body.Members, skippedSyntax);
+        }
+        else if (body.Usings.Count > 0)
+        {
+            AddTrailingSkippedSyntax(body.Usings, skippedSyntax);
+        }
+        else if (openBraceOrSemicolon is not null)
+        {
+            openBraceOrSemicolon = AddTrailingSkippedSyntax(openBraceOrSemicolon, skippedSyntax);
+        }
+        else
+        {
+            initialBadNodes.AddRange(skippedSyntax);
+        }
+    }
+
+    private bool IsNamespaceMemberStartOrStop()
+    {
+        return IsEndOfNamespace() || IsPossibleNamespaceMemberDeclaration();
+    }
+
+    private bool IsPossibleNamespaceMemberDeclaration()
+    {
+        switch (PeekToken().Kind)
+        {
+            case SyntaxKind.NamespaceKeyword:
+            case SyntaxKind.UsingKeyword:
+                return true;
+            default:
+                return IsPossibleStartOfTopLevelDeclaration(PeekToken().Kind);
+        }
+    }
+
+    private static bool IsPossibleStartOfTopLevelDeclaration(SyntaxKind kind)
+    {
+        return IsTopLevelModifierOrKeyword(kind) || kind == SyntaxKind.OpenBracketToken;
+    }
+
+    private static bool IsTopLevelModifierOrKeyword(SyntaxKind kind)
+    {
+        return kind
+            is SyntaxKind.ClassKeyword
+                or SyntaxKind.AttributeKeyword
+                or SyntaxKind.VarKeyword
+                or SyntaxKind.FuncKeyword
+                or SyntaxKind.ConstKeyword
+                or SyntaxKind.PublicKeyword
+                or SyntaxKind.InternalKeyword
+                or SyntaxKind.ProtectedKeyword
+                or SyntaxKind.PrivateKeyword
+                or SyntaxKind.ExternKeyword;
+    }
+
+    private bool IsEndOfNamespace()
+    {
+        return PeekToken().Kind == SyntaxKind.CloseBraceToken;
     }
 
     private GreenUsingDirective ParseUsingDirective()
@@ -1017,13 +1490,16 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     private GreenSyntaxList<GreenAttributeList> ParseAttributes()
     {
         var builder = GreenSyntaxList.CreateBuilder<GreenAttributeList>();
-        while (!AtEnd)
+        using (EnterTerminatorStateScope(TerminatorState.IsAttributeTerminator))
         {
-            var next = PeekToken();
-            if (next.Kind != SyntaxKind.OpenBracketToken)
-                break;
+            while (IsPossibleAttributeList())
+            {
+                var next = PeekToken();
+                if (next.Kind != SyntaxKind.OpenBracketToken)
+                    break;
 
-            builder.Add(ParseAttributeList());
+                builder.Add(ParseAttributeList());
+            }
         }
 
         return builder.BuildAndClear();
@@ -1065,6 +1541,16 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 closeKind
             );
         }
+    }
+
+    private bool IsAttributeTerminator()
+    {
+        return PeekToken().Kind == SyntaxKind.CloseBracketToken || IsPossibleAttributeList();
+    }
+
+    private bool IsPossibleAttributeList()
+    {
+        return PeekToken().Kind == SyntaxKind.OpenBracketToken;
     }
 
     private bool IsPossibleAttribute()
@@ -1217,15 +1703,20 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     {
         var open = ExpectToken(SyntaxKind.OpenParenToken);
 
-        var parameters = ParseCommaSeparatedSyntaxList(
-            ref open,
-            SyntaxKind.CloseParenToken,
-            static @this => @this.IsPossibleParameter(),
-            static @this => @this.ParseParameter(),
-            SkipBadParameterListTokens,
-            allowTrailingSeparator: false,
-            requireOneElement: false
-        );
+        GreenSeparatedList<GreenParameter> parameters;
+
+        using (EnterTerminatorStateScope(TerminatorState.IsEndOfParameterList))
+        {
+            parameters = ParseCommaSeparatedSyntaxList(
+                ref open,
+                SyntaxKind.CloseParenToken,
+                static @this => @this.IsPossibleParameter(),
+                static @this => @this.ParseParameter(),
+                SkipBadParameterListTokens,
+                allowTrailingSeparator: false,
+                requireOneElement: false
+            );
+        }
 
         return new GreenParameterList(open, parameters, ExpectToken(SyntaxKind.CloseParenToken));
 
@@ -1246,6 +1737,14 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 closeKind
             );
         }
+    }
+
+    private bool IsEndOfParameterList()
+    {
+        return PeekToken().Kind
+            is SyntaxKind.CloseParenToken
+                or SyntaxKind.CloseBracketToken
+                or SyntaxKind.SemicolonToken;
     }
 
     private bool IsPossibleParameter()

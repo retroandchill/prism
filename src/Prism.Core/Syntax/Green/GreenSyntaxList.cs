@@ -101,9 +101,25 @@ internal readonly struct GreenSyntaxList<T>(GreenNode? children)
 
         internal GreenListNode.Builder UnderlyingBuilder => _builder;
 
+        public T this[int index]
+        {
+            get => (T)_builder[index];
+            set => _builder[index] = value;
+        }
+
         public void Add(T node)
         {
             _builder.Add(node);
+        }
+
+        public void AddRange(GreenSyntaxList<T> nodes)
+        {
+            _builder.AddRange(nodes);
+        }
+
+        public void Clear()
+        {
+            _builder.Clear();
         }
 
         public GreenSyntaxList<T> Build()

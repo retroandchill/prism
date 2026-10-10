@@ -29,7 +29,7 @@ internal sealed class GreenListNode : GreenNode
     public GreenListNode WithSlot(int index, GreenNode newSlot)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
-        ArgumentOutOfRangeException.ThrowIfLessThan(index, _children.Length);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _children.Length);
         return new GreenListNode(_children.SetItem(index, newSlot)) { Diagnostics = Diagnostics };
     }
 
@@ -75,6 +75,20 @@ internal sealed class GreenListNode : GreenNode
             {
                 _children.Add(node);
             }
+        }
+
+        public void AddRange<TNode>(GreenSyntaxList<TNode> nodes)
+            where TNode : GreenNode
+        {
+            foreach (var node in nodes)
+            {
+                _children.Add(node);
+            }
+        }
+
+        public void Clear()
+        {
+            _children.Clear();
         }
 
         public GreenListNode? Build()

@@ -512,6 +512,15 @@
               "name": "members",
               "type": "Declaration",
               "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "eof",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "EofToken"
+              ]
             }
           ]
         }
@@ -2674,6 +2683,11 @@
       "name": "Syntax",
       "diagnostics": [
         {
+          "name": "ExpectedEOF",
+          "severity": "Error",
+          "format": "Expected EOF"
+        },
+        {
           "name": "UnexpectedToken",
           "severity": "Error",
           "format": "Unexpected token {Token}",
@@ -2714,6 +2728,11 @@
           "name": "UnterminatedBlockComment",
           "severity": "Error",
           "format": "Unterminated block comment"
+        },
+        {
+          "name": "UsingAfterElements",
+          "severity": "Error",
+          "format": "Using directives must be the first member in a namespace"
         }
       ]
     },
@@ -2728,6 +2747,17 @@
             {
               "name": "Symbol",
               "type": "Name"
+            }
+          ]
+        },
+        {
+          "name": "InvalidMemberDeclaration",
+          "severity": "Error",
+          "format": "Invalid member declaration: {Text}",
+          "args": [
+            {
+              "name": "Text",
+              "type": "String"
             }
           ]
         },

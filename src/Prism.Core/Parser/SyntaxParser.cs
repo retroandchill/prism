@@ -103,6 +103,15 @@ internal abstract class SyntaxParser(string text)
         return (T)TokenReplacer.ReplaceLastToken(node, firstToken);
     }
 
+    protected static void AddTrailingSkippedSyntax<T>(
+        GreenSyntaxList<T>.Builder builder,
+        GreenNode skippedSyntax
+    )
+        where T : GreenNode
+    {
+        builder[^1] = AddTrailingSkippedSyntax(builder[^1], skippedSyntax);
+    }
+
     protected static void AddTrailingSkippedSyntax(
         GreenListNode.Builder builder,
         GreenNode skippedSyntax
