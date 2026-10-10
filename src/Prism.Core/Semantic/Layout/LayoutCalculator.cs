@@ -42,7 +42,7 @@ internal static class LayoutCalculator
     {
         return typeSymbol.SpecialType switch
         {
-            SpecialType.None => throw new NotImplementedException(),
+            SpecialType.None => CreateClassLayout(compilation, typeSymbol),
             SpecialType.Void or SpecialType.Str => throw new ArgumentException(
                 "Invalid special type"
             ),
@@ -103,7 +103,7 @@ internal static class LayoutCalculator
         };
     }
 
-    private static TypeLayout GetTypeLayout(
+    private static NullableLayout GetTypeLayout(
         Compilation compilation,
         NullableTypeSymbol typeSymbol,
         CancellationToken cancellationToken
@@ -338,4 +338,44 @@ internal static class LayoutCalculator
         TypeLayout,
         OptimizedNullableLayout?
     > CachedOptimizedNullableLayouts = new();
+
+    private static TypeLayout CreateClassLayout(Compilation compilation, NamedTypeSymbol symbol)
+    {
+        using var fields = symbol
+            .GetMembers()
+            .AsValueEnumerable()
+            .OfType<VariableSymbol>()
+            .Where(v => v.IsInstance)
+            .ToArrayPool();
+
+        if (fields.Size == 0)
+        {
+            return EmptyLayout.Instance;
+        }
+
+        ulong size = 0;
+        ulong alignment = 1;
+        var builder = ImmutableArray.CreateBuilder<StructField>(fields.Size);
+        foreach (var field in fields.Span)
+        {
+            var layout = compilation.GetTypeLayout(field.Type);
+            if (layout.Size == 0)
+                continue;
+
+            var alignedOffset = (size + layout.Alignment - 1) & ~(layout.Alignment - 1);
+            size = alignedOffset + layout.Size;
+            alignment = Math.Max(layout.Alignment, alignedOffset);
+
+            builder.Add(new StructField(field.Name, layout, alignedOffset));
+        }
+
+        if (size == 0)
+        {
+            return EmptyLayout.Instance;
+        }
+
+        size = (size + alignment - 1) & ~(alignment - 1);
+
+        return new StructLayout(new TypeLayoutInfo(size, alignment), builder.DrainToImmutable());
+    }
 }
