@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Text;
 using Cysharp.Text;
 using LLVMSharp.Interop;
+using Prism.Core.Abi;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Codegen.Mir;
@@ -18,6 +19,7 @@ using Prism.Core.Mir.Analysis;
 using Prism.Core.Semantic;
 using Prism.Core.Semantic.Layout;
 using Prism.Core.Symbols;
+using Prism.Core.Utils;
 using ZLinq;
 
 namespace Prism.Core.Codegen;
@@ -178,9 +180,14 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
         var abi = _compilation.GetFunctionAbi(functionSymbol);
         var indirectReturn = abi.Return.IsIndirect;
-        var totalParameters = indirectReturn
-            ? functionSymbol.Parameters.Length + 1
-            : functionSymbol.Parameters.Length;
+
+        var extraParams = 0;
+        if (indirectReturn)
+            extraParams++;
+        if (abi.Receiver is not null)
+            extraParams++;
+
+        var totalParameters = functionSymbol.Parameters.Length + extraParams;
         Span<LLVMTypeRef> parameters = stackalloc LLVMTypeRef[totalParameters];
 
         LLVMTypeRef returnType;
@@ -195,6 +202,20 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         {
             returnType = GetOrCreateType(functionSymbol.ReturnType);
             firstParamIndex = 0;
+        }
+
+        if (abi.Receiver is not null)
+        {
+            if (abi.Receiver is AbiValueClassification.Indirect)
+            {
+                parameters[firstParamIndex++] = _context.CreatePointerType(0);
+            }
+            else
+            {
+                parameters[firstParamIndex++] = GetOrCreateType(
+                    functionSymbol.ReceiverType.RequireNonNull()
+                );
+            }
         }
 
         Debug.Assert(abi.Parameters.Length + firstParamIndex == parameters.Length);
@@ -221,6 +242,15 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 GetOrCreateType(functionSymbol.ReturnType)
             );
             func.AddAttributeAtIndex((LLVMAttributeIndex)1, byValAttr);
+        }
+
+        if (abi.Receiver is AbiValueClassification.Indirect)
+        {
+            var byValAttr = _context.CreateTypeAttribute(
+                ByValAttr,
+                GetOrCreateType(functionSymbol.ReceiverType.RequireNonNull())
+            );
+            func.AddAttributeAtIndex((LLVMAttributeIndex)(1 + (indirectReturn ? 1 : 0)), byValAttr);
         }
 
         foreach (var (i, parameterAbi) in abi.Parameters.AsValueEnumerable().Index())
@@ -564,14 +594,20 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
     private void EmitLoad(MirLoadInstruction loadInstruction, FunctionEmissionContext context)
     {
-        var result = loadInstruction.Source switch
+        var result = EmitLoadFromPlace(loadInstruction.Source, context);
+        context.AddValue(loadInstruction.Result.Id, result);
+    }
+
+    private LLVMValueRef EmitLoadFromPlace(MirPlace place, FunctionEmissionContext context)
+    {
+        return place switch
         {
             MirGlobalPlace mirGlobalPlace => EmitReadGlobal(mirGlobalPlace),
             MirIndexPlace mirIndexPlace => EmitReadIndex(mirIndexPlace, context),
+            MirFieldPlace mirFieldPlace => EmitReadField(mirFieldPlace, context),
             MirLocalPlace mirLocalPlace => EmitReadLocal(mirLocalPlace, context),
             MirDerefPlace mirDerefPlace => EmitDerefLocal(mirDerefPlace, context),
         };
-        context.AddValue(loadInstruction.Result.Id, result);
     }
 
     private void EmitStore(MirStoreInstruction assignment, FunctionEmissionContext context)
@@ -1207,9 +1243,52 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         {
             MirDerefPlace mirDerefPlace => GetValue(mirDerefPlace.Pointer, context),
             MirGlobalPlace mirGlobalPlace => GetOrCreateGlobal(mirGlobalPlace.Variable),
-            MirIndexPlace mirIndexPlace => throw new NotImplementedException(),
+            MirIndexPlace mirIndexPlace => EmitReadIndexAddress(mirIndexPlace, context),
+            MirFieldPlace mirFieldPlace => EmitReadFieldAddress(mirFieldPlace, context),
             MirLocalPlace mirLocalPlace => context.LookupLocal(mirLocalPlace.LocalId),
         };
+    }
+
+    private LLVMValueRef EmitReadIndexAddress(
+        MirIndexPlace indexer,
+        FunctionEmissionContext context
+    )
+    {
+        var index = GetValue(indexer.Index, context);
+        var itemType = GetOrCreateType(indexer.Type);
+
+        LLVMValueRef pointer;
+        if (indexer.Base.Type.IsDynamicallySized)
+        {
+            var widePointer = EmitTakeAddress(indexer.Base, context);
+            pointer = _builder.BuildExtractValue(widePointer, 0, "pointer");
+        }
+        else
+        {
+            pointer = EmitTakeAddress(indexer.Base, context);
+        }
+
+        return _builder.BuildGEP2(itemType, pointer, [index], "element".AsSpan());
+    }
+
+    private LLVMValueRef EmitReadFieldAddress(MirFieldPlace field, FunctionEmissionContext context)
+    {
+        var layout = (StructLayout)_compilation.GetTypeLayout(field.Base.Type);
+
+        uint i = 0;
+        foreach (var (name, type, _) in layout.Fields)
+        {
+            if (name == field.Field.Name)
+            {
+                var elementType = GetOrCreateType(type);
+                var source = EmitTakeAddress(field.Base, context);
+                return _builder.BuildStructGEP2(elementType, source, i, name);
+            }
+
+            i++;
+        }
+
+        throw new InvalidOperationException($"Unknown field: {field.Field.Name}");
     }
 
     private LLVMValueRef EmitReadGlobal(MirGlobalPlace place)
@@ -1238,22 +1317,28 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
     private LLVMValueRef EmitReadIndex(MirIndexPlace indexer, FunctionEmissionContext context)
     {
-        var index = GetValue(indexer.Index, context);
         var itemType = GetOrCreateType(indexer.Type);
-
-        LLVMValueRef pointer;
-        if (indexer.Base.Type.IsDynamicallySized)
-        {
-            var widePointer = EmitTakeAddress(indexer.Base, context);
-            pointer = _builder.BuildExtractValue(widePointer, 0, "pointer");
-        }
-        else
-        {
-            pointer = EmitTakeAddress(indexer.Base, context);
-        }
-
-        var element = _builder.BuildGEP2(itemType, pointer, [index], "element".AsSpan());
+        var element = EmitReadIndexAddress(indexer, context);
         return _builder.BuildLoad2(itemType, element);
+    }
+
+    private LLVMValueRef EmitReadField(MirFieldPlace field, FunctionEmissionContext context)
+    {
+        var layout = (StructLayout)_compilation.GetTypeLayout(field.Base.Type);
+
+        uint i = 0;
+        foreach (var (name, _, _) in layout.Fields)
+        {
+            if (name == field.Field.Name)
+            {
+                var source = EmitLoadFromPlace(field.Base, context);
+                return _builder.BuildExtractValue(source, i, name);
+            }
+
+            i++;
+        }
+
+        throw new InvalidOperationException($"Unknown field: {field.Field.Name}");
     }
 
     private void EmitWriteToDest(

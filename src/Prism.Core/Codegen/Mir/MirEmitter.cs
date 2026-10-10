@@ -12,6 +12,7 @@ using Prism.Core.Mappers;
 using Prism.Core.Mir;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
+using Prism.Core.Utils;
 using ZLinq;
 
 namespace Prism.Core.Codegen.Mir;
@@ -386,8 +387,9 @@ internal sealed class MirEmitter(Compilation compilation)
 
         return expression switch
         {
-            BoundVariableAccess access => EmitAccess(access, context),
+            BoundVariableAccess access => EmitAccess(access, context, cancellationToken),
             BoundParameterAccess access => EmitAccess(access, context),
+            BoundThisExpression thisExpression => EmitThis(thisExpression, context),
             BoundUnaryOperation unary => EmitOperation(unary, context, cancellationToken),
             BoundBinaryOperation binary => EmitOperation(binary, context, cancellationToken),
             BoundAssignmentOperation assignment => EmitAssignment(
@@ -424,12 +426,14 @@ internal sealed class MirEmitter(Compilation compilation)
         };
     }
 
-    private static MirSsaValue EmitAccess(BoundVariableAccess access, MirEmissionContext context)
+    private MirSsaValue EmitAccess(
+        BoundVariableAccess access,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
         var result = context.CreateSsaValue(access.Type);
-        MirPlace place = context.TryGetLocal(access.Symbol) is { } local
-            ? new MirLocalPlace(local.Id, local.Type)
-            : new MirGlobalPlace(access.Symbol);
+        var place = EmitPlace(access, context, cancellationToken);
         context.CurrentBlock.AddInstruction(new MirLoadInstruction(result, place));
         return result;
     }
@@ -438,6 +442,18 @@ internal sealed class MirEmitter(Compilation compilation)
     {
         var result = context.CreateSsaValue(access.Type);
         var local = context.GetLocal(access.Symbol);
+        var place = new MirLocalPlace(local.Id, local.Type);
+        context.CurrentBlock.AddInstruction(new MirLoadInstruction(result, place));
+        return result;
+    }
+
+    private static MirSsaValue EmitThis(
+        BoundThisExpression thisExpression,
+        MirEmissionContext context
+    )
+    {
+        var result = context.CreateSsaValue(thisExpression.Type);
+        var local = context.ReceiverLocal.RequireNonNull();
         var place = new MirLocalPlace(local.Id, local.Type);
         context.CurrentBlock.AddInstruction(new MirLoadInstruction(result, place));
         return result;
@@ -848,6 +864,9 @@ internal sealed class MirEmitter(Compilation compilation)
             new MirCallInstruction(
                 result,
                 call.Function,
+                call.Receiver is not null
+                    ? EmitExpression(call.Receiver, context, cancellationToken)
+                    : null,
                 EmitExpressionList(call.Arguments, context, cancellationToken)
             )
             {
@@ -1126,7 +1145,7 @@ internal sealed class MirEmitter(Compilation compilation)
     {
         return expression switch
         {
-            BoundVariableAccess access => EmitPlace(access, context),
+            BoundVariableAccess access => EmitPlace(access, context, cancellationToken),
             BoundParameterAccess access => EmitPlace(access, context),
             BoundDereference dereference => EmitPlace(dereference, context, cancellationToken),
             BoundIndex index => EmitPlace(index, context, cancellationToken),
@@ -1136,8 +1155,18 @@ internal sealed class MirEmitter(Compilation compilation)
         };
     }
 
-    private static MirPlace EmitPlace(BoundVariableAccess access, MirEmissionContext context)
+    private MirPlace EmitPlace(
+        BoundVariableAccess access,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
+        if (access.Owner is not null)
+        {
+            var owner = EmitPlace(access.Owner, context, cancellationToken);
+            return new MirFieldPlace(owner, access.Symbol);
+        }
+
         if (context.TryGetLocal(access.Symbol) is { } local)
         {
             return new MirLocalPlace(local.Id, local.Type);

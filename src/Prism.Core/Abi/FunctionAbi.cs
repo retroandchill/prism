@@ -24,6 +24,7 @@ internal readonly record struct ReturnAbi(TypeSymbol Type, AbiValueClassificatio
 
 internal sealed record FunctionAbi(
     FunctionSymbol Function,
+    AbiValueClassification? Receiver,
     ImmutableArray<ParameterAbi> Parameters,
     ReturnAbi Return
 )

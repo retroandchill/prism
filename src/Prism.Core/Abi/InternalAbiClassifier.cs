@@ -20,6 +20,10 @@ internal sealed class InternalAbiClassifier(Compilation compilation) : IAbiClass
             ? AbiValueClassification.Ignore
             : ClassifyType(function.ReturnType);
 
+        AbiValueClassification? receiver = function.ReceiverType is not null
+            ? ClassifyType(function.ReceiverType)
+            : null;
+
         var parameterClassifications = new ParameterAbi[function.Parameters.Length];
         foreach (var (i, parameter) in function.Parameters.AsValueEnumerable().Index())
         {
@@ -28,6 +32,7 @@ internal sealed class InternalAbiClassifier(Compilation compilation) : IAbiClass
 
         return new FunctionAbi(
             function,
+            receiver,
             ImmutableCollectionsMarshal.AsImmutableArray(parameterClassifications),
             new ReturnAbi(function.ReturnType, returnTypeClassification)
         );

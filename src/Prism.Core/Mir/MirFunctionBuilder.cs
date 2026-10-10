@@ -6,7 +6,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Prism.Core.Diagnostics;
-using Prism.Core.Mir;
 using Prism.Core.Symbols;
 
 namespace Prism.Core.Mir;
@@ -26,9 +25,14 @@ internal sealed class MirFunctionBuilder
     public MirFunctionBuilder(FunctionSymbol function)
     {
         _function = function;
-        _locals.EnsureCapacity(
-            (int)BitOperations.RoundUpToPowerOf2((uint)function.Parameters.Length)
-        );
+        var paramCount = function.Parameters.Length + (function.ReceiverType is not null ? 1 : 0);
+        _locals.EnsureCapacity((int)BitOperations.RoundUpToPowerOf2((uint)paramCount));
+
+        if (function.ReceiverType is not null)
+        {
+            _locals.Add(new MirThisParam(new MirLocalId(_nextLocalId++), function.ReceiverType));
+        }
+
         foreach (var parameter in function.Parameters)
         {
             _locals.Add(new MirParameter(new MirLocalId(_nextLocalId++), parameter));

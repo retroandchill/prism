@@ -32,13 +32,18 @@ internal sealed class MirEmissionContext
 
     private readonly MirFunctionBuilder _builder;
     private MirScope _scope = new();
+    public MirLocal? ReceiverLocal { get; }
 
     public MirEmissionContext(MirFunctionBuilder builder)
     {
         _builder = builder;
         foreach (var local in _builder.Locals)
         {
-            if (local.Symbol is not null)
+            if (local is MirThisParam thisParam)
+            {
+                ReceiverLocal = thisParam;
+            }
+            else if (local.Symbol is not null)
             {
                 _locals.Add(local.Symbol, local);
             }

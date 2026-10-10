@@ -43,6 +43,7 @@ internal sealed record MirConvertInstruction(
 internal sealed record MirCallInstruction(
     MirSsaValue? Result,
     FunctionSymbol Callee,
+    MirValue? Receiver,
     ImmutableArray<MirValue> Arguments
 ) : MirInstruction;
 

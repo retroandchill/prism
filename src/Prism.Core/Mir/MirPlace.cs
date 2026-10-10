@@ -22,3 +22,5 @@ internal sealed record MirDerefPlace(MirValue Pointer, TypeSymbol Type) : MirPla
 
 internal sealed record MirIndexPlace(MirPlace Base, MirValue Index, TypeSymbol Type)
     : MirPlace(Type);
+
+internal sealed record MirFieldPlace(MirPlace Base, VariableSymbol Field) : MirPlace(Field.Type);

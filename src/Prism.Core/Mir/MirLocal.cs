@@ -20,6 +20,11 @@ internal sealed record MirParameter(MirLocalId Id, ParameterSymbol Parameter)
     public override Symbol Symbol => Parameter;
 }
 
+internal sealed record MirThisParam(MirLocalId Id, TypeSymbol Type) : MirLocal(Id, "this", Type)
+{
+    public override Symbol? Symbol => null;
+}
+
 internal sealed record MirLocalVariable(MirLocalId Id, VariableSymbol Variable)
     : MirLocal(Id, Variable.EnsureLocal().Name, Variable.Type)
 {

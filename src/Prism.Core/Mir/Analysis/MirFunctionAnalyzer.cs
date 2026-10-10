@@ -392,8 +392,11 @@ internal static class MirFunctionAnalyzer
     private static MirLocalClassification ClassifyLocal(FunctionAbi abi, MirLocalFlowInfo local)
     {
         if (
-            local.Local is MirParameter { Parameter: var parameter }
-            && abi.IsParameterIndirect(parameter)
+            (local.Local is MirThisParam && abi.Receiver is AbiValueClassification.Indirect)
+            || (
+                local.Local is MirParameter { Parameter: var parameter }
+                && abi.IsParameterIndirect(parameter)
+            )
         )
         {
             return new MirLocalClassification
