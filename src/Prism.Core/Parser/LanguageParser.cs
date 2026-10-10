@@ -309,10 +309,8 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         var modifiers = ParseModifiers();
         return PeekToken().Kind switch
         {
-            SyntaxKind.ConstKeyword or SyntaxKind.IdentifierToken => ParseFieldDeclaration(
-                attributes,
-                modifiers
-            ),
+            SyntaxKind.ConstKeyword or SyntaxKind.IdentifierToken =>
+                ParseFieldOrSpecialMemberDeclaration(attributes, modifiers),
             SyntaxKind.FuncKeyword => ParseFunctionDeclaration(attributes, modifiers),
             SyntaxKind.AttributeKeyword => ParseAttributeDeclaration(attributes, modifiers),
             SyntaxKind.ClassKeyword => ParseClassDeclaration(attributes, modifiers),
@@ -404,15 +402,34 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         );
     }
 
-    private GreenFieldDeclaration ParseFieldDeclaration(
+    private GreenDeclaration ParseFieldOrSpecialMemberDeclaration(
         GreenSyntaxList<GreenAttributeList> attributes,
         GreenSyntaxList<GreenToken> modifiers
     )
     {
+        var constKeyword = MatchToken(SyntaxKind.ConstKeyword);
+        if (constKeyword is not null)
+        {
+            return new GreenFieldDeclaration(
+                attributes,
+                modifiers,
+                constKeyword,
+                ExpectToken(SyntaxKind.IdentifierToken),
+                ParseRequiredTypeSpecifier(),
+                ParseInitializer(),
+                ExpectToken(SyntaxKind.SemicolonToken)
+            );
+        }
+
+        if (MatchToken(SyntaxKind.ConstructorKeyword) is { } constructor)
+        {
+            return ParseConstructorDeclaration(attributes, modifiers, constructor);
+        }
+
         return new GreenFieldDeclaration(
             attributes,
             modifiers,
-            MatchToken(SyntaxKind.ConstKeyword),
+            null,
             ExpectToken(SyntaxKind.IdentifierToken),
             ParseRequiredTypeSpecifier(),
             ParseInitializer(),
@@ -456,6 +473,51 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             returnType,
             block,
             expressionBody,
+            semicolon
+        );
+    }
+
+    private GreenConstructorDeclaration ParseConstructorDeclaration(
+        GreenSyntaxList<GreenAttributeList> attributes,
+        GreenSyntaxList<GreenToken> modifiers,
+        GreenToken constructorKeyword
+    )
+    {
+        var parameters = ParseParameterList();
+        var (block, expressionBody, equalSign, defaultKeyword, semicolon) = PeekToken().Kind switch
+        {
+            SyntaxKind.OpenBraceToken => (
+                ParseBlock(),
+                (GreenExpressionBody?)null,
+                (GreenToken?)null,
+                (GreenToken?)null,
+                (GreenToken?)null
+            ),
+            SyntaxKind.ArrowToken => (
+                null,
+                ParseExpressionBody(),
+                null,
+                null,
+                ExpectToken(SyntaxKind.SemicolonToken)
+            ),
+            _ => (
+                null,
+                null,
+                ExpectToken(SyntaxKind.EqualToken),
+                ExpectToken(SyntaxKind.DefaultKeyword),
+                ExpectToken(SyntaxKind.SemicolonToken)
+            ),
+        };
+
+        return new GreenConstructorDeclaration(
+            attributes,
+            modifiers,
+            constructorKeyword,
+            parameters,
+            block,
+            expressionBody,
+            equalSign,
+            defaultKeyword,
             semicolon
         );
     }

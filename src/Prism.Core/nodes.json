@@ -218,6 +218,15 @@
       {
         "name": "StrKeyword",
         "text": "str"
+      },
+      {
+        "name": "ConstructorKeyword",
+        "text": "constructor",
+        "contextual": true
+      },
+      {
+        "name": "DefaultKeyword",
+        "text": "default"
       }
     ],
     "punctuations": [
@@ -2525,6 +2534,100 @@
               "shape": "single",
               "kinds": [
                 "SemicolonToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ConstructorDeclaration",
+          "base": "Declaration",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "modifiers",
+              "type": "Token",
+              "shape": "list",
+              "kinds": [
+                "ExternKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ConstructorKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "parameters",
+              "type": "ParameterList",
+              "shape": "single"
+            },
+            {
+              "$type": "choice",
+              "choices": [
+                {
+                  "$type": "item",
+                  "name": "body",
+                  "type": "Block",
+                  "shape": "single"
+                },
+                {
+                  "$type": "sequence",
+                  "elements": [
+                    {
+                      "$type": "item",
+                      "name": "expression_body",
+                      "type": "ExpressionBody",
+                      "shape": "single"
+                    },
+                    {
+                      "$type": "item",
+                      "name": "semicolon",
+                      "type": "Token",
+                      "shape": "single",
+                      "kinds": [
+                        "SemicolonToken"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "$type": "sequence",
+                  "elements": [
+                    {
+                      "$type": "item",
+                      "name": "equal_sign",
+                      "type": "Token",
+                      "shape": "single",
+                      "kinds": [
+                        "EqualsToken"
+                      ]
+                    },
+                    {
+                      "$type": "item",
+                      "name": "default_keyword",
+                      "type": "Token",
+                      "shape": "single",
+                      "kinds": [
+                        "DefaultKeyword"
+                      ]
+                    },
+                    {
+                      "$type": "reference",
+                      "name": "semicolon"
+                    }
+                  ]
+                }
               ]
             }
           ]
