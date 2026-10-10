@@ -1,4 +1,6 @@
-﻿namespace std::io;
+﻿using std::native;
+
+namespace std::io;
 
 /**
  * Print the supplied text to the console.
@@ -16,4 +18,22 @@ public func print(msg: str&) {
  */
 public func println(msg: str&) {
     // TODO: Fill me out
+}
+
+internal const STD_INPUT_HANDLE: u32 = -10 as u32;
+internal const STD_OUTPUT_HANDLE: u32 = -11 as u32;
+internal const STD_ERROR_HANDLE: u32 = -12 as u32;
+
+[CLinkage("GetStdHandle")]
+internal extern func get_std_handle(std_handle: u32);
+
+public class Console {
+    private handle: usize;
+
+    public static out: Console;
+    public static err: Console;
+
+    public func write(msg: str&) {
+        // TODO: Fill me out
+    }
 }

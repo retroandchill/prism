@@ -13,7 +13,8 @@ internal static class ParsingExtensions
                     or SyntaxKind.PublicKeyword
                     or SyntaxKind.InternalKeyword
                     or SyntaxKind.ProtectedKeyword
-                    or SyntaxKind.PrivateKeyword;
+                    or SyntaxKind.PrivateKeyword
+                    or SyntaxKind.StaticKeyword;
 
         public bool IsBuiltInType =>
             kind

@@ -727,7 +727,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
     public GreenExpression ParseExpression()
     {
-        return ParseExpression(ParsePrefixExpression(), 0);
+        return ParseExpression(ParseCastExpression(), 0);
     }
 
     private GreenExpression ParseExpression(GreenExpression left, int minPrecedence)
@@ -743,7 +743,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             else
             {
                 var op = ConsumeToken();
-                var right = ParsePrefixExpression();
+                var right = ParseCastExpression();
                 next = PeekToken();
                 var innerPrecedence = next.Kind.OperatorPrecedence;
                 while (innerPrecedence >= precedence)
@@ -802,6 +802,18 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         };
     }
 
+    private GreenExpression ParseCastExpression()
+    {
+        var expr = ParsePrefixExpression();
+
+        while (PeekToken().Kind == SyntaxKind.AsKeyword)
+        {
+            expr = new GreenCastExpression(expr, ConsumeToken(), ParseType());
+        }
+
+        return expr;
+    }
+
     private GreenExpression ParsePrefixExpression()
     {
         var nextTokenKind = PeekToken().Kind;
@@ -829,11 +841,6 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             SyntaxKind.OpenParenToken => new GreenInvocationExpression(
                 expression,
                 ParseArgumentList()
-            ),
-            SyntaxKind.AsKeyword => new GreenCastExpression(
-                expression,
-                ConsumeToken(),
-                ParseType()
             ),
             { IsPostfixOperator: true } => new GreenPostfixExpression(expression, ConsumeToken()),
             SyntaxKind.PeriodToken => new GreenMemberAccessExpression(
