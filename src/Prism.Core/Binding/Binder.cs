@@ -1164,17 +1164,20 @@ internal abstract class Binder : IOverloadResolutionHost
     )
     {
         var result = LookupFromSyntax(syntax.Value, LookupOptions.Value, context);
-        if (!result.IsViable)
-            return new BoundBadExpression(Compilation, syntax, ErrorTypeSymbol.Unnamed);
-
-        return result.Symbol switch
+        if (result.IsViable)
         {
-            VariableSymbol v => BindVariableAccess(syntax, v, context),
-            ParameterSymbol p => new BoundParameterAccess(Compilation, syntax, p),
-            _ => throw new InvalidOperationException(
-                "We must have added a symbol type that can hold a value that we haven't accounted for yet."
-            ),
-        };
+            return result.Symbol switch
+            {
+                VariableSymbol v => BindVariableAccess(syntax, v, context),
+                ParameterSymbol p => new BoundParameterAccess(Compilation, syntax, p),
+                _ => throw new InvalidOperationException(
+                    "We must have added a symbol type that can hold a value that we haven't accounted for yet."
+                ),
+            };
+        }
+
+        DiagnoseLookupFailure(result, syntax.Value, LookupOptions.Value, context);
+        return new BoundBadExpression(Compilation, syntax, ErrorTypeSymbol.Unnamed);
     }
 
     private BoundVariableAccess BindVariableAccess(
@@ -1685,7 +1688,10 @@ internal abstract class Binder : IOverloadResolutionHost
         var member = syntax.Name.UnqualifiedName;
         var result = LookupQualifiedName(member, owner.Type, LookupOptions.Value);
         if (!result.IsViable)
+        {
+            DiagnoseLookupFailure(result, syntax.Name, LookupOptions.Value, context);
             return new BoundBadExpression(Compilation, syntax, ErrorTypeSymbol.Unnamed);
+        }
 
         switch (result.Symbol)
         {

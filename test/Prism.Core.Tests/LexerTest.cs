@@ -118,4 +118,26 @@ public class LexerTests
             ])
         );
     }
+
+    [Test]
+    public void ActualPicksUpDotSeparators()
+    {
+        const string source = "Console::out.write(msg);";
+        var tokens = LexAll(source);
+        Assert.That(
+            tokens,
+            Is.EquivalentTo([
+                SyntaxKind.IdentifierToken,
+                SyntaxKind.DoubleColonToken,
+                SyntaxKind.IdentifierToken,
+                SyntaxKind.PeriodToken,
+                SyntaxKind.IdentifierToken,
+                SyntaxKind.OpenParenToken,
+                SyntaxKind.IdentifierToken,
+                SyntaxKind.CloseParenToken,
+                SyntaxKind.SemicolonToken,
+                SyntaxKind.EofToken,
+            ])
+        );
+    }
 }

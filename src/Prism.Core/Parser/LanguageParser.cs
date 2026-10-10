@@ -835,27 +835,37 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     private GreenExpression ParsePostfixExpression()
     {
         var expression = ParsePrimaryExpression();
-        var kind = PeekToken().Kind;
-        return kind switch
+
+        while (true)
         {
-            SyntaxKind.OpenParenToken => new GreenInvocationExpression(
-                expression,
-                ParseArgumentList()
-            ),
-            { IsPostfixOperator: true } => new GreenPostfixExpression(expression, ConsumeToken()),
-            SyntaxKind.PeriodToken => new GreenMemberAccessExpression(
-                expression,
-                ConsumeToken(),
-                ParseSimpleName()
-            ),
-            SyntaxKind.OpenBracketToken => new GreenIndexExpression(
-                expression,
-                ConsumeToken(),
-                ParseExpression(),
-                ExpectToken(SyntaxKind.CloseBracketToken)
-            ),
-            _ => expression,
-        };
+            var kind = PeekToken().Kind;
+            switch (kind)
+            {
+                case SyntaxKind.OpenParenToken:
+                    expression = new GreenInvocationExpression(expression, ParseArgumentList());
+                    break;
+                case { IsPostfixOperator: true }:
+                    expression = new GreenPostfixExpression(expression, ConsumeToken());
+                    break;
+                case SyntaxKind.PeriodToken:
+                    expression = new GreenMemberAccessExpression(
+                        expression,
+                        ConsumeToken(),
+                        ParseSimpleName()
+                    );
+                    break;
+                case SyntaxKind.OpenBracketToken:
+                    expression = new GreenIndexExpression(
+                        expression,
+                        ConsumeToken(),
+                        ParseExpression(),
+                        ExpectToken(SyntaxKind.CloseBracketToken)
+                    );
+                    break;
+                default:
+                    return expression;
+            }
+        }
     }
 
     private GreenSizeOfExpression ParseSizeOfExpression()

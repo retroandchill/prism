@@ -224,7 +224,7 @@ internal sealed class Lexer(string text)
                 );
             }
 
-            if (_cursor is { AtEnd: false, Current: '.' })
+            if (_cursor is { AtEnd: false, Current: '.' } && char.IsDigit(_cursor.Peek(1)))
             {
                 _cursor.Advance();
                 isFloat = true;

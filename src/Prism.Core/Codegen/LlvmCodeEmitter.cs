@@ -759,7 +759,14 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         var function = call.Callee;
         var callee = GetOrCreateFunction(function);
         var isIndirectReturn = abi.Return.IsIndirect;
-        var parameterCount = isIndirectReturn ? call.Arguments.Length + 1 : call.Arguments.Length;
+        var receiverType = function.ReceiverType;
+
+        var parameterCount = call.Arguments.Length;
+        if (isIndirectReturn)
+            parameterCount++;
+        if (receiverType is not null)
+            parameterCount++;
+
         Span<LLVMValueRef> parameters = stackalloc LLVMValueRef[parameterCount];
 
         int offsetIndex;
@@ -776,6 +783,28 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         else
         {
             offsetIndex = 0;
+        }
+
+        if (receiverType is not null)
+        {
+            var value = call.Receiver.RequireNonNull();
+            var llvmValue = GetValue(value, context);
+            if (abi.Receiver == AbiValueClassification.Indirect)
+            {
+                var destination = CreateEntryAlloca(llvmValue.TypeOf, "this", context);
+
+                var layout = _compilation.GetTypeLayout(receiverType);
+                destination.SetAlignment((uint)layout.Alignment);
+
+                _builder.BuildStore(llvmValue, destination);
+                parameters[offsetIndex] = destination;
+            }
+            else
+            {
+                parameters[offsetIndex] = llvmValue;
+            }
+
+            offsetIndex++;
         }
 
         foreach (var (i, argument) in abi.Parameters.AsValueEnumerable().Index())

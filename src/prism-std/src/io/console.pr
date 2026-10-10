@@ -8,7 +8,7 @@ namespace std::io;
  * @param msg The text to print
  */
 public func print(msg: str&) {
-    // TODO: Fill me out
+    Console::out.write(msg);
 }
 
 /**
@@ -37,6 +37,6 @@ public class Console {
         // TODO: Fill me out
     }
 
-    [CLinkage("ConsoleWrite")]
+    [CLinkage("WriteConsoleA")]
     private static extern func write_win32(output: usize, buffer: char&, num_to_write: u32, chars_written: char mutable&?, reserved: u8&?): i32;
 }

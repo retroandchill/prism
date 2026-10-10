@@ -219,4 +219,15 @@ public sealed class ParserTests
         Assert.That(declaration.Modifiers, Has.Count.EqualTo(1));
         Assert.That(declaration.Modifiers[0].Kind, Is.EqualTo(SyntaxKind.FileKeyword));
     }
+
+    [Test]
+    public void ChainedPostfixOperations()
+    {
+        var parser = new LanguageParser("x++--");
+        var expression = parser.ParseExpression();
+
+        Assert.That(expression, Is.InstanceOf<GreenPostfixExpression>());
+        var operand = ((GreenPostfixExpression)expression).Operand;
+        Assert.That(operand, Is.InstanceOf<GreenPostfixExpression>());
+    }
 }

@@ -51,7 +51,10 @@ internal closed record BoundExpression : BoundNode
 internal sealed record BoundBadExpression : BoundExpression
 {
     public BoundBadExpression(Compilation compilation, SyntaxNode syntax, TypeSymbol type)
-        : base(compilation, syntax, type) { }
+        : base(compilation, syntax, type)
+    {
+        HasErrors = true;
+    }
 }
 
 internal closed record BoundSpeculativeExpression : BoundExpression
