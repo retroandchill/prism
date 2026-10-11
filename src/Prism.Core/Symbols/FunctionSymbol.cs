@@ -1,5 +1,7 @@
 ﻿using System.Collections.Immutable;
 using Prism.Core.Abi;
+using Prism.Core.Symbols.Intrinsic;
+using Prism.Core.Utils;
 using ZLinq;
 
 namespace Prism.Core.Symbols;

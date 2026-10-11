@@ -89,4 +89,7 @@ public class Char16;
 
 public class Rune;
 
-public class Str;
+public class Str {
+    [Intrinsic]
+    public func length(): usize;
+}

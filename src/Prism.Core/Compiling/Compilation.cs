@@ -152,9 +152,46 @@ public class Compilation
                     .Single();
                 return nativeNamespace.GetMembers("CLinkage").OfType<NamedTypeSymbol>().Single();
             }
+            case WellKnownAttribute.Intrinsic:
+            {
+                var stdNamespace = Cache.StdNamespace;
+                return stdNamespace.GetMembers("Intrinsic").OfType<NamedTypeSymbol>().Single();
+            }
             default:
                 throw new ArgumentOutOfRangeException(nameof(attribute), attribute, null);
         }
+    }
+
+    internal IntrinsicFunction GetIntrinsicFunction(FunctionSymbol function)
+    {
+        return Cache.GetIntrinsicFunction(function);
+    }
+
+    internal IntrinsicFunction ComputeIntrinsicKind(FunctionSymbol function)
+    {
+        var intrinsicAttribute = GetWellKnownAttribute(WellKnownAttribute.Intrinsic);
+        if (
+            intrinsicAttribute is null
+            || !function.GetAttributes().Any(a => a.Attribute == intrinsicAttribute)
+        )
+            return IntrinsicFunction.None;
+
+        // This is a naive implementation, but it should work for now.
+        return function switch
+        {
+            {
+                Name: "get_data",
+                Parameters: [not null],
+                ContainingNamespace:
+                {
+                    Name: "memory",
+                    ContainingNamespace: { Name: "std", ContainingNamespace.IsGlobal: true }
+                }
+            } => IntrinsicFunction.GetSliceData,
+            { Name: "length", Parameters: [], ContainingType.SpecialType: SpecialType.Str } =>
+                IntrinsicFunction.GetSliceLength,
+            _ => throw new InvalidOperationException("Unknown intrinsic function"),
+        };
     }
 
     private static string GetBuiltInTypeName(SpecialType type)

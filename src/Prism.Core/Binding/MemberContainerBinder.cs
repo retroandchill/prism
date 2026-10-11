@@ -21,8 +21,14 @@ internal sealed class MemberContainerBinder(
         BindingContext context
     )
     {
-        if (LookupQualifiedName(name, symbol, options) is { IsViable: true } result)
-            return result;
+        for (Symbol? s = symbol; s is not null; s = s.ContainingSymbol)
+        {
+            if (s is not MemberContainerSymbol memberContainer)
+                continue;
+
+            if (LookupQualifiedName(name, memberContainer, options) is { IsViable: true } result)
+                return result;
+        }
 
         var found = GetUsingNamespaces()
             .AsValueEnumerable()

@@ -1195,7 +1195,14 @@ internal abstract class Binder : IOverloadResolutionHost
 
         var receiver = TryGetImplicitReceiver();
         if (receiver is not null)
-            return new BoundVariableAccess(Compilation, syntax, receiver, symbol);
+        {
+            return new BoundVariableAccess(
+                Compilation,
+                syntax,
+                AutoDereferenceIfNecessary(receiver),
+                symbol
+            );
+        }
 
         context.ReportDiagnostic(Diagnostic.InvalidThisAccess(syntax.Location));
         return new BoundVariableAccess(Compilation, syntax, symbol);

@@ -1879,7 +1879,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             static @this => @this.ParseArgument(),
             SkipBadArgumentTokens,
             allowTrailingSeparator: false,
-            requireOneElement: true,
+            requireOneElement: false,
             allowSemicolonAsSeparator: false
         );
 

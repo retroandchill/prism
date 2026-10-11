@@ -12,6 +12,7 @@ using Prism.Core.Mappers;
 using Prism.Core.Mir;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
+using Prism.Core.Symbols.Intrinsic;
 using Prism.Core.Utils;
 using ZLinq;
 
@@ -861,19 +862,46 @@ internal sealed class MirEmitter(Compilation compilation)
         }
 
         context.CurrentBlock.AddInstruction(
-            new MirCallInstruction(
+            CreateCallInstruction(
                 result,
                 call.Function,
                 call.Receiver is not null
                     ? EmitExpression(call.Receiver, context, cancellationToken)
                     : null,
-                EmitExpressionList(call.Arguments, context, cancellationToken)
+                EmitExpressionList(call.Arguments, context, cancellationToken),
+                call.Location
             )
-            {
-                Location = call.Location,
-            }
         );
         return result is not null ? result : _voidValue;
+    }
+
+    private MirInstruction CreateCallInstruction(
+        MirSsaValue? result,
+        FunctionSymbol function,
+        MirValue? receiver,
+        ImmutableArray<MirValue> arguments,
+        SourceLocation? location
+    )
+    {
+        var intrinsicFunction = compilation.GetIntrinsicFunction(function);
+        return intrinsicFunction switch
+        {
+            IntrinsicFunction.None => new MirCallInstruction(result, function, receiver, arguments)
+            {
+                Location = location,
+            },
+            IntrinsicFunction.GetSliceData => new MirSliceGetDataInstruction(
+                result.RequireNonNull(),
+                arguments[0]
+            ),
+            IntrinsicFunction.GetSliceLength => new MirSliceGetLengthInstruction(
+                result.RequireNonNull(),
+                receiver.RequireNonNull()
+            ),
+            _ => throw new InvalidOperationException(
+                $"Unsupported intrinsic function: {intrinsicFunction}"
+            ),
+        };
     }
 
     private ImmutableArray<MirValue> EmitExpressionList(
@@ -1177,6 +1205,7 @@ internal sealed class MirEmitter(Compilation compilation)
             BoundParameterAccess access => EmitPlace(access, context),
             BoundDereference dereference => EmitPlace(dereference, context, cancellationToken),
             BoundIndex index => EmitPlace(index, context, cancellationToken),
+            BoundThisExpression thisExpression => EmitThisPlace(context),
             _ => throw new InvalidOperationException(
                 $"Cannot emit place for expression of type {expression.GetType()}"
             ),
@@ -1229,6 +1258,12 @@ internal sealed class MirEmitter(Compilation compilation)
         var operand = EmitPlace(indexer.Operand, context, cancellationToken);
         var index = EmitExpression(indexer.Index, context, cancellationToken);
         return new MirIndexPlace(operand, index, indexer.Type);
+    }
+
+    private static MirLocalPlace EmitThisPlace(MirEmissionContext context)
+    {
+        var receiver = context.ReceiverLocal.RequireNonNull();
+        return new MirLocalPlace(receiver);
     }
 
     private MirConstantValue CreateBoolConstant(bool value)

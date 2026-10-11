@@ -173,6 +173,14 @@ internal static class MirFunctionAnalyzer
 
                 break;
 
+            case MirSliceGetDataInstruction sliceGetData:
+                AnalyzeValue(sliceGetData.Value, blockId, builders);
+                break;
+
+            case MirSliceGetLengthInstruction sliceGetLength:
+                AnalyzeValue(sliceGetLength.Value, blockId, builders);
+                break;
+
             case MirPhiInstruction:
             case MirStorageLiveInstruction:
             case MirStorageDeadInstruction:
@@ -254,6 +262,10 @@ internal static class MirFunctionAnalyzer
             case MirIndexPlace index:
                 AnalyzeReadFromPlace(index.Base, blockId, builders);
                 AnalyzeValue(index.Index, blockId, builders);
+                return;
+
+            case MirFieldPlace field:
+                AnalyzeReadFromPlace(field.Base, blockId, builders);
                 return;
 
             default:

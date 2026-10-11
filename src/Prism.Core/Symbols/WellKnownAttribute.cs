@@ -9,4 +9,5 @@ internal enum WellKnownAttribute
 {
     None = 0,
     CLinkage,
+    Intrinsic,
 }

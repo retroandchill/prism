@@ -55,6 +55,12 @@ internal sealed record MirGetNullablePayloadInstruction(MirSsaValue Result, MirV
 internal sealed record MirMakeNullableInstruction(MirSsaValue Result, MirValue? Payload)
     : MirInstruction;
 
+internal sealed record MirSliceGetDataInstruction(MirSsaValue Result, MirValue Value)
+    : MirInstruction;
+
+internal sealed record MirSliceGetLengthInstruction(MirSsaValue Result, MirValue Value)
+    : MirInstruction;
+
 internal sealed record MirStorageLiveInstruction(MirLocalId LocalId) : MirInstruction;
 
 internal sealed record MirStorageDeadInstruction(MirLocalId LocalId) : MirInstruction;

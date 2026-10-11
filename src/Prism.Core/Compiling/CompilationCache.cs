@@ -8,8 +8,8 @@ using Prism.Core.Semantic;
 using Prism.Core.Semantic.Layout;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Error;
+using Prism.Core.Symbols.Intrinsic;
 using Prism.Core.Syntax;
-using Prism.Core.Utils;
 
 namespace Prism.Core.Compiling;
 
@@ -62,6 +62,9 @@ internal sealed class CompilationCache(Compilation compilation)
         WellKnownAttribute,
         NamedTypeSymbol?
     > _wellKnownAttributes = new();
+
+    private readonly ConcurrentDictionary<FunctionSymbol, IntrinsicFunction> _intrinsicFunctions =
+        new(ReferenceEqualityComparer.Instance);
 
     private ImmutableArray<VariableSymbol> _topLevelVariables;
     private ImmutableArray<FunctionSymbol> _topLevelFunctions;
@@ -179,6 +182,15 @@ internal sealed class CompilationCache(Compilation compilation)
         return _wellKnownAttributes.GetOrAdd(
             attribute,
             static (a, c) => c.FindWellKnownAttribute(a),
+            compilation
+        );
+    }
+
+    public IntrinsicFunction GetIntrinsicFunction(FunctionSymbol function)
+    {
+        return _intrinsicFunctions.GetOrAdd(
+            function,
+            static (f, c) => c.ComputeIntrinsicKind(f),
             compilation
         );
     }

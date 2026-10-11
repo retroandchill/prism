@@ -583,6 +583,12 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             case MirMakeNullableInstruction makeNullableInstruction:
                 EmitMakeNullable(makeNullableInstruction, context);
                 break;
+            case MirSliceGetDataInstruction sliceGetDataInstruction:
+                EmitSliceGetData(sliceGetDataInstruction, context);
+                break;
+            case MirSliceGetLengthInstruction sliceGetLengthInstruction:
+                EmitSliceGetLength(sliceGetLengthInstruction, context);
+                break;
             case MirStorageLiveInstruction mirStorageLiveInstruction:
                 EmitStorageLive(mirStorageLiveInstruction, context);
                 break;
@@ -1154,6 +1160,26 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         context.AddValue(makeNullable.Result.Id, value);
     }
 
+    private void EmitSliceGetData(
+        MirSliceGetDataInstruction sliceGetData,
+        FunctionEmissionContext context
+    )
+    {
+        var slice = GetValue(sliceGetData.Value, context);
+        var data = _builder.BuildExtractValue(slice, 0);
+        context.AddValue(sliceGetData.Result.Id, data);
+    }
+
+    private void EmitSliceGetLength(
+        MirSliceGetLengthInstruction sliceGetLength,
+        FunctionEmissionContext context
+    )
+    {
+        var slice = GetValue(sliceGetLength.Value, context);
+        var length = _builder.BuildExtractValue(slice, 1);
+        context.AddValue(sliceGetLength.Result.Id, length);
+    }
+
     private void EmitStorageLive(
         MirStorageLiveInstruction storageLive,
         FunctionEmissionContext context
@@ -1368,6 +1394,24 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         }
 
         throw new InvalidOperationException($"Unknown field: {field.Field.Name}");
+    }
+
+    private static TypeSymbol RemoveReferencesAndNulls(TypeSymbol type)
+    {
+        while (true)
+        {
+            switch (type)
+            {
+                case NullableTypeSymbol { ElementType: var element }:
+                    type = element;
+                    continue;
+                case ReferenceTypeSymbol { ReferencedType: var element }:
+                    type = element;
+                    continue;
+            }
+
+            return type;
+        }
     }
 
     private void EmitWriteToDest(

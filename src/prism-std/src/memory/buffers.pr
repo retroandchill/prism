@@ -1,0 +1,4 @@
+﻿namespace std::memory;
+
+[Intrinsic]
+public func get_data(buffer: str&): char&;

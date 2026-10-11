@@ -101,12 +101,17 @@ internal sealed class SourceFunctionSymbol : SourceFunctionSymbolBase
 
     protected override void FunctionChecks(BindingContext context)
     {
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        var intrinsicAttribute = compilation.GetWellKnownAttribute(WellKnownAttribute.Intrinsic);
+
         switch (this)
         {
             case { IsExtern: true, Syntax.Body: not null }:
                 context.ReportDiagnostic(Diagnostic.ExternFunctionWithBody(Syntax.Location, Name));
                 break;
-            case { IsExtern: false, Syntax.Body: null }:
+            case { IsExtern: false, Syntax.Body: null }
+                when GetAttributes().All(a => a.Attribute != intrinsicAttribute):
                 context.ReportDiagnostic(Diagnostic.FunctionWithoutBody(Syntax.Location, Name));
                 break;
         }

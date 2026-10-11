@@ -1,4 +1,5 @@
 ﻿using std::native;
+using std::memory;
 
 namespace std::io;
 
@@ -9,15 +10,6 @@ namespace std::io;
  */
 public func print(msg: str&) {
     Console::out.write(msg);
-}
-
-/**
- * Print the supplied text to the console, followed by a new line.
- *
- * @param msg The text to print
- */
-public func println(msg: str&) {
-    // TODO: Fill me out
 }
 
 internal const STD_INPUT_HANDLE: u32 = -10 as u32;
@@ -38,7 +30,9 @@ public class Console {
     }
 
     public func write(msg: str&) {
-        // TODO: Fill me out
+        var data = get_data(msg);
+        var length = msg.length();
+        write_win32(handle, data, length as u32, null, null);
     }
 
     [CLinkage("WriteConsoleA")]
