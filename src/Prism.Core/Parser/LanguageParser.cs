@@ -218,7 +218,8 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         Func<LanguageParser, TNode> parseElement,
         SkipBadTokens<TNode> skipBadTokens,
         bool allowTrailingSeparator,
-        bool requireOneElement
+        bool requireOneElement,
+        bool allowSemicolonAsSeparator
     )
         where TNode : GreenNode
     {
@@ -230,7 +231,8 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             null,
             skipBadTokens,
             allowTrailingSeparator,
-            requireOneElement
+            requireOneElement,
+            allowSemicolonAsSeparator
         );
     }
 
@@ -242,10 +244,12 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         Func<TNode, bool>? immediatelyAbort,
         SkipBadTokens<TNode> skipBadTokens,
         bool allowTrailingSeparator,
-        bool requireOneElement
+        bool requireOneElement,
+        bool allowSemicolonAsSeparator
     )
         where TNode : GreenNode
     {
+        const SyntaxKind separatorKind = SyntaxKind.CommaToken;
         var nodes = GreenSeparatedList.CreateBuilder<TNode>();
 
         tryAgain:
@@ -275,7 +279,11 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
                     if (ShouldParseSeparatorOrElement())
                     {
-                        nodes.AddSeparator(ExpectToken(SyntaxKind.CommaToken));
+                        nodes.AddSeparator(
+                            PeekToken().Kind == SyntaxKind.SemicolonToken
+                                ? ConsumeTokenEvenIfWrong(separatorKind)
+                                : ConsumeToken()
+                        );
 
                         if (allowTrailingSeparator)
                         {
@@ -327,7 +335,13 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
         bool ShouldParseSeparatorOrElement()
         {
-            return PeekToken().Kind == SyntaxKind.CommaToken || isPossibleElement(this);
+            if (PeekToken().Kind == separatorKind)
+                return true;
+
+            if (allowSemicolonAsSeparator && PeekToken().Kind is SyntaxKind.SemicolonToken)
+                return true;
+
+            return isPossibleElement(this);
         }
     }
 
@@ -1082,6 +1096,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             SyntaxKind.SizeOfKeyword => ParseSizeOfExpression(),
             SyntaxKind.OpenParenToken => ParseParenthesizedExpression(),
             SyntaxKind.OpenBracketToken => ParseCollectionExpression(),
+            SyntaxKind.NewKeyword => ParseNewExpression(),
             _ => new GreenIdentifierExpression(ParseName()),
         };
     }
@@ -1181,7 +1196,8 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             static @this => @this.ParseExpression(),
             SkipBadCollectionElementTokens,
             allowTrailingSeparator: false,
-            requireOneElement: true
+            requireOneElement: true,
+            allowSemicolonAsSeparator: false
         );
 
         return new GreenCollectionExpression(
@@ -1208,6 +1224,79 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 closeKind
             );
         }
+    }
+
+    private GreenNewExpression ParseNewExpression()
+    {
+        var newKeyword = ExpectToken(SyntaxKind.NewKeyword);
+        var type = PeekToken().Kind != SyntaxKind.OpenParenToken ? ParseType() : null;
+        var argumentsList =
+            PeekToken().Kind == SyntaxKind.OpenParenToken ? ParseArgumentList() : null;
+        var objectInitializer =
+            PeekToken().Kind == SyntaxKind.OpenBraceToken ? ParseObjectInitializer() : null;
+        return new GreenNewExpression(newKeyword, type, argumentsList, objectInitializer);
+    }
+
+    private GreenObjectInitializer ParseObjectInitializer()
+    {
+        var openBraceToken = ExpectToken(SyntaxKind.OpenBraceToken);
+        var initializer = ParseCommaSeparatedSyntaxList(
+            ref openBraceToken,
+            SyntaxKind.CloseBraceToken,
+            static @this => @this.IsInitializerMember(),
+            static @this => @this.ParseObjectInitializerMember(),
+            SkipBadInitializerListTokens,
+            allowTrailingSeparator: true,
+            requireOneElement: false,
+            allowSemicolonAsSeparator: true
+        );
+        return new GreenObjectInitializer(
+            openBraceToken,
+            initializer,
+            ExpectToken(SyntaxKind.CloseBraceToken)
+        );
+    }
+
+    private bool IsInitializerMember()
+    {
+        return IsTrueIdentifier() && PeekToken(2).Kind == SyntaxKind.EqualToken;
+    }
+
+    private GreenObjectInitializerItem ParseObjectInitializerMember()
+    {
+        var name = ExpectToken(SyntaxKind.IdentifierToken);
+        var equals = ExpectToken(SyntaxKind.EqualToken);
+
+        GreenExpression value;
+        if (PeekToken().Kind == SyntaxKind.OpenBraceToken)
+        {
+            value = ParseObjectInitializer();
+        }
+        else
+        {
+            value = ParseExpression();
+        }
+
+        return new GreenObjectInitializerItem(name, equals, value);
+    }
+
+    private static PostSkipAction SkipBadInitializerListTokens<T>(
+        LanguageParser @this,
+        ref GreenToken startToken,
+        GreenSeparatedList<T>.Builder list,
+        SyntaxKind expectedKind,
+        SyntaxKind closeKind
+    )
+        where T : GreenNode
+    {
+        return @this.SkipBadSeparatedListTokensWithExpectedKind(
+            ref startToken,
+            list,
+            static p => p.PeekToken().Kind != SyntaxKind.CommaToken,
+            static (p, closeKind) => p.PeekToken().Kind == closeKind,
+            expectedKind,
+            closeKind
+        );
     }
 
     private void ParseNamespaceBody(
@@ -1515,7 +1604,8 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             static @this => @this.ParseAttribute(),
             SkipBadAttributeListTokens,
             allowTrailingSeparator: false,
-            requireOneElement: true
+            requireOneElement: true,
+            allowSemicolonAsSeparator: false
         );
 
         return new GreenAttributeList(
@@ -1714,7 +1804,8 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 static @this => @this.ParseParameter(),
                 SkipBadParameterListTokens,
                 allowTrailingSeparator: false,
-                requireOneElement: false
+                requireOneElement: false,
+                allowSemicolonAsSeparator: false
             );
         }
 
@@ -1788,7 +1879,8 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             static @this => @this.ParseArgument(),
             SkipBadArgumentTokens,
             allowTrailingSeparator: false,
-            requireOneElement: true
+            requireOneElement: true,
+            allowSemicolonAsSeparator: false
         );
 
         return new GreenArgumentList(openParen, args, ExpectToken(SyntaxKind.CloseParenToken));

@@ -81,7 +81,7 @@ internal sealed record AnalysisState
 
     public InitializationState GetVariableInitialization(VariableSymbol variable)
     {
-        if (variable.IsStaticStorage)
+        if (variable.IsStaticStorage || variable.IsInstance)
             return InitializationState.DefinitelyInitialized;
 
         return Variables.TryGetValue(variable, out var variableState)

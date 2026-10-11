@@ -67,4 +67,6 @@ internal sealed class SourceAttributeSymbol : SourceNamedTypeSymbol
             pair => pair.Value.DrainToImmutable()
         );
     }
+
+    public override bool IsDefaultConstructible => false;
 }

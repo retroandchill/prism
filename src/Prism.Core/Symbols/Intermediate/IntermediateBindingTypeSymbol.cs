@@ -15,6 +15,8 @@ internal closed class IntermediateBindingTypeSymbol(string name, NamedTypeKind k
     public sealed override ImmutableArray<Location> Locations => [];
     public sealed override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
 
+    public override bool IsDefaultConstructible => false;
+
     public sealed override ImmutableArray<Symbol> GetMembers() => [];
 
     public sealed override ImmutableArray<Symbol> GetMembers(string name) => [];

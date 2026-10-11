@@ -384,16 +384,13 @@ internal abstract class Binder : IOverloadResolutionHost
         return symbol.ContainingAssembly == Compilation.Assembly;
     }
 
-    private bool IsProtectedMemberVisible(Symbol symbol)
+    private static bool IsProtectedMemberVisible(Symbol symbol)
     {
-        if (ContainingSymbol is not TypeSymbol type)
-            return false;
-
         // TODO: There is more to this, but it's not able to be implemented until inheritance is supported.
         var containingType = symbol.ContainingType;
         while (containingType is not null)
         {
-            if (containingType == type)
+            if (containingType == symbol.ContainingType)
                 return true;
 
             containingType = containingType.ContainingType;
@@ -402,15 +399,12 @@ internal abstract class Binder : IOverloadResolutionHost
         return false;
     }
 
-    private bool IsPrivateMemberVisible(Symbol symbol)
+    private static bool IsPrivateMemberVisible(Symbol symbol)
     {
-        if (ContainingSymbol is not TypeSymbol type)
-            return false;
-
         var containingType = symbol.ContainingType;
         while (containingType is not null)
         {
-            if (containingType == type)
+            if (containingType == symbol.ContainingType)
                 return true;
 
             containingType = containingType.ContainingType;
@@ -1042,6 +1036,16 @@ internal abstract class Binder : IOverloadResolutionHost
                 isSpeculative,
                 context,
                 cancellationToken
+            ),
+            NewExpressionSyntax newExpression => BindNewExpression(
+                newExpression,
+                targetType,
+                isSpeculative,
+                context,
+                cancellationToken
+            ),
+            ObjectInitializerSyntax => throw new InvalidOperationException(
+                "Object initializer syntax is not supported in this context."
             ),
         };
     }
@@ -1877,6 +1881,41 @@ internal abstract class Binder : IOverloadResolutionHost
             foundElementType ?? ErrorTypeSymbol.Unnamed,
             expressions
         );
+    }
+
+    private BoundExpression BindNewExpression(
+        NewExpressionSyntax syntax,
+        TypeSymbol? targetType,
+        bool isSpeculative,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        TypeSymbol constructedType;
+        if (syntax.Type is not null)
+        {
+            constructedType = ResolveType(syntax.Type, context);
+        }
+        else if (targetType is not null)
+        {
+            constructedType = targetType;
+        }
+        else if (isSpeculative)
+        {
+            var specArgs = GetCallArguments(syntax.Arguments, context, cancellationToken);
+            return new BoundSpeculativeNewExpression(Compilation, syntax, specArgs);
+        }
+        else
+        {
+            constructedType = ErrorTypeSymbol.Unnamed;
+        }
+
+        var ctors = LookupQualifiedName(CommonNames.Ctor, constructedType, LookupOptions.Callable);
+
+        var arguments = GetCallArguments(syntax.Arguments, context, cancellationToken);
+        var (overload, realArgs) = ResolveOverload(ctors, null, arguments, syntax, context);
+
+        return new BoundNewExpression(Compilation, syntax, constructedType, overload, realArgs);
     }
 
     private BoundExpression AddConversionIfNecessary(

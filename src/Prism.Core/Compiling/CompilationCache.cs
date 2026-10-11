@@ -239,7 +239,7 @@ internal sealed class CompilationCache(Compilation compilation)
     }
 
     private static void CollectGlobalVariables(
-        NamespaceSymbol namespaceSymbol,
+        MemberContainerSymbol namespaceSymbol,
         ImmutableArray<VariableSymbol>.Builder variables
     )
     {
@@ -250,7 +250,7 @@ internal sealed class CompilationCache(Compilation compilation)
                 case VariableSymbol { IsStaticStorage: true } variable:
                     variables.Add(variable);
                     break;
-                case NamespaceSymbol nestedNamespace:
+                case MemberContainerSymbol nestedNamespace:
                     CollectGlobalVariables(nestedNamespace, variables);
                     break;
             }

@@ -25,13 +25,17 @@ internal const STD_OUTPUT_HANDLE: u32 = -11 as u32;
 internal const STD_ERROR_HANDLE: u32 = -12 as u32;
 
 [CLinkage("GetStdHandle")]
-internal extern func get_std_handle(std_handle: u32);
+internal extern func get_std_handle(std_handle: u32): usize;
 
 public class Console {
     private handle: usize;
 
-    public static out: Console;
-    public static err: Console;
+    public static out: Console = new(get_std_handle(STD_OUTPUT_HANDLE));
+    public static err: Console = new(get_std_handle(STD_ERROR_HANDLE));
+
+    private constructor(handle: usize) {
+        this.handle = handle;
+    }
 
     public func write(msg: str&) {
         // TODO: Fill me out

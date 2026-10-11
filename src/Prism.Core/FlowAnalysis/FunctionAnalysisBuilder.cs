@@ -561,11 +561,11 @@ internal sealed class FunctionAnalysisBuilder
             case BoundParameterAccess { Symbol: { IsMutable: false } param }:
                 _bindingContext.ReportDiagnostic(Diagnostic.CannotReassign(location, param.Name));
                 return state;
-            case BoundVariableAccess { Symbol: var variable }:
+            case BoundVariableAccess { Symbol: var variable, Owner: var owner }:
                 if (variable.IsStaticStorage && _function is SynthesizedGlobalConstructor)
                     return state;
 
-                if (variable.IsMutable)
+                if (variable.IsMutable || (owner is not null && owner.IsAssignable))
                 {
                     if (
                         state.State.GetVariableInitialization(variable)

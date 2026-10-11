@@ -10,23 +10,16 @@ using ZLinq;
 
 namespace Prism.Core.Symbols.Source;
 
-internal sealed class SourceFunctionSymbol : FunctionSymbol
+internal sealed class SourceFunctionSymbol : SourceFunctionSymbolBase
 {
-    private SymbolCompletionState _completionState;
-    private readonly Lock _functionChecksLock = new();
-    private readonly DeclarationModifiers _modifiers;
-    private ImmutableArray<AttributeData> _attributes;
-
     internal SourceFunctionSymbol(
         string name,
         MemberContainerSymbol containingSymbol,
         FunctionDeclarationSyntax syntax
     )
-        : base(name, containingSymbol)
+        : base(name, containingSymbol, syntax)
     {
         Syntax = syntax;
-        _modifiers = DeclarationModifiers.MakeModifiers(containingSymbol, syntax.Modifiers);
-
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
         compilation.CacheSymbol(Syntax, this);
@@ -44,10 +37,11 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
         }
     }
 
+    public override FunctionKind Kind => FunctionKind.Ordinary;
+
     public FunctionDeclarationSyntax Syntax { get; }
 
-    public override DeclaredVisibility DeclaredVisibility =>
-        DeclaredVisibility.FromDeclarationModifiers(_modifiers);
+    protected override DeclarationSyntax AbstractSyntax => Syntax;
 
     public override ImmutableArray<Location> Locations
     {
@@ -65,42 +59,7 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
         }
     }
 
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
-    {
-        get
-        {
-            if (!field.IsDefault)
-                return field;
-
-            ImmutableInterlocked.InterlockedCompareExchange(
-                ref field,
-                [new SyntaxReference(Syntax)],
-                default
-            );
-            return field;
-        }
-    }
-
-    public override TypeSymbol ReturnType
-    {
-        get
-        {
-            if (field is not null)
-                return field;
-
-            using var context = BindingContext.Create();
-            if (
-                Interlocked.CompareExchange(ref field, ComputeReturnType(context), null) is not null
-            )
-                return field;
-
-            AddDeclarationDiagnostics(context);
-            _completionState.MarkPartComplete(CompletionPart.Type);
-            return field;
-        }
-    }
-
-    private TypeSymbol ComputeReturnType(BindingContext context)
+    protected override TypeSymbol ComputeReturnType(BindingContext context)
     {
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
@@ -116,23 +75,7 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
         return binder.ResolveType(Syntax.ReturnType.Type, context);
     }
 
-    public override TypeSymbol? ReceiverType
-    {
-        get
-        {
-            if (field is not null)
-                return field;
-
-            var containerType = ContainingType;
-            if (containerType is null || _modifiers.HasFlag(DeclarationModifiers.Static))
-                return null;
-
-            Interlocked.CompareExchange(ref field, ComputeReceiverType(containerType), null);
-            return field;
-        }
-    }
-
-    private TypeSymbol ComputeReceiverType(TypeSymbol containerType)
+    protected override TypeSymbol ComputeReceiverType(TypeSymbol containerType)
     {
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
@@ -150,165 +93,13 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
         };
     }
 
-    public override ImmutableArray<ParameterSymbol> Parameters
-    {
-        get
-        {
-            if (!field.IsDefault)
-                return field;
-
-            using var context = BindingContext.Create();
-            if (!ImmutableInterlocked.InterlockedInitialize(ref field, ComputeParameters(context)))
-                return field;
-
-            AddDeclarationDiagnostics(context);
-            return field;
-        }
-    }
-
-    internal override AbiKind AbiKind => AbiKind.Internal;
-    public override bool IsExtern => _modifiers.HasFlag(DeclarationModifiers.Extern);
-
-    private ImmutableArray<ParameterSymbol> ComputeParameters(BindingContext context)
+    protected override ImmutableArray<ParameterSymbol> ComputeParameters(BindingContext context)
     {
         var source = Syntax.Parameters.Parameters;
-        if (source.Count == 0)
-            return [];
-
-        var parameters = new ParameterSymbol[source.Count];
-        var parametersByName = new Dictionary<string, List<ParameterSyntax>>();
-        var seenDefaultValue = false;
-        foreach (var (i, syntax) in source.AsValueEnumerable().Index())
-        {
-            var name = syntax.Name.IdentifierName;
-            var list = parametersByName.GetOrAdd(name, () => []);
-            list.Add(syntax);
-            var param = new SourceFunctionParameterSymbol(name, this, syntax);
-            parameters[i] = param;
-
-            if (param.HasDefaultValue)
-            {
-                seenDefaultValue = true;
-            }
-            else if (seenDefaultValue)
-            {
-                context.ReportDiagnostic(
-                    Diagnostic.DefaultValueAfterNonDefaultValue(syntax.Location, name)
-                );
-            }
-        }
-
-        foreach (var (name, syntax) in parametersByName)
-        {
-            if (syntax.Count == 1)
-                continue;
-
-            context.ReportDiagnostic(
-                Diagnostic.DuplicateDeclaration(
-                    syntax[0].Location,
-                    [.. syntax[1..].Select(x => x.Location)],
-                    name
-                )
-            );
-        }
-
-        return ImmutableCollectionsMarshal.AsImmutableArray(parameters);
+        return CreateParametersFromSource(source, context);
     }
 
-    public override ImmutableArray<AttributeData> GetAttributes()
-    {
-        if (!_attributes.IsDefault)
-            return _attributes;
-
-        using var context = BindingContext.Create();
-        if (
-            !ImmutableInterlocked.InterlockedInitialize(ref _attributes, ComputeAttributes(context))
-        )
-            return _attributes;
-
-        AddDeclarationDiagnostics(context);
-        _completionState.MarkPartComplete(CompletionPart.Attributes);
-        return _attributes;
-    }
-
-    private ImmutableArray<AttributeData> ComputeAttributes(BindingContext context)
-    {
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        var semanticModel = compilation.GetSemanticModel(Syntax.SyntaxTree);
-        var binder = semanticModel.GetBinder(Syntax);
-        return binder.BindAttributes(Syntax.Attributes, context);
-    }
-
-    internal override bool NeedsCompletion => true;
-
-    internal override void ForceComplete(
-        SourceLocation? location,
-        Predicate<Symbol>? filter,
-        CancellationToken cancellationToken
-    )
-    {
-        if (filter?.Invoke(this) == false)
-            return;
-
-        while (true)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var incompletePart = _completionState.NextIncompletePart;
-            switch (incompletePart)
-            {
-                case CompletionPart.Attributes:
-                    _ = GetAttributes();
-                    break;
-                case CompletionPart.Type:
-                    _ = ReturnType;
-                    break;
-                case CompletionPart.Parameters:
-                    foreach (var parameter in Parameters)
-                    {
-                        parameter.ForceComplete(location, null, cancellationToken);
-                    }
-
-                    _completionState.MarkPartComplete(CompletionPart.Parameters);
-                    break;
-                case CompletionPart.StartChecks or CompletionPart.FinishChecks:
-                    LazyFunctionChecks();
-                    break;
-                case CompletionPart.None:
-                    return;
-                default:
-                    _completionState.MarkPartComplete(
-                        CompletionPart.All & ~CompletionPart.FunctionAll
-                    );
-                    break;
-            }
-
-            _completionState.WaitPartComplete(incompletePart, cancellationToken);
-        }
-    }
-
-    private void LazyFunctionChecks()
-    {
-        if (_completionState.IsComplete(CompletionPart.FinishChecks))
-            return;
-
-        using var scope = _functionChecksLock.EnterScope();
-        if (!_completionState.MarkPartComplete(CompletionPart.StartChecks))
-            return;
-
-        using var context = BindingContext.Create();
-        try
-        {
-            FunctionChecks(context);
-            AddDeclarationDiagnostics(context);
-        }
-        finally
-        {
-            _completionState.MarkPartComplete(CompletionPart.FinishChecks);
-        }
-    }
-
-    private void FunctionChecks(BindingContext context)
+    protected override void FunctionChecks(BindingContext context)
     {
         switch (this)
         {
@@ -319,10 +110,5 @@ internal sealed class SourceFunctionSymbol : FunctionSymbol
                 context.ReportDiagnostic(Diagnostic.FunctionWithoutBody(Syntax.Location, Name));
                 break;
         }
-    }
-
-    internal override bool IsComplete(CompletionPart part)
-    {
-        return _completionState.IsComplete(part);
     }
 }

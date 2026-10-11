@@ -26,4 +26,6 @@ public closed class TypeSymbol : MemberContainerSymbol
     public bool IsVoid => SpecialType == SpecialType.Void;
 
     public abstract bool IsDynamicallySized { get; }
+
+    public abstract bool IsDefaultConstructible { get; }
 }

@@ -416,13 +416,13 @@ internal sealed class MirEmitter(Compilation compilation)
                 context,
                 cancellationToken
             ),
+            BoundNewExpression newExpression => EmitNew(newExpression, context, cancellationToken),
             BoundBadExpression or BoundSpeculativeExpression => throw new InvalidOperationException(
                 "Should only emit LLVM IR if the compilation is valid"
             ),
             BoundLiteral => throw new InvalidOperationException(
                 "The constant folding should have grabbed this already"
             ),
-            _ => throw new InvalidOperationException("We probably added a new expression type"),
         };
     }
 
@@ -1133,6 +1133,34 @@ internal sealed class MirEmitter(Compilation compilation)
         }
 
         var result = context.CreateSsaValue(collection.Type);
+        context.CurrentBlock.AddInstruction(new MirLoadInstruction(result, place));
+        return result;
+    }
+
+    private MirSsaValue EmitNew(
+        BoundNewExpression newExpression,
+        MirEmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var local = context.CreateTemp(newExpression.Type);
+        var place = new MirLocalPlace(local);
+        context.CurrentBlock.AddInstruction(
+            new MirCallInstruction(
+                null,
+                newExpression.Constructor,
+                new MirAddressOfValue(
+                    place,
+                    newExpression.Constructor.ReceiverType.RequireNonNull()
+                ),
+                EmitExpressionList(newExpression.Arguments, context, cancellationToken)
+            )
+            {
+                Location = newExpression.Location,
+            }
+        );
+
+        var result = context.CreateSsaValue(newExpression.Type);
         context.CurrentBlock.AddInstruction(new MirLoadInstruction(result, place));
         return result;
     }

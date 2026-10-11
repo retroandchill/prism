@@ -4,6 +4,13 @@ using ZLinq;
 
 namespace Prism.Core.Symbols;
 
+public enum FunctionKind
+{
+    Ordinary,
+    Constructor,
+    GlobalConstructor,
+}
+
 public closed class FunctionSymbol : Symbol
 {
     private protected FunctionSymbol(string name, Symbol? containingSymbol)
@@ -16,6 +23,8 @@ public closed class FunctionSymbol : Symbol
     public abstract ImmutableArray<ParameterSymbol> Parameters { get; }
 
     public bool ReturnsVoid => ReturnType.IsVoid;
+
+    public abstract FunctionKind Kind { get; }
 
     internal abstract AbiKind AbiKind { get; }
 

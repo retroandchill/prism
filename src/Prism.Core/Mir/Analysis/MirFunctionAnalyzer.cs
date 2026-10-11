@@ -145,6 +145,11 @@ internal static class MirFunctionAnalyzer
                 break;
 
             case MirCallInstruction call:
+                if (call.Receiver is not null)
+                {
+                    AnalyzeValue(call.Receiver, blockId, builders);
+                }
+
                 foreach (var argument in call.Arguments)
                 {
                     AnalyzeValue(argument, blockId, builders);
@@ -275,6 +280,10 @@ internal static class MirFunctionAnalyzer
             case MirIndexPlace index:
                 AnalyzePlaceComputation(index.Base, blockId, builders);
                 AnalyzeValue(index.Index, blockId, builders);
+                return;
+
+            case MirFieldPlace field:
+                AnalyzePlaceComputation(field.Base, blockId, builders);
                 return;
 
             default:

@@ -227,6 +227,10 @@
       {
         "name": "DefaultKeyword",
         "text": "default"
+      },
+      {
+        "name": "NewKeyword",
+        "text": "new"
       }
     ],
     "punctuations": [
@@ -995,6 +999,35 @@
               "shape": "optional"
             }
           ]
+        },
+        {
+          "name": "ObjectInitializerItem",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "name",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "equal_token",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "EqualsToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "value",
+              "type": "Expression",
+              "shape": "single"
+            }
+          ]
         }
       ]
     },
@@ -1481,6 +1514,69 @@
               "name": "operand",
               "type": "Expression",
               "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "NewExpression",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "new_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "NewKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "type",
+              "type": "Type",
+              "shape": "optional"
+            },
+            {
+              "$type": "item",
+              "name": "arguments",
+              "type": "ArgumentList",
+              "shape": "optional"
+            },
+            {
+              "$type": "item",
+              "name": "initializer",
+              "type": "ObjectInitializer",
+              "shape": "optional"
+            }
+          ]
+        },
+        {
+          "name": "ObjectInitializer",
+          "base": "Expression",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "open_brace",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenBraceToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "items",
+              "type": "ObjectInitializerItem",
+              "shape": "separated_list"
+            },
+            {
+              "$type": "item",
+              "name": "close_brace",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseBraceToken"
+              ]
             }
           ]
         }

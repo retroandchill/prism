@@ -47,4 +47,5 @@ internal sealed class IntrinsicPrimitiveSymbol : NamedTypeSymbol
     public override ImmutableArray<Symbol> GetMembers(string name) => [];
 
     public override bool IsDynamicallySized => SpecialType == SpecialType.Str;
+    public override bool IsDefaultConstructible => SpecialType != SpecialType.Str;
 }

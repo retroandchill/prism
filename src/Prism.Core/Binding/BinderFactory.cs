@@ -71,7 +71,7 @@ internal sealed class BinderFactory(Compilation compilation, SyntaxTree syntaxTr
     private static bool IsFunctionLikeBody(BlockSyntax block)
     {
         // This should be the only case where a block is executable
-        return block.Parent is FunctionDeclarationSyntax;
+        return block.Parent is FunctionDeclarationSyntax or ConstructorDeclarationSyntax;
     }
 
     private static SyntaxNode GetExecutableOwner(SyntaxNode node)
@@ -85,7 +85,8 @@ internal sealed class BinderFactory(Compilation compilation, SyntaxTree syntaxTr
             is CompilationUnitSyntax
                 or NamespaceDeclarationSyntax
                 or TypeDeclarationSyntax
-                or FunctionDeclarationSyntax;
+                or FunctionDeclarationSyntax
+                or ConstructorDeclarationSyntax;
     }
 
     private Binder CreateDeclarationBinder(SyntaxNode node)
@@ -111,6 +112,11 @@ internal sealed class BinderFactory(Compilation compilation, SyntaxTree syntaxTr
                 GetDeclaredFunctionSymbol(functionDecl),
                 functionDecl
             ),
+            ConstructorDeclarationSyntax ctorDecl => new ConstructorSignatureBinder(
+                GetEnclosingDeclarationBinder(ctorDecl.Parent!),
+                GetDeclaredConstructorSymbol(ctorDecl),
+                ctorDecl
+            ),
             _ => throw new InvalidOperationException("Unexpected declaration node"),
         };
     }
@@ -128,6 +134,12 @@ internal sealed class BinderFactory(Compilation compilation, SyntaxTree syntaxTr
     }
 
     private FunctionSymbol GetDeclaredFunctionSymbol(FunctionDeclarationSyntax functionDecl)
+    {
+        return compilation.GetSemanticModel(syntaxTree).GetDeclaredSymbol(functionDecl)
+            ?? throw new InvalidOperationException("Function is not declared");
+    }
+
+    private FunctionSymbol GetDeclaredConstructorSymbol(ConstructorDeclarationSyntax functionDecl)
     {
         return compilation.GetSemanticModel(syntaxTree).GetDeclaredSymbol(functionDecl)
             ?? throw new InvalidOperationException("Function is not declared");

@@ -34,6 +34,11 @@ public class SemanticModel
         return GetDeclaredSymbol((SyntaxNode)syntax) as FunctionSymbol;
     }
 
+    public FunctionSymbol? GetDeclaredSymbol(ConstructorDeclarationSyntax syntax)
+    {
+        return GetDeclaredSymbol((SyntaxNode)syntax) as FunctionSymbol;
+    }
+
     public NamespaceSymbol? GetDeclaredSymbol(NamespaceDeclarationSyntax syntax)
     {
         return GetDeclaredSymbol((SyntaxNode)syntax) as NamespaceSymbol;

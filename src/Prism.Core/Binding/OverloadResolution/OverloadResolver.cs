@@ -166,6 +166,9 @@ internal sealed class OverloadResolver(IOverloadResolutionHost host)
 
     private static ReceiverQualifier? GetReceiverQualifier(FunctionSymbol symbol)
     {
+        if (symbol.Kind == FunctionKind.Constructor)
+            return null;
+
         return symbol.ReceiverType switch
         {
             null => null,

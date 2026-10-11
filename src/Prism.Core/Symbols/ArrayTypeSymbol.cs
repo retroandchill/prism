@@ -26,6 +26,9 @@ public sealed class ArrayTypeSymbol : TypeSymbol
     [MemberNotNullWhen(false, nameof(Size))]
     public override bool IsDynamicallySized => Size is null;
 
+    public override bool IsDefaultConstructible =>
+        Size is not null && (Size == 0 || ElementType.IsDefaultConstructible);
+
     public override ImmutableArray<Location> Locations => [];
 
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];

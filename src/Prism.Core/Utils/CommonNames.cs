@@ -4,6 +4,7 @@ internal static class CommonNames
 {
     public const string Global = "<global>";
     public const string GlobalCtor = "<GlobalCtor>";
+    public const string Ctor = ".ctor";
 
     public const string Std = "std";
 

@@ -117,7 +117,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         var llvmFunction = GetOrCreateFunction(function.Function);
         if (!function.HasBody)
         {
-            llvmFunction.Linkage = LLVMLinkage.LLVMAvailableExternallyLinkage;
+            llvmFunction.Linkage = LLVMLinkage.LLVMExternalLinkage;
             return;
         }
 
@@ -503,7 +503,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         foreach (var local in function.Locals)
         {
             var classification = context.LocalClassification.Locals[local.Id];
-            if (local is MirParameter)
+            if (local is MirParameter or MirThisParam)
             {
                 var rawParam = context.LlvmFunction.GetParam(paramIndex);
                 if (classification.StorageKind == MirLocalStorageKind.Memory)
@@ -1303,13 +1303,13 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     private LLVMValueRef EmitReadFieldAddress(MirFieldPlace field, FunctionEmissionContext context)
     {
         var layout = (StructLayout)_compilation.GetTypeLayout(field.Base.Type);
+        var elementType = GetOrCreateType(field.Base.Type);
 
         uint i = 0;
         foreach (var (name, type, _) in layout.Fields)
         {
             if (name == field.Field.Name)
             {
-                var elementType = GetOrCreateType(type);
                 var source = EmitTakeAddress(field.Base, context);
                 return _builder.BuildStructGEP2(elementType, source, i, name);
             }
@@ -1384,6 +1384,9 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             case MirIndexPlace mirIndexPlace:
                 EmitAssignIndex(mirIndexPlace, value, context);
                 break;
+            case MirFieldPlace mirFieldPlace:
+                EmitAssignField(mirFieldPlace, value, context);
+                break;
             case MirLocalPlace mirLocalPlace:
                 EmitAssignLocal(mirLocalPlace, value, context);
                 break;
@@ -1455,6 +1458,16 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
         var element = _builder.BuildGEP2(itemType, pointer, [index], "element".AsSpan());
         _builder.BuildStore(value, element);
+    }
+
+    private void EmitAssignField(
+        MirFieldPlace field,
+        LLVMValueRef value,
+        FunctionEmissionContext context
+    )
+    {
+        var address = EmitReadFieldAddress(field, context);
+        _builder.BuildStore(value, address);
     }
 
     private void WriteIR()

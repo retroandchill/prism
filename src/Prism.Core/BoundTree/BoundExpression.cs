@@ -1,7 +1,9 @@
 ﻿using System.Collections.Immutable;
+using Prism.Core.Binding.OverloadResolution;
 using Prism.Core.Compiling;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
+using Prism.Core.Symbols.Error;
 using Prism.Core.Symbols.Intermediate;
 using Prism.Core.Syntax;
 
@@ -477,4 +479,38 @@ internal sealed record BoundSpeculativeCollectionExpression : BoundSpeculativeEx
     }
 
     public ImmutableArray<BoundExpression> Expressions { get; }
+}
+
+internal sealed record BoundNewExpression : BoundExpression
+{
+    public BoundNewExpression(
+        Compilation compilation,
+        SyntaxNode syntax,
+        TypeSymbol targetType,
+        FunctionSymbol constructor,
+        ImmutableArray<BoundExpression> arguments
+    )
+        : base(compilation, syntax, targetType)
+    {
+        Constructor = constructor;
+        Arguments = arguments;
+    }
+
+    public FunctionSymbol Constructor { get; }
+    public ImmutableArray<BoundExpression> Arguments { get; }
+}
+
+internal sealed record BoundSpeculativeNewExpression : BoundSpeculativeExpression
+{
+    public BoundSpeculativeNewExpression(
+        Compilation compilation,
+        SyntaxNode syntax,
+        ImmutableArray<CallArgument> arguments
+    )
+        : base(compilation, syntax, UndeterminedObjectTypeSymbol.Instance, ErrorTypeSymbol.Unnamed)
+    {
+        Arguments = arguments;
+    }
+
+    public ImmutableArray<CallArgument> Arguments { get; }
 }

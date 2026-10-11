@@ -23,6 +23,7 @@ public sealed class ReferenceTypeSymbol : TypeSymbol
     public bool IsMutable { get; }
 
     public override bool IsDynamicallySized => false;
+    public override bool IsDefaultConstructible => false;
 
     public override ImmutableArray<Location> Locations => [];
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];

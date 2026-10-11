@@ -46,4 +46,5 @@ internal sealed class IntrinsicAttributeSymbol : NamedTypeSymbol
     }
 
     public override bool IsDynamicallySized => false;
+    public override bool IsDefaultConstructible => false;
 }

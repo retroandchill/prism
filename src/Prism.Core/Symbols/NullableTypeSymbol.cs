@@ -20,6 +20,7 @@ public sealed class NullableTypeSymbol : TypeSymbol
     public TypeSymbol ElementType { get; }
 
     public override bool IsDynamicallySized => false;
+    public override bool IsDefaultConstructible => true;
 
     public override ImmutableArray<Location> Locations => [];
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];

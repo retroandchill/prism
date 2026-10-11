@@ -33,7 +33,7 @@ internal sealed class FunctionEmissionContext(
     {
         return _locals.TryGetValue(local, out var value)
             ? value
-            : throw new KeyNotFoundException("Invalid local ID");
+            : throw new KeyNotFoundException($"Invalid local ID: {local.Value}");
     }
 
     public void AddValue(MirValueId id, LLVMValueRef value)
@@ -45,7 +45,7 @@ internal sealed class FunctionEmissionContext(
     {
         return _values.TryGetValue(id, out var value)
             ? value
-            : throw new KeyNotFoundException("Invalid value ID");
+            : throw new KeyNotFoundException($"Invalid value ID: {id.Id}");
     }
 
     public void BindBlock(MirBlockId block, LLVMBasicBlockRef blockRef)

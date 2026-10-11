@@ -52,6 +52,26 @@ internal abstract class SyntaxParser(string text)
         return next;
     }
 
+    protected GreenToken ConsumeTokenEvenIfWrong(SyntaxKind kind)
+    {
+        var next = PeekToken();
+        if (next.Kind != kind)
+        {
+            if (TryMatchContextualKeyword(kind, next) is { } replaced)
+                return replaced;
+
+            next = next.WithDiagnostics(
+                next.Diagnostics.Add(
+                    new SyntaxDiagnosticInfo(DiagnosticInfo.UnexpectedToken(next.ToString()))
+                )
+            );
+            return next;
+        }
+
+        _stream.Advance();
+        return next;
+    }
+
     private GreenToken? TryMatchContextualKeyword(SyntaxKind kind, GreenToken next)
     {
         if (

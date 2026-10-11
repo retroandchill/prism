@@ -154,6 +154,7 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
                 TypeDeclarationSyntax => null,
                 FieldDeclarationSyntax field => BuildSymbol(field),
                 FunctionDeclarationSyntax function => BuildSymbol(function),
+                ConstructorDeclarationSyntax constructor => BuildSymbol(constructor),
                 _ => null,
             };
             if (symbol is null)
@@ -161,6 +162,8 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
 
             builder.GetOrAdd(symbol.Name, ImmutableArray.CreateBuilder<Symbol>).Add(symbol);
         }
+
+        AddSynthesizedMembers(builder);
 
         return builder.ToImmutableDictionary(
             pair => pair.Key,
@@ -175,6 +178,13 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
                 _ => new SyntaxList<DeclarationSyntax>(),
             };
         }
+    }
+
+    protected virtual void AddSynthesizedMembers(
+        Dictionary<string, ImmutableArray<Symbol>.Builder> nameToMembersMap
+    )
+    {
+        // By default, we don't need any
     }
 
     private void LazyMemberChecks()
@@ -230,6 +240,11 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
             this,
             functionDeclaration
         );
+    }
+
+    private SourceConstructorSymbol BuildSymbol(ConstructorDeclarationSyntax constructorDeclaration)
+    {
+        return new SourceConstructorSymbol(this, constructorDeclaration);
     }
 
     public sealed override bool IsDynamicallySized => SpecialType == SpecialType.Str;

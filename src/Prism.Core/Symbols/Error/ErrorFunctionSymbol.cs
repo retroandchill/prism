@@ -7,7 +7,7 @@ namespace Prism.Core.Symbols.Error;
 
 internal sealed class ErrorFunctionSymbol : FunctionSymbol
 {
-    internal ErrorFunctionSymbol(
+    private ErrorFunctionSymbol(
         string name,
         Symbol? containingSymbol = null,
         TypeSymbol? returnType = null
@@ -27,6 +27,7 @@ internal sealed class ErrorFunctionSymbol : FunctionSymbol
     public override TypeSymbol ReturnType { get; }
     public override TypeSymbol? ReceiverType => null;
     public override ImmutableArray<ParameterSymbol> Parameters => [];
+    public override FunctionKind Kind => FunctionKind.Ordinary;
     internal override AbiKind AbiKind => AbiKind.Internal;
     public override bool IsExtern => false;
 }

@@ -19,6 +19,8 @@ internal sealed class SynthesizedGlobalConstructor(NamespaceSymbol containingNam
 {
     private ThreeState _shouldEmit = ThreeState.Unknown;
 
+    public override FunctionKind Kind => FunctionKind.GlobalConstructor;
+
     public override bool IsImplicitlyDeclared => true;
     public override ImmutableArray<Location> Locations => [];
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];

@@ -4,7 +4,9 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Diagnostics;
@@ -13,6 +15,8 @@ using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Source;
 using Prism.Core.Symbols.Synthesized;
+using Prism.Core.Syntax;
+using Prism.Core.Utils;
 using ZLinq;
 
 namespace Prism.Core.Compiling;
@@ -25,7 +29,10 @@ internal static class CompilerDriver
         CancellationToken cancellationToken
     )
     {
-        if (variable is not SourceGlobalVariableSymbol { Syntax: { Initializer: not null } syntax })
+        if (
+            variable
+            is not SourceVariableSymbol { Syntax: { Initializer: not null } syntax, IsLocal: false }
+        )
             return new BoundVariableInitializer(variable, []);
         var binderFactory = compilation.GetBinderFactory(syntax.SyntaxTree);
         var binder = binderFactory.GetBinder(syntax);
@@ -84,6 +91,48 @@ internal static class CompilerDriver
                 else
                 {
                     body = null;
+                }
+
+                if (context.HasErrors && body is not null)
+                {
+                    body = body with { HasErrors = true };
+                }
+
+                break;
+            }
+            case SourceConstructorSymbol { Syntax: var syntax }:
+            {
+                location = syntax.Location;
+                var binderFactory = compilation.GetBinderFactory(syntax.SyntaxTree);
+
+                if (syntax.Body is not null)
+                {
+                    var binder = binderFactory.GetBinder(syntax.Body);
+                    body = binder.BindStatement(
+                        syntax.Body,
+                        function.ReturnType,
+                        context,
+                        cancellationToken
+                    );
+                }
+                else if (syntax.ExpressionBody is not null)
+                {
+                    var binder = binderFactory.GetBinder(syntax.ExpressionBody);
+                    body = binder.BindExpressionBody(
+                        syntax.ExpressionBody,
+                        function.ReturnType,
+                        context,
+                        cancellationToken
+                    );
+                }
+                else
+                {
+                    Debug.Assert(syntax.DefaultKeyword is not null);
+                    body = SynthesizeDefaultConstructor(
+                        function.ContainingType.RequireNonNull(),
+                        compilation,
+                        cancellationToken
+                    );
                 }
 
                 if (context.HasErrors && body is not null)
@@ -154,6 +203,13 @@ internal static class CompilerDriver
 
                 break;
             }
+            case SynthesizedDefaultConstructor:
+                body = SynthesizeDefaultConstructor(
+                    function.ContainingType.RequireNonNull(),
+                    compilation,
+                    cancellationToken
+                );
+                break;
             default:
                 body = null;
                 break;
@@ -170,5 +226,166 @@ internal static class CompilerDriver
             analysis,
             context.CollectDiagnostics()
         );
+    }
+
+    private static BoundBlock? SynthesizeDefaultConstructor(
+        TypeSymbol type,
+        Compilation compilation,
+        CancellationToken cancellationToken
+    )
+    {
+        ImmutableArray<BoundStatement>.Builder? builder = null;
+
+        var hasErrors = false;
+
+        var mutableReference = compilation.CreateReferenceTypeSymbol(type, true);
+        var typeSyntax = type.DeclaringSyntaxReferences[0].Syntax;
+        var voidType = compilation.GetSpecialType(SpecialType.Void);
+
+        var thisReference = new BoundThisExpression(compilation, typeSyntax, mutableReference);
+
+        foreach (
+            var member in type.GetMembers()
+                .AsValueEnumerable()
+                .OfType<VariableSymbol>()
+                .Where(v => v.IsInstance)
+        )
+        {
+            var declaringSyntax = member.DeclaringSyntaxReferences[0].Syntax;
+
+            cancellationToken.ThrowIfCancellationRequested();
+            builder ??= ImmutableArray.CreateBuilder<BoundStatement>();
+
+            var initializer = compilation.GetBoundInitializer(member, cancellationToken);
+            hasErrors |= initializer.HasErrors;
+
+            var reference = new BoundVariableAccess(
+                compilation,
+                declaringSyntax,
+                thisReference,
+                member
+            );
+            var initialValue =
+                initializer.Initializer ?? GetDefaultValue(compilation, declaringSyntax, type);
+            var assignment = new BoundAssignmentOperation(
+                compilation,
+                declaringSyntax,
+                voidType,
+                reference,
+                initialValue,
+                AssignmentOperation.Simple
+            );
+            builder.Add(new BoundExpressionStatement(compilation, declaringSyntax, assignment));
+        }
+
+        return new BoundBlock(
+            compilation,
+            compilation.SyntaxTrees[0].Root,
+            builder?.DrainToImmutable() ?? []
+        )
+        {
+            HasErrors = hasErrors,
+        };
+    }
+
+    private static BoundExpression GetDefaultValue(
+        Compilation compilation,
+        SyntaxNode syntax,
+        TypeSymbol type
+    )
+    {
+        return type switch
+        {
+            NullableTypeSymbol => new BoundLiteral(compilation, syntax, type, new NullConstant()),
+            ArrayTypeSymbol array => GetDefaultForArrayType(compilation, syntax, array),
+            _ => GetDefaultForSpecialType(compilation, syntax, type),
+        };
+    }
+
+    private static BoundCollectionExpression GetDefaultForArrayType(
+        Compilation compilation,
+        SyntaxNode syntax,
+        ArrayTypeSymbol type
+    )
+    {
+        Debug.Assert(type.Size is not null);
+        var size = type.Size.Value;
+
+        var defaultValue = GetDefaultValue(compilation, syntax, type.ElementType);
+        var elements = new BoundExpression[size];
+        for (var i = 0UL; i < size; i++)
+        {
+            elements[i] = defaultValue;
+        }
+
+        return new BoundCollectionExpression(
+            compilation,
+            syntax,
+            type,
+            type.ElementType,
+            ImmutableCollectionsMarshal.AsImmutableArray(elements)
+        );
+    }
+
+    private static BoundExpression GetDefaultForSpecialType(
+        Compilation compilation,
+        SyntaxNode syntax,
+        TypeSymbol type
+    )
+    {
+        switch (type.SpecialType)
+        {
+            case SpecialType.None:
+            {
+                var defaultCtor = type.GetMembers(CommonNames.Ctor)
+                    .AsValueEnumerable()
+                    .OfType<FunctionSymbol>()
+                    .Single(p => p.Parameters.Length == 0);
+                return new BoundNewExpression(compilation, syntax, type, defaultCtor, []);
+            }
+            case SpecialType.Bool:
+                return new BoundLiteral(compilation, syntax, type, new BoolConstant(false));
+            case SpecialType.I8:
+                return new BoundLiteral(compilation, syntax, type, new I8Constant(0));
+            case SpecialType.I16:
+                return new BoundLiteral(compilation, syntax, type, new I16Constant(0));
+            case SpecialType.I32:
+                return new BoundLiteral(compilation, syntax, type, new I32Constant(0));
+            case SpecialType.I64:
+                return new BoundLiteral(compilation, syntax, type, new I64Constant(0));
+            case SpecialType.I128:
+                return new BoundLiteral(compilation, syntax, type, new I128Constant(0));
+            case SpecialType.ISize:
+                return new BoundLiteral(compilation, syntax, type, new ISizeConstant(0));
+            case SpecialType.U8:
+                return new BoundLiteral(compilation, syntax, type, new U8Constant(0));
+            case SpecialType.U16:
+                return new BoundLiteral(compilation, syntax, type, new U16Constant(0));
+            case SpecialType.U32:
+                return new BoundLiteral(compilation, syntax, type, new U32Constant(0));
+            case SpecialType.U64:
+                return new BoundLiteral(compilation, syntax, type, new U64Constant(0));
+            case SpecialType.U128:
+                return new BoundLiteral(compilation, syntax, type, new U128Constant(0));
+            case SpecialType.USize:
+                return new BoundLiteral(compilation, syntax, type, new USizeConstant(0));
+            case SpecialType.F32:
+                return new BoundLiteral(compilation, syntax, type, new F32Constant(0));
+            case SpecialType.F64:
+                return new BoundLiteral(compilation, syntax, type, new F64Constant(0));
+            case SpecialType.Char:
+                return new BoundLiteral(compilation, syntax, type, new Char8Constant(0));
+            case SpecialType.Char16:
+                return new BoundLiteral(compilation, syntax, type, new Char16Constant('\0'));
+            case SpecialType.Rune:
+                return new BoundLiteral(
+                    compilation,
+                    syntax,
+                    type,
+                    new RuneConstant(new Rune('\0'))
+                );
+            default:
+                throw new InvalidOperationException("Not a default constructible type");
+        }
     }
 }
