@@ -139,6 +139,8 @@ public class Compilation
     {
         const string nativeNamespaceName = "native";
 
+        // In a properly functioning compiler these symbols will exist.
+        // However, for testing purposes we need it to return null.
         switch (attribute)
         {
             case WellKnownAttribute.None:
@@ -149,13 +151,19 @@ public class Compilation
                 var nativeNamespace = stdNamespace
                     .GetMembers(nativeNamespaceName)
                     .OfType<NamespaceSymbol>()
-                    .Single();
-                return nativeNamespace.GetMembers("CLinkage").OfType<NamedTypeSymbol>().Single();
+                    .SingleOrDefault();
+                return nativeNamespace
+                    ?.GetMembers("CLinkage")
+                    .OfType<NamedTypeSymbol>()
+                    .SingleOrDefault();
             }
             case WellKnownAttribute.Intrinsic:
             {
                 var stdNamespace = Cache.StdNamespace;
-                return stdNamespace.GetMembers("Intrinsic").OfType<NamedTypeSymbol>().Single();
+                return stdNamespace
+                    .GetMembers("Intrinsic")
+                    .OfType<NamedTypeSymbol>()
+                    .SingleOrDefault();
             }
             default:
                 throw new ArgumentOutOfRangeException(nameof(attribute), attribute, null);
