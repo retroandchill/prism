@@ -73,7 +73,6 @@ public sealed class MetadataHeader
             throw new InvalidDataException("Invalid version");
         }
 
-        // TODO: We need to validate that we're reading valid enum data out
         return new MetadataHeader
         {
             TargetArchitecture = ReadChecked<MetadataArchitecture>(reader),
