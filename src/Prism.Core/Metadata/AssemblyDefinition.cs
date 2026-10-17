@@ -5,14 +5,31 @@
 
 namespace Prism.Core.Metadata;
 
-public sealed class AssemblyDefinition : IDisposable
+public sealed class AssemblyDefinition(AssemblyIdentity identity, TargetInfo target)
+    : AssemblyDescriptor(identity, new MetadataToken(TokenType.Assembly, 1))
 {
-    public required AssemblyNameDefinition Name { get; set; }
+    private bool _isFrozen;
 
-    internal AssemblyDefinition() { }
+    public TargetInfo Target { get; } = target;
 
-    public void Dispose()
+    private readonly List<AssemblyReference> _referencedAssemblies = [];
+
+    public IReadOnlyList<AssemblyReference> ReferencedAssemblies => _referencedAssemblies;
+
+    public void AddAssemblyReference(AssemblyReference reference)
     {
-        // TODO release managed resources here
+        ThrowIfFrozen();
+        _referencedAssemblies.Add(reference);
+    }
+
+    public void Freeze()
+    {
+        _isFrozen = true;
+    }
+
+    private void ThrowIfFrozen()
+    {
+        if (_isFrozen)
+            throw new InvalidOperationException("Metadata definition is frozen.");
     }
 }

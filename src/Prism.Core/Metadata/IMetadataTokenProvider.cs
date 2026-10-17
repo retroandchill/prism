@@ -7,5 +7,5 @@ namespace Prism.Core.Metadata;
 
 public interface IMetadataTokenProvider
 {
-    MetadataToken MetadataToken { get; set; }
+    MetadataToken MetadataToken { get; }
 }

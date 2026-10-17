@@ -3,14 +3,11 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 
 namespace Prism.Core.Metadata;
 
-public readonly struct MetadataToken
-    : IEquatable<MetadataToken>,
-        IEqualityOperators<MetadataToken, MetadataToken, bool>
+public readonly record struct MetadataToken : IEqualityOperators<MetadataToken, MetadataToken, bool>
 {
     private readonly uint _value;
     private const uint IdMask = 0x00ffffff;
@@ -19,7 +16,11 @@ public readonly struct MetadataToken
     public uint Id
     {
         get => _value & IdMask;
-        init => _value = (uint)Type | value;
+        init
+        {
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(value, IdMask);
+            _value = (uint)Type | value;
+        }
     }
 
     public TokenType Type
@@ -47,11 +48,6 @@ public readonly struct MetadataToken
 
     public uint ToUInt32() => _value;
 
-    public override bool Equals([NotNullWhen(true)] object? obj)
-    {
-        return obj is MetadataToken other && Equals(other);
-    }
-
     public bool Equals(MetadataToken other)
     {
         return _value == other._value;
@@ -60,16 +56,6 @@ public readonly struct MetadataToken
     public override int GetHashCode()
     {
         return _value.GetHashCode();
-    }
-
-    public static bool operator ==(MetadataToken left, MetadataToken right)
-    {
-        return left.Equals(right);
-    }
-
-    public static bool operator !=(MetadataToken left, MetadataToken right)
-    {
-        return !left.Equals(right);
     }
 
     public override string ToString()
