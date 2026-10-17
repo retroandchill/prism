@@ -11,41 +11,15 @@ using Prism.Core.Configuration;
 
 namespace Prism.Core.Metadata;
 
-[EnumExtensions]
-public enum MetadataArchitecture : byte
-{
-    X86 = 0x10,
-    X64 = 0x20,
-    Arm = 0x30,
-    Arm64 = 0x40,
-}
-
-[EnumExtensions]
-public enum MetadataOperatingSystem : byte
-{
-    Linux = 0x10,
-    Windows = 0x20,
-    MacOS = 0x30,
-    Freestanding = 0x40,
-}
-
-[EnumExtensions]
-public enum MetadataToolchain : byte
-{
-    Msvc = 0x10,
-    Clang = 0x20,
-    Gnu = 0x30,
-}
-
 public sealed class MetadataHeader
 {
     public const uint HeaderSequence = 0x50524953; // PRIS
 
     public const ushort Version = 1;
 
-    public required MetadataArchitecture TargetArchitecture { get; init; }
-    public required MetadataOperatingSystem OperatingSystem { get; init; }
-    public required MetadataToolchain Toolchain { get; init; }
+    public required TargetArchitecture TargetArchitecture { get; init; }
+    public required TargetOperatingSystem OperatingSystem { get; init; }
+    public required ToolchainKind Toolchain { get; init; }
 
     public void Serialize(Stream stream)
     {
@@ -75,9 +49,9 @@ public sealed class MetadataHeader
 
         return new MetadataHeader
         {
-            TargetArchitecture = ReadChecked<MetadataArchitecture>(reader),
-            OperatingSystem = ReadChecked<MetadataOperatingSystem>(reader),
-            Toolchain = ReadChecked<MetadataToolchain>(reader),
+            TargetArchitecture = ReadChecked<TargetArchitecture>(reader),
+            OperatingSystem = ReadChecked<TargetOperatingSystem>(reader),
+            Toolchain = ReadChecked<ToolchainKind>(reader),
         };
 
         static TEnum ReadChecked<TEnum>(BinaryReader reader)

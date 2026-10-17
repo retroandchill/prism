@@ -61,18 +61,6 @@ public static class LlvmTripleDetector
     {
         return env switch
         {
-            ToolchainKind.Auto => operatingSystem switch
-            {
-                TargetOperatingSystem.Linux => "gnu",
-                TargetOperatingSystem.Windows => "msvc",
-                TargetOperatingSystem.MacOS => "unknown",
-                TargetOperatingSystem.Freestanding => "unknown",
-                _ => throw new ArgumentOutOfRangeException(
-                    nameof(operatingSystem),
-                    operatingSystem,
-                    null
-                ),
-            },
             ToolchainKind.Gnu or ToolchainKind.Clang => "gnu",
             ToolchainKind.Msvc => "msvc",
             _ => throw new ArgumentOutOfRangeException(nameof(env), env, null),

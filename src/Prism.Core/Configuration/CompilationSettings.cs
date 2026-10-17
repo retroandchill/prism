@@ -6,9 +6,19 @@ namespace Prism.Core.Configuration;
 public sealed record CompilationSettings
 {
     public TargetArchitecture Architecture { get; init; } = TargetArchitecture.CurrentPlatform;
-    public TargetOperatingSystem OperatingSystem { get; init; } =
-        TargetOperatingSystem.CurrentPlatform;
-    public ToolchainKind Toolchain { get; init; } = ToolchainKind.Auto;
+
+    public TargetOperatingSystem OperatingSystem
+    {
+        get;
+        init
+        {
+            field = value;
+            Toolchain = ToolchainKind.Detect(field);
+        }
+    } = TargetOperatingSystem.CurrentPlatform;
+
+    public ToolchainKind Toolchain { get; init; } =
+        ToolchainKind.Detect(TargetOperatingSystem.CurrentPlatform);
     public PointerWidth PointerWidth => Architecture.PointerWidth;
 
     public OutputKind OutputKind { get; init; } = OutputKind.Executable;
@@ -27,5 +37,5 @@ public sealed record CompilationSettings
 
     public bool IsOptimized => OptimizationLevel != OptimizationLevel.None;
 
-    public bool BuildingCoreLibrary { get; init; } = false;
+    public bool BuildingCoreLibrary { get; init; }
 }

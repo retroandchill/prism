@@ -8,6 +8,7 @@ using NetEscapades.EnumGenerators;
 
 namespace Prism.Core.Configuration;
 
+[EnumExtensions]
 public enum TargetArchitecture : byte
 {
     X86,
@@ -16,7 +17,7 @@ public enum TargetArchitecture : byte
     Arm64,
 }
 
-public static class TargetArchitectureExtensions
+public static partial class TargetArchitectureExtensions
 {
     extension(TargetArchitecture architecture)
     {

@@ -23,8 +23,6 @@ internal static class ToolchainFactory
     {
         return request.Toolchain switch
         {
-            ToolchainKind.Auto when request.OperatingSystem == TargetOperatingSystem.Windows =>
-                CreateMsvc(request),
             ToolchainKind.Msvc => CreateMsvc(request),
             _ => throw new NotSupportedException("This platform is not yet supported"),
         };
