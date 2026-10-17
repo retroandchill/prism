@@ -18,4 +18,6 @@ public readonly record struct TargetInfo(
 
     public TargetInfo(TargetArchitecture architecture, TargetOperatingSystem operatingSystem)
         : this(architecture, operatingSystem, ToolchainKind.Detect(operatingSystem)) { }
+
+    public static TargetInfo CurrentPlatform => new();
 }

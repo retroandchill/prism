@@ -3,33 +3,119 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Text;
+using Nerdbank.Streams;
+using Prism.Core.Configuration;
+
 namespace Prism.Core.Metadata;
 
-public sealed class AssemblyDefinition(AssemblyIdentity identity, TargetInfo target)
-    : AssemblyDescriptor(identity, new MetadataToken(TokenType.Assembly, 1))
+public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
 {
-    private bool _isFrozen;
+    public const uint HeaderSequence = 0x50524953; // PRIS
 
-    public TargetInfo Target { get; } = target;
+    public const ushort SchemaVersion = 1;
 
-    private readonly List<AssemblyReference> _referencedAssemblies = [];
+    public TargetInfo Target { get; }
 
-    public IReadOnlyList<AssemblyReference> ReferencedAssemblies => _referencedAssemblies;
+    private readonly MetadataReader? _reader;
+    private readonly Lock _readerLock = new();
 
-    public void AddAssemblyReference(AssemblyReference reference)
+    public ImmutableArray<AssemblyReference> ReferencedAssemblies
     {
-        ThrowIfFrozen();
-        _referencedAssemblies.Add(reference);
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            Read(ref field, reader => reader.ReadReferencedAssemblies());
+            return field;
+        }
+        private init;
     }
 
-    public void Freeze()
+    internal AssemblyDefinition(AssemblyDefinitionBuilder builder)
+        : base(builder.Identity, new MetadataToken(TokenType.Assembly, 1))
     {
-        _isFrozen = true;
+        Target = builder.Target;
+        ReferencedAssemblies = [.. builder.ReferencedAssemblies];
     }
 
-    private void ThrowIfFrozen()
+    internal AssemblyDefinition(AssemblyIdentity identity, TargetInfo info, MetadataReader reader)
+        : base(identity, new MetadataToken(TokenType.Assembly, 1))
     {
-        if (_isFrozen)
-            throw new InvalidOperationException("Metadata definition is frozen.");
+        Target = info;
+        _reader = reader;
+    }
+
+    internal void Read<T>(
+        ref ImmutableArray<T> value,
+        Func<MetadataReader, ImmutableArray<T>> factory
+    )
+    {
+        Debug.Assert(_reader is not null);
+        using var scope = _readerLock.EnterScope();
+        using var readerScope = _reader.EnterScope();
+        value = factory(_reader);
+    }
+
+    public static AssemblyDefinition Load(Stream stream)
+    {
+        using var reader = new BinaryReader(stream);
+
+        var header = reader.ReadUInt32();
+        if (header != HeaderSequence)
+        {
+            throw new InvalidDataException("Invalid header sequence");
+        }
+
+        var schemaVersion = reader.ReadUInt16();
+        if (schemaVersion != SchemaVersion)
+        {
+            throw new InvalidDataException("Invalid version");
+        }
+
+        var targetArchitecture = ReadChecked<TargetArchitecture>(reader);
+        var operatingSystem = ReadChecked<TargetOperatingSystem>(reader);
+        var toolchain = ReadChecked<ToolchainKind>(reader);
+
+        var length = reader.ReadInt32();
+        var utf8 = reader.ReadBytes(length);
+        var name = Encoding.UTF8.GetString(utf8);
+        var version = new Version(
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32()
+        );
+
+        var identity = new AssemblyIdentity(name, version);
+        var target = new TargetInfo(targetArchitecture, operatingSystem, toolchain);
+
+        var sequence = new Sequence<byte>();
+        stream.CopyTo(sequence.AsStream());
+
+        return new AssemblyDefinition(
+            identity,
+            target,
+            new MetadataReader(sequence.AsReadOnlySequence)
+        );
+
+        static TEnum ReadChecked<TEnum>(BinaryReader reader)
+            where TEnum : unmanaged, Enum
+        {
+            Debug.Assert(Enum.GetUnderlyingType(typeof(TEnum)) == typeof(byte));
+            var value = Unsafe.BitCast<byte, TEnum>(reader.ReadByte());
+            return Enum.IsDefined(value)
+                ? value
+                : throw new InvalidDataException($"Invalid enum value: {value}");
+        }
+    }
+
+    public void Dispose()
+    {
+        _reader?.Dispose();
     }
 }
