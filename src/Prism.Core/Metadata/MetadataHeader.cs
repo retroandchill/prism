@@ -3,65 +3,51 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
+using MagicArchive;
 using NetEscapades.EnumGenerators;
 using Prism.Core.Configuration;
 
 namespace Prism.Core.Metadata;
 
-public sealed class MetadataHeader
+[Archivable]
+internal readonly partial record struct MetadataHeader(
+    AssemblyIdentity AssemblyIdentity,
+    TargetInfo TargetInfo
+)
 {
     public const uint HeaderSequence = 0x50524953; // PRIS
 
     public const ushort Version = 1;
 
-    public required TargetArchitecture TargetArchitecture { get; init; }
-    public required TargetOperatingSystem OperatingSystem { get; init; }
-    public required ToolchainKind Toolchain { get; init; }
-
-    public void Serialize(Stream stream)
+    [ArchivableOnSerializing]
+    private static void WriteHeader<TBufferWriter>(
+        ref ArchiveWriter<TBufferWriter> writer,
+        in MetadataHeader header
+    )
+        where TBufferWriter : IBufferWriter<byte>
     {
-        using var writer = new BinaryWriter(stream);
-        writer.Write(HeaderSequence);
-        writer.Write(Version);
-        writer.Write(TargetArchitecture.AsUnderlyingType());
-        writer.Write(OperatingSystem.AsUnderlyingType());
-        writer.Write(Toolchain.AsUnderlyingType());
+        writer.WriteBlittable(HeaderSequence);
+        writer.WriteBlittable(Version);
     }
 
-    public static MetadataHeader Deserialize(Stream stream)
+    [ArchivableOnDeserializing]
+    private static void ReadHeader(ref ArchiveReader reader, ref MetadataHeader value)
     {
-        using var reader = new BinaryReader(stream);
-
-        var header = reader.ReadUInt32();
-        if (header != HeaderSequence)
+        var headerSequence = reader.ReadBlittable<uint>();
+        if (headerSequence != HeaderSequence)
         {
-            throw new InvalidDataException("Invalid header sequence");
+            throw new SerializationException("Invalid header sequence");
         }
 
-        var version = reader.ReadUInt16();
+        var version = reader.ReadBlittable<ushort>();
         if (version != Version)
         {
-            throw new InvalidDataException("Invalid version");
-        }
-
-        return new MetadataHeader
-        {
-            TargetArchitecture = ReadChecked<TargetArchitecture>(reader),
-            OperatingSystem = ReadChecked<TargetOperatingSystem>(reader),
-            Toolchain = ReadChecked<ToolchainKind>(reader),
-        };
-
-        static TEnum ReadChecked<TEnum>(BinaryReader reader)
-            where TEnum : unmanaged, Enum
-        {
-            Debug.Assert(Enum.GetUnderlyingType(typeof(TEnum)) == typeof(byte));
-            var value = Unsafe.BitCast<byte, TEnum>(reader.ReadByte());
-            return Enum.IsDefined(value)
-                ? value
-                : throw new InvalidDataException($"Invalid enum value: {value}");
+            throw new SerializationException("Invalid version");
         }
     }
 }

@@ -14,9 +14,6 @@ namespace Prism.Core.Metadata;
 
 public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
 {
-    public const uint HeaderSequence = 0x50524953; // PRIS
-    public const ushort SchemaVersion = 1;
-
     public TargetInfo Target { get; }
 
     private readonly MetadataReader? _reader;
@@ -84,7 +81,7 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
         using var state = ArchiveReaderStatePool.Rent(ArchiveSerializerOptions.LittleEndian);
         var reader = new ArchiveReader(memory.Span, state);
 
-        var (identity, targetInfo) = ReadHeader(ref reader);
+        var (identity, targetInfo) = reader.ReadArchivable<MetadataHeader>();
         return new AssemblyDefinition(
             identity,
             targetInfo,
@@ -97,33 +94,12 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
         using var state = ArchiveReaderStatePool.Rent(ArchiveSerializerOptions.LittleEndian);
         var reader = new ArchiveReader(sequence, state);
 
-        var (identity, targetInfo) = ReadHeader(ref reader);
+        var (identity, targetInfo) = reader.ReadArchivable<MetadataHeader>();
         return new AssemblyDefinition(
             identity,
             targetInfo,
             new MetadataReader(sequence.Slice(reader.ConsumedBytes))
         );
-    }
-
-    private static (AssemblyIdentity, TargetInfo) ReadHeader(ref ArchiveReader reader)
-    {
-        var header = reader.ReadBlittable<uint>();
-        if (header != HeaderSequence)
-        {
-            throw new InvalidDataException("Not a valid assembly interface file");
-        }
-
-        var schemaVersion = reader.ReadBlittable<ushort>();
-        if (schemaVersion != SchemaVersion)
-        {
-            throw new InvalidDataException("Version mismatch");
-        }
-
-        var identity =
-            reader.ReadArchivable<AssemblyIdentity>()
-            ?? throw new InvalidOperationException("Invalid assembly identity");
-        var targetInfo = reader.ReadArchivable<TargetInfo>();
-        return (identity, targetInfo);
     }
 
     public async ValueTask WriteAsync(Stream stream, CancellationToken cancellationToken = default)
@@ -153,10 +129,7 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
     private void WriteHeader<TBufferWriter>(ref ArchiveWriter<TBufferWriter> writer)
         where TBufferWriter : IBufferWriter<byte>
     {
-        writer.WriteBlittable(HeaderSequence);
-        writer.WriteBlittable(SchemaVersion);
-        writer.WriteArchivable(Identity);
-        writer.WriteArchivable(Target);
+        writer.WriteArchivable(new MetadataHeader(Identity, Target));
     }
 
     public void Dispose()
