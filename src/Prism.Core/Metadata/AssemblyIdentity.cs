@@ -4,16 +4,20 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using Cysharp.Text;
+using MagicArchive;
 
 namespace Prism.Core.Metadata;
 
-public sealed record AssemblyIdentity(string Name, Version Version)
+[Archivable]
+[method: ArchivableConstructor]
+public sealed partial record AssemblyIdentity(string Name, Version Version)
 {
     private static readonly Version DefaultVersion = new(0, 0, 0, 0);
 
     public AssemblyIdentity(string name)
         : this(name, DefaultVersion) { }
 
+    [ArchiveIgnore]
     public string FullName
     {
         get

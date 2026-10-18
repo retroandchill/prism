@@ -3,11 +3,14 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using MagicArchive;
 using Prism.Core.Configuration;
 
 namespace Prism.Core.Metadata;
 
-public readonly record struct TargetInfo(
+[Archivable]
+[method: ArchivableConstructor]
+public readonly partial record struct TargetInfo(
     TargetArchitecture Architecture,
     TargetOperatingSystem OperatingSystem,
     ToolchainKind Toolchain

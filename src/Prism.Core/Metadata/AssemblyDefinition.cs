@@ -3,38 +3,24 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text;
-using Nerdbank.Streams;
-using Prism.Core.Configuration;
+using MagicArchive;
+using MagicArchive.Utilities;
 
 namespace Prism.Core.Metadata;
 
 public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
 {
     public const uint HeaderSequence = 0x50524953; // PRIS
-
     public const ushort SchemaVersion = 1;
 
     public TargetInfo Target { get; }
 
     private readonly MetadataReader? _reader;
     private readonly Lock _readerLock = new();
-
-    public ImmutableArray<AssemblyReference> ReferencedAssemblies
-    {
-        get
-        {
-            if (!field.IsDefault)
-                return field;
-
-            Read(ref field, reader => reader.ReadReferencedAssemblies());
-            return field;
-        }
-        private init;
-    }
 
     internal AssemblyDefinition(AssemblyDefinitionBuilder builder)
         : base(builder.Identity, new MetadataToken(TokenType.Assembly, 1))
@@ -50,6 +36,19 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
         _reader = reader;
     }
 
+    public ImmutableArray<AssemblyReference> ReferencedAssemblies
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            Read(ref field, reader => reader.ReadReferencedAssemblies());
+            return field;
+        }
+        private init;
+    }
+
     internal void Read<T>(
         ref ImmutableArray<T> value,
         Func<MetadataReader, ImmutableArray<T>> factory
@@ -61,57 +60,103 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
         value = factory(_reader);
     }
 
-    public static AssemblyDefinition Load(Stream stream)
+    public static async ValueTask<AssemblyDefinition> LoadAsync(
+        Stream stream,
+        CancellationToken cancellationToken = default
+    )
     {
-        using var reader = new BinaryReader(stream);
-
-        var header = reader.ReadUInt32();
-        if (header != HeaderSequence)
+        var builder = ReusableReadOnlySequenceBuilderPool.Rent();
+        try
         {
-            throw new InvalidDataException("Invalid header sequence");
+            await builder.ReadFromStreamAsync(stream, cancellationToken);
+            return builder.TryGetSingleMemory(out var memory)
+                ? Load(memory)
+                : Load(builder.Build());
         }
-
-        var schemaVersion = reader.ReadUInt16();
-        if (schemaVersion != SchemaVersion)
+        finally
         {
-            throw new InvalidDataException("Invalid version");
+            ReusableReadOnlySequenceBuilderPool.Return(builder);
         }
+    }
 
-        var targetArchitecture = ReadChecked<TargetArchitecture>(reader);
-        var operatingSystem = ReadChecked<TargetOperatingSystem>(reader);
-        var toolchain = ReadChecked<ToolchainKind>(reader);
+    public static AssemblyDefinition Load(ReadOnlyMemory<byte> memory)
+    {
+        using var state = ArchiveReaderStatePool.Rent(ArchiveSerializerOptions.LittleEndian);
+        var reader = new ArchiveReader(memory.Span, state);
 
-        var length = reader.ReadInt32();
-        var utf8 = reader.ReadBytes(length);
-        var name = Encoding.UTF8.GetString(utf8);
-        var version = new Version(
-            reader.ReadInt32(),
-            reader.ReadInt32(),
-            reader.ReadInt32(),
-            reader.ReadInt32()
-        );
-
-        var identity = new AssemblyIdentity(name, version);
-        var target = new TargetInfo(targetArchitecture, operatingSystem, toolchain);
-
-        var sequence = new Sequence<byte>();
-        stream.CopyTo(sequence.AsStream());
-
+        var (identity, targetInfo) = ReadHeader(ref reader);
         return new AssemblyDefinition(
             identity,
-            target,
-            new MetadataReader(sequence.AsReadOnlySequence)
+            targetInfo,
+            new MetadataReader(new ReadOnlySequence<byte>(memory[reader.ConsumedBytes..]))
         );
+    }
 
-        static TEnum ReadChecked<TEnum>(BinaryReader reader)
-            where TEnum : unmanaged, Enum
+    public static AssemblyDefinition Load(ReadOnlySequence<byte> sequence)
+    {
+        using var state = ArchiveReaderStatePool.Rent(ArchiveSerializerOptions.LittleEndian);
+        var reader = new ArchiveReader(sequence, state);
+
+        var (identity, targetInfo) = ReadHeader(ref reader);
+        return new AssemblyDefinition(
+            identity,
+            targetInfo,
+            new MetadataReader(sequence.Slice(reader.ConsumedBytes))
+        );
+    }
+
+    private static (AssemblyIdentity, TargetInfo) ReadHeader(ref ArchiveReader reader)
+    {
+        var header = reader.ReadBlittable<uint>();
+        if (header != HeaderSequence)
         {
-            Debug.Assert(Enum.GetUnderlyingType(typeof(TEnum)) == typeof(byte));
-            var value = Unsafe.BitCast<byte, TEnum>(reader.ReadByte());
-            return Enum.IsDefined(value)
-                ? value
-                : throw new InvalidDataException($"Invalid enum value: {value}");
+            throw new InvalidDataException("Not a valid assembly interface file");
         }
+
+        var schemaVersion = reader.ReadBlittable<ushort>();
+        if (schemaVersion != SchemaVersion)
+        {
+            throw new InvalidDataException("Version mismatch");
+        }
+
+        var identity =
+            reader.ReadArchivable<AssemblyIdentity>()
+            ?? throw new InvalidOperationException("Invalid assembly identity");
+        var targetInfo = reader.ReadArchivable<TargetInfo>();
+        return (identity, targetInfo);
+    }
+
+    public async ValueTask WriteAsync(Stream stream, CancellationToken cancellationToken = default)
+    {
+        var tempWriter = ReusableLinkedArrayBufferWriterPool.Rent();
+        try
+        {
+            Write(tempWriter);
+            await tempWriter.WriteToAndResetAsync(stream, cancellationToken);
+            await stream.FlushAsync(cancellationToken);
+        }
+        finally
+        {
+            ReusableLinkedArrayBufferWriterPool.Return(tempWriter);
+        }
+    }
+
+    public void Write<TBufferWriter>(in TBufferWriter bufferWriter)
+        where TBufferWriter : IBufferWriter<byte>
+    {
+        ref var bufferWriterRef = ref Unsafe.AsRef(in bufferWriter);
+        using var state = ArchiveWriterStatePool.Rent(ArchiveSerializerOptions.LittleEndian);
+        var writer = ArchiveWriter.Create(ref bufferWriterRef, state);
+        WriteHeader(ref writer);
+    }
+
+    private void WriteHeader<TBufferWriter>(ref ArchiveWriter<TBufferWriter> writer)
+        where TBufferWriter : IBufferWriter<byte>
+    {
+        writer.WriteBlittable(HeaderSequence);
+        writer.WriteBlittable(SchemaVersion);
+        writer.WriteArchivable(Identity);
+        writer.WriteArchivable(Target);
     }
 
     public void Dispose()
