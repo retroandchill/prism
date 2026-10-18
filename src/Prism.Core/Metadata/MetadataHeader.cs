@@ -20,7 +20,7 @@ internal readonly partial record struct MetadataHeader(
     TargetInfo TargetInfo
 )
 {
-    public const uint HeaderSequence = 0x50524953; // PRIS
+    public static readonly ImmutableArray<byte> HeaderSequence = [.. "PRISM"u8];
 
     public const ushort Version = 1;
 
@@ -31,17 +31,22 @@ internal readonly partial record struct MetadataHeader(
     )
         where TBufferWriter : IBufferWriter<byte>
     {
-        writer.WriteBlittable(HeaderSequence);
+        foreach (var b in HeaderSequence)
+        {
+            writer.WriteBlittable(b);
+        }
         writer.WriteBlittable(Version);
     }
 
     [ArchivableOnDeserializing]
     private static void ReadHeader(ref ArchiveReader reader, ref MetadataHeader value)
     {
-        var headerSequence = reader.ReadBlittable<uint>();
-        if (headerSequence != HeaderSequence)
+        foreach (var b in HeaderSequence)
         {
-            throw new SerializationException("Invalid header sequence");
+            if (reader.ReadBlittable<byte>() != b)
+            {
+                throw new SerializationException("Invalid header sequence");
+            }
         }
 
         var version = reader.ReadBlittable<ushort>();

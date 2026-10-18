@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using MagicArchive;
 using MagicArchive.Utilities;
+using Prism.Core.Symbols;
 
 namespace Prism.Core.Metadata;
 
@@ -124,6 +125,7 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
         using var state = ArchiveWriterStatePool.Rent(ArchiveSerializerOptions.LittleEndian);
         var writer = ArchiveWriter.Create(ref bufferWriterRef, state);
         WriteHeader(ref writer);
+        writer.Flush();
     }
 
     private void WriteHeader<TBufferWriter>(ref ArchiveWriter<TBufferWriter> writer)

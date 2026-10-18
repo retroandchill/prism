@@ -12,4 +12,9 @@ public sealed class AssemblyDefinitionBuilder(AssemblyIdentity identity, TargetI
 
     public AssemblyDefinitionBuilder(AssemblyIdentity identity)
         : this(identity, TargetInfo.CurrentPlatform) { }
+
+    public AssemblyDefinition Build()
+    {
+        return new AssemblyDefinition(this);
+    }
 }

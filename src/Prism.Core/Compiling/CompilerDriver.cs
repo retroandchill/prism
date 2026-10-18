@@ -11,6 +11,7 @@ using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Diagnostics;
 using Prism.Core.FlowAnalysis;
+using Prism.Core.Metadata;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Source;
@@ -387,5 +388,20 @@ internal static class CompilerDriver
             default:
                 throw new InvalidOperationException("Not a default constructible type");
         }
+    }
+
+    internal static AssemblyDefinition CreateAssemblyDefinition(Compilation compilation)
+    {
+        var assembly = compilation.Assembly;
+        var assemblyIdentity = new AssemblyIdentity(assembly.Name);
+        var targetInfo = new TargetInfo(
+            compilation.Settings.Architecture,
+            compilation.Settings.OperatingSystem,
+            compilation.Settings.Toolchain
+        );
+
+        var builder = new AssemblyDefinitionBuilder(assemblyIdentity, targetInfo);
+
+        return builder.Build();
     }
 }

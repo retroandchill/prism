@@ -282,7 +282,15 @@ public class Compilation
         using var context = BindingContext.Create();
         GetAllDiagnostics(CompilationStage.Declare, true, context, null, cancellationToken);
         FunctionCompiler.CompileFunctions(this, emitter, context, cancellationToken);
-        return await emitter.EmitAsync(context, cancellationToken);
+        var codeEmitTask = emitter.EmitAsync(context, cancellationToken);
+        if (!Settings.IsLibrary)
+            return await codeEmitTask;
+
+        var definition = CompilerDriver.CreateAssemblyDefinition(this);
+        var fileName = Path.Combine(filepath, $"{definition.Identity.Name}.prlib");
+        await using var file = File.Create(fileName);
+        await definition.WriteAsync(file, cancellationToken);
+        return await codeEmitTask;
     }
 
     public FunctionSymbol? GetEntryPoint()
