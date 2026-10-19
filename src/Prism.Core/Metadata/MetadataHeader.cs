@@ -5,12 +5,9 @@
 
 using System.Buffers;
 using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using JetBrains.Annotations;
 using MagicArchive;
-using NetEscapades.EnumGenerators;
-using Prism.Core.Configuration;
 
 namespace Prism.Core.Metadata;
 
@@ -20,14 +17,13 @@ internal readonly partial record struct MetadataHeader(
     TargetInfo TargetInfo
 )
 {
-    public static readonly ImmutableArray<byte> HeaderSequence = [.. "PRISM"u8];
-
-    public const ushort Version = 1;
+    private static readonly ImmutableArray<byte> HeaderSequence = [.. "PRISM"u8];
+    private const ushort Version = 1;
 
     [ArchivableOnSerializing]
     private static void WriteHeader<TBufferWriter>(
         ref ArchiveWriter<TBufferWriter> writer,
-        in MetadataHeader header
+        [UsedImplicitly] in MetadataHeader header
     )
         where TBufferWriter : IBufferWriter<byte>
     {
@@ -39,7 +35,10 @@ internal readonly partial record struct MetadataHeader(
     }
 
     [ArchivableOnDeserializing]
-    private static void ReadHeader(ref ArchiveReader reader, ref MetadataHeader value)
+    private static void ReadHeader(
+        ref ArchiveReader reader,
+        [UsedImplicitly] ref MetadataHeader value
+    )
     {
         foreach (var b in HeaderSequence)
         {
