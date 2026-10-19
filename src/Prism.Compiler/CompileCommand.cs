@@ -60,7 +60,7 @@ public class CompileCommand
         var compilation = Compilation.Create(
             Name,
             ImmutableCollectionsMarshal.AsImmutableArray(syntaxTress),
-            new CompilationSettings
+            settings: new CompilationSettings
             {
                 OutputKind = GetOutputKind(),
                 OptimizationLevel = optimizationLevel,

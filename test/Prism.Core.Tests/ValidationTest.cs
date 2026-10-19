@@ -153,7 +153,7 @@ public class ValidationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree], Settings);
+        var compilation = Compilation.Create(assemblyName, [tree], settings: Settings);
 
         var diagnostics = compilation.GetFunctionBodyDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(2));
@@ -179,7 +179,7 @@ public class ValidationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree], Settings);
+        var compilation = Compilation.Create(assemblyName, [tree], settings: Settings);
 
         var diagnostics = compilation.GetFunctionBodyDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(1));
@@ -207,7 +207,7 @@ public class ValidationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree], Settings);
+        var compilation = Compilation.Create(assemblyName, [tree], settings: Settings);
 
         var diagnostics = compilation.GetFunctionBodyDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(1));
@@ -230,7 +230,7 @@ public class ValidationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree], Settings);
+        var compilation = Compilation.Create(assemblyName, [tree], settings: Settings);
 
         var diagnostics = compilation.GetFunctionBodyDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(1));
@@ -252,7 +252,7 @@ public class ValidationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree], Settings);
+        var compilation = Compilation.Create(assemblyName, [tree], settings: Settings);
 
         var diagnostics = compilation.GetDeclarationDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(1));
@@ -268,7 +268,7 @@ public class ValidationTest
         var tree = SyntaxTree.Parse("func foo(x: i32);");
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree], Settings);
+        var compilation = Compilation.Create(assemblyName, [tree], settings: Settings);
 
         var diagnostics = compilation.GetDeclarationDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(1));

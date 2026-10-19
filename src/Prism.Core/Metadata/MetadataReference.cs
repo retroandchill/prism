@@ -2,31 +2,26 @@
 
 namespace Prism.Core.Metadata;
 
-public closed class MetadataReference
+public closed record MetadataReference
 {
-    public string Display { get; }
+    public abstract string Display { get; }
 
     internal virtual bool IsResolved => true;
-
-    private protected MetadataReference(string display)
-    {
-        Display = display;
-    }
 }
 
-public sealed class CompilationReference(Compilation compilation)
-    : MetadataReference(compilation.AssemblyName)
+public sealed record CompilationReference(Compilation Compilation) : MetadataReference
 {
-    public Compilation Compilation { get; } = compilation;
+    public override string Display => Compilation.AssemblyName;
 }
 
-public sealed class LibraryReference(string filePath, string? display = null)
-    : MetadataReference(display ?? filePath)
+public sealed record LibraryReference(string FilePath) : MetadataReference
 {
-    public string FilePath { get; } = filePath;
+    public override string Display => FilePath;
 }
 
-public sealed class UnresolvedReference(string display) : MetadataReference(display)
+public sealed record UnresolvedReference(string Display) : MetadataReference
 {
+    public override string Display { get; } = Display;
+
     internal override bool IsResolved => false;
 }

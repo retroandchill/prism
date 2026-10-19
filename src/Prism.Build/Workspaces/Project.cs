@@ -83,7 +83,7 @@ public sealed class Project
             OutputKind = _manifest.Output.Kind,
             BuildingCoreLibrary = _manifest.Package.IsCoreLibrary,
         };
-        return Compilation.Create(_manifest.Package.Name, trees, settings);
+        return Compilation.Create(_manifest.Package.Name, trees, settings: settings);
     }
 
     private ImmutableArray<SyntaxTree> ComputeSyntaxTrees(CancellationToken cancellationToken)

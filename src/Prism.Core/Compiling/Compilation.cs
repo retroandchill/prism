@@ -8,6 +8,7 @@ using Prism.Core.Codegen;
 using Prism.Core.Configuration;
 using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
+using Prism.Core.Metadata;
 using Prism.Core.Semantic;
 using Prism.Core.Semantic.Layout;
 using Prism.Core.Symbols;
@@ -33,27 +34,33 @@ public class Compilation
     private Compilation(
         string assemblyName,
         CompilationSettings settings,
-        SyntaxAndDeclarationManager manager
+        SyntaxAndDeclarationManager manager,
+        ImmutableArray<MetadataReference> references
     )
     {
         AssemblyName = assemblyName;
         Settings = settings;
         _syntaxAndDeclarationManager = manager;
+        ExternalReferences = references;
     }
 
     public static Compilation Create(
         string assemblyName,
         ImmutableArray<SyntaxTree> trees,
+        IEnumerable<MetadataReference>? references = null,
         CompilationSettings? settings = null
     )
     {
         if (trees.IsDefaultOrEmpty)
             throw new InvalidOperationException("Cannot create compilation with no syntax trees");
 
+        var validatedReferences = ValidateReferences(references);
+
         return new Compilation(
             assemblyName,
             settings ?? CompilationSettings.CurrentPlatform,
-            new SyntaxAndDeclarationManager(trees)
+            new SyntaxAndDeclarationManager(trees),
+            validatedReferences
         );
     }
 
@@ -92,6 +99,17 @@ public class Compilation
             Interlocked.CompareExchange(ref field, mergedNamespace, null);
             return field;
         }
+    }
+
+    public ImmutableArray<MetadataReference> ExternalReferences { get; }
+
+    private static ImmutableArray<MetadataReference> ValidateReferences(
+        IEnumerable<MetadataReference>? references
+    )
+    {
+        return references is not null
+            ? references.AsValueEnumerable().Distinct().ToImmutableArray()
+            : [];
     }
 
     public NamespaceSymbol? GetCompilationNamespace(NamespaceSymbol assemblyNamespace)
