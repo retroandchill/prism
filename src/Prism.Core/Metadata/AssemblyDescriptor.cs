@@ -3,6 +3,8 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using MagicArchive;
+
 namespace Prism.Core.Metadata;
 
 public closed class AssemblyDescriptor : IMetadataTokenProvider
@@ -11,8 +13,10 @@ public closed class AssemblyDescriptor : IMetadataTokenProvider
 
     public AssemblyIdentity Identity { get; }
 
+    [ArchiveIgnore]
     public string Name => Identity.Name;
 
+    [ArchiveIgnore]
     public Version Version => Identity.Version;
 
     private protected AssemblyDescriptor(AssemblyIdentity identity, MetadataToken metadataToken)

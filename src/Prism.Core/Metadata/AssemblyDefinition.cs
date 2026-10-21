@@ -28,7 +28,6 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
     public TargetInfo Target { get; }
 
     private readonly MetadataReader? _reader;
-    private readonly Lock _readerLock = new();
 
     internal AssemblyDefinition(AssemblyDefinitionBuilder builder)
         : base(builder.Identity, new MetadataToken(TokenType.Assembly, 1))
@@ -51,21 +50,13 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
             if (!field.IsDefault)
                 return field;
 
-            Read(ref field, reader => reader.ReadReferencedAssemblies());
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                _reader?.ReadReferencedAssemblies() ?? []
+            );
             return field;
         }
         private init;
-    }
-
-    internal void Read<T>(
-        ref ImmutableArray<T> value,
-        Func<MetadataReader, ImmutableArray<T>> factory
-    )
-    {
-        Debug.Assert(_reader is not null);
-        using var scope = _readerLock.EnterScope();
-        using var readerScope = _reader.EnterScope();
-        value = factory(_reader);
     }
 
     public static async ValueTask<AssemblyDefinition> LoadAsync(
@@ -77,27 +68,12 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
         try
         {
             await builder.ReadFromStreamAsync(stream, cancellationToken);
-            return builder.TryGetSingleMemory(out var memory)
-                ? Load(memory)
-                : Load(builder.Build());
+            return Load(builder.Build());
         }
         finally
         {
             ReusableReadOnlySequenceBuilderPool.Return(builder);
         }
-    }
-
-    public static AssemblyDefinition Load(ReadOnlyMemory<byte> memory)
-    {
-        using var state = ArchiveReaderStatePool.Rent(ArchiveSerializerOptions.LittleEndian);
-        var reader = new ArchiveReader(memory.Span, state);
-
-        var (identity, targetInfo) = reader.ReadArchivable<MetadataHeader>();
-        return new AssemblyDefinition(
-            identity,
-            targetInfo,
-            new MetadataReader(new ReadOnlySequence<byte>(memory[reader.ConsumedBytes..]))
-        );
     }
 
     public static AssemblyDefinition Load(ReadOnlySequence<byte> sequence)
@@ -148,12 +124,10 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
     private void WriteSections<TBufferWriter>(ref ArchiveWriter<TBufferWriter> writer)
         where TBufferWriter : IBufferWriter<byte>
     {
-        Span<(Section Section, int Offset)> sections = stackalloc (Section, int)[Sections.Length];
-
-        writer.WriteCollectionHeader(Sections.Length);
+        Span<int> sections = stackalloc int[Sections.Length];
         for (byte i = 0; i < Sections.Length; i++)
         {
-            sections[i] = ((Section)i, -1);
+            sections[i] = -1;
         }
 
         var tempBuffer = ReusableLinkedArrayBufferWriterPool.Rent();
@@ -161,15 +135,14 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
         try
         {
             var tempWriter = ArchiveWriter.Create(ref tempBuffer, writer.State);
-            using var metadataContext = MetadataWriteState.Create(writer.State);
-            WriteStringTable(ref tempWriter, metadataContext);
-            sections[(int)Section.StringTable] = (Section.StringTable, tempWriter.WrittenBytes);
+            using var metadataContext = new MetadataWriteState(writer.State);
 
             WriteAssemblyReferences(ref tempWriter);
-            sections[(int)Section.AssemblyReferences] = (
-                Section.AssemblyReferences,
-                tempWriter.WrittenBytes
-            );
+            sections[(int)Section.AssemblyReferences] = tempWriter.WrittenBytes;
+
+            // The heaps must always be written last
+            WriteStringTable(ref tempWriter, metadataContext);
+            sections[(int)Section.StringTable] = tempWriter.WrittenBytes;
 
             tempWriter.Flush();
 
@@ -182,29 +155,13 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
         }
     }
 
-    private void WriteStringTable<TBufferWriter>(
+    private static void WriteStringTable<TBufferWriter>(
         ref ArchiveWriter<TBufferWriter> writer,
         MetadataWriteState writeState
     )
         where TBufferWriter : IBufferWriter<byte>
     {
-        var start = writer.WrittenBytes;
-        foreach (var str in CollectInternableStrings())
-        {
-            if (writeState.StringTable.ContainsKey(str))
-                continue;
-
-            Utf8StringFormatter.Default.Serialize(ref writer, str);
-            writeState.StringTable[str] = writer.WrittenBytes - start;
-        }
-    }
-
-    private IEnumerable<string> CollectInternableStrings()
-    {
-        foreach (var assembly in ReferencedAssemblies)
-        {
-            yield return assembly.Identity.Name;
-        }
+        writeState.WriteToTable(ref writer);
     }
 
     private void WriteAssemblyReferences<TBufferWriter>(ref ArchiveWriter<TBufferWriter> writer)

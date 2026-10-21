@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using MagicArchive;
+﻿using MagicArchive;
 using MagicArchive.Formatters;
 
 namespace Prism.Core.Metadata;
@@ -26,13 +25,20 @@ internal sealed class MetadataStringFormatter : ArchiveFormatter<string>
         }
         else
         {
-            writer.WriteBlittable(metadataContext.StringTable[value]);
+            writer.WriteBlittable(metadataContext.GetOrAddString(value));
         }
     }
 
     public override void Deserialize(ref ArchiveReader reader, scoped ref string? value)
     {
-        throw new NotImplementedException();
+        var metadataContext = reader.MetadataState;
+        if (metadataContext is null)
+        {
+            Utf8StringFormatter.Default.Deserialize(ref reader, ref value);
+            return;
+        }
+
+        value = metadataContext.GetString(reader.ReadBlittable<int>());
     }
 }
 

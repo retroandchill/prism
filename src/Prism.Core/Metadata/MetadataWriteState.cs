@@ -1,7 +1,8 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
 using MagicArchive;
-using Microsoft.Extensions.ObjectPool;
+using MagicArchive.Formatters;
+using MagicArchive.Utilities;
 
 namespace Prism.Core.Metadata;
 
@@ -9,53 +10,41 @@ using ExtraMapping = ConcurrentDictionary<ArchiveWriterState, MetadataWriteState
 
 internal sealed class MetadataWriteState : IDisposable
 {
-    private static readonly ObjectPool<MetadataWriteState> Pool;
     internal static readonly ExtraMapping Mapping = new(ReferenceEqualityComparer.Instance);
 
-    private ArchiveWriterState _writerState = null!;
+    private readonly ArchiveWriterState _writerState;
+    private readonly Dictionary<string, int> _stringTableMapping = new();
+    private ReusableLinkedArrayBufferWriter _stringTable;
 
-    private MetadataWriteState() { }
-
-    public static MetadataWriteState Create(ArchiveWriterState state)
-    {
-        var result = Pool.Get();
-        result.Init(state);
-        return result;
-    }
-
-    private void Init(ArchiveWriterState state)
+    public MetadataWriteState(ArchiveWriterState state)
     {
         _writerState = state;
+        _stringTable = ReusableLinkedArrayBufferWriterPool.Rent();
         Mapping.TryAdd(_writerState, this);
     }
 
-    public Dictionary<string, int> StringTable { get; } = new();
-
-    private sealed class ContextObjectPolicy : IPooledObjectPolicy<MetadataWriteState>
+    public int GetOrAddString(string str)
     {
-        public MetadataWriteState Create()
-        {
-            return new MetadataWriteState();
-        }
+        if (_stringTableMapping.TryGetValue(str, out var offset))
+            return offset;
 
-        public bool Return(MetadataWriteState obj)
-        {
-            Mapping.TryRemove(obj._writerState, out _);
-            obj._writerState = null!;
-            obj.StringTable.Clear();
-            return true;
-        }
+        offset = _stringTable.TotalWritten;
+        var writer = ArchiveWriter.Create(ref _stringTable, _writerState);
+        Utf8StringFormatter.Default.Serialize(ref writer, str);
+        _stringTableMapping.Add(str, offset);
+        return offset;
     }
 
-    static MetadataWriteState()
+    public void WriteToTable<TBufferWriter>(ref ArchiveWriter<TBufferWriter> writer)
+        where TBufferWriter : IBufferWriter<byte>
     {
-        var provider = new DefaultObjectPoolProvider();
-        Pool = provider.Create(new ContextObjectPolicy());
+        writer.WriteBlittable(_stringTable.TotalWritten);
+        _stringTable.WriteToAndReset(ref writer);
     }
 
     public void Dispose()
     {
-        Pool.Return(this);
+        ReusableLinkedArrayBufferWriterPool.Return(_stringTable);
     }
 }
 
