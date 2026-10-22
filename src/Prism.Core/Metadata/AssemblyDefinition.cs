@@ -5,10 +5,8 @@
 
 using System.Buffers;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using MagicArchive;
-using MagicArchive.Formatters;
 using MagicArchive.Utilities;
 using NetEscapades.EnumGenerators;
 using ZLinq;
@@ -20,6 +18,7 @@ internal enum Section : byte
 {
     StringTable,
     AssemblyReferences,
+    Namespaces,
     SymbolTable,
 }
 
@@ -34,6 +33,7 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
     {
         Target = builder.Target;
         ReferencedAssemblies = [.. builder.ReferencedAssemblies.AsValueEnumerable().Distinct()];
+        Namespaces = [.. builder.Namespaces.AsValueEnumerable().Distinct()];
     }
 
     internal AssemblyDefinition(AssemblyIdentity identity, TargetInfo info, MetadataReader reader)
@@ -54,6 +54,19 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
                 ref field,
                 _reader?.ReadReferencedAssemblies() ?? []
             );
+            return field;
+        }
+        private init;
+    }
+
+    public ImmutableArray<MetadataNamespace> Namespaces
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            ImmutableInterlocked.InterlockedInitialize(ref field, _reader?.ReadNamespaces() ?? []);
             return field;
         }
         private init;
@@ -140,6 +153,9 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
             WriteAssemblyReferences(ref tempWriter);
             sections[(int)Section.AssemblyReferences] = tempWriter.WrittenBytes;
 
+            WriteNamespaces(ref tempWriter);
+            sections[(int)Section.Namespaces] = tempWriter.WrittenBytes;
+
             // The heaps must always be written last
             WriteStringTable(ref tempWriter, metadataContext);
             sections[(int)Section.StringTable] = tempWriter.WrittenBytes;
@@ -167,7 +183,13 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
     private void WriteAssemblyReferences<TBufferWriter>(ref ArchiveWriter<TBufferWriter> writer)
         where TBufferWriter : IBufferWriter<byte>
     {
-        writer.WriteCollectionHeader(ReferencedAssemblies.Length);
+        writer.WriteValue(ReferencedAssemblies);
+    }
+
+    private void WriteNamespaces<TBufferWriter>(ref ArchiveWriter<TBufferWriter> writer)
+        where TBufferWriter : IBufferWriter<byte>
+    {
+        writer.WriteValue(Namespaces);
     }
 
     public void Dispose()

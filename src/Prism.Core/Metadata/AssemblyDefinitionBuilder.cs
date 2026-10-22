@@ -1,5 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 
 namespace Prism.Core.Metadata;
 
@@ -13,11 +12,16 @@ public sealed class AssemblyDefinitionBuilder(AssemblyIdentity identity, TargetI
     private readonly Dictionary<AssemblyIdentity, AssemblyReference> _referencedAssembliesMap = [];
     private uint _nextAssemblyReferenceId = 2;
 
+    private readonly List<MetadataNamespace> _namespaces = [];
+    private uint _nextNamespaceId = 1;
+
     public AssemblyDefinitionBuilder(AssemblyIdentity identity)
         : this(identity, TargetInfo.CurrentPlatform) { }
 
     public ReadOnlyCollection<AssemblyReference> ReferencedAssemblies =>
         field ??= _referencedAssemblies.AsReadOnly();
+
+    public ReadOnlyCollection<MetadataNamespace> Namespaces => field ??= _namespaces.AsReadOnly();
 
     public void AddReferencedAssembly(AssemblyReference reference)
     {
@@ -26,6 +30,13 @@ public sealed class AssemblyDefinitionBuilder(AssemblyIdentity identity, TargetI
 
         _referencedAssemblies.Add(reference);
         reference.Id = _nextAssemblyReferenceId++;
+    }
+
+    public MetadataNamespaceId AddNamespace(string name, MetadataNamespaceId parentId = default)
+    {
+        var id = new MetadataNamespaceId(_nextNamespaceId++);
+        _namespaces.Add(new MetadataNamespace(id, parentId, name));
+        return id;
     }
 
     public AssemblyDefinition Build()

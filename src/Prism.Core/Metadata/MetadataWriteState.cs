@@ -32,6 +32,7 @@ internal sealed class MetadataWriteState : IDisposable
         var writer = ArchiveWriter.Create(ref _stringTable, _writerState);
         Utf8StringFormatter.Default.Serialize(ref writer, str);
         _stringTableMapping.Add(str, offset);
+        writer.Flush();
         return offset;
     }
 

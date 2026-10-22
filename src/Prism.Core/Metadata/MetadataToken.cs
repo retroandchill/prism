@@ -4,15 +4,20 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Numerics;
+using MagicArchive;
 
 namespace Prism.Core.Metadata;
 
-public readonly record struct MetadataToken : IEqualityOperators<MetadataToken, MetadataToken, bool>
+[Archivable]
+public readonly partial record struct MetadataToken
+    : IEqualityOperators<MetadataToken, MetadataToken, bool>
 {
+    [ArchiveInclude]
     private readonly uint _value;
     private const uint IdMask = 0x00ffffff;
     private const uint TypeMask = 0xff000000;
 
+    [ArchiveIgnore]
     public uint Id
     {
         get => _value & IdMask;
@@ -23,6 +28,7 @@ public readonly record struct MetadataToken : IEqualityOperators<MetadataToken, 
         }
     }
 
+    [ArchiveIgnore]
     public TokenType Type
     {
         get => (TokenType)(_value & TypeMask);
