@@ -7,7 +7,7 @@ using MagicArchive;
 
 namespace Prism.Core.Metadata;
 
-internal sealed class StringHeapBuilder : IDisposable
+internal sealed class StringHeapBuilder : IHeapBuilder, IDisposable
 {
     private readonly Dictionary<string, StringHandle> _map = new(StringComparer.Ordinal);
 

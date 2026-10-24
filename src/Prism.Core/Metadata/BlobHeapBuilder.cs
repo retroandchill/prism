@@ -8,7 +8,7 @@ using MagicArchive;
 
 namespace Prism.Core.Metadata;
 
-internal sealed class BlobHeapBuilder : IDisposable
+internal sealed class BlobHeapBuilder : IHeapBuilder, IDisposable
 {
     private readonly Dictionary<ImmutableArray<byte>, BlobHandle> _map = new(
         BinarySequenceComparer.Default

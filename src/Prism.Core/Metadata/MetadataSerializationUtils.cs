@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Unicode;
 using MagicArchive;
+using MagicArchive.Utilities;
 
 namespace Prism.Core.Metadata;
 
@@ -51,7 +52,7 @@ internal static class MetadataSerializationUtils
 
         public void WriteMetadataBytes(ReadOnlySpan<byte> value)
         {
-            if (value.Length == 0)
+            if (value.IsEmpty)
                 return;
 
             var byteCount = value.Length;
@@ -60,6 +61,25 @@ internal static class MetadataSerializationUtils
 
             Unsafe.CopyBlockUnaligned(ref dest, ref src, (uint)byteCount);
             writer.Advance(byteCount);
+        }
+
+        public void WriteMetadataRows<T>(ReadOnlySpan<T> rows)
+            where T : struct, IArchivable<T>
+        {
+            if (rows.IsEmpty)
+                return;
+
+            if (!writer.IsByteSwapping && BlittableMarshalling.IsBlittable<T>())
+            {
+                var rawBytes = MemoryMarshal.AsBytes(rows);
+                writer.WriteMetadataBytes(rawBytes);
+                return;
+            }
+
+            foreach (ref readonly var row in rows)
+            {
+                T.Serialize(ref writer, in row);
+            }
         }
     }
 

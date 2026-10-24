@@ -15,9 +15,28 @@ internal sealed class MetadataBuilder : IDisposable
     private readonly StringHeapBuilder _strings = new();
     private readonly BlobHeapBuilder _blobs = new();
 
+    private readonly Dictionary<AssemblyIdentityData, MetadataToken> _seenAssemblyReferences =
+        new();
+    private readonly List<AssemblyIdentityData> _referencedAssemblies = [];
+
     public MetadataBuilder(AssemblyIdentity identity, TargetInfo target)
     {
         _header = new MetadataHeader(ConvertAssemblyIdentity(identity), target);
+        _seenAssemblyReferences.Add(
+            _header.AssemblyIdentity,
+            new MetadataToken(TokenType.Assembly, 1)
+        );
+    }
+
+    public void AddReferencedAssembly(AssemblyIdentity identity)
+    {
+        var data = ConvertAssemblyIdentity(identity);
+        if (_seenAssemblyReferences.ContainsKey(data))
+            return;
+
+        var id = AssemblyRefHandle.FromRowId(_referencedAssemblies.Count + 1);
+        _seenAssemblyReferences.Add(data, id);
+        _referencedAssemblies.Add(data);
     }
 
     private AssemblyIdentityData ConvertAssemblyIdentity(AssemblyIdentity identity)
@@ -57,38 +76,77 @@ internal sealed class MetadataBuilder : IDisposable
         writer.Flush();
         var sectionEnd = bufferWriter.Position;
 
-        sectionHeaders[0] = new SectionHeader(
+        var currentSection = 0;
+
+        WriteHeap(
+            ref writer,
+            ref bufferWriter,
+            _strings,
+            sectionHeaders,
             Section.StringTable,
-            bufferWriter.Position,
-            _strings.Data.Length,
-            _strings.Count
+            ref currentSection
         );
-        writer.WriteMetadataBytes(_strings.Data);
-        writer.Flush();
-
-        sectionHeaders[1] = new SectionHeader(
+        WriteHeap(
+            ref writer,
+            ref bufferWriter,
+            _blobs,
+            sectionHeaders,
             Section.BinaryBlobs,
-            bufferWriter.Position,
-            _blobs.Data.Length,
-            _blobs.Count
+            ref currentSection
         );
-        writer.WriteMetadataBytes(_blobs.Data);
-        writer.Flush();
-
-        sectionHeaders[2] = new SectionHeader(
+        WriteRows(
+            ref writer,
+            ref bufferWriter,
+            _referencedAssemblies,
+            sectionHeaders,
             Section.AssemblyReferences,
-            bufferWriter.Position,
-            0,
-            0
+            ref currentSection
         );
-        writer.WriteMetadataBytes([]);
-        writer.Flush();
 
         var targetMemory = bufferWriter.WrittenMemory[sectionStart..sectionEnd];
         var backPatchWriter = new BackPatchWriter(MemoryMarshal.AsMemory(targetMemory));
         var subWriter = ArchiveWriter.Create(ref backPatchWriter, state);
         subWriter.WriteSpan(sectionHeaders);
         subWriter.Flush();
+    }
+
+    private void WriteHeap(
+        ref ArchiveWriter<MetadataBuffer> writer,
+        ref MetadataBuffer bufferWriter,
+        IHeapBuilder heap,
+        scoped Span<SectionHeader> sectionHeaders,
+        Section section,
+        ref int sectionIndex
+    )
+    {
+        sectionHeaders[sectionIndex++] = new SectionHeader(
+            section,
+            bufferWriter.Position,
+            _strings.Data.Length,
+            _strings.Count
+        );
+        writer.WriteMetadataBytes(heap.Data);
+        writer.Flush();
+    }
+
+    private void WriteRows<T>(
+        ref ArchiveWriter<MetadataBuffer> writer,
+        ref MetadataBuffer bufferWriter,
+        List<T> rows,
+        scoped Span<SectionHeader> sectionHeaders,
+        Section section,
+        ref int sectionIndex
+    )
+        where T : struct, IArchivable<T>, IFixedSizeArchivable
+    {
+        sectionHeaders[sectionIndex++] = new SectionHeader(
+            section,
+            bufferWriter.Position,
+            T.Size * rows.Count,
+            rows.Count
+        );
+        writer.WriteMetadataRows(CollectionsMarshal.AsSpan(rows));
+        writer.Flush();
     }
 
     public void Dispose()

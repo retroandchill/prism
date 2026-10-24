@@ -52,7 +52,7 @@ public readonly partial record struct MetadataToken
         _value = (uint)type | id;
     }
 
-    internal static bool IsValidId(uint id)
+    internal static bool IsValidId(int id)
     {
         return id <= IdMask;
     }
