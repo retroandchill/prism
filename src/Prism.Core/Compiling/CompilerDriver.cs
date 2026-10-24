@@ -402,24 +402,6 @@ internal static class CompilerDriver
 
         var builder = new AssemblyDefinitionBuilder(assemblyIdentity, targetInfo);
 
-        AddMembers(builder, compilation.GlobalNamespace);
-
         return builder.Build();
-    }
-
-    private static void AddMembers(
-        AssemblyDefinitionBuilder builder,
-        NamespaceSymbol symbol,
-        MetadataNamespaceId id = default
-    )
-    {
-        foreach (var member in symbol.GetMembers())
-        {
-            if (member is not NamespaceSymbol ns)
-                continue;
-
-            var namespaceId = builder.AddNamespace(ns.Name, id);
-            AddMembers(builder, ns, namespaceId);
-        }
     }
 }

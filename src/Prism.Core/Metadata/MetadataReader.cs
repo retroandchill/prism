@@ -55,16 +55,6 @@ internal sealed class MetadataReader : IDisposable
         return reader.ReadValue<ImmutableArray<AssemblyReference>>();
     }
 
-    public ImmutableArray<MetadataNamespace> ReadNamespaces()
-    {
-        var section = GetSection(Section.Namespaces);
-        if (section.IsEmpty)
-            return [];
-
-        var reader = new ArchiveReader(section, _archiveReaderState);
-        return reader.ReadValue<ImmutableArray<MetadataNamespace>>();
-    }
-
     public void Dispose()
     {
         if (_disposed)

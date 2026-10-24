@@ -37,11 +37,15 @@ internal sealed class MetadataReadState : IDisposable
     private string ReadStringValue(int offset)
     {
         var reader = new ArchiveReader(_stringTable, _state);
-        reader.Advance(offset);
-        string? stringValue = null;
-        Utf8StringFormatter.Default.Deserialize(ref reader, ref stringValue);
-        Debug.Assert(stringValue is not null);
-        return stringValue;
+        try
+        {
+            reader.Advance(offset);
+            return reader.ReadMetadataString();
+        }
+        finally
+        {
+            reader.Dispose();
+        }
     }
 
     public void Dispose()

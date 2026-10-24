@@ -1,52 +1,87 @@
-﻿using MagicArchive;
+﻿using System.Buffers;
+using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Unicode;
+using MagicArchive;
 using MagicArchive.Formatters;
 
 namespace Prism.Core.Metadata;
 
-internal sealed class MetadataStringFormatter : ArchiveFormatter<string>
+internal static class MetadataStringFormatter
 {
-    public static readonly MetadataStringFormatter Default = new();
-
-    public override void Serialize<TBufferWriter>(
-        ref ArchiveWriter<TBufferWriter> writer,
-        scoped in string? value
+    public static void WriteMetadataString<TBufferWriter>(
+        this ref ArchiveWriter<TBufferWriter> writer,
+        string value
     )
+        where TBufferWriter : IBufferWriter<byte>
     {
-        var metadataContext = writer.MetadataState;
-        if (metadataContext is null)
+        if (value.Length == 0)
         {
-            Utf8StringFormatter.Default.Serialize(ref writer, value);
+            writer.WriteCollectionHeader(0);
             return;
         }
 
-        if (value is null)
+        var maxUtf8Size = Encoding.UTF8.GetMaxByteCount(value.Length);
+        ref var destPointer = ref writer.GetSpanReference(maxUtf8Size + sizeof(int));
+        var dest = MemoryMarshal.CreateSpan(
+            ref Unsafe.Add(ref destPointer, sizeof(int)),
+            maxUtf8Size
+        );
+        var status = Utf8.FromUtf16(
+            value,
+            dest,
+            out _,
+            out var bytesWritten,
+            replaceInvalidSequences: false
+        );
+        if (status != OperationStatus.Done)
         {
-            writer.WriteBlittable(-1);
+            ArchiveSerializationException.ThrowFailedEncoding(status);
         }
+
+        if (!writer.IsByteSwapping)
+            Unsafe.WriteUnaligned(ref destPointer, bytesWritten);
         else
-        {
-            writer.WriteBlittable(metadataContext.GetOrAddString(value));
-        }
+            Unsafe.WriteUnaligned(
+                ref destPointer,
+                BinaryPrimitives.ReverseEndianness(bytesWritten)
+            );
+        writer.Advance(bytesWritten + sizeof(int));
     }
 
-    public override void Deserialize(ref ArchiveReader reader, scoped ref string? value)
+    public static string ReadMetadataString(this ref ArchiveReader reader)
     {
-        var metadataContext = reader.MetadataState;
-        if (metadataContext is null)
+        if (!reader.TryReadCollectionHeader(out var utf8Length))
         {
-            Utf8StringFormatter.Default.Deserialize(ref reader, ref value);
-            return;
+            throw new InvalidOperationException("Expected a non-null string");
         }
 
-        value = metadataContext.GetString(reader.ReadBlittable<int>());
-    }
-}
+        ref var spanRef = ref reader.GetSpanReference(utf8Length);
 
-internal sealed class MetadataStringFormatterAttribute
-    : ArchiveCustomFormatterAttribute<MetadataStringFormatter, string>
-{
-    public override MetadataStringFormatter GetFormatter()
-    {
-        return MetadataStringFormatter.Default;
+        var maxBufferSize = Encoding.UTF8.GetMaxCharCount(utf8Length);
+        var buffer = ArrayPool<char>.Shared.Rent(maxBufferSize);
+        try
+        {
+            var src = MemoryMarshal.CreateReadOnlySpan(ref spanRef, utf8Length);
+            var status = Utf8.ToUtf16(
+                src,
+                buffer,
+                out _,
+                out var strLength,
+                replaceInvalidSequences: false
+            );
+            if (status != OperationStatus.Done)
+            {
+                ArchiveSerializationException.ThrowFailedEncoding(status);
+            }
+            reader.Advance(utf8Length);
+            return new string(buffer.AsSpan(0, strLength));
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(buffer);
+        }
     }
 }

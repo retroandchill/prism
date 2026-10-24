@@ -9,7 +9,6 @@ using Prism.Core.Configuration;
 namespace Prism.Core.Metadata;
 
 [Archivable]
-[method: ArchivableConstructor]
 public readonly partial record struct TargetInfo(
     TargetArchitecture Architecture,
     TargetOperatingSystem OperatingSystem,

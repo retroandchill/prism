@@ -52,6 +52,11 @@ public readonly partial record struct MetadataToken
         _value = (uint)type | id;
     }
 
+    internal static bool IsValidId(uint id)
+    {
+        return id <= IdMask;
+    }
+
     public uint ToUInt32() => _value;
 
     public bool Equals(MetadataToken other)
