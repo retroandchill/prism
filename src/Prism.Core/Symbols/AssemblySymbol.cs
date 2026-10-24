@@ -1,9 +1,13 @@
-﻿namespace Prism.Core.Symbols;
+﻿using Prism.Core.Metadata;
+
+namespace Prism.Core.Symbols;
 
 public closed class AssemblySymbol : Symbol
 {
     private protected AssemblySymbol(string name)
         : base(name) { }
+
+    public abstract AssemblyIdentity Identity { get; }
 
     public sealed override AssemblySymbol? ContainingAssembly => null;
 

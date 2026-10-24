@@ -25,3 +25,23 @@ public readonly partial record struct AssemblyRefHandle
 
     private partial AssemblyRefHandle(int id);
 }
+
+[Archivable]
+[Handle]
+public readonly partial record struct NamespaceHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial NamespaceHandle(int id);
+}
+
+[Archivable]
+[Handle]
+public readonly partial record struct TypeDefHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial TypeDefHandle(int id);
+}

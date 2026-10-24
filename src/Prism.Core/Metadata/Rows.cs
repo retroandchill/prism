@@ -21,3 +21,13 @@ internal readonly partial record struct AssemblyIdentityData(
     StringHandle Name,
     VersionData Version
 );
+
+[Archivable]
+internal readonly partial record struct NamespaceRow(StringHandle Name, NamespaceHandle Parent);
+
+[Archivable]
+internal readonly partial record struct TypeDefinitionRow(
+    StringHandle Name,
+    NamespaceHandle Namespace,
+    AssemblyRefHandle AssemblyRef
+);

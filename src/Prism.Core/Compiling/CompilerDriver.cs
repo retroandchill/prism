@@ -397,7 +397,7 @@ internal static class CompilerDriver
     )
     {
         var assembly = compilation.Assembly;
-        var assemblyIdentity = new AssemblyIdentity(assembly.Name);
+        var assemblyIdentity = assembly.Identity;
         var targetInfo = new TargetInfo(
             compilation.Settings.Architecture,
             compilation.Settings.OperatingSystem,
@@ -405,9 +405,46 @@ internal static class CompilerDriver
         );
 
         using var builder = new MetadataBuilder(assemblyIdentity, targetInfo);
+        AddSymbols(compilation, builder, cancellationToken);
 
         var fileName = Path.Combine(filepath, $"{compilation.AssemblyName}.prlib");
         await using var file = File.Create(fileName);
         await builder.WriteAsync(file, cancellationToken);
+    }
+
+    private static void AddSymbols(
+        Compilation compilation,
+        MetadataBuilder builder,
+        CancellationToken cancellationToken
+    )
+    {
+        foreach (var symbol in compilation.Assembly.GlobalNamespace.GetMembers())
+        {
+            AddTopLevelSymbol(symbol, builder, default, cancellationToken);
+        }
+    }
+
+    private static void AddTopLevelSymbol(
+        Symbol symbol,
+        MetadataBuilder builder,
+        NamespaceHandle parent,
+        CancellationToken cancellationToken
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        switch (symbol)
+        {
+            case NamespaceSymbol ns:
+            {
+                var name = builder.GetOrAddString(symbol.Name);
+                var row = new NamespaceRow(name, parent);
+                var handle = builder.AddNamespace(row);
+                foreach (var member in ns.GetMembers())
+                {
+                    AddTopLevelSymbol(member, builder, handle, cancellationToken);
+                }
+                break;
+            }
+        }
     }
 }

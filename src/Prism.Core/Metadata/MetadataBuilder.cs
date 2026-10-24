@@ -5,6 +5,7 @@
 
 using System.Runtime.InteropServices;
 using MagicArchive;
+using Prism.Core.Symbols;
 
 namespace Prism.Core.Metadata;
 
@@ -15,28 +16,37 @@ internal sealed class MetadataBuilder : IDisposable
     private readonly StringHeapBuilder _strings = new();
     private readonly BlobHeapBuilder _blobs = new();
 
-    private readonly Dictionary<AssemblyIdentityData, MetadataToken> _seenAssemblyReferences =
-        new();
+    private readonly Dictionary<AssemblyIdentity, MetadataToken> _seenAssemblyReferences = new();
     private readonly List<AssemblyIdentityData> _referencedAssemblies = [];
+
+    private readonly List<NamespaceRow> _namespaces = [];
 
     public MetadataBuilder(AssemblyIdentity identity, TargetInfo target)
     {
         _header = new MetadataHeader(ConvertAssemblyIdentity(identity), target);
-        _seenAssemblyReferences.Add(
-            _header.AssemblyIdentity,
-            new MetadataToken(TokenType.Assembly, 1)
-        );
+        _seenAssemblyReferences.Add(identity, new MetadataToken(TokenType.Assembly, 1));
+    }
+
+    public StringHandle GetOrAddString(string value)
+    {
+        return _strings.GetOrAdd(value);
     }
 
     public void AddReferencedAssembly(AssemblyIdentity identity)
     {
-        var data = ConvertAssemblyIdentity(identity);
-        if (_seenAssemblyReferences.ContainsKey(data))
+        if (_seenAssemblyReferences.ContainsKey(identity))
             return;
 
+        var data = ConvertAssemblyIdentity(identity);
         var id = AssemblyRefHandle.FromRowId(_referencedAssemblies.Count + 1);
-        _seenAssemblyReferences.Add(data, id);
+        _seenAssemblyReferences.Add(identity, id);
         _referencedAssemblies.Add(data);
+    }
+
+    public NamespaceHandle AddNamespace(NamespaceRow row)
+    {
+        _namespaces.Add(row);
+        return NamespaceHandle.FromRowId(_namespaces.Count);
     }
 
     private AssemblyIdentityData ConvertAssemblyIdentity(AssemblyIdentity identity)
@@ -100,6 +110,14 @@ internal sealed class MetadataBuilder : IDisposable
             _referencedAssemblies,
             sectionHeaders,
             Section.AssemblyReferences,
+            ref currentSection
+        );
+        WriteRows(
+            ref writer,
+            ref bufferWriter,
+            _namespaces,
+            sectionHeaders,
+            Section.Namespaces,
             ref currentSection
         );
 

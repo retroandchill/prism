@@ -14,17 +14,19 @@ internal enum Section
     StringTable,
     BinaryBlobs,
     AssemblyReferences,
+    Namespaces,
 }
 
 internal static partial class Sections
 {
     public const uint Assembly = 0;
     public const uint AssemblyRef = 1;
-    public const uint TypeRef = 2;
-    public const uint TypeDef = 3;
-    public const uint Variable = 4;
-    public const uint Function = 5;
-    public const uint Parameter = 6;
+    public const uint Namespace = 2;
+    public const uint TypeRef = 3;
+    public const uint TypeDef = 4;
+    public const uint Variable = 5;
+    public const uint Function = 6;
+    public const uint Parameter = 7;
 
     public const int RowIdBitCount = 24;
 }
@@ -42,6 +44,7 @@ public enum TokenType : uint
     // ReSharper disable once ShiftExpressionZeroLeftOperand
     Assembly = Sections.Assembly << Sections.RowIdBitCount,
     AssemblyRef = Sections.AssemblyRef << Sections.RowIdBitCount,
+    Namespace = Sections.Namespace << Sections.RowIdBitCount,
     TypeRef = Sections.TypeRef << Sections.RowIdBitCount,
     TypeDef = Sections.TypeDef << Sections.RowIdBitCount,
     Variable = Sections.Variable << Sections.RowIdBitCount,

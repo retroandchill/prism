@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using Prism.Core.Compiling;
 using Prism.Core.Diagnostics;
+using Prism.Core.Metadata;
 using Prism.Core.Syntax;
 
 namespace Prism.Core.Symbols.Source;
@@ -31,6 +32,18 @@ internal sealed class SourceAssemblySymbol(Compilation compilation)
     }
 
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
+
+    public override AssemblyIdentity Identity
+    {
+        get
+        {
+            if (field is not null)
+                return field;
+
+            Interlocked.CompareExchange(ref field, new AssemblyIdentity(Name), null);
+            return field;
+        }
+    }
 
     public override NamespaceSymbol GlobalNamespace
     {
