@@ -304,10 +304,7 @@ public class Compilation
         if (!Settings.IsLibrary)
             return await codeEmitTask;
 
-        var definition = CompilerDriver.CreateAssemblyDefinition(this);
-        var fileName = Path.Combine(filepath, $"{definition.Identity.Name}.prlib");
-        await using var file = File.Create(fileName);
-        await definition.WriteAsync(file, cancellationToken);
+        await CompilerDriver.WriteMetadataFileAsync(this, filepath, cancellationToken);
         return await codeEmitTask;
     }
 

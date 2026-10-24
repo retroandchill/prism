@@ -3,17 +3,17 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using MagicArchive;
 using NetEscapades.EnumGenerators;
 
 namespace Prism.Core.Metadata;
 
 [EnumExtensions(ExtensionClassName = nameof(Sections))]
-internal enum Section : byte
+internal enum Section
 {
     StringTable,
+    BinaryBlobs,
     AssemblyReferences,
-    Namespaces,
-    SymbolTable,
 }
 
 internal static partial class Sections
@@ -28,6 +28,14 @@ internal static partial class Sections
 
     public const int RowIdBitCount = 24;
 }
+
+[Archivable]
+internal readonly partial record struct SectionHeader(
+    Section Kind,
+    int Offset,
+    int Size,
+    int Count
+);
 
 public enum TokenType : uint
 {

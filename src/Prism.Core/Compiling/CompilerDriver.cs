@@ -390,7 +390,11 @@ internal static class CompilerDriver
         }
     }
 
-    internal static AssemblyDefinition CreateAssemblyDefinition(Compilation compilation)
+    internal static async ValueTask WriteMetadataFileAsync(
+        Compilation compilation,
+        string filepath,
+        CancellationToken cancellationToken
+    )
     {
         var assembly = compilation.Assembly;
         var assemblyIdentity = new AssemblyIdentity(assembly.Name);
@@ -400,8 +404,10 @@ internal static class CompilerDriver
             compilation.Settings.Toolchain
         );
 
-        var builder = new AssemblyDefinitionBuilder(assemblyIdentity, targetInfo);
+        using var builder = new MetadataBuilder(assemblyIdentity, targetInfo);
 
-        return builder.Build();
+        var fileName = Path.Combine(filepath, $"{compilation.AssemblyName}.prlib");
+        await using var file = File.Create(fileName);
+        await builder.WriteAsync(file, cancellationToken);
     }
 }

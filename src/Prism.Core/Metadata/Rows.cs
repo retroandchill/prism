@@ -8,7 +8,13 @@ using MagicArchive;
 namespace Prism.Core.Metadata;
 
 [Archivable]
-internal readonly partial record struct VersionData(int Major, int Minor, int Build, int Revision);
+internal readonly partial record struct VersionData(int Major, int Minor, int Build, int Revision)
+{
+    public VersionData(Version version)
+        : this(version.Major, version.Minor, version.Build, version.Revision) { }
+
+    public static implicit operator VersionData(Version version) => new(version);
+}
 
 [Archivable]
 internal readonly partial record struct AssemblyIdentityData(

@@ -9,3 +9,6 @@ namespace Prism.Core.Metadata;
 
 [Archivable]
 public readonly partial record struct StringHandle(int Offset);
+
+[Archivable]
+public readonly partial record struct BlobHandle(int Offset);

@@ -5,53 +5,70 @@
 
 using System.Buffers;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using JetBrains.Annotations;
 using MagicArchive;
 
 namespace Prism.Core.Metadata;
 
-[Archivable]
+[Archivable(GenerateType.Custom)]
 internal readonly partial record struct MetadataHeader(
-    AssemblyIdentity AssemblyIdentity,
+    AssemblyIdentityData AssemblyIdentity,
     TargetInfo TargetInfo
 )
 {
     private static readonly ImmutableArray<byte> HeaderSequence = [.. "PRISM"u8];
     private const ushort Version = 1;
 
-    [ArchivableOnSerializing]
-    private static void WriteHeader<TBufferWriter>(
+    static void IArchivable<MetadataHeader>.Serialize<TBufferWriter>(
         ref ArchiveWriter<TBufferWriter> writer,
-        [UsedImplicitly] in MetadataHeader header
+        scoped in MetadataHeader value
     )
-        where TBufferWriter : IBufferWriter<byte>
     {
-        foreach (var b in HeaderSequence)
-        {
-            writer.WriteBlittable(b);
-        }
-        writer.WriteBlittable(Version);
+        WriteHeader(ref writer);
+        writer.WriteBlittable(Version, value.AssemblyIdentity, value.TargetInfo);
     }
 
-    [ArchivableOnDeserializing]
-    private static void ReadHeader(
+    private static void WriteHeader<TBufferWriter>(ref ArchiveWriter<TBufferWriter> writer)
+        where TBufferWriter : IBufferWriter<byte>
+    {
+        ref var spanReference = ref writer.GetSpanReference(HeaderSequence.Length);
+        ref var src = ref MemoryMarshal.GetReference(HeaderSequence.AsSpan());
+        Unsafe.CopyBlock(ref spanReference, ref src, (uint)HeaderSequence.Length);
+        writer.Advance(HeaderSequence.Length);
+    }
+
+    static void IArchivable<MetadataHeader>.Deserialize(
         ref ArchiveReader reader,
-        [UsedImplicitly] ref MetadataHeader value
+        scoped ref MetadataHeader value
     )
     {
-        foreach (var b in HeaderSequence)
-        {
-            if (reader.ReadBlittable<byte>() != b)
-            {
-                throw new SerializationException("Invalid header sequence");
-            }
-        }
+        ReadHeader(ref reader);
 
         var version = reader.ReadBlittable<ushort>();
         if (version != Version)
         {
-            throw new SerializationException("Invalid version");
+            throw new ArchiveSerializationException("Invalid version");
+        }
+
+        reader.ReadBlittable(out AssemblyIdentityData assemblyIdentity, out TargetInfo targetInfo);
+        value = new MetadataHeader(assemblyIdentity, targetInfo);
+    }
+
+    private static void ReadHeader(ref ArchiveReader reader)
+    {
+        ref var src = ref reader.GetSpanReference(HeaderSequence.Length);
+
+        Span<byte> destSpan = stackalloc byte[HeaderSequence.Length];
+        ref var dest = ref MemoryMarshal.GetReference(destSpan);
+        Unsafe.CopyBlockUnaligned(ref dest, ref src, (uint)HeaderSequence.Length);
+        reader.Advance(HeaderSequence.Length);
+
+        if (!destSpan.SequenceEqual(HeaderSequence.AsSpan()))
+        {
+            throw new ArchiveSerializationException("Invalid header");
         }
     }
 }
