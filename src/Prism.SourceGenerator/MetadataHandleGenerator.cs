@@ -163,7 +163,7 @@ public sealed class MetadataHandleGenerator : IIncrementalGenerator
         writer.WriteLine($"private partial {name}(MetadataToken token)");
         using (writer.EnterBlockScope())
         {
-            writer.Write("Debug.Assert(token.Type is ");
+            writer.Write("Debug.Assert(token.IsNone || token.Type is ");
             foreach (var (i, type) in types.AsValueEnumerable().Index())
             {
                 if (i > 0)

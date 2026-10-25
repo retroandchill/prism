@@ -165,6 +165,46 @@ public readonly partial record struct MemberContainerRefHandle
 
 [Archivable]
 [Handle]
+public readonly partial record struct VariableHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial VariableHandle(int id);
+}
+
+[Archivable]
+[Handle]
+public readonly partial record struct FunctionHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial FunctionHandle(int id);
+}
+
+[Archivable]
+[Handle]
+public readonly partial record struct ParameterHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial ParameterHandle(int id);
+}
+
+[Archivable]
+[CompositeHandle(typeof(FunctionHandle), typeof(TypeDefHandle))]
+public readonly partial record struct FunctionOrAttributeHandle
+{
+    [ArchiveInclude]
+    private readonly MetadataToken _token;
+
+    private partial FunctionOrAttributeHandle(MetadataToken token);
+}
+
+[Archivable]
+[Handle]
 public readonly partial record struct ConstantHandle
 {
     [ArchiveInclude]

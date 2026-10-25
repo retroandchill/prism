@@ -26,6 +26,7 @@ internal sealed class MetadataBuilder : IDisposable
     private readonly List<TypeReferenceRow> _typeRefs = [];
     private readonly SerializedHeapBuilder<TypeSpecHandle, TypeSpecRow> _typeSpecHeap = new();
 
+    private readonly List<VariableRow> _variables = [];
     private readonly List<ConstantRow> _constants = [];
 
     public MetadataBuilder(AssemblyIdentity identity, TargetInfo target)
@@ -45,11 +46,12 @@ internal sealed class MetadataBuilder : IDisposable
         return _blobs.GetOrAdd(in value);
     }
 
-    public void AddReferencedAssembly(AssemblyIdentity identity)
+    public AssemblyRefHandle AddReferencedAssembly(AssemblyIdentity identity)
     {
         var data = ConvertAssemblyIdentity(identity);
         var id = AssemblyRefHandle.FromRowId(_referencedAssemblies.Count + 1);
         _referencedAssemblies.Add(data);
+        return id;
     }
 
     public NamespaceDefHandle AddNamespaceDef(NamespaceDefRow defRow)
@@ -79,6 +81,12 @@ internal sealed class MetadataBuilder : IDisposable
     public TypeSpecHandle AddTypeSpec(TypeSpecRow row)
     {
         return _typeSpecHeap.Add(row);
+    }
+
+    public VariableHandle AddVariable(VariableRow row)
+    {
+        _variables.Add(row);
+        return VariableHandle.FromRowId(_variables.Count);
     }
 
     public ConstantHandle AddConstant(ConstantRow row)
@@ -161,9 +169,49 @@ internal sealed class MetadataBuilder : IDisposable
         WriteRows(
             ref writer,
             ref bufferWriter,
+            _namespaceRefs,
+            sectionHeaders,
+            Section.NamespaceRefs,
+            ref currentSection
+        );
+        WriteRows(
+            ref writer,
+            ref bufferWriter,
             _typeDefs,
             sectionHeaders,
             Section.TypeDefs,
+            ref currentSection
+        );
+        WriteRows(
+            ref writer,
+            ref bufferWriter,
+            _typeRefs,
+            sectionHeaders,
+            Section.TypeRefs,
+            ref currentSection
+        );
+        WriteHeap(
+            ref writer,
+            ref bufferWriter,
+            _typeSpecHeap,
+            sectionHeaders,
+            Section.TypeSpecs,
+            ref currentSection
+        );
+        WriteRows(
+            ref writer,
+            ref bufferWriter,
+            _variables,
+            sectionHeaders,
+            Section.Variables,
+            ref currentSection
+        );
+        WriteRows(
+            ref writer,
+            ref bufferWriter,
+            _constants,
+            sectionHeaders,
+            Section.Constants,
             ref currentSection
         );
 

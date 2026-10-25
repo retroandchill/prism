@@ -32,7 +32,7 @@ internal readonly partial record struct NamespaceDefRow(
 [Archivable]
 internal readonly partial record struct NamespaceRefRow(
     StringHandle Name,
-    NamespaceDefHandle Parent
+    NamespaceRefHandle Parent
 );
 
 [Archivable]
@@ -64,6 +64,15 @@ internal sealed partial record ReferenceTypeRow(TypeHandle ElementType, bool IsM
 
 [Archivable]
 internal sealed partial record NullableTypeRow(TypeHandle ElementType) : TypeSpecRow;
+
+[Archivable]
+internal readonly partial record struct VariableRow(
+    VariableAttributes Attributes,
+    StringHandle Name,
+    TypeHandle Type,
+    MemberContainerDefHandle Container,
+    ConstantHandle ConstantValue
+);
 
 internal enum ConstantKind : uint
 {

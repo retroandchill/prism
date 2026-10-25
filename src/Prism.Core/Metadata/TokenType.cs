@@ -11,11 +11,16 @@ namespace Prism.Core.Metadata;
 [EnumExtensions(ExtensionClassName = nameof(Sections))]
 internal enum Section
 {
-    StringTable,
-    BinaryBlobs,
-    AssemblyReferences,
-    NamespaceDefs,
-    TypeDefs,
+    StringTable = 0,
+    BinaryBlobs = 1,
+    AssemblyReferences = 10,
+    NamespaceDefs = 11,
+    NamespaceRefs = 12,
+    TypeDefs = 20,
+    TypeRefs = 21,
+    TypeSpecs = 22,
+    Variables = 30,
+    Constants = 50,
 }
 
 internal static partial class Sections
