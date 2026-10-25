@@ -35,7 +35,10 @@ public readonly partial record struct MetadataToken
         init => _value = (uint)value | Id;
     }
 
-    public static readonly MetadataToken Invalid = new(0U);
+    public static readonly MetadataToken None = new(0U);
+
+    [ArchiveIgnore]
+    public bool IsNone => _value == 0U;
 
     public MetadataToken(uint value)
     {
@@ -49,6 +52,7 @@ public readonly partial record struct MetadataToken
 
     public MetadataToken(TokenType type, uint id)
     {
+        ArgumentOutOfRangeException.ThrowIfZero(id);
         _value = (uint)type | id;
     }
 

@@ -14,19 +14,29 @@ internal enum Section
     StringTable,
     BinaryBlobs,
     AssemblyReferences,
-    Namespaces,
+    NamespaceDefs,
+    TypeDefs,
 }
 
 internal static partial class Sections
 {
-    public const uint Assembly = 0;
+    public const uint AssemblyDef = 0;
     public const uint AssemblyRef = 1;
-    public const uint Namespace = 2;
-    public const uint TypeRef = 3;
-    public const uint TypeDef = 4;
-    public const uint Variable = 5;
-    public const uint Function = 6;
-    public const uint Parameter = 7;
+    public const uint NamespaceDef = 2;
+    public const uint NamespaceRef = 3;
+
+    public const uint TypeRef = 12;
+    public const uint TypeDef = 13;
+    public const uint TypeSpec = 14;
+
+    public const uint Variable = 24;
+    public const uint Function = 25;
+    public const uint Parameter = 26;
+
+    public const uint Constant = 80;
+
+    public const uint String = 120;
+    public const uint Blob = 121;
 
     public const int RowIdBitCount = 24;
 }
@@ -42,12 +52,21 @@ internal readonly partial record struct SectionHeader(
 public enum TokenType : uint
 {
     // ReSharper disable once ShiftExpressionZeroLeftOperand
-    Assembly = Sections.Assembly << Sections.RowIdBitCount,
+    AssemblyDef = Sections.AssemblyDef << Sections.RowIdBitCount,
     AssemblyRef = Sections.AssemblyRef << Sections.RowIdBitCount,
-    Namespace = Sections.Namespace << Sections.RowIdBitCount,
+    NamespaceDef = Sections.NamespaceDef << Sections.RowIdBitCount,
+    NamespaceRef = Sections.NamespaceRef << Sections.RowIdBitCount,
+
     TypeRef = Sections.TypeRef << Sections.RowIdBitCount,
     TypeDef = Sections.TypeDef << Sections.RowIdBitCount,
+    TypeSpec = Sections.TypeSpec << Sections.RowIdBitCount,
+
     Variable = Sections.Variable << Sections.RowIdBitCount,
     Function = Sections.Function << Sections.RowIdBitCount,
     Parameter = Sections.Parameter << Sections.RowIdBitCount,
+
+    Constant = Sections.Constant << Sections.RowIdBitCount,
+
+    String = Sections.String << Sections.RowIdBitCount,
+    Blob = Sections.Blob << Sections.RowIdBitCount,
 }

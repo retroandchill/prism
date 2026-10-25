@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>true</IsRoslynComponent>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +18,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Retro.SourceGeneratorUtilities" />
     <PackageReference Include="Riok.Mapperly" />
     <PackageReference Include="SoftCircuits.OrderedDictionary" GeneratePathProperty="true" />
     <PackageReference Include="System.Text.Json" />
@@ -95,5 +97,10 @@
       PackagePath="analyzers/roslyn$(ROSLYN_VERSION)/dotnet/cs"
       Visible="false"
     />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Prism.Core\Metadata\HandleAttribute.cs">
+      <Link>Attributes\HandleAttribute.cs</Link>
+    </Compile>
   </ItemGroup>
 </Project>

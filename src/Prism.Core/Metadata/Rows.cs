@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Reflection;
 using MagicArchive;
 
 namespace Prism.Core.Metadata;
@@ -23,11 +24,58 @@ internal readonly partial record struct AssemblyIdentityData(
 );
 
 [Archivable]
-internal readonly partial record struct NamespaceRow(StringHandle Name, NamespaceHandle Parent);
+internal readonly partial record struct NamespaceDefRow(
+    StringHandle Name,
+    NamespaceDefHandle Parent
+);
+
+[Archivable]
+internal readonly partial record struct NamespaceRefRow(
+    StringHandle Name,
+    NamespaceDefHandle Parent
+);
 
 [Archivable]
 internal readonly partial record struct TypeDefinitionRow(
+    NamedTypeAttributes Attributes,
     StringHandle Name,
-    NamespaceHandle Namespace,
-    AssemblyRefHandle AssemblyRef
+    MemberContainerDefHandle Container,
+    NamedTypeHandle Base = default
+);
+
+[Archivable]
+internal readonly partial record struct TypeReferenceRow(
+    StringHandle Name,
+    MemberContainerRefHandle Container
+);
+
+[Archivable]
+[ArchivableUnion(0, typeof(ArrayTypeRow))]
+[ArchivableUnion(1, typeof(ReferenceTypeRow))]
+[ArchivableUnion(2, typeof(NullableTypeRow))]
+internal closed partial record TypeSpecRow;
+
+[Archivable]
+internal sealed partial record ArrayTypeRow(TypeHandle ElementType, ulong? Rank) : TypeSpecRow;
+
+[Archivable]
+internal sealed partial record ReferenceTypeRow(TypeHandle ElementType, bool IsMutable)
+    : TypeSpecRow;
+
+[Archivable]
+internal sealed partial record NullableTypeRow(TypeHandle ElementType) : TypeSpecRow;
+
+internal enum ConstantKind : uint
+{
+    Null,
+    String,
+    Scalar,
+    Array,
+}
+
+[Archivable]
+internal readonly partial record struct ConstantRow(
+    TypeHandle Type,
+    ConstantKind Kind,
+    DataHandle Data = default
 );

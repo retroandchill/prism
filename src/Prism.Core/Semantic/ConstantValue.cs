@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -73,12 +74,29 @@ public readonly record struct F64Constant(double Value);
 
 public readonly record struct StringConstant(string Value);
 
-public readonly record struct ArrayConstant(ImmutableArray<ConstantValue> Value);
+public readonly record struct ArrayConstant(ImmutableArray<ConstantValue> Value)
+{
+    public bool Equals(ArrayConstant other) => Value.SequenceEqual(other.Value);
+
+    public override int GetHashCode()
+    {
+        var hashCode = new HashCode();
+        foreach (var value in Value)
+        {
+            hashCode.Add(value);
+        }
+
+        return hashCode.ToHashCode();
+    }
+}
 
 public readonly record struct NullConstant;
 
 [Union]
-public readonly struct ConstantValue : IUnion
+public readonly struct ConstantValue
+    : IUnion,
+        IEquatable<ConstantValue>,
+        IEqualityOperators<ConstantValue, ConstantValue, bool>
 {
     [StructLayout(LayoutKind.Explicit)]
     private struct BlittableStorage
@@ -1026,6 +1044,70 @@ public readonly struct ConstantValue : IUnion
         return null;
     }
 
+    public override bool Equals([NotNullWhen(true)] object? obj)
+    {
+        return obj is ConstantValue other && Equals(other);
+    }
+
+    public bool Equals(ConstantValue other)
+    {
+        return this switch
+        {
+            NullConstant value => other is NullConstant otherValue && value.Equals(otherValue),
+            BoolConstant value => other is BoolConstant otherValue && value.Equals(otherValue),
+            Char8Constant value => other is Char8Constant otherValue && value.Equals(otherValue),
+            Char16Constant value => other is Char16Constant otherValue && value.Equals(otherValue),
+            RuneConstant value => other is RuneConstant otherValue && value.Equals(otherValue),
+            I8Constant value => other is I8Constant otherValue && value.Equals(otherValue),
+            I16Constant value => other is I16Constant otherValue && value.Equals(otherValue),
+            I32Constant value => other is I32Constant otherValue && value.Equals(otherValue),
+            I64Constant value => other is I64Constant otherValue && value.Equals(otherValue),
+            I128Constant value => other is I128Constant otherValue && value.Equals(otherValue),
+            ISizeConstant value => other is ISizeConstant otherValue && value.Equals(otherValue),
+            U8Constant value => other is U8Constant otherValue && value.Equals(otherValue),
+            U16Constant value => other is U16Constant otherValue && value.Equals(otherValue),
+            U32Constant value => other is U32Constant otherValue && value.Equals(otherValue),
+            U64Constant value => other is U64Constant otherValue && value.Equals(otherValue),
+            U128Constant value => other is U128Constant otherValue && value.Equals(otherValue),
+            USizeConstant value => other is USizeConstant otherValue && value.Equals(otherValue),
+            F32Constant value => other is F32Constant otherValue && value.Equals(otherValue),
+            F64Constant value => other is F64Constant otherValue && value.Equals(otherValue),
+            StringConstant value => other is StringConstant otherValue && value.Equals(otherValue),
+            ArrayConstant value => other is ArrayConstant otherValue && value.Equals(otherValue),
+        };
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(
+            _kind.GetHashCode(),
+            this switch
+            {
+                NullConstant value => value.GetHashCode(),
+                BoolConstant value => value.GetHashCode(),
+                Char8Constant value => value.GetHashCode(),
+                Char16Constant value => value.GetHashCode(),
+                RuneConstant value => value.GetHashCode(),
+                I8Constant value => value.GetHashCode(),
+                I16Constant value => value.GetHashCode(),
+                I32Constant value => value.GetHashCode(),
+                I64Constant value => value.GetHashCode(),
+                I128Constant value => value.GetHashCode(),
+                ISizeConstant value => value.GetHashCode(),
+                U8Constant value => value.GetHashCode(),
+                U16Constant value => value.GetHashCode(),
+                U32Constant value => value.GetHashCode(),
+                U64Constant value => value.GetHashCode(),
+                U128Constant value => value.GetHashCode(),
+                USizeConstant value => value.GetHashCode(),
+                F32Constant value => value.GetHashCode(),
+                F64Constant value => value.GetHashCode(),
+                StringConstant value => value.GetHashCode(),
+                ArrayConstant value => value.GetHashCode(),
+            }
+        );
+    }
+
     public override string ToString()
     {
         return _kind switch
@@ -1052,5 +1134,15 @@ public readonly struct ConstantValue : IUnion
             ConstantKind.Array => $"[{string.Join(", ", AsArray().Select(x => x.ToString()))}]",
             _ => throw new ArgumentOutOfRangeException(),
         };
+    }
+
+    public static bool operator ==(ConstantValue left, ConstantValue right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(ConstantValue left, ConstantValue right)
+    {
+        return !left.Equals(right);
     }
 }

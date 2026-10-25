@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MagicArchive;
 using Prism.Core.Symbols;
@@ -16,37 +17,74 @@ internal sealed class MetadataBuilder : IDisposable
     private readonly StringHeapBuilder _strings = new();
     private readonly BlobHeapBuilder _blobs = new();
 
-    private readonly Dictionary<AssemblyIdentity, MetadataToken> _seenAssemblyReferences = new();
     private readonly List<AssemblyIdentityData> _referencedAssemblies = [];
 
-    private readonly List<NamespaceRow> _namespaces = [];
+    private readonly List<NamespaceDefRow> _namespaceDefs = [];
+    private readonly List<NamespaceRefRow> _namespaceRefs = [];
+
+    private readonly List<TypeDefinitionRow> _typeDefs = [];
+    private readonly List<TypeReferenceRow> _typeRefs = [];
+    private readonly SerializedHeapBuilder<TypeSpecHandle, TypeSpecRow> _typeSpecHeap = new();
+
+    private readonly List<ConstantRow> _constants = [];
 
     public MetadataBuilder(AssemblyIdentity identity, TargetInfo target)
     {
         _header = new MetadataHeader(ConvertAssemblyIdentity(identity), target);
-        _seenAssemblyReferences.Add(identity, new MetadataToken(TokenType.Assembly, 1));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public StringHandle GetOrAddString(string value)
     {
         return _strings.GetOrAdd(value);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public BlobHandle GetOrAddBlob<T>(in T value)
+    {
+        return _blobs.GetOrAdd(in value);
+    }
+
     public void AddReferencedAssembly(AssemblyIdentity identity)
     {
-        if (_seenAssemblyReferences.ContainsKey(identity))
-            return;
-
         var data = ConvertAssemblyIdentity(identity);
         var id = AssemblyRefHandle.FromRowId(_referencedAssemblies.Count + 1);
-        _seenAssemblyReferences.Add(identity, id);
         _referencedAssemblies.Add(data);
     }
 
-    public NamespaceHandle AddNamespace(NamespaceRow row)
+    public NamespaceDefHandle AddNamespaceDef(NamespaceDefRow defRow)
     {
-        _namespaces.Add(row);
-        return NamespaceHandle.FromRowId(_namespaces.Count);
+        _namespaceDefs.Add(defRow);
+        return NamespaceDefHandle.FromRowId(_namespaceDefs.Count);
+    }
+
+    public NamespaceRefHandle AddNamespaceRef(NamespaceRefRow refRow)
+    {
+        _namespaceRefs.Add(refRow);
+        return NamespaceRefHandle.FromRowId(_namespaceRefs.Count);
+    }
+
+    public TypeDefHandle AddTypeDef(TypeDefinitionRow row)
+    {
+        _typeDefs.Add(row);
+        return TypeDefHandle.FromRowId(_typeDefs.Count);
+    }
+
+    public TypeRefHandle AddTypeRef(TypeReferenceRow row)
+    {
+        _typeRefs.Add(row);
+        return TypeRefHandle.FromRowId(_typeRefs.Count);
+    }
+
+    public TypeSpecHandle AddTypeSpec(TypeSpecRow row)
+    {
+        return _typeSpecHeap.Add(row);
+    }
+
+    public ConstantHandle AddConstant(ConstantRow row)
+    {
+        _constants.Add(row);
+        return ConstantHandle.FromRowId(_constants.Count);
     }
 
     private AssemblyIdentityData ConvertAssemblyIdentity(AssemblyIdentity identity)
@@ -115,9 +153,17 @@ internal sealed class MetadataBuilder : IDisposable
         WriteRows(
             ref writer,
             ref bufferWriter,
-            _namespaces,
+            _namespaceDefs,
             sectionHeaders,
-            Section.Namespaces,
+            Section.NamespaceDefs,
+            ref currentSection
+        );
+        WriteRows(
+            ref writer,
+            ref bufferWriter,
+            _typeDefs,
+            sectionHeaders,
+            Section.TypeDefs,
             ref currentSection
         );
 

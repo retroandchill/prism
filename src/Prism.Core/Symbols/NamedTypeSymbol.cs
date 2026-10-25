@@ -2,12 +2,11 @@
 
 public enum NamedTypeKind : byte
 {
-    Primitive,
     Class,
     Interface,
     Concept,
     Enum,
-    Variant,
+    Union,
     Attribute,
 }
 

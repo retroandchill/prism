@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
+using Prism.Core.Codegen;
 using Prism.Core.Diagnostics;
 using Prism.Core.FlowAnalysis;
 using Prism.Core.Metadata;
@@ -396,55 +397,8 @@ internal static class CompilerDriver
         CancellationToken cancellationToken
     )
     {
-        var assembly = compilation.Assembly;
-        var assemblyIdentity = assembly.Identity;
-        var targetInfo = new TargetInfo(
-            compilation.Settings.Architecture,
-            compilation.Settings.OperatingSystem,
-            compilation.Settings.Toolchain
-        );
-
-        using var builder = new MetadataBuilder(assemblyIdentity, targetInfo);
-        AddSymbols(compilation, builder, cancellationToken);
-
+        using var emitter = new MetadataEmitter(compilation);
         var fileName = Path.Combine(filepath, $"{compilation.AssemblyName}.prlib");
-        await using var file = File.Create(fileName);
-        await builder.WriteAsync(file, cancellationToken);
-    }
-
-    private static void AddSymbols(
-        Compilation compilation,
-        MetadataBuilder builder,
-        CancellationToken cancellationToken
-    )
-    {
-        foreach (var symbol in compilation.Assembly.GlobalNamespace.GetMembers())
-        {
-            AddTopLevelSymbol(symbol, builder, default, cancellationToken);
-        }
-    }
-
-    private static void AddTopLevelSymbol(
-        Symbol symbol,
-        MetadataBuilder builder,
-        NamespaceHandle parent,
-        CancellationToken cancellationToken
-    )
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        switch (symbol)
-        {
-            case NamespaceSymbol ns:
-            {
-                var name = builder.GetOrAddString(symbol.Name);
-                var row = new NamespaceRow(name, parent);
-                var handle = builder.AddNamespace(row);
-                foreach (var member in ns.GetMembers())
-                {
-                    AddTopLevelSymbol(member, builder, handle, cancellationToken);
-                }
-                break;
-            }
-        }
+        await emitter.EmitAsync(fileName, cancellationToken);
     }
 }

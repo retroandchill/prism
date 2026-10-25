@@ -3,20 +3,55 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using MagicArchive;
 
 namespace Prism.Core.Metadata;
 
-[AttributeUsage(AttributeTargets.Struct)]
-internal sealed class HandleAttribute : Attribute;
+public interface ITableRowHandle<out THandle>
+    where THandle : struct, ITableRowHandle<THandle>
+{
+    internal static abstract THandle Create(int id);
+}
 
 [Archivable]
-public readonly partial record struct StringHandle(int Offset);
+[Handle]
+public readonly partial record struct StringHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial StringHandle(int id);
+}
 
 [Archivable]
-public readonly partial record struct BlobHandle(int Offset);
+[Handle]
+public readonly partial record struct BlobHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial BlobHandle(int id);
+}
+
+[Archivable]
+[CompositeHandle(typeof(StringHandle), typeof(BlobHandle))]
+public readonly partial record struct DataHandle
+{
+    [ArchiveInclude]
+    private readonly MetadataToken _token;
+
+    private partial DataHandle(MetadataToken token);
+}
+
+[Archivable]
+[Handle]
+public readonly partial record struct AssemblyDefHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial AssemblyDefHandle(int id);
+}
 
 [Archivable]
 [Handle]
@@ -29,13 +64,33 @@ public readonly partial record struct AssemblyRefHandle
 }
 
 [Archivable]
+[CompositeHandle(typeof(AssemblyDefHandle), typeof(AssemblyRefHandle))]
+public readonly partial record struct AssemblyHandle
+{
+    [ArchiveInclude]
+    private readonly MetadataToken _token;
+
+    private partial AssemblyHandle(MetadataToken token);
+}
+
+[Archivable]
 [Handle]
-public readonly partial record struct NamespaceHandle
+public readonly partial record struct NamespaceDefHandle
 {
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial NamespaceHandle(int id);
+    private partial NamespaceDefHandle(int id);
+}
+
+[Archivable]
+[Handle]
+public readonly partial record struct NamespaceRefHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial NamespaceRefHandle(int id);
 }
 
 [Archivable]
@@ -59,63 +114,61 @@ public readonly partial record struct TypeRefHandle
 }
 
 [Archivable]
-[Union]
-public readonly partial record struct TypeHandle : IUnion
+[Handle]
+public readonly partial record struct TypeSpecHandle
 {
     [ArchiveInclude]
-    public MetadataToken Token { get; private init; }
+    private readonly int _id;
 
-    private TypeHandle(MetadataToken token)
-    {
-        Debug.Assert(token.Type is TokenType.TypeDef or TokenType.TypeRef);
-        Token = token;
-    }
+    private partial TypeSpecHandle(int id);
+}
 
-    public TypeHandle(TypeRefHandle handle)
-    {
-        Token = handle;
-    }
+[Archivable]
+[CompositeHandle(typeof(TypeDefHandle), typeof(TypeRefHandle), typeof(TypeSpecHandle))]
+public readonly partial record struct TypeHandle
+{
+    [ArchiveInclude]
+    private readonly MetadataToken _token;
 
-    public TypeHandle(TypeDefHandle handle)
-    {
-        Token = handle;
-    }
+    private partial TypeHandle(MetadataToken token);
+}
 
-    [ArchiveIgnore]
-    public object Value
-    {
-        get
-        {
-            return Token.Type switch
-            {
-                TokenType.TypeRef => TypeRefHandle.FromRowId((int)Token.Id),
-                TokenType.TypeDef => TypeDefHandle.FromRowId((int)Token.Id),
-                _ => throw new InvalidOperationException($"Unexpected token type {Token.Type}"),
-            };
-        }
-    }
+[Archivable]
+[CompositeHandle(typeof(TypeDefHandle), typeof(TypeRefHandle))]
+public readonly partial record struct NamedTypeHandle
+{
+    [ArchiveInclude]
+    private readonly MetadataToken _token;
 
-    public bool TryGetValue(out TypeRefHandle handle)
-    {
-        if (Token.Type == TokenType.TypeRef)
-        {
-            handle = TypeRefHandle.FromRowId((int)Token.Id);
-            return true;
-        }
+    private partial NamedTypeHandle(MetadataToken token);
+}
 
-        handle = default;
-        return false;
-    }
+[Archivable]
+[CompositeHandle(typeof(TypeDefHandle), typeof(NamespaceDefHandle))]
+public readonly partial record struct MemberContainerDefHandle
+{
+    [ArchiveInclude]
+    private readonly MetadataToken _token;
 
-    public bool TryGetValue(out TypeDefHandle handle)
-    {
-        if (Token.Type == TokenType.TypeDef)
-        {
-            handle = TypeDefHandle.FromRowId((int)Token.Id);
-            return true;
-        }
+    private partial MemberContainerDefHandle(MetadataToken token);
+}
 
-        handle = default;
-        return false;
-    }
+[Archivable]
+[CompositeHandle(typeof(TypeRefHandle), typeof(NamespaceRefHandle), typeof(AssemblyRefHandle))]
+public readonly partial record struct MemberContainerRefHandle
+{
+    [ArchiveInclude]
+    private readonly MetadataToken _token;
+
+    private partial MemberContainerRefHandle(MetadataToken token);
+}
+
+[Archivable]
+[Handle]
+public readonly partial record struct ConstantHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial ConstantHandle(int id);
 }

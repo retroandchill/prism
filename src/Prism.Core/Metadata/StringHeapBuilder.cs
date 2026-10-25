@@ -27,7 +27,7 @@ internal sealed class StringHeapBuilder : IHeapBuilder, IDisposable
         if (_map.TryGetValue(value, out var handle))
             return handle;
 
-        handle = new StringHandle(_buffer.Position);
+        handle = StringHandle.FromRowId(_buffer.Position);
         var writer = ArchiveWriter.Create(ref _buffer, _state);
         writer.WriteMetadataString(value);
         _map.Add(value, handle);

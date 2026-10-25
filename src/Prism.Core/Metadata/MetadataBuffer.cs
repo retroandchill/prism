@@ -56,6 +56,11 @@ internal struct MetadataBuffer() : IBufferWriter<byte>
         _buffer = newBuffer;
     }
 
+    public void Clear()
+    {
+        Position = 0;
+    }
+
     public void CopyTo(IBufferWriter<byte> writer)
     {
         var span = writer.GetSpan(Position);

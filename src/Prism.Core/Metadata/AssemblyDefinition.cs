@@ -20,7 +20,7 @@ public sealed class AssemblyDefinition : AssemblyDescriptor, IDisposable
     private readonly MetadataReader _reader;
 
     internal AssemblyDefinition(AssemblyIdentity identity, TargetInfo info, MetadataReader reader)
-        : base(identity, new MetadataToken(TokenType.Assembly, 1))
+        : base(identity, new MetadataToken(TokenType.AssemblyDef, 1))
     {
         Target = info;
         _reader = reader;
