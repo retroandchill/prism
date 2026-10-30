@@ -113,7 +113,7 @@ public class AttributesTest
         var parameter = parameters[0];
 
         Assert.That(parameter.Parameter.Name, Is.EqualTo("name"));
-        if (parameter.Value is StringConstant(var str))
+        if (parameter.Value is string str)
         {
             Assert.That(str, Is.EqualTo("baz"));
         }

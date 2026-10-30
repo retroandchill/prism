@@ -41,11 +41,11 @@ internal sealed class MirEmitter(Compilation compilation)
     private readonly MirVoidValue _voidValue = new(compilation.GetSpecialType(SpecialType.Void));
 
     private readonly MirConstantValue _falseValue = new(
-        new BoolConstant(false),
+        false,
         compilation.GetSpecialType(SpecialType.Bool)
     );
     private readonly MirConstantValue _trueValue = new(
-        new BoolConstant(true),
+        true,
         compilation.GetSpecialType(SpecialType.Bool)
     );
 

@@ -3,12 +3,13 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using MagicArchive;
 
 namespace Prism.Core.Constants;
 
-internal enum FloatKind : byte
+public enum FloatKind : byte
 {
     F32,
     F64,
@@ -16,16 +17,18 @@ internal enum FloatKind : byte
 
 [Archivable(GenerateType.Custom)]
 [Union]
-public readonly partial struct FloatConstant : IUnion
+public readonly partial record struct FloatConstant : IUnion
 {
-    private readonly FloatKind _kind;
-    private readonly double _value;
+    internal FloatKind Kind { get; }
+    internal double RawValue { get; }
 
     private FloatConstant(FloatKind kind, double value)
     {
-        _kind = kind;
-        _value = value;
+        Kind = kind;
+        RawValue = value;
     }
+
+    internal static FloatConstant From(FloatKind kind, double value) => new(kind, value);
 
     public FloatConstant(float value)
         : this(FloatKind.F32, value) { }
@@ -37,10 +40,10 @@ public readonly partial struct FloatConstant : IUnion
     {
         get
         {
-            return _kind switch
+            return Kind switch
             {
-                FloatKind.F32 => (float)_value,
-                FloatKind.F64 => _value,
+                FloatKind.F32 => (float)RawValue,
+                FloatKind.F64 => RawValue,
                 _ => throw new InvalidOperationException("Invalid float kind"),
             };
         }
@@ -48,9 +51,9 @@ public readonly partial struct FloatConstant : IUnion
 
     public bool TryGetValue(out float value)
     {
-        if (_kind == FloatKind.F32)
+        if (Kind == FloatKind.F32)
         {
-            value = (float)_value;
+            value = (float)RawValue;
             return true;
         }
 
@@ -60,9 +63,9 @@ public readonly partial struct FloatConstant : IUnion
 
     public bool TryGetValue(out double value)
     {
-        if (_kind == FloatKind.F64)
+        if (Kind == FloatKind.F64)
         {
-            value = _value;
+            value = RawValue;
             return true;
         }
 
@@ -70,18 +73,56 @@ public readonly partial struct FloatConstant : IUnion
         return false;
     }
 
+    public static FloatConstant operator -(FloatConstant value)
+    {
+        return new FloatConstant(value.Kind, -value.RawValue);
+    }
+
+    public FloatConstant ConvertTo(FloatKind kind)
+    {
+        return kind switch
+        {
+            FloatKind.F32 => (float)RawValue,
+            FloatKind.F64 => RawValue,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+    }
+
     static void IArchivable<FloatConstant>.Serialize<TBufferWriter>(
         ref ArchiveWriter<TBufferWriter> writer,
         scoped in FloatConstant value
     )
     {
-        switch (value._kind)
+        SerializeWithHeader(ref writer, value.Kind, value.RawValue);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void SerializeWithHeader<TBufferWriter>(
+        ref ArchiveWriter<TBufferWriter> writer,
+        FloatKind kind,
+        double value
+    )
+        where TBufferWriter : IBufferWriter<byte>
+    {
+        SerializeWithHeader(ref writer, (byte)kind, kind, value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void SerializeWithHeader<TBufferWriter>(
+        ref ArchiveWriter<TBufferWriter> writer,
+        byte header,
+        FloatKind kind,
+        double value
+    )
+        where TBufferWriter : IBufferWriter<byte>
+    {
+        switch (kind)
         {
             case FloatKind.F32:
-                writer.WriteBlittable(value._kind, (float)value._value);
+                writer.WriteBlittable(header, (float)value);
                 break;
             case FloatKind.F64:
-                writer.WriteBlittable(value._kind, value._value);
+                writer.WriteBlittable(header, value);
                 break;
             default:
                 throw new ArchiveSerializationException("Invalid float kind");
@@ -94,7 +135,13 @@ public readonly partial struct FloatConstant : IUnion
     )
     {
         var kind = reader.ReadBlittable<FloatKind>();
-        value = kind switch
+        value = new FloatConstant(kind, ReadValue(ref reader, kind));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static double ReadValue(ref ArchiveReader reader, FloatKind kind)
+    {
+        return kind switch
         {
             FloatKind.F32 => reader.ReadBlittable<float>(),
             FloatKind.F64 => reader.ReadBlittable<double>(),

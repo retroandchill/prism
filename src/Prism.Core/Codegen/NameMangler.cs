@@ -47,7 +47,7 @@ public static class NameMangler
                     continue;
 
                 var arg = attribute.Arguments[0].Value;
-                if (arg is not StringConstant(var str))
+                if (arg is not string str)
                     throw new InvalidOperationException(
                         "Expected string constant for CLinkage attribute"
                     );

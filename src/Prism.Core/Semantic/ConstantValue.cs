@@ -36,8 +36,6 @@ internal enum ConstantKind : byte
     Array,
 }
 
-public readonly record struct BoolConstant(bool Value);
-
 public readonly record struct Char8Constant(byte Value);
 
 public readonly record struct Char16Constant(char Value);
@@ -71,8 +69,6 @@ public readonly record struct USizeConstant(ulong Value);
 public readonly record struct F32Constant(float Value);
 
 public readonly record struct F64Constant(double Value);
-
-public readonly record struct StringConstant(string Value);
 
 public readonly record struct ArrayConstant(ImmutableArray<ConstantValue> Value)
 {
@@ -136,12 +132,6 @@ public readonly struct ConstantValue
         _blittableStorage = blittableStorage;
     }
 
-    private ConstantValue(string referenceValue)
-    {
-        _kind = ConstantKind.Str;
-        _referenceValue = referenceValue;
-    }
-
     private ConstantValue(ImmutableArray<ConstantValue> elements)
     {
         if (elements.Length > 1)
@@ -166,8 +156,8 @@ public readonly struct ConstantValue
         _kind = ConstantKind.Null;
     }
 
-    public ConstantValue(BoolConstant value)
-        : this(ConstantKind.Bool, new BlittableStorage { BoolValue = value.Value }) { }
+    public ConstantValue(bool value)
+        : this(ConstantKind.Bool, new BlittableStorage { BoolValue = value }) { }
 
     public ConstantValue(Char8Constant value)
         : this(ConstantKind.Char, new BlittableStorage { CharacterValue = new Rune(value.Value) })
@@ -222,8 +212,11 @@ public readonly struct ConstantValue
     public ConstantValue(F64Constant value)
         : this(ConstantKind.F64, new BlittableStorage { F64Value = value.Value }) { }
 
-    public ConstantValue(StringConstant value)
-        : this(value.Value) { }
+    public ConstantValue(string value)
+    {
+        _kind = ConstantKind.Str;
+        _referenceValue = value;
+    }
 
     public ConstantValue(ArrayConstant value)
         : this(value.Value) { }
@@ -268,7 +261,7 @@ public readonly struct ConstantValue
             return _kind switch
             {
                 ConstantKind.Null => new NullConstant(),
-                ConstantKind.Bool => new BoolConstant(_blittableStorage.BoolValue),
+                ConstantKind.Bool => _blittableStorage.BoolValue,
                 ConstantKind.Char => new Char8Constant(
                     (byte)_blittableStorage.CharacterValue.Value
                 ),
@@ -290,7 +283,7 @@ public readonly struct ConstantValue
                 ConstantKind.USize => new USizeConstant(_blittableStorage.U64Value),
                 ConstantKind.F32 => new F32Constant(_blittableStorage.F32Value),
                 ConstantKind.F64 => new F64Constant(_blittableStorage.F64Value),
-                ConstantKind.Str => new StringConstant((string)_referenceValue!),
+                ConstantKind.Str => (string)_referenceValue!,
                 ConstantKind.Array => new ArrayConstant(
                     ImmutableCollectionsMarshal.AsImmutableArray((ConstantValue[])_referenceValue!)
                 ),
@@ -311,15 +304,15 @@ public readonly struct ConstantValue
         return false;
     }
 
-    public bool TryGetValue(out BoolConstant value)
+    public bool TryGetValue(out bool value)
     {
         if (_kind == ConstantKind.Bool)
         {
-            value = new BoolConstant(_blittableStorage.BoolValue);
+            value = _blittableStorage.BoolValue;
             return true;
         }
 
-        value = default;
+        value = false;
         return false;
     }
 
@@ -527,15 +520,15 @@ public readonly struct ConstantValue
         return false;
     }
 
-    public bool TryGetValue(out StringConstant value)
+    public bool TryGetValue([NotNullWhen(true)] out string? value)
     {
         if (_kind == ConstantKind.Str)
         {
-            value = new StringConstant((string)_referenceValue!);
+            value = (string)_referenceValue!;
             return true;
         }
 
-        value = default;
+        value = null;
         return false;
     }
 
@@ -664,7 +657,7 @@ public readonly struct ConstantValue
     {
         return this switch
         {
-            BoolConstant(var value) => new BoolConstant(!value),
+            bool value => !value,
             _ => null,
         };
     }
@@ -826,13 +819,13 @@ public readonly struct ConstantValue
             BinaryOperation.BitwiseXor => wrap(left ^ right),
             BinaryOperation.ShiftLeft => wrap(left << int.CreateChecked(right)),
             BinaryOperation.ShiftRight => wrap(left >> int.CreateChecked(right)),
-            BinaryOperation.Equality => new BoolConstant(left == right),
-            BinaryOperation.NotEquals => new BoolConstant(left != right),
-            BinaryOperation.LessThan => new BoolConstant(left < right),
-            BinaryOperation.LessThanOrEquals => new BoolConstant(left <= right),
-            BinaryOperation.GreaterThan => new BoolConstant(left > right),
-            BinaryOperation.GreaterThanOrEquals => new BoolConstant(left >= right),
-            _ => null,
+            BinaryOperation.Equality => left == right,
+            BinaryOperation.NotEquals => left != right,
+            BinaryOperation.LessThan => left < right,
+            BinaryOperation.LessThanOrEquals => left <= right,
+            BinaryOperation.GreaterThan => left > right,
+            BinaryOperation.GreaterThanOrEquals => left >= right,
+            _ => (ConstantValue?)null,
         };
     }
 
@@ -856,13 +849,13 @@ public readonly struct ConstantValue
             BinaryOperation.BitwiseXor => wrap(left ^ right),
             BinaryOperation.ShiftLeft => wrap(left << int.CreateChecked(right)),
             BinaryOperation.ShiftRight => wrap(left >> int.CreateChecked(right)),
-            BinaryOperation.Equality => new BoolConstant(left == right),
-            BinaryOperation.NotEquals => new BoolConstant(left != right),
-            BinaryOperation.LessThan => new BoolConstant(left < right),
-            BinaryOperation.LessThanOrEquals => new BoolConstant(left <= right),
-            BinaryOperation.GreaterThan => new BoolConstant(left > right),
-            BinaryOperation.GreaterThanOrEquals => new BoolConstant(left >= right),
-            _ => null,
+            BinaryOperation.Equality => left == right,
+            BinaryOperation.NotEquals => left != right,
+            BinaryOperation.LessThan => left < right,
+            BinaryOperation.LessThanOrEquals => left <= right,
+            BinaryOperation.GreaterThan => left > right,
+            BinaryOperation.GreaterThanOrEquals => left >= right,
+            _ => (ConstantValue?)null,
         };
     }
 
@@ -881,13 +874,13 @@ public readonly struct ConstantValue
             BinaryOperation.Multiplication => wrap(left * right),
             BinaryOperation.Division => wrap(left / right),
             BinaryOperation.Modulo => wrap(left % right),
-            BinaryOperation.Equality => new BoolConstant(left == right),
-            BinaryOperation.NotEquals => new BoolConstant(left != right),
-            BinaryOperation.LessThan => new BoolConstant(left < right),
-            BinaryOperation.LessThanOrEquals => new BoolConstant(left <= right),
-            BinaryOperation.GreaterThan => new BoolConstant(left > right),
-            BinaryOperation.GreaterThanOrEquals => new BoolConstant(left >= right),
-            _ => null,
+            BinaryOperation.Equality => left == right,
+            BinaryOperation.NotEquals => left != right,
+            BinaryOperation.LessThan => left < right,
+            BinaryOperation.LessThanOrEquals => left <= right,
+            BinaryOperation.GreaterThan => left > right,
+            BinaryOperation.GreaterThanOrEquals => left >= right,
+            _ => (ConstantValue?)null,
         };
     }
 
@@ -895,10 +888,10 @@ public readonly struct ConstantValue
     {
         return op switch
         {
-            BinaryOperation.LogicalAnd => new BoolConstant(left && right),
-            BinaryOperation.LogicalOr => new BoolConstant(left || right),
-            BinaryOperation.Equality => new BoolConstant(left == right),
-            BinaryOperation.NotEquals => new BoolConstant(left != right),
+            BinaryOperation.LogicalAnd => left && right,
+            BinaryOperation.LogicalOr => left || right,
+            BinaryOperation.Equality => left == right,
+            BinaryOperation.NotEquals => left != right,
             _ => null,
         };
     }
@@ -922,7 +915,7 @@ public readonly struct ConstantValue
 
             return typeSymbol.SpecialType switch
             {
-                SpecialType.Bool => _kind == ConstantKind.Bool ? this : null,
+                SpecialType.Bool => _kind == ConstantKind.Bool ? this : (ConstantValue?)null,
                 SpecialType.Char => TryConvertToChar(),
                 SpecialType.Char16 => TryConvertToChar16(),
                 SpecialType.Rune => TryConvertToRune(),
@@ -946,7 +939,7 @@ public readonly struct ConstantValue
                 SpecialType.F32 => TryConvertToFloat(v => new F32Constant((float)v)),
                 SpecialType.F64 => TryConvertToFloat(v => new F64Constant(v)),
 
-                SpecialType.Str => _kind == ConstantKind.Str ? this : null,
+                SpecialType.Str => _kind == ConstantKind.Str ? this : (ConstantValue?)null,
 
                 _ => null,
             };
@@ -1054,7 +1047,7 @@ public readonly struct ConstantValue
         return this switch
         {
             NullConstant value => other is NullConstant otherValue && value.Equals(otherValue),
-            BoolConstant value => other is BoolConstant otherValue && value.Equals(otherValue),
+            bool value => other is bool otherValue && value.Equals(otherValue),
             Char8Constant value => other is Char8Constant otherValue && value.Equals(otherValue),
             Char16Constant value => other is Char16Constant otherValue && value.Equals(otherValue),
             RuneConstant value => other is RuneConstant otherValue && value.Equals(otherValue),
@@ -1072,7 +1065,7 @@ public readonly struct ConstantValue
             USizeConstant value => other is USizeConstant otherValue && value.Equals(otherValue),
             F32Constant value => other is F32Constant otherValue && value.Equals(otherValue),
             F64Constant value => other is F64Constant otherValue && value.Equals(otherValue),
-            StringConstant value => other is StringConstant otherValue && value.Equals(otherValue),
+            string value => other is string otherValue && value.Equals(otherValue),
             ArrayConstant value => other is ArrayConstant otherValue && value.Equals(otherValue),
         };
     }
@@ -1084,7 +1077,7 @@ public readonly struct ConstantValue
             this switch
             {
                 NullConstant value => value.GetHashCode(),
-                BoolConstant value => value.GetHashCode(),
+                bool value => value.GetHashCode(),
                 Char8Constant value => value.GetHashCode(),
                 Char16Constant value => value.GetHashCode(),
                 RuneConstant value => value.GetHashCode(),
@@ -1102,7 +1095,7 @@ public readonly struct ConstantValue
                 USizeConstant value => value.GetHashCode(),
                 F32Constant value => value.GetHashCode(),
                 F64Constant value => value.GetHashCode(),
-                StringConstant value => value.GetHashCode(),
+                string value => value.GetHashCode(),
                 ArrayConstant value => value.GetHashCode(),
             }
         );

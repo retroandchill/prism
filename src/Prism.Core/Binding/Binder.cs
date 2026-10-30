@@ -2034,7 +2034,7 @@ internal abstract class Binder : IOverloadResolutionHost
     {
         if (token.TryGetValue<BoolLiteralData>() is { Value: var boolValue })
         {
-            return new BoolConstant(boolValue);
+            return boolValue;
         }
 
         if (token.TryGetValue<IntegerLiteralData>() is { } integerValue)
@@ -2062,7 +2062,7 @@ internal abstract class Binder : IOverloadResolutionHost
         }
 
         return token.TryGetValue<StringLiteralData>() is { Value: var stringValue }
-            ? new StringConstant(stringValue)
+            ? stringValue
             : throw new InvalidOperationException("Invalid literal");
     }
 

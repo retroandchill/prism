@@ -309,7 +309,7 @@ internal sealed class MetadataEmitter : IDisposable
         return value switch
         {
             NullConstant => _builder.AddConstant(new ConstantRow(type, ConstantKind.Null)),
-            BoolConstant(var v) => _builder.AddConstant(
+            bool v => _builder.AddConstant(
                 new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
             ),
             Char8Constant(var v) => _builder.AddConstant(
@@ -363,7 +363,7 @@ internal sealed class MetadataEmitter : IDisposable
             F64Constant(var v) => _builder.AddConstant(
                 new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
             ),
-            StringConstant(var v) => _builder.AddConstant(
+            string v => _builder.AddConstant(
                 new ConstantRow(type, ConstantKind.String, _builder.GetOrAddBlob(v))
             ),
             ArrayConstant(var v) => throw new NotImplementedException(),

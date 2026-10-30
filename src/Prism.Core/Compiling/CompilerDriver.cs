@@ -346,7 +346,7 @@ internal static class CompilerDriver
                 return new BoundNewExpression(compilation, syntax, type, defaultCtor, []);
             }
             case SpecialType.Bool:
-                return new BoundLiteral(compilation, syntax, type, new BoolConstant(false));
+                return new BoundLiteral(compilation, syntax, type, false);
             case SpecialType.I8:
                 return new BoundLiteral(compilation, syntax, type, new I8Constant(0));
             case SpecialType.I16:

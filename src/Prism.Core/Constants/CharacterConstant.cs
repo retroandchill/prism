@@ -10,7 +10,7 @@ using MagicArchive;
 
 namespace Prism.Core.Constants;
 
-internal enum CharacterKind
+public enum CharacterKind
 {
     C8,
     C16,
@@ -19,16 +19,18 @@ internal enum CharacterKind
 
 [Archivable(GenerateType.Custom)]
 [Union]
-public readonly partial struct CharacterConstant : IUnion
+public readonly partial record struct CharacterConstant : IUnion
 {
-    private readonly CharacterKind _kind;
-    private readonly Rune _value;
+    internal CharacterKind Kind { get; }
+    internal Rune RawValue { get; }
 
     private CharacterConstant(CharacterKind kind, Rune value)
     {
-        _kind = kind;
-        _value = value;
+        Kind = kind;
+        RawValue = value;
     }
+
+    internal static CharacterConstant From(CharacterKind kind, Rune value) => new(kind, value);
 
     public CharacterConstant(byte value)
         : this(CharacterKind.C8, new Rune(value)) { }
@@ -43,11 +45,11 @@ public readonly partial struct CharacterConstant : IUnion
     {
         get
         {
-            return _kind switch
+            return Kind switch
             {
-                CharacterKind.C8 => (byte)_value.Value,
-                CharacterKind.C16 => (char)_value.Value,
-                CharacterKind.C32 => _value,
+                CharacterKind.C8 => (byte)RawValue.Value,
+                CharacterKind.C16 => (char)RawValue.Value,
+                CharacterKind.C32 => RawValue,
                 _ => throw new InvalidOperationException("Invalid character kind"),
             };
         }
@@ -55,9 +57,9 @@ public readonly partial struct CharacterConstant : IUnion
 
     public bool TryGetValue(out byte value)
     {
-        if (_kind == CharacterKind.C8)
+        if (Kind == CharacterKind.C8)
         {
-            value = (byte)_value.Value;
+            value = (byte)RawValue.Value;
             return true;
         }
 
@@ -67,9 +69,9 @@ public readonly partial struct CharacterConstant : IUnion
 
     public bool TryGetValue(out char value)
     {
-        if (_kind == CharacterKind.C16)
+        if (Kind == CharacterKind.C16)
         {
-            value = (char)_value.Value;
+            value = (char)RawValue.Value;
             return true;
         }
 
@@ -79,9 +81,9 @@ public readonly partial struct CharacterConstant : IUnion
 
     public bool TryGetValue(out Rune value)
     {
-        if (_kind == CharacterKind.C32)
+        if (Kind == CharacterKind.C32)
         {
-            value = _value;
+            value = RawValue;
             return true;
         }
 
@@ -89,21 +91,52 @@ public readonly partial struct CharacterConstant : IUnion
         return false;
     }
 
+    public CharacterConstant ConvertTo(CharacterKind kind)
+    {
+        return kind switch
+        {
+            CharacterKind.C8 => (byte)RawValue.Value,
+            CharacterKind.C16 => (char)RawValue.Value,
+            CharacterKind.C32 => RawValue,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+    }
+
     static void IArchivable<CharacterConstant>.Serialize<TBufferWriter>(
         ref ArchiveWriter<TBufferWriter> writer,
         scoped in CharacterConstant value
+    ) { }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void SerializeWithHeader<TBufferWriter>(
+        ref ArchiveWriter<TBufferWriter> writer,
+        CharacterKind kind,
+        Rune value
     )
+        where TBufferWriter : IBufferWriter<byte>
     {
-        switch (value._kind)
+        SerializeWithHeader(ref writer, (byte)kind, kind, value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void SerializeWithHeader<TBufferWriter>(
+        ref ArchiveWriter<TBufferWriter> writer,
+        byte header,
+        CharacterKind kind,
+        Rune value
+    )
+        where TBufferWriter : IBufferWriter<byte>
+    {
+        switch (kind)
         {
             case CharacterKind.C8:
-                writer.WriteBlittable(value._kind, (byte)value._value.Value);
+                writer.WriteBlittable(header, (byte)value.Value);
                 break;
             case CharacterKind.C16:
-                writer.WriteBlittable(value._kind, (char)value._value.Value);
+                writer.WriteBlittable(header, (char)value.Value);
                 break;
             case CharacterKind.C32:
-                writer.WriteBlittable(value._kind, value._value);
+                writer.WriteBlittable(header, value);
                 break;
             default:
                 throw new ArchiveSerializationException("Invalid character kind");
@@ -116,10 +149,16 @@ public readonly partial struct CharacterConstant : IUnion
     )
     {
         var kind = reader.ReadBlittable<CharacterKind>();
-        value = kind switch
+        value = new CharacterConstant(kind, ReadValue(ref reader, kind));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Rune ReadValue(ref ArchiveReader reader, CharacterKind kind)
+    {
+        return kind switch
         {
-            CharacterKind.C8 => reader.ReadBlittable<byte>(),
-            CharacterKind.C16 => reader.ReadBlittable<char>(),
+            CharacterKind.C8 => new Rune(reader.ReadBlittable<byte>()),
+            CharacterKind.C16 => new Rune(reader.ReadBlittable<char>()),
             CharacterKind.C32 => reader.ReadBlittable<Rune>(),
             _ => throw new ArchiveSerializationException("Invalid character kind"),
         };

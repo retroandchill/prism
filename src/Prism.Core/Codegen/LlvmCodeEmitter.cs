@@ -394,7 +394,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         var innerValue = value switch
         {
             NullConstant => GetNullValue(type),
-            BoolConstant(var v) => LLVMValueRef.CreateConstInt(_context.Int8Type, v ? 1UL : 0UL),
+            bool v => LLVMValueRef.CreateConstInt(_context.Int8Type, v ? 1UL : 0UL),
             Char8Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int8Type, v),
             Char16Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int16Type, v),
             RuneConstant(var v) => LLVMValueRef.CreateConstInt(_context.Int32Type, (ulong)v.Value),
@@ -444,7 +444,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             ),
             F32Constant(var v) => LLVMValueRef.CreateConstReal(_context.FloatType, v),
             F64Constant(var v) => LLVMValueRef.CreateConstReal(_context.DoubleType, v),
-            StringConstant(var v) => CreateStringConstant(v, type),
+            string v => CreateStringConstant(v, type),
             ArrayConstant => throw new NotImplementedException(),
         };
 
