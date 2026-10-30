@@ -5,6 +5,7 @@
 
 using System.Buffers;
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using MagicArchive;
 
@@ -403,6 +404,47 @@ public readonly partial record struct IntegerConstant : IUnion
             IntegerSign.Unsigned => new IntegerConstant(kind, Truncate(kind.Width, RawValue)),
             IntegerSign.Signed => SignedConvert(kind),
             _ => throw new InvalidOperationException("Unknown sign"),
+        };
+    }
+
+    public FloatConstant ConvertTo(FloatKind kind)
+    {
+        return kind switch
+        {
+            FloatKind.F32 => FloatConstant.From(FloatKind.F32, ConvertToFloating<float>()),
+            FloatKind.F64 => FloatConstant.From(FloatKind.F64, ConvertToFloating<double>()),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+    }
+
+    private TFloat ConvertToFloating<TFloat>()
+        where TFloat : IFloatingPointIeee754<TFloat>
+    {
+        return (Kind.Sign, Kind.Width) switch
+        {
+            (IntegerSign.Signed, IntegerWidth.W8) => TFloat.CreateTruncating(
+                unchecked((sbyte)(byte)RawValue)
+            ),
+            (IntegerSign.Signed, IntegerWidth.W16) => TFloat.CreateTruncating(
+                unchecked((short)(ushort)RawValue)
+            ),
+            (IntegerSign.Signed, IntegerWidth.W32) => TFloat.CreateTruncating(
+                unchecked((int)(uint)RawValue)
+            ),
+            (IntegerSign.Signed, IntegerWidth.W64) => TFloat.CreateTruncating(
+                unchecked((long)(ulong)RawValue)
+            ),
+            (IntegerSign.Signed, IntegerWidth.W128) => TFloat.CreateTruncating(
+                unchecked((Int128)RawValue)
+            ),
+
+            (IntegerSign.Unsigned, IntegerWidth.W8) => TFloat.CreateTruncating((byte)RawValue),
+            (IntegerSign.Unsigned, IntegerWidth.W16) => TFloat.CreateTruncating((ushort)RawValue),
+            (IntegerSign.Unsigned, IntegerWidth.W32) => TFloat.CreateTruncating((uint)RawValue),
+            (IntegerSign.Unsigned, IntegerWidth.W64) => TFloat.CreateTruncating((ulong)RawValue),
+            (IntegerSign.Unsigned, IntegerWidth.W128) => TFloat.CreateTruncating(RawValue),
+
+            _ => throw new InvalidOperationException("Unknown integer kind"),
         };
     }
 

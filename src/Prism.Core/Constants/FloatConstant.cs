@@ -136,6 +136,27 @@ public readonly partial record struct FloatConstant : IUnion
         };
     }
 
+    public IntegerConstant ConvertTo(IntegerKind kind)
+    {
+        unchecked
+        {
+            return (kind.Sign, kind.Width) switch
+            {
+                (IntegerSign.Signed, IntegerWidth.W8) => (sbyte)RawValue,
+                (IntegerSign.Signed, IntegerWidth.W16) => (short)RawValue,
+                (IntegerSign.Signed, IntegerWidth.W32) => (int)RawValue,
+                (IntegerSign.Signed, IntegerWidth.W64) => (long)RawValue,
+                (IntegerSign.Signed, IntegerWidth.W128) => (Int128)RawValue,
+                (IntegerSign.Unsigned, IntegerWidth.W8) => (byte)RawValue,
+                (IntegerSign.Unsigned, IntegerWidth.W16) => (ushort)RawValue,
+                (IntegerSign.Unsigned, IntegerWidth.W32) => (uint)RawValue,
+                (IntegerSign.Unsigned, IntegerWidth.W64) => (ulong)RawValue,
+                (IntegerSign.Unsigned, IntegerWidth.W128) => (UInt128)RawValue,
+                _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+            };
+        }
+    }
+
     public FloatConstant ConvertTo(FloatKind kind)
     {
         return kind switch
