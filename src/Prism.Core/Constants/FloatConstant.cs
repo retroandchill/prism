@@ -15,6 +15,20 @@ public enum FloatKind : byte
     F64,
 }
 
+public static class FloatKindExtensions
+{
+    extension(FloatKind)
+    {
+        public static FloatKind FindCommon(FloatKind a, FloatKind b)
+        {
+            if (a == FloatKind.F64 || b == FloatKind.F64)
+                return FloatKind.F64;
+
+            return FloatKind.F32;
+        }
+    }
+}
+
 [Archivable(GenerateType.Custom)]
 [Union]
 public readonly partial record struct FloatConstant : IUnion
@@ -76,6 +90,50 @@ public readonly partial record struct FloatConstant : IUnion
     public static FloatConstant operator -(FloatConstant value)
     {
         return new FloatConstant(value.Kind, -value.RawValue);
+    }
+
+    public static FloatConstant operator +(FloatConstant a, FloatConstant b)
+    {
+        return a.BinaryOp(b, static (a, b) => a + b);
+    }
+
+    public static FloatConstant operator -(FloatConstant a, FloatConstant b)
+    {
+        return a.BinaryOp(b, static (a, b) => a - b);
+    }
+
+    public static FloatConstant operator *(FloatConstant a, FloatConstant b)
+    {
+        return a.BinaryOp(b, static (a, b) => a * b);
+    }
+
+    public static FloatConstant operator /(FloatConstant a, FloatConstant b)
+    {
+        return a.BinaryOp(b, static (a, b) => a / b);
+    }
+
+    public static FloatConstant operator %(FloatConstant a, FloatConstant b)
+    {
+        return a.BinaryOp(b, static (a, b) => a % b);
+    }
+
+    private FloatConstant BinaryOp(FloatConstant other, Func<double, double, double> operation)
+    {
+        var common = FloatKind.FindCommon(Kind, other.Kind);
+        return new FloatConstant(
+            common,
+            TruncateIfNecessary(operation(RawValue, other.RawValue), common)
+        );
+    }
+
+    private static double TruncateIfNecessary(double value, FloatKind kind)
+    {
+        return kind switch
+        {
+            FloatKind.F32 => (float)value,
+            FloatKind.F64 => value,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
     }
 
     public FloatConstant ConvertTo(FloatKind kind)

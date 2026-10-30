@@ -69,6 +69,10 @@ public readonly partial record struct IntegerKind
 
     public static IntegerKind? TryFindCommon(IntegerKind left, IntegerKind right)
     {
+        // Unlike the semantic rules, we don't auto promote small integers to 32 bits, instead we find the smallest
+        // value that will take them.
+        // Ideally this will be called with the two inputs already converted to the same type by the binder, but
+        // for the sake of correctness, we'll also handle the case where they're not.
         if (left.Sign == right.Sign)
         {
             return left.Width > right.Width ? left : right;
@@ -350,10 +354,43 @@ public readonly partial record struct IntegerConstant : IUnion
 
     public IntegerConstant? TryAdd(IntegerConstant other)
     {
+        return TryBinary(other, static (a, b) => a + b);
+    }
+
+    public IntegerConstant? TrySubtract(IntegerConstant other)
+    {
+        return TryBinary(other, static (a, b) => a - b);
+    }
+
+    public IntegerConstant? TryMultiply(IntegerConstant other)
+    {
+        return TryBinary(other, static (a, b) => a * b);
+    }
+
+    public IntegerConstant? TryDivide(IntegerConstant other)
+    {
+        return TryBinary(other, static (a, b) => a / b);
+    }
+
+    public IntegerConstant? TryMod(IntegerConstant other)
+    {
+        return TryBinary(other, static (a, b) => a % b);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public IntegerConstant? TryBinary(
+        IntegerConstant other,
+        Func<UInt128, UInt128, UInt128> operation
+    )
+    {
         if (IntegerKind.TryFindCommon(Kind, other.Kind) is not { } commonKind)
             return null;
 
-        throw new NotImplementedException();
+        var commonThis = ConvertTo(commonKind);
+        var commonOther = other.ConvertTo(commonKind);
+
+        var result = operation(commonThis.RawValue, commonOther.RawValue);
+        return new IntegerConstant(commonKind, Truncate(commonKind.Width, result));
     }
 
     public IntegerConstant ConvertTo(IntegerKind kind)
