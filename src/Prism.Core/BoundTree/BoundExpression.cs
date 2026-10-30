@@ -1,6 +1,8 @@
 ﻿using System.Collections.Immutable;
 using Prism.Core.Binding.OverloadResolution;
 using Prism.Core.Compiling;
+using Prism.Core.Configuration;
+using Prism.Core.Constants;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Error;
@@ -151,7 +153,12 @@ internal sealed record BoundTypeSize : BoundExpression
             return null;
 
         var layout = Compilation.GetTypeLayout(TargetType);
-        return new USizeConstant(layout.Size);
+        return Compilation.Settings.PointerWidth switch
+        {
+            PointerWidth.X32 => new IntegerConstant((uint)layout.Size),
+            PointerWidth.X64 => new IntegerConstant(layout.Size),
+            _ => throw new InvalidOperationException("Invalid pointer width"),
+        };
     }
 }
 

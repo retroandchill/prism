@@ -73,18 +73,3 @@ internal readonly partial record struct VariableRow(
     MemberContainerDefHandle Container,
     ConstantHandle ConstantValue
 );
-
-internal enum ConstantKind : uint
-{
-    Null,
-    String,
-    Scalar,
-    Array,
-}
-
-[Archivable]
-internal readonly partial record struct ConstantRow(
-    TypeHandle Type,
-    ConstantKind Kind,
-    DataHandle Data = default
-);

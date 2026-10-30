@@ -7,6 +7,8 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Core.BoundTree;
 using Prism.Core.Compiling;
+using Prism.Core.Configuration;
+using Prism.Core.Constants;
 using Prism.Core.Diagnostics;
 using Prism.Core.Mappers;
 using Prism.Core.Mir;
@@ -562,7 +564,11 @@ internal sealed class MirEmitter(Compilation compilation)
             new MirLoadInstruction(oldValue, place) { Location = operation.Location }
         );
 
-        var one = CreateUnitConstant(operation.Operand.Type, valueType);
+        var one = CreateUnitConstant(
+            operation.Operand.Type,
+            valueType,
+            compilation.Settings.PointerWidth
+        );
         var binaryOp = arithmeticKind switch
         {
             UnaryArithmeticKind.Increment => MirBinaryOp.Addition,
@@ -1150,7 +1156,12 @@ internal sealed class MirEmitter(Compilation compilation)
         foreach (var (i, value) in collection.Expressions.AsValueEnumerable().Index())
         {
             var indexConstant = new MirConstantValue(
-                new USizeConstant((ulong)i),
+                compilation.Settings.PointerWidth switch
+                {
+                    PointerWidth.X32 => new IntegerConstant((uint)i),
+                    PointerWidth.X64 => new IntegerConstant((ulong)i),
+                    _ => throw new InvalidOperationException("Invalid pointer width"),
+                },
                 compilation.GetSpecialType(SpecialType.USize)
             );
 
@@ -1271,28 +1282,56 @@ internal sealed class MirEmitter(Compilation compilation)
         return value ? _trueValue : _falseValue;
     }
 
-    private static MirConstantValue CreateUnitConstant(TypeSymbol sourceType, TypeSymbol targetType)
+    private static MirConstantValue CreateUnitConstant(
+        TypeSymbol sourceType,
+        TypeSymbol targetType,
+        PointerWidth pointerWidth
+    )
     {
         return sourceType.SpecialType switch
         {
-            SpecialType.I8 => new MirConstantValue(new I8Constant(1), targetType),
-            SpecialType.I16 => new MirConstantValue(new I16Constant(1), targetType),
-            SpecialType.I32 => new MirConstantValue(new I32Constant(1), targetType),
-            SpecialType.I64 => new MirConstantValue(new I64Constant(1), targetType),
-            SpecialType.I128 => new MirConstantValue(new I128Constant(1), targetType),
+            SpecialType.I8 => new MirConstantValue(new IntegerConstant((sbyte)1), targetType),
+            SpecialType.I16 => new MirConstantValue(new IntegerConstant((short)1), targetType),
+            SpecialType.I32 => new MirConstantValue(new IntegerConstant(1), targetType),
+            SpecialType.I64 => new MirConstantValue(new IntegerConstant(1L), targetType),
+            SpecialType.I128 => new MirConstantValue(new IntegerConstant(Int128.One), targetType),
 
-            SpecialType.ISize => new MirConstantValue(new ISizeConstant(1), targetType),
+            SpecialType.ISize => new MirConstantValue(
+                pointerWidth switch
+                {
+                    PointerWidth.X32 => new IntegerConstant(1),
+                    PointerWidth.X64 => new IntegerConstant(1L),
+                    _ => throw new ArgumentOutOfRangeException(
+                        nameof(pointerWidth),
+                        pointerWidth,
+                        null
+                    ),
+                },
+                targetType
+            ),
 
-            SpecialType.U8 => new MirConstantValue(new U8Constant(1), targetType),
-            SpecialType.U16 => new MirConstantValue(new U16Constant(1), targetType),
-            SpecialType.U32 => new MirConstantValue(new U32Constant(1), targetType),
-            SpecialType.U64 => new MirConstantValue(new U64Constant(1), targetType),
-            SpecialType.U128 => new MirConstantValue(new U128Constant(1), targetType),
+            SpecialType.U8 => new MirConstantValue(new IntegerConstant((byte)1), targetType),
+            SpecialType.U16 => new MirConstantValue(new IntegerConstant((ushort)1), targetType),
+            SpecialType.U32 => new MirConstantValue(new IntegerConstant(1U), targetType),
+            SpecialType.U64 => new MirConstantValue(new IntegerConstant(1UL), targetType),
+            SpecialType.U128 => new MirConstantValue(new IntegerConstant(UInt128.One), targetType),
 
-            SpecialType.USize => new MirConstantValue(new USizeConstant(1), targetType),
+            SpecialType.USize => new MirConstantValue(
+                pointerWidth switch
+                {
+                    PointerWidth.X32 => new IntegerConstant(1U),
+                    PointerWidth.X64 => new IntegerConstant(1UL),
+                    _ => throw new ArgumentOutOfRangeException(
+                        nameof(pointerWidth),
+                        pointerWidth,
+                        null
+                    ),
+                },
+                targetType
+            ),
 
-            SpecialType.F32 => new MirConstantValue(new F32Constant(1), targetType),
-            SpecialType.F64 => new MirConstantValue(new F64Constant(1), targetType),
+            SpecialType.F32 => new MirConstantValue(new FloatConstant(1F), targetType),
+            SpecialType.F64 => new MirConstantValue(new FloatConstant(1D), targetType),
 
             _ => throw new InvalidOperationException(
                 "Increment/decrement requires a numeric operand."

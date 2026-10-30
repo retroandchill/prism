@@ -8,7 +8,6 @@ using Prism.Core.Compiling;
 using Prism.Core.Metadata;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
-using ConstantKind = Prism.Core.Metadata.ConstantKind;
 
 namespace Prism.Core.Codegen;
 
@@ -23,7 +22,7 @@ internal sealed class MetadataEmitter : IDisposable
     private readonly Dictionary<NamespaceSymbol, NamespaceRefHandle> _namespaceRefs = new();
     private readonly Dictionary<TypeSymbol, TypeHandle> _types = new();
 
-    private readonly Dictionary<(TypeHandle, ConstantValue), ConstantHandle> _constants = new();
+    private readonly Dictionary<ConstantValue, ConstantHandle> _constants = new();
 
     private readonly struct TrackedSymbols()
     {
@@ -282,92 +281,13 @@ internal sealed class MetadataEmitter : IDisposable
         ConstantHandle constant;
         if (variableSymbol.ConstantValue is { } constantValue)
         {
-            constant = GetOrAddConstant(constantValue, variableSymbol.Type);
+            constant = _builder.GetOrAddConstant(in constantValue);
         }
         else
         {
             constant = ConstantHandle.None;
         }
         _builder.AddVariable(new VariableRow(attributes, name, type, container, constant));
-    }
-
-    private ConstantHandle GetOrAddConstant(in ConstantValue value, TypeSymbol type)
-    {
-        var typeHandle = GetOrAddType(type);
-        if (_constants.TryGetValue((typeHandle, value), out var handle))
-        {
-            return handle;
-        }
-
-        handle = CreateAndStoreConstant(in value, typeHandle);
-        _constants.Add((typeHandle, value), handle);
-        return handle;
-    }
-
-    private ConstantHandle CreateAndStoreConstant(in ConstantValue value, TypeHandle type)
-    {
-        return value switch
-        {
-            NullConstant => _builder.AddConstant(new ConstantRow(type, ConstantKind.Null)),
-            bool v => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            Char8Constant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            Char16Constant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            RuneConstant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            I8Constant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            I16Constant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            I32Constant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            I64Constant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            I128Constant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            ISizeConstant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            U8Constant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            U16Constant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            U32Constant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            U64Constant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            U128Constant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            USizeConstant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            F32Constant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            F64Constant(var v) => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.Scalar, _builder.GetOrAddBlob(v))
-            ),
-            string v => _builder.AddConstant(
-                new ConstantRow(type, ConstantKind.String, _builder.GetOrAddBlob(v))
-            ),
-            ArrayConstant(var v) => throw new NotImplementedException(),
-        };
     }
 
     public void Dispose()

@@ -13,6 +13,7 @@ using Prism.Core.BoundTree;
 using Prism.Core.Codegen.Mir;
 using Prism.Core.Compiling;
 using Prism.Core.Configuration;
+using Prism.Core.Constants;
 using Prism.Core.Diagnostics;
 using Prism.Core.Mir;
 using Prism.Core.Mir.Analysis;
@@ -21,6 +22,7 @@ using Prism.Core.Semantic.Layout;
 using Prism.Core.Symbols;
 using Prism.Core.Utils;
 using ZLinq;
+using FloatKind = Prism.Core.Semantic.Layout.FloatKind;
 
 namespace Prism.Core.Codegen;
 
@@ -395,57 +397,43 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         {
             NullConstant => GetNullValue(type),
             bool v => LLVMValueRef.CreateConstInt(_context.Int8Type, v ? 1UL : 0UL),
-            Char8Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int8Type, v),
-            Char16Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int16Type, v),
-            RuneConstant(var v) => LLVMValueRef.CreateConstInt(_context.Int32Type, (ulong)v.Value),
-            I8Constant(var v) => LLVMValueRef.CreateConstInt(
-                _context.Int8Type,
-                unchecked((ulong)v),
-                true
-            ),
-            I16Constant(var v) => LLVMValueRef.CreateConstInt(
-                _context.Int16Type,
-                unchecked((ulong)v),
-                true
-            ),
-            I32Constant(var v) => LLVMValueRef.CreateConstInt(
-                _context.Int32Type,
-                unchecked((ulong)v),
-                true
-            ),
-            I64Constant(var v) => LLVMValueRef.CreateConstInt(
-                _context.Int64Type,
-                unchecked((ulong)v),
-                true
-            ),
-            I128Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int128Type, v),
-            ISizeConstant(var v) => LLVMValueRef.CreateConstInt(
-                _compilation.Settings.PointerWidth switch
-                {
-                    PointerWidth.X32 => _context.Int32Type,
-                    PointerWidth.X64 => _context.Int64Type,
-                    _ => throw new InvalidOperationException("Invalid pointer width"),
-                },
-                v
-            ),
-            U8Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int8Type, v),
-            U16Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int16Type, v),
-            U32Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int32Type, v),
-            U64Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int64Type, v),
-            U128Constant(var v) => LLVMValueRef.CreateConstInt(_context.Int128Type, v),
-            USizeConstant(var v) => LLVMValueRef.CreateConstInt(
-                _compilation.Settings.PointerWidth switch
-                {
-                    PointerWidth.X32 => _context.Int32Type,
-                    PointerWidth.X64 => _context.Int64Type,
-                    _ => throw new InvalidOperationException("Invalid pointer width"),
-                },
-                v
-            ),
-            F32Constant(var v) => LLVMValueRef.CreateConstReal(_context.FloatType, v),
-            F64Constant(var v) => LLVMValueRef.CreateConstReal(_context.DoubleType, v),
+            CharacterConstant ch => ch switch
+            {
+                byte v => LLVMValueRef.CreateConstInt(_context.Int8Type, v),
+                char v => LLVMValueRef.CreateConstInt(_context.Int16Type, v),
+                Rune v => LLVMValueRef.CreateConstInt(_context.Int32Type, (ulong)v.Value),
+            },
+            IntegerConstant i => i switch
+            {
+                sbyte v => LLVMValueRef.CreateConstInt(
+                    _context.Int8Type,
+                    unchecked((ulong)v),
+                    true
+                ),
+                byte v => LLVMValueRef.CreateConstInt(_context.Int8Type, v),
+                short v => LLVMValueRef.CreateConstInt(
+                    _context.Int16Type,
+                    unchecked((ulong)v),
+                    true
+                ),
+                ushort v => LLVMValueRef.CreateConstInt(_context.Int16Type, v),
+                int v => LLVMValueRef.CreateConstInt(_context.Int32Type, unchecked((ulong)v), true),
+                uint v => LLVMValueRef.CreateConstInt(_context.Int32Type, v),
+                long v => LLVMValueRef.CreateConstInt(
+                    _context.Int64Type,
+                    unchecked((ulong)v),
+                    true
+                ),
+                ulong v => LLVMValueRef.CreateConstInt(_context.Int64Type, v),
+                Int128 v => LLVMValueRef.CreateConstInt(_context.Int128Type, v),
+                UInt128 v => LLVMValueRef.CreateConstInt(_context.Int128Type, v),
+            },
+            FloatConstant f => f switch
+            {
+                float v => LLVMValueRef.CreateConstReal(_context.FloatType, v),
+                double v => LLVMValueRef.CreateConstReal(_context.DoubleType, v),
+            },
             string v => CreateStringConstant(v, type),
-            ArrayConstant => throw new NotImplementedException(),
         };
 
         var structType = GetOrCreateType(type);

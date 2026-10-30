@@ -10,6 +10,8 @@ using System.Text;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Codegen;
+using Prism.Core.Configuration;
+using Prism.Core.Constants;
 using Prism.Core.Diagnostics;
 using Prism.Core.FlowAnalysis;
 using Prism.Core.Metadata;
@@ -348,43 +350,73 @@ internal static class CompilerDriver
             case SpecialType.Bool:
                 return new BoundLiteral(compilation, syntax, type, false);
             case SpecialType.I8:
-                return new BoundLiteral(compilation, syntax, type, new I8Constant(0));
+                return new BoundLiteral(compilation, syntax, type, new IntegerConstant((sbyte)0));
             case SpecialType.I16:
-                return new BoundLiteral(compilation, syntax, type, new I16Constant(0));
+                return new BoundLiteral(compilation, syntax, type, new IntegerConstant((short)0));
             case SpecialType.I32:
-                return new BoundLiteral(compilation, syntax, type, new I32Constant(0));
+                return new BoundLiteral(compilation, syntax, type, new IntegerConstant(0));
             case SpecialType.I64:
-                return new BoundLiteral(compilation, syntax, type, new I64Constant(0));
+                return new BoundLiteral(compilation, syntax, type, new IntegerConstant(0L));
             case SpecialType.I128:
-                return new BoundLiteral(compilation, syntax, type, new I128Constant(0));
+                return new BoundLiteral(
+                    compilation,
+                    syntax,
+                    type,
+                    new IntegerConstant(Int128.Zero)
+                );
             case SpecialType.ISize:
-                return new BoundLiteral(compilation, syntax, type, new ISizeConstant(0));
+                return new BoundLiteral(
+                    compilation,
+                    syntax,
+                    type,
+                    compilation.Settings.PointerWidth switch
+                    {
+                        PointerWidth.X32 => new IntegerConstant(0),
+                        PointerWidth.X64 => new IntegerConstant(0L),
+                        _ => throw new InvalidOperationException("Invalid pointer width"),
+                    }
+                );
             case SpecialType.U8:
-                return new BoundLiteral(compilation, syntax, type, new U8Constant(0));
+                return new BoundLiteral(compilation, syntax, type, new IntegerConstant((byte)0));
             case SpecialType.U16:
-                return new BoundLiteral(compilation, syntax, type, new U16Constant(0));
+                return new BoundLiteral(compilation, syntax, type, new IntegerConstant((ushort)0));
             case SpecialType.U32:
-                return new BoundLiteral(compilation, syntax, type, new U32Constant(0));
+                return new BoundLiteral(compilation, syntax, type, new IntegerConstant(0U));
             case SpecialType.U64:
-                return new BoundLiteral(compilation, syntax, type, new U64Constant(0));
+                return new BoundLiteral(compilation, syntax, type, new IntegerConstant(0UL));
             case SpecialType.U128:
-                return new BoundLiteral(compilation, syntax, type, new U128Constant(0));
+                return new BoundLiteral(
+                    compilation,
+                    syntax,
+                    type,
+                    new IntegerConstant(UInt128.Zero)
+                );
             case SpecialType.USize:
-                return new BoundLiteral(compilation, syntax, type, new USizeConstant(0));
+                return new BoundLiteral(
+                    compilation,
+                    syntax,
+                    type,
+                    compilation.Settings.PointerWidth switch
+                    {
+                        PointerWidth.X32 => new IntegerConstant(0U),
+                        PointerWidth.X64 => new IntegerConstant(0UL),
+                        _ => throw new InvalidOperationException("Invalid pointer width"),
+                    }
+                );
             case SpecialType.F32:
-                return new BoundLiteral(compilation, syntax, type, new F32Constant(0));
+                return new BoundLiteral(compilation, syntax, type, new FloatConstant(0F));
             case SpecialType.F64:
-                return new BoundLiteral(compilation, syntax, type, new F64Constant(0));
+                return new BoundLiteral(compilation, syntax, type, new FloatConstant(0D));
             case SpecialType.Char:
-                return new BoundLiteral(compilation, syntax, type, new Char8Constant(0));
+                return new BoundLiteral(compilation, syntax, type, new CharacterConstant(0));
             case SpecialType.Char16:
-                return new BoundLiteral(compilation, syntax, type, new Char16Constant('\0'));
+                return new BoundLiteral(compilation, syntax, type, new CharacterConstant('\0'));
             case SpecialType.Rune:
                 return new BoundLiteral(
                     compilation,
                     syntax,
                     type,
-                    new RuneConstant(new Rune('\0'))
+                    new CharacterConstant(new Rune('\0'))
                 );
             default:
                 throw new InvalidOperationException("Not a default constructible type");

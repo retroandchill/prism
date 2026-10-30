@@ -162,6 +162,22 @@ public readonly partial record struct IntegerConstant : IUnion
         RawValue = value;
     }
 
+    public bool IsNegative
+    {
+        get
+        {
+            if (Kind.Sign != IntegerSign.Signed)
+                return false;
+
+            var signBit = GetSignBit(Kind.Width);
+            return (RawValue & signBit) != 0;
+        }
+    }
+
+    public bool IsSigned => Kind.Sign == IntegerSign.Signed;
+
+    public bool IsUnsigned => Kind.Sign == IntegerSign.Unsigned;
+
     public object Value
     {
         get
@@ -378,8 +394,23 @@ public readonly partial record struct IntegerConstant : IUnion
         return TryBinary(other, static (a, b) => a % b);
     }
 
+    public IntegerConstant? TryBitwiseAnd(IntegerConstant other)
+    {
+        return TryBinary(other, static (a, b) => a & b);
+    }
+
+    public IntegerConstant? TryBitwiseOr(IntegerConstant other)
+    {
+        return TryBinary(other, static (a, b) => a | b);
+    }
+
+    public IntegerConstant? TryBitwiseXor(IntegerConstant other)
+    {
+        return TryBinary(other, static (a, b) => a ^ b);
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IntegerConstant? TryBinary(
+    private IntegerConstant? TryBinary(
         IntegerConstant other,
         Func<UInt128, UInt128, UInt128> operation
     )
@@ -392,6 +423,184 @@ public readonly partial record struct IntegerConstant : IUnion
 
         var result = operation(commonThis.RawValue, commonOther.RawValue);
         return new IntegerConstant(commonKind, Truncate(commonKind.Width, result));
+    }
+
+    public IntegerConstant? TryShiftLeft(IntegerConstant other)
+    {
+        var shift = TryGetShiftAmount(other);
+        if (shift is null)
+            return null;
+
+        var bitWidth = GetBitWidth(Kind.Width);
+        if (shift.Value >= bitWidth)
+        {
+            return new IntegerConstant(Kind, 0);
+        }
+
+        var result = Truncate(Kind.Width, RawValue << shift.Value);
+        return new IntegerConstant(Kind, result);
+    }
+
+    public IntegerConstant? TryShiftRight(IntegerConstant other)
+    {
+        var shift = TryGetShiftAmount(other);
+        if (shift is null)
+            return null;
+
+        var width = GetBitWidth(Kind.Width);
+        if (shift.Value >= width)
+        {
+            if (Kind.Sign == IntegerSign.Signed && IsNegative)
+            {
+                return new IntegerConstant(Kind, GetAllBitsSet(Kind.Width));
+            }
+
+            return new IntegerConstant(Kind, 0);
+        }
+
+        var result = Kind.Sign switch
+        {
+            IntegerSign.Signed => ArithmeticShiftRight(shift.Value),
+            IntegerSign.Unsigned => RawValue >> shift.Value,
+            _ => throw new InvalidOperationException("Unknown sign"),
+        };
+
+        return new IntegerConstant(Kind, Truncate(Kind.Width, result));
+    }
+
+    public IntegerConstant? TryUnsignedShiftRight(IntegerConstant other)
+    {
+        var shift = TryGetShiftAmount(other);
+        if (shift is null)
+            return null;
+
+        var width = GetBitWidth(Kind.Width);
+        return shift.Value >= width
+            ? new IntegerConstant(Kind, 0)
+            : new IntegerConstant(Kind, Truncate(Kind.Width, RawValue >> shift.Value));
+    }
+
+    private UInt128 ArithmeticShiftRight(int shift)
+    {
+        return Kind.Width switch
+        {
+            IntegerWidth.W8 => unchecked((byte)((sbyte)(byte)RawValue >> shift)),
+            IntegerWidth.W16 => unchecked((ushort)((short)(ushort)RawValue >> shift)),
+            IntegerWidth.W32 => unchecked((uint)((int)(uint)RawValue >> shift)),
+            IntegerWidth.W64 => unchecked((ulong)((long)(ulong)RawValue >> shift)),
+            IntegerWidth.W128 => unchecked((UInt128)((Int128)RawValue >> shift)),
+            _ => throw new InvalidOperationException("Invalid integer width"),
+        };
+    }
+
+    private static UInt128 GetAllBitsSet(IntegerWidth width)
+    {
+        return width switch
+        {
+            IntegerWidth.W8 => byte.MaxValue,
+            IntegerWidth.W16 => ushort.MaxValue,
+            IntegerWidth.W32 => uint.MaxValue,
+            IntegerWidth.W64 => ulong.MaxValue,
+            IntegerWidth.W128 => UInt128.MaxValue,
+            _ => throw new ArgumentOutOfRangeException(nameof(width), width, null),
+        };
+    }
+
+    private static int? TryGetShiftAmount(IntegerConstant value)
+    {
+        return value switch
+        {
+            sbyte b => b >= 0 ? b : null,
+            byte b => b,
+            short s => s >= 0 ? s : null,
+            ushort s => s,
+            int i => i >= 0 ? i : null,
+            uint i => i <= int.MaxValue ? (int)i : null,
+            long l => l is >= 0 and <= int.MaxValue ? (int)l : null,
+            ulong l => l <= int.MaxValue ? (int)l : null,
+            Int128 v => v >= 0 && v <= int.MaxValue ? (int)v : null,
+            UInt128 v => v <= int.MaxValue ? (int)v : null,
+        };
+    }
+
+    private static int GetBitWidth(IntegerWidth width)
+    {
+        return width switch
+        {
+            IntegerWidth.W8 => 8,
+            IntegerWidth.W16 => 16,
+            IntegerWidth.W32 => 32,
+            IntegerWidth.W64 => 64,
+            IntegerWidth.W128 => 128,
+            _ => throw new ArgumentOutOfRangeException(nameof(width), width, null),
+        };
+    }
+
+    public bool? TryEqual(IntegerConstant other)
+    {
+        return TryCompare(other, ComparisonOperation.Equal);
+    }
+
+    public bool? TryNotEqual(IntegerConstant other)
+    {
+        return TryCompare(other, ComparisonOperation.NotEqual);
+    }
+
+    public bool? TryLessThan(IntegerConstant other)
+    {
+        return TryCompare(other, ComparisonOperation.LessThan);
+    }
+
+    public bool? TryLessThanOrEqual(IntegerConstant other)
+    {
+        return TryCompare(other, ComparisonOperation.LessThanOrEqual);
+    }
+
+    public bool? TryGreaterThan(IntegerConstant other)
+    {
+        return TryCompare(other, ComparisonOperation.GreaterThan);
+    }
+
+    public bool? TryGreaterThanOrEqual(IntegerConstant other)
+    {
+        return TryCompare(other, ComparisonOperation.GreaterThanOrEqual);
+    }
+
+    private bool? TryCompare(IntegerConstant other, ComparisonOperation operation)
+    {
+        if (IntegerKind.TryFindCommon(Kind, other.Kind) is not { } commonKind)
+            return null;
+
+        var commonThis = ConvertTo(commonKind);
+        var commonOther = other.ConvertTo(commonKind);
+
+        return commonKind.Sign switch
+        {
+            IntegerSign.Unsigned => ComparisonHelpers.CompareValues(
+                commonThis.RawValue,
+                commonOther.RawValue,
+                operation
+            ),
+            IntegerSign.Signed => ComparisonHelpers.CompareValues(
+                commonThis.GetSignedValue(),
+                commonOther.GetSignedValue(),
+                operation
+            ),
+            _ => throw new InvalidOperationException("Invalid integer sign"),
+        };
+    }
+
+    private Int128 GetSignedValue()
+    {
+        return Kind.Width switch
+        {
+            IntegerWidth.W8 => unchecked((sbyte)(byte)RawValue),
+            IntegerWidth.W16 => unchecked((short)(ushort)RawValue),
+            IntegerWidth.W32 => unchecked((int)(uint)RawValue),
+            IntegerWidth.W64 => unchecked((long)(ulong)RawValue),
+            IntegerWidth.W128 => unchecked((Int128)RawValue),
+            _ => throw new ArgumentOutOfRangeException(nameof(Kind.Width), Kind.Width, null),
+        };
     }
 
     public IntegerConstant ConvertTo(IntegerKind kind)
@@ -411,8 +620,8 @@ public readonly partial record struct IntegerConstant : IUnion
     {
         return kind switch
         {
-            FloatKind.F32 => FloatConstant.From(FloatKind.F32, ConvertToFloating<float>()),
-            FloatKind.F64 => FloatConstant.From(FloatKind.F64, ConvertToFloating<double>()),
+            FloatKind.F32 => ConvertToFloating<float>(),
+            FloatKind.F64 => ConvertToFloating<double>(),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
     }
@@ -450,7 +659,6 @@ public readonly partial record struct IntegerConstant : IUnion
 
     private IntegerConstant SignedConvert(IntegerKind kind)
     {
-        Debug.Assert(kind.Sign == Kind.Sign);
         if (Kind.Width > kind.Width)
         {
             return new IntegerConstant(kind, Truncate(kind.Width, RawValue));
@@ -466,8 +674,7 @@ public readonly partial record struct IntegerConstant : IUnion
 
     private UInt128 ComputeSignExtendedValue(IntegerWidth width)
     {
-        var signBit = GetSignBit(Kind.Width);
-        if ((RawValue & signBit) == 0)
+        if (!IsNegative)
         {
             return RawValue;
         }
@@ -572,6 +779,23 @@ public readonly partial record struct IntegerConstant : IUnion
             IntegerWidth.W64 => reader.ReadBlittable<ulong>(),
             IntegerWidth.W128 => reader.ReadBlittable<UInt128>(),
             _ => throw new ArchiveSerializationException("Unknown integer width"),
+        };
+    }
+
+    public override string ToString()
+    {
+        return this switch
+        {
+            sbyte v => v.ToString(),
+            byte v => v.ToString(),
+            short v => v.ToString(),
+            ushort v => v.ToString(),
+            int v => v.ToString(),
+            uint v => v.ToString(),
+            long v => v.ToString(),
+            ulong v => v.ToString(),
+            Int128 v => v.ToString(),
+            UInt128 v => v.ToString(),
         };
     }
 }

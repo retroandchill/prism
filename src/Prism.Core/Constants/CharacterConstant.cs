@@ -91,6 +91,16 @@ public readonly partial record struct CharacterConstant : IUnion
         return false;
     }
 
+    public bool EquivalentTo(CharacterConstant other)
+    {
+        return RawValue == other.RawValue;
+    }
+
+    public bool NotEquivalentTo(CharacterConstant other)
+    {
+        return !EquivalentTo(other);
+    }
+
     public CharacterConstant ConvertTo(CharacterKind kind)
     {
         return kind switch
@@ -162,5 +172,10 @@ public readonly partial record struct CharacterConstant : IUnion
             CharacterKind.C32 => reader.ReadBlittable<Rune>(),
             _ => throw new ArchiveSerializationException("Invalid character kind"),
         };
+    }
+
+    public override string ToString()
+    {
+        return RawValue.ToString();
     }
 }

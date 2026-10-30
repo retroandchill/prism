@@ -6,7 +6,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MagicArchive;
-using Prism.Core.Symbols;
+using Prism.Core.Semantic;
 
 namespace Prism.Core.Metadata;
 
@@ -15,7 +15,9 @@ internal sealed class MetadataBuilder : IDisposable
     private readonly MetadataHeader _header;
 
     private readonly StringHeapBuilder _strings = new();
-    private readonly BlobHeapBuilder _blobs = new();
+    private readonly SerializedHeapBuilder<ConstDataHandle, ConstantValue> _constantData = new();
+
+    private readonly Dictionary<ConstantValue, ConstantHandle> _constants = new();
 
     private readonly List<AssemblyIdentityData> _referencedAssemblies = [];
 
@@ -27,7 +29,6 @@ internal sealed class MetadataBuilder : IDisposable
     private readonly SerializedHeapBuilder<TypeSpecHandle, TypeSpecRow> _typeSpecHeap = new();
 
     private readonly List<VariableRow> _variables = [];
-    private readonly List<ConstantRow> _constants = [];
 
     public MetadataBuilder(AssemblyIdentity identity, TargetInfo target)
     {
@@ -41,9 +42,29 @@ internal sealed class MetadataBuilder : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public BlobHandle GetOrAddBlob<T>(in T value)
+    public ConstantHandle GetOrAddConstant(in ConstantValue value)
     {
-        return _blobs.GetOrAdd(in value);
+        if (_constants.TryGetValue(value, out var handle))
+        {
+            return handle;
+        }
+
+        handle = value switch
+        {
+            string s => GetOrAddString(s),
+            _ => StoreNonStringConstant(in value),
+        };
+
+        _constants.Add(value, handle);
+        return handle;
+    }
+
+    private ConstantHandle StoreNonStringConstant(in ConstantValue value)
+    {
+        if (InlineConstHandle.TryCreate(in value) is { } inline)
+            return inline;
+
+        return _constantData.Add(in value);
     }
 
     public AssemblyRefHandle AddReferencedAssembly(AssemblyIdentity identity)
@@ -87,12 +108,6 @@ internal sealed class MetadataBuilder : IDisposable
     {
         _variables.Add(row);
         return VariableHandle.FromRowId(_variables.Count);
-    }
-
-    public ConstantHandle AddConstant(ConstantRow row)
-    {
-        _constants.Add(row);
-        return ConstantHandle.FromRowId(_constants.Count);
     }
 
     private AssemblyIdentityData ConvertAssemblyIdentity(AssemblyIdentity identity)
@@ -140,14 +155,6 @@ internal sealed class MetadataBuilder : IDisposable
             _strings,
             sectionHeaders,
             Section.StringTable,
-            ref currentSection
-        );
-        WriteHeap(
-            ref writer,
-            ref bufferWriter,
-            _blobs,
-            sectionHeaders,
-            Section.BinaryBlobs,
             ref currentSection
         );
         WriteRows(
@@ -206,10 +213,10 @@ internal sealed class MetadataBuilder : IDisposable
             Section.Variables,
             ref currentSection
         );
-        WriteRows(
+        WriteHeap(
             ref writer,
             ref bufferWriter,
-            _constants,
+            _constantData,
             sectionHeaders,
             Section.Constants,
             ref currentSection

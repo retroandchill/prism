@@ -12,7 +12,6 @@ namespace Prism.Core.Metadata;
 internal enum Section
 {
     StringTable = 0,
-    BinaryBlobs = 1,
     AssemblyReferences = 10,
     NamespaceDefs = 11,
     NamespaceRefs = 12,
@@ -41,7 +40,8 @@ internal static partial class Sections
     public const uint Constant = 80;
 
     public const uint String = 120;
-    public const uint Blob = 121;
+    public const uint ConstData = 121;
+    public const uint InlineConst = 122;
 
     public const int RowIdBitCount = 24;
 }
@@ -73,5 +73,6 @@ public enum TokenType : uint
     Constant = Sections.Constant << Sections.RowIdBitCount,
 
     String = Sections.String << Sections.RowIdBitCount,
-    Blob = Sections.Blob << Sections.RowIdBitCount,
+    ConstData = Sections.ConstData << Sections.RowIdBitCount,
+    InlineConst = Sections.InlineConst << Sections.RowIdBitCount,
 }

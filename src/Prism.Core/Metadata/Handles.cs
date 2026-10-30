@@ -3,7 +3,10 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Text;
 using MagicArchive;
+using Prism.Core.Constants;
+using Prism.Core.Semantic;
 
 namespace Prism.Core.Metadata;
 
@@ -25,22 +28,147 @@ public readonly partial record struct StringHandle
 
 [Archivable]
 [Handle]
-public readonly partial record struct BlobHandle
+public readonly partial record struct ConstDataHandle
 {
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial BlobHandle(int id);
+    private partial ConstDataHandle(int id);
 }
 
 [Archivable]
-[CompositeHandle(typeof(StringHandle), typeof(BlobHandle))]
-public readonly partial record struct DataHandle
+[Handle]
+public readonly partial record struct InlineConstHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private const int KindMask = 0x00FF0000;
+    private const int KindShift = 16;
+    private const int PayloadMask = 0x0000FFFF;
+
+    private partial InlineConstHandle(int id);
+
+    public static InlineConstHandle? TryCreate(in ConstantValue value)
+    {
+        return value switch
+        {
+            // ReSharper disable once ShiftExpressionZeroLeftOperand
+            NullConstant => new InlineConstHandle(ConstantHeader.Null.AsRaw() << KindShift),
+            bool b => new InlineConstHandle(ConstantHeader.Bool.AsRaw() << KindShift | (b ? 1 : 0)),
+            IntegerConstant i => TryCreateFromInteger(in i),
+            CharacterConstant c => TryCreateFromCharacter(c),
+            _ => null,
+        };
+    }
+
+    private static InlineConstHandle? TryCreateFromInteger(in IntegerConstant value)
+    {
+        // We can save space by storing larger integer types that can be represented by a small type inline
+        var header = ConstantHeader.Integer(value.Kind);
+        return value switch
+        {
+            sbyte i => Create(header, i),
+            byte i => Create(header, i),
+            short i => Create(header, i),
+            ushort i => Create(header, i),
+            int i and <= short.MaxValue and >= short.MinValue => Create(header, (short)i),
+            uint i and <= ushort.MaxValue => Create(header, (ushort)i),
+            long i and <= short.MaxValue and >= short.MinValue => Create(header, (short)i),
+            ulong i and <= ushort.MaxValue => Create(header, (ushort)i),
+            Int128 i when i <= short.MaxValue && i >= short.MinValue => Create(header, (short)i),
+            UInt128 i when i <= ushort.MaxValue => Create(header, (ushort)i),
+            _ => null,
+        };
+    }
+
+    private static InlineConstHandle? TryCreateFromCharacter(CharacterConstant value)
+    {
+        var header = ConstantHeader.Character(value.Kind);
+        return value switch
+        {
+            byte utf8 => Create(header, utf8),
+            char utf16 => Create(header, utf16),
+            Rune utf32 when (uint)utf32.Value <= char.MaxValue => Create(
+                header,
+                unchecked((ushort)utf32.Value)
+            ),
+            _ => null,
+        };
+    }
+
+    private static InlineConstHandle Create(ConstantHeader header, short value)
+    {
+        return Create(header, unchecked((ushort)value));
+    }
+
+    private static InlineConstHandle Create(ConstantHeader header, ushort value)
+    {
+        return new InlineConstHandle(header.AsRaw() << KindShift | value);
+    }
+
+    public ConstantValue GetValue()
+    {
+        var rawKind = (byte)((_id & KindMask) >> KindShift);
+        var header = ConstantHeader.FromRaw(rawKind);
+        return header.Kind switch
+        {
+            ConstantKind.Null => new NullConstant(),
+            ConstantKind.Bool => (_id & 1) != 0,
+            ConstantKind.Integer => ReadIntegerConstant(header.IntegerKind),
+            ConstantKind.Character => ReadCharacterConstant(header.CharacterKind),
+            _ => throw new InvalidDataException("Not a constant type that can be inlined"),
+        };
+    }
+
+    private ConstantValue ReadIntegerConstant(IntegerKind kind)
+    {
+        var payload = (ushort)(_id & PayloadMask);
+        return kind.Sign switch
+        {
+            IntegerSign.Unsigned => kind.Width switch
+            {
+                IntegerWidth.W8 => new IntegerConstant((byte)payload),
+                IntegerWidth.W16 => new IntegerConstant(payload),
+                IntegerWidth.W32 => new IntegerConstant((uint)payload),
+                IntegerWidth.W64 => new IntegerConstant((ulong)payload),
+                IntegerWidth.W128 => new IntegerConstant((UInt128)payload),
+                _ => throw new InvalidOperationException("Invalid width"),
+            },
+            IntegerSign.Signed => kind.Width switch
+            {
+                IntegerWidth.W8 => new IntegerConstant((sbyte)unchecked((short)payload)),
+                IntegerWidth.W16 => new IntegerConstant(unchecked((short)payload)),
+                IntegerWidth.W32 => new IntegerConstant((int)unchecked((short)payload)),
+                IntegerWidth.W64 => new IntegerConstant((long)unchecked((short)payload)),
+                IntegerWidth.W128 => new IntegerConstant((Int128)unchecked((short)payload)),
+                _ => throw new InvalidOperationException("Invalid width"),
+            },
+            _ => throw new InvalidOperationException("Invalid sign"),
+        };
+    }
+
+    private ConstantValue ReadCharacterConstant(CharacterKind kind)
+    {
+        var payload = (ushort)(_id & PayloadMask);
+        return kind switch
+        {
+            CharacterKind.C8 => new CharacterConstant((byte)payload),
+            CharacterKind.C16 => new CharacterConstant((char)payload),
+            CharacterKind.C32 => new CharacterConstant(new Rune(payload)),
+            _ => throw new InvalidOperationException("Invalid character kind"),
+        };
+    }
+}
+
+[Archivable]
+[CompositeHandle(typeof(StringHandle), typeof(ConstDataHandle), typeof(InlineConstHandle))]
+public readonly partial record struct ConstantHandle
 {
     [ArchiveInclude]
     private readonly MetadataToken _token;
 
-    private partial DataHandle(MetadataToken token);
+    private partial ConstantHandle(MetadataToken token);
 }
 
 [Archivable]
@@ -201,14 +329,4 @@ public readonly partial record struct FunctionOrAttributeHandle
     private readonly MetadataToken _token;
 
     private partial FunctionOrAttributeHandle(MetadataToken token);
-}
-
-[Archivable]
-[Handle]
-public readonly partial record struct ConstantHandle
-{
-    [ArchiveInclude]
-    private readonly int _id;
-
-    private partial ConstantHandle(int id);
 }

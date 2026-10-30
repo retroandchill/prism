@@ -6,6 +6,8 @@ using Prism.Core.Binding.OverloadResolution;
 using Prism.Core.Binding.Utils;
 using Prism.Core.BoundTree;
 using Prism.Core.Compiling;
+using Prism.Core.Configuration;
+using Prism.Core.Constants;
 using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
 using Prism.Core.Mappers;
@@ -129,10 +131,14 @@ internal abstract class Binder : IOverloadResolutionHost
         );
         return boundSize.ConstantValue switch
         {
-            U8Constant(var value) => value,
-            U16Constant(var value) => value,
-            U32Constant(var value) => value,
-            U64Constant(var value) => value,
+            IntegerConstant { IsUnsigned: true } c => c switch
+            {
+                byte v => v,
+                ushort v => v,
+                uint v => v,
+                ulong v => v,
+                _ => null,
+            },
             _ => null,
         };
     }
@@ -1066,7 +1072,7 @@ internal abstract class Binder : IOverloadResolutionHost
                 { Suffix: IntegerSuffix.None } integerValue
             )
             {
-                var constant = EvaluateNumericExpression(
+                var (_, specialType) = EvaluateNumericExpression(
                     in integerValue,
                     null,
                     syntax.Location,
@@ -1076,13 +1082,13 @@ internal abstract class Binder : IOverloadResolutionHost
                     Compilation,
                     syntax,
                     integerValue,
-                    Compilation.GetSpecialType(constant.SpecialType)
+                    Compilation.GetSpecialType(specialType)
                 );
             }
 
             if (token.TryGetValue<FloatLiteralData>() is { Suffix: FloatSuffix.None } floatingValue)
             {
-                var constant = EvaluateNumericExpression(
+                var (_, specialType) = EvaluateNumericExpression(
                     in floatingValue,
                     null,
                     syntax.Location,
@@ -1092,13 +1098,13 @@ internal abstract class Binder : IOverloadResolutionHost
                     Compilation,
                     syntax,
                     floatingValue,
-                    Compilation.GetSpecialType(constant.SpecialType)
+                    Compilation.GetSpecialType(specialType)
                 );
             }
         }
 
-        var value = EvaluateConstantExpression(token, returnType, context);
-        TypeSymbol type = Compilation.GetSpecialType(value.SpecialType);
+        var (value, t) = EvaluateConstantExpression(token, returnType, context);
+        TypeSymbol type = Compilation.GetSpecialType(t);
         if (type.SpecialType == SpecialType.Str)
         {
             type = Compilation.CreateReferenceTypeSymbol(type);
@@ -1364,7 +1370,7 @@ internal abstract class Binder : IOverloadResolutionHost
                     { Suffix.CanBeSigned: true } intData
                 )
                 {
-                    var negated = EvaluateNumericExpression(
+                    var (negated, specialType) = EvaluateNumericExpression(
                         in intData,
                         returnType,
                         syntax.Location,
@@ -1378,7 +1384,7 @@ internal abstract class Binder : IOverloadResolutionHost
                             Compilation,
                             syntax,
                             intData,
-                            Compilation.GetSpecialType(negated.SpecialType)
+                            Compilation.GetSpecialType(specialType)
                         )
                         {
                             Negated = true,
@@ -1388,14 +1394,14 @@ internal abstract class Binder : IOverloadResolutionHost
                     return new BoundLiteral(
                         Compilation,
                         syntax,
-                        Compilation.GetSpecialType(negated.SpecialType),
+                        Compilation.GetSpecialType(specialType),
                         negated
                     );
                 }
 
                 if (literal.Value.TryGetValue<FloatLiteralData>() is { } floatData)
                 {
-                    var negated = EvaluateNumericExpression(
+                    var (negated, specialType) = EvaluateNumericExpression(
                         in floatData,
                         returnType,
                         syntax.Location,
@@ -1409,7 +1415,7 @@ internal abstract class Binder : IOverloadResolutionHost
                             Compilation,
                             syntax,
                             floatData,
-                            Compilation.GetSpecialType(negated.SpecialType)
+                            Compilation.GetSpecialType(specialType)
                         )
                         {
                             Negated = true,
@@ -1419,7 +1425,7 @@ internal abstract class Binder : IOverloadResolutionHost
                     return new BoundLiteral(
                         Compilation,
                         syntax,
-                        Compilation.GetSpecialType(negated.SpecialType),
+                        Compilation.GetSpecialType(specialType),
                         negated
                     );
                 }
@@ -2026,7 +2032,7 @@ internal abstract class Binder : IOverloadResolutionHost
         }
     }
 
-    private ConstantValue EvaluateConstantExpression(
+    private (ConstantValue, SpecialType) EvaluateConstantExpression(
         SyntaxToken token,
         TypeSymbol? returnType,
         BindingContext context
@@ -2034,7 +2040,7 @@ internal abstract class Binder : IOverloadResolutionHost
     {
         if (token.TryGetValue<BoolLiteralData>() is { Value: var boolValue })
         {
-            return boolValue;
+            return (boolValue, SpecialType.Bool);
         }
 
         if (token.TryGetValue<IntegerLiteralData>() is { } integerValue)
@@ -2054,19 +2060,25 @@ internal abstract class Binder : IOverloadResolutionHost
         {
             return encoding switch
             {
-                CharacterEncoding.Utf8 => new Char8Constant((byte)value.Value),
-                CharacterEncoding.Utf16 => new Char16Constant((char)value.Value),
-                CharacterEncoding.Utf32 => new RuneConstant(value),
+                CharacterEncoding.Utf8 => (
+                    new CharacterConstant((byte)value.Value),
+                    SpecialType.Char
+                ),
+                CharacterEncoding.Utf16 => (
+                    new CharacterConstant((char)value.Value),
+                    SpecialType.Char16
+                ),
+                CharacterEncoding.Utf32 => (new CharacterConstant(value), SpecialType.Rune),
                 _ => throw new InvalidOperationException("Invalid character encoding"),
             };
         }
 
         return token.TryGetValue<StringLiteralData>() is { Value: var stringValue }
-            ? stringValue
+            ? (stringValue, SpecialType.Str)
             : throw new InvalidOperationException("Invalid literal");
     }
 
-    private ConstantValue EvaluateNumericExpression(
+    private (ConstantValue, SpecialType) EvaluateNumericExpression(
         in IntegerLiteralData data,
         TypeSymbol? returnType,
         Location location,
@@ -2084,63 +2096,79 @@ internal abstract class Binder : IOverloadResolutionHost
         switch (targetType)
         {
             case IntegerTargetKind.I8:
-                return new I8Constant((sbyte)possiblyNegated);
+                return (new IntegerConstant((sbyte)possiblyNegated), SpecialType.I8);
             case IntegerTargetKind.I16:
-                return new I16Constant((short)possiblyNegated);
+                return (new IntegerConstant((short)possiblyNegated), SpecialType.I16);
             case IntegerTargetKind.I32:
-                return new I32Constant((int)possiblyNegated);
+                return (new IntegerConstant((int)possiblyNegated), SpecialType.I32);
             case IntegerTargetKind.I64:
-                return new I64Constant((long)possiblyNegated);
+                return (new IntegerConstant((long)possiblyNegated), SpecialType.I64);
             case IntegerTargetKind.I128:
-                return new I128Constant((Int128)possiblyNegated);
+                return (new IntegerConstant((Int128)possiblyNegated), SpecialType.I128);
             case IntegerTargetKind.ISize:
-                return new ISizeConstant((long)possiblyNegated);
+                return (
+                    Compilation.Settings.PointerWidth switch
+                    {
+                        PointerWidth.X32 => new IntegerConstant((int)possiblyNegated),
+                        PointerWidth.X64 => new IntegerConstant((long)possiblyNegated),
+                        _ => throw new InvalidOperationException("Invalid pointer width"),
+                    },
+                    SpecialType.ISize
+                );
             case IntegerTargetKind.U8:
                 ThrowIfNegative(isNegative);
-                return new U8Constant((byte)possiblyNegated);
+                return (new IntegerConstant((byte)possiblyNegated), SpecialType.U8);
             case IntegerTargetKind.U16:
                 ThrowIfNegative(isNegative);
-                return new U16Constant((ushort)possiblyNegated);
+                return (new IntegerConstant((ushort)possiblyNegated), SpecialType.U16);
             case IntegerTargetKind.U32:
                 ThrowIfNegative(isNegative);
-                return new U32Constant((uint)possiblyNegated);
+                return (new IntegerConstant((uint)possiblyNegated), SpecialType.U32);
             case IntegerTargetKind.U64:
                 ThrowIfNegative(isNegative);
-                return new U64Constant((ulong)possiblyNegated);
+                return (new IntegerConstant((ulong)possiblyNegated), SpecialType.U64);
             case IntegerTargetKind.U128:
                 ThrowIfNegative(isNegative);
-                return new U128Constant((UInt128)possiblyNegated);
+                return (new IntegerConstant((UInt128)possiblyNegated), SpecialType.U128);
             case IntegerTargetKind.USize:
                 ThrowIfNegative(isNegative);
-                return new USizeConstant((ulong)possiblyNegated);
+                return (
+                    Compilation.Settings.PointerWidth switch
+                    {
+                        PointerWidth.X32 => new IntegerConstant((uint)possiblyNegated),
+                        PointerWidth.X64 => new IntegerConstant((ulong)possiblyNegated),
+                        _ => throw new InvalidOperationException("Invalid pointer width"),
+                    },
+                    SpecialType.USize
+                );
             case IntegerTargetKind.F32:
-                return new F32Constant((float)possiblyNegated);
+                return (new FloatConstant((float)possiblyNegated), SpecialType.F32);
             case IntegerTargetKind.F64:
-                return new F64Constant((double)possiblyNegated);
+                return (new FloatConstant((double)possiblyNegated), SpecialType.F64);
             case IntegerTargetKind.BestFit:
             {
                 if (possiblyNegated.FitsIn<int>())
-                    return new I32Constant((int)possiblyNegated);
+                    return (new IntegerConstant((int)possiblyNegated), SpecialType.I32);
 
                 if (possiblyNegated.FitsIn<uint>())
-                    return new U32Constant((uint)possiblyNegated);
+                    return (new IntegerConstant((uint)possiblyNegated), SpecialType.U32);
 
                 if (possiblyNegated.FitsIn<long>())
-                    return new I64Constant((long)possiblyNegated);
+                    return (new IntegerConstant((long)possiblyNegated), SpecialType.I64);
 
                 if (possiblyNegated.FitsIn<ulong>())
-                    return new U64Constant((ulong)possiblyNegated);
+                    return (new IntegerConstant((ulong)possiblyNegated), SpecialType.U64);
 
                 return possiblyNegated.FitsIn<Int128>()
-                    ? new I128Constant((Int128)possiblyNegated)
-                    : new U128Constant((UInt128)possiblyNegated);
+                    ? (new IntegerConstant((Int128)possiblyNegated), SpecialType.I128)
+                    : (new IntegerConstant((UInt128)possiblyNegated), SpecialType.U128);
             }
             default:
                 throw new InvalidOperationException("Invalid target type");
         }
     }
 
-    private static ConstantValue EvaluateNumericExpression(
+    private static (ConstantValue, SpecialType) EvaluateNumericExpression(
         in FloatLiteralData data,
         TypeSymbol? returnType,
         Location location,
@@ -2164,8 +2192,11 @@ internal abstract class Binder : IOverloadResolutionHost
                     context.ReportDiagnostic(Diagnostic.LiteralValueTooBig(location));
                 }
 
-                return new F32Constant(
-                    float.ParseDecimalFloat(data.Significand, data.Exponent10, isNegative)
+                return (
+                    new FloatConstant(
+                        float.ParseDecimalFloat(data.Significand, data.Exponent10, isNegative)
+                    ),
+                    SpecialType.F32
                 );
             case SpecialType.F64:
                 if (double.FitsInFiniteFloatMagnitude(data.Significand, data.Exponent10))
@@ -2173,8 +2204,11 @@ internal abstract class Binder : IOverloadResolutionHost
                     context.ReportDiagnostic(Diagnostic.LiteralValueTooBig(location));
                 }
 
-                return new F64Constant(
-                    double.ParseDecimalFloat(data.Significand, data.Exponent10, isNegative)
+                return (
+                    new FloatConstant(
+                        double.ParseDecimalFloat(data.Significand, data.Exponent10, isNegative)
+                    ),
+                    SpecialType.F64
                 );
             default:
                 throw new InvalidOperationException("Invalid target type");
@@ -2335,14 +2369,14 @@ internal abstract class Binder : IOverloadResolutionHost
         bool negated
     )
     {
-        var constant = EvaluateNumericExpression(
+        var (constant, specialType) = EvaluateNumericExpression(
             in floatLiteral,
             targetType,
             expression.Syntax.Location,
             context,
             negated
         );
-        var type = Compilation.GetSpecialType(constant.SpecialType);
+        var type = Compilation.GetSpecialType(specialType);
         return new BoundLiteral(Compilation, expression.Syntax, type, constant);
     }
 
@@ -2354,14 +2388,14 @@ internal abstract class Binder : IOverloadResolutionHost
         bool negated
     )
     {
-        var constant = EvaluateNumericExpression(
+        var (constant, specialType) = EvaluateNumericExpression(
             in integerLiteral,
             targetType,
             expression.Syntax.Location,
             context,
             negated
         );
-        var type = Compilation.GetSpecialType(constant.SpecialType);
+        var type = Compilation.GetSpecialType(specialType);
         return new BoundLiteral(Compilation, expression.Syntax, type, constant);
     }
 

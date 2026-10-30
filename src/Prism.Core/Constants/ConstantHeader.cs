@@ -34,6 +34,8 @@ internal readonly partial record struct ConstantHeader
         _value = value;
     }
 
+    internal static ConstantHeader FromRaw(byte raw) => new(raw);
+
     public static ConstantHeader Null => new((byte)ConstantKind.Null);
 
     public static ConstantHeader Bool => new((byte)ConstantKind.Bool);

@@ -20,7 +20,9 @@ internal readonly struct ConstantStorage
 
         public UInt128 IntegerValue;
 
-        public double FloatValue;
+        public float FloatValue;
+
+        public double DoubleValue;
 
         public Rune CharacterValue;
     }
@@ -48,9 +50,14 @@ internal readonly struct ConstantStorage
         _unmanagedStorage.IntegerValue = value;
     }
 
-    public ConstantStorage(double value)
+    public ConstantStorage(float value)
     {
         _unmanagedStorage.FloatValue = value;
+    }
+
+    public ConstantStorage(double value)
+    {
+        _unmanagedStorage.DoubleValue = value;
     }
 
     public bool BoolValue => _unmanagedStorage.BoolValue;
@@ -59,5 +66,7 @@ internal readonly struct ConstantStorage
 
     public UInt128 IntegerValue => _unmanagedStorage.IntegerValue;
 
-    public double FloatValue => _unmanagedStorage.FloatValue;
+    public float FloatValue => _unmanagedStorage.FloatValue;
+
+    public double DoubleValue => _unmanagedStorage.DoubleValue;
 }

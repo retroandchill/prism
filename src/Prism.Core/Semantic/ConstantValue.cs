@@ -1,292 +1,97 @@
-﻿using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
+using MagicArchive;
 using Prism.Core.Configuration;
-using Prism.Core.Mappers;
+using Prism.Core.Constants;
 using Prism.Core.Symbols;
 
 namespace Prism.Core.Semantic;
 
-internal enum ConstantKind : byte
-{
-    Null,
-    Bool,
-    Char,
-    Char16,
-    Rune,
-    I8,
-    I16,
-    I32,
-    I64,
-    I128,
-    ISize,
-    U8,
-    U16,
-    U32,
-    U64,
-    U128,
-    USize,
-    F32,
-    F64,
-    Str,
-    Array,
-}
-
-public readonly record struct Char8Constant(byte Value);
-
-public readonly record struct Char16Constant(char Value);
-
-public readonly record struct RuneConstant(Rune Value);
-
-public readonly record struct I8Constant(sbyte Value);
-
-public readonly record struct I16Constant(short Value);
-
-public readonly record struct I32Constant(int Value);
-
-public readonly record struct I64Constant(long Value);
-
-public readonly record struct I128Constant(Int128 Value);
-
-public readonly record struct ISizeConstant(long Value);
-
-public readonly record struct U8Constant(byte Value);
-
-public readonly record struct U16Constant(ushort Value);
-
-public readonly record struct U32Constant(uint Value);
-
-public readonly record struct U64Constant(ulong Value);
-
-public readonly record struct U128Constant(UInt128 Value);
-
-public readonly record struct USizeConstant(ulong Value);
-
-public readonly record struct F32Constant(float Value);
-
-public readonly record struct F64Constant(double Value);
-
-public readonly record struct ArrayConstant(ImmutableArray<ConstantValue> Value)
-{
-    public bool Equals(ArrayConstant other) => Value.SequenceEqual(other.Value);
-
-    public override int GetHashCode()
-    {
-        var hashCode = new HashCode();
-        foreach (var value in Value)
-        {
-            hashCode.Add(value);
-        }
-
-        return hashCode.ToHashCode();
-    }
-}
-
 public readonly record struct NullConstant;
 
 [Union]
-public readonly struct ConstantValue
+[Archivable(GenerateType.Custom)]
+public readonly partial struct ConstantValue
     : IUnion,
         IEquatable<ConstantValue>,
         IEqualityOperators<ConstantValue, ConstantValue, bool>
 {
-    [StructLayout(LayoutKind.Explicit)]
-    private struct BlittableStorage
+    private readonly ConstantHeader _header;
+    private readonly ConstantStorage _storage;
+
+    private ConstantValue(ConstantHeader header, ConstantStorage blittableStorage)
     {
-        [field: FieldOffset(0)]
-        public bool BoolValue { get; init; }
-
-        [field: FieldOffset(0)]
-        public Rune CharacterValue { get; init; }
-
-        [field: FieldOffset(0)]
-        public long I64Value { get; init; }
-
-        [field: FieldOffset(0)]
-        public ulong U64Value { get; init; }
-
-        [field: FieldOffset(0)]
-        public Int128 I128Value { get; init; }
-
-        [field: FieldOffset(0)]
-        public UInt128 U128Value { get; init; }
-
-        [field: FieldOffset(0)]
-        public float F32Value { get; init; }
-
-        [field: FieldOffset(0)]
-        public double F64Value { get; init; }
-    }
-
-    private readonly ConstantKind _kind;
-    private readonly object? _referenceValue;
-    private readonly BlittableStorage _blittableStorage;
-
-    private ConstantValue(ConstantKind kind, BlittableStorage blittableStorage)
-    {
-        _kind = kind;
-        _blittableStorage = blittableStorage;
-    }
-
-    private ConstantValue(ImmutableArray<ConstantValue> elements)
-    {
-        if (elements.Length > 1)
-        {
-            var elementType = elements[0]._kind;
-            for (var i = 1; i < elements.Length; i++)
-            {
-                if (elements[i]._kind != elementType)
-                    throw new ArgumentException(
-                        "All elements of an array constant must have the same type",
-                        nameof(elements)
-                    );
-            }
-        }
-        _kind = ConstantKind.Array;
-        _referenceValue = ImmutableCollectionsMarshal.AsArray(elements);
+        _header = header;
+        _storage = blittableStorage;
     }
 
     // ReSharper disable once UnusedParameter.Local
     public ConstantValue(NullConstant value)
     {
-        _kind = ConstantKind.Null;
+        _header = ConstantHeader.Null;
     }
 
     public ConstantValue(bool value)
-        : this(ConstantKind.Bool, new BlittableStorage { BoolValue = value }) { }
+        : this(ConstantHeader.Bool, new ConstantStorage(value)) { }
 
-    public ConstantValue(Char8Constant value)
-        : this(ConstantKind.Char, new BlittableStorage { CharacterValue = new Rune(value.Value) })
-    { }
+    public ConstantValue(CharacterConstant value)
+        : this(ConstantHeader.Character(value.Kind), new ConstantStorage(value.RawValue)) { }
 
-    public ConstantValue(Char16Constant value)
-        : this(ConstantKind.Char16, new BlittableStorage { CharacterValue = new Rune(value.Value) })
-    { }
+    public ConstantValue(IntegerConstant value)
+        : this(ConstantHeader.Integer(value.Kind), new ConstantStorage(value.RawValue)) { }
 
-    public ConstantValue(RuneConstant value)
-        : this(ConstantKind.Rune, new BlittableStorage { CharacterValue = value.Value }) { }
-
-    public ConstantValue(I8Constant value)
-        : this(ConstantKind.I8, new BlittableStorage { I64Value = value.Value }) { }
-
-    public ConstantValue(I16Constant value)
-        : this(ConstantKind.I16, new BlittableStorage { I64Value = value.Value }) { }
-
-    public ConstantValue(I32Constant value)
-        : this(ConstantKind.I32, new BlittableStorage { I64Value = value.Value }) { }
-
-    public ConstantValue(I64Constant value)
-        : this(ConstantKind.I64, new BlittableStorage { I64Value = value.Value }) { }
-
-    public ConstantValue(I128Constant value)
-        : this(ConstantKind.I128, new BlittableStorage { I128Value = value.Value }) { }
-
-    public ConstantValue(ISizeConstant value)
-        : this(ConstantKind.ISize, new BlittableStorage { I64Value = value.Value }) { }
-
-    public ConstantValue(U8Constant value)
-        : this(ConstantKind.U8, new BlittableStorage { U64Value = value.Value }) { }
-
-    public ConstantValue(U16Constant value)
-        : this(ConstantKind.U16, new BlittableStorage { U64Value = value.Value }) { }
-
-    public ConstantValue(U32Constant value)
-        : this(ConstantKind.U32, new BlittableStorage { U64Value = value.Value }) { }
-
-    public ConstantValue(U64Constant value)
-        : this(ConstantKind.U64, new BlittableStorage { U64Value = value.Value }) { }
-
-    public ConstantValue(U128Constant value)
-        : this(ConstantKind.U128, new BlittableStorage { U128Value = value.Value }) { }
-
-    public ConstantValue(USizeConstant value)
-        : this(ConstantKind.USize, new BlittableStorage { U64Value = value.Value }) { }
-
-    public ConstantValue(F32Constant value)
-        : this(ConstantKind.F32, new BlittableStorage { F32Value = value.Value }) { }
-
-    public ConstantValue(F64Constant value)
-        : this(ConstantKind.F64, new BlittableStorage { F64Value = value.Value }) { }
+    public ConstantValue(FloatConstant value)
+        : this(
+            ConstantHeader.Float(value.Kind),
+            value switch
+            {
+                float f => new ConstantStorage(f),
+                double d => new ConstantStorage(d),
+            }
+        ) { }
 
     public ConstantValue(string value)
     {
-        _kind = ConstantKind.Str;
-        _referenceValue = value;
+        _header = ConstantHeader.String;
+        _storage = new ConstantStorage(value);
     }
 
-    public ConstantValue(ArrayConstant value)
-        : this(value.Value) { }
-
-    public bool IsNull => _kind == ConstantKind.Null;
-
-    public SpecialType SpecialType => _kind.ToSpecialType();
+    public bool IsNull => _header.Kind == ConstantKind.Null;
 
     public bool IsNumeric => IsSignedInteger || IsUnsignedInteger || IsFloat;
 
     public bool IsSignedInteger =>
-        _kind
-            is ConstantKind.I8
-                or ConstantKind.I16
-                or ConstantKind.I32
-                or ConstantKind.I64
-                or ConstantKind.I128
-                or ConstantKind.ISize;
+        _header is { Kind: ConstantKind.Integer, IntegerKind.Sign: IntegerSign.Signed };
 
     public bool IsUnsignedInteger =>
-        _kind
-            is ConstantKind.U8
-                or ConstantKind.U16
-                or ConstantKind.U32
-                or ConstantKind.U64
-                or ConstantKind.U128
-                or ConstantKind.USize;
+        _header is { Kind: ConstantKind.Integer, IntegerKind.Sign: IntegerSign.Unsigned };
 
-    public bool IsFloat => _kind is ConstantKind.F32 or ConstantKind.F64;
+    public bool IsFloat => _header.Kind == ConstantKind.Float;
 
     public bool CanBeNegative => IsSignedInteger || IsFloat;
 
-    public bool IsCharacter =>
-        _kind is ConstantKind.Char or ConstantKind.Char16 or ConstantKind.Rune;
+    public bool IsCharacter => _header.Kind == ConstantKind.Character;
 
-    public bool IsString => _kind == ConstantKind.Str;
+    public bool IsString => _header.Kind == ConstantKind.String;
+
+    private static readonly object BoxedNull = new NullConstant();
+    private static readonly object BoxedFalse = false;
+    private static readonly object BoxedTrue = true;
 
     public object Value
     {
         get
         {
-            return _kind switch
+            return _header.Kind switch
             {
-                ConstantKind.Null => new NullConstant(),
-                ConstantKind.Bool => _blittableStorage.BoolValue,
-                ConstantKind.Char => new Char8Constant(
-                    (byte)_blittableStorage.CharacterValue.Value
-                ),
-                ConstantKind.Char16 => new Char16Constant(
-                    (char)_blittableStorage.CharacterValue.Value
-                ),
-                ConstantKind.Rune => new RuneConstant(_blittableStorage.CharacterValue),
-                ConstantKind.I8 => new I8Constant((sbyte)_blittableStorage.I64Value),
-                ConstantKind.I16 => new I16Constant((short)_blittableStorage.I64Value),
-                ConstantKind.I32 => new I32Constant((int)_blittableStorage.I64Value),
-                ConstantKind.I64 => new I64Constant(_blittableStorage.I64Value),
-                ConstantKind.I128 => new I128Constant(_blittableStorage.I128Value),
-                ConstantKind.ISize => new ISizeConstant(_blittableStorage.I64Value),
-                ConstantKind.U8 => new U8Constant((byte)_blittableStorage.U64Value),
-                ConstantKind.U16 => new U16Constant((ushort)_blittableStorage.U64Value),
-                ConstantKind.U32 => new U32Constant((uint)_blittableStorage.U64Value),
-                ConstantKind.U64 => new U64Constant(_blittableStorage.U64Value),
-                ConstantKind.U128 => new U128Constant(_blittableStorage.U128Value),
-                ConstantKind.USize => new USizeConstant(_blittableStorage.U64Value),
-                ConstantKind.F32 => new F32Constant(_blittableStorage.F32Value),
-                ConstantKind.F64 => new F64Constant(_blittableStorage.F64Value),
-                ConstantKind.Str => (string)_referenceValue!,
-                ConstantKind.Array => new ArrayConstant(
-                    ImmutableCollectionsMarshal.AsImmutableArray((ConstantValue[])_referenceValue!)
-                ),
+                ConstantKind.Null => BoxedNull,
+                ConstantKind.Bool => AsBoolean() ? BoxedTrue : BoxedFalse,
+                ConstantKind.Character => AsCharacter(),
+                ConstantKind.Integer => AsInteger(),
+                ConstantKind.Float => AsFloat(),
+                ConstantKind.String => AsString(),
+                ConstantKind.Array => throw new NotImplementedException(),
                 _ => throw new InvalidOperationException("Invalid constant value state"),
             };
         }
@@ -294,7 +99,7 @@ public readonly struct ConstantValue
 
     public bool TryGetValue(out NullConstant value)
     {
-        if (_kind == ConstantKind.Null)
+        if (IsNull)
         {
             value = new NullConstant();
             return true;
@@ -306,9 +111,9 @@ public readonly struct ConstantValue
 
     public bool TryGetValue(out bool value)
     {
-        if (_kind == ConstantKind.Bool)
+        if (_header.Kind == ConstantKind.Bool)
         {
-            value = _blittableStorage.BoolValue;
+            value = _storage.BoolValue;
             return true;
         }
 
@@ -316,11 +121,11 @@ public readonly struct ConstantValue
         return false;
     }
 
-    public bool TryGetValue(out Char8Constant value)
+    public bool TryGetValue(out CharacterConstant value)
     {
-        if (_kind == ConstantKind.Char)
+        if (_header.Kind == ConstantKind.Character)
         {
-            value = new Char8Constant((byte)_blittableStorage.CharacterValue.Value);
+            value = AsCharacter();
             return true;
         }
 
@@ -328,11 +133,11 @@ public readonly struct ConstantValue
         return false;
     }
 
-    public bool TryGetValue(out Char16Constant value)
+    public bool TryGetValue(out IntegerConstant value)
     {
-        if (_kind == ConstantKind.Char16)
+        if (_header.Kind == ConstantKind.Integer)
         {
-            value = new Char16Constant((char)_blittableStorage.CharacterValue.Value);
+            value = AsInteger();
             return true;
         }
 
@@ -340,179 +145,11 @@ public readonly struct ConstantValue
         return false;
     }
 
-    public bool TryGetValue(out RuneConstant value)
+    public bool TryGetValue(out FloatConstant value)
     {
-        if (_kind == ConstantKind.Rune)
+        if (_header.Kind == ConstantKind.Float)
         {
-            value = new RuneConstant(_blittableStorage.CharacterValue);
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    public bool TryGetValue(out I8Constant value)
-    {
-        if (_kind == ConstantKind.I8)
-        {
-            value = new I8Constant((sbyte)_blittableStorage.I64Value);
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    public bool TryGetValue(out I16Constant value)
-    {
-        if (_kind == ConstantKind.I16)
-        {
-            value = new I16Constant((short)_blittableStorage.I64Value);
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    public bool TryGetValue(out I32Constant value)
-    {
-        if (_kind == ConstantKind.I32)
-        {
-            value = new I32Constant((int)_blittableStorage.I64Value);
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    public bool TryGetValue(out I64Constant value)
-    {
-        if (_kind == ConstantKind.I64)
-        {
-            value = new I64Constant(_blittableStorage.I64Value);
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    public bool TryGetValue(out I128Constant value)
-    {
-        if (_kind == ConstantKind.I128)
-        {
-            value = new I128Constant(_blittableStorage.I128Value);
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    public bool TryGetValue(out ISizeConstant value)
-    {
-        if (_kind == ConstantKind.ISize)
-        {
-            value = new ISizeConstant(_blittableStorage.I64Value);
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    public bool TryGetValue(out U8Constant value)
-    {
-        if (_kind == ConstantKind.U8)
-        {
-            value = new U8Constant((byte)_blittableStorage.U64Value);
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    public bool TryGetValue(out U16Constant value)
-    {
-        if (_kind == ConstantKind.U16)
-        {
-            value = new U16Constant((ushort)_blittableStorage.U64Value);
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    public bool TryGetValue(out U32Constant value)
-    {
-        if (_kind == ConstantKind.U32)
-        {
-            value = new U32Constant((uint)_blittableStorage.U64Value);
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    public bool TryGetValue(out U64Constant value)
-    {
-        if (_kind == ConstantKind.U64)
-        {
-            value = new U64Constant(_blittableStorage.U64Value);
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    public bool TryGetValue(out U128Constant value)
-    {
-        if (_kind == ConstantKind.U128)
-        {
-            value = new U128Constant(_blittableStorage.U128Value);
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    public bool TryGetValue(out USizeConstant value)
-    {
-        if (_kind == ConstantKind.USize)
-        {
-            value = new USizeConstant(_blittableStorage.U64Value);
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    public bool TryGetValue(out F32Constant value)
-    {
-        if (_kind == ConstantKind.F32)
-        {
-            value = new F32Constant(_blittableStorage.F32Value);
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    public bool TryGetValue(out F64Constant value)
-    {
-        if (_kind == ConstantKind.F64)
-        {
-            value = new F64Constant(_blittableStorage.F64Value);
+            value = AsFloat();
             return true;
         }
 
@@ -522,9 +159,9 @@ public readonly struct ConstantValue
 
     public bool TryGetValue([NotNullWhen(true)] out string? value)
     {
-        if (_kind == ConstantKind.Str)
+        if (_header.Kind == ConstantKind.String)
         {
-            value = (string)_referenceValue!;
+            value = AsString();
             return true;
         }
 
@@ -532,125 +169,56 @@ public readonly struct ConstantValue
         return false;
     }
 
-    public bool TryGetValue(out ArrayConstant value)
-    {
-        if (_kind == ConstantKind.Array)
-        {
-            value = new ArrayConstant(
-                ImmutableCollectionsMarshal.AsImmutableArray((ConstantValue[])_referenceValue!)
-            );
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
     private bool AsBoolean()
     {
-        return _blittableStorage.BoolValue;
+        return _storage.BoolValue;
     }
 
-    private Rune AsCharacter()
+    private CharacterConstant AsCharacter()
     {
-        return _blittableStorage.CharacterValue;
+        return CharacterConstant.From(_header.CharacterKind, _storage.CharacterValue);
     }
 
-    private long AsInt64()
+    private IntegerConstant AsInteger()
     {
-        return _blittableStorage.I64Value;
+        return IntegerConstant.From(_header.IntegerKind, _storage.IntegerValue);
     }
 
-    private Int128 AsInt128()
+    private FloatConstant AsFloat()
     {
-        return _blittableStorage.I128Value;
-    }
-
-    private ulong AsUInt64()
-    {
-        return _blittableStorage.U64Value;
-    }
-
-    private UInt128 AsUInt128()
-    {
-        return _blittableStorage.U128Value;
-    }
-
-    private float AsFloat32()
-    {
-        return _blittableStorage.F32Value;
-    }
-
-    private double AsFloat64()
-    {
-        return _blittableStorage.F64Value;
+        return _header.FloatKind switch
+        {
+            FloatKind.F32 => _storage.FloatValue,
+            FloatKind.F64 => _storage.DoubleValue,
+            _ => throw new InvalidOperationException("Invalid float kind"),
+        };
     }
 
     private string AsString()
     {
-        return (string)_referenceValue!;
+        return Unsafe.As<string>(_storage.ReferenceValue);
     }
 
-    private ImmutableArray<ConstantValue> AsArray()
+    private static ConstantValue? FromNullable(bool? value)
     {
-        return ImmutableCollectionsMarshal.AsImmutableArray((ConstantValue[]?)_referenceValue);
+        // ReSharper disable once MergeConditionalExpression
+        return value.HasValue ? value.Value : null;
+    }
+
+    private static ConstantValue? FromNullable(IntegerConstant? value)
+    {
+        // ReSharper disable once MergeConditionalExpression
+        return value.HasValue ? value.Value : null;
     }
 
     public ConstantValue? TryNegate(CompilationSettings settings)
     {
-        switch (_kind)
+        return this switch
         {
-            case ConstantKind.I8:
-            case ConstantKind.I16:
-            case ConstantKind.I32:
-            case ConstantKind.I64:
-            case ConstantKind.ISize:
-                return new ConstantValue(
-                    _kind,
-                    new BlittableStorage { I64Value = -_blittableStorage.I64Value }
-                );
-            case ConstantKind.I128:
-                return new ConstantValue(
-                    _kind,
-                    new BlittableStorage { I128Value = -_blittableStorage.I128Value }
-                );
-            case ConstantKind.U8:
-            case ConstantKind.U16:
-                return new I32Constant(unchecked(-(ushort)_blittableStorage.U64Value));
-            case ConstantKind.U32:
-                return new I64Constant(unchecked(-(uint)_blittableStorage.U64Value));
-            case ConstantKind.U64:
-                return new I128Constant(-(Int128)_blittableStorage.U64Value);
-            case ConstantKind.USize:
-                return settings.PointerWidth switch
-                {
-                    PointerWidth.X32 => new I64Constant(
-                        unchecked(-(uint)_blittableStorage.U64Value)
-                    ),
-                    PointerWidth.X64 => new I128Constant(
-                        unchecked(-(Int128)_blittableStorage.U64Value)
-                    ),
-                    _ => throw new InvalidOperationException("Invalid pointer width"),
-                };
-            case ConstantKind.F32:
-                return new F32Constant(-_blittableStorage.F32Value);
-            case ConstantKind.F64:
-                return new F64Constant(-_blittableStorage.F64Value);
-            case ConstantKind.Bool:
-            case ConstantKind.Char:
-            case ConstantKind.Char16:
-            case ConstantKind.Rune:
-            case ConstantKind.Str:
-            case ConstantKind.U128:
-            default:
-                return null;
-        }
-    }
-
-    public ConstantValue Negate(CompilationSettings settings)
-    {
-        return TryNegate(settings)
-            ?? throw new InvalidOperationException("Cannot negate constant value");
+            IntegerConstant i => FromNullable(i.TryNegate()),
+            FloatConstant f => -f,
+            _ => null,
+        };
     }
 
     public ConstantValue? TryLogicalNot()
@@ -666,28 +234,7 @@ public readonly struct ConstantValue
     {
         return this switch
         {
-            I8Constant(var value) => new I8Constant((sbyte)~value),
-            I16Constant(var value) => new I16Constant((short)~value),
-            I32Constant(var value) => new I32Constant(~value),
-            I64Constant(var value) => new I64Constant(~value),
-            I128Constant(var value) => new I128Constant(~value),
-            ISizeConstant(var value) => settings.PointerWidth switch
-            {
-                PointerWidth.X32 => new ISizeConstant(~(int)value),
-                PointerWidth.X64 => new ISizeConstant(~value),
-                _ => throw new InvalidOperationException("Invalid pointer width"),
-            },
-            U8Constant(var value) => new U8Constant((byte)~value),
-            U16Constant(var value) => new U16Constant((ushort)~value),
-            U32Constant(var value) => new U32Constant(~value),
-            U64Constant(var value) => new U64Constant(~value),
-            U128Constant(var value) => new U128Constant(~value),
-            USizeConstant(var value) => settings.PointerWidth switch
-            {
-                PointerWidth.X32 => new USizeConstant(~(uint)value),
-                PointerWidth.X64 => new USizeConstant(~value),
-                _ => throw new InvalidOperationException("Invalid pointer width"),
-            },
+            IntegerConstant i => ~i,
             _ => null,
         };
     }
@@ -698,189 +245,83 @@ public readonly struct ConstantValue
         CompilationSettings settings
     )
     {
-        if (_kind != right._kind)
+        if (_header.Kind != right._header.Kind)
             return null;
 
-        return _kind switch
+        return this switch
         {
-            ConstantKind.I8 => EvalSigned(
-                op,
-                (sbyte)AsInt64(),
-                (sbyte)right.AsInt64(),
-                i => new I8Constant(i)
-            ),
-            ConstantKind.I16 => EvalSigned(
-                op,
-                (short)AsInt64(),
-                (short)right.AsInt64(),
-                i => new I16Constant(i)
-            ),
-            ConstantKind.I32 => EvalSigned(
-                op,
-                (int)AsInt64(),
-                (int)right.AsInt64(),
-                i => new I32Constant(i)
-            ),
-            ConstantKind.I64 => EvalSigned(op, AsInt64(), right.AsInt64(), i => new I64Constant(i)),
-            ConstantKind.I128 => EvalSigned(op, AsInt128(), right.AsInt128(), i => new I128Constant(
-                i
-            )),
-
-            ConstantKind.U8 => EvalUnsigned(
-                op,
-                (byte)AsUInt64(),
-                (byte)right.AsUInt64(),
-                i => new U8Constant(i)
-            ),
-            ConstantKind.U16 => EvalUnsigned(
-                op,
-                (ushort)AsUInt64(),
-                (ushort)right.AsUInt64(),
-                i => new U16Constant(i)
-            ),
-            ConstantKind.U32 => EvalUnsigned(
-                op,
-                (uint)AsUInt64(),
-                (uint)right.AsUInt64(),
-                i => new U32Constant(i)
-            ),
-            ConstantKind.U64 => EvalUnsigned(op, AsUInt64(), right.AsUInt64(), i => new U64Constant(
-                i
-            )),
-            ConstantKind.U128 => EvalUnsigned(
-                op,
-                AsUInt128(),
-                right.AsUInt128(),
-                i => new U128Constant(i)
-            ),
-
-            ConstantKind.F32 => EvalFloat(op, AsFloat32(), right.AsFloat32(), f => new F32Constant(
-                f
-            )),
-            ConstantKind.F64 => EvalFloat(op, AsFloat64(), right.AsFloat64(), f => new F64Constant(
-                f
-            )),
-
-            ConstantKind.Bool => EvalBool(op, AsBoolean(), right.AsBoolean()),
-            ConstantKind.ISize => settings.PointerWidth switch
-            {
-                PointerWidth.X32 => EvalSigned(
-                    op,
-                    (int)AsInt64(),
-                    (int)right.AsInt64(),
-                    i => new ISizeConstant(i)
-                ),
-                PointerWidth.X64 => EvalSigned(
-                    op,
-                    AsInt64(),
-                    right.AsInt64(),
-                    i => new ISizeConstant(i)
-                ),
-                _ => null,
-            },
-            ConstantKind.USize => settings.PointerWidth switch
-            {
-                PointerWidth.X32 => EvalUnsigned(
-                    op,
-                    (uint)AsUInt64(),
-                    (uint)right.AsUInt64(),
-                    i => new USizeConstant(i)
-                ),
-                PointerWidth.X64 => EvalUnsigned(
-                    op,
-                    AsUInt64(),
-                    right.AsUInt64(),
-                    i => new USizeConstant(i)
-                ),
-                _ => null,
-            },
-
+            NullConstant => new NullConstant(),
+            bool b => EvalBool(op, b, right.AsBoolean()),
+            IntegerConstant i => EvalInteger(op, i, right.AsInteger()),
+            FloatConstant f => EvalFloat(op, f, right.AsFloat()),
+            CharacterConstant c => EvalCharacter(op, c, right.AsCharacter()),
             _ => null,
         };
     }
 
-    private static ConstantValue? EvalSigned<T>(
+    private static ConstantValue? EvalInteger(
         BinaryOperation op,
-        T left,
-        T right,
-        Func<T, ConstantValue> wrap
+        IntegerConstant left,
+        IntegerConstant right
     )
-        where T : IBinaryInteger<T>, ISignedNumber<T>
     {
         return op switch
         {
-            BinaryOperation.Addition => wrap(left + right),
-            BinaryOperation.Subtraction => wrap(left - right),
-            BinaryOperation.Multiplication => wrap(left * right),
-            BinaryOperation.Division => wrap(left / right),
-            BinaryOperation.Modulo => wrap(left % right),
-            BinaryOperation.BitwiseAnd => wrap(left & right),
-            BinaryOperation.BitwiseOr => wrap(left | right),
-            BinaryOperation.BitwiseXor => wrap(left ^ right),
-            BinaryOperation.ShiftLeft => wrap(left << int.CreateChecked(right)),
-            BinaryOperation.ShiftRight => wrap(left >> int.CreateChecked(right)),
-            BinaryOperation.Equality => left == right,
-            BinaryOperation.NotEquals => left != right,
-            BinaryOperation.LessThan => left < right,
-            BinaryOperation.LessThanOrEquals => left <= right,
-            BinaryOperation.GreaterThan => left > right,
-            BinaryOperation.GreaterThanOrEquals => left >= right,
-            _ => (ConstantValue?)null,
+            BinaryOperation.Addition => FromNullable(left.TryAdd(right)),
+            BinaryOperation.Subtraction => FromNullable(left.TrySubtract(right)),
+            BinaryOperation.Multiplication => FromNullable(left.TryMultiply(right)),
+            BinaryOperation.Division => FromNullable(left.TryDivide(right)),
+            BinaryOperation.Modulo => FromNullable(left.TryMod(right)),
+            BinaryOperation.BitwiseAnd => FromNullable(left.TryBitwiseAnd(left)),
+            BinaryOperation.BitwiseOr => FromNullable(left.TryBitwiseOr(right)),
+            BinaryOperation.BitwiseXor => FromNullable(left.TryBitwiseXor(right)),
+            BinaryOperation.ShiftLeft => FromNullable(left.TryShiftLeft(right)),
+            BinaryOperation.ShiftRight => FromNullable(left.TryShiftRight(right)),
+            BinaryOperation.UnsignedShiftRight => FromNullable(left.TryUnsignedShiftRight(right)),
+            BinaryOperation.Equality => FromNullable(left.TryEqual(right)),
+            BinaryOperation.NotEquals => FromNullable(left.TryNotEqual(right)),
+            BinaryOperation.LessThan => FromNullable(left.TryLessThan(right)),
+            BinaryOperation.LessThanOrEquals => FromNullable(left.TryLessThanOrEqual(right)),
+            BinaryOperation.GreaterThan => FromNullable(left.TryGreaterThan(right)),
+            BinaryOperation.GreaterThanOrEquals => FromNullable(left.TryGreaterThanOrEqual(right)),
+            _ => null,
         };
     }
 
-    private static ConstantValue? EvalUnsigned<T>(
+    private static ConstantValue? EvalFloat(
         BinaryOperation op,
-        T left,
-        T right,
-        Func<T, ConstantValue> wrap
+        FloatConstant left,
+        FloatConstant right
     )
-        where T : IBinaryInteger<T>, IUnsignedNumber<T>
     {
         return op switch
         {
-            BinaryOperation.Addition => wrap(left + right),
-            BinaryOperation.Subtraction => wrap(left - right),
-            BinaryOperation.Multiplication => wrap(left * right),
-            BinaryOperation.Division => wrap(left / right),
-            BinaryOperation.Modulo => wrap(left % right),
-            BinaryOperation.BitwiseAnd => wrap(left & right),
-            BinaryOperation.BitwiseOr => wrap(left | right),
-            BinaryOperation.BitwiseXor => wrap(left ^ right),
-            BinaryOperation.ShiftLeft => wrap(left << int.CreateChecked(right)),
-            BinaryOperation.ShiftRight => wrap(left >> int.CreateChecked(right)),
-            BinaryOperation.Equality => left == right,
-            BinaryOperation.NotEquals => left != right,
-            BinaryOperation.LessThan => left < right,
-            BinaryOperation.LessThanOrEquals => left <= right,
-            BinaryOperation.GreaterThan => left > right,
-            BinaryOperation.GreaterThanOrEquals => left >= right,
-            _ => (ConstantValue?)null,
+            BinaryOperation.Addition => left + right,
+            BinaryOperation.Subtraction => left - right,
+            BinaryOperation.Multiplication => left * right,
+            BinaryOperation.Division => left / right,
+            BinaryOperation.Modulo => left % right,
+            BinaryOperation.Equality => left.Equivalent(right),
+            BinaryOperation.NotEquals => left.NotEquivalent(right),
+            BinaryOperation.LessThan => left.LessThan(right),
+            BinaryOperation.LessThanOrEquals => left.LessThanOrEqual(right),
+            BinaryOperation.GreaterThan => left.GreaterThan(right),
+            BinaryOperation.GreaterThanOrEquals => left.GreaterThanOrEqual(right),
+            _ => null,
         };
     }
 
-    private static ConstantValue? EvalFloat<T>(
+    private static ConstantValue? EvalCharacter(
         BinaryOperation op,
-        T left,
-        T right,
-        Func<T, ConstantValue> wrap
+        CharacterConstant left,
+        CharacterConstant right
     )
-        where T : IBinaryFloatingPointIeee754<T>
     {
         return op switch
         {
-            BinaryOperation.Addition => wrap(left + right),
-            BinaryOperation.Subtraction => wrap(left - right),
-            BinaryOperation.Multiplication => wrap(left * right),
-            BinaryOperation.Division => wrap(left / right),
-            BinaryOperation.Modulo => wrap(left % right),
-            BinaryOperation.Equality => left == right,
-            BinaryOperation.NotEquals => left != right,
-            BinaryOperation.LessThan => left < right,
-            BinaryOperation.LessThanOrEquals => left <= right,
-            BinaryOperation.GreaterThan => left > right,
-            BinaryOperation.GreaterThanOrEquals => left >= right,
-            _ => (ConstantValue?)null,
+            BinaryOperation.Equality => left.EquivalentTo(right),
+            BinaryOperation.NotEquals => left.NotEquivalentTo(right),
+            _ => null,
         };
     }
 
@@ -913,128 +354,112 @@ public readonly struct ConstantValue
                 return null;
             }
 
+            if (typeSymbol.SpecialType.IsCharacter)
+            {
+                return TryConvertToCharacter(typeSymbol.SpecialType);
+            }
+
             return typeSymbol.SpecialType switch
             {
-                SpecialType.Bool => _kind == ConstantKind.Bool ? this : (ConstantValue?)null,
-                SpecialType.Char => TryConvertToChar(),
-                SpecialType.Char16 => TryConvertToChar16(),
-                SpecialType.Rune => TryConvertToRune(),
+                SpecialType.Bool => _header.Kind == ConstantKind.Bool ? this : (ConstantValue?)null,
+                { IsCharacter: true } => TryConvertToCharacter(typeSymbol.SpecialType),
 
-                SpecialType.I8 => TryConvertToSigned(v => new I8Constant(unchecked((sbyte)v))),
-                SpecialType.I16 => TryConvertToSigned(v => new I16Constant(unchecked((short)v))),
-                SpecialType.I32 => TryConvertToSigned(v => new I32Constant(unchecked((int)v))),
-                SpecialType.I64 => TryConvertToSigned(v => new I64Constant(unchecked((long)v))),
-                SpecialType.I128 => TryConvertToSigned(v => new I128Constant(v)),
-                SpecialType.ISize => TryConvertToSigned(v => new ISizeConstant(unchecked((long)v))),
+                { IsInteger: true } => TryConvertToInteger(
+                    typeSymbol.SpecialType,
+                    settings.PointerWidth
+                ),
 
-                SpecialType.U8 => TryConvertToUnsigned(v => new U8Constant(unchecked((byte)v))),
-                SpecialType.U16 => TryConvertToUnsigned(v => new U16Constant(unchecked((ushort)v))),
-                SpecialType.U32 => TryConvertToUnsigned(v => new U32Constant(unchecked((uint)v))),
-                SpecialType.U64 => TryConvertToUnsigned(v => new U64Constant(unchecked((ulong)v))),
-                SpecialType.U128 => TryConvertToUnsigned(v => new U128Constant(v)),
-                SpecialType.USize => TryConvertToUnsigned(v => new USizeConstant(
-                    unchecked((ulong)v)
-                )),
+                { IsFloatingPoint: true } => TryConvertToFloat(typeSymbol.SpecialType),
 
-                SpecialType.F32 => TryConvertToFloat(v => new F32Constant((float)v)),
-                SpecialType.F64 => TryConvertToFloat(v => new F64Constant(v)),
-
-                SpecialType.Str => _kind == ConstantKind.Str ? this : (ConstantValue?)null,
+                SpecialType.Str => _header.Kind == ConstantKind.String
+                    ? this
+                    : (ConstantValue?)null,
 
                 _ => null,
             };
         }
     }
 
-    private ConstantValue? TryConvertToChar()
+    private static CharacterKind ToCharacterKind(SpecialType type)
     {
-        if (!IsCharacter)
-            return null;
-
-        var value = AsCharacter().Value;
-        return value <= byte.MaxValue ? new Char8Constant((byte)value) : null;
+        return type switch
+        {
+            SpecialType.Char => CharacterKind.C8,
+            SpecialType.Char16 => CharacterKind.C16,
+            SpecialType.Rune => CharacterKind.C32,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+        };
     }
 
-    private ConstantValue? TryConvertToChar16()
+    private ConstantValue? TryConvertToCharacter(SpecialType type)
     {
-        if (!IsCharacter)
-            return null;
-
-        var value = AsCharacter().Value;
-        return value <= char.MaxValue ? new Char16Constant((char)value) : null;
+        return this switch
+        {
+            CharacterConstant ch => ch.ConvertTo(ToCharacterKind(type)),
+            _ => null,
+        };
     }
 
-    private ConstantValue? TryConvertToRune()
+    private IntegerKind ToIntegerKind(SpecialType type, PointerWidth width)
     {
-        return IsCharacter ? new RuneConstant(AsCharacter()) : null;
+        return type switch
+        {
+            SpecialType.I8 => IntegerKind.I8,
+            SpecialType.I16 => IntegerKind.I16,
+            SpecialType.I32 => IntegerKind.I32,
+            SpecialType.I64 => IntegerKind.I64,
+            SpecialType.I128 => IntegerKind.I128,
+            SpecialType.ISize => width switch
+            {
+                PointerWidth.X32 => IntegerKind.I32,
+                PointerWidth.X64 => IntegerKind.I64,
+                _ => throw new ArgumentOutOfRangeException(nameof(width), width, null),
+            },
+            SpecialType.U8 => IntegerKind.U8,
+            SpecialType.U16 => IntegerKind.U16,
+            SpecialType.U32 => IntegerKind.U32,
+            SpecialType.U64 => IntegerKind.U64,
+            SpecialType.U128 => IntegerKind.U128,
+            SpecialType.USize => width switch
+            {
+                PointerWidth.X32 => IntegerKind.U32,
+                PointerWidth.X64 => IntegerKind.U64,
+                _ => throw new ArgumentOutOfRangeException(nameof(width), width, null),
+            },
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+        };
     }
 
-    private ConstantValue? TryConvertToSigned(Func<Int128, ConstantValue> factory)
+    private ConstantValue? TryConvertToInteger(SpecialType type, PointerWidth pointerWidth)
     {
-        if (IsSignedInteger)
+        var integerKind = ToIntegerKind(type, pointerWidth);
+        return this switch
         {
-            return _kind == ConstantKind.I128 ? factory(AsInt128()) : factory(AsInt64());
-        }
-
-        if (IsUnsignedInteger)
-        {
-            return _kind == ConstantKind.U128
-                ? factory(unchecked((Int128)AsUInt128()))
-                : factory(AsUInt64());
-        }
-
-        if (IsFloat)
-        {
-            return _kind == ConstantKind.F32
-                ? factory(unchecked((Int128)AsFloat32()))
-                : factory(unchecked((Int128)AsFloat64()));
-        }
-
-        return null;
+            IntegerConstant i => i.ConvertTo(integerKind),
+            FloatConstant f => f.ConvertTo(integerKind),
+            _ => null,
+        };
     }
 
-    private ConstantValue? TryConvertToUnsigned(Func<UInt128, ConstantValue> factory)
+    private static FloatKind ToFloatKind(SpecialType type)
     {
-        if (IsUnsignedInteger)
+        return type switch
         {
-            return _kind == ConstantKind.U128 ? factory(AsUInt128()) : factory(AsUInt64());
-        }
-
-        if (IsSignedInteger)
-        {
-            return _kind == ConstantKind.I128
-                ? factory(unchecked((UInt128)AsInt128()))
-                : factory(unchecked((UInt128)AsInt64()));
-        }
-
-        if (IsFloat)
-        {
-            return _kind == ConstantKind.F32
-                ? factory(unchecked((UInt128)AsFloat32()))
-                : factory(unchecked((UInt128)AsFloat64()));
-        }
-
-        return null;
+            SpecialType.F32 => FloatKind.F32,
+            SpecialType.F64 => FloatKind.F64,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+        };
     }
 
-    private ConstantValue? TryConvertToFloat(Func<double, ConstantValue> factory)
+    private ConstantValue? TryConvertToFloat(SpecialType type)
     {
-        if (IsFloat)
+        var floatKind = ToFloatKind(type);
+        return this switch
         {
-            return _kind == ConstantKind.F32 ? factory(AsFloat32()) : factory(AsFloat64());
-        }
-
-        if (IsSignedInteger)
-        {
-            return _kind == ConstantKind.I128 ? factory((double)AsInt128()) : factory(AsInt64());
-        }
-
-        if (IsUnsignedInteger)
-        {
-            return _kind == ConstantKind.U128 ? factory((double)AsUInt128()) : factory(AsUInt64());
-        }
-
-        return null;
+            IntegerConstant i => i.ConvertTo(floatKind),
+            FloatConstant f => f.ConvertTo(floatKind),
+            _ => null,
+        };
     }
 
     public override bool Equals([NotNullWhen(true)] object? obj)
@@ -1048,84 +473,41 @@ public readonly struct ConstantValue
         {
             NullConstant value => other is NullConstant otherValue && value.Equals(otherValue),
             bool value => other is bool otherValue && value.Equals(otherValue),
-            Char8Constant value => other is Char8Constant otherValue && value.Equals(otherValue),
-            Char16Constant value => other is Char16Constant otherValue && value.Equals(otherValue),
-            RuneConstant value => other is RuneConstant otherValue && value.Equals(otherValue),
-            I8Constant value => other is I8Constant otherValue && value.Equals(otherValue),
-            I16Constant value => other is I16Constant otherValue && value.Equals(otherValue),
-            I32Constant value => other is I32Constant otherValue && value.Equals(otherValue),
-            I64Constant value => other is I64Constant otherValue && value.Equals(otherValue),
-            I128Constant value => other is I128Constant otherValue && value.Equals(otherValue),
-            ISizeConstant value => other is ISizeConstant otherValue && value.Equals(otherValue),
-            U8Constant value => other is U8Constant otherValue && value.Equals(otherValue),
-            U16Constant value => other is U16Constant otherValue && value.Equals(otherValue),
-            U32Constant value => other is U32Constant otherValue && value.Equals(otherValue),
-            U64Constant value => other is U64Constant otherValue && value.Equals(otherValue),
-            U128Constant value => other is U128Constant otherValue && value.Equals(otherValue),
-            USizeConstant value => other is USizeConstant otherValue && value.Equals(otherValue),
-            F32Constant value => other is F32Constant otherValue && value.Equals(otherValue),
-            F64Constant value => other is F64Constant otherValue && value.Equals(otherValue),
+            IntegerConstant value => other is IntegerConstant otherValue
+                && value.Equals(otherValue),
+            FloatConstant value => other is FloatConstant otherValue && value.Equals(otherValue),
+            CharacterConstant value => other is CharacterConstant otherValue
+                && value.Equals(otherValue),
             string value => other is string otherValue && value.Equals(otherValue),
-            ArrayConstant value => other is ArrayConstant otherValue && value.Equals(otherValue),
         };
     }
 
     public override int GetHashCode()
     {
         return HashCode.Combine(
-            _kind.GetHashCode(),
+            _header.GetHashCode(),
             this switch
             {
                 NullConstant value => value.GetHashCode(),
                 bool value => value.GetHashCode(),
-                Char8Constant value => value.GetHashCode(),
-                Char16Constant value => value.GetHashCode(),
-                RuneConstant value => value.GetHashCode(),
-                I8Constant value => value.GetHashCode(),
-                I16Constant value => value.GetHashCode(),
-                I32Constant value => value.GetHashCode(),
-                I64Constant value => value.GetHashCode(),
-                I128Constant value => value.GetHashCode(),
-                ISizeConstant value => value.GetHashCode(),
-                U8Constant value => value.GetHashCode(),
-                U16Constant value => value.GetHashCode(),
-                U32Constant value => value.GetHashCode(),
-                U64Constant value => value.GetHashCode(),
-                U128Constant value => value.GetHashCode(),
-                USizeConstant value => value.GetHashCode(),
-                F32Constant value => value.GetHashCode(),
-                F64Constant value => value.GetHashCode(),
+                IntegerConstant value => value.GetHashCode(),
+                FloatConstant value => value.GetHashCode(),
+                CharacterConstant value => value.GetHashCode(),
                 string value => value.GetHashCode(),
-                ArrayConstant value => value.GetHashCode(),
             }
         );
     }
 
     public override string ToString()
     {
-        return _kind switch
+        return this switch
         {
-            ConstantKind.Null => "null",
-            ConstantKind.Bool => AsBoolean().ToString(),
-            ConstantKind.Char or ConstantKind.Char16 or ConstantKind.Rune => AsCharacter()
-                .ToString(),
-            ConstantKind.I8
-            or ConstantKind.I16
-            or ConstantKind.I32
-            or ConstantKind.I64
-            or ConstantKind.ISize => AsInt64().ToString(),
-            ConstantKind.I128 => AsInt128().ToString(),
-            ConstantKind.U8
-            or ConstantKind.U16
-            or ConstantKind.U32
-            or ConstantKind.U64
-            or ConstantKind.USize => AsUInt64().ToString(),
-            ConstantKind.U128 => AsUInt128().ToString(),
-            ConstantKind.F32 => AsFloat32().ToString(CultureInfo.InvariantCulture),
-            ConstantKind.F64 => AsFloat64().ToString(CultureInfo.InvariantCulture),
-            ConstantKind.Str => AsString(),
-            ConstantKind.Array => $"[{string.Join(", ", AsArray().Select(x => x.ToString()))}]",
-            _ => throw new ArgumentOutOfRangeException(),
+            NullConstant => "null",
+            bool b => b.ToString(),
+            IntegerConstant i => i.ToString(),
+            FloatConstant f => f.ToString(),
+            CharacterConstant c => c.ToString(),
+            string s => s,
         };
     }
 
@@ -1137,5 +519,94 @@ public readonly struct ConstantValue
     public static bool operator !=(ConstantValue left, ConstantValue right)
     {
         return !left.Equals(right);
+    }
+
+    static void IArchivable<ConstantValue>.Serialize<TBufferWriter>(
+        ref ArchiveWriter<TBufferWriter> writer,
+        scoped in ConstantValue value
+    )
+    {
+        switch (value)
+        {
+            case NullConstant:
+                writer.WriteBlittable(value._header);
+                break;
+            case bool b:
+            {
+                var rawHeaderByte = value._header.AsRaw();
+                if (b)
+                {
+                    rawHeaderByte |= 1;
+                }
+                writer.WriteBlittable(rawHeaderByte);
+                break;
+            }
+            case CharacterConstant characterConstant:
+                CharacterConstant.SerializeWithHeader(
+                    ref writer,
+                    value._header.AsRaw(),
+                    characterConstant.Kind,
+                    characterConstant.RawValue
+                );
+                break;
+            case IntegerConstant integerConstant:
+                IntegerConstant.SerializeWithHeader(
+                    ref writer,
+                    value._header.AsRaw(),
+                    integerConstant.Kind,
+                    integerConstant.RawValue
+                );
+                break;
+            case FloatConstant floatConstant:
+                floatConstant.SerializeWithHeader(ref writer, value._header.AsRaw());
+                break;
+            case string s:
+                writer.WriteBlittable(value._header);
+                writer.WriteString(s);
+                break;
+        }
+    }
+
+    static void IArchivable<ConstantValue>.Deserialize(
+        ref ArchiveReader reader,
+        scoped ref ConstantValue value
+    )
+    {
+        var header = reader.ReadBlittable<ConstantHeader>();
+        switch (header.Kind)
+        {
+            case ConstantKind.Null:
+                value = new NullConstant();
+                break;
+            case ConstantKind.Bool:
+                value = (header.AsRaw() & 1) != 0;
+                break;
+            case ConstantKind.Integer:
+                value = new ConstantValue(
+                    header,
+                    new ConstantStorage(IntegerConstant.ReadValue(ref reader, header.IntegerKind))
+                );
+                break;
+            case ConstantKind.Float:
+                value = FloatConstant.ReadValue(ref reader, header.FloatKind);
+                break;
+            case ConstantKind.Character:
+                value = new ConstantValue(
+                    header,
+                    new ConstantStorage(
+                        CharacterConstant.ReadValue(ref reader, header.CharacterKind)
+                    )
+                );
+                break;
+            case ConstantKind.String:
+                value =
+                    reader.ReadString()
+                    ?? throw new ArchiveSerializationException("Invalid string constant");
+                break;
+            case ConstantKind.Array:
+                throw new NotImplementedException("Array constants are not ready yet");
+            default:
+                throw new ArchiveSerializationException("Invalid constant kind");
+        }
     }
 }
