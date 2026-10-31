@@ -15,7 +15,7 @@ internal sealed class MetadataBuilder : IDisposable
     private readonly MetadataHeader _header;
 
     private readonly StringHeapBuilder _strings = new();
-    private readonly SerializedHeapBuilder<ConstDataHandle, ConstantValue> _constantData = new();
+    private readonly ConstantHeapBuilder _constantData = new();
 
     private readonly Dictionary<ConstantValue, ConstantHandle> _constants = new();
 
@@ -26,7 +26,7 @@ internal sealed class MetadataBuilder : IDisposable
 
     private readonly List<TypeDefinitionRow> _typeDefs = [];
     private readonly List<TypeReferenceRow> _typeRefs = [];
-    private readonly SerializedHeapBuilder<TypeSpecHandle, TypeSpecRow> _typeSpecHeap = new();
+    private readonly TypeSpecHeapBuilder _typeSpecHeap = new();
 
     private readonly List<VariableRow> _variables = [];
 
@@ -248,7 +248,7 @@ internal sealed class MetadataBuilder : IDisposable
         writer.Flush();
     }
 
-    private void WriteRows<T>(
+    private static void WriteRows<T>(
         ref ArchiveWriter<MetadataBuffer> writer,
         ref MetadataBuffer bufferWriter,
         List<T> rows,
@@ -271,5 +271,7 @@ internal sealed class MetadataBuilder : IDisposable
     public void Dispose()
     {
         _strings.Dispose();
+        _constantData.Dispose();
+        _typeSpecHeap.Dispose();
     }
 }

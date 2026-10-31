@@ -54,7 +54,7 @@ public readonly partial record struct InlineConstHandle
         return value switch
         {
             // ReSharper disable once ShiftExpressionZeroLeftOperand
-            NullConstant => new InlineConstHandle(ConstantHeader.Null.AsRaw() << KindShift),
+            NullConstant => new InlineConstHandle(ConstantHeader.Null.AsRaw() << KindShift | 1),
             bool b => new InlineConstHandle(ConstantHeader.Bool.AsRaw() << KindShift | (b ? 1 : 0)),
             IntegerConstant i => TryCreateFromInteger(in i),
             CharacterConstant c => TryCreateFromCharacter(c),
@@ -109,6 +109,9 @@ public readonly partial record struct InlineConstHandle
 
     public ConstantValue GetValue()
     {
+        if (IsNone)
+            throw new InvalidOperationException("Constant value is not set");
+
         var rawKind = (byte)((_id & KindMask) >> KindShift);
         var header = ConstantHeader.FromRaw(rawKind);
         return header.Kind switch
