@@ -246,7 +246,7 @@ internal sealed class MetadataBuilder : IDisposable
             ref bufferWriter,
             _customAttributes,
             sectionHeaders,
-            Section.CustomAttribute,
+            Section.CustomAttributes,
             ref currentSection
         );
 

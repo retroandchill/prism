@@ -22,7 +22,7 @@ internal enum Section
     Variables = 30,
     Functions = 31,
     Parameters = 32,
-    CustomAttribute = 50,
+    CustomAttributes = 50,
 }
 
 internal static partial class Sections

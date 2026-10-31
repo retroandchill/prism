@@ -103,6 +103,9 @@ public sealed class MetadataHandleGenerator : IIncrementalGenerator
         writer.WriteLine();
         writer.WriteLine("public bool IsNone => _id == 0;");
 
+        writer.WriteLine("public int Id => _id;");
+        writer.WriteLine();
+
         writer.WriteLine();
         writer.WriteLine(
             $"public static implicit operator MetadataToken({name}Handle handle) => new(Type, (uint)handle._id);"

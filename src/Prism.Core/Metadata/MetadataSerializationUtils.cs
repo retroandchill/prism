@@ -83,37 +83,74 @@ internal static class MetadataSerializationUtils
         }
     }
 
-    public static string ReadMetadataString(this ref ArchiveReader reader)
+    extension(ref ArchiveReader reader)
     {
-        if (!reader.TryReadCollectionHeader(out var utf8Length))
+        public string ReadMetadataString()
         {
-            throw new InvalidOperationException("Expected a non-null string");
-        }
-
-        ref var spanRef = ref reader.GetSpanReference(utf8Length);
-
-        var maxBufferSize = Encoding.UTF8.GetMaxCharCount(utf8Length);
-        var buffer = ArrayPool<char>.Shared.Rent(maxBufferSize);
-        try
-        {
-            var src = MemoryMarshal.CreateReadOnlySpan(ref spanRef, utf8Length);
-            var status = Utf8.ToUtf16(
-                src,
-                buffer,
-                out _,
-                out var strLength,
-                replaceInvalidSequences: false
-            );
-            if (status != OperationStatus.Done)
+            if (!reader.TryReadCollectionHeader(out var utf8Length))
             {
-                ArchiveSerializationException.ThrowFailedEncoding(status);
+                throw new InvalidOperationException("Expected a non-null string");
             }
-            reader.Advance(utf8Length);
-            return new string(buffer.AsSpan(0, strLength));
+
+            ref var spanRef = ref reader.GetSpanReference(utf8Length);
+
+            var maxBufferSize = Encoding.UTF8.GetMaxCharCount(utf8Length);
+            var buffer = ArrayPool<char>.Shared.Rent(maxBufferSize);
+            try
+            {
+                var src = MemoryMarshal.CreateReadOnlySpan(ref spanRef, utf8Length);
+                var status = Utf8.ToUtf16(
+                    src,
+                    buffer,
+                    out _,
+                    out var strLength,
+                    replaceInvalidSequences: false
+                );
+                if (status != OperationStatus.Done)
+                {
+                    ArchiveSerializationException.ThrowFailedEncoding(status);
+                }
+
+                reader.Advance(utf8Length);
+                return new string(buffer.AsSpan(0, strLength));
+            }
+            finally
+            {
+                ArrayPool<char>.Shared.Return(buffer);
+            }
         }
-        finally
+
+        public T[] ReadMetadataRows<T>(int count)
         {
-            ArrayPool<char>.Shared.Return(buffer);
+            if (count == 0)
+                return [];
+
+            if (!reader.IsByteSwapping && BlittableMarshalling.IsBlittable<T>())
+            {
+                return reader.ReadBlittableArray<T>(count);
+            }
+
+            var result = new T[count];
+            var formatter = reader.GetFormatter<T>();
+            for (var i = 0; i < count; i++)
+            {
+                formatter.Deserialize(ref reader, ref result[i]);
+            }
+
+            return result;
+        }
+
+        private T[] ReadBlittableArray<T>(int length)
+        {
+            var byteCount = length * Unsafe.SizeOf<T>();
+            ref var src = ref reader.GetSpanReference(byteCount);
+            var result = GC.AllocateUninitializedArray<T>(length);
+
+            ref var dest = ref Unsafe.As<T, byte>(ref MemoryMarshal.GetArrayDataReference(result));
+            Unsafe.CopyBlockUnaligned(ref dest, ref src, (uint)byteCount);
+            reader.Advance(byteCount);
+
+            return result;
         }
     }
 }
