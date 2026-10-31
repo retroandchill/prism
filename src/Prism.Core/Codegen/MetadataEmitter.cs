@@ -16,13 +16,23 @@ internal sealed class MetadataEmitter : IDisposable
     private readonly Compilation _compilation;
     private readonly MetadataBuilder _builder;
 
-    private readonly Dictionary<AssemblySymbol, AssemblyRefHandle> _assemblyRefs = new();
+    private readonly Dictionary<AssemblySymbol, AssemblyRefHandle> _assemblyRefs = new(
+        ReferenceEqualityComparer.Instance
+    );
 
-    private readonly Dictionary<NamespaceSymbol, NamespaceDefHandle> _namespaceDefs = new();
-    private readonly Dictionary<NamespaceSymbol, NamespaceRefHandle> _namespaceRefs = new();
-    private readonly Dictionary<TypeSymbol, TypeHandle> _types = new();
+    private readonly Dictionary<NamespaceSymbol, NamespaceDefHandle> _namespaceDefs = new(
+        ReferenceEqualityComparer.Instance
+    );
+    private readonly Dictionary<NamespaceSymbol, NamespaceRefHandle> _namespaceRefs = new(
+        ReferenceEqualityComparer.Instance
+    );
+    private readonly Dictionary<TypeSymbol, TypeHandle> _types = new(
+        ReferenceEqualityComparer.Instance
+    );
 
-    private readonly Dictionary<ConstantValue, ConstantHandle> _constants = new();
+    private readonly Dictionary<FunctionSymbol, FunctionHandle> _functions = new(
+        ReferenceEqualityComparer.Instance
+    );
 
     private readonly struct TrackedSymbols()
     {
@@ -78,6 +88,16 @@ internal sealed class MetadataEmitter : IDisposable
         {
             AddVariable(variable);
         }
+
+        foreach (var function in trackedSymbols.Functions)
+        {
+            AddFunction(function);
+        }
+
+        foreach (var parameter in trackedSymbols.Parameters)
+        {
+            AddParameter(parameter);
+        }
     }
 
     private static void AddSymbol(
@@ -113,6 +133,10 @@ internal sealed class MetadataEmitter : IDisposable
                 symbols.Variables.Add(variable);
                 break;
             case FunctionSymbol function:
+                // We don't want to add global constructors to the metadata
+                if (function.Kind == FunctionKind.GlobalConstructor)
+                    return;
+
                 symbols.Functions.Add(function);
                 symbols.Parameters.AddRange(function.Parameters.AsSpan());
                 break;
@@ -203,8 +227,11 @@ internal sealed class MetadataEmitter : IDisposable
         return MemberContainerDefHandle.None;
     }
 
-    private TypeHandle GetOrAddType(TypeSymbol typeSymbol)
+    private TypeHandle GetOrAddType(TypeSymbol? typeSymbol)
     {
+        if (typeSymbol is null)
+            return TypeHandle.None;
+
         if (_types.TryGetValue(typeSymbol, out var handle))
             return handle;
 
@@ -275,7 +302,7 @@ internal sealed class MetadataEmitter : IDisposable
             variableSymbol.Kind,
             variableSymbol.DeclaredVisibility
         );
-        var name = _builder.GetOrAddString(variableSymbol.Name);
+        var name = _builder.GetOrAddString(variableSymbol.MetadataName);
         var type = GetOrAddType(variableSymbol.Type);
         var container = GetContainerDefHandle(variableSymbol);
         ConstantHandle constant;
@@ -288,6 +315,49 @@ internal sealed class MetadataEmitter : IDisposable
             constant = ConstantHandle.None;
         }
         _builder.AddVariable(new VariableRow(attributes, name, type, container, constant));
+    }
+
+    private void AddFunction(FunctionSymbol functionSymbol)
+    {
+        var attributes = FunctionAttributes.Create(
+            functionSymbol.DeclaredVisibility,
+            functionSymbol.IsExtern,
+            functionSymbol.AbiKind
+        );
+        var name = _builder.GetOrAddString(functionSymbol.MetadataName);
+        var returnType = GetOrAddType(functionSymbol.ReturnType);
+        var receiverType = GetOrAddType(functionSymbol.ReceiverType);
+        var container = GetContainerDefHandle(functionSymbol);
+        var handle = _builder.AddFunction(
+            new FunctionRow(attributes, name, returnType, receiverType, container)
+        );
+        _functions.Add(functionSymbol, handle);
+    }
+
+    private void AddParameter(ParameterSymbol parameterSymbol)
+    {
+        var attributes = ParameterAttributes.Create();
+        var name = _builder.GetOrAddString(parameterSymbol.MetadataName);
+        var type = GetOrAddType(parameterSymbol.Type);
+        FunctionOrAttributeHandle owner;
+        if (parameterSymbol.ContainingFunction is { } func)
+        {
+            owner = _functions[func];
+        }
+        else
+        {
+            var containingType = parameterSymbol.ContainingType;
+            Debug.Assert(containingType is not null);
+            owner = (TypeDefHandle)GetOrAddType(containingType);
+        }
+
+        var defaultValue = parameterSymbol.DefaultValue switch
+        {
+            null => ParameterDefaultHandle.None,
+            ConstantParameterDefault(var value, _) => _builder.GetOrAddConstant(in value),
+        };
+
+        _builder.AddParameter(new ParameterRow(attributes, name, type, owner, defaultValue));
     }
 
     public void Dispose()

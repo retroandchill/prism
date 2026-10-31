@@ -19,6 +19,8 @@ internal enum Section
     TypeRefs = 21,
     TypeSpecs = 22,
     Variables = 30,
+    Functions = 31,
+    Parameters = 32,
     Constants = 50,
 }
 

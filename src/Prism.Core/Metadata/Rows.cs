@@ -73,3 +73,21 @@ internal readonly partial record struct VariableRow(
     MemberContainerDefHandle Container,
     ConstantHandle ConstantValue
 );
+
+[Archivable]
+internal readonly partial record struct FunctionRow(
+    FunctionAttributes Attributes,
+    StringHandle Name,
+    TypeHandle ReturnType,
+    TypeHandle ReceiverType,
+    MemberContainerDefHandle Container
+);
+
+[Archivable]
+internal readonly partial record struct ParameterRow(
+    ParameterAttributes Attributes,
+    StringHandle Name,
+    TypeHandle Type,
+    FunctionOrAttributeHandle FunctionOrAttribute,
+    ParameterDefaultHandle DefaultValue
+);

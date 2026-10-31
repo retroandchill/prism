@@ -333,3 +333,23 @@ public readonly partial record struct FunctionOrAttributeHandle
 
     private partial FunctionOrAttributeHandle(MetadataToken token);
 }
+
+[Archivable]
+[CompositeHandle(typeof(StringHandle), typeof(ConstDataHandle), typeof(InlineConstHandle))]
+public readonly partial record struct ParameterDefaultHandle
+{
+    [ArchiveInclude]
+    private readonly MetadataToken _token;
+
+    private partial ParameterDefaultHandle(MetadataToken token);
+
+    public static implicit operator ParameterDefaultHandle(ConstantHandle handle)
+    {
+        return handle switch
+        {
+            StringHandle h => h,
+            ConstDataHandle h => h,
+            InlineConstHandle h => h,
+        };
+    }
+}

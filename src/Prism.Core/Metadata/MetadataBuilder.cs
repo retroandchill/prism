@@ -29,6 +29,8 @@ internal sealed class MetadataBuilder : IDisposable
     private readonly TypeSpecHeapBuilder _typeSpecHeap = new();
 
     private readonly List<VariableRow> _variables = [];
+    private readonly List<FunctionRow> _functions = [];
+    private readonly List<ParameterRow> _parameters = [];
 
     public MetadataBuilder(AssemblyIdentity identity, TargetInfo target)
     {
@@ -104,10 +106,20 @@ internal sealed class MetadataBuilder : IDisposable
         return _typeSpecHeap.Add(row);
     }
 
-    public VariableHandle AddVariable(VariableRow row)
+    public void AddVariable(VariableRow row)
     {
         _variables.Add(row);
-        return VariableHandle.FromRowId(_variables.Count);
+    }
+
+    public FunctionHandle AddFunction(FunctionRow row)
+    {
+        _functions.Add(row);
+        return FunctionHandle.FromRowId(_functions.Count);
+    }
+
+    public void AddParameter(ParameterRow row)
+    {
+        _parameters.Add(row);
     }
 
     private AssemblyIdentityData ConvertAssemblyIdentity(AssemblyIdentity identity)
@@ -211,6 +223,22 @@ internal sealed class MetadataBuilder : IDisposable
             _variables,
             sectionHeaders,
             Section.Variables,
+            ref currentSection
+        );
+        WriteRows(
+            ref writer,
+            ref bufferWriter,
+            _functions,
+            sectionHeaders,
+            Section.Functions,
+            ref currentSection
+        );
+        WriteRows(
+            ref writer,
+            ref bufferWriter,
+            _parameters,
+            sectionHeaders,
+            Section.Parameters,
             ref currentSection
         );
         WriteHeap(
