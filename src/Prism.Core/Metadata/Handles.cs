@@ -28,12 +28,12 @@ public readonly partial record struct StringHandle
 
 [Archivable]
 [Handle]
-public readonly partial record struct ConstDataHandle
+public readonly partial record struct BlobHandle
 {
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial ConstDataHandle(int id);
+    private partial BlobHandle(int id);
 }
 
 [Archivable]
@@ -165,7 +165,7 @@ public readonly partial record struct InlineConstHandle
 }
 
 [Archivable]
-[CompositeHandle(typeof(StringHandle), typeof(ConstDataHandle), typeof(InlineConstHandle))]
+[CompositeHandle(typeof(StringHandle), typeof(BlobHandle), typeof(InlineConstHandle))]
 public readonly partial record struct ConstantHandle
 {
     [ArchiveInclude]
@@ -335,7 +335,7 @@ public readonly partial record struct FunctionOrAttributeHandle
 }
 
 [Archivable]
-[CompositeHandle(typeof(StringHandle), typeof(ConstDataHandle), typeof(InlineConstHandle))]
+[CompositeHandle(typeof(StringHandle), typeof(BlobHandle), typeof(InlineConstHandle))]
 public readonly partial record struct ParameterDefaultHandle
 {
     [ArchiveInclude]
@@ -348,8 +348,23 @@ public readonly partial record struct ParameterDefaultHandle
         return handle switch
         {
             StringHandle h => h,
-            ConstDataHandle h => h,
+            BlobHandle h => h,
             InlineConstHandle h => h,
         };
     }
+}
+
+[Archivable]
+[CompositeHandle(
+    typeof(TypeDefHandle),
+    typeof(VariableHandle),
+    typeof(FunctionHandle),
+    typeof(ParameterHandle)
+)]
+public readonly partial record struct AttributeHolderHandle
+{
+    [ArchiveInclude]
+    private readonly MetadataToken _token;
+
+    private partial AttributeHolderHandle(MetadataToken token);
 }

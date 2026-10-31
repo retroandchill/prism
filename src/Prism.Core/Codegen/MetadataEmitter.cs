@@ -3,11 +3,14 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Buffers;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Prism.Core.Compiling;
 using Prism.Core.Metadata;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
+using ZLinq;
 
 namespace Prism.Core.Codegen;
 
@@ -33,6 +36,8 @@ internal sealed class MetadataEmitter : IDisposable
     private readonly Dictionary<FunctionSymbol, FunctionHandle> _functions = new(
         ReferenceEqualityComparer.Instance
     );
+
+    private readonly Dictionary<ConstantValue, ConstantHandle> _constants = new();
 
     private readonly struct TrackedSymbols()
     {
@@ -209,6 +214,7 @@ internal sealed class MetadataEmitter : IDisposable
         var row = new TypeDefinitionRow(attributes, name, parent);
         var handle = _builder.AddTypeDef(row);
         _types.Add(namedTypeSymbol, handle);
+        AddCustomAttributes(namedTypeSymbol, handle);
         return handle;
     }
 
@@ -308,13 +314,42 @@ internal sealed class MetadataEmitter : IDisposable
         ConstantHandle constant;
         if (variableSymbol.ConstantValue is { } constantValue)
         {
-            constant = _builder.GetOrAddConstant(in constantValue);
+            constant = GetOrAddConstant(in constantValue);
         }
         else
         {
             constant = ConstantHandle.None;
         }
-        _builder.AddVariable(new VariableRow(attributes, name, type, container, constant));
+        var handle = _builder.AddVariable(
+            new VariableRow(attributes, name, type, container, constant)
+        );
+        AddCustomAttributes(variableSymbol, handle);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ConstantHandle GetOrAddConstant(in ConstantValue value)
+    {
+        if (_constants.TryGetValue(value, out var handle))
+        {
+            return handle;
+        }
+
+        handle = value switch
+        {
+            string s => _builder.GetOrAddString(s),
+            _ => StoreNonStringConstant(in value),
+        };
+
+        _constants.Add(value, handle);
+        return handle;
+    }
+
+    private ConstantHandle StoreNonStringConstant(in ConstantValue value)
+    {
+        if (InlineConstHandle.TryCreate(in value) is { } inline)
+            return inline;
+
+        return _builder.AddBlob(in value);
     }
 
     private void AddFunction(FunctionSymbol functionSymbol)
@@ -332,6 +367,7 @@ internal sealed class MetadataEmitter : IDisposable
             new FunctionRow(attributes, name, returnType, receiverType, container)
         );
         _functions.Add(functionSymbol, handle);
+        AddCustomAttributes(functionSymbol, handle);
     }
 
     private void AddParameter(ParameterSymbol parameterSymbol)
@@ -354,10 +390,63 @@ internal sealed class MetadataEmitter : IDisposable
         var defaultValue = parameterSymbol.DefaultValue switch
         {
             null => ParameterDefaultHandle.None,
-            ConstantParameterDefault(var value, _) => _builder.GetOrAddConstant(in value),
+            ConstantParameterDefault(var value, _) => GetOrAddConstant(in value),
         };
 
-        _builder.AddParameter(new ParameterRow(attributes, name, type, owner, defaultValue));
+        var handle = _builder.AddParameter(
+            new ParameterRow(attributes, name, type, owner, defaultValue)
+        );
+        AddCustomAttributes(parameterSymbol, handle);
+    }
+
+    private void AddCustomAttributes(Symbol symbol, AttributeHolderHandle owner)
+    {
+        var attributes = symbol.GetAttributes();
+        if (attributes.IsEmpty)
+            return;
+
+        const int maxStackArgs = 32;
+        Span<ConstantHandle> stackArgs = stackalloc ConstantHandle[maxStackArgs];
+
+        foreach (var attribute in attributes)
+        {
+            var type = GetOrAddType(attribute.Attribute);
+            BlobHandle arguments;
+            if (!attribute.Arguments.IsEmpty)
+            {
+                ConstantHandle[]? rentedStackArgs = null;
+                try
+                {
+                    if (attribute.Arguments.Length > maxStackArgs)
+                    {
+                        rentedStackArgs = ArrayPool<ConstantHandle>.Shared.Rent(
+                            attribute.Arguments.Length
+                        );
+                    }
+
+                    var args = rentedStackArgs is not null
+                        ? rentedStackArgs.AsSpan(0, attribute.Arguments.Length)
+                        : stackArgs[..attribute.Arguments.Length];
+                    foreach (var (i, arg) in attribute.Arguments.AsValueEnumerable().Index())
+                    {
+                        args[i] = GetOrAddConstant(arg.Value);
+                    }
+
+                    arguments = _builder.AddBlob(args);
+                }
+                finally
+                {
+                    if (rentedStackArgs is not null)
+                        ArrayPool<ConstantHandle>.Shared.Return(rentedStackArgs);
+                }
+            }
+            else
+            {
+                arguments = BlobHandle.None;
+            }
+
+            _builder.AddCustomAttribute(new CustomAttributeRow(type, owner, arguments));
+        }
     }
 
     public void Dispose()

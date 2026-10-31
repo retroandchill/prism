@@ -6,7 +6,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MagicArchive;
-using Prism.Core.Semantic;
 
 namespace Prism.Core.Metadata;
 
@@ -15,9 +14,7 @@ internal sealed class MetadataBuilder : IDisposable
     private readonly MetadataHeader _header;
 
     private readonly StringHeapBuilder _strings = new();
-    private readonly ConstantHeapBuilder _constantData = new();
-
-    private readonly Dictionary<ConstantValue, ConstantHandle> _constants = new();
+    private readonly BlobHeapBuilder _blobs = new();
 
     private readonly List<AssemblyIdentityData> _referencedAssemblies = [];
 
@@ -32,6 +29,8 @@ internal sealed class MetadataBuilder : IDisposable
     private readonly List<FunctionRow> _functions = [];
     private readonly List<ParameterRow> _parameters = [];
 
+    private readonly List<CustomAttributeRow> _customAttributes = [];
+
     public MetadataBuilder(AssemblyIdentity identity, TargetInfo target)
     {
         _header = new MetadataHeader(ConvertAssemblyIdentity(identity), target);
@@ -44,29 +43,15 @@ internal sealed class MetadataBuilder : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ConstantHandle GetOrAddConstant(in ConstantValue value)
+    public BlobHandle AddBlob<T>(in T value)
     {
-        if (_constants.TryGetValue(value, out var handle))
-        {
-            return handle;
-        }
-
-        handle = value switch
-        {
-            string s => GetOrAddString(s),
-            _ => StoreNonStringConstant(in value),
-        };
-
-        _constants.Add(value, handle);
-        return handle;
+        return _blobs.Add(in value);
     }
 
-    private ConstantHandle StoreNonStringConstant(in ConstantValue value)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public BlobHandle AddBlob<T>(scoped ReadOnlySpan<T> value)
     {
-        if (InlineConstHandle.TryCreate(in value) is { } inline)
-            return inline;
-
-        return _constantData.Add(in value);
+        return _blobs.Add(value);
     }
 
     public AssemblyRefHandle AddReferencedAssembly(AssemblyIdentity identity)
@@ -106,9 +91,10 @@ internal sealed class MetadataBuilder : IDisposable
         return _typeSpecHeap.Add(row);
     }
 
-    public void AddVariable(VariableRow row)
+    public VariableHandle AddVariable(VariableRow row)
     {
         _variables.Add(row);
+        return VariableHandle.FromRowId(_variables.Count);
     }
 
     public FunctionHandle AddFunction(FunctionRow row)
@@ -117,9 +103,15 @@ internal sealed class MetadataBuilder : IDisposable
         return FunctionHandle.FromRowId(_functions.Count);
     }
 
-    public void AddParameter(ParameterRow row)
+    public ParameterHandle AddParameter(ParameterRow row)
     {
         _parameters.Add(row);
+        return ParameterHandle.FromRowId(_parameters.Count);
+    }
+
+    public void AddCustomAttribute(CustomAttributeRow row)
+    {
+        _customAttributes.Add(row);
     }
 
     private AssemblyIdentityData ConvertAssemblyIdentity(AssemblyIdentity identity)
@@ -167,6 +159,14 @@ internal sealed class MetadataBuilder : IDisposable
             _strings,
             sectionHeaders,
             Section.StringTable,
+            ref currentSection
+        );
+        WriteHeap(
+            ref writer,
+            ref bufferWriter,
+            _blobs,
+            sectionHeaders,
+            Section.Blobs,
             ref currentSection
         );
         WriteRows(
@@ -241,12 +241,12 @@ internal sealed class MetadataBuilder : IDisposable
             Section.Parameters,
             ref currentSection
         );
-        WriteHeap(
+        WriteRows(
             ref writer,
             ref bufferWriter,
-            _constantData,
+            _customAttributes,
             sectionHeaders,
-            Section.Constants,
+            Section.CustomAttribute,
             ref currentSection
         );
 
@@ -299,7 +299,7 @@ internal sealed class MetadataBuilder : IDisposable
     public void Dispose()
     {
         _strings.Dispose();
-        _constantData.Dispose();
+        _blobs.Dispose();
         _typeSpecHeap.Dispose();
     }
 }

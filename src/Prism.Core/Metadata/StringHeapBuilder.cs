@@ -34,7 +34,7 @@ internal sealed class StringHeapBuilder : IHeapBuilder, IDisposable
         if (_map.TryGetValue(value, out var handle))
             return handle;
 
-        if ((int.MaxValue - _buffer.Position) < KnownStrings.HandleShift)
+        if (int.MaxValue - _buffer.Position < KnownStrings.HandleShift)
             throw new InvalidOperationException("Too many strings have been interned");
 
         handle = StringHandle.FromRowId(_buffer.Position + KnownStrings.HandleShift);

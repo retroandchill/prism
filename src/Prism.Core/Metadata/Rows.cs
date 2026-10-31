@@ -91,3 +91,10 @@ internal readonly partial record struct ParameterRow(
     FunctionOrAttributeHandle FunctionOrAttribute,
     ParameterDefaultHandle DefaultValue
 );
+
+[Archivable]
+internal readonly partial record struct CustomAttributeRow(
+    TypeHandle Type,
+    AttributeHolderHandle Holder,
+    BlobHandle Arguments
+);
