@@ -15,6 +15,8 @@ internal readonly partial record struct VersionData(int Major, int Minor, int Bu
         : this(version.Major, version.Minor, version.Build, version.Revision) { }
 
     public static implicit operator VersionData(Version version) => new(version);
+
+    public Version ToVersion() => new(Major, Minor, Build, Revision);
 }
 
 [Archivable]

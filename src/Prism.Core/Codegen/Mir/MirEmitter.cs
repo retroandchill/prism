@@ -423,7 +423,7 @@ internal sealed class MirEmitter(Compilation compilation)
             BoundBadExpression or BoundSpeculativeExpression => throw new InvalidOperationException(
                 "Should only emit LLVM IR if the compilation is valid"
             ),
-            BoundLiteral => throw new InvalidOperationException(
+            BoundLiteral or BoundTypeSize => throw new InvalidOperationException(
                 "The constant folding should have grabbed this already"
             ),
         };

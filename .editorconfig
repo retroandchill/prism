@@ -1,0 +1,5 @@
+﻿
+[*.cs]
+# Treat non-exhaustive switch expressions as a build error
+dotnet_diagnostic.CS8509.severity = error
+dotnet_diagnostic.CS8524.severity = error

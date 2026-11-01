@@ -114,6 +114,13 @@ internal sealed class MetadataReader
         return _blobHeap.GetValue<T>(handle.Id);
     }
 
+    public int ReferencedAssembliesCount => _assemblyRefs.Count;
+
+    public ref readonly AssemblyIdentityData GetAssemblyRef(AssemblyRefHandle handle)
+    {
+        return ref _assemblyRefs.GetRow(handle.Id);
+    }
+
     private static T CreateHeapReader<T>(ReadOnlyMemory<byte> buffer, SectionHeader section)
         where T : IHeapReader<T>
     {

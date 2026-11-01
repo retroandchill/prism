@@ -41,7 +41,7 @@ public class Compilation
         AssemblyName = assemblyName;
         Settings = settings;
         _syntaxAndDeclarationManager = manager;
-        ExternalReferences = references;
+        References = references;
     }
 
     public static Compilation Create(
@@ -101,7 +101,7 @@ public class Compilation
         }
     }
 
-    public ImmutableArray<MetadataReference> ExternalReferences { get; }
+    public ImmutableArray<MetadataReference> References { get; }
 
     private static ImmutableArray<MetadataReference> ValidateReferences(
         IEnumerable<MetadataReference>? references
@@ -110,6 +110,28 @@ public class Compilation
         return references is not null
             ? references.AsValueEnumerable().Distinct().ToImmutableArray()
             : [];
+    }
+
+    public AssemblySymbol? GetAssemblySymbol(MetadataReference reference)
+    {
+        return reference switch
+        {
+            CompilationReference(var compilation) => compilation.Assembly,
+            LibraryReference libraryReference => LoadFromLibraryReference(libraryReference),
+            UnresolvedReference unresolvedReference => ResolveAssemblyReference(
+                unresolvedReference
+            ),
+        };
+    }
+
+    private AssemblySymbol? LoadFromLibraryReference(LibraryReference reference)
+    {
+        throw new NotImplementedException();
+    }
+
+    private AssemblySymbol? ResolveAssemblyReference(UnresolvedReference reference)
+    {
+        throw new NotImplementedException();
     }
 
     public NamespaceSymbol? GetCompilationNamespace(NamespaceSymbol assemblyNamespace)

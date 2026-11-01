@@ -2358,6 +2358,11 @@ internal abstract class Binder : IOverloadResolutionHost
             ),
             BoundSpeculativeCollectionExpression collectionExpression =>
                 ApplySpeculativeCollectionExpression(collectionExpression, targetType, context),
+            BoundSpeculativeNewExpression newExpression => ApplySpeculativeNewExpression(
+                newExpression,
+                targetType,
+                context
+            ),
         };
     }
 
@@ -2431,6 +2436,33 @@ internal abstract class Binder : IOverloadResolutionHost
             context,
             elementType,
             arguments
+        );
+    }
+
+    private BoundNewExpression ApplySpeculativeNewExpression(
+        BoundSpeculativeNewExpression expression,
+        TypeSymbol? targetType,
+        BindingContext context
+    )
+    {
+        targetType ??= ErrorTypeSymbol.Unnamed;
+        ;
+        var ctors = LookupQualifiedName(CommonNames.Ctor, targetType, LookupOptions.Callable);
+
+        var (overload, realArgs) = ResolveOverload(
+            ctors,
+            null,
+            expression.Arguments,
+            expression.Syntax,
+            context
+        );
+
+        return new BoundNewExpression(
+            Compilation,
+            expression.Syntax,
+            targetType,
+            overload,
+            realArgs
         );
     }
 

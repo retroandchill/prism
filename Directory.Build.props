@@ -1,0 +1,6 @@
+﻿<Project>
+    <PropertyGroup>
+        <!-- Ensures .editorconfig diagnostic rules are enforced during command-line compilation -->
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    </PropertyGroup>
+</Project>
