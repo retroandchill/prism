@@ -6,7 +6,7 @@ using MagicArchive;
 
 namespace Prism.Core.Metadata;
 
-internal sealed class AssemblyMetadata
+internal sealed class AssemblyDefinition
 {
     public AssemblyIdentity Identity { get; }
 
@@ -17,7 +17,7 @@ internal sealed class AssemblyMetadata
     private readonly ConcurrentDictionary<AssemblyRefHandle, AssemblyIdentity> _identityCache =
         new();
 
-    private AssemblyMetadata(
+    private AssemblyDefinition(
         AssemblyIdentity identity,
         TargetInfo targetInfo,
         MetadataReader reader
@@ -28,7 +28,7 @@ internal sealed class AssemblyMetadata
         _metadataReader = reader;
     }
 
-    public static AssemblyMetadata Load(string filepath)
+    public static AssemblyDefinition Load(string filepath)
     {
         byte[] buffer;
         using (var stream = File.OpenRead(filepath))
@@ -46,7 +46,7 @@ internal sealed class AssemblyMetadata
         var metadataReader = new MetadataReader(remaining);
 
         var identity = MapAssemblyIdentity(identityData, metadataReader);
-        return new AssemblyMetadata(identity, targetInfo, metadataReader);
+        return new AssemblyDefinition(identity, targetInfo, metadataReader);
     }
 
     private static AssemblyIdentity MapAssemblyIdentity(

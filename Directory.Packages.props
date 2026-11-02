@@ -25,6 +25,7 @@
     <PackageVersion Include="Semver" Version="3.0.0" />
     <PackageVersion Include="Singulink.Numerics.BigDecimal" Version="3.4.0" />
     <PackageVersion Include="SoftCircuits.OrderedDictionary" Version="3.4.0" />
+    <PackageVersion Include="SoftUni.Wintellect.PowerCollections" Version="2.0.0" />
     <PackageVersion Include="System.CommandLine" Version="2.0.9" />
     <PackageVersion Include="System.IO.Hashing" Version="10.0.9" />
     <PackageVersion Include="System.Linq.AsyncEnumerable" Version="10.0.9" />

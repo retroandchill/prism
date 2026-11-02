@@ -34,4 +34,20 @@ public sealed class NullableTypeSymbol : TypeSymbol
         ElementType.WriteDisplayString(writer);
         writer.Write('?');
     }
+
+    public override bool Equals(TypeSymbol other, TypeCompareKind kind)
+    {
+        return Equals(other as NullableTypeSymbol, kind);
+    }
+
+    private bool Equals(NullableTypeSymbol? other, TypeCompareKind kind)
+    {
+        if (ReferenceEquals(this, other))
+            return true;
+
+        return other is not null && ElementType.Equals(other.ElementType, kind);
+    }
+
+    public override int GetHashCode(TypeCompareKind kind) =>
+        HashCode.Combine(ElementType.GetHashCode(kind));
 }

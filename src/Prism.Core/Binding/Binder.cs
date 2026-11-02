@@ -2446,7 +2446,6 @@ internal abstract class Binder : IOverloadResolutionHost
     )
     {
         targetType ??= ErrorTypeSymbol.Unnamed;
-        ;
         var ctors = LookupQualifiedName(CommonNames.Ctor, targetType, LookupOptions.Callable);
 
         var (overload, realArgs) = ResolveOverload(

@@ -7,16 +7,21 @@ namespace Prism.Core.Symbols.Metadata;
 
 internal sealed class MetadataAssemblySymbol : AssemblySymbol
 {
-    private readonly AssemblyMetadata _metadata;
+    private readonly MetadataReader _metadataReader;
 
-    public MetadataAssemblySymbol(AssemblyMetadata metadata)
-        : base(metadata.Identity.Name)
+    public MetadataAssemblySymbol(
+        AssemblyIdentity identity,
+        TargetInfo targetInfo,
+        MetadataReader reader
+    )
+        : base(identity.Name, targetInfo)
     {
-        _metadata = metadata;
+        _metadataReader = reader;
+        Identity = identity;
     }
 
     public override ImmutableArray<Location> Locations { get; }
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
-    public override AssemblyIdentity Identity => _metadata.Identity;
+    public override AssemblyIdentity Identity { get; }
     public override NamespaceSymbol GlobalNamespace => throw new NotImplementedException();
 }

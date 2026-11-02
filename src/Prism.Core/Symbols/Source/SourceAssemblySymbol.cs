@@ -7,7 +7,7 @@ using Prism.Core.Syntax;
 namespace Prism.Core.Symbols.Source;
 
 internal sealed class SourceAssemblySymbol(Compilation compilation)
-    : AssemblySymbol(compilation.AssemblyName)
+    : AssemblySymbol(compilation.AssemblyName, compilation.TargetInfo)
 {
     private SymbolCompletionState _completionState;
 

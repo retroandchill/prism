@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Prism.Core.Binding;
 using Prism.Core.Compiling;
 using Prism.Core.Diagnostics;
@@ -8,7 +9,7 @@ using Prism.Core.Text;
 
 namespace Prism.Core.Symbols;
 
-public closed class Symbol
+public closed class Symbol : IEquatable<Symbol>
 {
     private protected Symbol(string name, Symbol? containingSymbol = null)
     {
@@ -185,5 +186,43 @@ public closed class Symbol
         return DeclaredVisibility != DeclaredVisibility.File
             ? Name
             : $"{Name}_{syntaxTree.Md5Hash}";
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return Equals(obj as Symbol);
+    }
+
+    public bool Equals(Symbol? other)
+    {
+        return other is not null && Equals(other, TypeCompareKind.ConsiderEverything);
+    }
+
+    public virtual bool Equals(Symbol other, TypeCompareKind kind)
+    {
+        return ReferenceEquals(this, other);
+    }
+
+    public override int GetHashCode()
+    {
+        return GetHashCode(TypeCompareKind.ConsiderEverything);
+    }
+
+    public virtual int GetHashCode(TypeCompareKind kind)
+    {
+        return RuntimeHelpers.GetHashCode(this);
+    }
+
+    public static bool operator ==(Symbol? left, Symbol? right)
+    {
+        if (ReferenceEquals(left, right))
+            return true;
+
+        return left is not null && left.Equals(right);
+    }
+
+    public static bool operator !=(Symbol? left, Symbol? right)
+    {
+        return !(left == right);
     }
 }

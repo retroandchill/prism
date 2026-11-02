@@ -4,10 +4,15 @@ namespace Prism.Core.Symbols;
 
 public closed class AssemblySymbol : Symbol
 {
-    private protected AssemblySymbol(string name)
-        : base(name) { }
+    private protected AssemblySymbol(string name, TargetInfo targetInfo)
+        : base(name)
+    {
+        TargetInfo = targetInfo;
+    }
 
     public abstract AssemblyIdentity Identity { get; }
+
+    public TargetInfo TargetInfo { get; }
 
     public sealed override AssemblySymbol? ContainingAssembly => null;
 

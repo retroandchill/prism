@@ -41,11 +41,19 @@ public sealed partial record AssemblyIdentity(string Name, Version Version)
 
     public bool Equals(AssemblyIdentity? other)
     {
+        if (ReferenceEquals(this, other))
+            return true;
+
         return other is not null && Name == other.Name && Version == other.Version;
     }
 
     public override int GetHashCode()
     {
         return HashCode.Combine(Name, Version);
+    }
+
+    public override string ToString()
+    {
+        return FullName;
     }
 }

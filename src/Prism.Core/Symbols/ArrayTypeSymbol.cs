@@ -47,4 +47,24 @@ public sealed class ArrayTypeSymbol : TypeSymbol
         }
         writer.Write(']');
     }
+
+    public override bool Equals(TypeSymbol other, TypeCompareKind kind)
+    {
+        return Equals(other as ArrayTypeSymbol, kind);
+    }
+
+    private bool Equals(ArrayTypeSymbol? other, TypeCompareKind kind)
+    {
+        if (ReferenceEquals(this, other))
+            return true;
+
+        return other is not null
+            && ElementType.Equals(other.ElementType, kind)
+            && Size == other.Size;
+    }
+
+    public override int GetHashCode(TypeCompareKind kind)
+    {
+        return HashCode.Combine(ElementType.GetHashCode(kind), Size);
+    }
 }

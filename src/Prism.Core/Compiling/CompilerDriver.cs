@@ -232,7 +232,7 @@ internal static class CompilerDriver
         );
     }
 
-    private static BoundBlock? SynthesizeDefaultConstructor(
+    private static BoundBlock SynthesizeDefaultConstructor(
         TypeSymbol type,
         Compilation compilation,
         CancellationToken cancellationToken

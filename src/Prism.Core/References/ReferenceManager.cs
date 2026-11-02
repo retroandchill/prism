@@ -5,6 +5,4 @@ using Prism.Core.Symbols;
 
 namespace Prism.Core.References;
 
-internal union AssemblyOrDiagnostic(AssemblyMetadata, Diagnostic);
-
 internal sealed class ReferenceManager { }

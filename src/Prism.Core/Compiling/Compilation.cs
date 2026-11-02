@@ -66,6 +66,18 @@ public class Compilation
 
     public CompilationSettings Settings { get; }
 
+    internal TargetInfo TargetInfo
+    {
+        get
+        {
+            return new TargetInfo(
+                Settings.Architecture,
+                Settings.OperatingSystem,
+                Settings.Toolchain
+            );
+        }
+    }
+
     public string AssemblyName { get; }
 
     public AssemblySymbol Assembly
