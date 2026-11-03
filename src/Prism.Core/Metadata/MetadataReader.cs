@@ -121,6 +121,8 @@ internal sealed class MetadataReader
         return ref _assemblyRefs.GetRow(handle.Id);
     }
 
+    public int NamespaceDefsCount => _namespaceDefs.Count;
+
     public ref readonly NamespaceDefRow GetNamespaceDef(NamespaceDefHandle handle)
     {
         return ref _namespaceDefs.GetRow(handle.Id);
