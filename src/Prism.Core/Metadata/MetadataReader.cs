@@ -121,6 +121,11 @@ internal sealed class MetadataReader
         return ref _assemblyRefs.GetRow(handle.Id);
     }
 
+    public ref readonly NamespaceDefRow GetNamespaceDef(NamespaceDefHandle handle)
+    {
+        return ref _namespaceDefs.GetRow(handle.Id);
+    }
+
     private static T CreateHeapReader<T>(ReadOnlyMemory<byte> buffer, SectionHeader section)
         where T : IHeapReader<T>
     {
