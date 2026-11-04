@@ -3,27 +3,60 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using MagicArchive;
 
 namespace Prism.Core.Metadata;
 
-internal sealed class TableRowReader<TRow>
+internal delegate T ReadMetadataRow<TRow, out T>(int id, in TRow row)
+    where TRow : unmanaged;
+
+internal sealed class TableRowReader<TRow, T>
     where TRow : unmanaged
 {
-    private readonly TRow[] _rows;
+    private readonly RowBackingState<TRow> _backingState;
 
-    public TableRowReader(ReadOnlyMemory<byte> buffer, ArchiveReaderState state, int count)
+    private readonly ReadMetadataRow<TRow, T> _readRow;
+    private readonly ConcurrentDictionary<int, Lazy<T>> _cache = new();
+
+    public TableRowReader(
+        ReadOnlyMemory<byte> buffer,
+        ArchiveReaderState state,
+        int count,
+        ReadMetadataRow<TRow, T> readRow
+    )
     {
         var reader = new ArchiveReader(buffer.Span, state);
-        _rows = reader.ReadMetadataRows<TRow>(count);
+        _backingState = new RowBackingState<TRow>(reader.ReadMetadataRows<TRow>(count));
+        _readRow = readRow;
+        Count = count;
     }
 
-    public int Count => _rows.Length;
-
-    public ref readonly TRow GetRow(int rowId)
+    public RegisteredLazy<TValue> RegisterAdditionalWork<TValue>(
+        Func<ReadOnlySpan<TRow>, TValue> factory
+    )
+        where TValue : class
     {
-        return ref _rows[rowId - 1];
+        return _backingState.RegisterLazy(factory);
     }
 
-    public ReadOnlySpan<TRow> AsSpan() => _rows;
+    public int Count { get; }
+
+    public T GetRow(int rowId)
+    {
+        var lazy = _cache.GetOrAdd(
+            rowId,
+            static (h, @this) =>
+                new Lazy<T>(() => @this.ReadValue(h), LazyThreadSafetyMode.ExecutionAndPublication),
+            this
+        );
+
+        return lazy.Value;
+    }
+
+    private T ReadValue(int rowId)
+    {
+        return _backingState.MaterializeRow(rowId, _readRow);
+    }
 }

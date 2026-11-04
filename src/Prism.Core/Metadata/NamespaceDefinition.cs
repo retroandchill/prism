@@ -5,8 +5,8 @@ namespace Prism.Core.Metadata;
 internal sealed class NamespaceDefinition(
     NamespaceDefHandle handle,
     string name,
-    AssemblyDefinition assembly
-) : MemberContainerDefinition(name, assembly)
+    MetadataReader reader
+) : MemberContainerDefinition(name, reader)
 {
     protected override MemberContainerDefHandle Handle => handle;
 
@@ -19,10 +19,10 @@ internal sealed class NamespaceDefinition(
             if (!field.IsDefault)
                 return field;
 
-            var mappings = Assembly.NamespaceDefsByParent[handle];
+            var mappings = MetadataReader.NamespaceDefsByParent[handle];
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
-                [.. mappings.Select(x => Assembly.GetNamespace(x))]
+                [.. mappings.Select(x => MetadataReader.GetNamespaceDef(x))]
             );
             return field;
         }

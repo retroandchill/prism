@@ -10,10 +10,11 @@ using Prism.Core.Symbols;
 namespace Prism.Core.Metadata;
 
 internal sealed class VariableDefinition(
-    VariableHandle handle,
     VariableAttributes attributes,
     string name,
-    AssemblyDefinition assembly
+    TypeHandle type,
+    ConstantHandle constantValue,
+    MetadataReader reader
 )
 {
     public string Name { get; } = name;
@@ -32,7 +33,7 @@ internal sealed class VariableDefinition(
 
             Interlocked.CompareExchange(
                 ref Unsafe.As<TypeDescriptor, object?>(ref field),
-                assembly.GetVariableType(handle).Value,
+                reader.GetTypeDescriptor(type).Value,
                 null
             );
             return field;
@@ -49,7 +50,10 @@ internal sealed class VariableDefinition(
             Interlocked.CompareExchange(
                 ref _constantValue,
                 new Lazy<ConstantValue?>(
-                    () => assembly.GetVariableConstantValue(handle),
+                    () =>
+                        !constantValue.IsNone
+                            ? reader.GetConstant(constantValue)
+                            : (ConstantValue?)null,
                     LazyThreadSafetyMode.PublicationOnly
                 ),
                 null

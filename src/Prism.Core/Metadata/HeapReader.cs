@@ -10,7 +10,11 @@ namespace Prism.Core.Metadata;
 
 internal interface IHeapReader<out TSelf>
 {
-    static abstract TSelf Create(ReadOnlyMemory<byte> buffer, int totalItems);
+    static abstract TSelf Create(
+        ReadOnlyMemory<byte> buffer,
+        int totalItems,
+        MetadataReader reader
+    );
 }
 
 internal abstract class HeapReader<T>(ReadOnlyMemory<byte> buffer, int totalItems, int indexShift)

@@ -59,7 +59,8 @@ public class BlobHeapReader(ReadOnlyMemory<byte> buffer, int totalItems)
 
     static BlobHeapReader IHeapReader<BlobHeapReader>.Create(
         ReadOnlyMemory<byte> buffer,
-        int totalItems
+        int totalItems,
+        MetadataReader reader
     )
     {
         return new BlobHeapReader(buffer, totalItems);

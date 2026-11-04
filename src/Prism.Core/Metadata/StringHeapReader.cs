@@ -24,7 +24,8 @@ internal sealed class StringHeapReader(ReadOnlyMemory<byte> buffer, int count)
 
     static StringHeapReader IHeapReader<StringHeapReader>.Create(
         ReadOnlyMemory<byte> buffer,
-        int totalItems
+        int totalItems,
+        MetadataReader reader
     )
     {
         return new StringHeapReader(buffer, totalItems);

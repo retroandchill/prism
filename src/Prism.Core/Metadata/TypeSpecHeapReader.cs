@@ -8,20 +8,42 @@ using Prism.Core.Utils;
 
 namespace Prism.Core.Metadata;
 
-internal sealed class TypeSpecHeapReader(ReadOnlyMemory<byte> buffer, int totalItems)
-    : HeapReader<TypeSpecRow>(buffer, totalItems, TypeSpecMetadata.HandleShift),
+internal sealed class TypeSpecHeapReader(
+    ReadOnlyMemory<byte> buffer,
+    int totalItems,
+    MetadataReader metadataReader
+)
+    : HeapReader<TypeSpecification>(buffer, totalItems, TypeSpecMetadata.HandleShift),
         IHeapReader<TypeSpecHeapReader>
 {
-    protected override TypeSpecRow Read(ref ArchiveReader reader)
+    protected override TypeSpecification Read(ref ArchiveReader reader)
     {
-        return reader.ReadValue<TypeSpecRow>().RequireNonNull();
+        var specRow = reader.ReadValue<TypeSpecRow>().RequireNonNull();
+        return specRow switch
+        {
+            ArrayTypeRow(var element, var size) => new ArrayTypeSpecification(
+                element,
+                size,
+                metadataReader
+            ),
+            NullableTypeRow(var elementType) => new NullableTypeSpecification(
+                elementType,
+                metadataReader
+            ),
+            ReferenceTypeRow(var elementType, var isMutable) => new ReferenceTypeSpecification(
+                elementType,
+                isMutable,
+                metadataReader
+            ),
+        };
     }
 
     static TypeSpecHeapReader IHeapReader<TypeSpecHeapReader>.Create(
         ReadOnlyMemory<byte> buffer,
-        int totalItems
+        int totalItems,
+        MetadataReader reader
     )
     {
-        return new TypeSpecHeapReader(buffer, totalItems);
+        return new TypeSpecHeapReader(buffer, totalItems, reader);
     }
 }

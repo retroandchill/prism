@@ -5,13 +5,9 @@
 
 namespace Prism.Core.Metadata;
 
-internal closed class AssemblyDescriptor(AssemblyIdentity identity)
+internal sealed class AssemblyReference(AssemblyRefHandle token, AssemblyIdentity identity)
 {
     public AssemblyIdentity Identity { get; } = identity;
-}
 
-internal sealed class AssemblyReference(AssemblyRefHandle token, AssemblyIdentity identity)
-    : AssemblyDescriptor(identity)
-{
     public AssemblyRefHandle Handle { get; } = token;
 }

@@ -232,6 +232,16 @@ public readonly partial record struct NamespaceOrAssemblyRefHandle
     private readonly MetadataToken _token;
 
     private partial NamespaceOrAssemblyRefHandle(MetadataToken token);
+
+    public static implicit operator MemberContainerRefHandle(NamespaceOrAssemblyRefHandle handle)
+    {
+        return handle switch
+        {
+            AssemblyRefHandle asm => asm,
+            NamespaceRefHandle ns => ns,
+            null => MemberContainerRefHandle.None,
+        };
+    }
 }
 
 [Archivable]

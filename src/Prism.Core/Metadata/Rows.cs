@@ -3,10 +3,15 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Reflection;
 using MagicArchive;
 
 namespace Prism.Core.Metadata;
+
+internal interface INestedContainerRow<out THandle>
+    where THandle : unmanaged
+{
+    THandle Container { get; }
+}
 
 [Archivable]
 internal readonly partial record struct VersionData(int Major, int Minor, int Build, int Revision)
@@ -29,7 +34,10 @@ internal readonly partial record struct AssemblyIdentityData(
 internal readonly partial record struct NamespaceDefRow(
     StringHandle Name,
     NamespaceDefHandle Parent
-);
+) : INestedContainerRow<NamespaceDefHandle>
+{
+    NamespaceDefHandle INestedContainerRow<NamespaceDefHandle>.Container => Parent;
+}
 
 [Archivable]
 internal readonly partial record struct NamespaceRefRow(
@@ -43,7 +51,7 @@ internal readonly partial record struct TypeDefinitionRow(
     StringHandle Name,
     MemberContainerDefHandle Container,
     NamedTypeHandle Base = default
-);
+) : INestedContainerRow<MemberContainerDefHandle>;
 
 [Archivable]
 internal readonly partial record struct TypeReferenceRow(
@@ -74,7 +82,7 @@ internal readonly partial record struct VariableRow(
     TypeHandle Type,
     MemberContainerDefHandle Container,
     ConstantHandle ConstantValue
-);
+) : INestedContainerRow<MemberContainerDefHandle>;
 
 [Archivable]
 internal readonly partial record struct FunctionRow(
@@ -83,7 +91,7 @@ internal readonly partial record struct FunctionRow(
     TypeHandle ReturnType,
     TypeHandle ReceiverType,
     MemberContainerDefHandle Container
-);
+) : INestedContainerRow<MemberContainerDefHandle>;
 
 [Archivable]
 internal readonly partial record struct ParameterRow(
