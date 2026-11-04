@@ -18,13 +18,14 @@ public readonly partial record struct MetadataToken
     private const uint TypeMask = 0xff000000;
 
     [ArchiveIgnore]
-    public uint Id
+    public int Id
     {
-        get => _value & IdMask;
+        get => (int)(_value & IdMask);
         init
         {
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(value, IdMask);
-            _value = (uint)Type | value;
+            ArgumentOutOfRangeException.ThrowIfNegative(value);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(value, (int)IdMask);
+            _value = (uint)Type | (uint)value;
         }
     }
 
@@ -32,7 +33,7 @@ public readonly partial record struct MetadataToken
     public TokenType Type
     {
         get => (TokenType)(_value & TypeMask);
-        init => _value = (uint)value | Id;
+        init => _value = (uint)value | (uint)Id;
     }
 
     public static readonly MetadataToken None = new(0U);

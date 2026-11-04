@@ -34,7 +34,7 @@ internal readonly partial record struct NamespaceDefRow(
 [Archivable]
 internal readonly partial record struct NamespaceRefRow(
     StringHandle Name,
-    NamespaceRefHandle Parent
+    NamespaceOrAssemblyRefHandle Parent
 );
 
 [Archivable]

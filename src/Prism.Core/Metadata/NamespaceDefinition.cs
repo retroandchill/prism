@@ -5,13 +5,10 @@ namespace Prism.Core.Metadata;
 internal sealed class NamespaceDefinition(
     NamespaceDefHandle handle,
     string name,
-    AssemblyDefinition assembly,
-    NamespaceDefinition? owningNamespace = null
+    AssemblyDefinition assembly
 ) : MemberContainerDefinition(name, assembly)
 {
     protected override MemberContainerDefHandle Handle => handle;
-
-    public NamespaceDefinition? OwningNamespace { get; } = owningNamespace;
 
     public bool IsGlobal => handle.IsNone;
 

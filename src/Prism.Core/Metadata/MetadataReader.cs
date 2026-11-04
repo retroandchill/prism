@@ -128,6 +128,33 @@ internal sealed class MetadataReader
         return ref _namespaceDefs.GetRow(handle.Id);
     }
 
+    public ref readonly NamespaceRefRow GetNamespaceRef(NamespaceRefHandle handle)
+    {
+        return ref _namespaceRefs.GetRow(handle.Id);
+    }
+
+    public int TypeDefsCount => _typeDefs.Count;
+
+    public ref readonly TypeDefinitionRow GetTypeDef(TypeDefHandle handle)
+    {
+        return ref _typeDefs.GetRow(handle.Id);
+    }
+
+    public ref readonly TypeReferenceRow GetTypeRef(TypeRefHandle handle)
+    {
+        return ref _typeRefs.GetRow(handle.Id);
+    }
+
+    public TypeSpecRow GetTypeSpec(TypeSpecHandle handle)
+    {
+        return _typeSpecs.GetValue(handle.Id);
+    }
+
+    public ref readonly VariableRow GetVariable(VariableHandle handle)
+    {
+        return ref _variables.GetRow(handle.Id);
+    }
+
     private static T CreateHeapReader<T>(ReadOnlyMemory<byte> buffer, SectionHeader section)
         where T : IHeapReader<T>
     {

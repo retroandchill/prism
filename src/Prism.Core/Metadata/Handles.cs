@@ -225,6 +225,16 @@ public readonly partial record struct NamespaceRefHandle
 }
 
 [Archivable]
+[CompositeHandle(typeof(AssemblyRefHandle), typeof(NamespaceRefHandle))]
+public readonly partial record struct NamespaceOrAssemblyRefHandle
+{
+    [ArchiveInclude]
+    private readonly MetadataToken _token;
+
+    private partial NamespaceOrAssemblyRefHandle(MetadataToken token);
+}
+
+[Archivable]
 [Handle]
 public readonly partial record struct TypeDefHandle
 {
