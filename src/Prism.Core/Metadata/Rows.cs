@@ -100,11 +100,18 @@ internal readonly partial record struct ParameterRow(
     TypeHandle Type,
     FunctionOrAttributeHandle FunctionOrAttribute,
     ParameterDefaultHandle DefaultValue
-);
+) : INestedContainerRow<FunctionOrAttributeHandle>
+{
+    FunctionOrAttributeHandle INestedContainerRow<FunctionOrAttributeHandle>.Container =>
+        FunctionOrAttribute;
+}
 
 [Archivable]
 internal readonly partial record struct CustomAttributeRow(
     TypeHandle Type,
     AttributeHolderHandle Holder,
     BlobHandle Arguments
-);
+) : INestedContainerRow<AttributeHolderHandle>
+{
+    AttributeHolderHandle INestedContainerRow<AttributeHolderHandle>.Container => Holder;
+}

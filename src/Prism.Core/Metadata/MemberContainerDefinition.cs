@@ -19,7 +19,7 @@ internal closed class MemberContainerDefinition(string name, MetadataReader read
             var mappings = MetadataReader.TypeDefsByParent[Handle];
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
-                [.. mappings.Select(x => MetadataReader.GetTypeDef(x))]
+                [.. mappings.Select(MetadataReader.GetTypeDef)]
             );
             return field;
         }
@@ -35,7 +35,23 @@ internal closed class MemberContainerDefinition(string name, MetadataReader read
             var mappings = MetadataReader.VariablesByParent[Handle];
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
-                [.. mappings.Select(x => MetadataReader.GetVariable(x))]
+                [.. mappings.Select(MetadataReader.GetVariable)]
+            );
+            return field;
+        }
+    }
+
+    public ImmutableArray<FunctionDefinition> Functions
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            var mappings = MetadataReader.FunctionsByParent[Handle];
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                [.. mappings.Select(MetadataReader.GetFunction)]
             );
             return field;
         }

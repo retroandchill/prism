@@ -34,10 +34,9 @@ internal readonly struct RegisteredLazy<TValue>
     )
         where TRow : unmanaged
     {
-        var owner1 = owner;
         return new RegisteredLazy<TValue>(
             new Lazy<TValue>(
-                () => owner1.BuildLazyValue(factory),
+                () => owner.BuildLazyValue(factory),
                 LazyThreadSafetyMode.ExecutionAndPublication
             )
         );

@@ -345,6 +345,16 @@ public readonly partial record struct ParameterHandle
 }
 
 [Archivable]
+[Handle]
+public readonly partial record struct CustomAttributeHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial CustomAttributeHandle(int id);
+}
+
+[Archivable]
 [CompositeHandle(typeof(FunctionHandle), typeof(TypeDefHandle))]
 public readonly partial record struct FunctionOrAttributeHandle
 {
@@ -364,6 +374,16 @@ public readonly partial record struct ParameterDefaultHandle
     private partial ParameterDefaultHandle(MetadataToken token);
 
     public static implicit operator ParameterDefaultHandle(ConstantHandle handle)
+    {
+        return handle switch
+        {
+            StringHandle h => h,
+            BlobHandle h => h,
+            InlineConstHandle h => h,
+        };
+    }
+
+    public static explicit operator ConstantHandle(ParameterDefaultHandle handle)
     {
         return handle switch
         {

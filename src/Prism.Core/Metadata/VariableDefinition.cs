@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
@@ -10,6 +11,7 @@ using Prism.Core.Symbols;
 namespace Prism.Core.Metadata;
 
 internal sealed class VariableDefinition(
+    VariableHandle handle,
     VariableAttributes attributes,
     string name,
     TypeHandle type,
@@ -59,6 +61,22 @@ internal sealed class VariableDefinition(
                 null
             );
             return _constantValue.Value;
+        }
+    }
+
+    public ImmutableArray<CustomAttributeDefinition> Attributes
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            var mappings = reader.CustomAttributesByMember[handle];
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                [.. mappings.Select(reader.GetCustomAttribute)]
+            );
+            return field;
         }
     }
 }

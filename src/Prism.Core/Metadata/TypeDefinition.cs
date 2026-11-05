@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Prism.Core.Symbols;
 
@@ -43,4 +44,36 @@ internal sealed class TypeDefinition(
     }
 
     protected override MemberContainerDefHandle Handle => handle;
+
+    public ImmutableArray<ParameterDefinition> AttributeParameters
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            var mappings = MetadataReader.ParametersByParent[handle];
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                [.. mappings.Select(MetadataReader.GetParameter)]
+            );
+            return field;
+        }
+    }
+
+    public ImmutableArray<CustomAttributeDefinition> Attributes
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            var mappings = reader.CustomAttributesByMember[handle];
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                [.. mappings.Select(MetadataReader.GetCustomAttribute)]
+            );
+            return field;
+        }
+    }
 }

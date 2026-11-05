@@ -11,9 +11,24 @@ using ZLinq;
 namespace Prism.Core.Metadata;
 
 using AssemblyRefReader = TableRowReader<AssemblyIdentityData, AssemblyReference>;
+using CustomAttributeMap = FrozenDictionary<
+    AttributeHolderHandle,
+    ImmutableArray<CustomAttributeHandle>
+>;
+using CustomAttributeReader = TableRowReader<CustomAttributeRow, CustomAttributeDefinition>;
+using FunctionContainerMap = FrozenDictionary<
+    MemberContainerDefHandle,
+    ImmutableArray<FunctionHandle>
+>;
+using FunctionReader = TableRowReader<FunctionRow, FunctionDefinition>;
 using NamespaceDefReader = TableRowReader<NamespaceDefRow, NamespaceDefinition>;
 using NamespaceParentMap = FrozenDictionary<NamespaceDefHandle, ImmutableArray<NamespaceDefHandle>>;
 using NamespaceRefReader = TableRowReader<NamespaceRefRow, NamespaceReference>;
+using ParameterContainerMap = FrozenDictionary<
+    FunctionOrAttributeHandle,
+    ImmutableArray<ParameterHandle>
+>;
+using ParameterReader = TableRowReader<ParameterRow, ParameterDefinition>;
 using TypeContainerMap = FrozenDictionary<MemberContainerDefHandle, ImmutableArray<TypeDefHandle>>;
 using TypeDefReader = TableRowReader<TypeDefinitionRow, TypeDefinition>;
 using TypeRefReader = TableRowReader<TypeReferenceRow, TypeReference>;
@@ -34,6 +49,9 @@ internal sealed class MetadataReader
     private readonly TypeRefReader _typeRefs;
     private readonly TypeSpecHeapReader _typeSpecs;
     private readonly VariableReader _variables;
+    private readonly FunctionReader _functions;
+    private readonly ParameterReader _parameters;
+    private readonly CustomAttributeReader _customAttributes;
 
     private readonly ConcurrentDictionary<ConstantHandle, ConstantValue> _constantsCache = new();
 
@@ -116,6 +134,33 @@ internal sealed class MetadataReader
             );
             _variablesByParent = _variables.RegisterAdditionalWork(
                 CreateMemberMap<VariableRow, MemberContainerDefHandle, VariableHandle>
+            );
+            _functions = CreateTableRowReader<FunctionRow, FunctionDefinition>(
+                buffer,
+                archiveReaderState,
+                lookup.GetValueOrDefault(Section.Functions),
+                CreateFunction
+            );
+            _functionsByParent = _functions.RegisterAdditionalWork(
+                CreateMemberMap<FunctionRow, MemberContainerDefHandle, FunctionHandle>
+            );
+            _parameters = CreateTableRowReader<ParameterRow, ParameterDefinition>(
+                buffer,
+                archiveReaderState,
+                lookup.GetValueOrDefault(Section.Parameters),
+                CreateParameter
+            );
+            _parametersByParent = _parameters.RegisterAdditionalWork(
+                CreateMemberMap<ParameterRow, FunctionOrAttributeHandle, ParameterHandle>
+            );
+            _customAttributes = CreateTableRowReader<CustomAttributeRow, CustomAttributeDefinition>(
+                buffer,
+                archiveReaderState,
+                lookup.GetValueOrDefault(Section.CustomAttributes),
+                CreateCustomAttribute
+            );
+            _customAttributesByMember = _customAttributes.RegisterAdditionalWork(
+                CreateMemberMap<CustomAttributeRow, AttributeHolderHandle, CustomAttributeHandle>
             );
         }
         finally
@@ -253,6 +298,7 @@ internal sealed class MetadataReader
     private VariableDefinition CreateVariable(int rowId, in VariableRow row)
     {
         return new VariableDefinition(
+            VariableHandle.FromRowId(rowId),
             row.Attributes,
             GetString(row.Name),
             row.Type,
@@ -260,6 +306,59 @@ internal sealed class MetadataReader
             this
         );
     }
+
+    public FunctionDefinition GetFunction(FunctionHandle handle)
+    {
+        return _functions.GetRow(handle.Id);
+    }
+
+    private FunctionDefinition CreateFunction(int rowId, in FunctionRow row)
+    {
+        return new FunctionDefinition(
+            FunctionHandle.FromRowId(rowId),
+            row.Attributes,
+            GetString(row.Name),
+            row.ReturnType,
+            row.ReceiverType,
+            this
+        );
+    }
+
+    private readonly RegisteredLazy<FunctionContainerMap> _functionsByParent;
+    public FunctionContainerMap FunctionsByParent => _functionsByParent.Value;
+
+    public ParameterDefinition GetParameter(ParameterHandle handle)
+    {
+        return _parameters.GetRow(handle.Id);
+    }
+
+    private ParameterDefinition CreateParameter(int rowId, in ParameterRow row)
+    {
+        return new ParameterDefinition(
+            ParameterHandle.FromRowId(rowId),
+            row.Attributes,
+            GetString(row.Name),
+            row.Type,
+            row.DefaultValue,
+            this
+        );
+    }
+
+    private readonly RegisteredLazy<ParameterContainerMap> _parametersByParent;
+    public ParameterContainerMap ParametersByParent => _parametersByParent.Value;
+
+    public CustomAttributeDefinition GetCustomAttribute(CustomAttributeHandle handle)
+    {
+        return _customAttributes.GetRow(handle.Id);
+    }
+
+    private CustomAttributeDefinition CreateCustomAttribute(int rowId, in CustomAttributeRow row)
+    {
+        return new CustomAttributeDefinition(row.Type, row.Arguments, this);
+    }
+
+    private readonly RegisteredLazy<CustomAttributeMap> _customAttributesByMember;
+    public CustomAttributeMap CustomAttributesByMember => _customAttributesByMember.Value;
 
     public ConstantValue GetConstant(ConstantHandle handle)
     {
