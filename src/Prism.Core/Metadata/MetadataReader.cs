@@ -1,16 +1,12 @@
-﻿using System.Buffers;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
-using System.Diagnostics;
-using MagicArchive;
 using Prism.Core.Semantic;
 using Prism.Core.Utils;
-using ZLinq;
 
 namespace Prism.Core.Metadata;
 
-using AssemblyRefReader = TableRowReader<AssemblyIdentityData, AssemblyReference>;
+using AssemblyRefReader = TableRowReader<AssemblyReferenceRow, AssemblyReference>;
 using CustomAttributeMap = FrozenDictionary<
     AttributeHolderHandle,
     ImmutableArray<CustomAttributeHandle>
@@ -55,119 +51,49 @@ internal sealed class MetadataReader
 
     private readonly ConcurrentDictionary<ConstantHandle, ConstantValue> _constantsCache = new();
 
-    public MetadataReader(ReadOnlyMemory<byte> buffer)
+    public MetadataReader(in MetadataLayout layout)
     {
-        using var archiveReaderState = ArchiveReaderStatePool.Rent(
-            ArchiveSerializerOptions.LittleEndian
+        _stringHeap = new StringHeapReader(layout.StringHeap.Memory, layout.StringHeap.Count);
+        _blobHeap = new BlobHeapReader(layout.BlobHeap.Memory, layout.BlobHeap.Count);
+
+        _assemblyRefs = new AssemblyRefReader(layout.AssemblyReferences, CreateAssemblyRef);
+        _namespaceDefs = new NamespaceDefReader(layout.NamespaceDefinitions, CreateNamespaceDef);
+        _namespaceByParent = _namespaceDefs.RegisterAdditionalWork(
+            CreateMemberMap<NamespaceDefRow, NamespaceDefHandle>
         );
-        SectionHeader[]? rentedHeaders = null;
-        try
-        {
-            var reader = new ArchiveReader(buffer.Span, archiveReaderState);
-            Span<SectionHeader> sectionHeaders = stackalloc SectionHeader[Sections.Length];
-            if (!reader.TryReadInto(sectionHeaders, out var length))
-            {
-                rentedHeaders = ArrayPool<SectionHeader>.Shared.Rent(length);
-                sectionHeaders = rentedHeaders.AsSpan(0, length);
-            }
-            var read = reader.TryReadInto(sectionHeaders, out _);
-            Debug.Assert(read);
 
-            var lookup = sectionHeaders.AsValueEnumerable().ToDictionary(x => x.Kind);
-            _stringHeap = CreateHeapReader<StringHeapReader>(
-                buffer,
-                lookup.GetValueOrDefault(Section.StringTable),
-                this
-            );
-            _blobHeap = CreateHeapReader<BlobHeapReader>(
-                buffer,
-                lookup.GetValueOrDefault(Section.Blobs),
-                this
-            );
-            _assemblyRefs = CreateTableRowReader<AssemblyIdentityData, AssemblyReference>(
-                buffer,
-                archiveReaderState,
-                lookup.GetValueOrDefault(Section.AssemblyReferences),
-                CreateAssemblyRef
-            );
-            _namespaceDefs = CreateTableRowReader<NamespaceDefRow, NamespaceDefinition>(
-                buffer,
-                archiveReaderState,
-                lookup.GetValueOrDefault(Section.NamespaceDefs),
-                CreateNamespaceDef
-            );
-            _namespaceByParent = _namespaceDefs.RegisterAdditionalWork(
-                CreateMemberMap<NamespaceDefRow, NamespaceDefHandle>
-            );
+        _namespaceRefs = new NamespaceRefReader(layout.NamespaceReferences, CreateNamespaceRef);
+        _typeDefs = new TypeDefReader(layout.TypeDefinitions, CreateTypeDef);
+        _typeRefs = new TypeRefReader(layout.TypeReferences, CreateTypeRef);
+        _typeDefsByParent = _typeDefs.RegisterAdditionalWork(
+            CreateMemberMap<TypeDefinitionRow, MemberContainerDefHandle, TypeDefHandle>
+        );
 
-            _namespaceRefs = CreateTableRowReader<NamespaceRefRow, NamespaceReference>(
-                buffer,
-                archiveReaderState,
-                lookup.GetValueOrDefault(Section.NamespaceRefs),
-                CreateNamespaceRef
-            );
-            _typeDefs = CreateTableRowReader<TypeDefinitionRow, TypeDefinition>(
-                buffer,
-                archiveReaderState,
-                lookup.GetValueOrDefault(Section.TypeDefs),
-                CreateTypeDef
-            );
-            _typeRefs = CreateTableRowReader<TypeReferenceRow, TypeReference>(
-                buffer,
-                archiveReaderState,
-                lookup.GetValueOrDefault(Section.TypeRefs),
-                CreateTypeRef
-            );
-            _typeDefsByParent = _typeDefs.RegisterAdditionalWork(
-                CreateMemberMap<TypeDefinitionRow, MemberContainerDefHandle, TypeDefHandle>
-            );
-            _typeSpecs = CreateHeapReader<TypeSpecHeapReader>(
-                buffer,
-                lookup.GetValueOrDefault(Section.TypeSpecs),
-                this
-            );
-            _variables = CreateTableRowReader<VariableRow, VariableDefinition>(
-                buffer,
-                archiveReaderState,
-                lookup.GetValueOrDefault(Section.Variables),
-                CreateVariable
-            );
-            _variablesByParent = _variables.RegisterAdditionalWork(
-                CreateMemberMap<VariableRow, MemberContainerDefHandle, VariableHandle>
-            );
-            _functions = CreateTableRowReader<FunctionRow, FunctionDefinition>(
-                buffer,
-                archiveReaderState,
-                lookup.GetValueOrDefault(Section.Functions),
-                CreateFunction
-            );
-            _functionsByParent = _functions.RegisterAdditionalWork(
-                CreateMemberMap<FunctionRow, MemberContainerDefHandle, FunctionHandle>
-            );
-            _parameters = CreateTableRowReader<ParameterRow, ParameterDefinition>(
-                buffer,
-                archiveReaderState,
-                lookup.GetValueOrDefault(Section.Parameters),
-                CreateParameter
-            );
-            _parametersByParent = _parameters.RegisterAdditionalWork(
-                CreateMemberMap<ParameterRow, FunctionOrAttributeHandle, ParameterHandle>
-            );
-            _customAttributes = CreateTableRowReader<CustomAttributeRow, CustomAttributeDefinition>(
-                buffer,
-                archiveReaderState,
-                lookup.GetValueOrDefault(Section.CustomAttributes),
-                CreateCustomAttribute
-            );
-            _customAttributesByMember = _customAttributes.RegisterAdditionalWork(
-                CreateMemberMap<CustomAttributeRow, AttributeHolderHandle, CustomAttributeHandle>
-            );
-        }
-        finally
-        {
-            if (rentedHeaders is not null)
-                ArrayPool<SectionHeader>.Shared.Return(rentedHeaders);
-        }
+        _typeSpecs = new TypeSpecHeapReader(
+            layout.TypeSpecHeap.Memory,
+            layout.TypeSpecHeap.Count,
+            this
+        );
+
+        _variables = new VariableReader(layout.Variables, CreateVariable);
+        _variablesByParent = _variables.RegisterAdditionalWork(
+            CreateMemberMap<VariableRow, MemberContainerDefHandle, VariableHandle>
+        );
+        _functions = new FunctionReader(layout.Functions, CreateFunction);
+        _functionsByParent = _functions.RegisterAdditionalWork(
+            CreateMemberMap<FunctionRow, MemberContainerDefHandle, FunctionHandle>
+        );
+        _parameters = new ParameterReader(layout.Parameters, CreateParameter);
+        _parametersByParent = _parameters.RegisterAdditionalWork(
+            CreateMemberMap<ParameterRow, FunctionOrAttributeHandle, ParameterHandle>
+        );
+        _customAttributes = new CustomAttributeReader(
+            layout.CustomAttributes,
+            CreateCustomAttribute
+        );
+        _customAttributesByMember = _customAttributes.RegisterAdditionalWork(
+            CreateMemberMap<CustomAttributeRow, AttributeHolderHandle, CustomAttributeHandle>
+        );
     }
 
     public string GetString(StringHandle handle)
@@ -187,9 +113,12 @@ internal sealed class MetadataReader
         return _assemblyRefs.GetRow(handle.Id);
     }
 
-    private AssemblyReference CreateAssemblyRef(int rowId, in AssemblyIdentityData data)
+    private AssemblyReference CreateAssemblyRef(int rowId, in AssemblyReferenceRow row)
     {
-        return new AssemblyReference(AssemblyRefHandle.FromRowId(rowId), MapAssemblyIdentity(data));
+        return new AssemblyReference(
+            AssemblyRefHandle.FromRowId(rowId),
+            MapAssemblyIdentity(row.Identity)
+        );
     }
 
     public AssemblyIdentity MapAssemblyIdentity(AssemblyIdentityData data)
@@ -210,6 +139,15 @@ internal sealed class MetadataReader
         };
     }
 
+    public MemberContainerDefinition GetMemberContainerDef(MemberContainerDefHandle handle)
+    {
+        return handle switch
+        {
+            NamespaceDefHandle ns => GetNamespaceDef(ns),
+            TypeDefHandle type => GetTypeDef(type),
+        };
+    }
+
     public MemberContainerReference GetMemberContainerRef(MemberContainerRefHandle handle)
     {
         return handle switch
@@ -219,6 +157,8 @@ internal sealed class MetadataReader
             TypeRefHandle type => GetTypeRef(type),
         };
     }
+
+    public int NamespaceDefinitionsCount => _namespaceDefs.Count;
 
     public NamespaceDefinition GetNamespaceDef(NamespaceDefHandle handle)
     {
@@ -231,8 +171,10 @@ internal sealed class MetadataReader
     private NamespaceDefinition CreateNamespaceDef(int rowId, in NamespaceDefRow row)
     {
         var name = GetString(row.Name);
-        return new NamespaceDefinition(NamespaceDefHandle.FromRowId(rowId), name, this);
+        return new NamespaceDefinition(NamespaceDefHandle.FromRowId(rowId), name, row.Parent, this);
     }
+
+    public int NamespaceReferenceCount => _namespaceRefs.Count;
 
     public NamespaceReference GetNamespaceRef(NamespaceRefHandle handle)
     {
@@ -249,6 +191,8 @@ internal sealed class MetadataReader
         );
     }
 
+    public int TypeDefinitionsCount => _typeDefs.Count;
+
     public TypeDefinition GetTypeDef(TypeDefHandle handle)
     {
         return _typeDefs.GetRow(handle.Id);
@@ -260,6 +204,7 @@ internal sealed class MetadataReader
             TypeDefHandle.FromRowId(rowId),
             row.Attributes,
             GetString(row.Name),
+            row.Container,
             row.Base,
             this
         );
@@ -268,6 +213,8 @@ internal sealed class MetadataReader
     private readonly RegisteredLazy<TypeContainerMap> _typeDefsByParent;
 
     public TypeContainerMap TypeDefsByParent => _typeDefsByParent.Value;
+
+    public int TypeReferenceCount => _typeRefs.Count;
 
     public TypeReference GetTypeRef(TypeRefHandle handle)
     {
@@ -293,6 +240,8 @@ internal sealed class MetadataReader
         };
     }
 
+    public int TypeSpecificationCount => _typeSpecs.Count;
+
     public TypeSpecification GetTypeSpec(TypeSpecHandle handle)
     {
         return _typeSpecs.GetValue(handle.Id);
@@ -311,6 +260,8 @@ internal sealed class MetadataReader
     private readonly RegisteredLazy<VariableContainerMap> _variablesByParent;
     public VariableContainerMap VariablesByParent => _variablesByParent.Value;
 
+    public int VariableCount => _variables.Count;
+
     public VariableDefinition GetVariable(VariableHandle handle)
     {
         return _variables.GetRow(handle.Id);
@@ -322,11 +273,23 @@ internal sealed class MetadataReader
             VariableHandle.FromRowId(rowId),
             row.Attributes,
             GetString(row.Name),
+            row.Container,
             row.Type,
             row.ConstantValue,
             this
         );
     }
+
+    public FunctionOrAttribute GetFunctionOrAttribute(FunctionOrAttributeHandle handle)
+    {
+        return handle switch
+        {
+            TypeDefHandle type => GetTypeDef(type),
+            FunctionHandle function => GetFunction(function),
+        };
+    }
+
+    public int FunctionCount => _functions.Count;
 
     public FunctionDefinition GetFunction(FunctionHandle handle)
     {
@@ -339,6 +302,7 @@ internal sealed class MetadataReader
             FunctionHandle.FromRowId(rowId),
             row.Attributes,
             GetString(row.Name),
+            row.Container,
             row.ReturnType,
             row.ReceiverType,
             this
@@ -347,6 +311,8 @@ internal sealed class MetadataReader
 
     private readonly RegisteredLazy<FunctionContainerMap> _functionsByParent;
     public FunctionContainerMap FunctionsByParent => _functionsByParent.Value;
+
+    public int ParameterCount => _parameters.Count;
 
     public ParameterDefinition GetParameter(ParameterHandle handle)
     {
@@ -359,6 +325,7 @@ internal sealed class MetadataReader
             ParameterHandle.FromRowId(rowId),
             row.Attributes,
             GetString(row.Name),
+            row.FunctionOrAttribute,
             row.Type,
             row.DefaultValue,
             this
@@ -368,6 +335,19 @@ internal sealed class MetadataReader
     private readonly RegisteredLazy<ParameterContainerMap> _parametersByParent;
     public ParameterContainerMap ParametersByParent => _parametersByParent.Value;
 
+    public AttributeHolderDefinition GetAttributeHolder(AttributeHolderHandle handle)
+    {
+        return handle switch
+        {
+            TypeDefHandle type => GetTypeDef(type),
+            VariableHandle variable => GetVariable(variable),
+            FunctionHandle function => GetFunction(function),
+            ParameterHandle param => GetParameter(param),
+        };
+    }
+
+    public int CustomAttributeCount => _customAttributes.Count;
+
     public CustomAttributeDefinition GetCustomAttribute(CustomAttributeHandle handle)
     {
         return _customAttributes.GetRow(handle.Id);
@@ -375,7 +355,7 @@ internal sealed class MetadataReader
 
     private CustomAttributeDefinition CreateCustomAttribute(int rowId, in CustomAttributeRow row)
     {
-        return new CustomAttributeDefinition(row.Type, row.Arguments, this);
+        return new CustomAttributeDefinition(row.Holder, row.Type, row.Arguments, this);
     }
 
     private readonly RegisteredLazy<CustomAttributeMap> _customAttributesByMember;
@@ -395,33 +375,6 @@ internal sealed class MetadataReader
                 };
             },
             this
-        );
-    }
-
-    private static T CreateHeapReader<T>(
-        ReadOnlyMemory<byte> buffer,
-        SectionHeader section,
-        MetadataReader reader
-    )
-        where T : IHeapReader<T>
-    {
-        return T.Create(buffer.Slice(section.Offset, section.Size), section.Count, reader);
-    }
-
-    private static TableRowReader<TRow, T> CreateTableRowReader<TRow, T>(
-        ReadOnlyMemory<byte> buffer,
-        ArchiveReaderState readerState,
-        SectionHeader section,
-        ReadMetadataRow<TRow, T> readRow
-    )
-        where T : class
-        where TRow : unmanaged
-    {
-        return new TableRowReader<TRow, T>(
-            buffer.Slice(section.Offset, section.Size),
-            readerState,
-            section.Count,
-            readRow
         );
     }
 

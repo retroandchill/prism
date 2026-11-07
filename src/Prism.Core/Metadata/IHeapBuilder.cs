@@ -7,7 +7,7 @@ namespace Prism.Core.Metadata;
 
 internal interface IHeapBuilder
 {
-    ReadOnlySpan<byte> Data { get; }
+    ReadOnlyMemory<byte> Data { get; }
 
     int Count { get; }
 }

@@ -1,13 +1,20 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
 
 namespace Prism.Core.Metadata;
 
-internal closed class MemberContainerDefinition(string name, MetadataReader reader)
+public closed class MemberContainerDefinition
 {
-    public string Name { get; } = name;
-    protected MetadataReader MetadataReader { get; } = reader;
+    private protected MemberContainerDefinition(string name, MetadataReader? reader = null)
+    {
+        Name = name;
+        MetadataReader = reader;
+    }
 
-    protected abstract MemberContainerDefHandle Handle { get; }
+    public string Name { get; }
+    private protected MetadataReader? MetadataReader { get; }
+
+    public MemberContainerDefHandle Handle => GetHandle();
 
     public ImmutableArray<TypeDefinition> Types
     {
@@ -16,6 +23,7 @@ internal closed class MemberContainerDefinition(string name, MetadataReader read
             if (!field.IsDefault)
                 return field;
 
+            Debug.Assert(MetadataReader is not null);
             var mappings = MetadataReader.TypeDefsByParent[Handle];
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
@@ -23,6 +31,7 @@ internal closed class MemberContainerDefinition(string name, MetadataReader read
             );
             return field;
         }
+        internal set;
     }
 
     public ImmutableArray<VariableDefinition> Variables
@@ -32,6 +41,7 @@ internal closed class MemberContainerDefinition(string name, MetadataReader read
             if (!field.IsDefault)
                 return field;
 
+            Debug.Assert(MetadataReader is not null);
             var mappings = MetadataReader.VariablesByParent[Handle];
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
@@ -39,6 +49,7 @@ internal closed class MemberContainerDefinition(string name, MetadataReader read
             );
             return field;
         }
+        internal set;
     }
 
     public ImmutableArray<FunctionDefinition> Functions
@@ -48,6 +59,7 @@ internal closed class MemberContainerDefinition(string name, MetadataReader read
             if (!field.IsDefault)
                 return field;
 
+            Debug.Assert(MetadataReader is not null);
             var mappings = MetadataReader.FunctionsByParent[Handle];
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
@@ -55,5 +67,8 @@ internal closed class MemberContainerDefinition(string name, MetadataReader read
             );
             return field;
         }
+        internal set;
     }
+
+    protected abstract MemberContainerDefHandle GetHandle();
 }

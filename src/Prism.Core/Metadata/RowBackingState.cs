@@ -3,17 +3,18 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
+using System.Runtime.InteropServices;
+
 namespace Prism.Core.Metadata;
 
-internal sealed class RowBackingState<TRow>(TRow[] rows)
+internal sealed class RowBackingState<TRow>(ImmutableArray<TRow> rows)
     where TRow : unmanaged
 {
-    private TRow[]? _rows = rows;
+    private TRow[]? _rows = ImmutableCollectionsMarshal.AsArray(rows);
     private int _activeLeases;
     private int _pendingRowMaterializations = rows.Length;
     private int _pendingRowDependentJobs;
-
-    public int Count { get; } = rows.Length;
 
     public RegisteredLazy<TValue> RegisterLazy<TValue>(Func<ReadOnlySpan<TRow>, TValue> factory)
         where TValue : class

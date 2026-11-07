@@ -4,31 +4,94 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Prism.Core.Symbols;
+using Riok.Mapperly.Abstractions;
 
 namespace Prism.Core.Metadata;
 
-internal union NamedType(TypeDefinition, TypeReference);
-
-internal sealed class TypeDefinition(
-    TypeDefHandle handle,
-    NamedTypeAttributes attributes,
-    string name,
-    NamedTypeHandle baseType,
-    MetadataReader reader
-) : MemberContainerDefinition(name, reader)
+public union NamedType(TypeDefinition, TypeReference)
 {
-    public NamedTypeKind Kind => attributes.Kind;
+    public NamedTypeHandle Handle
+    {
+        get
+        {
+            return this switch
+            {
+                TypeDefinition typeDefinition => typeDefinition.Handle,
+                TypeReference typeReference => typeReference.Handle,
+            };
+        }
+    }
+}
 
-    public DeclaredVisibility Visibility => attributes.Visibility;
+public sealed class TypeDefinition : MemberContainerDefinition
+{
+    internal TypeDefinition(
+        TypeDefHandle handle,
+        NamedTypeAttributes attributes,
+        string name,
+        MemberContainerDefHandle parent,
+        NamedTypeHandle baseType,
+        MetadataReader reader
+    )
+        : base(name, reader)
+    {
+        Handle = handle;
+        Attributes = attributes;
+        ParentHandle = parent;
+        BaseTypeHandle = baseType;
+    }
+
+    [MapperConstructor]
+    internal TypeDefinition(TypeDefHandle handle, NamedTypeAttributes attributes, string name)
+        : base(name)
+    {
+        Handle = handle;
+        Attributes = attributes;
+    }
+
+    public new TypeDefHandle Handle { get; }
+
+    internal NamedTypeAttributes Attributes { get; }
+
+    public NamedTypeKind Kind => Attributes.Kind;
+
+    public DeclaredVisibility Visibility => Attributes.Visibility;
+
+    public MemberContainerDefHandle ParentHandle { get; private set; }
+
+    public MemberContainerDefinition? Parent
+    {
+        get
+        {
+            if (ParentHandle.IsNone)
+                return null;
+
+            if (field is not null)
+                return field;
+
+            Debug.Assert(MetadataReader is not null);
+            Interlocked.CompareExchange(
+                ref field,
+                MetadataReader.GetMemberContainerDef(ParentHandle),
+                null
+            );
+            return field;
+        }
+        internal set;
+    }
+
+    public NamedTypeHandle BaseTypeHandle { get; private set; }
 
     private NamedType _lazyBaseType;
+
     public NamedType? BaseType
     {
         get
         {
-            if (baseType.IsNone)
+            if (BaseTypeHandle.IsNone)
                 return null;
 
             if (_lazyBaseType.Value is not null)
@@ -36,14 +99,25 @@ internal sealed class TypeDefinition(
 
             Interlocked.CompareExchange(
                 ref Unsafe.As<NamedType, object?>(ref _lazyBaseType),
-                MetadataReader.GetNamedType(baseType).Value,
+                MetadataReader.GetNamedType(BaseTypeHandle).Value,
                 null
             );
             return _lazyBaseType;
         }
+        internal set
+        {
+            if (value is { } namedType)
+            {
+                _lazyBaseType = namedType;
+                BaseTypeHandle = namedType.Handle;
+            }
+            else
+            {
+                _lazyBaseType = default;
+                BaseTypeHandle = NamedTypeHandle.None;
+            }
+        }
     }
-
-    protected override MemberContainerDefHandle Handle => handle;
 
     public ImmutableArray<ParameterDefinition> AttributeParameters
     {
@@ -52,28 +126,32 @@ internal sealed class TypeDefinition(
             if (!field.IsDefault)
                 return field;
 
-            var mappings = MetadataReader.ParametersByParent[handle];
+            var mappings = MetadataReader.ParametersByParent[Handle];
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
                 [.. mappings.Select(MetadataReader.GetParameter)]
             );
             return field;
         }
+        internal set;
     }
 
-    public ImmutableArray<CustomAttributeDefinition> Attributes
+    public ImmutableArray<CustomAttributeDefinition> CustomAttributes
     {
         get
         {
             if (!field.IsDefault)
                 return field;
 
-            var mappings = reader.CustomAttributesByMember[handle];
+            var mappings = MetadataReader.CustomAttributesByMember[Handle];
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
                 [.. mappings.Select(MetadataReader.GetCustomAttribute)]
             );
             return field;
         }
+        internal set;
     }
+
+    protected override MemberContainerDefHandle GetHandle() => Handle;
 }

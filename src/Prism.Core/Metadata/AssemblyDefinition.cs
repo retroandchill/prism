@@ -3,39 +3,29 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using MagicArchive;
 using Prism.Core.Utils;
+using Riok.Mapperly.Abstractions;
 
 namespace Prism.Core.Metadata;
 
-internal sealed class AssemblyDefinition
+public sealed class AssemblyDefinition
 {
     public AssemblyIdentity Identity { get; }
     public TargetInfo TargetInfo { get; }
 
-    private readonly MetadataReader _metadataReader;
+    private readonly MetadataReader? _metadataReader;
 
-    private AssemblyDefinition(MetadataHeader header, ReadOnlyMemory<byte> body)
+    private AssemblyDefinition(in MetadataLayout layout)
     {
-        _metadataReader = new MetadataReader(body);
-        Identity = _metadataReader.MapAssemblyIdentity(header.AssemblyIdentity);
-        TargetInfo = header.TargetInfo;
+        _metadataReader = new MetadataReader(in layout);
+        Identity = _metadataReader.MapAssemblyIdentity(layout.Header.AssemblyIdentity);
+        TargetInfo = layout.Header.TargetInfo;
     }
 
-    public static AssemblyDefinition Load(string filepath)
+    [MapperConstructor]
+    internal AssemblyDefinition(AssemblyIdentity identity, TargetInfo targetInfo)
     {
-        byte[] buffer;
-        using (var stream = File.OpenRead(filepath))
-        {
-            Debug.Assert(stream.CanSeek);
-            buffer = new byte[stream.Length];
-            stream.ReadExactly(buffer);
-        }
-
-        using var readerState = ArchiveReaderStatePool.Rent(ArchiveSerializerOptions.LittleEndian);
-        var reader = new ArchiveReader(buffer, readerState);
-
-        var header = reader.ReadArchivable<MetadataHeader>();
-        var remaining = buffer.AsMemory(reader.ConsumedBytes);
-        return new AssemblyDefinition(header, remaining);
+        Identity = identity;
+        TargetInfo = targetInfo;
     }
 
     public ImmutableArray<AssemblyReference> ReferencedAssemblies
@@ -45,19 +35,16 @@ internal sealed class AssemblyDefinition
             if (!field.IsDefault)
                 return field;
 
-            var referenced = new AssemblyReference[_metadataReader.ReferencedAssembliesCount];
-            for (var i = 0; i < referenced.Length; i++)
-            {
-                referenced[i] = _metadataReader.GetAssemblyRef(AssemblyRefHandle.FromRowId(i + 1));
-            }
-
+            Debug.Assert(_metadataReader is not null);
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
-                ImmutableCollectionsMarshal.AsImmutableArray(referenced)
+                ReadAll(_metadataReader.ReferencedAssembliesCount, static (r, i) =>
+                    r.GetAssemblyRef(AssemblyRefHandle.FromRowId(i))
+                )
             );
-
             return field;
         }
+        internal init;
     }
 
     public NamespaceDefinition GlobalNamespace
@@ -67,16 +54,222 @@ internal sealed class AssemblyDefinition
             if (field is not null)
                 return field;
 
+            Debug.Assert(_metadataReader is not null);
             Interlocked.CompareExchange(
                 ref field,
                 new NamespaceDefinition(
                     NamespaceDefHandle.None,
                     CommonNames.Global,
+                    NamespaceDefHandle.None,
                     _metadataReader
                 ),
                 null
             );
             return field;
         }
+        internal init;
+    }
+
+    internal ImmutableArray<NamespaceDefinition> DefinedNamespaces
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            Debug.Assert(_metadataReader is not null);
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                ReadAll(_metadataReader.NamespaceDefinitionsCount, static (r, i) =>
+                    r.GetNamespaceDef(NamespaceDefHandle.FromRowId(i))
+                )
+            );
+            return field;
+        }
+        init;
+    }
+
+    internal ImmutableArray<NamespaceReference> ReferencedNamespaces
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            Debug.Assert(_metadataReader is not null);
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                ReadAll(_metadataReader.NamespaceReferenceCount, static (r, i) =>
+                    r.GetNamespaceRef(NamespaceRefHandle.FromRowId(i))
+                )
+            );
+            return field;
+        }
+        init;
+    }
+
+    internal ImmutableArray<TypeDefinition> DefinedTypes
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            Debug.Assert(_metadataReader is not null);
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                ReadAll(_metadataReader.TypeDefinitionsCount, static (r, i) =>
+                    r.GetTypeDef(TypeDefHandle.FromRowId(i))
+                )
+            );
+            return field;
+        }
+        init;
+    }
+
+    internal ImmutableArray<TypeReference> ReferencedTypes
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            Debug.Assert(_metadataReader is not null);
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                ReadAll(_metadataReader.TypeReferenceCount, static (r, i) =>
+                    r.GetTypeRef(TypeRefHandle.FromRowId(i))
+                )
+            );
+            return field;
+        }
+        init;
+    }
+
+    internal ImmutableArray<TypeSpecification> TypeSpecifications
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            Debug.Assert(_metadataReader is not null);
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                ReadAll(_metadataReader.TypeSpecificationCount, static (r, i) =>
+                    r.GetTypeSpec(TypeSpecHandle.FromRowId(i))
+                )
+            );
+            return field;
+        }
+        init;
+    }
+
+    internal ImmutableArray<VariableDefinition> Variables
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            Debug.Assert(_metadataReader is not null);
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                ReadAll(_metadataReader.VariableCount, static (r, i) =>
+                    r.GetVariable(VariableHandle.FromRowId(i))
+                )
+            );
+            return field;
+        }
+        init;
+    }
+
+    internal ImmutableArray<FunctionDefinition> Functions
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            Debug.Assert(_metadataReader is not null);
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                ReadAll(_metadataReader.FunctionCount, static (r, i) =>
+                    r.GetFunction(FunctionHandle.FromRowId(i))
+                )
+            );
+            return field;
+        }
+        init;
+    }
+
+    internal ImmutableArray<ParameterDefinition> Parameters
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            Debug.Assert(_metadataReader is not null);
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                ReadAll(_metadataReader.ParameterCount, static (r, i) =>
+                    r.GetParameter(ParameterHandle.FromRowId(i))
+                )
+            );
+            return field;
+        }
+        init;
+    }
+
+    internal ImmutableArray<CustomAttributeDefinition> CustomAttributes
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            Debug.Assert(_metadataReader is not null);
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                ReadAll(_metadataReader.CustomAttributeCount, static (r, i) =>
+                    r.GetCustomAttribute(CustomAttributeHandle.FromRowId(i))
+                )
+            );
+            return field;
+        }
+        init;
+    }
+
+    private ImmutableArray<T> ReadAll<T>(int count, Func<MetadataReader, int, T> reader)
+    {
+        Debug.Assert(_metadataReader is not null);
+        var result = new T[count];
+        for (var i = 0; i < count; i++)
+        {
+            result[i] = reader(_metadataReader, i + 1);
+        }
+        return ImmutableCollectionsMarshal.AsImmutableArray(result);
+    }
+
+    public static AssemblyDefinition Load(string filepath)
+    {
+        using var stream = File.OpenRead(filepath);
+        var layout = ArchiveSerializer.Deserialize<MetadataLayout>(
+            stream,
+            ArchiveSerializerOptions.LittleEndian
+        );
+        return new AssemblyDefinition(in layout);
+    }
+
+    public async ValueTask WriteAsync(Stream stream, CancellationToken cancellationToken = default)
+    {
+        var layout = MetadataLayout.Create(this);
+        await ArchiveSerializer.SerializeAsync(
+            stream,
+            layout,
+            ArchiveSerializerOptions.LittleEndian,
+            cancellationToken
+        );
     }
 }

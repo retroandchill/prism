@@ -10,21 +10,60 @@ using Prism.Core.Symbols;
 
 namespace Prism.Core.Metadata;
 
-internal sealed class VariableDefinition(
-    VariableHandle handle,
-    VariableAttributes attributes,
-    string name,
-    TypeHandle type,
-    ConstantHandle constantValue,
-    MetadataReader reader
-)
+public sealed class VariableDefinition
 {
-    public string Name { get; } = name;
+    public string Name { get; }
     private Lazy<ConstantValue?>? _constantValue;
+    private readonly VariableHandle _handle;
+    private readonly TypeHandle _type;
+    private readonly ConstantHandle _constantValue1;
+    private readonly MetadataReader _reader;
 
-    public VariableKind Kind => attributes.Kind;
+    internal VariableDefinition(
+        VariableHandle handle,
+        VariableAttributes attributes,
+        string name,
+        MemberContainerDefHandle parent,
+        TypeHandle type,
+        ConstantHandle constantValue,
+        MetadataReader reader
+    )
+    {
+        _handle = handle;
+        _type = type;
+        _constantValue1 = constantValue;
+        _reader = reader;
+        Name = name;
+        Attributes = attributes;
+        ParentHandle = parent;
+    }
 
-    public DeclaredVisibility Visibility => attributes.Visibility;
+    internal VariableAttributes Attributes { get; }
+
+    public VariableKind Kind => Attributes.Kind;
+
+    public DeclaredVisibility Visibility => Attributes.Visibility;
+
+    public MemberContainerDefHandle ParentHandle { get; }
+
+    public MemberContainerDefinition? Parent
+    {
+        get
+        {
+            if (ParentHandle.IsNone)
+                return null;
+
+            if (field is not null)
+                return field;
+
+            Interlocked.CompareExchange(
+                ref field,
+                _reader.GetMemberContainerDef(ParentHandle),
+                null
+            );
+            return field;
+        }
+    }
 
     public TypeDescriptor Type
     {
@@ -35,7 +74,7 @@ internal sealed class VariableDefinition(
 
             Interlocked.CompareExchange(
                 ref Unsafe.As<TypeDescriptor, object?>(ref field),
-                reader.GetTypeDescriptor(type).Value,
+                _reader.GetTypeDescriptor(_type).Value,
                 null
             );
             return field;
@@ -53,8 +92,8 @@ internal sealed class VariableDefinition(
                 ref _constantValue,
                 new Lazy<ConstantValue?>(
                     () =>
-                        !constantValue.IsNone
-                            ? reader.GetConstant(constantValue)
+                        !_constantValue1.IsNone
+                            ? _reader.GetConstant(_constantValue1)
                             : (ConstantValue?)null,
                     LazyThreadSafetyMode.PublicationOnly
                 ),
@@ -64,17 +103,17 @@ internal sealed class VariableDefinition(
         }
     }
 
-    public ImmutableArray<CustomAttributeDefinition> Attributes
+    public ImmutableArray<CustomAttributeDefinition> CustomAttributes
     {
         get
         {
             if (!field.IsDefault)
                 return field;
 
-            var mappings = reader.CustomAttributesByMember[handle];
+            var mappings = _reader.CustomAttributesByMember[_handle];
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
-                [.. mappings.Select(reader.GetCustomAttribute)]
+                [.. mappings.Select(_reader.GetCustomAttribute)]
             );
             return field;
         }

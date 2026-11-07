@@ -9,21 +9,55 @@ using Prism.Core.Utils;
 
 namespace Prism.Core.Metadata;
 
-internal closed record ParameterDefaultDefinition;
+public closed record ParameterDefaultDefinition;
 
-internal sealed record ConstantParameterDefaultDefinition(ConstantValue Value)
+public sealed record ConstantParameterDefaultDefinition(ConstantValue Value)
     : ParameterDefaultDefinition;
 
-internal sealed class ParameterDefinition(
-    ParameterHandle handle,
-    ParameterAttributes attributes,
-    string name,
-    TypeHandle type,
-    ParameterDefaultHandle defaultValue,
-    MetadataReader reader
-)
+public union FunctionOrAttribute(TypeDefinition, FunctionDefinition);
+
+public sealed class ParameterDefinition
 {
-    public string Name { get; } = name;
+    private readonly ParameterHandle _handle;
+    private readonly TypeHandle _type;
+    private readonly MetadataReader _reader;
+
+    internal ParameterDefinition(
+        ParameterHandle handle,
+        ParameterAttributes attributes,
+        string name,
+        FunctionOrAttributeHandle parent,
+        TypeHandle type,
+        ParameterDefaultHandle defaultValue,
+        MetadataReader reader
+    )
+    {
+        _handle = handle;
+        _type = type;
+        _reader = reader;
+        Attributes = attributes;
+        Name = name;
+        ParentHandle = parent;
+        DefaultValueHandle = defaultValue;
+    }
+
+    internal ParameterAttributes Attributes { get; }
+
+    public string Name { get; }
+
+    public FunctionOrAttributeHandle ParentHandle { get; }
+
+    public FunctionOrAttribute Parent
+    {
+        get
+        {
+            if (field.Value is not null)
+                return field;
+
+            UnionInterlocked.Initialize(ref field, _reader.GetFunctionOrAttribute(ParentHandle));
+            return field;
+        }
+    }
 
     public TypeDescriptor Type
     {
@@ -32,26 +66,27 @@ internal sealed class ParameterDefinition(
             if (field.Value is not null)
                 return field;
 
-            UnionInterlocked.Initialize(ref field, reader.GetTypeDescriptor(type));
+            UnionInterlocked.Initialize(ref field, _reader.GetTypeDescriptor(_type));
             return field;
         }
     }
 
+    public ParameterDefaultHandle DefaultValueHandle { get; }
     public ParameterDefaultDefinition? DefaultValue
     {
         get
         {
-            if (defaultValue.IsNone)
+            if (DefaultValueHandle.IsNone)
                 return null;
 
             if (field is not null)
                 return null;
 
-            var value = defaultValue switch
+            var value = DefaultValueHandle switch
             {
                 StringHandle or BlobHandle or InlineConstHandle =>
                     new ConstantParameterDefaultDefinition(
-                        reader.GetConstant((ConstantHandle)defaultValue)
+                        _reader.GetConstant((ConstantHandle)DefaultValueHandle)
                     ),
             };
 
@@ -60,17 +95,17 @@ internal sealed class ParameterDefinition(
         }
     }
 
-    public ImmutableArray<CustomAttributeDefinition> Attributes
+    public ImmutableArray<CustomAttributeDefinition> CustomAttributes
     {
         get
         {
             if (!field.IsDefault)
                 return field;
 
-            var mappings = reader.CustomAttributesByMember[handle];
+            var mappings = _reader.CustomAttributesByMember[_handle];
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
-                [.. mappings.Select(reader.GetCustomAttribute)]
+                [.. mappings.Select(_reader.GetCustomAttribute)]
             );
             return field;
         }

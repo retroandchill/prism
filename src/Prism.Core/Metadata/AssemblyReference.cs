@@ -5,7 +5,7 @@
 
 namespace Prism.Core.Metadata;
 
-internal sealed class AssemblyReference(AssemblyRefHandle token, AssemblyIdentity identity)
+public sealed class AssemblyReference(AssemblyRefHandle token, AssemblyIdentity identity)
 {
     public AssemblyIdentity Identity { get; } = identity;
 

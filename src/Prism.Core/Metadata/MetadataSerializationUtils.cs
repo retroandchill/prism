@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -151,6 +152,57 @@ internal static class MetadataSerializationUtils
             reader.Advance(byteCount);
 
             return result;
+        }
+    }
+
+    extension(ArchiveSerializer)
+    {
+        public static T? Deserialize<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T
+        >(
+            Stream stream,
+            ArchiveSerializerOptions? options = null,
+            CancellationToken cancellationToken = default
+        )
+        {
+            if (
+                stream is MemoryStream memoryStream
+                && memoryStream.TryGetBuffer(out var streamBuffer)
+            )
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                T? value = default;
+                var bytesRead = ArchiveSerializer.Deserialize(
+                    streamBuffer.AsSpan(checked((int)memoryStream.Position)),
+                    ref value,
+                    options
+                );
+                memoryStream.Seek(bytesRead, SeekOrigin.Current);
+                return value;
+            }
+
+            var builder = ReusableReadOnlySequenceBuilderPool.Rent();
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                builder.ReadFromStream(stream);
+
+                // If single buffer, we can avoid ReadOnlySequence build cost.
+                if (builder.TryGetSingleMemory(out var memory))
+                {
+                    return ArchiveSerializer.Deserialize<T>(memory.Span, options);
+                }
+                else
+                {
+                    var seq = builder.Build();
+                    var result = ArchiveSerializer.Deserialize<T>(seq, options);
+                    return result;
+                }
+            }
+            finally
+            {
+                ReusableReadOnlySequenceBuilderPool.Return(builder);
+            }
         }
     }
 }

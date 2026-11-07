@@ -5,7 +5,7 @@
 
 namespace Prism.Core.Abi;
 
-internal enum AbiKind : byte
+public enum AbiKind : byte
 {
     Internal,
     C,

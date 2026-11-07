@@ -23,7 +23,7 @@ internal abstract class SerializedHeapBuilder<THandle, TRow> : IHeapBuilder, IDi
         _handleShift = handleShift;
     }
 
-    public ReadOnlySpan<byte> Data => _buffer.WrittenSpan;
+    public ReadOnlyMemory<byte> Data => _buffer.WrittenMemory;
 
     public int Count { get; private set; }
 

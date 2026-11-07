@@ -31,6 +31,9 @@ internal readonly partial record struct AssemblyIdentityData(
 );
 
 [Archivable]
+internal readonly partial record struct AssemblyReferenceRow(AssemblyIdentityData Identity);
+
+[Archivable]
 internal readonly partial record struct NamespaceDefRow(
     StringHandle Name,
     NamespaceDefHandle Parent
@@ -66,7 +69,7 @@ internal readonly partial record struct TypeReferenceRow(
 internal closed partial record TypeSpecRow;
 
 [Archivable]
-internal sealed partial record ArrayTypeRow(TypeHandle ElementType, ulong? Rank) : TypeSpecRow;
+internal sealed partial record ArrayTypeRow(TypeHandle ElementType, ulong? Size) : TypeSpecRow;
 
 [Archivable]
 internal sealed partial record ReferenceTypeRow(TypeHandle ElementType, bool IsMutable)

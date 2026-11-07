@@ -8,18 +8,24 @@ using Prism.Core.Utils;
 
 namespace Prism.Core.Metadata;
 
-internal closed class MemberContainerReferenceBase(string name, MetadataReader? reader = null)
+public closed class MemberContainerReferenceBase
 {
-    protected MetadataReader? Reader { get; } = reader;
+    private protected MemberContainerReferenceBase(string name, MetadataReader? reader = null)
+    {
+        Reader = reader;
+        Name = name;
+    }
 
-    public string Name { get; } = name;
+    private protected MetadataReader? Reader { get; }
+
+    public string Name { get; }
 
     public MemberContainerReference Parent => GetParent();
 
     protected abstract MemberContainerReference GetParent();
 }
 
-internal union NamespaceOrAssemblyReference(AssemblyReference, NamespaceReference)
+public union NamespaceOrAssemblyReference(AssemblyReference, NamespaceReference)
 {
     public readonly NamespaceOrAssemblyRefHandle Handle
     {
@@ -43,7 +49,7 @@ internal union NamespaceOrAssemblyReference(AssemblyReference, NamespaceReferenc
     }
 }
 
-internal union MemberContainerReference(AssemblyReference, NamespaceReference, TypeReference)
+public union MemberContainerReference(AssemblyReference, NamespaceReference, TypeReference)
 {
     public readonly MemberContainerRefHandle Handle
     {
@@ -59,9 +65,9 @@ internal union MemberContainerReference(AssemblyReference, NamespaceReference, T
     }
 }
 
-internal sealed class NamespaceReference : MemberContainerReferenceBase
+public sealed class NamespaceReference : MemberContainerReferenceBase
 {
-    public NamespaceReference(
+    internal NamespaceReference(
         NamespaceRefHandle handle,
         string name,
         NamespaceOrAssemblyRefHandle parent,
@@ -73,7 +79,7 @@ internal sealed class NamespaceReference : MemberContainerReferenceBase
         Handle = handle;
     }
 
-    public NamespaceReference(
+    internal NamespaceReference(
         NamespaceRefHandle handle,
         string name,
         NamespaceOrAssemblyReference parent
@@ -109,9 +115,9 @@ internal sealed class NamespaceReference : MemberContainerReferenceBase
     protected override MemberContainerReference GetParent() => Parent;
 }
 
-internal sealed class TypeReference : MemberContainerReferenceBase
+public sealed class TypeReference : MemberContainerReferenceBase
 {
-    public TypeReference(
+    internal TypeReference(
         TypeRefHandle handle,
         string name,
         MemberContainerRefHandle parentHandle,
@@ -123,7 +129,7 @@ internal sealed class TypeReference : MemberContainerReferenceBase
         ParentHandle = parentHandle;
     }
 
-    public TypeReference(TypeRefHandle handle, string name, MemberContainerReference parent)
+    internal TypeReference(TypeRefHandle handle, string name, MemberContainerReference parent)
         : base(name)
     {
         Handle = handle;

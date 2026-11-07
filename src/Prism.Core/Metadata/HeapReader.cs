@@ -24,6 +24,8 @@ internal abstract class HeapReader<T>(ReadOnlyMemory<byte> buffer, int totalItem
 
     private readonly ConcurrentDictionary<int, Lazy<T>> _cache = new();
 
+    public int Count { get; } = totalItems;
+
     public T GetValue(int id)
     {
         var lazy = _cache.GetOrAdd(

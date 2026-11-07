@@ -162,6 +162,8 @@ public readonly partial record struct InlineConstHandle
             _ => throw new InvalidOperationException("Invalid character kind"),
         };
     }
+
+    public ConstantHandle ToConstantHandle() => this;
 }
 
 [Archivable]

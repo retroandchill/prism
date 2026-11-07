@@ -11,23 +11,63 @@ using Prism.Core.Utils;
 
 namespace Prism.Core.Metadata;
 
-internal sealed class FunctionDefinition(
-    FunctionHandle handle,
-    FunctionAttributes attributes,
-    string name,
-    TypeHandle returnType,
-    TypeHandle receiverType,
-    MetadataReader reader
-)
+public sealed class FunctionDefinition
 {
-    public DeclaredVisibility Visibility => attributes.Visibility;
+    private TypeDescriptor _lazyReceiverType;
+    private readonly FunctionHandle _handle;
+    private readonly MetadataReader _reader;
 
-    public bool IsExtern => attributes.IsExtern;
+    internal FunctionDefinition(
+        FunctionHandle handle,
+        FunctionAttributes attributes,
+        string name,
+        MemberContainerDefHandle parent,
+        TypeHandle returnType,
+        TypeHandle receiverType,
+        MetadataReader reader
+    )
+    {
+        _handle = handle;
+        _reader = reader;
+        Attributes = attributes;
+        Name = name;
+        ParentHandle = parent;
+        ReturnTypeHandle = returnType;
+        ReceiverTypeHandle = receiverType;
+    }
 
-    public AbiKind AbiKind => attributes.AbiKind;
+    internal FunctionAttributes Attributes { get; }
 
-    public string Name { get; } = name;
+    public DeclaredVisibility Visibility => Attributes.Visibility;
 
+    public bool IsExtern => Attributes.IsExtern;
+
+    public AbiKind AbiKind => Attributes.AbiKind;
+
+    public string Name { get; }
+
+    public MemberContainerDefHandle ParentHandle { get; }
+
+    public MemberContainerDefinition? Parent
+    {
+        get
+        {
+            if (ParentHandle.IsNone)
+                return null;
+
+            if (field is not null)
+                return field;
+
+            Interlocked.CompareExchange(
+                ref field,
+                _reader.GetMemberContainerDef(ParentHandle),
+                null
+            );
+            return field;
+        }
+    }
+
+    public TypeHandle ReturnTypeHandle { get; }
     public TypeDescriptor ReturnType
     {
         get
@@ -35,18 +75,18 @@ internal sealed class FunctionDefinition(
             if (field.Value is not null)
                 return field;
 
-            UnionInterlocked.Initialize(ref field, reader.GetTypeDescriptor(returnType));
+            UnionInterlocked.Initialize(ref field, _reader.GetTypeDescriptor(ReturnTypeHandle));
             return field;
         }
     }
 
-    private TypeDescriptor _lazyReceiverType;
+    public TypeHandle ReceiverTypeHandle { get; }
 
     public TypeDescriptor? ReceiverType
     {
         get
         {
-            if (receiverType.IsNone)
+            if (ReceiverTypeHandle.IsNone)
                 return null;
 
             if (_lazyReceiverType.Value is not null)
@@ -54,7 +94,7 @@ internal sealed class FunctionDefinition(
 
             UnionInterlocked.Initialize(
                 ref _lazyReceiverType,
-                reader.GetTypeDescriptor(receiverType)
+                _reader.GetTypeDescriptor(ReceiverTypeHandle)
             );
             return _lazyReceiverType;
         }
@@ -67,26 +107,26 @@ internal sealed class FunctionDefinition(
             if (!field.IsDefault)
                 return field;
 
-            var mappings = reader.ParametersByParent[handle];
+            var mappings = _reader.ParametersByParent[_handle];
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
-                [.. mappings.Select(reader.GetParameter)]
+                [.. mappings.Select(_reader.GetParameter)]
             );
             return field;
         }
     }
 
-    public ImmutableArray<CustomAttributeDefinition> Attributes
+    public ImmutableArray<CustomAttributeDefinition> CustomAttributes
     {
         get
         {
             if (!field.IsDefault)
                 return field;
 
-            var mappings = reader.CustomAttributesByMember[handle];
+            var mappings = _reader.CustomAttributesByMember[_handle];
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
-                [.. mappings.Select(reader.GetCustomAttribute)]
+                [.. mappings.Select(_reader.GetCustomAttribute)]
             );
             return field;
         }

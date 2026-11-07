@@ -19,7 +19,7 @@ internal sealed class StringHeapBuilder : IHeapBuilder, IDisposable
     );
     private MetadataBuffer _buffer = new();
 
-    public ReadOnlySpan<byte> Data => _buffer.WrittenSpan;
+    public ReadOnlyMemory<byte> Data => _buffer.WrittenMemory;
 
     public int Count => _map.Count;
 

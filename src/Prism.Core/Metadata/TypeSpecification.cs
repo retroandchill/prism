@@ -3,67 +3,35 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Riok.Mapperly.Abstractions;
 
 namespace Prism.Core.Metadata;
 
-internal union TypeDescriptor(TypeDefinition, TypeReference, TypeSpecification);
+public union TypeDescriptor(TypeDefinition, TypeReference, TypeSpecification);
 
-internal closed class TypeSpecification;
+public closed class TypeSpecification;
 
-internal sealed class ArrayTypeSpecification(
-    TypeHandle elementType,
-    ulong? size,
-    MetadataReader reader
-) : TypeSpecification
+public sealed class ArrayTypeSpecification : TypeSpecification
 {
-    public TypeDescriptor ElementType
-    {
-        get
-        {
-            if (field.Value is not null)
-                return field;
+    private readonly TypeHandle _elementType;
+    private readonly MetadataReader? _reader;
 
-            Interlocked.CompareExchange(
-                ref Unsafe.As<TypeDescriptor, object>(ref field),
-                reader.GetTypeDescriptor(elementType),
-                null
-            );
-            return field;
-        }
+    internal ArrayTypeSpecification(TypeHandle elementType, ulong? size, MetadataReader reader)
+    {
+        _elementType = elementType;
+        _reader = reader;
+        Size = size;
     }
 
-    public ulong? Size { get; } = size;
-}
-
-internal sealed class ReferenceTypeSpecification(
-    TypeHandle elementType,
-    bool isMutable,
-    MetadataReader reader
-) : TypeSpecification
-{
-    public TypeDescriptor ElementType
+    [MapperConstructor]
+    internal ArrayTypeSpecification(TypeDescriptor elementType, ulong? size)
     {
-        get
-        {
-            if (field.Value is not null)
-                return field;
-
-            Interlocked.CompareExchange(
-                ref Unsafe.As<TypeDescriptor, object>(ref field),
-                reader.GetTypeDescriptor(elementType),
-                null
-            );
-            return field;
-        }
+        ElementType = elementType;
+        Size = size;
     }
 
-    public bool IsMutable { get; } = isMutable;
-}
-
-internal sealed class NullableTypeSpecification(TypeHandle elementType, MetadataReader reader)
-    : TypeSpecification
-{
     public TypeDescriptor ElementType
     {
         get
@@ -71,12 +39,96 @@ internal sealed class NullableTypeSpecification(TypeHandle elementType, Metadata
             if (field.Value is not null)
                 return field;
 
+            Debug.Assert(_reader is not null);
             Interlocked.CompareExchange(
                 ref Unsafe.As<TypeDescriptor, object>(ref field),
-                reader.GetTypeDescriptor(elementType),
+                _reader.GetTypeDescriptor(_elementType),
                 null
             );
             return field;
         }
+        private init;
+    }
+
+    public ulong? Size { get; }
+}
+
+public sealed class ReferenceTypeSpecification : TypeSpecification
+{
+    private readonly TypeHandle _elementType;
+    private readonly MetadataReader? _reader;
+
+    internal ReferenceTypeSpecification(
+        TypeHandle elementType,
+        bool isMutable,
+        MetadataReader reader
+    )
+    {
+        _elementType = elementType;
+        _reader = reader;
+        IsMutable = isMutable;
+    }
+
+    [MapperConstructor]
+    internal ReferenceTypeSpecification(TypeDescriptor elementType, bool isMutable)
+    {
+        ElementType = elementType;
+        IsMutable = isMutable;
+    }
+
+    public TypeDescriptor ElementType
+    {
+        get
+        {
+            if (field.Value is not null)
+                return field;
+
+            Debug.Assert(_reader is not null);
+            Interlocked.CompareExchange(
+                ref Unsafe.As<TypeDescriptor, object>(ref field),
+                _reader.GetTypeDescriptor(_elementType),
+                null
+            );
+            return field;
+        }
+        private init;
+    }
+
+    public bool IsMutable { get; }
+}
+
+public sealed class NullableTypeSpecification : TypeSpecification
+{
+    private readonly TypeHandle _elementType;
+    private readonly MetadataReader? _reader;
+
+    internal NullableTypeSpecification(TypeHandle elementType, MetadataReader reader)
+    {
+        _elementType = elementType;
+        _reader = reader;
+    }
+
+    [MapperConstructor]
+    internal NullableTypeSpecification(TypeDescriptor elementType)
+    {
+        ElementType = elementType;
+    }
+
+    public TypeDescriptor ElementType
+    {
+        get
+        {
+            if (field.Value is not null)
+                return field;
+
+            Debug.Assert(_reader is not null);
+            Interlocked.CompareExchange(
+                ref Unsafe.As<TypeDescriptor, object>(ref field),
+                _reader.GetTypeDescriptor(_elementType),
+                null
+            );
+            return field;
+        }
+        private init;
     }
 }

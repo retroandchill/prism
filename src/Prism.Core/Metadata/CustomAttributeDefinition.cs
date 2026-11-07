@@ -9,12 +9,47 @@ using Prism.Core.Utils;
 
 namespace Prism.Core.Metadata;
 
-internal sealed class CustomAttributeDefinition(
-    TypeHandle type,
-    BlobHandle arguments,
-    MetadataReader reader
-)
+public union AttributeHolderDefinition(
+    TypeDefinition,
+    VariableDefinition,
+    FunctionDefinition,
+    ParameterDefinition
+);
+
+public sealed class CustomAttributeDefinition
 {
+    private readonly BlobHandle _arguments;
+    private readonly MetadataReader _reader;
+
+    internal CustomAttributeDefinition(
+        AttributeHolderHandle parent,
+        TypeHandle type,
+        BlobHandle arguments,
+        MetadataReader reader
+    )
+    {
+        _arguments = arguments;
+        _reader = reader;
+        ParentHandle = parent;
+        TypeHandle = type;
+    }
+
+    public AttributeHolderHandle ParentHandle { get; }
+
+    public AttributeHolderDefinition Parent
+    {
+        get
+        {
+            if (field.Value is not null)
+                return field;
+
+            UnionInterlocked.Initialize(ref field, _reader.GetAttributeHolder(ParentHandle));
+            return field;
+        }
+    }
+
+    public TypeHandle TypeHandle { get; }
+
     public TypeDescriptor Type
     {
         get
@@ -22,7 +57,7 @@ internal sealed class CustomAttributeDefinition(
             if (field.Value is not null)
                 return field;
 
-            UnionInterlocked.Initialize(ref field, reader.GetTypeDescriptor(type));
+            UnionInterlocked.Initialize(ref field, _reader.GetTypeDescriptor(TypeHandle));
             return field;
         }
     }
@@ -34,16 +69,16 @@ internal sealed class CustomAttributeDefinition(
             if (!field.IsDefault)
                 return field;
 
-            if (arguments.IsNone)
+            if (_arguments.IsNone)
             {
                 ImmutableInterlocked.InterlockedInitialize(ref field, []);
                 return field;
             }
 
-            var argHandles = reader.GetBlob<ImmutableArray<ConstantHandle>>(arguments);
+            var argHandles = _reader.GetBlob<ImmutableArray<ConstantHandle>>(_arguments);
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
-                [.. argHandles.Select(reader.GetConstant)]
+                [.. argHandles.Select(_reader.GetConstant)]
             );
             return field;
         }

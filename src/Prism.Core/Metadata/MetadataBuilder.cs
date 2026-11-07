@@ -257,7 +257,7 @@ internal sealed class MetadataBuilder : IDisposable
         subWriter.Flush();
     }
 
-    private void WriteHeap(
+    private static void WriteHeap(
         ref ArchiveWriter<MetadataBuffer> writer,
         ref MetadataBuffer bufferWriter,
         IHeapBuilder heap,
@@ -269,10 +269,10 @@ internal sealed class MetadataBuilder : IDisposable
         sectionHeaders[sectionIndex++] = new SectionHeader(
             section,
             bufferWriter.Position,
-            _strings.Data.Length,
-            _strings.Count
+            heap.Data.Length,
+            heap.Count
         );
-        writer.WriteMetadataBytes(heap.Data);
+        writer.WriteMetadataBytes(heap.Data.Span);
         writer.Flush();
     }
 

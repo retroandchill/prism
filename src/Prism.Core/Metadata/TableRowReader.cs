@@ -4,7 +4,9 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using MagicArchive;
 
 namespace Prism.Core.Metadata;
@@ -20,17 +22,11 @@ internal sealed class TableRowReader<TRow, T>
     private readonly ReadMetadataRow<TRow, T> _readRow;
     private readonly ConcurrentDictionary<int, Lazy<T>> _cache = new();
 
-    public TableRowReader(
-        ReadOnlyMemory<byte> buffer,
-        ArchiveReaderState state,
-        int count,
-        ReadMetadataRow<TRow, T> readRow
-    )
+    public TableRowReader(ImmutableArray<TRow> buffer, ReadMetadataRow<TRow, T> readRow)
     {
-        var reader = new ArchiveReader(buffer.Span, state);
-        _backingState = new RowBackingState<TRow>(reader.ReadMetadataRows<TRow>(count));
+        _backingState = new RowBackingState<TRow>(buffer);
         _readRow = readRow;
-        Count = count;
+        Count = buffer.Length;
     }
 
     public RegisteredLazy<TValue> RegisterAdditionalWork<TValue>(
