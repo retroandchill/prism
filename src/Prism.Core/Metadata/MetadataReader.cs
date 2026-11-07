@@ -199,6 +199,17 @@ internal sealed class MetadataReader
         return new AssemblyIdentity(assemblyName, version);
     }
 
+    public NamespaceOrAssemblyReference GetNamespaceOrAssemblyReference(
+        NamespaceOrAssemblyRefHandle handle
+    )
+    {
+        return handle switch
+        {
+            AssemblyRefHandle asm => GetAssemblyRef(asm),
+            NamespaceRefHandle ns => GetNamespaceRef(ns),
+        };
+    }
+
     public MemberContainerReference GetMemberContainerRef(MemberContainerRefHandle handle)
     {
         return handle switch
@@ -230,7 +241,12 @@ internal sealed class MetadataReader
 
     private NamespaceReference CreateNamespaceRef(int rowId, in NamespaceRefRow row)
     {
-        return new NamespaceReference(GetString(row.Name), row.Parent, this);
+        return new NamespaceReference(
+            NamespaceRefHandle.FromRowId(rowId),
+            GetString(row.Name),
+            row.Parent,
+            this
+        );
     }
 
     public TypeDefinition GetTypeDef(TypeDefHandle handle)
@@ -260,7 +276,12 @@ internal sealed class MetadataReader
 
     private TypeReference CreateTypeRef(int rowId, in TypeReferenceRow row)
     {
-        return new TypeReference(GetString(row.Name), row.Container, this);
+        return new TypeReference(
+            TypeRefHandle.FromRowId(rowId),
+            GetString(row.Name),
+            row.Container,
+            this
+        );
     }
 
     public NamedType GetNamedType(NamedTypeHandle handle)

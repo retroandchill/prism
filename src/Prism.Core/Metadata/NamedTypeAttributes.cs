@@ -33,9 +33,16 @@ internal readonly partial record struct NamedTypeAttributes
     }
 
     [ArchiveIgnore]
-    public NamedTypeKind Kind => (NamedTypeKind)((_value & KindMask) >> KindShift);
+    public NamedTypeKind Kind
+    {
+        get => (NamedTypeKind)((_value & KindMask) >> KindShift);
+        init => _value = (_value & ~KindMask) | (uint)value << KindShift;
+    }
 
     [ArchiveIgnore]
-    public DeclaredVisibility Visibility =>
-        (DeclaredVisibility)((_value & VisibilityMask) >> VisibilityShift);
+    public DeclaredVisibility Visibility
+    {
+        get => (DeclaredVisibility)((_value & VisibilityMask) >> VisibilityShift);
+        init => _value = (_value & ~VisibilityMask) | (uint)value << VisibilityShift;
+    }
 }
