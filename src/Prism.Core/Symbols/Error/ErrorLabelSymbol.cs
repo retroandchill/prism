@@ -9,9 +9,10 @@ using Prism.Core.Syntax;
 
 namespace Prism.Core.Symbols.Error;
 
-internal sealed class ErrorLabelSymbol(string name, FunctionSymbol containingFunction)
-    : LabelSymbol(name, containingFunction)
+internal sealed class ErrorLabelSymbol(string name, FunctionSymbol containingFunction) : LabelSymbol
 {
+    public override string Name { get; } = name;
+    public override FunctionSymbol ContainingFunction { get; } = containingFunction;
     public override ImmutableArray<Location> Locations => [];
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
 }

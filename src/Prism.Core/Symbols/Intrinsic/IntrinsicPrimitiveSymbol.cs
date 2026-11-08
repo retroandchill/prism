@@ -8,7 +8,10 @@ namespace Prism.Core.Symbols.Intrinsic;
 internal sealed class IntrinsicPrimitiveSymbol : NamedTypeSymbol
 {
     internal IntrinsicPrimitiveSymbol(SpecialType type, NamespaceSymbol containing)
-        : base(GetBuiltInTypeName(type), containing, NamedTypeKind.Class, type) { }
+    {
+        ContainingNamespace = containing;
+        SpecialType = type;
+    }
 
     private static string GetBuiltInTypeName(SpecialType type)
     {
@@ -38,6 +41,14 @@ internal sealed class IntrinsicPrimitiveSymbol : NamedTypeSymbol
             _ => throw new InvalidOperationException("Invalid special type"),
         };
     }
+
+    public override string Name => GetBuiltInTypeName(SpecialType);
+    public override Symbol ContainingSymbol => ContainingNamespace;
+    public override NamedTypeKind Kind => NamedTypeKind.Class;
+    public override SpecialType SpecialType { get; }
+
+    public override NamespaceSymbol ContainingNamespace { get; }
+    public override MemberContainerSymbol ContainingMemberContainer => ContainingNamespace;
 
     public override ImmutableArray<Location> Locations => [];
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];

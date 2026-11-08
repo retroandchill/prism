@@ -12,8 +12,17 @@ namespace Prism.Core.Symbols.Intrinsic;
 
 internal sealed class IntrinsicAttributeSymbol : NamedTypeSymbol
 {
-    internal IntrinsicAttributeSymbol(string name, Symbol? containingSymbol)
-        : base(name, containingSymbol, NamedTypeKind.Attribute) { }
+    internal IntrinsicAttributeSymbol(string name, Symbol containingSymbol)
+    {
+        Name = name;
+        ContainingSymbol = containingSymbol;
+    }
+
+    public override string Name { get; }
+
+    public override Symbol ContainingSymbol { get; }
+
+    public override NamedTypeKind Kind => NamedTypeKind.Attribute;
 
     public override ImmutableArray<Location> Locations => [];
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];

@@ -12,8 +12,9 @@ internal sealed class ErrorFunctionSymbol : FunctionSymbol
         Symbol? containingSymbol = null,
         TypeSymbol? returnType = null
     )
-        : base(name, containingSymbol)
     {
+        Name = name;
+        ContainingSymbol = containingSymbol;
         ReturnType = returnType ?? ErrorTypeSymbol.Unnamed;
     }
 
@@ -22,6 +23,8 @@ internal sealed class ErrorFunctionSymbol : FunctionSymbol
 
     public static readonly ErrorFunctionSymbol Unnamed = new();
 
+    public override string Name { get; }
+    public override Symbol? ContainingSymbol { get; }
     public override ImmutableArray<Location> Locations => [];
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
     public override TypeSymbol ReturnType { get; }

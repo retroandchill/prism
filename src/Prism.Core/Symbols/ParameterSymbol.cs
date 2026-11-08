@@ -11,9 +11,6 @@ public sealed record ConstantParameterDefault(ConstantValue Value, SyntaxNode? S
 
 public closed class ParameterSymbol : ValueSymbol
 {
-    private protected ParameterSymbol(string name, Symbol? containingSymbol)
-        : base(name, containingSymbol) { }
-
     public abstract FunctionSymbol? ContainingFunction { get; }
 
     [MemberNotNullWhen(true, nameof(DefaultValue))]

@@ -16,7 +16,10 @@ internal sealed class SourceClassSymbol : SourceNamedTypeSymbol
 {
     private ThreeState _isDefaultConstructible;
 
-    internal SourceClassSymbol(MergedTypeDeclaration declaration, Symbol containingSymbol)
+    internal SourceClassSymbol(
+        MergedTypeDeclaration declaration,
+        MemberContainerSymbol containingSymbol
+    )
         : base(declaration, containingSymbol)
     {
         Debug.Assert(declaration.Kind == DeclarationKind.Class);

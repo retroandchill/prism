@@ -7,8 +7,7 @@ namespace Prism.Core.Symbols.Intermediate;
 
 internal sealed class UnfixedFloatTypeSymbol : IntermediateBindingTypeSymbol
 {
-    private UnfixedFloatTypeSymbol()
-        : base("<Unfixed Float>", NamedTypeKind.Class) { }
-
     public static UnfixedFloatTypeSymbol Instance { get; } = new();
+    public override string Name => "<Unfixed Float>";
+    public override NamedTypeKind Kind => NamedTypeKind.Class;
 }

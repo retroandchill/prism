@@ -9,9 +9,6 @@ namespace Prism.Core.Symbols;
 
 public closed class MemberContainerSymbol : Symbol
 {
-    private protected MemberContainerSymbol(string name, Symbol? containingSymbol)
-        : base(name, containingSymbol) { }
-
     public abstract ImmutableArray<Symbol> GetMembers();
 
     public abstract ImmutableArray<Symbol> GetMembers(string name);

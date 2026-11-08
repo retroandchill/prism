@@ -7,13 +7,19 @@ namespace Prism.Core.Symbols.Error;
 internal sealed class ErrorTypeSymbol : NamedTypeSymbol
 {
     internal ErrorTypeSymbol(string name, Symbol? containingSymbol = null)
-        : base(name, containingSymbol, NamedTypeKind.Class)
     {
         IsErrorType = true;
+        Name = name;
+        ContainingSymbol = containingSymbol;
     }
 
     private ErrorTypeSymbol()
         : this("<Error>") { }
+
+    public override string Name { get; }
+    public override Symbol? ContainingSymbol { get; }
+
+    public override NamedTypeKind Kind => NamedTypeKind.Class;
 
     public static readonly ErrorTypeSymbol Unnamed = new();
 

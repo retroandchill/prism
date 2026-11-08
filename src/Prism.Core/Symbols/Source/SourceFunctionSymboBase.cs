@@ -18,14 +18,17 @@ internal closed class SourceFunctionSymbolBase : FunctionSymbol
     private ImmutableArray<AttributeData> _attributes;
 
     internal SourceFunctionSymbolBase(
-        string name,
         MemberContainerSymbol containingSymbol,
         DeclarationSyntax syntax
     )
-        : base(name, containingSymbol)
     {
+        ContainingMemberContainer = containingSymbol;
         _modifiers = DeclarationModifiers.MakeModifiers(containingSymbol, syntax.Modifiers);
     }
+
+    public sealed override Symbol ContainingSymbol => ContainingMemberContainer;
+
+    public sealed override MemberContainerSymbol ContainingMemberContainer { get; }
 
     protected abstract DeclarationSyntax AbstractSyntax { get; }
 
@@ -124,7 +127,7 @@ internal closed class SourceFunctionSymbolBase : FunctionSymbol
             var name = syntax.Name.IdentifierName;
             var list = parametersByName.GetOrAdd(name, () => []);
             list.Add(syntax);
-            var param = new SourceFunctionParameterSymbol(name, this, syntax);
+            var param = new SourceFunctionParameterSymbol(this, syntax);
             parameters[i] = param;
 
             if (param.HasDefaultValue)

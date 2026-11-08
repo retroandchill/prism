@@ -5,10 +5,11 @@
 
 namespace Prism.Core.Symbols;
 
-public closed class LabelSymbol(string name, FunctionSymbol containingFunction)
-    : Symbol(name, containingFunction)
+public closed class LabelSymbol : Symbol
 {
-    public FunctionSymbol ContainingFunction => (FunctionSymbol)ContainingSymbol!;
+    public sealed override Symbol ContainingSymbol => ContainingFunction;
+
+    public abstract FunctionSymbol ContainingFunction { get; }
 
     public sealed override void WriteDisplayString(TextWriter writer)
     {

@@ -13,9 +13,6 @@ public enum FunctionKind
 
 public closed class FunctionSymbol : Symbol
 {
-    private protected FunctionSymbol(string name, Symbol? containingSymbol)
-        : base(name, containingSymbol) { }
-
     public abstract TypeSymbol ReturnType { get; }
 
     public abstract TypeSymbol? ReceiverType { get; }

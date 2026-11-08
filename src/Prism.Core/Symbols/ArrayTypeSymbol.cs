@@ -13,11 +13,15 @@ namespace Prism.Core.Symbols;
 public sealed class ArrayTypeSymbol : TypeSymbol
 {
     internal ArrayTypeSymbol(TypeSymbol elementType, ulong? size = null)
-        : base(size is { } s ? $"{elementType.Name}[{s}]" : $"{elementType.Name}[]")
     {
         ElementType = elementType;
         Size = size;
     }
+
+    public override string Name =>
+        Size is { } s ? $"{ElementType.Name}[{s}]" : $"{ElementType.Name}[]";
+
+    public override Symbol? ContainingSymbol => null;
 
     public TypeSymbol ElementType { get; }
 

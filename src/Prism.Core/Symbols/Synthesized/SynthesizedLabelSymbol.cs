@@ -9,9 +9,12 @@ using Prism.Core.Syntax;
 
 namespace Prism.Core.Symbols.Synthesized;
 
-internal sealed class SynthesizedLabelSymbol(FunctionSymbol containingFunction)
-    : LabelSymbol("", containingFunction)
+internal sealed class SynthesizedLabelSymbol(FunctionSymbol containingFunction) : LabelSymbol
 {
+    public override string Name => "";
+
+    public override FunctionSymbol ContainingFunction { get; } = containingFunction;
+
     public override bool IsImplicitlyDeclared => true;
     public override ImmutableArray<Location> Locations => [];
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];

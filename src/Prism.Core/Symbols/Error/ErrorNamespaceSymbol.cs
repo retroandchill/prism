@@ -8,7 +8,13 @@ namespace Prism.Core.Symbols.Error;
 internal sealed class ErrorNamespaceSymbol : NamespaceSymbol
 {
     internal ErrorNamespaceSymbol(string name, Symbol? containingSymbol)
-        : base(name, containingSymbol) { }
+    {
+        Name = name;
+        ContainingSymbol = containingSymbol;
+    }
+
+    public override string Name { get; }
+    public override Symbol? ContainingSymbol { get; }
 
     public override ImmutableArray<Location> Locations => [];
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];

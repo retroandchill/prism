@@ -7,7 +7,7 @@ using Prism.Core.Syntax;
 namespace Prism.Core.Symbols.Source;
 
 internal sealed class SourceAssemblySymbol(Compilation compilation)
-    : AssemblySymbol(compilation.AssemblyName, compilation.TargetInfo)
+    : AssemblySymbol(compilation.TargetInfo)
 {
     private SymbolCompletionState _completionState;
 
@@ -54,7 +54,7 @@ internal sealed class SourceAssemblySymbol(Compilation compilation)
 
             Interlocked.CompareExchange(
                 ref field,
-                new SourceNamespaceSymbol(DeclaringCompilation.MergedRootDeclaration, this, this),
+                new SourceNamespaceSymbol(DeclaringCompilation.MergedRootDeclaration, this),
                 null
             );
             return field;

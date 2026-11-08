@@ -19,11 +19,12 @@ internal closed class SourceParameterSymbol : ParameterSymbol
     private SymbolCompletionState _completionState;
     private ImmutableArray<AttributeData> _attributes;
 
-    internal SourceParameterSymbol(string name, Symbol containingSymbol, ParameterSyntax syntax)
-        : base(name, containingSymbol)
+    internal SourceParameterSymbol(ParameterSyntax syntax)
     {
         Syntax = syntax;
     }
+
+    public sealed override string Name => Syntax.Name.IdentifierName;
 
     public sealed override ImmutableArray<Location> Locations
     {
@@ -211,12 +212,8 @@ internal closed class SourceParameterSymbol : ParameterSymbol
 
 internal sealed class SourceFunctionParameterSymbol : SourceParameterSymbol
 {
-    internal SourceFunctionParameterSymbol(
-        string name,
-        FunctionSymbol containingSymbol,
-        ParameterSyntax syntax
-    )
-        : base(name, containingSymbol, syntax)
+    internal SourceFunctionParameterSymbol(FunctionSymbol containingSymbol, ParameterSyntax syntax)
+        : base(syntax)
     {
         ContainingFunction = containingSymbol;
 
@@ -227,22 +224,25 @@ internal sealed class SourceFunctionParameterSymbol : SourceParameterSymbol
 
     public override FunctionSymbol ContainingFunction { get; }
 
+    public override Symbol ContainingSymbol => ContainingFunction;
+
     public override bool IsMutable => Syntax.MutableKeyword is not null;
 }
 
 internal sealed class SourceAttributeParameterSymbol : SourceParameterSymbol
 {
-    public SourceAttributeParameterSymbol(
-        string name,
-        Symbol containingSymbol,
-        ParameterSyntax syntax
-    )
-        : base(name, containingSymbol, syntax)
+    public SourceAttributeParameterSymbol(NamedTypeSymbol containingSymbol, ParameterSyntax syntax)
+        : base(syntax)
     {
+        ContainingType = containingSymbol;
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
         compilation.CacheSymbol(Syntax, this);
     }
+
+    public override TypeSymbol ContainingType { get; }
+
+    public override Symbol ContainingSymbol => ContainingType;
 
     public override bool IsMutable => false;
     public override FunctionSymbol? ContainingFunction => null;

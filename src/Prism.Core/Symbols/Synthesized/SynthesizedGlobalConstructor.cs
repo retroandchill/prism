@@ -15,9 +15,15 @@ using ZLinq;
 namespace Prism.Core.Symbols.Synthesized;
 
 internal sealed class SynthesizedGlobalConstructor(NamespaceSymbol containingNamespace)
-    : FunctionSymbol(CommonNames.GlobalCtor, containingNamespace)
+    : FunctionSymbol
 {
     private ThreeState _shouldEmit = ThreeState.Unknown;
+
+    public override string Name => CommonNames.GlobalCtor;
+    public override Symbol ContainingSymbol => ContainingNamespace;
+    public override NamespaceSymbol ContainingNamespace { get; } = containingNamespace;
+
+    public override TypeSymbol? ContainingType => null;
 
     public override FunctionKind Kind => FunctionKind.GlobalConstructor;
 

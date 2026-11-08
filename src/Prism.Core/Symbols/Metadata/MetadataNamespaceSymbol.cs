@@ -6,26 +6,21 @@ using Prism.Core.Syntax;
 
 namespace Prism.Core.Symbols.Metadata;
 
-internal class MetadataNamespaceSymbol : NamespaceSymbol
+internal sealed class MetadataNamespaceSymbol(
+    NamespaceDefinition definition,
+    AssemblySymbol containingAssembly,
+    NamespaceSymbol? containingSymbol = null
+) : NamespaceSymbol
 {
-    private readonly NamespaceDefinition _definition;
-
-    public MetadataNamespaceSymbol(
-        NamespaceDefinition definition,
-        AssemblySymbol containingAssembly,
-        NamespaceSymbol? containingSymbol = null
-    )
-        : base(definition.Name, (Symbol?)containingSymbol ?? containingAssembly)
-    {
-        _definition = definition;
-        ContainingAssembly = containingAssembly;
-    }
-
     public override NamespaceKind NamespaceKind => NamespaceKind.Assembly;
     public override Compilation? ContainingCompilation => null;
 
+    public override string Name => definition.Name;
+    public override Symbol ContainingSymbol => (Symbol?)ContainingNamespace ?? ContainingAssembly;
     public override ImmutableArray<Location> Locations => ContainingAssembly.Locations;
-    public override AssemblySymbol ContainingAssembly { get; }
+    public override AssemblySymbol ContainingAssembly { get; } = containingAssembly;
+    public override NamespaceSymbol? ContainingNamespace { get; } = containingSymbol;
+    public override MemberContainerSymbol? ContainingMemberContainer => ContainingNamespace;
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
 
     public override ImmutableArray<Symbol> GetMembers()

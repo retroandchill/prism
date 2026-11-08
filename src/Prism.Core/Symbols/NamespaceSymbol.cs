@@ -12,9 +12,6 @@ public enum NamespaceKind
 
 public closed class NamespaceSymbol : MemberContainerSymbol
 {
-    private protected NamespaceSymbol(string name, Symbol? containingSymbol)
-        : base(name, containingSymbol) { }
-
     public sealed override TypeSymbol? ContainingType => null;
 
     public bool IsGlobal => Name == CommonNames.Global;

@@ -12,18 +12,7 @@ public enum NamedTypeKind : byte
 
 public closed class NamedTypeSymbol : TypeSymbol
 {
-    private protected NamedTypeSymbol(
-        string name,
-        Symbol? containingSymbol,
-        NamedTypeKind kind,
-        SpecialType specialType = SpecialType.None
-    )
-        : base(name, containingSymbol, specialType)
-    {
-        Kind = kind;
-    }
-
-    public NamedTypeKind Kind { get; }
+    public abstract NamedTypeKind Kind { get; }
 
     public sealed override void WriteDisplayString(TextWriter writer)
     {

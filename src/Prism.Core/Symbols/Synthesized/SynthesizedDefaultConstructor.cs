@@ -12,10 +12,12 @@ using Prism.Core.Utils;
 
 namespace Prism.Core.Symbols.Synthesized;
 
-internal sealed class SynthesizedDefaultConstructor(NamedTypeSymbol containingType)
-    : FunctionSymbol(CommonNames.Ctor, containingType)
+internal sealed class SynthesizedDefaultConstructor(NamedTypeSymbol containingType) : FunctionSymbol
 {
+    public override string Name => CommonNames.Ctor;
+    public override Symbol ContainingSymbol => ContainingType;
     public override TypeSymbol ContainingType { get; } = containingType;
+    public override MemberContainerSymbol ContainingMemberContainer => ContainingType;
     public override ImmutableArray<Location> Locations => [];
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
     public override TypeSymbol ReturnType

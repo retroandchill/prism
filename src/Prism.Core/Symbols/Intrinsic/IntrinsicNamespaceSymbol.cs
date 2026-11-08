@@ -7,9 +7,14 @@ namespace Prism.Core.Symbols.Intrinsic;
 
 internal sealed class IntrinsicNamespaceSymbol : NamespaceSymbol
 {
-    internal IntrinsicNamespaceSymbol(string name, Symbol? containingSymbol)
-        : base(name, containingSymbol) { }
+    internal IntrinsicNamespaceSymbol(string name, Symbol containingSymbol)
+    {
+        Name = name;
+        ContainingSymbol = containingSymbol;
+    }
 
+    public override string Name { get; }
+    public override Symbol ContainingSymbol { get; }
     public override ImmutableArray<Location> Locations { get; }
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences { get; }
 

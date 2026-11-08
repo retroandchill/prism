@@ -5,19 +5,12 @@ using Prism.Core.Syntax;
 
 namespace Prism.Core.Symbols.Metadata;
 
-internal sealed class MetadataAssemblySymbol : AssemblySymbol
+internal sealed class MetadataAssemblySymbol(AssemblyDefinition definition)
+    : AssemblySymbol(definition.TargetInfo)
 {
-    private readonly AssemblyDefinition _definition;
-
-    public MetadataAssemblySymbol(AssemblyDefinition definition)
-        : base(definition.Identity.Name, definition.TargetInfo)
-    {
-        _definition = definition;
-    }
-
     public override ImmutableArray<Location> Locations { get; }
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
-    public override AssemblyIdentity Identity => _definition.Identity;
+    public override AssemblyIdentity Identity => definition.Identity;
 
     public override NamespaceSymbol GlobalNamespace
     {
@@ -30,7 +23,7 @@ internal sealed class MetadataAssemblySymbol : AssemblySymbol
 
             Interlocked.CompareExchange(
                 ref field,
-                new MetadataNamespaceSymbol(_definition.GlobalNamespace, this),
+                new MetadataNamespaceSymbol(definition.GlobalNamespace, this),
                 null
             );
 

@@ -24,12 +24,12 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
     public SourceNamespaceSymbol(
         MergedNamespaceDeclaration declaration,
         AssemblySymbol assembly,
-        Symbol? containingSymbol
+        NamespaceSymbol? containingSymbol = null
     )
-        : base(declaration.Name, containingSymbol)
     {
         _mergedDeclaration = declaration;
         ContainingAssembly = assembly;
+        ContainingNamespace = containingSymbol;
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
         foreach (var decl in _mergedDeclaration.Declarations)
@@ -37,6 +37,14 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
             compilation.CacheSymbol(decl.SyntaxReference.Syntax, this);
         }
     }
+
+    public override string Name => _mergedDeclaration.Name;
+
+    public override Symbol ContainingSymbol => (Symbol?)ContainingNamespace ?? ContainingAssembly;
+
+    public override NamespaceSymbol? ContainingNamespace { get; }
+
+    public override MemberContainerSymbol? ContainingMemberContainer => ContainingNamespace;
 
     public override ImmutableArray<Location> Locations => _mergedDeclaration.NameLocations;
 
@@ -292,20 +300,12 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
         GlobalVariableDeclarationSyntax variableDeclaration
     )
     {
-        return new SourceGlobalVariableSymbol(
-            variableDeclaration.Identifier.IdentifierName,
-            this,
-            variableDeclaration
-        );
+        return new SourceGlobalVariableSymbol(this, variableDeclaration);
     }
 
     private SourceFunctionSymbol BuildSymbol(FunctionDeclarationSyntax functionDeclaration)
     {
-        return new SourceFunctionSymbol(
-            functionDeclaration.Identifier.IdentifierName,
-            this,
-            functionDeclaration
-        );
+        return new SourceFunctionSymbol(this, functionDeclaration);
     }
 
     private void AddSynthesizedMembers(

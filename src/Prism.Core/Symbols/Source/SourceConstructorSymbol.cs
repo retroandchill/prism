@@ -20,7 +20,7 @@ internal sealed class SourceConstructorSymbol : SourceFunctionSymbolBase
         NamedTypeSymbol containingSymbol,
         ConstructorDeclarationSyntax syntax
     )
-        : base(CommonNames.Ctor, containingSymbol, syntax)
+        : base(containingSymbol, syntax)
     {
         Syntax = syntax;
         ContainingType = containingSymbol;
@@ -28,6 +28,8 @@ internal sealed class SourceConstructorSymbol : SourceFunctionSymbolBase
         Debug.Assert(compilation is not null);
         compilation.CacheSymbol(Syntax, this);
     }
+
+    public override string Name => CommonNames.Ctor;
 
     public override FunctionKind Kind => FunctionKind.Constructor;
 

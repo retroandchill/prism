@@ -13,17 +13,18 @@ namespace Prism.Core.Symbols.Source;
 internal sealed class SourceFunctionSymbol : SourceFunctionSymbolBase
 {
     internal SourceFunctionSymbol(
-        string name,
         MemberContainerSymbol containingSymbol,
         FunctionDeclarationSyntax syntax
     )
-        : base(name, containingSymbol, syntax)
+        : base(containingSymbol, syntax)
     {
         Syntax = syntax;
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
         compilation.CacheSymbol(Syntax, this);
     }
+
+    public override string Name => Syntax.Identifier.IdentifierName;
 
     public override string MetadataName
     {

@@ -15,16 +15,20 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
     private readonly ConcurrentDictionary<string, ImmutableArray<Symbol>> _nameToMembers = new();
 
     private MergedNamespaceSymbol(
-        string name,
         Symbol? containingSymbol,
         Compilation compilation,
         ImmutableArray<NamespaceSymbol> namespaces
     )
-        : base(name, containingSymbol)
     {
+        Debug.Assert(namespaces.Length > 0, "Cannot merge an empty set of namespaces");
         ContainingCompilation = compilation;
+        ContainingSymbol = containingSymbol;
         _namespaces = namespaces;
     }
+
+    public override string Name => _namespaces[0].Name;
+
+    public override Symbol? ContainingSymbol { get; }
 
     public static NamespaceSymbol Create(
         Compilation compilation,
@@ -37,12 +41,7 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
         if (namespaces.Length == 1)
             return namespaces[0];
 
-        return new MergedNamespaceSymbol(
-            namespaces[0].Name,
-            containingSymbol,
-            compilation,
-            namespaces
-        );
+        return new MergedNamespaceSymbol(containingSymbol, compilation, namespaces);
     }
 
     public override ImmutableArray<Location> Locations

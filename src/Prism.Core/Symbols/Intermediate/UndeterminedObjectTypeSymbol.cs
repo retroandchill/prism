@@ -7,8 +7,7 @@ namespace Prism.Core.Symbols.Intermediate;
 
 internal sealed class UndeterminedObjectTypeSymbol : IntermediateBindingTypeSymbol
 {
-    private UndeterminedObjectTypeSymbol()
-        : base("<Undetermined Object>", NamedTypeKind.Class) { }
-
     public static UndeterminedObjectTypeSymbol Instance { get; } = new();
+    public override string Name => "<Undetermined Object>";
+    public override NamedTypeKind Kind => NamedTypeKind.Class;
 }

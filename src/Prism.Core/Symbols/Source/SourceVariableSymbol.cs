@@ -22,18 +22,15 @@ internal closed class SourceVariableSymbol : VariableSymbol
     private TypeSymbol? _type;
     private ImmutableArray<AttributeData> _attributes;
 
-    protected SourceVariableSymbol(
-        string name,
-        Symbol? containingSymbol,
-        VariableDeclarationSyntax syntax
-    )
-        : base(name, containingSymbol)
+    protected SourceVariableSymbol(VariableDeclarationSyntax syntax)
     {
         Syntax = syntax;
         IsMutable = syntax
             .Modifiers.AsValueEnumerable()
             .Any(t => t.Kind == SyntaxKind.MutableKeyword);
     }
+
+    public sealed override string Name => Syntax.Identifier.IdentifierName;
 
     public sealed override ImmutableArray<Location> Locations
     {
@@ -234,21 +231,24 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
     private readonly Binder? _initializerBinder;
 
     public SourceLocalVariableSymbol(
-        string name,
-        Symbol? containingSymbol,
+        FunctionSymbol containingSymbol,
         LocalVariableDeclarationSyntax syntax,
         Binder scopeBinder,
         Binder? initializerBinder
     )
-        : base(name, containingSymbol, syntax)
+        : base(syntax)
     {
         _scopeBinder = scopeBinder;
         _initializerBinder = initializerBinder;
+        ContainingFunction = containingSymbol;
 
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
         compilation.CacheSymbol(Syntax, this);
     }
+
+    public override FunctionSymbol ContainingFunction { get; }
+    public override Symbol ContainingSymbol => ContainingFunction;
 
     public override VariableKind Kind => VariableKind.Local;
 
@@ -293,18 +293,21 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
     private readonly DeclarationModifiers _modifiers;
 
     public SourceGlobalVariableSymbol(
-        string name,
         MemberContainerSymbol containingSymbol,
         GlobalVariableDeclarationSyntax syntax
     )
-        : base(name, containingSymbol, syntax)
+        : base(syntax)
     {
         _modifiers = DeclarationModifiers.MakeModifiers(containingSymbol, syntax.Modifiers);
+        ContainingMemberContainer = containingSymbol;
 
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
         compilation.CacheSymbol(Syntax, this);
     }
+
+    public override MemberContainerSymbol ContainingMemberContainer { get; }
+    public override Symbol ContainingSymbol => ContainingMemberContainer;
 
     public override VariableKind Kind => VariableKind.Global;
 
@@ -354,19 +357,20 @@ internal sealed class SourceFieldSymbol : SourceVariableSymbol
 {
     private readonly DeclarationModifiers _modifiers;
 
-    public SourceFieldSymbol(
-        string name,
-        MemberContainerSymbol containingSymbol,
-        FieldDeclarationSyntax syntax
-    )
-        : base(name, containingSymbol, syntax)
+    public SourceFieldSymbol(NamedTypeSymbol containingSymbol, FieldDeclarationSyntax syntax)
+        : base(syntax)
     {
         _modifiers = DeclarationModifiers.MakeModifiers(containingSymbol, syntax.Modifiers);
+        ContainingType = containingSymbol;
 
         var compilation = DeclaringCompilation;
         Debug.Assert(compilation is not null);
         compilation.CacheSymbol(Syntax, this);
     }
+
+    public override TypeSymbol ContainingType { get; }
+    public override MemberContainerSymbol ContainingMemberContainer => ContainingType;
+    public override Symbol ContainingSymbol => ContainingType;
 
     public override VariableKind Kind =>
         _modifiers.HasFlag(DeclarationModifiers.Static) || Syntax.IsConst

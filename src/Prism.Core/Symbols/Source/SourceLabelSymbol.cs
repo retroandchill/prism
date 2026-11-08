@@ -13,8 +13,12 @@ namespace Prism.Core.Symbols.Source;
 internal sealed class SourceLabelSymbol(
     FunctionSymbol containingFunction,
     LabeledStatementSyntax syntax
-) : LabelSymbol(syntax.Identifier.IdentifierName, containingFunction)
+) : LabelSymbol
 {
+    public override string Name => syntax.Identifier.IdentifierName;
+
+    public override FunctionSymbol ContainingFunction { get; } = containingFunction;
+
     public override ImmutableArray<Location> Locations
     {
         get

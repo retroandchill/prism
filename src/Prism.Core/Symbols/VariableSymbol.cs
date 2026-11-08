@@ -13,10 +13,9 @@ public enum VariableKind : byte
 
 public closed class VariableSymbol : ValueSymbol
 {
-    private protected VariableSymbol(string name, Symbol? containingSymbol)
-        : base(name, containingSymbol) { }
-
     public abstract VariableKind Kind { get; }
+
+    public virtual FunctionSymbol? ContainingFunction => null;
 
     public bool IsStaticStorage => Kind is VariableKind.Global or VariableKind.Class;
 

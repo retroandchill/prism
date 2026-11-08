@@ -1,6 +1,5 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
-using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Source;
 using Prism.Core.Syntax;
@@ -90,16 +89,9 @@ internal abstract class LocalScopeBinder(Binder next) : Binder(next)
         Binder? initializerBinder = null
     )
     {
-        var name = declaration.Identifier.IdentifierName;
-        var containing = ContainingSymbol;
+        var containing = ContainingSymbol as FunctionSymbol;
         Debug.Assert(containing is not null);
-        return new SourceLocalVariableSymbol(
-            name,
-            containing,
-            declaration,
-            this,
-            initializerBinder
-        );
+        return new SourceLocalVariableSymbol(containing, declaration, this, initializerBinder);
     }
 
     protected sealed override LookupResult LookupLocal(

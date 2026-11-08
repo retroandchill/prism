@@ -11,13 +11,7 @@ namespace Prism.Core.Symbols;
 
 public closed class Symbol : IEquatable<Symbol>
 {
-    private protected Symbol(string name, Symbol? containingSymbol = null)
-    {
-        Name = name;
-        ContainingSymbol = containingSymbol;
-    }
-
-    public string Name { get; }
+    public abstract string Name { get; }
 
     public virtual string MetadataName => Name;
 
@@ -54,7 +48,7 @@ public closed class Symbol : IEquatable<Symbol>
 
     public virtual bool IsImplicitlyDeclared => false;
 
-    public Symbol? ContainingSymbol { get; }
+    public abstract Symbol? ContainingSymbol { get; }
 
     public virtual AssemblySymbol? ContainingAssembly => ContainingSymbol?.ContainingAssembly;
 
@@ -62,19 +56,23 @@ public closed class Symbol : IEquatable<Symbol>
     {
         get
         {
-            for (
-                var container = ContainingSymbol;
-                container is not null;
-                container = container.ContainingSymbol
-            )
-            {
-                if (container is NamespaceSymbol namespaceSymbol)
-                {
-                    return namespaceSymbol;
-                }
-            }
+            var containing = ContainingSymbol;
+            var container = containing as NamespaceSymbol;
+            return ReferenceEquals(containing, container)
+                ? container
+                : containing?.ContainingNamespace;
+        }
+    }
 
-            return null;
+    public virtual MemberContainerSymbol? ContainingMemberContainer
+    {
+        get
+        {
+            var containing = ContainingSymbol;
+            var container = containing as TypeSymbol;
+            return ReferenceEquals(containing, container)
+                ? container
+                : containing?.ContainingMemberContainer;
         }
     }
 
@@ -82,13 +80,11 @@ public closed class Symbol : IEquatable<Symbol>
     {
         get
         {
-            var containingType = ContainingSymbol as TypeSymbol;
-            if (ReferenceEquals(ContainingSymbol, containingType))
-            {
-                return containingType;
-            }
-
-            return ContainingSymbol?.ContainingType;
+            var containing = ContainingSymbol;
+            var containingType = containing as TypeSymbol;
+            return ReferenceEquals(containing, containingType)
+                ? containingType
+                : containing?.ContainingType;
         }
     }
 

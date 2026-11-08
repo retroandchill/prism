@@ -24,19 +24,26 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
     private ImmutableArray<AttributeData> _attributes;
     private readonly Lock _memberChecksLock = new();
 
-    internal SourceNamedTypeSymbol(MergedTypeDeclaration mergedDeclaration, Symbol containingSymbol)
-        : base(
-            mergedDeclaration.Name,
-            containingSymbol,
-            GetTypeKind(mergedDeclaration),
-            SpecialTypeFacts.FromMetadataName(
-                mergedDeclaration.Name,
-                containingSymbol as NamespaceSymbol
-            )
-        )
+    internal SourceNamedTypeSymbol(
+        MergedTypeDeclaration mergedDeclaration,
+        MemberContainerSymbol containingSymbol
+    )
     {
         _mergedDeclaration = mergedDeclaration;
+        ContainingSymbol = containingSymbol;
+        SpecialType = SpecialTypeFacts.FromMetadataName(
+            mergedDeclaration.Name,
+            containingSymbol as NamespaceSymbol
+        );
     }
+
+    public sealed override string Name => _mergedDeclaration.Name;
+
+    public sealed override Symbol ContainingSymbol { get; }
+
+    public sealed override NamedTypeKind Kind => GetTypeKind(_mergedDeclaration);
+
+    public sealed override SpecialType SpecialType { get; }
 
     private static NamedTypeKind GetTypeKind(MergedTypeDeclaration declaration)
     {
@@ -226,20 +233,12 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
 
     private SourceFieldSymbol BuildSymbol(FieldDeclarationSyntax fieldDeclaration)
     {
-        return new SourceFieldSymbol(
-            fieldDeclaration.Identifier.IdentifierName,
-            this,
-            fieldDeclaration
-        );
+        return new SourceFieldSymbol(this, fieldDeclaration);
     }
 
     private SourceFunctionSymbol BuildSymbol(FunctionDeclarationSyntax functionDeclaration)
     {
-        return new SourceFunctionSymbol(
-            functionDeclaration.Identifier.IdentifierName,
-            this,
-            functionDeclaration
-        );
+        return new SourceFunctionSymbol(this, functionDeclaration);
     }
 
     private SourceConstructorSymbol BuildSymbol(ConstructorDeclarationSyntax constructorDeclaration)

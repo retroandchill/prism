@@ -9,17 +9,7 @@ public readonly record struct SizeAndAlignment(ulong Size, ulong Alignment)
 
 public closed class TypeSymbol : MemberContainerSymbol
 {
-    private protected TypeSymbol(
-        string name,
-        Symbol? containingSymbol = null,
-        SpecialType specialType = SpecialType.None
-    )
-        : base(name, containingSymbol)
-    {
-        SpecialType = specialType;
-    }
-
-    public SpecialType SpecialType { get; }
+    public virtual SpecialType SpecialType => SpecialType.None;
 
     public bool IsErrorType { get; private protected init; }
 
