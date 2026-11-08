@@ -40,7 +40,11 @@ internal sealed class SourceAssemblySymbol(Compilation compilation)
             if (field is not null)
                 return field;
 
-            Interlocked.CompareExchange(ref field, new AssemblyIdentity(Name), null);
+            Interlocked.CompareExchange(
+                ref field,
+                new AssemblyIdentity(DeclaringCompilation.AssemblyName),
+                null
+            );
             return field;
         }
     }
