@@ -32,7 +32,7 @@ public union FunctionOrAttribute(TypeDefinition, FunctionDefinition)
     }
 }
 
-public sealed partial class ParameterDefinition
+public sealed partial class ParameterDefinition : IAttributeHolderDefinition
 {
     public ParameterHandle Handle { get; }
     private readonly TypeHandle _type;

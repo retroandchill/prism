@@ -20,23 +20,16 @@ internal readonly partial record struct FunctionAttributes
     private const int AbiShift = 4;
     private const uint AbiMask = 0xF << AbiShift;
 
+    // Reserve 64 bits for special function kinds
+    private const int KindShift = 4 + AbiShift;
+    private const uint KindMask = 0x3F << AbiShift;
+
     [ArchiveInclude]
     private readonly uint _value;
 
     private FunctionAttributes(uint value)
     {
         _value = value;
-    }
-
-    public static FunctionAttributes Create(
-        DeclaredVisibility visibility,
-        bool isExtern,
-        AbiKind abiKind
-    )
-    {
-        return new FunctionAttributes(
-            (uint)visibility | (isExtern ? ExternBit : 0) | ((uint)abiKind << AbiShift)
-        );
     }
 
     [ArchiveIgnore]
@@ -58,5 +51,12 @@ internal readonly partial record struct FunctionAttributes
     {
         get => (AbiKind)((_value & AbiMask) >> AbiShift);
         init => _value = (_value & ~AbiMask) | ((uint)value << AbiShift);
+    }
+
+    [ArchiveIgnore]
+    public FunctionKind Kind
+    {
+        get => (FunctionKind)((_value & KindMask) >> KindShift);
+        init => _value = (_value & ~KindMask) | ((uint)value << KindShift);
     }
 }

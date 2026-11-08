@@ -13,7 +13,7 @@ using Riok.Mapperly.Abstractions.ReferenceHandling;
 
 namespace Prism.Core.Metadata;
 
-public sealed partial class FunctionDefinition
+public sealed partial class FunctionDefinition : IAttributeHolderDefinition
 {
     private TypeDescriptor _lazyReceiverType;
     public FunctionHandle Handle { get; }
@@ -62,17 +62,16 @@ public sealed partial class FunctionDefinition
 
     public AbiKind AbiKind => Attributes.AbiKind;
 
+    public FunctionKind Kind => Attributes.Kind;
+
     public string Name { get; }
 
     public MemberContainerDefHandle ParentHandle { get; }
 
-    public MemberContainerDefinition? Parent
+    public MemberContainerDefinition Parent
     {
         get
         {
-            if (ParentHandle.IsNone)
-                return null;
-
             if (field is not null)
                 return field;
 

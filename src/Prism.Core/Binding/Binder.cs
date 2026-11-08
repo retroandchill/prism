@@ -527,7 +527,7 @@ internal abstract class Binder : IOverloadResolutionHost
 
             // TODO: We need to actually parse the arguments
             builder.Add(
-                new AttributeData(new SyntaxReference(attribute), attributeType, attributeParams)
+                new AttributeData(attributeType, attributeParams, new SyntaxReference(attribute))
             );
         }
 

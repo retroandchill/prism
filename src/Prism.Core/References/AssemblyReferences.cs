@@ -29,6 +29,8 @@ internal sealed class AssemblyReferences
 
     public ImmutableArray<UnifiedAssembly> UnifiedAssemblies { get; }
 
+    public static AssemblyReferences Empty { get; } = new([], [], []);
+
     public AssemblyReferences(
         ImmutableArray<AssemblyIdentity> identities,
         ImmutableArray<AssemblySymbol> symbols,

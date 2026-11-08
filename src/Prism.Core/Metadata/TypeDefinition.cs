@@ -27,7 +27,7 @@ public union NamedType(TypeDefinition, TypeReference)
     }
 }
 
-public sealed partial class TypeDefinition : MemberContainerDefinition
+public sealed partial class TypeDefinition : MemberContainerDefinition, IAttributeHolderDefinition
 {
     internal TypeDefinition(
         TypeDefHandle handle,
@@ -61,15 +61,14 @@ public sealed partial class TypeDefinition : MemberContainerDefinition
 
     public DeclaredVisibility Visibility => Attributes.Visibility;
 
+    public SpecialType SpecialType => Attributes.SpecialType;
+
     public MemberContainerDefHandle ParentHandle { get; private set; }
 
-    public MemberContainerDefinition? Parent
+    public MemberContainerDefinition Parent
     {
         get
         {
-            if (ParentHandle.IsNone)
-                return null;
-
             if (field is not null)
                 return field;
 
@@ -81,7 +80,7 @@ public sealed partial class TypeDefinition : MemberContainerDefinition
             );
             return field;
         }
-        internal set;
+        private set;
     }
 
     public NamedTypeHandle BaseTypeHandle { get; private set; }

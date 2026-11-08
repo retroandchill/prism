@@ -12,6 +12,11 @@ using Riok.Mapperly.Abstractions.ReferenceHandling;
 
 namespace Prism.Core.Metadata;
 
+public interface IAttributeHolderDefinition
+{
+    ImmutableArray<CustomAttributeDefinition> CustomAttributes { get; }
+}
+
 public union AttributeHolderDefinition(
     TypeDefinition,
     VariableDefinition,

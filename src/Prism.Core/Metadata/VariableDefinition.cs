@@ -14,7 +14,7 @@ using Riok.Mapperly.Abstractions.ReferenceHandling;
 
 namespace Prism.Core.Metadata;
 
-public sealed partial class VariableDefinition
+public sealed partial class VariableDefinition : IAttributeHolderDefinition
 {
     public string Name { get; }
     private PublicationOnlyValue<ConstantValue?> _constantValue;
@@ -66,13 +66,10 @@ public sealed partial class VariableDefinition
 
     public MemberContainerDefHandle ParentHandle { get; }
 
-    public MemberContainerDefinition? Parent
+    public MemberContainerDefinition Parent
     {
         get
         {
-            if (ParentHandle.IsNone)
-                return null;
-
             if (field is not null)
                 return field;
 

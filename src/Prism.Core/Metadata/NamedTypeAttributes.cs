@@ -17,6 +17,9 @@ internal readonly partial record struct NamedTypeAttributes
     private const int VisibilityShift = 3;
     private const uint VisibilityMask = 0x7 << VisibilityShift;
 
+    private const int SpecialTypeShift = VisibilityShift + 3;
+    private const uint SpecialTypeMask = 0x3F << SpecialTypeShift;
+
     [ArchiveInclude]
     private readonly uint _value;
 
@@ -25,10 +28,16 @@ internal readonly partial record struct NamedTypeAttributes
         _value = value;
     }
 
-    public static NamedTypeAttributes Create(NamedTypeKind kind, DeclaredVisibility visibility)
+    public static NamedTypeAttributes Create(
+        NamedTypeKind kind,
+        DeclaredVisibility visibility,
+        SpecialType specialType
+    )
     {
         return new NamedTypeAttributes(
-            (uint)kind << KindShift | (uint)visibility << VisibilityShift
+            (uint)kind << KindShift
+                | (uint)visibility << VisibilityShift
+                | (uint)specialType << SpecialTypeShift
         );
     }
 
@@ -44,5 +53,12 @@ internal readonly partial record struct NamedTypeAttributes
     {
         get => (DeclaredVisibility)((_value & VisibilityMask) >> VisibilityShift);
         init => _value = (_value & ~VisibilityMask) | (uint)value << VisibilityShift;
+    }
+
+    [ArchiveIgnore]
+    public SpecialType SpecialType
+    {
+        get => (SpecialType)((_value & SpecialTypeMask) >> SpecialTypeShift);
+        init => _value = (_value & ~SpecialTypeMask) | (uint)value << SpecialTypeShift;
     }
 }

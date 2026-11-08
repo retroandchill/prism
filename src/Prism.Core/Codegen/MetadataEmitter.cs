@@ -203,6 +203,7 @@ internal sealed class MetadataEmitter
         var type = parent.AddType(namedTypeSymbol.Name);
         type.Kind = namedTypeSymbol.Kind;
         type.Visibility = namedTypeSymbol.DeclaredVisibility;
+        type.SpecialType = namedTypeSymbol.SpecialType;
         _typeDefs.Add(namedTypeSymbol, type);
         AddCustomAttributes(namedTypeSymbol, type);
         return type;
@@ -321,6 +322,7 @@ internal sealed class MetadataEmitter
         function.Visibility = functionSymbol.DeclaredVisibility;
         function.IsExtern = function.IsExtern;
         function.AbiKind = functionSymbol.AbiKind;
+        function.Kind = functionSymbol.Kind;
         _functions.Add(functionSymbol, function);
         AddCustomAttributes(functionSymbol, function);
     }

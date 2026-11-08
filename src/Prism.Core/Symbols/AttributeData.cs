@@ -15,9 +15,9 @@ public readonly record struct AttributeArgument(ParameterSymbol Parameter, Const
 public sealed class AttributeData
 {
     internal AttributeData(
-        SyntaxReference? syntaxReference,
         NamedTypeSymbol attribute,
-        ImmutableArray<AttributeArgument> arguments
+        ImmutableArray<AttributeArgument> arguments,
+        SyntaxReference? syntaxReference = null
     )
     {
         Debug.Assert(attribute.Kind == NamedTypeKind.Attribute);

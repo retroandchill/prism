@@ -18,4 +18,12 @@ internal static partial class SymbolToMetadataMapper
     private static partial ConstantParameterDefaultDefinition ToMetadata(
         this ConstantParameterDefault value
     );
+
+    [MapDerivedType<ConstantParameterDefaultDefinition, ConstantParameterDefault>]
+    public static partial ParameterDefault ToSymbol(this ParameterDefaultDefinition value);
+
+    [MapperIgnoreTarget(nameof(ConstantParameterDefault.Syntax))]
+    private static partial ConstantParameterDefault ToSymbol(
+        this ConstantParameterDefaultDefinition value
+    );
 }

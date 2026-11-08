@@ -36,6 +36,7 @@ using VariableReader = TableRowReader<VariableRow, VariableDefinition>;
 
 internal sealed class MetadataReader
 {
+    private NamespaceDefinition? _globalNamespace;
     private readonly StringHeapReader _stringHeap;
     private readonly BlobHeapReader _blobHeap;
     private readonly AssemblyRefReader _assemblyRefs;
@@ -162,7 +163,24 @@ internal sealed class MetadataReader
 
     public NamespaceDefinition GetNamespaceDef(NamespaceDefHandle handle)
     {
-        return _namespaceDefs.GetRow(handle.Id);
+        if (!handle.IsNone)
+            return _namespaceDefs.GetRow(handle.Id);
+
+        if (_globalNamespace is not null)
+            return _globalNamespace;
+
+        Interlocked.CompareExchange(
+            ref _globalNamespace,
+            new NamespaceDefinition(
+                NamespaceDefHandle.None,
+                CommonNames.Global,
+                NamespaceDefHandle.None,
+                this
+            ),
+            null
+        );
+
+        return _globalNamespace;
     }
 
     private readonly RegisteredLazy<NamespaceParentMap> _namespaceByParent;

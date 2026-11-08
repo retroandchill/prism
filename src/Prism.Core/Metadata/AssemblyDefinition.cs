@@ -58,12 +58,7 @@ public sealed partial class AssemblyDefinition
             Debug.Assert(_metadataReader is not null);
             Interlocked.CompareExchange(
                 ref field,
-                new NamespaceDefinition(
-                    NamespaceDefHandle.None,
-                    CommonNames.Global,
-                    NamespaceDefHandle.None,
-                    _metadataReader
-                ),
+                _metadataReader.GetNamespaceDef(NamespaceDefHandle.None),
                 null
             );
             return field;

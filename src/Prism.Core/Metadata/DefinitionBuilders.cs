@@ -122,6 +122,12 @@ public sealed class TypeDefinitionBuilder(
         set => Attributes = Attributes with { Visibility = value };
     }
 
+    public SpecialType SpecialType
+    {
+        get => Attributes.SpecialType;
+        set => Attributes = Attributes with { SpecialType = value };
+    }
+
     public NamedTypeBuilder? BaseType { get; set; }
 
     public ReadOnlyCollection<ParameterDefinitionBuilder> AttributeParameters =>
@@ -308,6 +314,12 @@ public sealed class FunctionDefinitionBuilder : IAttributeHolderDefinitionBuilde
     {
         get => Attributes.AbiKind;
         set => Attributes = Attributes with { AbiKind = value };
+    }
+
+    public FunctionKind Kind
+    {
+        get => Attributes.Kind;
+        set => Attributes = Attributes with { Kind = value };
     }
 
     public string Name { get; }
