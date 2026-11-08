@@ -284,6 +284,17 @@ public readonly partial record struct TypeHandle
     private readonly MetadataToken _token;
 
     private partial TypeHandle(MetadataToken token);
+
+    public static explicit operator NamedTypeHandle(TypeHandle handle)
+    {
+        return handle switch
+        {
+            TypeDefHandle d => d,
+            TypeRefHandle r => r,
+            TypeSpecHandle => throw new InvalidCastException("Not a named type"),
+            null => NamedTypeHandle.None,
+        };
+    }
 }
 
 [Archivable]

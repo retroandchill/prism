@@ -111,7 +111,7 @@ internal readonly partial record struct ParameterRow(
 
 [Archivable]
 internal readonly partial record struct CustomAttributeRow(
-    TypeHandle Type,
+    NamedTypeHandle Type,
     AttributeHolderHandle Holder,
     BlobHandle Arguments
 ) : INestedContainerRow<AttributeHolderHandle>

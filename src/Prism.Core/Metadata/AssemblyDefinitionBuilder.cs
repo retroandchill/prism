@@ -5,8 +5,6 @@
 
 using System.Collections.ObjectModel;
 using Prism.Core.Utils;
-using Riok.Mapperly.Abstractions;
-using Riok.Mapperly.Abstractions.ReferenceHandling;
 
 namespace Prism.Core.Metadata;
 
@@ -23,6 +21,11 @@ public sealed class AssemblyDefinitionBuilder
     private readonly List<TypeDefinitionBuilder> _typeDefs = [];
     private readonly List<TypeReference> _typeRefs = [];
     private readonly List<TypeSpecBuilder> _typeSpecs = [];
+
+    private readonly List<VariableDefinitionBuilder> _variables = [];
+    private readonly List<FunctionDefinitionBuilder> _functions = [];
+    private readonly List<ParameterDefinitionBuilder> _parameters = [];
+    private readonly List<CustomAttributeDefinitionBuilder> _customAttributes = [];
 
     public AssemblyDefinitionBuilder(AssemblyIdentity identity, TargetInfo targetInfo)
     {
@@ -61,6 +64,15 @@ public sealed class AssemblyDefinitionBuilder
     internal ReadOnlyCollection<TypeReference> ReferencedTypes => _typeRefs.AsReadOnly();
 
     internal ReadOnlyCollection<TypeSpecBuilder> TypeSpecifications => _typeSpecs.AsReadOnly();
+
+    internal ReadOnlyCollection<VariableDefinitionBuilder> Variables => _variables.AsReadOnly();
+
+    internal ReadOnlyCollection<FunctionDefinitionBuilder> Functions => _functions.AsReadOnly();
+
+    internal ReadOnlyCollection<ParameterDefinitionBuilder> Parameters => _parameters.AsReadOnly();
+
+    internal ReadOnlyCollection<CustomAttributeDefinitionBuilder> CustomAttributes =>
+        _customAttributes.AsReadOnly();
 
     internal NamespaceDefinitionBuilder AddNamespaceDefinition(
         string name,
@@ -113,8 +125,94 @@ public sealed class AssemblyDefinitionBuilder
         return type;
     }
 
+    public ArrayTypeBuilder AddArrayType(TypeDescriptorBuilder elementType, ulong? length)
+    {
+        var type = new ArrayTypeBuilder(elementType, length);
+        _typeSpecs.Add(type);
+        return type;
+    }
+
+    public ReferenceTypeBuilder AddReferenceType(TypeDescriptorBuilder elementType, bool isMutable)
+    {
+        var type = new ReferenceTypeBuilder(elementType, isMutable);
+        _typeSpecs.Add(type);
+        return type;
+    }
+
+    public NullableTypeBuilder AddNullableType(TypeDescriptorBuilder elementType)
+    {
+        var type = new NullableTypeBuilder(elementType);
+        _typeSpecs.Add(type);
+        return type;
+    }
+
+    internal VariableDefinitionBuilder AddVariable(
+        string name,
+        TypeDescriptorBuilder type,
+        MemberContainerDefinitionBuilder parent
+    )
+    {
+        var variable = new VariableDefinitionBuilder(
+            VariableHandle.FromRowId(_variables.Count + 1),
+            name,
+            type,
+            parent,
+            this
+        );
+        _variables.Add(variable);
+        return variable;
+    }
+
+    internal FunctionDefinitionBuilder AddFunction(
+        string name,
+        TypeDescriptorBuilder returnType,
+        MemberContainerDefinitionBuilder parent
+    )
+    {
+        var function = new FunctionDefinitionBuilder(
+            FunctionHandle.FromRowId(_functions.Count + 1),
+            name,
+            returnType,
+            parent,
+            this
+        );
+        _functions.Add(function);
+        return function;
+    }
+
+    internal ParameterDefinitionBuilder AddParameter(
+        string name,
+        TypeDescriptorBuilder type,
+        FunctionOrAttributeBuilder parent
+    )
+    {
+        var param = new ParameterDefinitionBuilder(
+            ParameterHandle.FromRowId(_parameters.Count + 1),
+            name,
+            type,
+            parent,
+            this
+        );
+        _parameters.Add(param);
+        return param;
+    }
+
+    internal CustomAttributeDefinitionBuilder AddCustomAttribute(
+        NamedTypeBuilder type,
+        AttributeHolderDefinitionBuilder parent
+    )
+    {
+        var attribute = new CustomAttributeDefinitionBuilder(
+            CustomAttributeHandle.FromRowId(_customAttributes.Count + 1),
+            type,
+            parent
+        );
+        _customAttributes.Add(attribute);
+        return attribute;
+    }
+
     public AssemblyDefinition Build()
     {
-        return this.ToDefinition();
+        return AssemblyDefinition.Mapper.ToDefinition(this);
     }
 }

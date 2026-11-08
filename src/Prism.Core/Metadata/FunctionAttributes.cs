@@ -40,11 +40,23 @@ internal readonly partial record struct FunctionAttributes
     }
 
     [ArchiveIgnore]
-    public DeclaredVisibility Visibility => (DeclaredVisibility)(_value & VisibilityMask);
+    public DeclaredVisibility Visibility
+    {
+        get => (DeclaredVisibility)(_value & VisibilityMask);
+        init => _value = (_value & ~VisibilityMask) | (uint)value;
+    }
 
     [ArchiveIgnore]
-    public bool IsExtern => (_value & ExternBit) != 0;
+    public bool IsExtern
+    {
+        get => (_value & ExternBit) != 0;
+        init => _value = (_value & ~ExternBit) & (value ? ExternBit : 0);
+    }
 
     [ArchiveIgnore]
-    public AbiKind AbiKind => (AbiKind)((_value & AbiMask) >> AbiShift);
+    public AbiKind AbiKind
+    {
+        get => (AbiKind)((_value & AbiMask) >> AbiShift);
+        init => _value = (_value & ~AbiMask) | ((uint)value << AbiShift);
+    }
 }

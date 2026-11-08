@@ -429,7 +429,7 @@ internal static class CompilerDriver
         CancellationToken cancellationToken
     )
     {
-        using var emitter = new MetadataEmitter(compilation);
+        var emitter = new MetadataEmitter(compilation);
         var fileName = Path.Combine(filepath, $"{compilation.AssemblyName}.prlib");
         await emitter.EmitAsync(fileName, cancellationToken);
     }

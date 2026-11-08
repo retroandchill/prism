@@ -1,10 +1,11 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using Riok.Mapperly.Abstractions;
+using Riok.Mapperly.Abstractions.ReferenceHandling;
 
 namespace Prism.Core.Metadata;
 
-public sealed class NamespaceDefinition : MemberContainerDefinition
+public sealed partial class NamespaceDefinition : MemberContainerDefinition
 {
     internal NamespaceDefinition(
         NamespaceDefHandle handle,
@@ -19,7 +20,7 @@ public sealed class NamespaceDefinition : MemberContainerDefinition
     }
 
     [MapperConstructor]
-    internal NamespaceDefinition(NamespaceDefHandle handle, string name)
+    private NamespaceDefinition(NamespaceDefHandle handle, string name)
         : base(name)
     {
         Handle = handle;
@@ -71,4 +72,42 @@ public sealed class NamespaceDefinition : MemberContainerDefinition
     }
 
     protected override MemberContainerDefHandle GetHandle() => Handle;
+
+    [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target, UseReferenceHandling = true)]
+    [UseStaticMapper(typeof(MemberContainerDefinition.Mapper))]
+    [UseStaticMapper(typeof(TypeDefinition.Mapper))]
+    [UseStaticMapper(typeof(VariableDefinition.Mapper))]
+    [UseStaticMapper(typeof(FunctionDefinition.Mapper))]
+    internal static new partial class Mapper
+    {
+        [UserMapping(Default = true)]
+        public static NamespaceDefinition ToDefinition(
+            NamespaceDefinitionBuilder builder,
+            [ReferenceHandler] IReferenceHandler handler
+        )
+        {
+            if (handler.TryGetReference(builder, out NamespaceDefinition? existing))
+                return existing;
+
+            // Mapperly has a bug where it doesn't like recursive types even with reference handling enabled, so we're using
+            // a separate mapper that maps the non-recursive properties and then we manually handle those two.
+            var mapped = MapNamespaceWithoutRecursion(builder, handler);
+            mapped.Parent = builder.Parent?.ToDefinition(handler);
+            mapped.NestedNamespaces =
+            [
+                .. builder.NestedNamespaces.Select(n => n.ToDefinition(handler)),
+            ];
+            return mapped;
+        }
+
+        [MapperIgnoreSource(nameof(NamespaceDefinitionBuilder.Parent))]
+        [MapperIgnoreSource(nameof(NamespaceDefinitionBuilder.NestedNamespaces))]
+        [MapperIgnoreTarget(nameof(Parent))]
+        [MapperIgnoreTarget(nameof(ParentHandle))]
+        [MapperIgnoreTarget(nameof(NestedNamespaces))]
+        private static partial NamespaceDefinition MapNamespaceWithoutRecursion(
+            NamespaceDefinitionBuilder builder,
+            [ReferenceHandler] IReferenceHandler handler
+        );
+    }
 }

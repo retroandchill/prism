@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Prism.Core.Symbols;
 using Riok.Mapperly.Abstractions;
+using Riok.Mapperly.Abstractions.ReferenceHandling;
 
 namespace Prism.Core.Metadata;
 
@@ -26,7 +27,7 @@ public union NamedType(TypeDefinition, TypeReference)
     }
 }
 
-public sealed class TypeDefinition : MemberContainerDefinition
+public sealed partial class TypeDefinition : MemberContainerDefinition
 {
     internal TypeDefinition(
         TypeDefHandle handle,
@@ -45,7 +46,7 @@ public sealed class TypeDefinition : MemberContainerDefinition
     }
 
     [MapperConstructor]
-    internal TypeDefinition(TypeDefHandle handle, NamedTypeAttributes attributes, string name)
+    private TypeDefinition(TypeDefHandle handle, NamedTypeAttributes attributes, string name)
         : base(name)
     {
         Handle = handle;
@@ -97,6 +98,7 @@ public sealed class TypeDefinition : MemberContainerDefinition
             if (_lazyBaseType.Value is not null)
                 return _lazyBaseType;
 
+            Debug.Assert(MetadataReader is not null);
             Interlocked.CompareExchange(
                 ref Unsafe.As<NamedType, object?>(ref _lazyBaseType),
                 MetadataReader.GetNamedType(BaseTypeHandle).Value,
@@ -126,6 +128,7 @@ public sealed class TypeDefinition : MemberContainerDefinition
             if (!field.IsDefault)
                 return field;
 
+            Debug.Assert(MetadataReader is not null);
             var mappings = MetadataReader.ParametersByParent[Handle];
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
@@ -133,7 +136,7 @@ public sealed class TypeDefinition : MemberContainerDefinition
             );
             return field;
         }
-        internal set;
+        private set;
     }
 
     public ImmutableArray<CustomAttributeDefinition> CustomAttributes
@@ -143,6 +146,7 @@ public sealed class TypeDefinition : MemberContainerDefinition
             if (!field.IsDefault)
                 return field;
 
+            Debug.Assert(MetadataReader is not null);
             var mappings = MetadataReader.CustomAttributesByMember[Handle];
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
@@ -150,8 +154,25 @@ public sealed class TypeDefinition : MemberContainerDefinition
             );
             return field;
         }
-        internal set;
+        private set;
     }
 
     protected override MemberContainerDefHandle GetHandle() => Handle;
+
+    [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target, UseReferenceHandling = true)]
+    [UseStaticMapper(typeof(MemberContainerDefinition.Mapper))]
+    [UseStaticMapper(typeof(TypeMapper))]
+    [UseStaticMapper(typeof(VariableDefinition.Mapper))]
+    [UseStaticMapper(typeof(FunctionDefinition.Mapper))]
+    [UseStaticMapper(typeof(ParameterDefinition.Mapper))]
+    [UseStaticMapper(typeof(CustomAttributeDefinition.Mapper))]
+    internal static new partial class Mapper
+    {
+        [MapperIgnoreTarget(nameof(_lazyBaseType))]
+        [MapperIgnoreTarget(nameof(BaseTypeHandle))]
+        public static partial TypeDefinition ToDefinition(
+            TypeDefinitionBuilder builder,
+            [ReferenceHandler] IReferenceHandler handler
+        );
+    }
 }

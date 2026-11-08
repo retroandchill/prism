@@ -3,41 +3,28 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Buffers;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
+using System.Diagnostics.CodeAnalysis;
 using Prism.Core.Compiling;
+using Prism.Core.Mappers;
 using Prism.Core.Metadata;
-using Prism.Core.Semantic;
 using Prism.Core.Symbols;
-using ZLinq;
 
 namespace Prism.Core.Codegen;
 
-internal sealed class MetadataEmitter : IDisposable
+internal sealed class MetadataEmitter
 {
     private readonly Compilation _compilation;
-    private readonly MetadataBuilder _builder;
+    private readonly AssemblyDefinitionBuilder _builder;
 
-    private readonly Dictionary<AssemblySymbol, AssemblyRefHandle> _assemblyRefs = new(
-        ReferenceEqualityComparer.Instance
-    );
+    private readonly Dictionary<AssemblySymbol, AssemblyReference> _assemblyRefs = [];
+    private readonly Dictionary<NamespaceSymbol, NamespaceDefinitionBuilder> _namespaceDefs = [];
+    private readonly Dictionary<NamespaceSymbol, NamespaceReference> _namespaceRefs = [];
+    private readonly Dictionary<TypeSymbol, TypeDefinitionBuilder> _typeDefs = [];
+    private readonly Dictionary<TypeSymbol, TypeReference> _typeRefs = [];
+    private readonly Dictionary<TypeSymbol, TypeSpecBuilder> _typeSpecs = [];
 
-    private readonly Dictionary<NamespaceSymbol, NamespaceDefHandle> _namespaceDefs = new(
-        ReferenceEqualityComparer.Instance
-    );
-    private readonly Dictionary<NamespaceSymbol, NamespaceRefHandle> _namespaceRefs = new(
-        ReferenceEqualityComparer.Instance
-    );
-    private readonly Dictionary<TypeSymbol, TypeHandle> _types = new(
-        ReferenceEqualityComparer.Instance
-    );
-
-    private readonly Dictionary<FunctionSymbol, FunctionHandle> _functions = new(
-        ReferenceEqualityComparer.Instance
-    );
-
-    private readonly Dictionary<ConstantValue, ConstantHandle> _constants = new();
+    private readonly Dictionary<FunctionSymbol, FunctionDefinitionBuilder> _functions = [];
 
     private readonly struct TrackedSymbols()
     {
@@ -59,7 +46,7 @@ internal sealed class MetadataEmitter : IDisposable
             compilation.Settings.Toolchain
         );
 
-        _builder = new MetadataBuilder(assemblyIdentity, targetInfo);
+        _builder = new AssemblyDefinitionBuilder(assemblyIdentity, targetInfo);
     }
 
     public async ValueTask EmitAsync(string fileName, CancellationToken cancellationToken)
@@ -67,7 +54,8 @@ internal sealed class MetadataEmitter : IDisposable
         AddSymbols(cancellationToken);
 
         await using var file = File.Create(fileName);
-        await _builder.WriteAsync(file, cancellationToken);
+        var definition = _builder.Build();
+        await definition.WriteAsync(file, cancellationToken);
     }
 
     private void AddSymbols(CancellationToken cancellationToken)
@@ -151,7 +139,7 @@ internal sealed class MetadataEmitter : IDisposable
         }
     }
 
-    private AssemblyRefHandle GetOrAddAssemblyRef(AssemblySymbol assemblySymbol)
+    private AssemblyReference GetOrAddAssemblyRef(AssemblySymbol assemblySymbol)
     {
         Debug.Assert(assemblySymbol != _compilation.Assembly);
         if (_assemblyRefs.TryGetValue(assemblySymbol, out var handle))
@@ -159,25 +147,24 @@ internal sealed class MetadataEmitter : IDisposable
             return handle;
         }
 
-        handle = _builder.AddReferencedAssembly(assemblySymbol.Identity);
+        handle = _builder.AddAssemblyReference(assemblySymbol.Identity);
         _assemblyRefs[assemblySymbol] = handle;
         return handle;
     }
 
     private void AddNamespaceDef(NamespaceSymbol namespaceSymbol)
     {
-        var name = _builder.GetOrAddString(namespaceSymbol.Name);
-        var parent = NamespaceDefHandle.None;
+        var parent = _builder.GlobalNamespace;
         if (namespaceSymbol.ContainingNamespace is { IsGlobal: false } containing)
         {
             parent = _namespaceDefs[containing];
         }
 
-        var handle = _builder.AddNamespaceDef(new NamespaceDefRow(name, parent));
+        var handle = parent.AddNestedNamespace(namespaceSymbol.Name);
         _namespaceDefs[namespaceSymbol] = handle;
     }
 
-    private NamespaceRefHandle GetOrAddNamespaceRef(NamespaceSymbol namespaceSymbol)
+    private NamespaceReference GetOrAddNamespaceRef(NamespaceSymbol namespaceSymbol)
     {
         var compilationNamespace = _compilation.GetCompilationNamespace(namespaceSymbol);
         Debug.Assert(compilationNamespace is not null);
@@ -186,43 +173,46 @@ internal sealed class MetadataEmitter : IDisposable
             return handle;
         }
 
-        var parent = NamespaceRefHandle.None;
+        NamespaceOrAssemblyReference parent;
         if (compilationNamespace.ContainingNamespace is { IsGlobal: false } containing)
         {
             parent = GetOrAddNamespaceRef(containing);
         }
+        else if (compilationNamespace.ContainingAssembly is { } assembly)
+        {
+            parent = GetOrAddAssemblyRef(assembly);
+        }
+        else
+        {
+            throw new InvalidOperationException("Namespace or assembly reference not found.");
+        }
 
-        var name = _builder.GetOrAddString(compilationNamespace.Name);
-        handle = _builder.AddNamespaceRef(new NamespaceRefRow(name, parent));
+        handle = _builder.AddNamespaceReference(namespaceSymbol.Name, parent);
         _namespaceRefs[compilationNamespace] = handle;
         return handle;
     }
 
-    private TypeDefHandle AddTypeDef(NamedTypeSymbol namedTypeSymbol)
+    private TypeDefinitionBuilder AddTypeDef(NamedTypeSymbol namedTypeSymbol)
     {
-        if (_types.TryGetValue(namedTypeSymbol, out var typeHandle))
+        if (_typeDefs.TryGetValue(namedTypeSymbol, out var typeHandle))
         {
-            return (TypeDefHandle)typeHandle;
+            return typeHandle;
         }
 
-        var parent = GetContainerDefHandle(namedTypeSymbol);
-        var name = _builder.GetOrAddString(namedTypeSymbol.Name);
-        var attributes = NamedTypeAttributes.Create(
-            namedTypeSymbol.Kind,
-            namedTypeSymbol.DeclaredVisibility
-        );
-        var row = new TypeDefinitionRow(attributes, name, parent);
-        var handle = _builder.AddTypeDef(row);
-        _types.Add(namedTypeSymbol, handle);
-        AddCustomAttributes(namedTypeSymbol, handle);
-        return handle;
+        var parent = GetContainerDef(namedTypeSymbol);
+        var type = parent.AddType(namedTypeSymbol.Name);
+        type.Kind = namedTypeSymbol.Kind;
+        type.Visibility = namedTypeSymbol.DeclaredVisibility;
+        _typeDefs.Add(namedTypeSymbol, type);
+        AddCustomAttributes(namedTypeSymbol, type);
+        return type;
     }
 
-    private MemberContainerDefHandle GetContainerDefHandle(Symbol symbol)
+    private MemberContainerDefinitionBuilder GetContainerDef(Symbol symbol)
     {
         if (symbol.ContainingType is { } containingType)
         {
-            return (TypeDefHandle)_types[containingType];
+            return _typeDefs[containingType];
         }
 
         if (symbol.ContainingNamespace is { IsGlobal: false } containing)
@@ -230,63 +220,74 @@ internal sealed class MetadataEmitter : IDisposable
             return _namespaceDefs[containing];
         }
 
-        return MemberContainerDefHandle.None;
+        return _builder.GlobalNamespace;
     }
 
-    private TypeHandle GetOrAddType(TypeSymbol? typeSymbol)
+    [return: NotNullIfNotNull(nameof(typeSymbol))]
+    private TypeDescriptorBuilder? GetOrAddType(TypeSymbol? typeSymbol)
     {
         if (typeSymbol is null)
-            return TypeHandle.None;
-
-        if (_types.TryGetValue(typeSymbol, out var handle))
-            return handle;
+            return null;
 
         return typeSymbol switch
         {
-            NamedTypeSymbol namedTypeSymbol => AddNamedType(namedTypeSymbol),
-            ArrayTypeSymbol arrayTypeSymbol => AddArrayType(arrayTypeSymbol),
-            NullableTypeSymbol nullableTypeSymbol => AddNullableType(nullableTypeSymbol),
-            ReferenceTypeSymbol referenceTypeSymbol => AddReferenceType(referenceTypeSymbol),
+            NamedTypeSymbol namedTypeSymbol => GetOrAddNamedType(namedTypeSymbol),
+            _ => GetOrAddTypeSpec(typeSymbol),
         };
     }
 
-    private TypeHandle AddNamedType(NamedTypeSymbol namedTypeSymbol)
+    private NamedTypeBuilder GetOrAddNamedType(NamedTypeSymbol namedTypeSymbol)
     {
         var assembly = namedTypeSymbol.ContainingAssembly;
         Debug.Assert(assembly is not null);
         if (assembly == _compilation.Assembly)
             return AddTypeDef(namedTypeSymbol);
 
-        var container = GetContainerRefHandle(namedTypeSymbol);
-        var name = _builder.GetOrAddString(namedTypeSymbol.Name);
-        return _builder.AddTypeRef(new TypeReferenceRow(name, container));
+        return GetOrAddTypeReference(namedTypeSymbol);
     }
 
-    private TypeHandle AddArrayType(ArrayTypeSymbol arrayTypeSymbol)
+    private TypeReference GetOrAddTypeReference(NamedTypeSymbol namedTypeSymbol)
     {
-        var containedType = GetOrAddType(arrayTypeSymbol.ElementType);
-        return _builder.AddTypeSpec(new ArrayTypeRow(containedType, arrayTypeSymbol.Size));
+        if (_typeRefs.TryGetValue(namedTypeSymbol, out var reference))
+            return reference;
+
+        var container = GetContainerRef(namedTypeSymbol);
+        reference = _builder.AddTypeReference(namedTypeSymbol.Name, container);
+        _typeRefs.TryAdd(namedTypeSymbol, reference);
+        return reference;
     }
 
-    private TypeHandle AddNullableType(NullableTypeSymbol nullableTypeSymbol)
+    private TypeSpecBuilder GetOrAddTypeSpec(TypeSymbol symbol)
     {
-        var containedType = GetOrAddType(nullableTypeSymbol.ElementType);
-        return _builder.AddTypeSpec(new NullableTypeRow(containedType));
-    }
+        if (_typeSpecs.TryGetValue(symbol, out var typeSpec))
+            return typeSpec;
 
-    private TypeHandle AddReferenceType(ReferenceTypeSymbol referenceTypeSymbol)
-    {
-        var containedType = GetOrAddType(referenceTypeSymbol.ReferencedType);
-        return _builder.AddTypeSpec(
-            new ReferenceTypeRow(containedType, referenceTypeSymbol.IsMutable)
-        );
-    }
-
-    private MemberContainerRefHandle GetContainerRefHandle(Symbol symbol)
-    {
-        if (symbol.ContainingType is { } containingType)
+        typeSpec = symbol switch
         {
-            return (TypeRefHandle)GetOrAddType(containingType);
+            ArrayTypeSymbol array => _builder.AddArrayType(
+                GetOrAddType(array.ElementType).Value,
+                array.Size
+            ),
+            ReferenceTypeSymbol reference => _builder.AddReferenceType(
+                GetOrAddType(reference.ReferencedType).Value,
+                reference.IsMutable
+            ),
+            NullableTypeSymbol nullable => _builder.AddNullableType(
+                GetOrAddType(nullable.ElementType).Value
+            ),
+            NamedTypeSymbol => throw new InvalidOperationException(
+                "This should already have been handled above"
+            ),
+        };
+        _typeSpecs.Add(symbol, typeSpec);
+        return typeSpec;
+    }
+
+    private MemberContainerReference GetContainerRef(Symbol symbol)
+    {
+        if (symbol.ContainingType is NamedTypeSymbol containingType)
+        {
+            return GetOrAddTypeReference(containingType);
         }
 
         if (symbol.ContainingNamespace is { IsGlobal: false } containing)
@@ -299,83 +300,35 @@ internal sealed class MetadataEmitter : IDisposable
             return GetOrAddAssemblyRef(containingAssembly);
         }
 
-        return MemberContainerRefHandle.None;
+        throw new InvalidOperationException($"Could not find container for symbol {symbol}");
     }
 
     private void AddVariable(VariableSymbol variableSymbol)
     {
-        var attributes = VariableAttributes.Create(
-            variableSymbol.Kind,
-            variableSymbol.DeclaredVisibility
-        );
-        var name = _builder.GetOrAddString(variableSymbol.MetadataName);
-        var type = GetOrAddType(variableSymbol.Type);
-        var container = GetContainerDefHandle(variableSymbol);
-        ConstantHandle constant;
-        if (variableSymbol.ConstantValue is { } constantValue)
-        {
-            constant = GetOrAddConstant(in constantValue);
-        }
-        else
-        {
-            constant = ConstantHandle.None;
-        }
-        var handle = _builder.AddVariable(
-            new VariableRow(attributes, name, type, container, constant)
-        );
-        AddCustomAttributes(variableSymbol, handle);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ConstantHandle GetOrAddConstant(in ConstantValue value)
-    {
-        if (_constants.TryGetValue(value, out var handle))
-        {
-            return handle;
-        }
-
-        handle = value switch
-        {
-            string s => _builder.GetOrAddString(s),
-            _ => StoreNonStringConstant(in value),
-        };
-
-        _constants.Add(value, handle);
-        return handle;
-    }
-
-    private ConstantHandle StoreNonStringConstant(in ConstantValue value)
-    {
-        if (InlineConstHandle.TryCreate(in value) is { } inline)
-            return inline;
-
-        return _builder.AddBlob(in value);
+        var type = GetOrAddType(variableSymbol.Type).Value;
+        var container = GetContainerDef(variableSymbol);
+        var variable = container.AddVariable(variableSymbol.Name, type);
+        variable.ConstantValue = variableSymbol.ConstantValue;
+        AddCustomAttributes(variableSymbol, variable);
     }
 
     private void AddFunction(FunctionSymbol functionSymbol)
     {
-        var attributes = FunctionAttributes.Create(
-            functionSymbol.DeclaredVisibility,
-            functionSymbol.IsExtern,
-            functionSymbol.AbiKind
-        );
-        var name = _builder.GetOrAddString(functionSymbol.MetadataName);
-        var returnType = GetOrAddType(functionSymbol.ReturnType);
-        var receiverType = GetOrAddType(functionSymbol.ReceiverType);
-        var container = GetContainerDefHandle(functionSymbol);
-        var handle = _builder.AddFunction(
-            new FunctionRow(attributes, name, returnType, receiverType, container)
-        );
-        _functions.Add(functionSymbol, handle);
-        AddCustomAttributes(functionSymbol, handle);
+        var returnType = GetOrAddType(functionSymbol.ReturnType).Value;
+        var container = GetContainerDef(functionSymbol);
+        var function = container.AddFunction(functionSymbol.Name, returnType);
+        function.ReceiverType = GetOrAddType(functionSymbol.ReceiverType);
+        function.Visibility = functionSymbol.DeclaredVisibility;
+        function.IsExtern = function.IsExtern;
+        function.AbiKind = functionSymbol.AbiKind;
+        _functions.Add(functionSymbol, function);
+        AddCustomAttributes(functionSymbol, function);
     }
 
     private void AddParameter(ParameterSymbol parameterSymbol)
     {
-        var attributes = ParameterAttributes.Create();
-        var name = _builder.GetOrAddString(parameterSymbol.MetadataName);
-        var type = GetOrAddType(parameterSymbol.Type);
-        FunctionOrAttributeHandle owner;
+        var type = GetOrAddType(parameterSymbol.Type).Value;
+        FunctionOrAttributeBuilder owner;
         if (parameterSymbol.ContainingFunction is { } func)
         {
             owner = _functions[func];
@@ -384,73 +337,28 @@ internal sealed class MetadataEmitter : IDisposable
         {
             var containingType = parameterSymbol.ContainingType;
             Debug.Assert(containingType is not null);
-            owner = (TypeDefHandle)GetOrAddType(containingType);
+            owner = _typeDefs[containingType];
         }
 
-        var defaultValue = parameterSymbol.DefaultValue switch
-        {
-            null => ParameterDefaultHandle.None,
-            ConstantParameterDefault(var value, _) => GetOrAddConstant(in value),
-        };
-
-        var handle = _builder.AddParameter(
-            new ParameterRow(attributes, name, type, owner, defaultValue)
-        );
-        AddCustomAttributes(parameterSymbol, handle);
+        var parameter = owner.AddParameter(parameterSymbol.Name, type);
+        parameter.DefaultValue = parameterSymbol.DefaultValue?.ToMetadata();
+        AddCustomAttributes(parameterSymbol, parameter);
     }
 
-    private void AddCustomAttributes(Symbol symbol, AttributeHolderHandle owner)
+    private void AddCustomAttributes(Symbol symbol, IAttributeHolderDefinitionBuilder owner)
     {
         var attributes = symbol.GetAttributes();
         if (attributes.IsEmpty)
             return;
 
-        const int maxStackArgs = 32;
-        Span<ConstantHandle> stackArgs = stackalloc ConstantHandle[maxStackArgs];
-
         foreach (var attribute in attributes)
         {
-            var type = GetOrAddType(attribute.Attribute);
-            BlobHandle arguments;
-            if (!attribute.Arguments.IsEmpty)
+            var type = GetOrAddNamedType(attribute.Attribute);
+            var attributeBuilder = owner.AddCustomAttribute(type);
+            foreach (var (_, value) in attribute.Arguments)
             {
-                ConstantHandle[]? rentedStackArgs = null;
-                try
-                {
-                    if (attribute.Arguments.Length > maxStackArgs)
-                    {
-                        rentedStackArgs = ArrayPool<ConstantHandle>.Shared.Rent(
-                            attribute.Arguments.Length
-                        );
-                    }
-
-                    var args = rentedStackArgs is not null
-                        ? rentedStackArgs.AsSpan(0, attribute.Arguments.Length)
-                        : stackArgs[..attribute.Arguments.Length];
-                    foreach (var (i, arg) in attribute.Arguments.AsValueEnumerable().Index())
-                    {
-                        args[i] = GetOrAddConstant(arg.Value);
-                    }
-
-                    arguments = _builder.AddBlob(args);
-                }
-                finally
-                {
-                    if (rentedStackArgs is not null)
-                        ArrayPool<ConstantHandle>.Shared.Return(rentedStackArgs);
-                }
+                attributeBuilder.Arguments.Add(value);
             }
-            else
-            {
-                arguments = BlobHandle.None;
-            }
-
-            _builder.AddCustomAttribute(new CustomAttributeRow(type, owner, arguments));
         }
-    }
-
-    public void Dispose()
-    {
-        _builder.Dispose();
     }
 }

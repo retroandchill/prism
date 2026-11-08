@@ -33,9 +33,16 @@ internal readonly partial record struct VariableAttributes
     }
 
     [ArchiveIgnore]
-    public VariableKind Kind => (VariableKind)((_value & KindMask) >> KindShift);
+    public VariableKind Kind
+    {
+        get => (VariableKind)((_value & KindMask) >> KindShift);
+        init => _value = (_value & ~KindMask) | (uint)value << KindShift;
+    }
 
     [ArchiveIgnore]
-    public DeclaredVisibility Visibility =>
-        (DeclaredVisibility)((_value & VisibilityMask) >> VisibilityShift);
+    public DeclaredVisibility Visibility
+    {
+        get => (DeclaredVisibility)((_value & VisibilityMask) >> VisibilityShift);
+        init => _value = (_value & ~VisibilityMask) | (uint)value << VisibilityShift;
+    }
 }

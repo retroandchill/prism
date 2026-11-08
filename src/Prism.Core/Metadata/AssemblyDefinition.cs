@@ -1,13 +1,14 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 using MagicArchive;
 using Prism.Core.Utils;
 using Riok.Mapperly.Abstractions;
 
 namespace Prism.Core.Metadata;
 
-public sealed class AssemblyDefinition
+public sealed partial class AssemblyDefinition
 {
     public AssemblyIdentity Identity { get; }
     public TargetInfo TargetInfo { get; }
@@ -44,7 +45,7 @@ public sealed class AssemblyDefinition
             );
             return field;
         }
-        internal init;
+        private set;
     }
 
     public NamespaceDefinition GlobalNamespace
@@ -67,7 +68,7 @@ public sealed class AssemblyDefinition
             );
             return field;
         }
-        internal init;
+        private set;
     }
 
     internal ImmutableArray<NamespaceDefinition> DefinedNamespaces
@@ -86,7 +87,7 @@ public sealed class AssemblyDefinition
             );
             return field;
         }
-        init;
+        private set;
     }
 
     internal ImmutableArray<NamespaceReference> ReferencedNamespaces
@@ -105,7 +106,7 @@ public sealed class AssemblyDefinition
             );
             return field;
         }
-        init;
+        private set;
     }
 
     internal ImmutableArray<TypeDefinition> DefinedTypes
@@ -124,7 +125,7 @@ public sealed class AssemblyDefinition
             );
             return field;
         }
-        init;
+        private set;
     }
 
     internal ImmutableArray<TypeReference> ReferencedTypes
@@ -143,7 +144,7 @@ public sealed class AssemblyDefinition
             );
             return field;
         }
-        init;
+        private set;
     }
 
     internal ImmutableArray<TypeSpecification> TypeSpecifications
@@ -162,7 +163,7 @@ public sealed class AssemblyDefinition
             );
             return field;
         }
-        init;
+        private set;
     }
 
     internal ImmutableArray<VariableDefinition> Variables
@@ -181,7 +182,7 @@ public sealed class AssemblyDefinition
             );
             return field;
         }
-        init;
+        private set;
     }
 
     internal ImmutableArray<FunctionDefinition> Functions
@@ -200,7 +201,7 @@ public sealed class AssemblyDefinition
             );
             return field;
         }
-        init;
+        private set;
     }
 
     internal ImmutableArray<ParameterDefinition> Parameters
@@ -219,7 +220,7 @@ public sealed class AssemblyDefinition
             );
             return field;
         }
-        init;
+        private set;
     }
 
     internal ImmutableArray<CustomAttributeDefinition> CustomAttributes
@@ -238,7 +239,7 @@ public sealed class AssemblyDefinition
             );
             return field;
         }
-        init;
+        private set;
     }
 
     private ImmutableArray<T> ReadAll<T>(int count, Func<MetadataReader, int, T> reader)
@@ -271,5 +272,18 @@ public sealed class AssemblyDefinition
             ArchiveSerializerOptions.LittleEndian,
             cancellationToken
         );
+    }
+
+    [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target, UseReferenceHandling = true)]
+    [UseStaticMapper(typeof(NamespaceDefinition.Mapper))]
+    [UseStaticMapper(typeof(TypeDefinition.Mapper))]
+    [UseStaticMapper(typeof(TypeMapper))]
+    [UseStaticMapper(typeof(VariableDefinition.Mapper))]
+    [UseStaticMapper(typeof(FunctionDefinition.Mapper))]
+    [UseStaticMapper(typeof(ParameterDefinition.Mapper))]
+    [UseStaticMapper(typeof(CustomAttributeDefinition.Mapper))]
+    internal static partial class Mapper
+    {
+        public static partial AssemblyDefinition ToDefinition(AssemblyDefinitionBuilder builder);
     }
 }

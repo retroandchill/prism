@@ -1,9 +1,11 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using Riok.Mapperly.Abstractions;
+using Riok.Mapperly.Abstractions.ReferenceHandling;
 
 namespace Prism.Core.Metadata;
 
-public closed class MemberContainerDefinition
+public closed partial class MemberContainerDefinition
 {
     private protected MemberContainerDefinition(string name, MetadataReader? reader = null)
     {
@@ -71,4 +73,17 @@ public closed class MemberContainerDefinition
     }
 
     protected abstract MemberContainerDefHandle GetHandle();
+
+    [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target, UseReferenceHandling = true)]
+    [UseStaticMapper(typeof(NamespaceDefinition.Mapper))]
+    [UseStaticMapper(typeof(TypeDefinition.Mapper))]
+    internal static partial class Mapper
+    {
+        [MapDerivedType<NamespaceDefinitionBuilder, NamespaceDefinition>]
+        [MapDerivedType<TypeDefinitionBuilder, TypeDefinition>]
+        public static partial MemberContainerDefinition ToDefinition(
+            MemberContainerDefinitionBuilder builder,
+            [ReferenceHandler] IReferenceHandler handler
+        );
+    }
 }
