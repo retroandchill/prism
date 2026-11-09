@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using MagicArchive;
+using Microsoft.Extensions.FileProviders;
 using Prism.Core.Utils;
 using Riok.Mapperly.Abstractions;
 
@@ -248,9 +249,9 @@ public sealed partial class AssemblyDefinition
         return ImmutableCollectionsMarshal.AsImmutableArray(result);
     }
 
-    public static AssemblyDefinition Load(string filepath)
+    public static AssemblyDefinition Load(IFileInfo filepath)
     {
-        using var stream = File.OpenRead(filepath);
+        using var stream = filepath.CreateReadStream();
         var layout = ArchiveSerializer.Deserialize<MetadataLayout>(
             stream,
             ArchiveSerializerOptions.LittleEndian
