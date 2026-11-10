@@ -95,7 +95,7 @@ public closed class Symbol : IEquatable<Symbol>
         return [];
     }
 
-    public virtual bool IsDefinedInSourceTree(SyntaxTree tree, TextSpan? definedWithin)
+    public virtual bool IsDefinedInSourceTree(ISourceDocument tree, TextSpan? definedWithin)
     {
         if (IsImplicitlyDeclared && DeclaringSyntaxReferences.IsEmpty)
         {
@@ -115,7 +115,7 @@ public closed class Symbol : IEquatable<Symbol>
 
     internal static bool IsDefinedInSourceTree(
         SyntaxReference reference,
-        SyntaxTree tree,
+        ISourceDocument tree,
         TextSpan? definedWithin
     )
     {

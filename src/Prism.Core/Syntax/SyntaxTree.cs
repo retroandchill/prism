@@ -9,7 +9,7 @@ using Prism.Core.Text;
 
 namespace Prism.Core.Syntax;
 
-public sealed class SyntaxTree
+public sealed class SyntaxTree : ISourceDocument
 {
     private SyntaxTree(string path, SourceText text, GreenNode root)
     {
@@ -45,6 +45,18 @@ public sealed class SyntaxTree
 
     public SourceText? Text { get; }
 
+    private string TextString
+    {
+        get
+        {
+            if (field is not null)
+                return field;
+
+            Interlocked.CompareExchange(ref field, Text?.Text ?? Root.ToString(), null);
+            return field;
+        }
+    }
+
     public string Md5Hash
     {
         get
@@ -62,6 +74,15 @@ public sealed class SyntaxTree
     }
 
     public SyntaxNode Root { get; }
+
+    public ReadOnlySpan<char> GetText(TextSpan span)
+    {
+        var sourceText = TextString;
+        if (span.Start > sourceText.Length || span.End > sourceText.Length)
+            throw new ArgumentOutOfRangeException(nameof(span));
+
+        return sourceText.AsSpan()[span.Start..span.End];
+    }
 
     [MemberNotNull(nameof(Text))]
     public FileSourcePositionSpan GetPositionSpan(TextSpan span)

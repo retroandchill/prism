@@ -153,7 +153,7 @@ public class Compilation
 
     public ImmutableArray<SyntaxTree> SyntaxTrees => _syntaxAndDeclarationManager.State.SyntaxTrees;
 
-    public bool ContainsSyntaxTree(SyntaxTree tree)
+    public bool ContainsSyntaxTree(ISourceDocument tree)
     {
         return _syntaxAndDeclarationManager.State.RootNamespaceDeclarations.ContainsKey(tree);
     }
@@ -379,7 +379,7 @@ public class Compilation
         return comparison != 0 ? comparison : x.Span.Start.CompareTo(y.Span.Start);
     }
 
-    internal int CompareSyntaxTreeOrdering(SyntaxTree x, SyntaxTree y)
+    internal int CompareSyntaxTreeOrdering(ISourceDocument x, ISourceDocument y)
     {
         if (ReferenceEquals(x, y))
             return 0;
@@ -389,7 +389,7 @@ public class Compilation
         return GetSyntaxTreeOrdinal(x).CompareTo(GetSyntaxTreeOrdinal(y));
     }
 
-    internal int GetSyntaxTreeOrdinal(SyntaxTree tree)
+    internal int GetSyntaxTreeOrdinal(ISourceDocument tree)
     {
         Debug.Assert(ContainsSyntaxTree(tree));
         return _syntaxAndDeclarationManager.State.SyntaxTreeIndices[tree];

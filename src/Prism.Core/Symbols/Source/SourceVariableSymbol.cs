@@ -150,7 +150,7 @@ internal closed class SourceVariableSymbol : VariableSymbol
 
     protected abstract BoundExpression GetInitializer(BindingContext context);
 
-    public sealed override bool IsDefinedInSourceTree(SyntaxTree tree, TextSpan? definedWithin)
+    public sealed override bool IsDefinedInSourceTree(ISourceDocument tree, TextSpan? definedWithin)
     {
         return IsDefinedInSourceTree(new SyntaxReference(Syntax), tree, definedWithin);
     }

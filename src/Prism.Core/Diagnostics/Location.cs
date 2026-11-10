@@ -20,7 +20,7 @@ public sealed record NoLocation : Location
     internal NoLocation() { }
 }
 
-public sealed record SourceLocation(SyntaxTree SyntaxTree, TextSpan SourceSpan) : Location
+public sealed record SourceLocation(ISourceDocument SyntaxTree, TextSpan SourceSpan) : Location
 {
     public SourceLocation(SyntaxReference reference)
         : this(reference.Syntax.SyntaxTree, reference.SourceSpan) { }

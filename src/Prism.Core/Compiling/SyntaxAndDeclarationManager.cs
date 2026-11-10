@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using Prism.Core.Declarations;
 using Prism.Core.Syntax;
+using Prism.Core.Text;
 
 namespace Prism.Core.Compiling;
 
@@ -9,9 +10,9 @@ using LazyRootNamespace = Lazy<SingleRootNamespaceDeclaration>;
 internal sealed class SyntaxState
 {
     public required ImmutableArray<SyntaxTree> SyntaxTrees { get; init; }
-    public required ImmutableDictionary<SyntaxTree, int> SyntaxTreeIndices { get; init; }
+    public required ImmutableDictionary<ISourceDocument, int> SyntaxTreeIndices { get; init; }
     public required ImmutableDictionary<
-        SyntaxTree,
+        ISourceDocument,
         LazyRootNamespace
     > RootNamespaceDeclarations { get; init; }
     public required DeclarationTable Declarations { get; init; }
@@ -38,10 +39,10 @@ internal sealed class SyntaxAndDeclarationManager(
     private static SyntaxState CreateState(ImmutableArray<SyntaxTree> externalSyntaxTrees)
     {
         var treeBuilder = ImmutableArray.CreateBuilder<SyntaxTree>();
-        var ordinalMapBuilder = ImmutableDictionary.CreateBuilder<SyntaxTree, int>(
+        var ordinalMapBuilder = ImmutableDictionary.CreateBuilder<ISourceDocument, int>(
             ReferenceEqualityComparer.Instance
         );
-        var declMapBuilder = ImmutableDictionary.CreateBuilder<SyntaxTree, LazyRootNamespace>(
+        var declMapBuilder = ImmutableDictionary.CreateBuilder<ISourceDocument, LazyRootNamespace>(
             ReferenceEqualityComparer.Instance
         );
         var tableBuilder = DeclarationTable.Empty.ToBuilder();
@@ -69,8 +70,8 @@ internal sealed class SyntaxAndDeclarationManager(
     private static void AppendAllSyntaxTrees(
         ImmutableArray<SyntaxTree>.Builder treeBuilder,
         SyntaxTree tree,
-        ImmutableDictionary<SyntaxTree, int>.Builder ordinalMapBuilder,
-        ImmutableDictionary<SyntaxTree, LazyRootNamespace>.Builder declMapBuilder,
+        ImmutableDictionary<ISourceDocument, int>.Builder ordinalMapBuilder,
+        ImmutableDictionary<ISourceDocument, LazyRootNamespace>.Builder declMapBuilder,
         DeclarationTable.Builder tableBuilder
     )
     {
@@ -81,7 +82,7 @@ internal sealed class SyntaxAndDeclarationManager(
 
     private static void AddSyntaxTreeToDeclarationMapAndTable(
         SyntaxTree tree,
-        ImmutableDictionary<SyntaxTree, LazyRootNamespace>.Builder declMapBuilder,
+        ImmutableDictionary<ISourceDocument, LazyRootNamespace>.Builder declMapBuilder,
         DeclarationTable.Builder tableBuilder
     )
     {

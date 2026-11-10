@@ -3,6 +3,7 @@ using System.Numerics;
 using Prism.Core.Compiling;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
+using Prism.Core.Text;
 
 namespace Prism.Core.Symbols;
 
@@ -27,7 +28,7 @@ internal readonly struct LexicalSortKey
         Position = position;
     }
 
-    public LexicalSortKey(SyntaxTree tree, int position, Compilation compilation)
+    public LexicalSortKey(ISourceDocument tree, int position, Compilation compilation)
         : this(compilation.GetSyntaxTreeOrdinal(tree), position) { }
 
     public LexicalSortKey(SyntaxReference reference, Compilation compilation)

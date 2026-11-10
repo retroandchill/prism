@@ -66,7 +66,7 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
         }
     }
 
-    public override bool IsDefinedInSourceTree(SyntaxTree tree, TextSpan? definedWithin)
+    public override bool IsDefinedInSourceTree(ISourceDocument tree, TextSpan? definedWithin)
     {
         if (IsGlobal)
             return true;
