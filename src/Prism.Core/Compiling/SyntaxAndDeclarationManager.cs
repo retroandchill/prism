@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using Prism.Core.Declarations;
 using Prism.Core.Syntax;
-using Prism.Core.Text;
+using Prism.Text;
 
 namespace Prism.Core.Compiling;
 

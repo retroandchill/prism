@@ -6,7 +6,7 @@
 using System.Diagnostics;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax.Green;
-using Prism.Core.Text;
+using Prism.Text;
 using ZLinq;
 
 namespace Prism.Core.Syntax;

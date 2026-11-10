@@ -7,7 +7,7 @@ using Prism.Core.Diagnostics;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols.Error;
 using Prism.Core.Syntax;
-using Prism.Core.Text;
+using Prism.Text;
 using ZLinq;
 
 namespace Prism.Core.Symbols.Source;

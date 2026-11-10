@@ -5,7 +5,7 @@
 
 using Prism.Core.Symbols;
 using Prism.Core.Syntax;
-using Prism.Core.Text;
+using Prism.Text;
 using Prism.Utils;
 
 namespace Prism.Core.Diagnostics;

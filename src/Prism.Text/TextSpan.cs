@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace Prism.Core.Text;
+namespace Prism.Text;
 
 public readonly record struct TextSpan
     : IComparable<TextSpan>,

@@ -5,7 +5,7 @@
 
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax.Green;
-using Prism.Core.Text;
+using Prism.Text;
 
 namespace Prism.Core.Syntax;
 

@@ -1,4 +1,4 @@
-﻿namespace Prism.Core.Text;
+﻿namespace Prism.Text;
 
 public interface ISourceDocument
 {

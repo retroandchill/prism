@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 
-namespace Prism.Core.Text;
+namespace Prism.Text;
 
 public sealed class SourceText
 {

@@ -15,7 +15,7 @@ using Prism.Core.Symbols;
 using Prism.Core.Symbols.Intrinsic;
 using Prism.Core.Symbols.Source;
 using Prism.Core.Syntax;
-using Prism.Core.Text;
+using Prism.Text;
 using ZLinq;
 
 namespace Prism.Core.Compiling;

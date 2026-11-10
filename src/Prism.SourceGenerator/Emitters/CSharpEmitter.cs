@@ -23,7 +23,7 @@ public static class CSharpEmitter
         {
             writer.WriteLine("// Generated file, do not edit");
             writer.WriteLine("#nullable enable");
-            writer.WriteLine("using Prism.Core.Text;");
+            writer.WriteLine("using Prism.Text;");
             writer.WriteLine();
 
             writer.WriteLine("namespace Prism.Core.Syntax;");

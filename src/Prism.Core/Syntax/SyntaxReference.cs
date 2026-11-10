@@ -1,4 +1,4 @@
-﻿using Prism.Core.Text;
+﻿using Prism.Text;
 
 namespace Prism.Core.Syntax;
 

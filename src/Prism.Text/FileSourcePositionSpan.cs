@@ -1,4 +1,4 @@
-﻿namespace Prism.Core.Text;
+﻿namespace Prism.Text;
 
 public readonly record struct FileSourcePositionSpan(string FilePath, SourcePositionSpan Span)
 {

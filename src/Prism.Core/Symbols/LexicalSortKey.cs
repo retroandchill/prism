@@ -3,7 +3,7 @@ using System.Numerics;
 using Prism.Core.Compiling;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
-using Prism.Core.Text;
+using Prism.Text;
 
 namespace Prism.Core.Symbols;
 
