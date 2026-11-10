@@ -5,7 +5,7 @@
 
 using System.Runtime.CompilerServices;
 
-namespace Prism.Core.Utils;
+namespace Prism.Utils;
 
 /// <summary>
 /// Collection of interlocked operations for union types.

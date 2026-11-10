@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using MagicArchive;
 using Microsoft.Extensions.FileProviders;
-using Prism.Core.Utils;
 using Riok.Mapperly.Abstractions;
 
 namespace Prism.Core.Metadata;

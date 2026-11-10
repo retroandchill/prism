@@ -1,4 +1,4 @@
-﻿using Prism.Core.Utils;
+﻿using Prism.Core.Semantic;
 
 namespace Prism.Core.Symbols.Intrinsic;
 

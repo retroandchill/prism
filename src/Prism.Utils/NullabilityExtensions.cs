@@ -5,7 +5,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Prism.Core.Utils;
+namespace Prism.Utils;
 
 public static class NullabilityExtensions
 {

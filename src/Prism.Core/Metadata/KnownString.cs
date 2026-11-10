@@ -6,7 +6,7 @@
 using System.Collections.Frozen;
 using System.Runtime.Serialization;
 using NetEscapades.EnumGenerators;
-using Prism.Core.Utils;
+using Prism.Core.Semantic;
 using ZLinq;
 
 namespace Prism.Core.Metadata;

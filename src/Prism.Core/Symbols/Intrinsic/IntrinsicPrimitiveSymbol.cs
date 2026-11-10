@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using Prism.Core.Diagnostics;
+using Prism.Core.Semantic;
 using Prism.Core.Syntax;
-using Prism.Core.Utils;
 
 namespace Prism.Core.Symbols.Intrinsic;
 

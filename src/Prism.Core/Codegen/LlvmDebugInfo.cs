@@ -6,7 +6,7 @@
 using LLVMSharp.Interop;
 using Prism.Core.Compiling;
 using Prism.Core.Syntax;
-using Prism.Core.Utils;
+using Prism.Utils;
 
 namespace Prism.Core.Codegen;
 

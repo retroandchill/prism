@@ -5,7 +5,7 @@
 
 using Prism.Core.Mir;
 using Prism.Core.Symbols;
-using Prism.Core.Utils;
+using Prism.Utils;
 using ZLinq;
 
 namespace Prism.Core.Codegen.Mir;

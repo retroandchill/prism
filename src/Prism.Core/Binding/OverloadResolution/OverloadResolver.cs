@@ -5,7 +5,7 @@ using Prism.Core.BoundTree;
 using Prism.Core.Diagnostics;
 using Prism.Core.Symbols;
 using Prism.Core.Syntax;
-using Prism.Core.Utils;
+using Prism.Utils;
 using ZLinq;
 
 namespace Prism.Core.Binding.OverloadResolution;

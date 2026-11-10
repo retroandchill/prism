@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Core.Abi;
 using Prism.Core.Compiling;
-using Prism.Core.Utils;
+using Prism.Utils;
 
 namespace Prism.Core.Mir.Analysis;
 

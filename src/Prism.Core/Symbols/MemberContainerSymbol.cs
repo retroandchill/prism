@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using Prism.Core.Binding;
 using Prism.Core.Diagnostics;
-using Prism.Core.Utils;
+using Prism.Utils;
 using ZLinq;
 
 namespace Prism.Core.Symbols;

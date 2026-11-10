@@ -17,7 +17,7 @@ using Prism.Core.Symbols.Error;
 using Prism.Core.Symbols.Intermediate;
 using Prism.Core.Symbols.Source;
 using Prism.Core.Syntax;
-using Prism.Core.Utils;
+using Prism.Utils;
 using ZLinq;
 using static Prism.Core.Binding.BindingHelpers;
 

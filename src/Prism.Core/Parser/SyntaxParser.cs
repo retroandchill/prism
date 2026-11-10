@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 using Prism.Core.Syntax.Green;
-using Prism.Core.Utils;
+using Prism.Utils;
 
 namespace Prism.Core.Parser;
 

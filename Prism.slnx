@@ -6,6 +6,7 @@
     <Project Path="src/Prism.Build/Prism.Build.csproj" />
     <Project Path="src/Prism.Core/Prism.Core.csproj" />
     <Project Path="src/Prism.SourceGenerator/Prism.SourceGenerator.csproj" />
+    <Project Path="src/Prism.Utils/Prism.Utils.csproj" />
     <Project Path="src/prismc/prismc.csproj" />
   </Folder>
   <Folder Name="/test/">

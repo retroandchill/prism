@@ -20,7 +20,7 @@ using Prism.Core.Mir.Analysis;
 using Prism.Core.Semantic;
 using Prism.Core.Semantic.Layout;
 using Prism.Core.Symbols;
-using Prism.Core.Utils;
+using Prism.Utils;
 using ZLinq;
 using FloatKind = Prism.Core.Semantic.Layout.FloatKind;
 

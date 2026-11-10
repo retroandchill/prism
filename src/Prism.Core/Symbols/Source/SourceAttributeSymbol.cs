@@ -9,7 +9,7 @@ using Prism.Core.Binding;
 using Prism.Core.Declarations;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
-using Prism.Core.Utils;
+using Prism.Utils;
 
 namespace Prism.Core.Symbols.Source;
 

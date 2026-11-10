@@ -8,7 +8,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
-using Prism.Core.Utils;
+using Prism.Utils;
 using Riok.Mapperly.Abstractions;
 using Riok.Mapperly.Abstractions.ReferenceHandling;
 

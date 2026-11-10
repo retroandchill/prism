@@ -6,8 +6,9 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Core.Declarations;
+using Prism.Core.Semantic;
 using Prism.Core.Symbols.Synthesized;
-using Prism.Core.Utils;
+using Prism.Utils;
 using ZLinq;
 
 namespace Prism.Core.Symbols.Source;

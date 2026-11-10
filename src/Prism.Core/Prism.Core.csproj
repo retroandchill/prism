@@ -43,5 +43,6 @@
       OutputItemType="Analyzer"
       ReferenceOutputAssembly="false"
     />
+    <ProjectReference Include="..\Prism.Utils\Prism.Utils.csproj" />
   </ItemGroup>
 </Project>

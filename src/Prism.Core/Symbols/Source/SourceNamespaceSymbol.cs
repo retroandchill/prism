@@ -8,7 +8,7 @@ using Prism.Core.Diagnostics;
 using Prism.Core.Symbols.Synthesized;
 using Prism.Core.Syntax;
 using Prism.Core.Text;
-using Prism.Core.Utils;
+using Prism.Utils;
 using ZLinq;
 
 namespace Prism.Core.Symbols.Source;

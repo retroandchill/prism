@@ -8,8 +8,9 @@ using System.Diagnostics;
 using Prism.Core.Abi;
 using Prism.Core.BoundTree;
 using Prism.Core.Diagnostics;
+using Prism.Core.Semantic;
 using Prism.Core.Syntax;
-using Prism.Core.Utils;
+using Prism.Utils;
 using ZLinq;
 
 namespace Prism.Core.Symbols.Synthesized;

@@ -4,9 +4,8 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics.CodeAnalysis;
-using Cysharp.Text;
 
-namespace Prism.Core.Utils;
+namespace Prism.Utils;
 
 public static class StringUtils
 {

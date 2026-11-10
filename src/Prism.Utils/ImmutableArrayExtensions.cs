@@ -5,7 +5,7 @@
 
 using System.Collections.Immutable;
 
-namespace Prism.Core.Utils;
+namespace Prism.Utils;
 
 public static class ImmutableArrayExtensions
 {

@@ -7,8 +7,9 @@ using System.Collections.Frozen;
 using System.Collections.Immutable;
 using Prism.Core.Diagnostics;
 using Prism.Core.Metadata;
+using Prism.Core.Semantic;
 using Prism.Core.Syntax;
-using Prism.Core.Utils;
+using Prism.Utils;
 using ZLinq;
 
 namespace Prism.Core.Symbols.Metadata;

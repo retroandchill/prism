@@ -1,4 +1,4 @@
-﻿namespace Prism.Core.Utils;
+﻿namespace Prism.Core.Semantic;
 
 internal static class CommonNames
 {

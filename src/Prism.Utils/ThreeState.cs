@@ -5,7 +5,7 @@
 
 using System.Diagnostics;
 
-namespace Prism.Core.Utils;
+namespace Prism.Utils;
 
 internal enum ThreeState : byte
 {

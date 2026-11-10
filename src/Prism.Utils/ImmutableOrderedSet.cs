@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 using ZLinq;
 using ZLinq.Linq;
 
-namespace Prism.Core.Utils;
+namespace Prism.Utils;
 
 public readonly struct ImmutableOrderedSet<T>
     : IReadOnlyCollection<T>,

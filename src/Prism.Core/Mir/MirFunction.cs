@@ -6,7 +6,7 @@
 using System.Collections.Immutable;
 using Prism.Core.Diagnostics;
 using Prism.Core.Symbols;
-using Prism.Core.Utils;
+using Prism.Utils;
 
 namespace Prism.Core.Mir;
 

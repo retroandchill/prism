@@ -2,9 +2,8 @@
 using System.Globalization;
 using System.Numerics;
 using Cysharp.Text;
-using Singulink.Numerics;
 
-namespace Prism.Core.Utils;
+namespace Prism.Utils;
 
 public static class Numerics
 {

@@ -5,7 +5,6 @@ using Prism.Core.Abi;
 using Prism.Core.Binding;
 using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
-using Prism.Core.Utils;
 using ZLinq;
 
 namespace Prism.Core.Symbols.Source;

@@ -11,7 +11,7 @@ using Prism.Core.Diagnostics;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Synthesized;
-using Prism.Core.Utils;
+using Prism.Utils;
 
 namespace Prism.Core.FlowAnalysis;
 

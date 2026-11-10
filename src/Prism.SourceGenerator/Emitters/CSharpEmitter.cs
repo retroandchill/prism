@@ -539,7 +539,7 @@ public static class CSharpEmitter
             writer.WriteLine("using System.Collections.Immutable;");
             writer.WriteLine("using Prism.Core.Diagnostics;");
             writer.WriteLine("using Prism.Core.Syntax.Green;");
-            writer.WriteLine("using Prism.Core.Utils;");
+            writer.WriteLine("using Prism.Utils;");
             writer.WriteLine();
 
             writer.WriteLine("namespace Prism.Core.Syntax;");

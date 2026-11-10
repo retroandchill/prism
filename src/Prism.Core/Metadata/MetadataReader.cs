@@ -2,7 +2,7 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using Prism.Core.Semantic;
-using Prism.Core.Utils;
+using Prism.Utils;
 
 namespace Prism.Core.Metadata;
 

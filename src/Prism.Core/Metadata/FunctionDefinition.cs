@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Core.Abi;
 using Prism.Core.Symbols;
-using Prism.Core.Utils;
+using Prism.Utils;
 using Riok.Mapperly.Abstractions;
 using Riok.Mapperly.Abstractions.ReferenceHandling;
 
