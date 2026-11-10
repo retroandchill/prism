@@ -1,14 +1,6 @@
-﻿namespace Prism.Core.Symbols;
+﻿using Prism.Metadata;
 
-public enum NamedTypeKind : byte
-{
-    Class,
-    Interface,
-    Concept,
-    Enum,
-    Union,
-    Attribute,
-}
+namespace Prism.Core.Symbols;
 
 public closed class NamedTypeSymbol : TypeSymbol
 {

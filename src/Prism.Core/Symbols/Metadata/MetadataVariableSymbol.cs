@@ -4,10 +4,12 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
-using Prism.Core.Metadata;
 using Prism.Core.Semantic;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Metadata;
+using Prism.Syntax;
+using ConstantValue = Prism.Constants.ConstantValue;
+using VariableDefinition = Prism.Metadata.VariableDefinition;
 
 namespace Prism.Core.Symbols.Metadata;
 

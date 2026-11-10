@@ -1,0 +1,656 @@
+﻿{
+  "$schema": "./schema.json",
+  "version": 1,
+  "diagnostics": [
+    {
+      "name": "Syntax",
+      "diagnostics": [
+        {
+          "name": "ExpectedEOF",
+          "severity": "Error",
+          "format": "Expected EOF"
+        },
+        {
+          "name": "UnexpectedToken",
+          "severity": "Error",
+          "format": "Unexpected token {Token}",
+          "args": [
+            {
+              "name": "Token",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "UnexpectedEOF",
+          "severity": "Error",
+          "format": "Unexpected end of file"
+        },
+        {
+          "name": "UnexpectedEscape",
+          "severity": "Error",
+          "format": "Unexpected escape sequence: '{Sequence}'",
+          "args": [
+            {
+              "name": "Sequence",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "UnterminatedStringLiteral",
+          "severity": "Error",
+          "format": "Unterminated string literal"
+        },
+        {
+          "name": "UnterminatedCharacterLiteral",
+          "severity": "Error",
+          "format": "Unterminated character literal"
+        },
+        {
+          "name": "UnterminatedBlockComment",
+          "severity": "Error",
+          "format": "Unterminated block comment"
+        },
+        {
+          "name": "UsingAfterElements",
+          "severity": "Error",
+          "format": "Using directives must be the first member in a namespace"
+        }
+      ]
+    },
+    {
+      "name": "Semantic",
+      "diagnostics": [
+        {
+          "name": "UnresolvedSymbol",
+          "severity": "Error",
+          "format": "Unresolved symbol {Symbol}",
+          "args": [
+            {
+              "name": "Symbol",
+              "type": "Name"
+            }
+          ]
+        },
+        {
+          "name": "InvalidMemberDeclaration",
+          "severity": "Error",
+          "format": "Invalid member declaration: {Text}",
+          "args": [
+            {
+              "name": "Text",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "InvalidSymbol",
+          "severity": "Error",
+          "format": "Unexpected symbol {Symbol}, expected a {Expected}",
+          "args": [
+            {
+              "name": "Symbol",
+              "type": "Name"
+            },
+            {
+              "name": "Expected",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "ExpectedTypeSpecifier",
+          "severity": "Error",
+          "format": "Type specifier expected"
+        },
+        {
+          "name": "AmbiguousSymbol",
+          "severity": "Error",
+          "format": "Ambiguous symbol reference {Symbol}",
+          "args": [
+            {
+              "name": "Symbol",
+              "type": "Name"
+            }
+          ]
+        },
+        {
+          "name": "SymbolInaccessible",
+          "severity": "Error",
+          "format": "Symbol {Symbol} is inaccessible",
+          "args": [
+            {
+              "name": "Symbol",
+              "type": "Name"
+            }
+          ]
+        },
+        {
+          "name": "NoConversion",
+          "severity": "Error",
+          "format": "No conversion exists between type {FromType} and type {ToType}",
+          "args": [
+            {
+              "name": "FromType",
+              "type": "String"
+            },
+            {
+              "name": "ToType",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "ConversionIsExplicit",
+          "severity": "Error",
+          "format": "Conversion from {FromType} to type {ToType} is explicit",
+          "args": [
+            {
+              "name": "FromType",
+              "type": "String"
+            },
+            {
+              "name": "ToType",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "MultipleFileScopedNamespaces",
+          "severity": "Error",
+          "format": "Multiple file-scoped namespaces are not allowed"
+        },
+        {
+          "name": "FileScopedAndNormalNamespace",
+          "severity": "Error",
+          "format": "Cannot mix file-scoped and block-scoped namespaces"
+        },
+        {
+          "name": "FileScopedNamespaceNotBeforeAllMembers",
+          "severity": "Error",
+          "format": "File-scoped namespace must be declared before all other members"
+        },
+        {
+          "name": "BadModifiersOnNamespace",
+          "severity": "Error",
+          "format": "Namespaces cannot have modifiers"
+        },
+        {
+          "name": "LiteralValueTooBig",
+          "severity": "Error",
+          "format": "Literal value is too big for its type"
+        },
+        {
+          "name": "UnaryOperatorUndefined",
+          "severity": "Error",
+          "format": "Unary operator not defined for type {Type}",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "CannotAssignExpression",
+          "severity": "Error",
+          "format": "Cannot assign value to expression"
+        },
+        {
+          "name": "NoCompoundAssignmentOperator",
+          "severity": "Error",
+          "format": "No compound assignment operator defined for type {Type}",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "BinaryOperatorUndefined",
+          "severity": "Error",
+          "format": "Binary operator not defined for types {Type1} and {Type2}",
+          "args": [
+            {
+              "name": "Type1",
+              "type": "String"
+            },
+            {
+              "name": "Type2",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NoOverloadMatchingArgCount",
+          "severity": "Error",
+          "format": "No overload that accepts {ArgCount} arguments",
+          "args": [
+            {
+              "name": "ArgCount",
+              "type": "SizeT"
+            }
+          ]
+        },
+        {
+          "name": "NoOverloadForArgTypes",
+          "severity": "Error",
+          "format": "No overload for argument types {ArgTypes}",
+          "args": [
+            {
+              "name": "ArgTypes",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "AmbiguousOverloadDefined",
+          "severity": "Error",
+          "format": "Ambiguous overload for argument types {ArgTypes}",
+          "args": [
+            {
+              "name": "ArgTypes",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NoCallOperatorDefined",
+          "severity": "Error",
+          "format": "Type {Type} is not callable",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NoEntryPointDefined",
+          "severity": "Error",
+          "format": "No entry point defined"
+        },
+        {
+          "name": "AmbiguousEntryPoint",
+          "severity": "Error",
+          "format": "Ambiguous entry point, could be any of: {Names}",
+          "args": [
+            {
+              "name": "Names",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "InvalidEntryPointReturnType",
+          "severity": "Warning",
+          "format": "Return type {Type} will main function {Name} not usable as an entry point",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            },
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "InvalidEntryPointParameters",
+          "severity": "Warning",
+          "format": "Parameters ({Types}) will main function {Name} not usable as an entry point",
+          "args": [
+            {
+              "name": "Types",
+              "type": "String"
+            },
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "InvalidUseOfLabel",
+          "severity": "Error",
+          "format": "Labels may only be used on loops"
+        },
+        {
+          "name": "InvalidUseOfBreak",
+          "severity": "Error",
+          "format": "Break may only be used inside loops"
+        },
+        {
+          "name": "InvalidUseOfContinue",
+          "severity": "Error",
+          "format": "Continue may only be used inside loops"
+        },
+        {
+          "name": "CannotTakeAddress",
+          "severity": "Error",
+          "format": "Cannot take address of a temporary"
+        },
+        {
+          "name": "CannotTakeMutableAddress",
+          "severity": "Error",
+          "format": "Cannot take a mutable address of immutable variable {Name}",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NoMutableTemporaryRefs",
+          "severity": "Error",
+          "format": "Cannot take a mutable address of a temporary when passing to a function"
+        },
+        {
+          "name": "CannotDereference",
+          "severity": "Error",
+          "format": "Cannot dereference a non-reference type"
+        },
+        {
+          "name": "CannotDereferenceVariableLength",
+          "severity": "Error",
+          "format": "Cannot dereference a variable length type {Type}",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NoIndexOperation",
+          "severity": "Error",
+          "format": "Cannot perform index operation on {Type}",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "AllPathsMustReturnValue",
+          "severity": "Error",
+          "format": "All control paths must return a value"
+        },
+        {
+          "name": "StatementMustReturnValue",
+          "severity": "Error",
+          "format": "Function must return a value"
+        },
+        {
+          "name": "CannotReturnValue",
+          "severity": "Error",
+          "format": "Function does not return a value"
+        },
+        {
+          "name": "UnreachableCode",
+          "severity": "Error",
+          "format": "Unreachable code"
+        },
+        {
+          "name": "CannotReassign",
+          "severity": "Error",
+          "format": "Variable {Name} is not mutable, cannot be reassigned",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "ValueUninitialized",
+          "severity": "Error",
+          "format": "Variable '{Name}' is uninitialized",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NotInitializedOnAllPaths",
+          "severity": "Error",
+          "format": "Variable {Name} is not initialized on all paths",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "IncompatibleCollectionSizes",
+          "severity": "Error",
+          "format": "Cannot initialize an array of size {M} with a size of {N}",
+          "args": [
+            {
+              "name": "M",
+              "type": "UInt64"
+            },
+            {
+              "name": "N",
+              "type": "Int32"
+            }
+          ]
+        },
+        {
+          "name": "CannotInferType",
+          "severity": "Error",
+          "format": "Cannot infer type from expression"
+        },
+        {
+          "name": "CannotBeNull",
+          "severity": "Error",
+          "format": "Type {Type} cannot be null",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "MayBeNull",
+          "severity": "Error",
+          "format": "Value may be null"
+        },
+        {
+          "name": "DuplicateDeclaration",
+          "severity": "Error",
+          "format": "Duplicate declaration of '{Name}'",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "DefaultValueAfterNonDefaultValue",
+          "severity": "Error",
+          "format": "Parameter '{Name}' must specify a default value",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "CannotUseUndeclaredVariable",
+          "severity": "Error",
+          "format": "Cannot use variable '{Name}' before it is declared",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "LocalNameShadowing",
+          "severity": "Error",
+          "format": "Variable '{Name}' shadows a value from an outer scope",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "ExternFunctionWithBody",
+          "severity": "Error",
+          "format": "Extern function '{Name}' cannot have a body",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "FunctionWithoutBody",
+          "severity": "Error",
+          "format": "Function '{Name}' must either define a body or be marked 'extern'",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "DefaultParameterValueMustBeConstant",
+          "severity": "Error",
+          "format": "Default parameter value must be a constant"
+        },
+        {
+          "name": "NotConstantExpression",
+          "severity": "Error",
+          "format": "Default expression '{Expression}' does not evaluate to a constant",
+          "args": [
+            {
+              "name": "Expression",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "TypeIsNotAttribute",
+          "severity": "Error",
+          "format": "Type '{Type}' is not an attribute",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "InvalidNumberOfArgumentsForAttribute",
+          "severity": "Error",
+          "format": "Cannot create attribute '{Type}' with arguments of types {Arguments}",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            },
+            {
+              "name": "Arguments",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NonConstantAttributeArg",
+          "severity": "Error",
+          "format": "Argument '{Name}' for attribute '{Type}' is not a constant",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            },
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "TypeHasNoSize",
+          "severity": "Error",
+          "format": "Type '{Type}' has no size",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "StaticAccessThroughInstance",
+          "severity": "Error",
+          "format": "Cannot access static member '{Member}' through instance of type '{Type}'",
+          "args": [
+            {
+              "name": "Member",
+              "type": "String"
+            },
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "NoSuchMember",
+          "severity": "Error",
+          "format": "No such member '{Member}' in type '{Type}'",
+          "args": [
+            {
+              "name": "Member",
+              "type": "String"
+            },
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "InvalidThisAccess",
+          "severity": "Error",
+          "format": "Cannot access 'this' in a static context"
+        }
+      ]
+    },
+    {
+      "name": "CodeGen",
+      "diagnostics": [
+        {
+          "name": "ExternalDiagnostic",
+          "severity": "Info",
+          "format": "An external diagnostic occurred: {Message}",
+          "args": [
+            {
+              "name": "Message",
+              "type": "String"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

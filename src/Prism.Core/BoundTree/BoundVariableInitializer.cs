@@ -4,6 +4,7 @@ using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Diagnostics;
 using Prism.Utils;
+using ConstantValue = Prism.Constants.ConstantValue;
 
 namespace Prism.Core.BoundTree;
 

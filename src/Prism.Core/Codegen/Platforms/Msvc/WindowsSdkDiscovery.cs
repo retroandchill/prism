@@ -5,6 +5,7 @@
 
 using System.Runtime.InteropServices;
 using Prism.Core.Configuration;
+using Prism.Metadata;
 
 namespace Prism.Core.Codegen.Platforms.Msvc;
 

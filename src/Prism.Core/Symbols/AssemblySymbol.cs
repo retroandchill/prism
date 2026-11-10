@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using Prism.Core.Metadata;
 using Prism.Core.References;
 using Prism.Metadata;
 

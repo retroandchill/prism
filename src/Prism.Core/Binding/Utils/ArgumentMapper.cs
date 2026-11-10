@@ -3,7 +3,7 @@ using Prism.Core.Binding.OverloadResolution;
 using Prism.Core.BoundTree;
 using Prism.Core.Compiling;
 using Prism.Core.Symbols;
-using Prism.Core.Syntax;
+using Prism.Syntax;
 using ZLinq;
 
 namespace Prism.Core.Binding.Utils;

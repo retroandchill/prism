@@ -1,0 +1,800 @@
+﻿// @file IntegerConstant.cs
+//
+// @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+using System.Buffers;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using MagicArchive;
+
+namespace Prism.Constants;
+
+public enum IntegerWidth : byte
+{
+    W8,
+    W16,
+    W32,
+    W64,
+    W128,
+}
+
+public enum IntegerSign : byte
+{
+    Unsigned,
+    Signed,
+}
+
+[Archivable]
+public readonly partial record struct IntegerKind
+{
+    [ArchiveInclude]
+    private readonly byte _value;
+
+    internal const byte WidthMask = 0b0000_0111;
+    internal const byte SignMask = 0b0000_1000;
+    internal const byte SignShift = 3;
+
+    public static IntegerKind I8 => Create(IntegerWidth.W8, IntegerSign.Signed);
+    public static IntegerKind I16 => Create(IntegerWidth.W16, IntegerSign.Signed);
+    public static IntegerKind I32 => Create(IntegerWidth.W32, IntegerSign.Signed);
+    public static IntegerKind I64 => Create(IntegerWidth.W64, IntegerSign.Signed);
+    public static IntegerKind I128 => Create(IntegerWidth.W128, IntegerSign.Signed);
+
+    public static IntegerKind U8 => Create(IntegerWidth.W8, IntegerSign.Signed);
+    public static IntegerKind U16 => Create(IntegerWidth.W16, IntegerSign.Unsigned);
+    public static IntegerKind U32 => Create(IntegerWidth.W32, IntegerSign.Unsigned);
+    public static IntegerKind U64 => Create(IntegerWidth.W64, IntegerSign.Unsigned);
+    public static IntegerKind U128 => Create(IntegerWidth.W128, IntegerSign.Unsigned);
+
+    private IntegerKind(byte value)
+    {
+        _value = value;
+    }
+
+    public static IntegerKind Create(IntegerWidth width, IntegerSign sign)
+    {
+        return new IntegerKind((byte)((byte)width | (byte)((byte)sign << SignShift)));
+    }
+
+    internal static IntegerKind FromRaw(byte value) => new(value);
+
+    internal byte ToRaw() => _value;
+
+    [ArchiveIgnore]
+    public IntegerWidth Width => (IntegerWidth)(_value & WidthMask);
+
+    [ArchiveIgnore]
+    public IntegerSign Sign => (IntegerSign)((_value & SignMask) >> SignShift);
+
+    public static IntegerKind? TryFindCommon(IntegerKind left, IntegerKind right)
+    {
+        // Unlike the semantic rules, we don't auto promote small integers to 32 bits, instead we find the smallest
+        // value that will take them.
+        // Ideally this will be called with the two inputs already converted to the same type by the binder, but
+        // for the sake of correctness, we'll also handle the case where they're not.
+        if (left.Sign == right.Sign)
+        {
+            return left.Width > right.Width ? left : right;
+        }
+
+        var largerWidth = left.Width > right.Width ? left.Width : right.Width;
+        if (largerWidth == IntegerWidth.W128)
+            return null;
+
+        return Create(largerWidth + 1, IntegerSign.Signed);
+    }
+}
+
+[Archivable(GenerateType.Custom)]
+[Union]
+public readonly partial record struct IntegerConstant : IUnion
+{
+    internal IntegerKind Kind { get; }
+    internal UInt128 RawValue { get; }
+
+    private IntegerConstant(IntegerKind kind, UInt128 value)
+    {
+        Kind = kind;
+        RawValue = value;
+    }
+
+    internal static IntegerConstant From(IntegerKind kind, UInt128 value) => new(kind, value);
+
+    public IntegerConstant(sbyte value)
+    {
+        Kind = IntegerKind.Create(IntegerWidth.W8, IntegerSign.Signed);
+        RawValue = unchecked((byte)value);
+    }
+
+    public IntegerConstant(byte value)
+    {
+        Kind = IntegerKind.Create(IntegerWidth.W8, IntegerSign.Unsigned);
+        RawValue = value;
+    }
+
+    public IntegerConstant(short value)
+    {
+        Kind = IntegerKind.Create(IntegerWidth.W16, IntegerSign.Signed);
+        RawValue = unchecked((ushort)value);
+    }
+
+    public IntegerConstant(ushort value)
+    {
+        Kind = IntegerKind.Create(IntegerWidth.W16, IntegerSign.Unsigned);
+        RawValue = value;
+    }
+
+    public IntegerConstant(int value)
+    {
+        Kind = IntegerKind.Create(IntegerWidth.W32, IntegerSign.Signed);
+        RawValue = unchecked((uint)value);
+    }
+
+    public IntegerConstant(uint value)
+    {
+        Kind = IntegerKind.Create(IntegerWidth.W32, IntegerSign.Unsigned);
+        RawValue = value;
+    }
+
+    public IntegerConstant(long value)
+    {
+        Kind = IntegerKind.Create(IntegerWidth.W64, IntegerSign.Signed);
+        RawValue = unchecked((ulong)value);
+    }
+
+    public IntegerConstant(ulong value)
+    {
+        Kind = IntegerKind.Create(IntegerWidth.W64, IntegerSign.Unsigned);
+        RawValue = value;
+    }
+
+    public IntegerConstant(Int128 value)
+    {
+        Kind = IntegerKind.Create(IntegerWidth.W128, IntegerSign.Signed);
+        RawValue = unchecked((UInt128)value);
+    }
+
+    public IntegerConstant(UInt128 value)
+    {
+        Kind = IntegerKind.Create(IntegerWidth.W128, IntegerSign.Unsigned);
+        RawValue = value;
+    }
+
+    public bool IsNegative
+    {
+        get
+        {
+            if (Kind.Sign != IntegerSign.Signed)
+                return false;
+
+            var signBit = GetSignBit(Kind.Width);
+            return (RawValue & signBit) != 0;
+        }
+    }
+
+    public bool IsSigned => Kind.Sign == IntegerSign.Signed;
+
+    public bool IsUnsigned => Kind.Sign == IntegerSign.Unsigned;
+
+    public object Value
+    {
+        get
+        {
+            return Kind.Sign switch
+            {
+                IntegerSign.Unsigned => Kind.Width switch
+                {
+                    IntegerWidth.W8 => (byte)RawValue,
+                    IntegerWidth.W16 => (ushort)RawValue,
+                    IntegerWidth.W32 => (uint)RawValue,
+                    IntegerWidth.W64 => (ulong)RawValue,
+                    IntegerWidth.W128 => RawValue,
+                    _ => throw new ArgumentOutOfRangeException(),
+                },
+                IntegerSign.Signed => Kind.Width switch
+                {
+                    IntegerWidth.W8 => unchecked((sbyte)(byte)RawValue),
+                    IntegerWidth.W16 => unchecked((short)(ushort)RawValue),
+                    IntegerWidth.W32 => unchecked((int)(uint)RawValue),
+                    IntegerWidth.W64 => unchecked((long)(ulong)RawValue),
+                    IntegerWidth.W128 => unchecked((Int128)RawValue),
+                    _ => throw new ArgumentOutOfRangeException(),
+                },
+                _ => throw new InvalidOperationException("Invalid sign"),
+            };
+        }
+    }
+
+    public bool TryGetValue(out sbyte value)
+    {
+        if (Kind is { Sign: IntegerSign.Signed, Width: IntegerWidth.W8 })
+        {
+            value = unchecked((sbyte)(byte)RawValue);
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    public bool TryGetValue(out byte value)
+    {
+        if (Kind is { Sign: IntegerSign.Unsigned, Width: IntegerWidth.W8 })
+        {
+            value = unchecked((byte)RawValue);
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    public bool TryGetValue(out short value)
+    {
+        if (Kind is { Sign: IntegerSign.Signed, Width: IntegerWidth.W16 })
+        {
+            value = unchecked((short)(ushort)RawValue);
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    public bool TryGetValue(out ushort value)
+    {
+        if (Kind is { Sign: IntegerSign.Unsigned, Width: IntegerWidth.W16 })
+        {
+            value = unchecked((ushort)RawValue);
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    public bool TryGetValue(out int value)
+    {
+        if (Kind is { Sign: IntegerSign.Signed, Width: IntegerWidth.W32 })
+        {
+            value = unchecked((int)(uint)RawValue);
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    public bool TryGetValue(out uint value)
+    {
+        if (Kind is { Sign: IntegerSign.Unsigned, Width: IntegerWidth.W32 })
+        {
+            value = unchecked((uint)RawValue);
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    public bool TryGetValue(out long value)
+    {
+        if (Kind is { Sign: IntegerSign.Signed, Width: IntegerWidth.W64 })
+        {
+            value = unchecked((long)(ulong)RawValue);
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    public bool TryGetValue(out ulong value)
+    {
+        if (Kind is { Sign: IntegerSign.Unsigned, Width: IntegerWidth.W64 })
+        {
+            value = unchecked((ulong)RawValue);
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    public bool TryGetValue(out Int128 value)
+    {
+        if (Kind is { Sign: IntegerSign.Signed, Width: IntegerWidth.W128 })
+        {
+            value = unchecked((Int128)RawValue);
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    public bool TryGetValue(out UInt128 value)
+    {
+        if (Kind is { Sign: IntegerSign.Unsigned, Width: IntegerWidth.W128 })
+        {
+            value = RawValue;
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    private static UInt128 Truncate(IntegerWidth width, UInt128 value)
+    {
+        return width switch
+        {
+            IntegerWidth.W8 => value & byte.MaxValue,
+            IntegerWidth.W16 => value & ushort.MaxValue,
+            IntegerWidth.W32 => value & uint.MaxValue,
+            IntegerWidth.W64 => value & ulong.MaxValue,
+            IntegerWidth.W128 => value,
+            _ => throw new ArgumentOutOfRangeException(nameof(width), width, null),
+        };
+    }
+
+    public IntegerConstant? TryNegate()
+    {
+        IntegerWidth width;
+        switch (Kind.Sign)
+        {
+            case IntegerSign.Unsigned:
+                if (Kind.Width == IntegerWidth.W128)
+                    return null;
+
+                width = Kind.Width + 1;
+                break;
+            case IntegerSign.Signed:
+                width = Kind.Width;
+                break;
+            default:
+                throw new InvalidOperationException("Unknown sign");
+        }
+
+        return new IntegerConstant(
+            IntegerKind.Create(width, IntegerSign.Signed),
+            Truncate(width, unchecked(~RawValue + 1))
+        );
+    }
+
+    public static IntegerConstant operator ~(IntegerConstant value)
+    {
+        return new IntegerConstant(value.Kind, Truncate(value.Kind.Width, ~value.RawValue));
+    }
+
+    public IntegerConstant? TryAdd(IntegerConstant other)
+    {
+        return TryBinary(other, static (a, b) => a + b);
+    }
+
+    public IntegerConstant? TrySubtract(IntegerConstant other)
+    {
+        return TryBinary(other, static (a, b) => a - b);
+    }
+
+    public IntegerConstant? TryMultiply(IntegerConstant other)
+    {
+        return TryBinary(other, static (a, b) => a * b);
+    }
+
+    public IntegerConstant? TryDivide(IntegerConstant other)
+    {
+        return TryBinary(other, static (a, b) => a / b);
+    }
+
+    public IntegerConstant? TryMod(IntegerConstant other)
+    {
+        return TryBinary(other, static (a, b) => a % b);
+    }
+
+    public IntegerConstant? TryBitwiseAnd(IntegerConstant other)
+    {
+        return TryBinary(other, static (a, b) => a & b);
+    }
+
+    public IntegerConstant? TryBitwiseOr(IntegerConstant other)
+    {
+        return TryBinary(other, static (a, b) => a | b);
+    }
+
+    public IntegerConstant? TryBitwiseXor(IntegerConstant other)
+    {
+        return TryBinary(other, static (a, b) => a ^ b);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private IntegerConstant? TryBinary(
+        IntegerConstant other,
+        Func<UInt128, UInt128, UInt128> operation
+    )
+    {
+        if (IntegerKind.TryFindCommon(Kind, other.Kind) is not { } commonKind)
+            return null;
+
+        var commonThis = ConvertTo(commonKind);
+        var commonOther = other.ConvertTo(commonKind);
+
+        var result = operation(commonThis.RawValue, commonOther.RawValue);
+        return new IntegerConstant(commonKind, Truncate(commonKind.Width, result));
+    }
+
+    public IntegerConstant? TryShiftLeft(IntegerConstant other)
+    {
+        var shift = TryGetShiftAmount(other);
+        if (shift is null)
+            return null;
+
+        var bitWidth = GetBitWidth(Kind.Width);
+        if (shift.Value >= bitWidth)
+        {
+            return new IntegerConstant(Kind, 0);
+        }
+
+        var result = Truncate(Kind.Width, RawValue << shift.Value);
+        return new IntegerConstant(Kind, result);
+    }
+
+    public IntegerConstant? TryShiftRight(IntegerConstant other)
+    {
+        var shift = TryGetShiftAmount(other);
+        if (shift is null)
+            return null;
+
+        var width = GetBitWidth(Kind.Width);
+        if (shift.Value >= width)
+        {
+            if (Kind.Sign == IntegerSign.Signed && IsNegative)
+            {
+                return new IntegerConstant(Kind, GetAllBitsSet(Kind.Width));
+            }
+
+            return new IntegerConstant(Kind, 0);
+        }
+
+        var result = Kind.Sign switch
+        {
+            IntegerSign.Signed => ArithmeticShiftRight(shift.Value),
+            IntegerSign.Unsigned => RawValue >> shift.Value,
+            _ => throw new InvalidOperationException("Unknown sign"),
+        };
+
+        return new IntegerConstant(Kind, Truncate(Kind.Width, result));
+    }
+
+    public IntegerConstant? TryUnsignedShiftRight(IntegerConstant other)
+    {
+        var shift = TryGetShiftAmount(other);
+        if (shift is null)
+            return null;
+
+        var width = GetBitWidth(Kind.Width);
+        return shift.Value >= width
+            ? new IntegerConstant(Kind, 0)
+            : new IntegerConstant(Kind, Truncate(Kind.Width, RawValue >> shift.Value));
+    }
+
+    private UInt128 ArithmeticShiftRight(int shift)
+    {
+        return Kind.Width switch
+        {
+            IntegerWidth.W8 => unchecked((byte)((sbyte)(byte)RawValue >> shift)),
+            IntegerWidth.W16 => unchecked((ushort)((short)(ushort)RawValue >> shift)),
+            IntegerWidth.W32 => unchecked((uint)((int)(uint)RawValue >> shift)),
+            IntegerWidth.W64 => unchecked((ulong)((long)(ulong)RawValue >> shift)),
+            IntegerWidth.W128 => unchecked((UInt128)((Int128)RawValue >> shift)),
+            _ => throw new InvalidOperationException("Invalid integer width"),
+        };
+    }
+
+    private static UInt128 GetAllBitsSet(IntegerWidth width)
+    {
+        return width switch
+        {
+            IntegerWidth.W8 => byte.MaxValue,
+            IntegerWidth.W16 => ushort.MaxValue,
+            IntegerWidth.W32 => uint.MaxValue,
+            IntegerWidth.W64 => ulong.MaxValue,
+            IntegerWidth.W128 => UInt128.MaxValue,
+            _ => throw new ArgumentOutOfRangeException(nameof(width), width, null),
+        };
+    }
+
+    private static int? TryGetShiftAmount(IntegerConstant value)
+    {
+        return value switch
+        {
+            sbyte b => b >= 0 ? b : null,
+            byte b => b,
+            short s => s >= 0 ? s : null,
+            ushort s => s,
+            int i => i >= 0 ? i : null,
+            uint i => i <= int.MaxValue ? (int)i : null,
+            long l => l is >= 0 and <= int.MaxValue ? (int)l : null,
+            ulong l => l <= int.MaxValue ? (int)l : null,
+            Int128 v => v >= 0 && v <= int.MaxValue ? (int)v : null,
+            UInt128 v => v <= int.MaxValue ? (int)v : null,
+        };
+    }
+
+    private static int GetBitWidth(IntegerWidth width)
+    {
+        return width switch
+        {
+            IntegerWidth.W8 => 8,
+            IntegerWidth.W16 => 16,
+            IntegerWidth.W32 => 32,
+            IntegerWidth.W64 => 64,
+            IntegerWidth.W128 => 128,
+            _ => throw new ArgumentOutOfRangeException(nameof(width), width, null),
+        };
+    }
+
+    public bool? TryEqual(IntegerConstant other)
+    {
+        return TryCompare(other, ComparisonOperation.Equal);
+    }
+
+    public bool? TryNotEqual(IntegerConstant other)
+    {
+        return TryCompare(other, ComparisonOperation.NotEqual);
+    }
+
+    public bool? TryLessThan(IntegerConstant other)
+    {
+        return TryCompare(other, ComparisonOperation.LessThan);
+    }
+
+    public bool? TryLessThanOrEqual(IntegerConstant other)
+    {
+        return TryCompare(other, ComparisonOperation.LessThanOrEqual);
+    }
+
+    public bool? TryGreaterThan(IntegerConstant other)
+    {
+        return TryCompare(other, ComparisonOperation.GreaterThan);
+    }
+
+    public bool? TryGreaterThanOrEqual(IntegerConstant other)
+    {
+        return TryCompare(other, ComparisonOperation.GreaterThanOrEqual);
+    }
+
+    private bool? TryCompare(IntegerConstant other, ComparisonOperation operation)
+    {
+        if (IntegerKind.TryFindCommon(Kind, other.Kind) is not { } commonKind)
+            return null;
+
+        var commonThis = ConvertTo(commonKind);
+        var commonOther = other.ConvertTo(commonKind);
+
+        return commonKind.Sign switch
+        {
+            IntegerSign.Unsigned => ComparisonHelpers.CompareValues(
+                commonThis.RawValue,
+                commonOther.RawValue,
+                operation
+            ),
+            IntegerSign.Signed => ComparisonHelpers.CompareValues(
+                commonThis.GetSignedValue(),
+                commonOther.GetSignedValue(),
+                operation
+            ),
+            _ => throw new InvalidOperationException("Invalid integer sign"),
+        };
+    }
+
+    private Int128 GetSignedValue()
+    {
+        return Kind.Width switch
+        {
+            IntegerWidth.W8 => unchecked((sbyte)(byte)RawValue),
+            IntegerWidth.W16 => unchecked((short)(ushort)RawValue),
+            IntegerWidth.W32 => unchecked((int)(uint)RawValue),
+            IntegerWidth.W64 => unchecked((long)(ulong)RawValue),
+            IntegerWidth.W128 => unchecked((Int128)RawValue),
+            _ => throw new ArgumentOutOfRangeException(nameof(Kind.Width), Kind.Width, null),
+        };
+    }
+
+    public IntegerConstant ConvertTo(IntegerKind kind)
+    {
+        if (Kind == kind)
+            return this;
+
+        return kind.Sign switch
+        {
+            IntegerSign.Unsigned => new IntegerConstant(kind, Truncate(kind.Width, RawValue)),
+            IntegerSign.Signed => SignedConvert(kind),
+            _ => throw new InvalidOperationException("Unknown sign"),
+        };
+    }
+
+    public FloatConstant ConvertTo(FloatKind kind)
+    {
+        return kind switch
+        {
+            FloatKind.F32 => ConvertToFloating<float>(),
+            FloatKind.F64 => ConvertToFloating<double>(),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+    }
+
+    private TFloat ConvertToFloating<TFloat>()
+        where TFloat : IFloatingPointIeee754<TFloat>
+    {
+        return (Kind.Sign, Kind.Width) switch
+        {
+            (IntegerSign.Signed, IntegerWidth.W8) => TFloat.CreateTruncating(
+                unchecked((sbyte)(byte)RawValue)
+            ),
+            (IntegerSign.Signed, IntegerWidth.W16) => TFloat.CreateTruncating(
+                unchecked((short)(ushort)RawValue)
+            ),
+            (IntegerSign.Signed, IntegerWidth.W32) => TFloat.CreateTruncating(
+                unchecked((int)(uint)RawValue)
+            ),
+            (IntegerSign.Signed, IntegerWidth.W64) => TFloat.CreateTruncating(
+                unchecked((long)(ulong)RawValue)
+            ),
+            (IntegerSign.Signed, IntegerWidth.W128) => TFloat.CreateTruncating(
+                unchecked((Int128)RawValue)
+            ),
+
+            (IntegerSign.Unsigned, IntegerWidth.W8) => TFloat.CreateTruncating((byte)RawValue),
+            (IntegerSign.Unsigned, IntegerWidth.W16) => TFloat.CreateTruncating((ushort)RawValue),
+            (IntegerSign.Unsigned, IntegerWidth.W32) => TFloat.CreateTruncating((uint)RawValue),
+            (IntegerSign.Unsigned, IntegerWidth.W64) => TFloat.CreateTruncating((ulong)RawValue),
+            (IntegerSign.Unsigned, IntegerWidth.W128) => TFloat.CreateTruncating(RawValue),
+
+            _ => throw new InvalidOperationException("Unknown integer kind"),
+        };
+    }
+
+    private IntegerConstant SignedConvert(IntegerKind kind)
+    {
+        if (Kind.Width > kind.Width)
+        {
+            return new IntegerConstant(kind, Truncate(kind.Width, RawValue));
+        }
+
+        return Kind.Sign switch
+        {
+            IntegerSign.Unsigned => new IntegerConstant(kind, Truncate(kind.Width, RawValue)),
+            IntegerSign.Signed => new IntegerConstant(kind, ComputeSignExtendedValue(kind.Width)),
+            _ => throw new InvalidOperationException("Unknown sign"),
+        };
+    }
+
+    private UInt128 ComputeSignExtendedValue(IntegerWidth width)
+    {
+        if (!IsNegative)
+        {
+            return RawValue;
+        }
+
+        var mask = ~GetSignExtendMask(Kind.Width);
+        return Truncate(width, RawValue | mask);
+    }
+
+    private static UInt128 GetSignExtendMask(IntegerWidth width)
+    {
+        return width switch
+        {
+            IntegerWidth.W8 => byte.MaxValue,
+            IntegerWidth.W16 => ushort.MaxValue,
+            IntegerWidth.W32 => uint.MaxValue,
+            IntegerWidth.W64 => ulong.MaxValue,
+            IntegerWidth.W128 => UInt128.MaxValue,
+            _ => throw new ArgumentOutOfRangeException(nameof(width), width, null),
+        };
+    }
+
+    private static UInt128 GetSignBit(IntegerWidth width)
+    {
+        return width switch
+        {
+            IntegerWidth.W8 => (UInt128)1 << 7,
+            IntegerWidth.W16 => (UInt128)1 << 15,
+            IntegerWidth.W32 => (UInt128)1 << 31,
+            IntegerWidth.W64 => (UInt128)1 << 63,
+            IntegerWidth.W128 => (UInt128)1 << 127,
+            _ => throw new ArgumentOutOfRangeException(nameof(width), width, null),
+        };
+    }
+
+    static void IArchivable<IntegerConstant>.Serialize<TBufferWriter>(
+        ref ArchiveWriter<TBufferWriter> writer,
+        scoped in IntegerConstant value
+    )
+    {
+        SerializeWithHeader(ref writer, value.Kind, value.RawValue);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void SerializeWithHeader<TBufferWriter>(
+        ref ArchiveWriter<TBufferWriter> writer,
+        IntegerKind kind,
+        UInt128 value
+    )
+        where TBufferWriter : IBufferWriter<byte>
+    {
+        SerializeWithHeader(ref writer, kind.ToRaw(), kind, value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void SerializeWithHeader<TBufferWriter>(
+        ref ArchiveWriter<TBufferWriter> writer,
+        byte header,
+        IntegerKind kind,
+        UInt128 value
+    )
+        where TBufferWriter : IBufferWriter<byte>
+    {
+        switch (kind.Width)
+        {
+            case IntegerWidth.W8:
+                writer.WriteBlittable(header, unchecked((byte)value));
+                break;
+            case IntegerWidth.W16:
+                writer.WriteBlittable(header, unchecked((ushort)value));
+                break;
+            case IntegerWidth.W32:
+                writer.WriteBlittable(header, unchecked((uint)value));
+                break;
+            case IntegerWidth.W64:
+                writer.WriteBlittable(header, unchecked((ulong)value));
+                break;
+            case IntegerWidth.W128:
+                writer.WriteBlittable(header, value);
+                break;
+            default:
+                throw new ArchiveSerializationException("Unknown integer width");
+        }
+    }
+
+    static void IArchivable<IntegerConstant>.Deserialize(
+        ref ArchiveReader reader,
+        scoped ref IntegerConstant value
+    )
+    {
+        var header = reader.ReadBlittable<IntegerKind>();
+        value = new IntegerConstant(header, ReadValue(ref reader, header));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static UInt128 ReadValue(ref ArchiveReader reader, IntegerKind kind)
+    {
+        return kind.Width switch
+        {
+            IntegerWidth.W8 => reader.ReadBlittable<byte>(),
+            IntegerWidth.W16 => reader.ReadBlittable<ushort>(),
+            IntegerWidth.W32 => reader.ReadBlittable<uint>(),
+            IntegerWidth.W64 => reader.ReadBlittable<ulong>(),
+            IntegerWidth.W128 => reader.ReadBlittable<UInt128>(),
+            _ => throw new ArchiveSerializationException("Unknown integer width"),
+        };
+    }
+
+    public override string ToString()
+    {
+        return this switch
+        {
+            sbyte v => v.ToString(),
+            byte v => v.ToString(),
+            short v => v.ToString(),
+            ushort v => v.ToString(),
+            int v => v.ToString(),
+            uint v => v.ToString(),
+            long v => v.ToString(),
+            ulong v => v.ToString(),
+            Int128 v => v.ToString(),
+            UInt128 v => v.ToString(),
+        };
+    }
+}

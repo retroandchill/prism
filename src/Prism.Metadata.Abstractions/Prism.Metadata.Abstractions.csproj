@@ -9,7 +9,13 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="Prism.Core" />
+        <InternalsVisibleTo Include="Prism.Metadata" />
+    </ItemGroup>
+
+    <ItemGroup>
       <PackageReference Include="MagicArchive" />
+      <PackageReference Include="NetEscapades.EnumGenerators" />
       <PackageReference Include="ZString" />
     </ItemGroup>
 

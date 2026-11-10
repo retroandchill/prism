@@ -1,13 +1,17 @@
 ﻿using System.Collections.Immutable;
+using Prism.Constants;
+using Prism.Core.Binding;
 using Prism.Core.Binding.OverloadResolution;
 using Prism.Core.Compiling;
 using Prism.Core.Configuration;
-using Prism.Core.Constants;
+using Prism.Core.Mappers;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Error;
 using Prism.Core.Symbols.Intermediate;
-using Prism.Core.Syntax;
+using Prism.Metadata;
+using Prism.Syntax;
+using ConstantValue = Prism.Constants.ConstantValue;
 
 namespace Prism.Core.BoundTree;
 
@@ -233,9 +237,9 @@ internal sealed record BoundUnaryOperation : BoundExpression
         return Operation switch
         {
             UnaryOperation.Identity => Operand.ConstantValue,
-            UnaryOperation.Negation => Operand.ConstantValue?.TryNegate(Compilation.Settings),
+            UnaryOperation.Negation => Operand.ConstantValue?.TryNegate(),
             UnaryOperation.LogicalNot => Operand.ConstantValue?.TryLogicalNot(),
-            UnaryOperation.BitwiseNot => Operand.ConstantValue?.TryBitwiseNot(Compilation.Settings),
+            UnaryOperation.BitwiseNot => Operand.ConstantValue?.TryBitwiseNot(),
             _ => null,
         };
     }
@@ -267,7 +271,7 @@ internal sealed record BoundBinaryOperation : BoundExpression
         if (Left.ConstantValue is not { } leftConst || Right.ConstantValue is not { } rightConst)
             return null;
 
-        return leftConst.TryBinary(Operation, in rightConst, Compilation.Settings);
+        return leftConst.TryBinary(Operation.ToConstantOperation(), in rightConst);
     }
 }
 

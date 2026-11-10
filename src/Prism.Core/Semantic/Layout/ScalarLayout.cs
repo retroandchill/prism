@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Prism.Core.Configuration;
+using Prism.Metadata;
 
 namespace Prism.Core.Semantic.Layout;
 

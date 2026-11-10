@@ -5,7 +5,7 @@
 
 using Prism.Core.Compiling;
 using Prism.Core.Configuration;
-using Prism.Core.Syntax;
+using Prism.Syntax;
 
 namespace Prism.Core.Tests;
 

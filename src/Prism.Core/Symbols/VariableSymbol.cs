@@ -1,15 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Prism.Core.Semantic;
+using Prism.Metadata;
+using ConstantValue = Prism.Constants.ConstantValue;
 
 namespace Prism.Core.Symbols;
-
-public enum VariableKind : byte
-{
-    Global,
-    Class,
-    Instance,
-    Local,
-}
 
 public closed class VariableSymbol : ValueSymbol
 {

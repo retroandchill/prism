@@ -52,15 +52,6 @@ public class StructuredNodesSourceGenerator : IIncrementalGenerator
 
         writer.EmitGreenTokenReplacer(csharpModel);
         WriteCode(writer, "TokenReplacer.g.cs", context);
-
-        writer.EmitDiagnosticCodes(csharpModel);
-        WriteCode(writer, "DiagnosticCode.g.cs", context);
-
-        writer.EmitDiagnosticDescriptors(csharpModel);
-        WriteCode(writer, "DiagnosticDescriptors.g.cs", context);
-
-        writer.EmitDiagnosticFactories(csharpModel);
-        WriteCode(writer, "DiagnosticExtensions.g.cs", context);
     }
 
     private static void WriteCode(CodeWriter writer, string name, SourceProductionContext context)

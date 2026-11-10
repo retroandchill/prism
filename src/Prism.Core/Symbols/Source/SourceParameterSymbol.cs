@@ -5,11 +5,12 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using Prism.Constants;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Semantic;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Syntax;
 
 namespace Prism.Core.Symbols.Source;
 

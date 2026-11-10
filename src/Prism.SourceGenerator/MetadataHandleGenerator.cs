@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Prism.Core.Metadata;
+using Prism.Metadata;
 using Prism.SourceGenerator.Models.Attributes;
 using ZLinq;
 
@@ -69,7 +69,7 @@ public sealed class MetadataHandleGenerator : IIncrementalGenerator
         writer.WriteLine("using System.Diagnostics;");
         writer.WriteLine("using System.Runtime.CompilerServices;");
         writer.WriteLine();
-        writer.WriteLine("namespace Prism.Core.Metadata;");
+        writer.WriteLine("namespace Prism.Metadata;");
     }
 
     private static void GenerateSingleHandleRecord(CodeWriter writer, string name)

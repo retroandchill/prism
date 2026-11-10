@@ -4,9 +4,9 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Numerics;
-using Prism.Core.Parser;
-using Prism.Core.Syntax;
-using Prism.Core.Syntax.Green;
+using Prism.Syntax;
+using Prism.Syntax.Green;
+using Prism.Syntax.Parser;
 
 namespace Prism.Core.Tests;
 
@@ -18,6 +18,7 @@ public sealed class ParserTests
         var parser = new LanguageParser("var value: i32 = 5;");
         var declaration = parser.ParseTopLevelDeclaration();
 
+        Assert.That(declaration, Is.Not.Null);
         Assert.That(declaration.ContainsDiagnostics, Is.False);
         Assert.That(declaration is GreenVariableDeclaration, Is.True);
 

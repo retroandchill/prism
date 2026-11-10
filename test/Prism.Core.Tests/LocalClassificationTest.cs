@@ -3,7 +3,7 @@ using Prism.Core.Codegen.Mir;
 using Prism.Core.Compiling;
 using Prism.Core.Mir.Analysis;
 using Prism.Core.Symbols;
-using Prism.Core.Syntax;
+using Prism.Syntax;
 
 namespace Prism.Core.Tests;
 

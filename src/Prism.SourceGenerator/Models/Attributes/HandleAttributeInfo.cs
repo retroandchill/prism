@@ -5,7 +5,7 @@
 
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
-using Prism.Core.Metadata;
+using Prism.Metadata;
 using Retro.SourceGeneratorUtilities.Utilities.Attributes;
 
 namespace Prism.SourceGenerator.Models.Attributes;

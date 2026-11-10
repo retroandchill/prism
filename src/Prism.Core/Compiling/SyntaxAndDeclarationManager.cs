@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 using Prism.Core.Declarations;
-using Prism.Core.Syntax;
+using Prism.Syntax;
 using Prism.Text;
 
 namespace Prism.Core.Compiling;

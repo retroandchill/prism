@@ -4,7 +4,7 @@ using Prism.Build.Manifest;
 using Prism.Core.Codegen;
 using Prism.Core.Compiling;
 using Prism.Core.Configuration;
-using Prism.Core.Syntax;
+using Prism.Syntax;
 using Tomlyn;
 using ZLinq;
 

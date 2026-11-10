@@ -1,5 +1,6 @@
 ﻿using Prism.Core.Compiling;
 using Prism.Core.Semantic;
+using Prism.Metadata;
 using ZLinq;
 
 namespace Prism.Core.Symbols;

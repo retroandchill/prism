@@ -5,12 +5,13 @@
 
 using System.Collections.Frozen;
 using System.Collections.Immutable;
-using Prism.Core.Metadata;
 using Prism.Core.Semantic;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Metadata;
+using Prism.Syntax;
 using Prism.Utils;
 using ZLinq;
+using TypeDefinition = Prism.Metadata.TypeDefinition;
 
 namespace Prism.Core.Symbols.Metadata;
 

@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net11.0</TargetFramework>
+        <LangVersion>preview</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Prism.Core.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Prism.Diagnostics\Prism.Diagnostics.csproj" />
+      <ProjectReference Include="..\Prism.Text\Prism.Text.csproj" />
+        <ProjectReference
+                Include="..\Prism.SourceGenerator\Prism.SourceGenerator.csproj"
+                OutputItemType="Analyzer"
+                ReferenceOutputAssembly="false"
+        />
+        <ProjectReference Include="..\Prism.Utils\Prism.Utils.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="nodes.json" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Nito.Collections.Deque" />
+    </ItemGroup>
+
+</Project>

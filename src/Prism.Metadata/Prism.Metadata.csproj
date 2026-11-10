@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net11.0</TargetFramework>
+        <LangVersion>15</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Prism.Constants\Prism.Constants.csproj" />
+      <ProjectReference Include="..\Prism.Metadata.Abstractions\Prism.Metadata.Abstractions.csproj" />
+        <ProjectReference
+                Include="..\Prism.SourceGenerator\Prism.SourceGenerator.csproj"
+                OutputItemType="Analyzer"
+                ReferenceOutputAssembly="false"
+        />
+        <ProjectReference Include="..\Prism.Utils\Prism.Utils.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Riok.Mapperly" />
+    </ItemGroup>
+
+</Project>

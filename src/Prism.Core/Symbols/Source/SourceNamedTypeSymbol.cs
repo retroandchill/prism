@@ -8,8 +8,9 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Prism.Core.Binding;
 using Prism.Core.Declarations;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Metadata;
+using Prism.Syntax;
 using Prism.Utils;
 using ZLinq;
 

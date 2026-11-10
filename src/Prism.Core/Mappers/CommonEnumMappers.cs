@@ -1,8 +1,10 @@
-﻿using Prism.Core.Binding;
+﻿using Prism.Constants;
+using Prism.Core.Binding;
 using Prism.Core.Mir;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
-using Prism.Core.Syntax;
+using Prism.Metadata;
+using Prism.Syntax;
 using Riok.Mapperly.Abstractions;
 
 namespace Prism.Core.Mappers;
@@ -13,6 +15,8 @@ namespace Prism.Core.Mappers;
 )]
 internal static partial class CommonEnumMappers
 {
+    public static partial ConstantBinaryOperation ToConstantOperation(this BinaryOperation op);
+
     [MapperIgnoreSourceValue(BinaryOperation.Equality)]
     [MapperIgnoreSourceValue(BinaryOperation.NotEquals)]
     [MapperIgnoreSourceValue(BinaryOperation.LessThan)]

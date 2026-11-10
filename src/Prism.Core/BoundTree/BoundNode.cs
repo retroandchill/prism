@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using Prism.Core.Compiling;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Syntax;
 
 namespace Prism.Core.BoundTree;
 

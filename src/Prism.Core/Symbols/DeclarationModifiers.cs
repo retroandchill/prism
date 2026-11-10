@@ -3,7 +3,8 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using Prism.Core.Syntax;
+using Prism.Metadata;
+using Prism.Syntax;
 
 namespace Prism.Core.Symbols;
 
@@ -29,6 +30,25 @@ internal enum DeclarationModifiers : uint
 
 internal static class DeclarationModifiersExtensions
 {
+    extension(DeclaredVisibility)
+    {
+        internal static DeclaredVisibility FromDeclarationModifiers(DeclarationModifiers modifiers)
+        {
+            return (modifiers & DeclarationModifiers.AccessibilityMask) switch
+            {
+                DeclarationModifiers.Public => DeclaredVisibility.Public,
+                DeclarationModifiers.Internal => DeclaredVisibility.Internal,
+                DeclarationModifiers.Protected => DeclaredVisibility.Protected,
+                DeclarationModifiers.ProtectedInternal => DeclaredVisibility.ProtectedOrInternal,
+                DeclarationModifiers.PrivateProtected => DeclaredVisibility.ProtectedAndInternal,
+                DeclarationModifiers.Private => DeclaredVisibility.Private,
+                DeclarationModifiers.File => DeclaredVisibility.File,
+                // Public is a fallback for when a malformed modifier combination is encountered (ex. public private)
+                _ => DeclaredVisibility.Public,
+            };
+        }
+    }
+
     public static DeclarationModifiers GetDefaultMemberVisibility(
         this MemberContainerSymbol containingSymbol
     )

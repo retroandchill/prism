@@ -2,24 +2,24 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Prism.Constants;
 using Prism.Core.Binding.OverloadResolution;
 using Prism.Core.Binding.Utils;
 using Prism.Core.BoundTree;
 using Prism.Core.Compiling;
-using Prism.Core.Configuration;
-using Prism.Core.Constants;
-using Prism.Core.Declarations;
 using Prism.Core.Mappers;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Error;
 using Prism.Core.Symbols.Intermediate;
 using Prism.Core.Symbols.Source;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Metadata;
+using Prism.Syntax;
 using Prism.Utils;
 using ZLinq;
 using static Prism.Core.Binding.BindingHelpers;
+using ConstantValue = Prism.Constants.ConstantValue;
 
 namespace Prism.Core.Binding;
 

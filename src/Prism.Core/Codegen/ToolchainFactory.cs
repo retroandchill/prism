@@ -6,6 +6,7 @@
 using System.Collections.Immutable;
 using Prism.Core.Codegen.Platforms.Msvc;
 using Prism.Core.Configuration;
+using Prism.Metadata;
 
 namespace Prism.Core.Codegen;
 

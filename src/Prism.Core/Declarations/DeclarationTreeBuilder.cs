@@ -2,8 +2,8 @@
 using System.Diagnostics;
 using Prism.Core.Binding;
 using Prism.Core.Symbols;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Syntax;
 using ZLinq;
 
 namespace Prism.Core.Declarations;

@@ -24,6 +24,8 @@ public static partial class CSharpModelMapper
 {
     public static partial CSharpSyntaxModel ToCSharp(this SyntaxModel model);
 
+    public static partial CSharpDiagnosticModel ToCSharp(this DiagnosticModel model);
+
     [MapProperty(
         nameof(SyntaxGroup.Name),
         nameof(CSharpGroup.CSharpName),

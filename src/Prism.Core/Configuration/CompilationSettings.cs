@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using Prism.Metadata;
 
 namespace Prism.Core.Configuration;
 

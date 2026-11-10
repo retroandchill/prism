@@ -1,7 +1,8 @@
 ﻿using System.Collections.Immutable;
 using Prism.Core.Semantic;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Metadata;
+using Prism.Syntax;
 
 namespace Prism.Core.Declarations;
 

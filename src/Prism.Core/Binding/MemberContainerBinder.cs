@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 using Prism.Core.Symbols;
-using Prism.Core.Syntax;
+using Prism.Syntax;
 using ZLinq;
 
 namespace Prism.Core.Binding;

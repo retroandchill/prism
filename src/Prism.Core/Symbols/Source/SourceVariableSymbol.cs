@@ -5,10 +5,12 @@ using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols.Error;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Metadata;
+using Prism.Syntax;
 using Prism.Text;
 using ZLinq;
+using ConstantValue = Prism.Constants.ConstantValue;
 
 namespace Prism.Core.Symbols.Source;
 

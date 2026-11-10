@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Prism.Core.Semantic;
-using Prism.Core.Syntax;
+using Prism.Syntax;
+using ConstantValue = Prism.Constants.ConstantValue;
 
 namespace Prism.Core.Symbols;
 

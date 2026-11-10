@@ -7,8 +7,8 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Prism.Core.Compiling;
 using Prism.Core.Mappers;
-using Prism.Core.Metadata;
 using Prism.Core.Symbols;
+using Prism.Metadata;
 
 namespace Prism.Core.Codegen;
 

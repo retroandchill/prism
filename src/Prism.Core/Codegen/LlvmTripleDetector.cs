@@ -5,6 +5,7 @@
 
 using Cysharp.Text;
 using Prism.Core.Configuration;
+using Prism.Metadata;
 
 namespace Prism.Core.Codegen;
 

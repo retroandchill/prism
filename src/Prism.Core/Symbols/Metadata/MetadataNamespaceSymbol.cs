@@ -1,10 +1,10 @@
 ﻿using System.Collections.Frozen;
 using System.Collections.Immutable;
 using Prism.Core.Compiling;
-using Prism.Core.Metadata;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Syntax;
 using ZLinq;
+using NamespaceDefinition = Prism.Metadata.NamespaceDefinition;
 
 namespace Prism.Core.Symbols.Metadata;
 

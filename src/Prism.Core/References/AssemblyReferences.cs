@@ -1,6 +1,5 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
-using Prism.Core.Metadata;
 using Prism.Core.Symbols;
 using Prism.Metadata;
 

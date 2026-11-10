@@ -1,15 +1,9 @@
 ﻿using System.Collections.Immutable;
 using Prism.Core.Abi;
+using Prism.Metadata;
 using ZLinq;
 
 namespace Prism.Core.Symbols;
-
-public enum FunctionKind
-{
-    Ordinary,
-    Constructor,
-    GlobalConstructor,
-}
 
 public closed class FunctionSymbol : Symbol
 {

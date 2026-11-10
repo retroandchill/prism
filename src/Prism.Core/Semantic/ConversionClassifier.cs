@@ -4,6 +4,7 @@ using Prism.Core.Compiling;
 using Prism.Core.Configuration;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Intermediate;
+using Prism.Metadata;
 
 namespace Prism.Core.Semantic;
 

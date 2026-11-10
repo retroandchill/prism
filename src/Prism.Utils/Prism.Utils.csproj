@@ -14,5 +14,6 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="Prism.Core" />
+        <InternalsVisibleTo Include="Prism.Metadata" />
     </ItemGroup>
 </Project>

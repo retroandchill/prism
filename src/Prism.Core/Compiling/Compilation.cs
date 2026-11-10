@@ -7,14 +7,14 @@ using Prism.Core.BoundTree;
 using Prism.Core.Codegen;
 using Prism.Core.Configuration;
 using Prism.Core.Declarations;
-using Prism.Core.Metadata;
 using Prism.Core.Semantic;
 using Prism.Core.Semantic.Layout;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Intrinsic;
 using Prism.Core.Symbols.Source;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Metadata;
+using Prism.Syntax;
 using Prism.Text;
 using ZLinq;
 

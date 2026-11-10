@@ -5,8 +5,8 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Syntax;
 
 namespace Prism.Core.Symbols;
 

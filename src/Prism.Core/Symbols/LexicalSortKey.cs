@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 using Prism.Core.Compiling;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Syntax;
 using Prism.Text;
 
 namespace Prism.Core.Symbols;

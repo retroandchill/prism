@@ -2,8 +2,8 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Core.Compiling;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Syntax;
 using ZLinq;
 
 namespace Prism.Core.Symbols;

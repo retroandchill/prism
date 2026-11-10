@@ -4,7 +4,7 @@ using Prism.Core.Binding;
 using Prism.Core.BoundTree;
 using Prism.Core.Compiling;
 using Prism.Core.Symbols;
-using Prism.Core.Syntax;
+using Prism.Syntax;
 
 namespace Prism.Core.Semantic;
 

@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.Setup.Configuration;
 using Prism.Core.Configuration;
+using Prism.Metadata;
 
 namespace Prism.Core.Codegen.Platforms.Msvc;
 

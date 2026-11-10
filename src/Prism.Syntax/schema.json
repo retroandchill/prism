@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": [
+    "object",
+    "null"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer"
+    },
+    "trivia": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "tokens": {
+      "type": "object",
+      "properties": {
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "contextual": {
+                "type": "boolean"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "text",
+              "name"
+            ]
+          }
+        },
+        "punctuations": {
+          "type": "array",
+          "items": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "text",
+              "name"
+            ]
+          }
+        },
+        "other": {
+          "type": "array",
+          "items": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "displayName": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          }
+        },
+        "length": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "keywords",
+        "punctuations",
+        "other"
+      ]
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "Node",
+              "StructuredTrivia"
+            ]
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "base": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "properties": {
+                  "type": "array",
+                  "items": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "required": [
+                      "$type"
+                    ],
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "$type": {
+                            "const": "item"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "shape": {
+                            "enum": [
+                              "single",
+                              "optional",
+                              "list",
+                              "separated_list"
+                            ]
+                          },
+                          "kinds": {
+                            "type": "array",
+                            "items": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "separators": {
+                            "type": "array",
+                            "items": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "type",
+                          "shape"
+                        ]
+                      },
+                      {
+                        "properties": {
+                          "$type": {
+                            "const": "reference"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name"
+                        ]
+                      },
+                      {
+                        "properties": {
+                          "$type": {
+                            "const": "choice"
+                          },
+                          "choices": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/properties/modules/items/properties/nodes/items/properties/properties/items"
+                            }
+                          }
+                        },
+                        "required": [
+                          "choices"
+                        ]
+                      },
+                      {
+                        "properties": {
+                          "$type": {
+                            "const": "sequence"
+                          },
+                          "elements": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/properties/modules/items/properties/nodes/items/properties/properties/items"
+                            }
+                          }
+                        },
+                        "required": [
+                          "elements"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "name"
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "nodes"
+        ]
+      }
+    }
+  },
+  "required": [
+    "version",
+    "trivia",
+    "tokens",
+    "modules"
+  ]
+}

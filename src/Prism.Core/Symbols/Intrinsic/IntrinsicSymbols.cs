@@ -1,4 +1,5 @@
 ﻿using Prism.Core.Semantic;
+using Prism.Metadata;
 
 namespace Prism.Core.Symbols.Intrinsic;
 

@@ -5,9 +5,9 @@
 
 using System.Collections.Immutable;
 using Prism.Core.Mappers;
-using Prism.Core.Metadata;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Syntax;
+using ParameterDefinition = Prism.Metadata.ParameterDefinition;
 
 namespace Prism.Core.Symbols.Metadata;
 

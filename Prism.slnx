@@ -4,10 +4,13 @@
     <Project Path="src/prism-std/prism-std.csproj" />
     <Project Path="src/prism-syntax-highlighting/prism-syntax-highlighting.csproj" />
     <Project Path="src/Prism.Build/Prism.Build.csproj" />
+    <Project Path="src/Prism.Constants/Prism.Constants.csproj" />
     <Project Path="src/Prism.Core/Prism.Core.csproj" />
     <Project Path="src/Prism.Diagnostics/Prism.Diagnostics.csproj" />
     <Project Path="src/Prism.Metadata.Abstractions/Prism.Metadata.Abstractions.csproj" />
+    <Project Path="src/Prism.Metadata/Prism.Metadata.csproj" />
     <Project Path="src/Prism.SourceGenerator/Prism.SourceGenerator.csproj" />
+    <Project Path="src/Prism.Syntax/Prism.Syntax.csproj" />
     <Project Path="src/Prism.Text/Prism.Text.csproj" />
     <Project Path="src/Prism.Utils/Prism.Utils.csproj" />
     <Project Path="src/prismc/prismc.csproj" />

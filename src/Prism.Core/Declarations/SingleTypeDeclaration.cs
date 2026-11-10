@@ -7,8 +7,8 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Numerics;
 using Prism.Core.Symbols;
-using Prism.Core.Syntax;
 using Prism.Diagnostics;
+using Prism.Syntax;
 
 namespace Prism.Core.Declarations;
 

@@ -8,6 +8,7 @@ using System.Diagnostics;
 using Prism.Core.Declarations;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols.Synthesized;
+using Prism.Metadata;
 using Prism.Utils;
 using ZLinq;
 

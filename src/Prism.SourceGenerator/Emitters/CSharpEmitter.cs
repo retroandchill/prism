@@ -26,7 +26,7 @@ public static class CSharpEmitter
             writer.WriteLine("using Prism.Text;");
             writer.WriteLine();
 
-            writer.WriteLine("namespace Prism.Core.Syntax;");
+            writer.WriteLine("namespace Prism.Syntax;");
             writer.WriteLine();
 
             writer.WriteLine($"public enum {SyntaxKindClass} : ushort");
@@ -262,7 +262,7 @@ public static class CSharpEmitter
             writer.WriteLine("using Prism.Diagnostics;");
             writer.WriteLine();
 
-            writer.WriteLine("namespace Prism.Core.Syntax.Green;");
+            writer.WriteLine("namespace Prism.Syntax.Green;");
             writer.WriteLine();
 
             foreach (var (i, node) in module.Nodes.AsValueEnumerable().Index())
@@ -538,11 +538,11 @@ public static class CSharpEmitter
             writer.WriteLine("#nullable enable");
             writer.WriteLine("using System.Collections.Immutable;");
             writer.WriteLine("using Prism.Diagnostics;");
-            writer.WriteLine("using Prism.Core.Syntax.Green;");
+            writer.WriteLine("using Prism.Syntax.Green;");
             writer.WriteLine("using Prism.Utils;");
             writer.WriteLine();
 
-            writer.WriteLine("namespace Prism.Core.Syntax;");
+            writer.WriteLine("namespace Prism.Syntax;");
             writer.WriteLine();
             foreach (var (i, node) in module.Nodes.AsValueEnumerable().Index())
             {
@@ -836,11 +836,11 @@ public static class CSharpEmitter
         {
             writer.WriteLine("// Generated file, do not edit");
             writer.WriteLine("#nullable enable");
-            writer.WriteLine("using Prism.Core.Syntax.Green;");
+            writer.WriteLine("using Prism.Syntax.Green;");
             writer.WriteLine("using System.Diagnostics.CodeAnalysis;");
             writer.WriteLine();
 
-            writer.WriteLine("namespace Prism.Core.Syntax;");
+            writer.WriteLine("namespace Prism.Syntax;");
             writer.WriteLine();
             writer.WriteLine("public static partial class TokenReplacer");
             using var classBlock = writer.EnterBlockScope();
@@ -979,7 +979,7 @@ public static class CSharpEmitter
 
         #region Diagnostic Codes
 
-        public void EmitDiagnosticCodes(CSharpSyntaxModel model)
+        public void EmitDiagnosticCodes(CSharpDiagnosticModel model)
         {
             writer.WriteLine("// Generated file, do not edit");
             writer.WriteLine("#nullable enable");
@@ -989,7 +989,7 @@ public static class CSharpEmitter
             writer.EmitDiagnosticCodeEnum(model);
         }
 
-        private void EmitDiagnosticCodeEnum(CSharpSyntaxModel model)
+        private void EmitDiagnosticCodeEnum(CSharpDiagnosticModel model)
         {
             writer.WriteLine("public enum DiagnosticCode : uint");
             using var scope = writer.EnterBlockScope();
@@ -1012,7 +1012,7 @@ public static class CSharpEmitter
 
         #region DiagnosticDescriptors
 
-        public void EmitDiagnosticDescriptors(CSharpSyntaxModel model)
+        public void EmitDiagnosticDescriptors(CSharpDiagnosticModel model)
         {
             writer.WriteLine("// Generated file, do not edit");
             writer.WriteLine("#nullable enable");
@@ -1088,7 +1088,7 @@ public static class CSharpEmitter
             }
         }
 
-        private void EmitDescriptorLookupFunction(CSharpSyntaxModel model)
+        private void EmitDescriptorLookupFunction(CSharpDiagnosticModel model)
         {
             writer.WriteLine("public static DiagnosticDescriptor? Find(DiagnosticCode code)");
             using var scope = writer.EnterBlockScope();
@@ -1110,7 +1110,7 @@ public static class CSharpEmitter
 
         #region Diagnostic Factories
 
-        public void EmitDiagnosticFactories(CSharpSyntaxModel mode)
+        public void EmitDiagnosticFactories(CSharpDiagnosticModel mode)
         {
             writer.WriteLine("// Generated file, do not edit");
             writer.WriteLine("#nullable enable");

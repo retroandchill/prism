@@ -13,5 +13,4 @@ public sealed record SyntaxSpecification
     public required ImmutableArray<TriviaDefinition> Trivia { get; init; }
     public required TokenDefinitions Tokens { get; init; }
     public required ImmutableArray<ModuleDefinition> Modules { get; init; }
-    public required ImmutableArray<DiagnosticCategoryDefinition> Diagnostics { get; init; }
 }

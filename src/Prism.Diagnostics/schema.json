@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": [
+    "object",
+    "null"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer"
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "severity": {
+                  "enum": [
+                    "Error",
+                    "Warning",
+                    "Info",
+                    "Hint"
+                  ]
+                },
+                "format": {
+                  "type": "string"
+                },
+                "args": {
+                  "type": "array",
+                  "items": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "type"
+                    ]
+                  }
+                },
+                "explanation": {
+                  "type": "string"
+                },
+                "helpLink": {
+                  "type": "string"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "severity",
+                "format"
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "diagnostics"
+        ]
+      }
+    }
+  },
+  "required": [
+    "version",
+    "diagnostics"
+  ]
+}

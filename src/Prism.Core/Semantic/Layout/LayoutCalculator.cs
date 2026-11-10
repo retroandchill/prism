@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using Prism.Core.Compiling;
 using Prism.Core.Configuration;
 using Prism.Core.Symbols;
+using Prism.Metadata;
 using ZLinq;
 
 namespace Prism.Core.Semantic.Layout;

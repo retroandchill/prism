@@ -1,0 +1,76 @@
+﻿// @file SyntaxToken.cs
+//
+// @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+using Prism.Diagnostics;
+using Prism.Syntax.Green;
+using Prism.Text;
+
+namespace Prism.Syntax;
+
+public readonly struct SyntaxToken
+{
+    internal SyntaxToken(GreenToken token, int position)
+    {
+        Green = token;
+        Position = position;
+    }
+
+    internal SyntaxToken(GreenToken token, SyntaxNode? parent, int position)
+    {
+        Green = token;
+        Parent = parent;
+        Position = position;
+    }
+
+    internal GreenToken Green { get; }
+
+    public SyntaxKind Kind => Green.Kind;
+    internal int Position { get; }
+    internal int Width => Green.Width;
+    internal int FullWidth => Green.FullWidth;
+    public TextSpan FullSpan => new(Position, Green.FullWidth);
+    public TextSpan Span => new(Position + Green.LeadingTriviaWidth, Green.Width);
+
+    public SyntaxNode? Parent { get; }
+    public SyntaxTree? SyntaxTree => Parent?.SyntaxTree;
+    public Location Location =>
+        SyntaxTree is not null ? SourceLocation.Create(this) : Location.None;
+
+    public bool IsMissing => Green.IsMissing;
+    public bool ContainsDiagnostics => Green.ContainsDiagnostics;
+
+    public SyntaxTriviaList LeadingTrivia => new(in this, Green.LeadingTrivia, Position);
+    public bool HasLeadingTrivia => Green.HasLeadingTrivia;
+
+    public SyntaxTriviaList TrailingTrivia
+    {
+        get
+        {
+            var trailingGreen = Green.TrailingTrivia;
+            var trailingPosition = Position + FullWidth;
+            if (trailingGreen is not null)
+            {
+                trailingPosition -= trailingGreen.FullWidth;
+            }
+
+            return new SyntaxTriviaList(in this, Green.TrailingTrivia, trailingPosition);
+        }
+    }
+
+    public bool HasTrailingTrivia => Green.HasTrailingTrivia;
+
+    public T GetValue<T>()
+        where T : struct, ISyntaxData<T>
+    {
+        return TryGetValue<T>()
+            ?? throw new InvalidOperationException("Token does not have a value");
+    }
+
+    public T? TryGetValue<T>()
+        where T : struct, ISyntaxData<T>
+    {
+        return Green.TryGetValue<T>();
+    }
+}

@@ -9,7 +9,8 @@ using Prism.Core.Semantic.Layout;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Error;
 using Prism.Core.Symbols.Intrinsic;
-using Prism.Core.Syntax;
+using Prism.Metadata;
+using Prism.Syntax;
 
 namespace Prism.Core.Compiling;
 

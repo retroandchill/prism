@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Source;
-using Prism.Core.Syntax;
+using Prism.Syntax;
 using ZLinq;
 
 namespace Prism.Core.Binding;
