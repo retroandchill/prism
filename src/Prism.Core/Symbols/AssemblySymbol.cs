@@ -1,11 +1,11 @@
 ﻿using System.Collections.Immutable;
-using Prism.Core.Diagnostics;
 using Prism.Core.Metadata;
 using Prism.Core.References;
+using Prism.Metadata;
 
 namespace Prism.Core.Symbols;
 
-public closed class AssemblySymbol : Symbol, IMetadataReferenceInfo
+public closed class AssemblySymbol : Symbol, IMetadataReferenceProvider
 {
     private readonly AssemblyReferences _references;
 

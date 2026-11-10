@@ -6,6 +6,7 @@
 using System.Buffers;
 using System.Collections.Immutable;
 using Prism.Core.Semantic;
+using Prism.Metadata;
 using Prism.Utils;
 using Riok.Mapperly.Abstractions;
 using ZLinq;

@@ -5,6 +5,7 @@
     <Project Path="src/prism-syntax-highlighting/prism-syntax-highlighting.csproj" />
     <Project Path="src/Prism.Build/Prism.Build.csproj" />
     <Project Path="src/Prism.Core/Prism.Core.csproj" />
+    <Project Path="src/Prism.Metadata.Abstractions/Prism.Metadata.Abstractions.csproj" />
     <Project Path="src/Prism.SourceGenerator/Prism.SourceGenerator.csproj" />
     <Project Path="src/Prism.Text/Prism.Text.csproj" />
     <Project Path="src/Prism.Utils/Prism.Utils.csproj" />

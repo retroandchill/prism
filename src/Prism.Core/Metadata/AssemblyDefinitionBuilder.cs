@@ -5,6 +5,7 @@
 
 using System.Collections.ObjectModel;
 using Prism.Core.Semantic;
+using Prism.Metadata;
 
 namespace Prism.Core.Metadata;
 

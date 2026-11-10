@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using Prism.Core.Metadata;
 using Prism.Core.Symbols;
+using Prism.Metadata;
 
 namespace Prism.Core.References;
 

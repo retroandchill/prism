@@ -3,8 +3,8 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using Prism.Core.Symbols;
 using Prism.Core.Syntax;
+using Prism.Metadata;
 using Prism.Text;
 using Prism.Utils;
 
@@ -39,7 +39,7 @@ public sealed record SourceLocation(ISourceDocument SyntaxTree, TextSpan SourceS
     }
 }
 
-public sealed record MetadataLocation(IMetadataReferenceInfo Reference) : Location
+public sealed record MetadataLocation(IMetadataReferenceProvider Reference) : Location
 {
     public override string ToString() => Reference.Identity.FullName;
 }

@@ -6,7 +6,7 @@
 using Cysharp.Text;
 using MagicArchive;
 
-namespace Prism.Core.Metadata;
+namespace Prism.Metadata;
 
 [Archivable]
 [method: ArchivableConstructor]

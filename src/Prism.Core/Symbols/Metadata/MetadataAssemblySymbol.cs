@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using Prism.Core.Diagnostics;
 using Prism.Core.Metadata;
 using Prism.Core.Syntax;
+using Prism.Metadata;
 using ZLinq;
 
 namespace Prism.Core.Symbols.Metadata;
