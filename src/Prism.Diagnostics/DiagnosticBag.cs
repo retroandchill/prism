@@ -4,9 +4,8 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.Extensions.ObjectPool;
-using Prism.Core.Diagnostics;
 
-namespace Prism.Core.Declarations;
+namespace Prism.Diagnostics;
 
 internal sealed class DiagnosticBag : IEnumerable<Diagnostic>, IDisposable
 {

@@ -1,8 +1,8 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using Prism.Core.Diagnostics;
 using Prism.Core.FlowAnalysis;
 using Prism.Core.Symbols;
+using Prism.Diagnostics;
 using Prism.Utils;
 
 namespace Prism.Core.BoundTree;

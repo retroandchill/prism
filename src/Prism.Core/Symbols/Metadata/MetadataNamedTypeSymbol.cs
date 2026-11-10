@@ -5,10 +5,10 @@
 
 using System.Collections.Frozen;
 using System.Collections.Immutable;
-using Prism.Core.Diagnostics;
 using Prism.Core.Metadata;
 using Prism.Core.Semantic;
 using Prism.Core.Syntax;
+using Prism.Diagnostics;
 using Prism.Utils;
 using ZLinq;
 

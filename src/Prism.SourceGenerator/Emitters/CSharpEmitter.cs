@@ -259,7 +259,7 @@ public static class CSharpEmitter
             writer.WriteLine("// Generated file, do not edit");
             writer.WriteLine("#nullable enable");
             writer.WriteLine("using System.Collections.Immutable;");
-            writer.WriteLine("using Prism.Core.Diagnostics;");
+            writer.WriteLine("using Prism.Diagnostics;");
             writer.WriteLine();
 
             writer.WriteLine("namespace Prism.Core.Syntax.Green;");
@@ -537,7 +537,7 @@ public static class CSharpEmitter
             writer.WriteLine("// Generated file, do not edit");
             writer.WriteLine("#nullable enable");
             writer.WriteLine("using System.Collections.Immutable;");
-            writer.WriteLine("using Prism.Core.Diagnostics;");
+            writer.WriteLine("using Prism.Diagnostics;");
             writer.WriteLine("using Prism.Core.Syntax.Green;");
             writer.WriteLine("using Prism.Utils;");
             writer.WriteLine();
@@ -985,7 +985,7 @@ public static class CSharpEmitter
             writer.WriteLine("#nullable enable");
             writer.WriteLine("using System.Runtime.Serialization;");
             writer.WriteLine();
-            writer.WriteLine("namespace Prism.Core.Diagnostics;");
+            writer.WriteLine("namespace Prism.Diagnostics;");
             writer.EmitDiagnosticCodeEnum(model);
         }
 
@@ -1016,7 +1016,7 @@ public static class CSharpEmitter
         {
             writer.WriteLine("// Generated file, do not edit");
             writer.WriteLine("#nullable enable");
-            writer.WriteLine("namespace Prism.Core.Diagnostics;");
+            writer.WriteLine("namespace Prism.Diagnostics;");
             writer.WriteLine();
             writer.WriteLine("public static class DiagnosticDescriptors");
             using var classScope = writer.EnterBlockScope();
@@ -1114,7 +1114,7 @@ public static class CSharpEmitter
         {
             writer.WriteLine("// Generated file, do not edit");
             writer.WriteLine("#nullable enable");
-            writer.WriteLine("namespace Prism.Core.Diagnostics;");
+            writer.WriteLine("namespace Prism.Diagnostics;");
             writer.WriteLine();
 
             writer.WriteLine("public static class DiagnosticExtensions");

@@ -2,9 +2,9 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
-using Prism.Core.Diagnostics;
 using Prism.Core.Parser;
 using Prism.Core.Syntax.Green;
+using Prism.Diagnostics;
 using Prism.Text;
 
 namespace Prism.Core.Syntax;

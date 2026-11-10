@@ -2,8 +2,8 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.ObjectPool;
 using Prism.Core.Declarations;
-using Prism.Core.Diagnostics;
 using Prism.Core.Symbols;
+using Prism.Diagnostics;
 
 namespace Prism.Core.Binding;
 

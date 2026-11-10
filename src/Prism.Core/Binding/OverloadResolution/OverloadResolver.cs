@@ -2,9 +2,9 @@
 using System.Runtime.InteropServices;
 using Prism.Core.Binding.Utils;
 using Prism.Core.BoundTree;
-using Prism.Core.Diagnostics;
 using Prism.Core.Symbols;
 using Prism.Core.Syntax;
+using Prism.Diagnostics;
 using Prism.Utils;
 using ZLinq;
 

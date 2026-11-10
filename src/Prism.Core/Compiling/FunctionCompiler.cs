@@ -3,12 +3,11 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Diagnostics;
 using Prism.Core.Binding;
 using Prism.Core.Codegen;
-using Prism.Core.Diagnostics;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Synthesized;
+using Prism.Diagnostics;
 using ZLinq;
 
 namespace Prism.Core.Compiling;

@@ -1,5 +1,5 @@
 ﻿using System.Collections.Immutable;
-using Prism.Core.Diagnostics;
+using Prism.Diagnostics;
 
 namespace Prism.Core.Codegen;
 

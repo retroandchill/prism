@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using Prism.Core.Compiling;
-using Prism.Core.Diagnostics;
 using Prism.Core.Symbols;
+using Prism.Diagnostics;
 using ZLinq;
 
 namespace Prism.Core.Declarations;

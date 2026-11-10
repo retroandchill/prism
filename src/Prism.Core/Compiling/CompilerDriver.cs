@@ -12,14 +12,13 @@ using Prism.Core.BoundTree;
 using Prism.Core.Codegen;
 using Prism.Core.Configuration;
 using Prism.Core.Constants;
-using Prism.Core.Diagnostics;
 using Prism.Core.FlowAnalysis;
-using Prism.Core.Metadata;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Source;
 using Prism.Core.Symbols.Synthesized;
 using Prism.Core.Syntax;
+using Prism.Diagnostics;
 using Prism.Utils;
 using ZLinq;
 

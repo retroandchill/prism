@@ -3,9 +3,10 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using Prism.Diagnostics;
 using Prism.Text;
 
-namespace Prism.Core.Diagnostics;
+namespace Prism.Core.Syntax;
 
 internal readonly record struct SyntaxDiagnosticInfo(
     DiagnosticInfo Info,

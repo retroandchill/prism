@@ -38,6 +38,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Prism.Diagnostics\Prism.Diagnostics.csproj" />
     <ProjectReference Include="..\Prism.Metadata.Abstractions\Prism.Metadata.Abstractions.csproj" />
     <ProjectReference
       Include="..\Prism.SourceGenerator\Prism.SourceGenerator.csproj"

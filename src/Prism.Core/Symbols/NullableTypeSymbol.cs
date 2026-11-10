@@ -4,8 +4,8 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
-using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
+using Prism.Diagnostics;
 
 namespace Prism.Core.Symbols;
 

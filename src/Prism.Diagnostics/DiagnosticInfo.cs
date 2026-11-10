@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
-namespace Prism.Core.Diagnostics;
+namespace Prism.Diagnostics;
 
 internal sealed class DiagnosticInfo(
     DiagnosticDescriptor descriptor,

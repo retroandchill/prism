@@ -1,9 +1,9 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Core.Binding;
-using Prism.Core.Diagnostics;
 using Prism.Core.Symbols;
 using Prism.Core.Syntax;
+using Prism.Diagnostics;
 using ZLinq;
 
 namespace Prism.Core.Declarations;
@@ -119,7 +119,7 @@ internal sealed class DeclarationTreeBuilder
             var ns = new SingleNamedNamespaceDeclaration(
                 rightName,
                 new SyntaxReference(currentNode),
-                new SourceLocation(qualified.Right),
+                SourceLocation.Create(qualified.Right),
                 memberNames,
                 children
             )
@@ -191,7 +191,7 @@ internal sealed class DeclarationTreeBuilder
         return new SingleNamedNamespaceDeclaration(
             unqualifiedName,
             new SyntaxReference(currentNode),
-            new SourceLocation(name),
+            SourceLocation.Create(name),
             memberNames,
             children
         )
@@ -208,7 +208,7 @@ internal sealed class DeclarationTreeBuilder
     {
         return new SingleRootNamespaceDeclaration(
             new SyntaxReference(syntax),
-            new SourceLocation(syntax),
+            SourceLocation.Create(syntax),
             GetNonTypeMemberNames(syntax.Members),
             children
         )
@@ -253,7 +253,7 @@ internal sealed class DeclarationTreeBuilder
             name,
             new SyntaxReference(attribute),
             modifiers,
-            new SourceLocation(attribute.Identifier),
+            SourceLocation.Create(attribute.Identifier),
             memberNames,
             []
         );
@@ -274,7 +274,7 @@ internal sealed class DeclarationTreeBuilder
             name,
             new SyntaxReference(@class),
             modifiers,
-            new SourceLocation(@class.Identifier),
+            SourceLocation.Create(@class.Identifier),
             memberNames,
             members
         );

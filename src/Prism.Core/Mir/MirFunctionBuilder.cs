@@ -5,8 +5,8 @@
 
 using System.Numerics;
 using System.Runtime.InteropServices;
-using Prism.Core.Diagnostics;
 using Prism.Core.Symbols;
+using Prism.Diagnostics;
 
 namespace Prism.Core.Mir;
 

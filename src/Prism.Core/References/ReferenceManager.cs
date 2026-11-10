@@ -1,5 +1,4 @@
 ﻿using Prism.Core.Compiling;
-using Prism.Core.Diagnostics;
 using Prism.Core.Metadata;
 using Prism.Core.Symbols;
 

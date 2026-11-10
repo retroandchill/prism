@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 using Prism.Core.Syntax.Green;
+using Prism.Diagnostics;
 
 namespace Prism.Core.Parser;
 

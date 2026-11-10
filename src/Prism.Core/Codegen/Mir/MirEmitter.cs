@@ -9,12 +9,12 @@ using Prism.Core.BoundTree;
 using Prism.Core.Compiling;
 using Prism.Core.Configuration;
 using Prism.Core.Constants;
-using Prism.Core.Diagnostics;
 using Prism.Core.Mappers;
 using Prism.Core.Mir;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Intrinsic;
+using Prism.Diagnostics;
 using Prism.Utils;
 using ZLinq;
 

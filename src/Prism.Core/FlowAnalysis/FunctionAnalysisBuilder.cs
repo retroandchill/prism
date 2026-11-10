@@ -7,10 +7,10 @@ using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
-using Prism.Core.Diagnostics;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols;
 using Prism.Core.Symbols.Synthesized;
+using Prism.Diagnostics;
 using Prism.Utils;
 
 namespace Prism.Core.FlowAnalysis;

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using Prism.Core.Binding;
-using Prism.Core.Diagnostics;
+using Prism.Diagnostics;
 using Prism.Utils;
 using ZLinq;
 

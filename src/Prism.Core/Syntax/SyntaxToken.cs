@@ -3,8 +3,8 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using Prism.Core.Diagnostics;
 using Prism.Core.Syntax.Green;
+using Prism.Diagnostics;
 using Prism.Text;
 
 namespace Prism.Core.Syntax;
@@ -35,7 +35,8 @@ public readonly struct SyntaxToken
 
     public SyntaxNode? Parent { get; }
     public SyntaxTree? SyntaxTree => Parent?.SyntaxTree;
-    public Location Location => SyntaxTree is not null ? new SourceLocation(this) : Location.None;
+    public Location Location =>
+        SyntaxTree is not null ? SourceLocation.Create(this) : Location.None;
 
     public bool IsMissing => Green.IsMissing;
     public bool ContainsDiagnostics => Green.ContainsDiagnostics;

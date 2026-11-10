@@ -4,8 +4,8 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
-using Prism.Core.Diagnostics;
 using Prism.Core.Syntax.Green;
+using Prism.Diagnostics;
 using Prism.Text;
 using ZLinq;
 
@@ -117,7 +117,7 @@ public closed class SyntaxNode
             if (field is not null)
                 return field;
 
-            Interlocked.Exchange(ref field, new SourceLocation(this));
+            Interlocked.Exchange(ref field, SourceLocation.Create(this));
             return field;
         }
     }

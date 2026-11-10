@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
-using Prism.Core.Diagnostics;
+using Prism.Diagnostics;
 
 namespace Prism.Core.Syntax.Green;
 

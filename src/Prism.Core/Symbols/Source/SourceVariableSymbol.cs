@@ -3,10 +3,10 @@ using System.Diagnostics;
 using JetBrains.Annotations;
 using Prism.Core.Binding;
 using Prism.Core.BoundTree;
-using Prism.Core.Diagnostics;
 using Prism.Core.Semantic;
 using Prism.Core.Symbols.Error;
 using Prism.Core.Syntax;
+using Prism.Diagnostics;
 using Prism.Text;
 using ZLinq;
 

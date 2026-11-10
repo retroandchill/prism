@@ -2,9 +2,9 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Prism.Core.Diagnostics;
 using Prism.Core.Metadata;
 using Prism.Core.Syntax;
+using Prism.Diagnostics;
 using Prism.Metadata;
 using ZLinq;
 

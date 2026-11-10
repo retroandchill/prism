@@ -1,8 +1,8 @@
 ﻿using System.Collections.Immutable;
 using Prism.Core.Compiling;
-using Prism.Core.Diagnostics;
 using Prism.Core.Metadata;
 using Prism.Core.Syntax;
+using Prism.Diagnostics;
 using Prism.Metadata;
 
 namespace Prism.Core.Symbols.Source;

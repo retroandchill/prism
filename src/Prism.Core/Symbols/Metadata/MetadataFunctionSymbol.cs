@@ -6,9 +6,9 @@
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using Prism.Core.Abi;
-using Prism.Core.Diagnostics;
 using Prism.Core.Metadata;
 using Prism.Core.Syntax;
+using Prism.Diagnostics;
 using ZLinq;
 
 namespace Prism.Core.Symbols.Metadata;

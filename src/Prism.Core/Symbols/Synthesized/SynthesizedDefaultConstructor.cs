@@ -6,9 +6,9 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Core.Abi;
-using Prism.Core.Diagnostics;
 using Prism.Core.Semantic;
 using Prism.Core.Syntax;
+using Prism.Diagnostics;
 
 namespace Prism.Core.Symbols.Synthesized;
 

@@ -5,7 +5,7 @@
 
 using System.Collections.Immutable;
 
-namespace Prism.Core.Diagnostics;
+namespace Prism.Diagnostics;
 
 public sealed record DiagnosticDescriptor
 {

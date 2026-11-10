@@ -6,7 +6,7 @@
 using System.Collections.Immutable;
 using Cysharp.Text;
 
-namespace Prism.Core.Diagnostics;
+namespace Prism.Diagnostics;
 
 public sealed class Diagnostic
 {

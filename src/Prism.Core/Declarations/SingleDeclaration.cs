@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
-using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
+using Prism.Diagnostics;
 
 namespace Prism.Core.Declarations;
 
@@ -20,7 +20,7 @@ internal closed class SingleDeclaration(
             if (field is not null)
                 return field;
 
-            Interlocked.CompareExchange(ref field, new SourceLocation(SyntaxReference), null);
+            Interlocked.CompareExchange(ref field, SourceLocation.Create(SyntaxReference), null);
             return field;
         }
     }

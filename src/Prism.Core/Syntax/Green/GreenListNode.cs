@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
-using Prism.Core.Diagnostics;
+using Prism.Diagnostics;
 
 namespace Prism.Core.Syntax.Green;
 

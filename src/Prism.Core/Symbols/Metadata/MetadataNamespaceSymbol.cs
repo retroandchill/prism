@@ -1,9 +1,9 @@
 ﻿using System.Collections.Frozen;
 using System.Collections.Immutable;
 using Prism.Core.Compiling;
-using Prism.Core.Diagnostics;
 using Prism.Core.Metadata;
 using Prism.Core.Syntax;
+using Prism.Diagnostics;
 using ZLinq;
 
 namespace Prism.Core.Symbols.Metadata;

@@ -2,9 +2,9 @@
 using System.Numerics;
 using System.Text;
 using Cysharp.Text;
-using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
 using Prism.Core.Syntax.Green;
+using Prism.Diagnostics;
 using Prism.Text;
 using Prism.Utils;
 using IntegerSuffix = Prism.Core.Syntax.IntegerSuffix;

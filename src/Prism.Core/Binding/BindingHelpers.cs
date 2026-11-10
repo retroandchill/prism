@@ -2,9 +2,9 @@
 using System.Numerics;
 using Prism.Core.Compiling;
 using Prism.Core.Configuration;
-using Prism.Core.Diagnostics;
 using Prism.Core.Symbols;
 using Prism.Core.Syntax;
+using Prism.Diagnostics;
 using Prism.Utils;
 
 namespace Prism.Core.Binding;

@@ -3,8 +3,8 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Prism.Core.Abi;
 using Prism.Core.Binding;
-using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
+using Prism.Diagnostics;
 using Prism.Utils;
 using ZLinq;
 

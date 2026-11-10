@@ -3,8 +3,8 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Prism.Core.Binding;
 using Prism.Core.Compiling;
-using Prism.Core.Diagnostics;
 using Prism.Core.Syntax;
+using Prism.Diagnostics;
 using Prism.Text;
 
 namespace Prism.Core.Symbols;
