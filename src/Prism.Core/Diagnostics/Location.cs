@@ -39,12 +39,7 @@ public sealed record SourceLocation(ISourceDocument SyntaxTree, TextSpan SourceS
     }
 }
 
-public sealed record MetadataLocation : Location
+public sealed record MetadataLocation(IMetadataReferenceInfo Reference) : Location
 {
-    internal MetadataLocation(AssemblySymbol assemblySymbol)
-    {
-        ReferencedAssembly = assemblySymbol;
-    }
-
-    public AssemblySymbol ReferencedAssembly { get; }
+    public override string ToString() => Reference.Identity.FullName;
 }

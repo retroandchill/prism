@@ -49,7 +49,18 @@ internal sealed class MetadataAssemblySymbol(AssemblyDefinition definition)
         MetadataParameterSymbol
     > _ownedParameters = new();
 
-    public override ImmutableArray<Location> Locations { get; }
+    public override ImmutableArray<Location> Locations
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            ImmutableInterlocked.InterlockedInitialize(ref field, [new MetadataLocation(this)]);
+            return field;
+        }
+    }
+
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
     public override AssemblyIdentity Identity => definition.Identity;
 
@@ -166,7 +177,7 @@ internal sealed class MetadataAssemblySymbol(AssemblyDefinition definition)
     {
         return _referencedAssemblySymbols.GetOrAdd(
             reference,
-            static (d, ctx) =>
+            static (_, ctx) =>
             {
                 var (@this, reference) = ctx;
                 return @this
