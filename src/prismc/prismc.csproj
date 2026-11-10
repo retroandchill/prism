@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Prism.Core\Prism.Core.csproj" />
+    <ProjectReference Include="..\Prism.Compiler\Prism.Compiler.csproj" />
   </ItemGroup>
 
   <ItemGroup>

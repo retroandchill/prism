@@ -1,0 +1,31 @@
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
+
+namespace Prism.Compiler.Symbols;
+
+internal sealed class SymbolLocationComparer : IComparer<Symbol>
+{
+    private readonly Compilation _compilation;
+    private static readonly ConditionalWeakTable<Compilation, SymbolLocationComparer> Comparers =
+        new();
+
+    private SymbolLocationComparer(Compilation compilation)
+    {
+        _compilation = compilation;
+    }
+
+    public static SymbolLocationComparer Get(Compilation compilation)
+    {
+        return Comparers.GetOrAdd(compilation, static c => new SymbolLocationComparer(c));
+    }
+
+    public int Compare(Symbol? x, Symbol? y)
+    {
+        if (ReferenceEquals(x, y))
+            return 0;
+
+        if (x is null)
+            return -1;
+        return y is null ? 1 : x.GetLexicalSortKey().CompareTo(y.GetLexicalSortKey());
+    }
+}

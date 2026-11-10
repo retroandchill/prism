@@ -1,0 +1,49 @@
+﻿using System.Collections.Immutable;
+using Prism.Compiler.Semantic;
+using Prism.Diagnostics;
+using Prism.Metadata;
+using Prism.Syntax;
+
+namespace Prism.Compiler.Declarations;
+
+internal closed class SingleNamespaceDeclaration(
+    string name,
+    SyntaxReference syntaxReference,
+    SourceLocation nameLocation,
+    ImmutableHashSet<string> memberNames,
+    ImmutableArray<SingleDeclaration> members
+) : SingleDeclaration(name, syntaxReference, nameLocation, memberNames)
+{
+    public bool HasUsings { get; init; }
+
+    public sealed override DeclarationKind Kind => DeclarationKind.Namespace;
+
+    public new ImmutableArray<SingleDeclaration> Members { get; } = members;
+
+    protected override ImmutableArray<SingleDeclaration> GetSingleMembers()
+    {
+        return Members;
+    }
+}
+
+internal sealed class SingleNamedNamespaceDeclaration(
+    string name,
+    SyntaxReference syntaxReference,
+    SourceLocation nameLocation,
+    ImmutableHashSet<string> memberNames,
+    ImmutableArray<SingleDeclaration> members
+) : SingleNamespaceDeclaration(name, syntaxReference, nameLocation, memberNames, members);
+
+internal sealed class SingleRootNamespaceDeclaration(
+    SyntaxReference syntaxReference,
+    SourceLocation nameLocation,
+    ImmutableHashSet<string> memberNames,
+    ImmutableArray<SingleDeclaration> members
+)
+    : SingleNamespaceDeclaration(
+        CommonNames.Global,
+        syntaxReference,
+        nameLocation,
+        memberNames,
+        members
+    );

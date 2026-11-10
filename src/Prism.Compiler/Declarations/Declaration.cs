@@ -1,0 +1,23 @@
+﻿using System.Collections.Immutable;
+
+namespace Prism.Compiler.Declarations;
+
+internal enum DeclarationKind
+{
+    Namespace,
+    Attribute,
+    Class,
+}
+
+internal closed class Declaration(string name)
+{
+    public string Name { get; } = name;
+
+    public abstract DeclarationKind Kind { get; }
+
+    public abstract bool IsMerged { get; }
+
+    public ImmutableArray<Declaration> Members => GetMembers();
+
+    protected abstract ImmutableArray<Declaration> GetMembers();
+}

@@ -20,6 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Prism.Core\Prism.Core.csproj" />
+    <ProjectReference Include="..\..\src\Prism.Compiler\Prism.Compiler.csproj" />
   </ItemGroup>
 </Project>

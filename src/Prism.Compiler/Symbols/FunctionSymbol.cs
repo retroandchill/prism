@@ -1,0 +1,68 @@
+﻿using System.Collections.Immutable;
+using Prism.Compiler.Abi;
+using Prism.Metadata;
+using ZLinq;
+
+namespace Prism.Compiler.Symbols;
+
+public closed class FunctionSymbol : Symbol
+{
+    public abstract TypeSymbol ReturnType { get; }
+
+    public abstract TypeSymbol? ReceiverType { get; }
+
+    public abstract ImmutableArray<ParameterSymbol> Parameters { get; }
+
+    public bool ReturnsVoid => ReturnType.IsVoid;
+
+    public abstract FunctionKind Kind { get; }
+
+    internal abstract AbiKind AbiKind { get; }
+
+    internal ImmutableArray<TypeSymbol> ParameterTypes
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                [.. Parameters.Select(p => p.Type)]
+            );
+            return field;
+        }
+    }
+
+    public abstract bool IsExtern { get; }
+
+    public sealed override void WriteDisplayString(TextWriter writer)
+    {
+        if (
+            ContainingSymbol
+            is not null
+                and not AssemblySymbol
+                and NamespaceSymbol { IsGlobal: false }
+        )
+        {
+            ContainingSymbol.WriteDisplayString(writer);
+            writer.Write("::");
+        }
+
+        writer.Write(Name);
+        writer.Write('(');
+        foreach (var (i, param) in Parameters.AsValueEnumerable().Index())
+        {
+            if (i > 0)
+                writer.Write(", ");
+
+            param.WriteDisplayString(writer);
+        }
+        writer.Write(')');
+        if (ReturnsVoid)
+            return;
+
+        writer.Write(": ");
+        ReturnType.WriteDisplayString(writer);
+    }
+}

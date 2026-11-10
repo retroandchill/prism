@@ -1,0 +1,77 @@
+﻿using Prism.Compiler.Binding;
+using Prism.Compiler.BoundTree;
+using Prism.Compiler.Symbols;
+using Prism.Syntax;
+
+namespace Prism.Compiler.Semantic;
+
+public class SemanticModel
+{
+    internal SemanticModel(Compilation compilation, SyntaxTree syntaxTree)
+    {
+        Compilation = compilation;
+        SyntaxTree = syntaxTree;
+    }
+
+    public Compilation Compilation { get; }
+
+    public SyntaxTree SyntaxTree { get; }
+
+    public Symbol? GetDeclaredSymbol(SyntaxNode syntax)
+    {
+        ValidateIsPartOfCompilation(syntax);
+        return State.GetDeclaredSymbol(syntax);
+    }
+
+    public VariableSymbol? GetDeclaredSymbol(VariableDeclarationSyntax syntax)
+    {
+        return GetDeclaredSymbol((SyntaxNode)syntax) as VariableSymbol;
+    }
+
+    public FunctionSymbol? GetDeclaredSymbol(FunctionDeclarationSyntax syntax)
+    {
+        return GetDeclaredSymbol((SyntaxNode)syntax) as FunctionSymbol;
+    }
+
+    public FunctionSymbol? GetDeclaredSymbol(ConstructorDeclarationSyntax syntax)
+    {
+        return GetDeclaredSymbol((SyntaxNode)syntax) as FunctionSymbol;
+    }
+
+    public NamespaceSymbol? GetDeclaredSymbol(NamespaceDeclarationSyntax syntax)
+    {
+        return GetDeclaredSymbol((SyntaxNode)syntax) as NamespaceSymbol;
+    }
+
+    public NamedTypeSymbol? GetDeclaredSymbol(TypeDeclarationSyntax syntax)
+    {
+        return GetDeclaredSymbol((SyntaxNode)syntax) as NamedTypeSymbol;
+    }
+
+    internal SemanticModelState State
+    {
+        get
+        {
+            if (field is not null)
+                return field;
+
+            Interlocked.CompareExchange(
+                ref field,
+                new SemanticModelState(Compilation, SyntaxTree),
+                null
+            );
+            return field;
+        }
+    }
+
+    internal Binder GetBinder(SyntaxNode syntax)
+    {
+        return State.GetBinder(syntax);
+    }
+
+    private void ValidateIsPartOfCompilation(SyntaxNode node)
+    {
+        if (!ReferenceEquals(SyntaxTree, node.SyntaxTree))
+            throw new ArgumentException("The syntax node is not part of the compilation");
+    }
+}

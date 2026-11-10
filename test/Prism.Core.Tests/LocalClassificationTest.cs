@@ -1,8 +1,8 @@
 ﻿using System.Collections.Immutable;
-using Prism.Core.Codegen.Mir;
-using Prism.Core.Compiling;
-using Prism.Core.Mir.Analysis;
-using Prism.Core.Symbols;
+using Prism.Compiler;
+using Prism.Compiler.Codegen.Mir;
+using Prism.Compiler.Mir.Analysis;
+using Prism.Compiler.Symbols;
 using Prism.Syntax;
 
 namespace Prism.Core.Tests;

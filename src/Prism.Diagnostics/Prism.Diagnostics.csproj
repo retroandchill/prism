@@ -19,7 +19,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="Prism.Syntax" />
-        <InternalsVisibleTo Include="Prism.Core" />
+        <InternalsVisibleTo Include="Prism.Compiler" />
     </ItemGroup>
 
     <ItemGroup>

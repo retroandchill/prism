@@ -13,7 +13,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="Prism.Core" />
+        <InternalsVisibleTo Include="Prism.Compiler" />
         <InternalsVisibleTo Include="Prism.Metadata" />
     </ItemGroup>
 </Project>

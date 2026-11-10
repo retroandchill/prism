@@ -1,9 +1,9 @@
 ﻿using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using Prism.Build.Manifest;
-using Prism.Core.Codegen;
-using Prism.Core.Compiling;
-using Prism.Core.Configuration;
+using Prism.Compiler;
+using Prism.Compiler.Codegen;
+using Prism.Compiler.Configuration;
 using Prism.Syntax;
 using Tomlyn;
 using ZLinq;

@@ -5,8 +5,7 @@
 
 using System.Runtime.InteropServices;
 using DotMake.CommandLine;
-using Prism.Core.Compiling;
-using Prism.Core.Configuration;
+using Prism.Compiler.Configuration;
 using Prism.Syntax;
 
 namespace Prism.Compiler;

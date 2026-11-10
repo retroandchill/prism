@@ -1,0 +1,2496 @@
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.InteropServices;
+using Prism.Compiler.Binding.OverloadResolution;
+using Prism.Compiler.Binding.Utils;
+using Prism.Compiler.BoundTree;
+using Prism.Compiler.Mappers;
+using Prism.Compiler.Semantic;
+using Prism.Compiler.Symbols;
+using Prism.Compiler.Symbols.Error;
+using Prism.Compiler.Symbols.Intermediate;
+using Prism.Compiler.Symbols.Source;
+using Prism.Constants;
+using Prism.Diagnostics;
+using Prism.Metadata;
+using Prism.Syntax;
+using Prism.Utils;
+using ZLinq;
+using static Prism.Compiler.Binding.BindingHelpers;
+using ConstantValue = Prism.Constants.ConstantValue;
+
+namespace Prism.Compiler.Binding;
+
+internal abstract class Binder : IOverloadResolutionHost
+{
+    protected Binder(Compilation compilation)
+    {
+        Compilation = compilation;
+    }
+
+    protected Binder(Binder next, ConversionClassifier? conversionClassifier = null)
+    {
+        Compilation = next.Compilation;
+        Next = next;
+        ConversionClassifier = conversionClassifier;
+    }
+
+    public Compilation Compilation { get; }
+
+    protected Binder? Next { get; }
+
+    public Binder GetNextChecked()
+    {
+        return Next ?? throw new InvalidOperationException("No next binder");
+    }
+
+    private ConversionClassifier ConversionClassifier
+    {
+        get
+        {
+            if (field is not null)
+                return field;
+
+            Interlocked.CompareExchange(ref field, new ConversionClassifier(this), null);
+            return field;
+        }
+    }
+
+    public virtual BoundExpression? TryGetImplicitReceiver()
+    {
+        Debug.Assert(Next is not null);
+        return Next.TryGetImplicitReceiver();
+    }
+
+    Conversion IOverloadResolutionHost.ClassifyConversion(TypeSymbol source, TypeSymbol target)
+    {
+        return ConversionClassifier.ClassifyConversion(source, target);
+    }
+
+    public virtual Binder? GetBinder(SyntaxNode node)
+    {
+        Debug.Assert(Next is not null);
+        return Next.GetBinder(node);
+    }
+
+    public Binder GetRequiredBinder(SyntaxNode node)
+    {
+        return GetBinder(node) ?? throw new InvalidOperationException("No binder");
+    }
+
+    protected virtual Symbol? ContainingSymbol
+    {
+        get
+        {
+            Debug.Assert(Next is not null);
+            return Next.ContainingSymbol;
+        }
+    }
+
+    protected virtual SyntaxNode? ScopeDesignator => null;
+
+    public TypeSymbol ResolveType(TypeSyntax syntax, BindingContext context)
+    {
+        return syntax switch
+        {
+            NamedTypeSyntax namedTypeSyntax => RequireType(
+                LookupFromSyntax(namedTypeSyntax.Identifier, LookupOptions.Type, context),
+                namedTypeSyntax.Identifier,
+                context
+            ),
+            PredefinedTypeSyntax predefinedTypeSyntax => Compilation.GetSpecialType(
+                predefinedTypeSyntax.Keyword.Kind.ToSpecialType()
+            ),
+            ArrayTypeSyntax arrayTypeSyntax => Compilation.CreateArrayTypeSymbol(
+                ResolveType(arrayTypeSyntax.ElementType, context),
+                GetArraySize(arrayTypeSyntax, context)
+            ),
+            ReferenceTypeSyntax referenceTypeSyntax => Compilation.CreateReferenceTypeSymbol(
+                ResolveType(referenceTypeSyntax.ReferencedType, context),
+                referenceTypeSyntax.MutableKeyword is not null
+            ),
+            NullableTypeSyntax nullableTypeSyntax => Compilation.CreateNullableTypeSymbol(
+                ResolveType(nullableTypeSyntax.ElementType, context)
+            ),
+            _ => throw new ArgumentOutOfRangeException(nameof(syntax)),
+        };
+    }
+
+    private ulong? GetArraySize(ArrayTypeSyntax syntax, BindingContext context)
+    {
+        if (syntax.Size is null)
+            return null;
+
+        var boundSize = BindExpression(
+            syntax.Size,
+            Compilation.GetSpecialType(SpecialType.USize),
+            context,
+            CancellationToken.None
+        );
+        return boundSize.ConstantValue switch
+        {
+            IntegerConstant { IsUnsigned: true } c => c switch
+            {
+                byte v => v,
+                ushort v => v,
+                uint v => v,
+                ulong v => v,
+                _ => null,
+            },
+            _ => null,
+        };
+    }
+
+    private TypeSymbol RequireType(LookupResult result, NameSyntax syntax, BindingContext context)
+    {
+        if (result is { IsViable: true, Symbol: TypeSymbol typeSymbol })
+        {
+            return typeSymbol;
+        }
+
+        DiagnoseLookupFailure(result, syntax, LookupOptions.Type, context);
+        var names = CollectNames(syntax);
+        return CreateErrorTypeSymbol(
+            ContainingSymbol,
+            Compilation,
+            CollectionsMarshal.AsSpan(names)
+        );
+    }
+
+    private LookupResult LookupFromSyntax(
+        NameSyntax syntax,
+        LookupOptions options,
+        BindingContext context
+    )
+    {
+        return syntax switch
+        {
+            SimpleNameSyntax simple => LookupFromSimpleName(simple, options, context),
+            QualifiedNameSyntax qualified => LookupFromQualifiedName(qualified, options, context),
+            _ => throw new ArgumentOutOfRangeException(nameof(syntax)),
+        };
+    }
+
+    private LookupResult LookupUnqualifiedName(
+        string name,
+        LookupOptions options,
+        BindingContext context
+    )
+    {
+        if (options.HasFlag(LookupOptions.Callable))
+        {
+            var symbols = ImmutableArray.CreateBuilder<Symbol>();
+            for (var binder = this; binder is not null; binder = binder.Next)
+            {
+                if (binder.LookupLocal(name, options, context) is not { Found: true } localResult)
+                    continue;
+
+                if (!localResult.IsViable || localResult.Symbols.All(s => s is FunctionSymbol))
+                    return localResult;
+
+                symbols.AddRange(localResult.Symbols);
+            }
+
+            return MakeLookupResult(symbols.DrainToImmutable(), options);
+        }
+
+        for (var binder = this; binder is not null; binder = binder.Next)
+        {
+            if (binder.LookupLocal(name, options, context) is { Found: true } localResult)
+                return localResult;
+        }
+
+        return LookupResult.NotFound();
+    }
+
+    protected LookupResult LookupQualifiedName(
+        string name,
+        MemberContainerSymbol container,
+        LookupOptions options
+    )
+    {
+        var symbols = ImmutableArray.CreateBuilder<Symbol>();
+        foreach (var symbol in container.GetMembers(name).Where(VisibleFrom))
+        {
+            switch (symbol)
+            {
+                case VariableSymbol variable:
+                    if (options.HasFlag(LookupOptions.Value))
+                    {
+                        symbols.Add(variable);
+                    }
+
+                    break;
+                case FunctionSymbol function:
+                    if (options.HasFlag(LookupOptions.Callable))
+                    {
+                        symbols.Add(function);
+                    }
+
+                    break;
+                case NamespaceSymbol namespaceSymbol:
+                    if (options.HasFlag(LookupOptions.Namespace))
+                    {
+                        symbols.Add(namespaceSymbol);
+                    }
+
+                    break;
+                case TypeSymbol type:
+                    if (options.HasFlag(LookupOptions.Type))
+                    {
+                        symbols.Add(type);
+                    }
+
+                    break;
+            }
+        }
+
+        return MakeLookupResult(symbols.DrainToImmutable(), options);
+    }
+
+    private LookupResult LookupFromSimpleName(
+        SimpleNameSyntax syntax,
+        LookupOptions options,
+        BindingContext context
+    )
+    {
+        return LookupUnqualifiedName(syntax.UnqualifiedName, options, context);
+    }
+
+    private LookupResult LookupFromQualifiedName(
+        QualifiedNameSyntax syntax,
+        LookupOptions options,
+        BindingContext context
+    )
+    {
+        var lookupResult = LookupFromSyntax(syntax.Left, LookupOptions.NamespaceOrType, context);
+        if (!lookupResult.IsViable)
+            return lookupResult;
+
+        return lookupResult.Symbol is not MemberContainerSymbol memberContainer
+            ? LookupResult.WrongKind(lookupResult.Symbols)
+            : LookupQualifiedName(syntax.UnqualifiedName, memberContainer, options);
+    }
+
+    protected virtual void EnsureLocals()
+    {
+        Debug.Assert(Next is not null);
+        Next.EnsureLocals();
+    }
+
+    protected abstract LookupResult LookupLocal(
+        string name,
+        LookupOptions options,
+        BindingContext context
+    );
+
+    public abstract LabelSymbol? LookupLoopLabel(string name, BindingContext context);
+
+    protected static LookupResult MakeLookupResult(
+        ImmutableArray<Symbol> symbols,
+        LookupOptions options
+    )
+    {
+        if (symbols.IsEmpty)
+            return LookupResult.NotFound();
+
+        if (options.HasFlag(LookupOptions.Callable) || symbols.Length == 1)
+            return LookupResult.Viable(symbols);
+
+        return LookupResult.Ambiguous(symbols);
+    }
+
+    protected ImmutableArray<NamespaceSymbol> BuildUsingNamespaces(
+        SyntaxList<UsingDirectiveSyntax> usings
+    )
+    {
+        var result = ImmutableArray.CreateBuilder<NamespaceSymbol>(usings.Count);
+        var seen = new HashSet<NamespaceSymbol>(ReferenceEqualityComparer.Instance);
+        seen.EnsureCapacity(result.Capacity);
+
+        // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
+        foreach (var directive in usings)
+        {
+            var resolved = ResolveUsingNamespace(directive.Name);
+            if (!seen.Add(resolved))
+                continue;
+
+            result.Add(resolved);
+        }
+
+        return result.DrainToImmutable();
+    }
+
+    private NamespaceSymbol ResolveUsingNamespace(NameSyntax syntax)
+    {
+        using var diagnostics = DiagnosticBag.Create();
+        var names = CollectNames(syntax);
+        var current = Compilation.GlobalNamespace;
+        var isError = false;
+        foreach (var simple in names)
+        {
+            var name = simple.UnqualifiedName;
+            var result = LookupQualifiedName(name, current, LookupOptions.Namespace);
+            if (result.IsViable)
+            {
+                current = (NamespaceSymbol)result.Symbol;
+            }
+            else
+            {
+                current = Compilation.CreateErrorNamespaceSymbol(current, name);
+                if (isError)
+                    continue;
+                diagnostics.Add(Diagnostic.UnresolvedSymbol(simple.Location, name));
+                isError = true;
+            }
+        }
+
+        if (isError)
+        {
+            Compilation.DeclarationDiagnostics.AddRange(diagnostics);
+        }
+
+        return current;
+    }
+
+    private bool VisibleFrom(Symbol symbol)
+    {
+        switch (symbol.DeclaredVisibility)
+        {
+            case DeclaredVisibility.NotApplicable:
+            case DeclaredVisibility.Public:
+                return true;
+            case DeclaredVisibility.Internal:
+                return IsInternalMemberVisible(symbol);
+            case DeclaredVisibility.Protected:
+                return IsProtectedMemberVisible(symbol);
+            case DeclaredVisibility.ProtectedOrInternal:
+                return IsProtectedMemberVisible(symbol) || IsInternalMemberVisible(symbol);
+            case DeclaredVisibility.ProtectedAndInternal:
+                return IsProtectedMemberVisible(symbol) && IsInternalMemberVisible(symbol);
+            case DeclaredVisibility.Private:
+                return IsPrivateMemberVisible(symbol);
+            case DeclaredVisibility.File:
+            {
+                var designator = ScopeDesignator;
+                return designator is not null
+                    && symbol.DeclaringSyntaxReferences.All(r =>
+                        ReferenceEquals(r.SyntaxTree, designator.SyntaxTree)
+                    );
+            }
+            default:
+                throw new ArgumentException("Unexpected declared visibility", nameof(symbol));
+        }
+    }
+
+    private bool IsInternalMemberVisible(Symbol symbol)
+    {
+        return symbol.ContainingAssembly == Compilation.Assembly;
+    }
+
+    private static bool IsProtectedMemberVisible(Symbol symbol)
+    {
+        // TODO: There is more to this, but it's not able to be implemented until inheritance is supported.
+        var containingType = symbol.ContainingType;
+        while (containingType is not null)
+        {
+            if (containingType == symbol.ContainingType)
+                return true;
+
+            containingType = containingType.ContainingType;
+        }
+
+        return false;
+    }
+
+    private static bool IsPrivateMemberVisible(Symbol symbol)
+    {
+        var containingType = symbol.ContainingType;
+        while (containingType is not null)
+        {
+            if (containingType == symbol.ContainingType)
+                return true;
+
+            containingType = containingType.ContainingType;
+        }
+
+        return false;
+    }
+
+    public BoundExpression BindInitializer(
+        VariableSymbol variable,
+        InitializerSyntax initializer,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        Debug.Assert(!variable.IsLocal);
+        var expression = BindExpression(
+            initializer.Value,
+            variable.Type,
+            context,
+            cancellationToken
+        );
+        return AddConversionIfNecessary(expression, variable.Type, context);
+    }
+
+    public ImmutableArray<AttributeData> BindAttributes(
+        SyntaxList<AttributeListSyntax> attributes,
+        BindingContext context,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (attributes.Count == 0)
+            return [];
+
+        var builder = ImmutableArray.CreateBuilder<AttributeData>();
+
+        foreach (
+            var attribute in attributes
+                .AsValueEnumerable()
+                .SelectMany(l => l.Attributes.AsValueEnumerable())
+        )
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var attributeType = (NamedTypeSymbol)ResolveType(attribute.Type, context);
+            if (attributeType.Kind != NamedTypeKind.Attribute)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.TypeIsNotAttribute(
+                        attribute.Type.Location,
+                        attributeType.ToDisplayString()
+                    )
+                );
+                continue;
+            }
+
+            using var parameters = attributeType
+                .GetMembers()
+                .AsValueEnumerable()
+                .OfType<ParameterSymbol>()
+                .ToArrayPool();
+
+            var callArguments = GetCallArguments(attribute.Arguments, context, cancellationToken);
+            var mappedParameters = ArgumentMapper.TryMapArgumentsToParameters(
+                Compilation,
+                parameters.Span,
+                callArguments,
+                attribute.Type
+            );
+
+            ImmutableArray<AttributeArgument> attributeParams;
+            if (mappedParameters is null)
+            {
+                var diagnosticArguments = RealizeSpeculativeBindingForDiagnostics(
+                    callArguments,
+                    context
+                );
+                context.ReportDiagnostic(
+                    Diagnostic.InvalidNumberOfArgumentsForAttribute(
+                        attribute.Location,
+                        attributeType.ToDisplayString(),
+                        GetTypeNames(diagnosticArguments)
+                    )
+                );
+                attributeParams = [];
+            }
+            else
+            {
+                Debug.Assert(parameters.Size == mappedParameters.Length);
+                var arguments = new AttributeArgument[parameters.Size];
+                foreach (var (i, param) in parameters.Span.AsValueEnumerable().Index())
+                {
+                    var arg = mappedParameters[i];
+                    var newExpression = ApplySpeculativeBinding(arg, param.Type, context);
+                    var converted = AddConversionIfNecessary(newExpression, param.Type, context);
+                    if (converted.ConstantValue is { } constant)
+                    {
+                        arguments[i] = new AttributeArgument(param, constant);
+                    }
+                    else
+                    {
+                        arguments[i] = new AttributeArgument(param, new NullConstant());
+                        context.ReportDiagnostic(
+                            Diagnostic.NonConstantAttributeArg(
+                                arg.Location,
+                                param.Name,
+                                attributeType.Name
+                            )
+                        );
+                    }
+                }
+
+                attributeParams = ImmutableCollectionsMarshal.AsImmutableArray(arguments);
+            }
+
+            // TODO: We need to actually parse the arguments
+            builder.Add(
+                new AttributeData(attributeType, attributeParams, new SyntaxReference(attribute))
+            );
+        }
+
+        return builder.DrainToImmutable();
+    }
+
+    public BoundStatement BindStatement(
+        StatementSyntax syntax,
+        TypeSymbol returnType,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return syntax switch
+        {
+            BlockSyntax blockSyntax => BindBlock(
+                blockSyntax,
+                returnType,
+                context,
+                cancellationToken
+            ),
+            ExpressionStatementSyntax expressionStatementSyntax => BindExpressionStatement(
+                expressionStatementSyntax,
+                context,
+                cancellationToken
+            ),
+            ReturnStatementSyntax returnStatementSyntax => BindReturnStatement(
+                returnStatementSyntax,
+                returnType,
+                context,
+                cancellationToken
+            ),
+            VariableDeclarationStatementSyntax variableDeclarationStatementSyntax =>
+                BindVariableDeclaration(
+                    variableDeclarationStatementSyntax,
+                    context,
+                    cancellationToken
+                ),
+            IfStatementSyntax ifStatementSyntax => BindIfStatement(
+                ifStatementSyntax,
+                returnType,
+                context,
+                cancellationToken
+            ),
+            WhileStatementSyntax whileStatementSyntax => BindWhileStatement(
+                whileStatementSyntax,
+                returnType,
+                context,
+                cancellationToken
+            ),
+            LoopStatementSyntax loopStatementSyntax => BindLoopStatement(
+                loopStatementSyntax,
+                returnType,
+                context,
+                cancellationToken
+            ),
+            ForStatementSyntax forStatementSyntax => BindForStatement(
+                forStatementSyntax,
+                returnType,
+                context,
+                cancellationToken
+            ),
+            BreakStatementSyntax breakStatementSyntax => BindBreakStatement(
+                breakStatementSyntax,
+                context
+            ),
+            ContinueStatementSyntax continueStatementSyntax => BindContinueStatement(
+                continueStatementSyntax,
+                context
+            ),
+            LabeledStatementSyntax labeledStatementSyntax => BindLabelStatement(
+                labeledStatementSyntax,
+                returnType,
+                context,
+                cancellationToken
+            ),
+            EmptyStatementSyntax => throw new InvalidOperationException(
+                "Empty statement is not allowed in a statement list"
+            ),
+        };
+    }
+
+    public BoundStatement BindExpressionBody(
+        ExpressionBodySyntax syntax,
+        TypeSymbol returnType,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        if (returnType.IsVoid)
+        {
+            return new BoundExpressionStatement(
+                Compilation,
+                syntax,
+                BindExpression(syntax.Expression, context, cancellationToken)
+            );
+        }
+
+        return new BoundReturnStatement(
+            Compilation,
+            syntax,
+            BindExpression(syntax.Expression, returnType, context, cancellationToken)
+        );
+    }
+
+    private BoundBlock BindBlock(
+        BlockSyntax syntax,
+        TypeSymbol returnType,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var builder = ImmutableArray.CreateBuilder<BoundStatement>(syntax.Statements.Count);
+        var binder = GetRequiredBinder(syntax);
+        foreach (
+            var statement in syntax
+                .Statements.AsValueEnumerable()
+                .Where(statement => statement is not EmptyStatementSyntax)
+        )
+        {
+            builder.Add(binder.BindStatement(statement, returnType, context, cancellationToken));
+        }
+
+        return new BoundBlock(Compilation, syntax, builder.DrainToImmutable());
+    }
+
+    private BoundVariableDeclaration BindVariableDeclaration(
+        VariableDeclarationStatementSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var declaration = syntax.Declaration;
+        return BindVariableDeclaration(declaration, context, cancellationToken);
+    }
+
+    private BoundVariableDeclaration BindVariableDeclaration(
+        VariableDeclarationSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var semanticModel = Compilation.GetSemanticModel(syntax.SyntaxTree);
+        EnsureLocals();
+        var variable =
+            semanticModel.GetDeclaredSymbol(syntax)
+            ?? throw new InvalidOperationException("Declared variable not found");
+
+        var targetType = syntax.Type switch
+        {
+            { Type: var typeSyntax } => ResolveType(typeSyntax, context),
+            null => null,
+        };
+
+        var initializer = syntax.Initializer switch
+        {
+            not null => BindExpression(
+                syntax.Initializer.Value,
+                targetType,
+                context,
+                cancellationToken
+            ),
+            null => null,
+        };
+
+        if (initializer is null)
+            return new BoundVariableDeclaration(Compilation, syntax, variable, initializer);
+
+        if (targetType is not null && !targetType.IsDynamicallySized)
+        {
+            initializer = AddConversionIfNecessary(initializer, targetType, context);
+        }
+
+        // We can short-circuit a double type computation here
+        if (variable is SourceLocalVariableSymbol sourceSymbol)
+        {
+            sourceSymbol.ForceSetType(initializer.Type);
+        }
+
+        return new BoundVariableDeclaration(Compilation, syntax, variable, initializer);
+    }
+
+    private BoundExpressionStatement BindExpressionStatement(
+        ExpressionStatementSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        return new BoundExpressionStatement(
+            Compilation,
+            syntax,
+            BindExpression(syntax.Expression, context, cancellationToken)
+        );
+    }
+
+    private BoundReturnStatement BindReturnStatement(
+        ReturnStatementSyntax syntax,
+        TypeSymbol returnType,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var expression = syntax.Expression switch
+        {
+            not null => BindExpression(syntax.Expression, returnType, context, cancellationToken),
+            null => null,
+        };
+
+        if (expression is not null)
+        {
+            if (returnType.IsVoid)
+            {
+                context.ReportDiagnostic(Diagnostic.CannotReturnValue(expression.Syntax.Location));
+            }
+            else
+            {
+                expression = AddConversionIfNecessary(expression, returnType, context);
+            }
+        }
+        else
+        {
+            if (!returnType.IsVoid)
+            {
+                context.ReportDiagnostic(Diagnostic.StatementMustReturnValue(syntax.Location));
+            }
+        }
+
+        return new BoundReturnStatement(Compilation, syntax, expression);
+    }
+
+    private BoundIfStatement BindIfStatement(
+        IfStatementSyntax syntax,
+        TypeSymbol returnType,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var condition = BindExpression(
+            syntax.Condition,
+            Compilation.GetSpecialType(SpecialType.Bool),
+            context,
+            cancellationToken
+        );
+        var thenStatement = BindBlock(syntax.Block, returnType, context, cancellationToken);
+        var elseStatement = syntax.ElseClause switch
+        {
+            not null => BindStatement(
+                syntax.ElseClause.Statement,
+                returnType,
+                context,
+                cancellationToken
+            ),
+            null => null,
+        };
+        return new BoundIfStatement(Compilation, syntax, condition, thenStatement, elseStatement);
+    }
+
+    private BoundWhileStatement BindWhileStatement(
+        WhileStatementSyntax syntax,
+        TypeSymbol returnType,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var binder = GetRequiredBinder(syntax);
+        var condition = binder.BindExpression(
+            syntax.Condition,
+            Compilation.GetSpecialType(SpecialType.Bool),
+            context,
+            cancellationToken
+        );
+        var loopBody = binder.BindBlock(syntax.Block, returnType, context, cancellationToken);
+        var label = binder.LookupLoopLabel("", context);
+        Debug.Assert(label is not null);
+        return new BoundWhileStatement(Compilation, syntax, condition, loopBody, label);
+    }
+
+    private BoundLoopStatement BindLoopStatement(
+        LoopStatementSyntax syntax,
+        TypeSymbol returnType,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var binder = GetRequiredBinder(syntax);
+        var loopBody = binder.BindBlock(syntax.Block, returnType, context, cancellationToken);
+        var label = binder.LookupLoopLabel("", context);
+        Debug.Assert(label is not null);
+        return new BoundLoopStatement(Compilation, syntax, loopBody, label);
+    }
+
+    private BoundForStatement BindForStatement(
+        ForStatementSyntax syntax,
+        TypeSymbol returnType,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var binder = GetRequiredBinder(syntax);
+        var variable = syntax.Declaration switch
+        {
+            not null => binder.BindVariableDeclaration(
+                syntax.Declaration,
+                context,
+                cancellationToken
+            ),
+            null => null,
+        };
+        var initializers = syntax
+            .Initializers.AsValueEnumerable()
+            .Select(e => binder.BindExpression(e, context, cancellationToken))
+            .ToImmutableArray();
+        var condition = syntax.Condition switch
+        {
+            not null => binder.BindExpression(
+                syntax.Condition,
+                Compilation.GetSpecialType(SpecialType.Bool),
+                context,
+                cancellationToken
+            ),
+            null => null,
+        };
+
+        var incrementors = syntax
+            .Incrementors.AsValueEnumerable()
+            .Select(e => binder.BindExpression(e, context, cancellationToken))
+            .ToImmutableArray();
+
+        var loopBody = binder.BindBlock(syntax.Block, returnType, context, cancellationToken);
+        var label = binder.LookupLoopLabel("", context);
+        Debug.Assert(label is not null);
+        return new BoundForStatement(
+            Compilation,
+            syntax,
+            variable,
+            initializers,
+            condition,
+            incrementors,
+            loopBody,
+            label
+        );
+    }
+
+    private BoundBreakStatement BindBreakStatement(
+        BreakStatementSyntax syntax,
+        BindingContext context
+    )
+    {
+        var labelName = syntax.Label?.IdentifierName ?? "";
+        var label = LookupLoopLabel(labelName, context);
+        if (label is not null)
+            return new BoundBreakStatement(Compilation, syntax, label);
+
+        context.ReportDiagnostic(Diagnostic.InvalidUseOfBreak(syntax.Location));
+        var enclosingFunction = ContainingSymbol as FunctionSymbol ?? ErrorFunctionSymbol.Unnamed;
+        label = new ErrorLabelSymbol(labelName, enclosingFunction);
+
+        return new BoundBreakStatement(Compilation, syntax, label);
+    }
+
+    private BoundContinueStatement BindContinueStatement(
+        ContinueStatementSyntax syntax,
+        BindingContext context
+    )
+    {
+        var labelName = syntax.Label?.IdentifierName ?? "";
+        var label = LookupLoopLabel(labelName, context);
+        if (label is not null)
+            return new BoundContinueStatement(Compilation, syntax, label);
+
+        context.ReportDiagnostic(Diagnostic.InvalidUseOfBreak(syntax.Location));
+        var enclosingFunction = ContainingSymbol as FunctionSymbol ?? ErrorFunctionSymbol.Unnamed;
+        label = new ErrorLabelSymbol(labelName, enclosingFunction);
+
+        return new BoundContinueStatement(Compilation, syntax, label);
+    }
+
+    private BoundStatement BindLabelStatement(
+        LabeledStatementSyntax syntax,
+        TypeSymbol returnValue,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        if (
+            syntax.Statement
+            is not WhileStatementSyntax
+                and not LoopStatementSyntax
+                and not ForStatementSyntax
+        )
+        {
+            context.ReportDiagnostic(Diagnostic.InvalidUseOfLabel(syntax.Identifier.Location));
+        }
+
+        return BindStatement(syntax.Statement, returnValue, context, cancellationToken);
+    }
+
+    public BoundExpression BindExpression(
+        ExpressionSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        return BindExpression(syntax, null, context, cancellationToken);
+    }
+
+    private BoundExpression BindExpression(
+        ExpressionSyntax syntax,
+        bool isSpeculative,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        return BindExpression(syntax, null, isSpeculative, context, cancellationToken);
+    }
+
+    public BoundExpression BindExpression(
+        ExpressionSyntax syntax,
+        TypeSymbol? targetType,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        return BindExpression(syntax, targetType, false, context, cancellationToken);
+    }
+
+    private BoundExpression BindExpression(
+        ExpressionSyntax syntax,
+        TypeSymbol? targetType,
+        bool isSpeculative,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return syntax switch
+        {
+            LiteralExpressionSyntax literal => BindLiteralExpression(
+                literal,
+                targetType,
+                context,
+                isSpeculative
+            ),
+            NullLiteralExpressionSyntax nullLiteral => BindNullLiteralExpression(
+                nullLiteral,
+                targetType,
+                context
+            ),
+            ThisExpressionSyntax thisExpression => BindThisExpression(thisExpression, context),
+            SizeOfExpressionSyntax sizeOfExpression => BindSizeOfExpression(
+                sizeOfExpression,
+                context
+            ),
+            IdentifierExpressionSyntax identifier => BindIdentifierExpression(identifier, context),
+            ParenthesizedExpressionSyntax parenthesized => BindExpression(
+                parenthesized.Expression,
+                targetType,
+                context,
+                cancellationToken
+            ),
+            BinaryExpressionSyntax binary => BindBinaryExpression(
+                binary,
+                context,
+                cancellationToken
+            ),
+            AssignmentExpressionSyntax assignment => BindAssignmentExpression(
+                assignment,
+                context,
+                cancellationToken
+            ),
+            PrefixExpressionSyntax prefix => BindPrefixExpression(
+                prefix,
+                targetType,
+                isSpeculative,
+                context,
+                cancellationToken
+            ),
+            AddressOfExpressionSyntax addressOf => BindAddressOfExpression(
+                addressOf,
+                context,
+                cancellationToken
+            ),
+            PostfixExpressionSyntax postfix => BindPostfixExpression(
+                postfix,
+                targetType,
+                context,
+                cancellationToken
+            ),
+            TernaryExpressionSyntax ternary => BindTernaryExpression(
+                ternary,
+                targetType,
+                context,
+                isSpeculative,
+                cancellationToken
+            ),
+            InvocationExpressionSyntax invocation => BindInvocationExpression(
+                invocation,
+                context,
+                cancellationToken
+            ),
+            CastExpressionSyntax cast => BindCastExpression(cast, context, cancellationToken),
+            MemberAccessExpressionSyntax memberAccess => BindMemberAccessExpression(
+                memberAccess,
+                context,
+                cancellationToken
+            ),
+            IndexExpressionSyntax index => BindIndexExpression(index, context, cancellationToken),
+            CollectionExpressionSyntax collection => BindCollectionExpression(
+                collection,
+                targetType,
+                isSpeculative,
+                context,
+                cancellationToken
+            ),
+            NewExpressionSyntax newExpression => BindNewExpression(
+                newExpression,
+                targetType,
+                isSpeculative,
+                context,
+                cancellationToken
+            ),
+            ObjectInitializerSyntax => throw new InvalidOperationException(
+                "Object initializer syntax is not supported in this context."
+            ),
+        };
+    }
+
+    private BoundExpression BindLiteralExpression(
+        LiteralExpressionSyntax syntax,
+        TypeSymbol? returnType,
+        BindingContext context,
+        bool isSpeculative
+    )
+    {
+        var token = syntax.Value;
+        if (isSpeculative)
+        {
+            Debug.Assert(returnType is null);
+            if (
+                token.TryGetValue<IntegerLiteralData>() is
+                { Suffix: IntegerSuffix.None } integerValue
+            )
+            {
+                var (_, specialType) = EvaluateNumericExpression(
+                    in integerValue,
+                    null,
+                    syntax.Location,
+                    BindingContext.Discarded
+                );
+                return new BoundUnfixedIntegerLiteral(
+                    Compilation,
+                    syntax,
+                    integerValue,
+                    Compilation.GetSpecialType(specialType)
+                );
+            }
+
+            if (token.TryGetValue<FloatLiteralData>() is { Suffix: FloatSuffix.None } floatingValue)
+            {
+                var (_, specialType) = EvaluateNumericExpression(
+                    in floatingValue,
+                    null,
+                    syntax.Location,
+                    BindingContext.Discarded
+                );
+                return new BoundUnfixedFloatLiteral(
+                    Compilation,
+                    syntax,
+                    floatingValue,
+                    Compilation.GetSpecialType(specialType)
+                );
+            }
+        }
+
+        var (value, t) = EvaluateConstantExpression(token, returnType, context);
+        TypeSymbol type = Compilation.GetSpecialType(t);
+        if (type.SpecialType == SpecialType.Str)
+        {
+            type = Compilation.CreateReferenceTypeSymbol(type);
+        }
+        return new BoundLiteral(Compilation, syntax, type, value);
+    }
+
+    private BoundLiteral BindNullLiteralExpression(
+        NullLiteralExpressionSyntax syntax,
+        TypeSymbol? returnType,
+        BindingContext context
+    )
+    {
+        if (returnType is null)
+        {
+            return new BoundLiteral(
+                Compilation,
+                syntax,
+                UnboundNullTypeSymbol.Instance,
+                new NullConstant()
+            );
+        }
+
+        if (returnType is not NullableTypeSymbol)
+        {
+            context.ReportDiagnostic(
+                Diagnostic.CannotBeNull(syntax.Location, returnType.ToDisplayString())
+            );
+        }
+
+        return new BoundLiteral(Compilation, syntax, returnType, new NullConstant());
+    }
+
+    private BoundThisExpression BindThisExpression(
+        ThisExpressionSyntax syntax,
+        BindingContext context
+    )
+    {
+        if (ContainingSymbol is FunctionSymbol { ReceiverType: { } receiverType })
+        {
+            return new BoundThisExpression(Compilation, syntax, receiverType);
+        }
+
+        context.ReportDiagnostic(Diagnostic.InvalidThisAccess(syntax.Location));
+        return new BoundThisExpression(Compilation, syntax, ErrorTypeSymbol.Unnamed);
+    }
+
+    private BoundTypeSize BindSizeOfExpression(
+        SizeOfExpressionSyntax syntax,
+        BindingContext context
+    )
+    {
+        var targetType = ResolveType(syntax.Type, context);
+        if (targetType.IsDynamicallySized)
+        {
+            context.ReportDiagnostic(
+                Diagnostic.TypeHasNoSize(syntax.Type.Location, targetType.ToDisplayString())
+            );
+        }
+
+        return new BoundTypeSize(Compilation, syntax, targetType);
+    }
+
+    private BoundExpression BindIdentifierExpression(
+        IdentifierExpressionSyntax syntax,
+        BindingContext context
+    )
+    {
+        var result = LookupFromSyntax(syntax.Value, LookupOptions.Value, context);
+        if (result.IsViable)
+        {
+            return result.Symbol switch
+            {
+                VariableSymbol v => BindVariableAccess(syntax, v, context),
+                ParameterSymbol p => new BoundParameterAccess(Compilation, syntax, p),
+                _ => throw new InvalidOperationException(
+                    "We must have added a symbol type that can hold a value that we haven't accounted for yet."
+                ),
+            };
+        }
+
+        DiagnoseLookupFailure(result, syntax.Value, LookupOptions.Value, context);
+        return new BoundBadExpression(Compilation, syntax, ErrorTypeSymbol.Unnamed);
+    }
+
+    private BoundVariableAccess BindVariableAccess(
+        IdentifierExpressionSyntax syntax,
+        VariableSymbol symbol,
+        BindingContext context
+    )
+    {
+        if (!symbol.IsInstance)
+            return new BoundVariableAccess(Compilation, syntax, symbol);
+
+        var receiver = TryGetImplicitReceiver();
+        if (receiver is not null)
+        {
+            return new BoundVariableAccess(
+                Compilation,
+                syntax,
+                AutoDereferenceIfNecessary(receiver),
+                symbol
+            );
+        }
+
+        context.ReportDiagnostic(Diagnostic.InvalidThisAccess(syntax.Location));
+        return new BoundVariableAccess(Compilation, syntax, symbol);
+    }
+
+    private BoundBinaryOperation BindBinaryExpression(
+        BinaryExpressionSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var left = BindExpression(syntax.Left, context, cancellationToken);
+        var right = BindExpression(syntax.Right, context, cancellationToken);
+        var operation = syntax.Op.Kind.ToBinaryOperation();
+        var conversion = ConversionClassifier.ClassifyBinaryOperand(
+            operation,
+            left.Type,
+            right.Type
+        );
+        if (conversion is var (leftConversion, rightConversion, commonType))
+        {
+            left = AddConversionIfNecessary(left, commonType, leftConversion, context);
+            right = AddConversionIfNecessary(right, commonType, rightConversion, context);
+        }
+        else
+        {
+            context.ReportDiagnostic(
+                Diagnostic.BinaryOperatorUndefined(
+                    syntax.Location,
+                    left.Type.ToDisplayString(),
+                    right.Type.ToDisplayString()
+                )
+            );
+        }
+
+        var targetType = operation switch
+        {
+            BinaryOperation.Addition
+            or BinaryOperation.Subtraction
+            or BinaryOperation.Multiplication
+            or BinaryOperation.Division
+            or BinaryOperation.Modulo
+            or BinaryOperation.BitwiseAnd
+            or BinaryOperation.BitwiseOr
+            or BinaryOperation.BitwiseXor
+            or BinaryOperation.ShiftLeft
+            or BinaryOperation.ShiftRight
+            or BinaryOperation.UnsignedShiftRight => conversion?.Type,
+            BinaryOperation.LogicalAnd
+            or BinaryOperation.LogicalOr
+            or BinaryOperation.Equality
+            or BinaryOperation.NotEquals
+            or BinaryOperation.LessThan
+            or BinaryOperation.LessThanOrEquals
+            or BinaryOperation.GreaterThan
+            or BinaryOperation.GreaterThanOrEquals => Compilation.GetSpecialType(SpecialType.Bool),
+            BinaryOperation.ThreeWayComparison => throw new NotImplementedException(),
+            _ => throw new InvalidOperationException("Unknown binary operation"),
+        };
+
+        return new BoundBinaryOperation(
+            Compilation,
+            syntax,
+            targetType ?? ErrorTypeSymbol.Unnamed,
+            left,
+            right,
+            operation
+        );
+    }
+
+    private BoundAssignmentOperation BindAssignmentExpression(
+        AssignmentExpressionSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var assignee = BindExpression(syntax.Left, context, cancellationToken);
+        var operation = syntax.Op.Kind.ToAssignmentOperation();
+        if (!IsAssignmentValid(assignee.Type, operation))
+        {
+            context.ReportDiagnostic(
+                Diagnostic.NoCompoundAssignmentOperator(
+                    syntax.Location,
+                    assignee.Type.ToDisplayString()
+                )
+            );
+        }
+        else if (!assignee.IsAssignable)
+        {
+            context.ReportDiagnostic(Diagnostic.CannotAssignExpression(syntax.Location));
+        }
+
+        var assigned = BindExpression(syntax.Right, assignee.Type, context, cancellationToken);
+        assigned = AddConversionIfNecessary(assigned, assignee.Type, context);
+        return new BoundAssignmentOperation(
+            Compilation,
+            syntax,
+            Compilation.GetSpecialType(SpecialType.Void),
+            assignee,
+            assigned,
+            operation
+        );
+    }
+
+    private BoundExpression BindPrefixExpression(
+        PrefixExpressionSyntax syntax,
+        TypeSymbol? returnType,
+        bool isSpeculative,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
+        switch (syntax.Op.Kind)
+        {
+            case SyntaxKind.StarToken:
+            {
+                var inner = BindExpression(syntax.Operand, context, cancellationToken);
+                if (
+                    inner.Type is ReferenceTypeSymbol
+                    {
+                        ReferencedType: var referencedType,
+                        IsMutable: var isMutable,
+                    }
+                )
+                {
+                    if (referencedType.IsDynamicallySized)
+                    {
+                        context.ReportDiagnostic(
+                            Diagnostic.CannotDereferenceVariableLength(
+                                syntax.Operand.Location,
+                                referencedType.ToDisplayString()
+                            )
+                        );
+                    }
+
+                    return new BoundDereference(
+                        Compilation,
+                        syntax,
+                        inner,
+                        referencedType,
+                        isMutable
+                    );
+                }
+
+                context.ReportDiagnostic(Diagnostic.CannotDereference(syntax.Operand.Location));
+                return new BoundDereference(Compilation, syntax, inner, inner.Type, false);
+            }
+        }
+
+        var op = syntax.Op.Kind.ToPrefixOperation();
+
+        if (op == UnaryOperation.Negation)
+        {
+            if (syntax.Operand is LiteralExpressionSyntax literal)
+            {
+                if (
+                    literal.Value.TryGetValue<IntegerLiteralData>() is
+                    { Suffix.CanBeSigned: true } intData
+                )
+                {
+                    var (negated, specialType) = EvaluateNumericExpression(
+                        in intData,
+                        returnType,
+                        syntax.Location,
+                        context,
+                        true
+                    );
+
+                    if (intData.Suffix == IntegerSuffix.None && isSpeculative)
+                    {
+                        return new BoundUnfixedIntegerLiteral(
+                            Compilation,
+                            syntax,
+                            intData,
+                            Compilation.GetSpecialType(specialType)
+                        )
+                        {
+                            Negated = true,
+                        };
+                    }
+
+                    return new BoundLiteral(
+                        Compilation,
+                        syntax,
+                        Compilation.GetSpecialType(specialType),
+                        negated
+                    );
+                }
+
+                if (literal.Value.TryGetValue<FloatLiteralData>() is { } floatData)
+                {
+                    var (negated, specialType) = EvaluateNumericExpression(
+                        in floatData,
+                        returnType,
+                        syntax.Location,
+                        context,
+                        true
+                    );
+
+                    if (floatData.Suffix == FloatSuffix.None && isSpeculative)
+                    {
+                        return new BoundUnfixedFloatLiteral(
+                            Compilation,
+                            syntax,
+                            floatData,
+                            Compilation.GetSpecialType(specialType)
+                        )
+                        {
+                            Negated = true,
+                        };
+                    }
+
+                    return new BoundLiteral(
+                        Compilation,
+                        syntax,
+                        Compilation.GetSpecialType(specialType),
+                        negated
+                    );
+                }
+            }
+        }
+
+        var operand = BindExpression(syntax.Operand, returnType, context, cancellationToken);
+        return CreateUnaryOperation(syntax, op, operand, context);
+    }
+
+    private BoundAddressOf BindAddressOfExpression(
+        AddressOfExpressionSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var inner = BindExpression(syntax.Operand, context, cancellationToken);
+        var isMutable = syntax.MutableKeyword is not null;
+        return new BoundAddressOf(
+            Compilation,
+            syntax,
+            inner,
+            Compilation.CreateReferenceTypeSymbol(inner.Type, isMutable),
+            isMutable
+        );
+    }
+
+    private BoundUnaryOperation BindPostfixExpression(
+        PostfixExpressionSyntax syntax,
+        TypeSymbol? returnType,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var operand = BindExpression(syntax.Operand, returnType, context, cancellationToken);
+        var op = syntax.Op.Kind.ToPostfixOperation();
+        return CreateUnaryOperation(syntax, op, operand, context);
+    }
+
+    private BoundExpression BindTernaryExpression(
+        TernaryExpressionSyntax syntax,
+        TypeSymbol? returnType,
+        BindingContext context,
+        bool isSpeculative,
+        CancellationToken cancellationToken
+    )
+    {
+        var condition = AddConversionIfNecessary(
+            BindExpression(syntax.Condition, context, cancellationToken),
+            Compilation.GetSpecialType(SpecialType.Bool),
+            context
+        );
+
+        if (isSpeculative)
+        {
+            return BindSpeculativeConditional(syntax, condition, context, cancellationToken);
+        }
+
+        return BindRegularConditional(syntax, returnType, condition, context, cancellationToken);
+    }
+
+    private BoundSpeculativeConditional BindSpeculativeConditional(
+        TernaryExpressionSyntax syntax,
+        BoundExpression condition,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var whenTrue = BindExpression(syntax.WhenTrue, true, context, cancellationToken);
+        var whenFalse = BindExpression(syntax.WhenFalse, true, context, cancellationToken);
+
+        var returnType = whenTrue.Type == whenFalse.Type ? whenTrue.Type : ErrorTypeSymbol.Unnamed;
+        return new BoundSpeculativeConditional(
+            Compilation,
+            syntax,
+            returnType,
+            condition,
+            whenTrue,
+            whenFalse
+        );
+    }
+
+    private BoundConditional BindRegularConditional(
+        TernaryExpressionSyntax syntax,
+        TypeSymbol? returnType,
+        BoundExpression condition,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var whenTrue = BindExpression(syntax.WhenTrue, returnType, context, cancellationToken);
+        var whenFalse = BindExpression(
+            syntax.WhenFalse,
+            returnType ?? whenTrue.Type,
+            context,
+            cancellationToken
+        );
+        return ConstructConditional(syntax, returnType, condition, whenTrue, whenFalse, context);
+    }
+
+    private BoundConditional ConstructConditional(
+        SyntaxNode syntax,
+        TypeSymbol? returnType,
+        BoundExpression condition,
+        BoundExpression whenTrue,
+        BoundExpression whenFalse,
+        BindingContext context
+    )
+    {
+        if (returnType is not null)
+        {
+            whenTrue = AddConversionIfNecessary(whenTrue, returnType, context);
+            whenFalse = AddConversionIfNecessary(whenFalse, returnType, context);
+        }
+        else
+        {
+            whenFalse = AddConversionIfNecessary(whenFalse, whenTrue.Type, context);
+            returnType = whenTrue.Type;
+        }
+
+        return new BoundConditional(
+            Compilation,
+            syntax,
+            returnType,
+            condition,
+            whenTrue,
+            whenFalse
+        );
+    }
+
+    private BoundInvocation BindInvocationExpression(
+        InvocationExpressionSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        switch (syntax.Callee)
+        {
+            case IdentifierExpressionSyntax nameSyntax:
+            {
+                var overloads = LookupFromSyntax(nameSyntax.Value, LookupOptions.Callable, context);
+                if (overloads.IsViable)
+                {
+                    return BindOverloadSet(syntax, overloads, context, cancellationToken);
+                }
+
+                break;
+            }
+            case MemberAccessExpressionSyntax access:
+            {
+                var receiver = AutoDereferenceIfNecessary(
+                    BindExpression(access.Expression, context, cancellationToken)
+                );
+                var overloads = LookupQualifiedName(
+                    access.Name.UnqualifiedName,
+                    receiver.Type,
+                    LookupOptions.Callable
+                );
+                if (overloads.IsViable)
+                {
+                    return BindOverloadSet(syntax, receiver, overloads, context, cancellationToken);
+                }
+
+                break;
+            }
+        }
+
+        var callee = BindExpression(syntax.Callee, context, cancellationToken);
+
+        context.ReportDiagnostic(
+            Diagnostic.NoCallOperatorDefined(syntax.Callee.Location, callee.Type.ToDisplayString())
+        );
+
+        var unknownArguments = new BoundExpression[syntax.Arguments.Arguments.Count + 1];
+        unknownArguments[0] = callee;
+        foreach (var (i, argumentSyntax) in syntax.Arguments.Arguments.AsValueEnumerable().Index())
+        {
+            unknownArguments[i + 1] = BindExpression(
+                argumentSyntax.Value,
+                context,
+                cancellationToken
+            );
+        }
+
+        return new BoundInvocation(
+            Compilation,
+            syntax,
+            ErrorFunctionSymbol.Unnamed,
+            null,
+            ImmutableCollectionsMarshal.AsImmutableArray(unknownArguments)
+        );
+    }
+
+    private BoundInvocation BindOverloadSet(
+        InvocationExpressionSyntax syntax,
+        LookupResult overloads,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        return BindOverloadSet(syntax, null, overloads, context, cancellationToken);
+    }
+
+    private BoundInvocation BindOverloadSet(
+        InvocationExpressionSyntax syntax,
+        BoundExpression? receiver,
+        LookupResult overloads,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var arguments = GetCallArguments(syntax.Arguments, context, cancellationToken);
+
+        var (overload, realArgs) = ResolveOverload(
+            overloads,
+            receiver,
+            arguments,
+            syntax.Callee,
+            context
+        );
+        var realReceiver = overload.ReceiverType switch
+        {
+            null => null,
+            ReferenceTypeSymbol { IsMutable: var mutable } type => new BoundAddressOf(
+                Compilation,
+                receiver.RequireNonNull().Syntax,
+                receiver,
+                type,
+                mutable
+            ),
+            _ => receiver,
+        };
+        return new BoundInvocation(Compilation, syntax, overload, realReceiver, realArgs);
+    }
+
+    private ImmutableArray<CallArgument> GetCallArguments(
+        ArgumentListSyntax? syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        if (syntax is null)
+            return [];
+
+        var arguments = new CallArgument[syntax.Arguments.Count];
+        foreach (var (i, argumentSyntax) in syntax.Arguments.AsValueEnumerable().Index())
+        {
+            arguments[i] = new CallArgument(
+                argumentSyntax.Name?.Name.IdentifierName,
+                BindExpression(argumentSyntax.Value, true, context, cancellationToken)
+            );
+        }
+
+        return ImmutableCollectionsMarshal.AsImmutableArray(arguments);
+    }
+
+    private BoundExpression BindCastExpression(
+        CastExpressionSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var operand = BindExpression(syntax.Operand, context, cancellationToken);
+        var targetType = ResolveType(syntax.Type, context);
+        return AddConversionIfNecessary(operand, targetType, context, isExplicit: true);
+    }
+
+    private BoundExpression BindMemberAccessExpression(
+        MemberAccessExpressionSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var owner = AutoDereferenceIfNecessary(
+            BindExpression(syntax.Expression, context, cancellationToken)
+        );
+        var member = syntax.Name.UnqualifiedName;
+        var result = LookupQualifiedName(member, owner.Type, LookupOptions.Value);
+        if (!result.IsViable)
+        {
+            DiagnoseLookupFailure(result, syntax.Name, LookupOptions.Value, context);
+            return new BoundBadExpression(Compilation, syntax, ErrorTypeSymbol.Unnamed);
+        }
+
+        switch (result.Symbol)
+        {
+            case VariableSymbol variableSymbol:
+                if (!variableSymbol.IsStaticStorage)
+                    return new BoundVariableAccess(Compilation, syntax, owner, variableSymbol);
+
+                context.ReportDiagnostic(
+                    Diagnostic.StaticAccessThroughInstance(
+                        syntax.Name.Location,
+                        member,
+                        owner.Type.ToDisplayString()
+                    )
+                );
+                return new BoundVariableAccess(Compilation, syntax, variableSymbol);
+            default:
+                context.ReportDiagnostic(
+                    Diagnostic.NoSuchMember(
+                        syntax.Name.Location,
+                        member,
+                        owner.Type.ToDisplayString()
+                    )
+                );
+                return new BoundBadExpression(Compilation, syntax, ErrorTypeSymbol.Unnamed);
+        }
+    }
+
+    private BoundIndex BindIndexExpression(
+        IndexExpressionSyntax syntax,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var operand = AutoDereferenceIfNecessary(
+            BindExpression(syntax.Operand, context, cancellationToken)
+        );
+        var index = BindExpression(syntax.Index, context, cancellationToken);
+
+        TypeSymbol targetType;
+        switch (operand.Type)
+        {
+            case { SpecialType: SpecialType.Str }:
+                targetType = Compilation.GetSpecialType(SpecialType.Char);
+                index = AddConversionIfNecessary(
+                    index,
+                    Compilation.GetSpecialType(SpecialType.USize),
+                    context
+                );
+                break;
+            case ArrayTypeSymbol { ElementType: var elementType }:
+                targetType = elementType;
+                index = AddConversionIfNecessary(
+                    index,
+                    Compilation.GetSpecialType(SpecialType.USize),
+                    context
+                );
+                break;
+            default:
+                targetType = ErrorTypeSymbol.Unnamed;
+                break;
+        }
+
+        return new BoundIndex(Compilation, syntax, operand, index, targetType);
+    }
+
+    private BoundExpression BindCollectionExpression(
+        CollectionExpressionSyntax syntax,
+        TypeSymbol? targetType,
+        bool isSpeculative,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        if (isSpeculative)
+        {
+            var expressions = syntax
+                .Items.AsValueEnumerable()
+                .Select(s => BindExpression(s, true, context, cancellationToken))
+                .ToImmutableArray();
+
+            TypeSymbol defaultType =
+                expressions.Length > 0
+                    ? Compilation.CreateArrayTypeSymbol(
+                        expressions[0].Type,
+                        (ulong)expressions.Length
+                    )
+                    : ErrorTypeSymbol.Unnamed;
+
+            return new BoundSpeculativeCollectionExpression(
+                Compilation,
+                syntax,
+                expressions,
+                defaultType
+            );
+        }
+        else
+        {
+            var elementType = targetType is ArrayTypeSymbol { ElementType: var e } ? e : null;
+            var expressions = syntax
+                .Items.AsValueEnumerable()
+                .Select(s => BindExpression(s, elementType, context, cancellationToken))
+                .ToImmutableArray();
+
+            return ConstructCollectionExpression(
+                syntax,
+                targetType,
+                context,
+                elementType,
+                expressions
+            );
+        }
+    }
+
+    private BoundCollectionExpression ConstructCollectionExpression(
+        SyntaxNode syntax,
+        TypeSymbol? targetType,
+        BindingContext context,
+        TypeSymbol? elementType,
+        ImmutableArray<BoundExpression> expressions
+    )
+    {
+        TypeSymbol collectionType;
+        var foundElementType = elementType;
+        if (targetType is ArrayTypeSymbol arrayType)
+        {
+            if (arrayType.IsDynamicallySized)
+            {
+                collectionType = Compilation.CreateArrayTypeSymbol(
+                    arrayType.ElementType,
+                    (ulong)expressions.Length
+                );
+            }
+            else if (arrayType.Size != (ulong)expressions.Length)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.IncompatibleCollectionSizes(
+                        syntax.Location,
+                        arrayType.Size.Value,
+                        expressions.Length
+                    )
+                );
+                collectionType = Compilation.CreateArrayTypeSymbol(
+                    arrayType.ElementType,
+                    (ulong)expressions.Length
+                );
+            }
+            else
+            {
+                collectionType = arrayType;
+            }
+
+            foundElementType = arrayType.ElementType;
+        }
+        else if (expressions.Length > 0)
+        {
+            foundElementType = expressions[0].Type;
+            var mutableExpressions = ImmutableCollectionsMarshal.AsArray(expressions);
+            Debug.Assert(mutableExpressions is not null);
+            for (var i = 1; i < expressions.Length; i++)
+            {
+                mutableExpressions[i] = AddConversionIfNecessary(
+                    mutableExpressions[i],
+                    foundElementType,
+                    context
+                );
+            }
+
+            collectionType = Compilation.CreateArrayTypeSymbol(
+                foundElementType,
+                (ulong)expressions.Length
+            );
+        }
+        else
+        {
+            context.ReportDiagnostic(Diagnostic.CannotInferType(syntax.Location));
+            collectionType = ErrorTypeSymbol.Unnamed;
+        }
+
+        return new BoundCollectionExpression(
+            Compilation,
+            syntax,
+            collectionType,
+            foundElementType ?? ErrorTypeSymbol.Unnamed,
+            expressions
+        );
+    }
+
+    private BoundExpression BindNewExpression(
+        NewExpressionSyntax syntax,
+        TypeSymbol? targetType,
+        bool isSpeculative,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        TypeSymbol constructedType;
+        if (syntax.Type is not null)
+        {
+            constructedType = ResolveType(syntax.Type, context);
+        }
+        else if (targetType is not null)
+        {
+            constructedType = targetType;
+        }
+        else if (isSpeculative)
+        {
+            var specArgs = GetCallArguments(syntax.Arguments, context, cancellationToken);
+            return new BoundSpeculativeNewExpression(Compilation, syntax, specArgs);
+        }
+        else
+        {
+            constructedType = ErrorTypeSymbol.Unnamed;
+        }
+
+        var ctors = LookupQualifiedName(CommonNames.Ctor, constructedType, LookupOptions.Callable);
+
+        var arguments = GetCallArguments(syntax.Arguments, context, cancellationToken);
+        var (overload, realArgs) = ResolveOverload(ctors, null, arguments, syntax, context);
+
+        return new BoundNewExpression(Compilation, syntax, constructedType, overload, realArgs);
+    }
+
+    private BoundExpression AddConversionIfNecessary(
+        BoundExpression expression,
+        TypeSymbol type,
+        BindingContext context,
+        bool isExplicit = false
+    )
+    {
+        var conversion = ConversionClassifier.ClassifyConversion(expression.Type, type);
+        return AddConversionIfNecessary(expression, type, conversion, context, isExplicit);
+    }
+
+    private BoundExpression AddConversionIfNecessary(
+        BoundExpression expression,
+        TypeSymbol type,
+        Conversion conversion,
+        BindingContext context,
+        bool isExplicit = false
+    )
+    {
+        var syntax = (ExpressionSyntax)expression.Syntax;
+        if (!conversion.Exists)
+        {
+            context.ReportDiagnostic(
+                Diagnostic.NoConversion(
+                    syntax.Location,
+                    expression.Type.ToDisplayString(),
+                    type.ToDisplayString()
+                )
+            );
+        }
+        else if (!conversion.IsIdentity)
+        {
+            if (conversion.IsNullToNullable)
+            {
+                return new BoundLiteral(Compilation, syntax, type, new NullConstant());
+            }
+
+            if (!conversion.IsImplicit && !isExplicit)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.ConversionIsExplicit(
+                        syntax.Location,
+                        expression.Type.ToDisplayString(),
+                        type.ToDisplayString()
+                    )
+                );
+            }
+
+            return new BoundConversion(Compilation, syntax, type, expression, conversion);
+        }
+
+        return expression;
+    }
+
+    BoundExpression IOverloadResolutionHost.AddConversion(
+        BoundExpression expression,
+        TypeSymbol targetType,
+        Conversion conversion,
+        BindingContext context
+    )
+    {
+        return AddConversionIfNecessary(expression, targetType, conversion, context);
+    }
+
+    private BoundExpression AutoDereferenceIfNecessary(BoundExpression expression)
+    {
+        while (true)
+        {
+            switch (expression.Type)
+            {
+                case ReferenceTypeSymbol
+                {
+                    ReferencedType: var referenced,
+                    IsMutable: var isMutable
+                }:
+                    expression = new BoundDereference(
+                        Compilation,
+                        expression.Syntax,
+                        expression,
+                        referenced,
+                        isMutable
+                    );
+                    break;
+                case NullableTypeSymbol { ElementType: var element }:
+                {
+                    var conversion = Conversion.UnwrapNullable();
+                    expression = new BoundConversion(
+                        Compilation,
+                        expression.Syntax,
+                        element,
+                        expression,
+                        conversion
+                    );
+                    break;
+                }
+                default:
+                    return expression;
+            }
+        }
+    }
+
+    private (ConstantValue, SpecialType) EvaluateConstantExpression(
+        SyntaxToken token,
+        TypeSymbol? returnType,
+        BindingContext context
+    )
+    {
+        if (token.TryGetValue<BoolLiteralData>() is { Value: var boolValue })
+        {
+            return (boolValue, SpecialType.Bool);
+        }
+
+        if (token.TryGetValue<IntegerLiteralData>() is { } integerValue)
+        {
+            return EvaluateNumericExpression(integerValue, returnType, token.Location, context);
+        }
+
+        if (token.TryGetValue<FloatLiteralData>() is { } floatingValue)
+        {
+            return EvaluateNumericExpression(floatingValue, returnType, token.Location, context);
+        }
+
+        if (
+            token.TryGetValue<CharacterLiteralData>() is
+            { Encoding: var encoding, Value: var value }
+        )
+        {
+            return encoding switch
+            {
+                CharacterEncoding.Utf8 => (
+                    new CharacterConstant((byte)value.Value),
+                    SpecialType.Char
+                ),
+                CharacterEncoding.Utf16 => (
+                    new CharacterConstant((char)value.Value),
+                    SpecialType.Char16
+                ),
+                CharacterEncoding.Utf32 => (new CharacterConstant(value), SpecialType.Rune),
+                _ => throw new InvalidOperationException("Invalid character encoding"),
+            };
+        }
+
+        return token.TryGetValue<StringLiteralData>() is { Value: var stringValue }
+            ? (stringValue, SpecialType.Str)
+            : throw new InvalidOperationException("Invalid literal");
+    }
+
+    private (ConstantValue, SpecialType) EvaluateNumericExpression(
+        in IntegerLiteralData data,
+        TypeSymbol? returnType,
+        Location location,
+        BindingContext context,
+        bool isNegative = false
+    )
+    {
+        var targetType = GetIntegerTargetKind(in data, returnType);
+        var possiblyNegated = MaybeNegative(data.Value, isNegative);
+        if (!possiblyNegated.FitsIn(targetType, Compilation.Settings))
+        {
+            context.ReportDiagnostic(Diagnostic.LiteralValueTooBig(location));
+        }
+
+        switch (targetType)
+        {
+            case IntegerTargetKind.I8:
+                return (new IntegerConstant((sbyte)possiblyNegated), SpecialType.I8);
+            case IntegerTargetKind.I16:
+                return (new IntegerConstant((short)possiblyNegated), SpecialType.I16);
+            case IntegerTargetKind.I32:
+                return (new IntegerConstant((int)possiblyNegated), SpecialType.I32);
+            case IntegerTargetKind.I64:
+                return (new IntegerConstant((long)possiblyNegated), SpecialType.I64);
+            case IntegerTargetKind.I128:
+                return (new IntegerConstant((Int128)possiblyNegated), SpecialType.I128);
+            case IntegerTargetKind.ISize:
+                return (
+                    Compilation.Settings.PointerWidth switch
+                    {
+                        PointerWidth.X32 => new IntegerConstant((int)possiblyNegated),
+                        PointerWidth.X64 => new IntegerConstant((long)possiblyNegated),
+                        _ => throw new InvalidOperationException("Invalid pointer width"),
+                    },
+                    SpecialType.ISize
+                );
+            case IntegerTargetKind.U8:
+                ThrowIfNegative(isNegative);
+                return (new IntegerConstant((byte)possiblyNegated), SpecialType.U8);
+            case IntegerTargetKind.U16:
+                ThrowIfNegative(isNegative);
+                return (new IntegerConstant((ushort)possiblyNegated), SpecialType.U16);
+            case IntegerTargetKind.U32:
+                ThrowIfNegative(isNegative);
+                return (new IntegerConstant((uint)possiblyNegated), SpecialType.U32);
+            case IntegerTargetKind.U64:
+                ThrowIfNegative(isNegative);
+                return (new IntegerConstant((ulong)possiblyNegated), SpecialType.U64);
+            case IntegerTargetKind.U128:
+                ThrowIfNegative(isNegative);
+                return (new IntegerConstant((UInt128)possiblyNegated), SpecialType.U128);
+            case IntegerTargetKind.USize:
+                ThrowIfNegative(isNegative);
+                return (
+                    Compilation.Settings.PointerWidth switch
+                    {
+                        PointerWidth.X32 => new IntegerConstant((uint)possiblyNegated),
+                        PointerWidth.X64 => new IntegerConstant((ulong)possiblyNegated),
+                        _ => throw new InvalidOperationException("Invalid pointer width"),
+                    },
+                    SpecialType.USize
+                );
+            case IntegerTargetKind.F32:
+                return (new FloatConstant((float)possiblyNegated), SpecialType.F32);
+            case IntegerTargetKind.F64:
+                return (new FloatConstant((double)possiblyNegated), SpecialType.F64);
+            case IntegerTargetKind.BestFit:
+            {
+                if (possiblyNegated.FitsIn<int>())
+                    return (new IntegerConstant((int)possiblyNegated), SpecialType.I32);
+
+                if (possiblyNegated.FitsIn<uint>())
+                    return (new IntegerConstant((uint)possiblyNegated), SpecialType.U32);
+
+                if (possiblyNegated.FitsIn<long>())
+                    return (new IntegerConstant((long)possiblyNegated), SpecialType.I64);
+
+                if (possiblyNegated.FitsIn<ulong>())
+                    return (new IntegerConstant((ulong)possiblyNegated), SpecialType.U64);
+
+                return possiblyNegated.FitsIn<Int128>()
+                    ? (new IntegerConstant((Int128)possiblyNegated), SpecialType.I128)
+                    : (new IntegerConstant((UInt128)possiblyNegated), SpecialType.U128);
+            }
+            default:
+                throw new InvalidOperationException("Invalid target type");
+        }
+    }
+
+    private static (ConstantValue, SpecialType) EvaluateNumericExpression(
+        in FloatLiteralData data,
+        TypeSymbol? returnType,
+        Location location,
+        BindingContext context,
+        bool isNegative = false
+    )
+    {
+        var target = data.Suffix switch
+        {
+            FloatSuffix.None => returnType?.SpecialType ?? SpecialType.F64,
+            FloatSuffix.F32 => SpecialType.F32,
+            FloatSuffix.F64 => SpecialType.F64,
+            _ => throw new ArgumentOutOfRangeException(nameof(data), data.Suffix, null),
+        };
+
+        switch (target)
+        {
+            case SpecialType.F32:
+                if (float.FitsInFiniteFloatMagnitude(data.Significand, data.Exponent10))
+                {
+                    context.ReportDiagnostic(Diagnostic.LiteralValueTooBig(location));
+                }
+
+                return (
+                    new FloatConstant(
+                        float.ParseDecimalFloat(data.Significand, data.Exponent10, isNegative)
+                    ),
+                    SpecialType.F32
+                );
+            case SpecialType.F64:
+                if (double.FitsInFiniteFloatMagnitude(data.Significand, data.Exponent10))
+                {
+                    context.ReportDiagnostic(Diagnostic.LiteralValueTooBig(location));
+                }
+
+                return (
+                    new FloatConstant(
+                        double.ParseDecimalFloat(data.Significand, data.Exponent10, isNegative)
+                    ),
+                    SpecialType.F64
+                );
+            default:
+                throw new InvalidOperationException("Invalid target type");
+        }
+    }
+
+    private static void ThrowIfNegative(bool isNegative)
+    {
+        if (isNegative)
+            throw new InvalidOperationException("Invalid unary operation");
+    }
+
+    private static BigInteger MaybeNegative(BigInteger value, bool isNegative)
+    {
+        return isNegative ? -value : value;
+    }
+
+    private BoundUnaryOperation CreateUnaryOperation(
+        ExpressionSyntax syntax,
+        UnaryOperation operation,
+        BoundExpression operand,
+        BindingContext context
+    )
+    {
+        var resultType = ConversionClassifier.ClassifyUnaryOperand(operation, operand.Type);
+        if (resultType is var (conversion, type))
+        {
+            operand = AddConversionIfNecessary(operand, type, conversion, context);
+        }
+        else
+        {
+            context.ReportDiagnostic(
+                Diagnostic.UnaryOperatorUndefined(syntax.Location, operand.Type.ToDisplayString())
+            );
+        }
+
+        if (operation.IsAssigning && !operand.IsAssignable)
+        {
+            context.ReportDiagnostic(Diagnostic.CannotAssignExpression(syntax.Location));
+        }
+
+        var finalType = resultType?.Type ?? ErrorTypeSymbol.Unnamed;
+        return new BoundUnaryOperation(Compilation, syntax, finalType, operand, operation);
+    }
+
+    private static bool IsAssignmentValid(TypeSymbol type, AssignmentOperation operation)
+    {
+        return operation switch
+        {
+            AssignmentOperation.Simple => true,
+            AssignmentOperation.Addition
+            or AssignmentOperation.Subtraction
+            or AssignmentOperation.Multiplication
+            or AssignmentOperation.Division
+            or AssignmentOperation.Modulo => type.SpecialType.IsNumeric,
+            AssignmentOperation.BitwiseAnd
+            or AssignmentOperation.BitwiseOr
+            or AssignmentOperation.BitwiseXor
+            or AssignmentOperation.ShiftLeft
+            or AssignmentOperation.ShiftRight
+            or AssignmentOperation.UnsignedShiftRight => type.SpecialType.IsInteger,
+            AssignmentOperation.LogicalAnd or AssignmentOperation.LogicalOr => type.SpecialType
+                == SpecialType.Bool,
+            _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
+        };
+    }
+
+    private OverloadResolver OverloadResolver
+    {
+        get
+        {
+            if (field is not null)
+                return field;
+
+            Interlocked.CompareExchange(ref field, new OverloadResolver(this), null);
+            return field;
+        }
+    }
+
+    private ResolvedOverload ResolveOverload(
+        LookupResult result,
+        BoundExpression? receiver,
+        ImmutableArray<CallArgument> arguments,
+        SyntaxNode overloadSyntax,
+        BindingContext context
+    )
+    {
+        var functions = result
+            .Symbols.AsValueEnumerable()
+            .Cast<FunctionSymbol>()
+            .ToImmutableArray();
+        return OverloadResolver.ResolveInvocation(
+            functions,
+            receiver,
+            arguments,
+            overloadSyntax,
+            context
+        );
+    }
+
+    private static string GetTypeNames(ImmutableArray<BoundExpression> arguments)
+    {
+        return string.Join(", ", arguments.Select(a => a.Type.Name));
+    }
+
+    private ImmutableArray<BoundExpression> RealizeSpeculativeBindingForDiagnostics(
+        ImmutableArray<CallArgument> arguments,
+        BindingContext context
+    )
+    {
+        var realized = new BoundExpression[arguments.Length];
+        foreach (var (i, argument) in arguments.AsValueEnumerable().Index())
+        {
+            realized[i] = ApplySpeculativeBinding(argument.Expression, null, context);
+        }
+
+        return ImmutableCollectionsMarshal.AsImmutableArray(realized);
+    }
+
+    public BoundExpression ApplySpeculativeBinding(
+        BoundExpression expression,
+        TypeSymbol? targetType,
+        BindingContext context
+    )
+    {
+        return expression is not BoundSpeculativeExpression speculative
+            ? expression
+            : ApplySpeculativeBinding(speculative, targetType, context);
+    }
+
+    private BoundExpression ApplySpeculativeBinding(
+        BoundSpeculativeExpression expression,
+        TypeSymbol? targetType,
+        BindingContext context
+    )
+    {
+        return expression switch
+        {
+            BoundUnfixedIntegerLiteral { Data: var integerLiteral, Negated: var negated } =>
+                ApplyNumericBinding(expression, targetType, context, integerLiteral, negated),
+            BoundUnfixedFloatLiteral { Data: var floatLiteral, Negated: var negated } =>
+                ApplyNumericBinding(expression, targetType, context, floatLiteral, negated),
+            BoundSpeculativeConditional conditional => ApplySpeculativeConditional(
+                conditional,
+                targetType,
+                context
+            ),
+            BoundSpeculativeCollectionExpression collectionExpression =>
+                ApplySpeculativeCollectionExpression(collectionExpression, targetType, context),
+            BoundSpeculativeNewExpression newExpression => ApplySpeculativeNewExpression(
+                newExpression,
+                targetType,
+                context
+            ),
+        };
+    }
+
+    private BoundLiteral ApplyNumericBinding(
+        BoundSpeculativeExpression expression,
+        TypeSymbol? targetType,
+        BindingContext context,
+        FloatLiteralData floatLiteral,
+        bool negated
+    )
+    {
+        var (constant, specialType) = EvaluateNumericExpression(
+            in floatLiteral,
+            targetType,
+            expression.Syntax.Location,
+            context,
+            negated
+        );
+        var type = Compilation.GetSpecialType(specialType);
+        return new BoundLiteral(Compilation, expression.Syntax, type, constant);
+    }
+
+    private BoundLiteral ApplyNumericBinding(
+        BoundSpeculativeExpression expression,
+        TypeSymbol? targetType,
+        BindingContext context,
+        IntegerLiteralData integerLiteral,
+        bool negated
+    )
+    {
+        var (constant, specialType) = EvaluateNumericExpression(
+            in integerLiteral,
+            targetType,
+            expression.Syntax.Location,
+            context,
+            negated
+        );
+        var type = Compilation.GetSpecialType(specialType);
+        return new BoundLiteral(Compilation, expression.Syntax, type, constant);
+    }
+
+    private BoundConditional ApplySpeculativeConditional(
+        BoundSpeculativeConditional conditional,
+        TypeSymbol? targetType,
+        BindingContext context
+    )
+    {
+        var whenTrue = ApplySpeculativeBinding(conditional.WhenTrue, targetType, context);
+        var whenFalse = ApplySpeculativeBinding(conditional.WhenFalse, targetType, context);
+        return ConstructConditional(
+            conditional.Syntax,
+            targetType,
+            conditional.Condition,
+            whenTrue,
+            whenFalse,
+            context
+        );
+    }
+
+    private BoundCollectionExpression ApplySpeculativeCollectionExpression(
+        BoundSpeculativeCollectionExpression collection,
+        TypeSymbol? targetType,
+        BindingContext context
+    )
+    {
+        var elementType = targetType is ArrayTypeSymbol { ElementType: var e } ? e : null;
+        var arguments = MaterializedArguments(collection.Expressions, elementType, context);
+        return ConstructCollectionExpression(
+            collection.Syntax,
+            targetType,
+            context,
+            elementType,
+            arguments
+        );
+    }
+
+    private BoundNewExpression ApplySpeculativeNewExpression(
+        BoundSpeculativeNewExpression expression,
+        TypeSymbol? targetType,
+        BindingContext context
+    )
+    {
+        targetType ??= ErrorTypeSymbol.Unnamed;
+        var ctors = LookupQualifiedName(CommonNames.Ctor, targetType, LookupOptions.Callable);
+
+        var (overload, realArgs) = ResolveOverload(
+            ctors,
+            null,
+            expression.Arguments,
+            expression.Syntax,
+            context
+        );
+
+        return new BoundNewExpression(
+            Compilation,
+            expression.Syntax,
+            targetType,
+            overload,
+            realArgs
+        );
+    }
+
+    private ImmutableArray<BoundExpression> MaterializedArguments(
+        ImmutableArray<BoundExpression> arguments,
+        TypeSymbol? targetType,
+        BindingContext context
+    )
+    {
+        BoundExpression[]? remappedArgs = null;
+        foreach (var (i, argument) in arguments.AsValueEnumerable().Index())
+        {
+            if (argument is not BoundSpeculativeExpression speculative)
+            {
+                continue;
+            }
+
+            var newExpression = ApplySpeculativeBinding(speculative, targetType, context);
+
+            if (remappedArgs is null)
+            {
+                remappedArgs = new BoundExpression[arguments.Length];
+                arguments.CopyTo(remappedArgs);
+            }
+
+            remappedArgs[i] = newExpression;
+        }
+
+        return remappedArgs is not null
+            ? ImmutableCollectionsMarshal.AsImmutableArray(remappedArgs)
+            : arguments;
+    }
+}

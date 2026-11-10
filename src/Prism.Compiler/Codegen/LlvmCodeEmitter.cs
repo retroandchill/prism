@@ -1,0 +1,1719 @@
+﻿// @file LlvmCodeEmitter.cs
+//
+// @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+using System.Diagnostics;
+using System.Text;
+using Cysharp.Text;
+using LLVMSharp.Interop;
+using Prism.Compiler.Abi;
+using Prism.Compiler.Binding;
+using Prism.Compiler.BoundTree;
+using Prism.Compiler.Codegen.Mir;
+using Prism.Compiler.Configuration;
+using Prism.Compiler.Mir;
+using Prism.Compiler.Mir.Analysis;
+using Prism.Compiler.Semantic;
+using Prism.Compiler.Semantic.Layout;
+using Prism.Compiler.Symbols;
+using Prism.Constants;
+using Prism.Diagnostics;
+using Prism.Metadata;
+using Prism.Utils;
+using ZLinq;
+
+namespace Prism.Compiler.Codegen;
+
+internal sealed class LlvmCodeEmitter : ICodeEmitter
+{
+    private readonly Compilation _compilation;
+    private readonly CodeGenOptions _options;
+    private readonly MirEmitter _mirEmitter;
+
+    private LLVMContextRef _context;
+    private LLVMModuleRef _module;
+    private LLVMBuilderRef _builder;
+    private LlvmDebugInfo? _debugInfo;
+
+    private readonly Dictionary<Symbol, LLVMValueRef> _symbolToValue = new(
+        ReferenceEqualityComparer.Instance
+    );
+
+    private readonly Dictionary<TypeLayout, LLVMTypeRef> _layoutToType = new(
+        ReferenceEqualityComparer.Instance
+    );
+
+    private static readonly uint ByValAttr = LookupEnumAttributeKind("byval");
+    private LLVMValueRef? _lifetimeStartFunction;
+    private LLVMValueRef? _lifetimeEndFunction;
+
+    private string? _entryPoint;
+
+    public LlvmCodeEmitter(Compilation compilation, CodeGenOptions options)
+    {
+        _compilation = compilation;
+        _options = options;
+        _mirEmitter = new MirEmitter(compilation);
+        _context = LLVMContextRef.Create();
+        _module = _context.CreateModuleWithName(compilation.AssemblyName);
+        _builder = _context.CreateBuilder();
+        _debugInfo = compilation.Settings.GenerateDebugInfo
+            ? new LlvmDebugInfo(_compilation, _module)
+            : null;
+    }
+
+    public async Task<EmitResult> EmitAsync(
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        return !context.HasErrors
+            ? await OutputBinaryAsync(context, cancellationToken)
+            : new EmitResult(false, context.CollectDiagnostics());
+    }
+
+    public void AddGlobalConstant(
+        VariableSymbol variable,
+        BindingContext bindingContext,
+        CancellationToken cancellationToken
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var llvmVariable = GetOrCreateGlobal(variable);
+        llvmVariable.IsGlobalConstant = true;
+
+        var constant = variable.ConstantValue;
+        Debug.Assert(constant is not null);
+        llvmVariable.Initializer = MakeConstant(constant.Value, variable.Type);
+    }
+
+    public void AddGlobalVariable(
+        BoundVariableInitializer variable,
+        BindingContext bindingContext,
+        CancellationToken cancellationToken
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var llvmVariable = GetOrCreateGlobal(variable.Variable);
+        if (!variable.Variable.HasInitializer)
+            return;
+
+        if (!variable.HasInitializer)
+            return;
+
+        if (variable.ConstantValue is not { } constant)
+            return;
+
+        llvmVariable.Initializer = MakeConstant(constant, variable.Variable.Type);
+    }
+
+    public void AddFunction(
+        BoundFunctionBody function,
+        BindingContext bindingContext,
+        CancellationToken cancellationToken
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var llvmFunction = GetOrCreateFunction(function.Function);
+        if (!function.HasBody)
+        {
+            llvmFunction.Linkage = LLVMLinkage.LLVMExternalLinkage;
+            return;
+        }
+
+        var mirFunction = _mirEmitter.EmitFunction(function.Function, cancellationToken);
+        var cfg = MirFunctionAnalyzer.AnalyzeControlFlow(mirFunction, cancellationToken);
+        var localFlow = MirFunctionAnalyzer.AnalyzeLocalFlow(mirFunction, cfg, cancellationToken);
+        var classifiedLocals = MirFunctionAnalyzer.ClassifyLocals(
+            _compilation,
+            mirFunction,
+            localFlow,
+            cancellationToken
+        );
+
+        var context = new FunctionEmissionContext(mirFunction, llvmFunction, classifiedLocals);
+        foreach (var block in mirFunction.Blocks)
+        {
+            var blockRef = LLVMBasicBlockRef.CreateInContext(_context, block.Name);
+            context.BindBlock(block.Id, blockRef);
+        }
+
+        var entryBlock = context.LookupBlock(mirFunction.EntryBlock);
+        llvmFunction.AppendExistingBasicBlock(entryBlock);
+        _builder.PositionAtEnd(entryBlock);
+
+        InitializeLocalVariables(mirFunction, context);
+        foreach (var block in mirFunction.Blocks)
+        {
+            EmitBlock(block, context);
+        }
+    }
+
+    public void RegisterGlobalConstructor(FunctionSymbol function)
+    {
+        _module.AppendToGlobalCtors(GetOrCreateFunction(function), 65535);
+    }
+
+    public void RegisterEntryPoint(FunctionSymbol entryPoint)
+    {
+        _entryPoint = "main";
+        var functionType = LLVMTypeRef.CreateFunction(_context.Int32Type, []);
+        var mainFunc = _module.AddFunction("main", functionType);
+        var entry = mainFunc.AppendBasicBlock("entry");
+        _builder.PositionAtEnd(entry);
+
+        var targetFunction = GetOrCreateFunction(entryPoint);
+        var callEntryPoint = _builder.BuildCall2(targetFunction.FunctionType, targetFunction, []);
+        _builder.BuildRet(
+            entryPoint.ReturnsVoid
+                ? LLVMValueRef.CreateConstInt(_context.Int32Type, 0)
+                : callEntryPoint
+        );
+    }
+
+    private LLVMValueRef GetOrCreateFunction(FunctionSymbol functionSymbol)
+    {
+        if (_symbolToValue.TryGetValue(functionSymbol, out var function))
+        {
+            return function;
+        }
+
+        var abi = _compilation.GetFunctionAbi(functionSymbol);
+        var indirectReturn = abi.Return.IsIndirect;
+
+        var extraParams = 0;
+        if (indirectReturn)
+            extraParams++;
+        if (abi.Receiver is not null)
+            extraParams++;
+
+        var totalParameters = functionSymbol.Parameters.Length + extraParams;
+        Span<LLVMTypeRef> parameters = stackalloc LLVMTypeRef[totalParameters];
+
+        LLVMTypeRef returnType;
+        int firstParamIndex;
+        if (indirectReturn)
+        {
+            returnType = _context.VoidType;
+            parameters[0] = _context.CreatePointerType(0);
+            firstParamIndex = 1;
+        }
+        else
+        {
+            returnType = GetOrCreateType(functionSymbol.ReturnType);
+            firstParamIndex = 0;
+        }
+
+        if (abi.Receiver is not null)
+        {
+            if (abi.Receiver is AbiValueClassification.Indirect)
+            {
+                parameters[firstParamIndex++] = _context.CreatePointerType(0);
+            }
+            else
+            {
+                parameters[firstParamIndex++] = GetOrCreateType(
+                    functionSymbol.ReceiverType.RequireNonNull()
+                );
+            }
+        }
+
+        Debug.Assert(abi.Parameters.Length + firstParamIndex == parameters.Length);
+        foreach (var (i, parameterAbi) in abi.Parameters.AsValueEnumerable().Index())
+        {
+            if (parameterAbi.IsIndirect)
+            {
+                parameters[i + firstParamIndex] = _context.CreatePointerType(0);
+            }
+            else
+            {
+                parameters[i + firstParamIndex] = GetOrCreateType(parameterAbi.Parameter.Type);
+            }
+        }
+
+        var name = functionSymbol.Mangle(_compilation);
+        var functionType = LLVMTypeRef.CreateFunction(returnType, parameters, false);
+        var func = _module.AddFunction(name, functionType);
+
+        if (indirectReturn)
+        {
+            var byValAttr = _context.CreateTypeAttribute(
+                ByValAttr,
+                GetOrCreateType(functionSymbol.ReturnType)
+            );
+            func.AddAttributeAtIndex((LLVMAttributeIndex)1, byValAttr);
+        }
+
+        if (abi.Receiver is AbiValueClassification.Indirect)
+        {
+            var byValAttr = _context.CreateTypeAttribute(
+                ByValAttr,
+                GetOrCreateType(functionSymbol.ReceiverType.RequireNonNull())
+            );
+            func.AddAttributeAtIndex((LLVMAttributeIndex)(1 + (indirectReturn ? 1 : 0)), byValAttr);
+        }
+
+        foreach (var (i, parameterAbi) in abi.Parameters.AsValueEnumerable().Index())
+        {
+            if (!parameterAbi.IsIndirect)
+                continue;
+            var byValAttr = _context.CreateTypeAttribute(
+                ByValAttr,
+                GetOrCreateType(parameterAbi.Parameter.Type)
+            );
+            func.AddAttributeAtIndex(
+                (LLVMAttributeIndex)(i + unchecked((uint)firstParamIndex) + 1),
+                byValAttr
+            );
+        }
+
+        _symbolToValue[functionSymbol] = func;
+        return func;
+    }
+
+    private LLVMValueRef GetLifetimeStartFunction()
+    {
+        if (_lifetimeStartFunction is not null)
+            return _lifetimeStartFunction.Value;
+
+        var id = LookupIntrinsicId("llvm.lifetime.start.p0");
+        _lifetimeStartFunction = _module.GetIntrinsicDeclaration(
+            id,
+            [_context.CreatePointerType(0)]
+        );
+        return _lifetimeStartFunction.Value;
+    }
+
+    private LLVMValueRef GetLifetimeEndFunction()
+    {
+        if (_lifetimeEndFunction is not null)
+            return _lifetimeEndFunction.Value;
+
+        var id = LookupIntrinsicId("llvm.lifetime.end.p0");
+        _lifetimeEndFunction = _module.GetIntrinsicDeclaration(id, [_context.CreatePointerType(0)]);
+        return _lifetimeEndFunction.Value;
+    }
+
+    private static uint LookupIntrinsicId(ReadOnlySpan<char> name)
+    {
+        using var builder = ZString.CreateUtf8StringBuilder();
+        builder.Append(name);
+        unsafe
+        {
+            fixed (byte* p = builder.AsSpan())
+            {
+                return LLVM.LookupIntrinsicID((sbyte*)p, (nuint)builder.Length);
+            }
+        }
+    }
+
+    private static uint LookupEnumAttributeKind(ReadOnlySpan<char> name)
+    {
+        using var builder = ZString.CreateUtf8StringBuilder();
+        builder.Append(name);
+        unsafe
+        {
+            fixed (byte* p = builder.AsSpan())
+            {
+                return LLVM.GetEnumAttributeKindForName((sbyte*)p, (nuint)builder.Length);
+            }
+        }
+    }
+
+    private LLVMValueRef GetOrCreateGlobal(VariableSymbol symbol)
+    {
+        if (_symbolToValue.TryGetValue(symbol, out var global))
+        {
+            return global;
+        }
+
+        var type = GetOrCreateType(symbol.Type);
+
+        var name = symbol.Mangle();
+        var variable = _module.AddGlobal(type, name);
+        _symbolToValue[symbol] = variable;
+        return variable;
+    }
+
+    private LLVMTypeRef GetOrCreateType(TypeSymbol symbol)
+    {
+        if (symbol.IsVoid)
+            return _context.VoidType;
+
+        var layout = _compilation.GetTypeLayout(symbol);
+        return GetOrCreateType(layout);
+    }
+
+    private LLVMTypeRef GetOrCreateType(TypeLayout layout)
+    {
+        if (_layoutToType.TryGetValue(layout, out var type))
+        {
+            return type;
+        }
+
+        type = CreateType(layout);
+        _layoutToType[layout] = type;
+        return type;
+    }
+
+    private LLVMTypeRef CreateType(TypeLayout layout)
+    {
+        return layout switch
+        {
+            EmptyLayout => _context.VoidType,
+            IntegerLayout integer => _context.GetIntType((uint)integer.BitWidth),
+            FloatLayout floating => floating.Kind switch
+            {
+                Semantic.Layout.FloatKind.Half => _context.HalfType,
+                Semantic.Layout.FloatKind.Single => _context.FloatType,
+                Semantic.Layout.FloatKind.Double => _context.DoubleType,
+                Semantic.Layout.FloatKind.FP128 => _context.FP128Type,
+                Semantic.Layout.FloatKind.X86_FP80 => _context.X86FP80Type,
+                _ => throw new ArgumentException("Invalid floating point kind"),
+            },
+            PointerLayout pointer => _context.CreatePointerType(pointer.AddressSpace),
+            ArrayLayout arrayLayout => LLVMTypeRef.CreateArray2(
+                GetOrCreateType(arrayLayout.ElementType),
+                arrayLayout.ElementCount
+            ),
+            StructLayout structLayout => _context.GetStructType(
+                structLayout.Fields.Select(f => GetOrCreateType(f.Type)).ToArray(),
+                structLayout.IsPacked
+            ),
+            TaggedNullableLayout nullableLayout => GetOrCreateType(
+                nullableLayout.StructRepresentation
+            ),
+            OptimizedNullableLayout nullableLayout => GetOrCreateType(
+                nullableLayout.UnderlyingLayout
+            ),
+        };
+    }
+
+    private LLVMValueRef MakeConstant(in ConstantValue value, TypeSymbol type)
+    {
+        var innerValue = value switch
+        {
+            NullConstant => GetNullValue(type),
+            bool v => LLVMValueRef.CreateConstInt(_context.Int8Type, v ? 1UL : 0UL),
+            CharacterConstant ch => ch switch
+            {
+                byte v => LLVMValueRef.CreateConstInt(_context.Int8Type, v),
+                char v => LLVMValueRef.CreateConstInt(_context.Int16Type, v),
+                Rune v => LLVMValueRef.CreateConstInt(_context.Int32Type, (ulong)v.Value),
+            },
+            IntegerConstant i => i switch
+            {
+                sbyte v => LLVMValueRef.CreateConstInt(
+                    _context.Int8Type,
+                    unchecked((ulong)v),
+                    true
+                ),
+                byte v => LLVMValueRef.CreateConstInt(_context.Int8Type, v),
+                short v => LLVMValueRef.CreateConstInt(
+                    _context.Int16Type,
+                    unchecked((ulong)v),
+                    true
+                ),
+                ushort v => LLVMValueRef.CreateConstInt(_context.Int16Type, v),
+                int v => LLVMValueRef.CreateConstInt(_context.Int32Type, unchecked((ulong)v), true),
+                uint v => LLVMValueRef.CreateConstInt(_context.Int32Type, v),
+                long v => LLVMValueRef.CreateConstInt(
+                    _context.Int64Type,
+                    unchecked((ulong)v),
+                    true
+                ),
+                ulong v => LLVMValueRef.CreateConstInt(_context.Int64Type, v),
+                Int128 v => LLVMValueRef.CreateConstInt(_context.Int128Type, v),
+                UInt128 v => LLVMValueRef.CreateConstInt(_context.Int128Type, v),
+            },
+            FloatConstant f => f switch
+            {
+                float v => LLVMValueRef.CreateConstReal(_context.FloatType, v),
+                double v => LLVMValueRef.CreateConstReal(_context.DoubleType, v),
+            },
+            string v => CreateStringConstant(v, type),
+        };
+
+        var structType = GetOrCreateType(type);
+        if (type is not NullableTypeSymbol || innerValue.TypeOf == structType)
+            return innerValue;
+
+        var hasValue = LLVMValueRef.CreateConstInt(
+            GetOrCreateType(_compilation.GetSpecialType(SpecialType.Bool)),
+            1
+        );
+        return LLVMValueRef.CreateConstNamedStruct(structType, [hasValue, innerValue]);
+    }
+
+    private LLVMValueRef CreateStringConstant(string value, TypeSymbol type)
+    {
+        var globalString = _builder.BuildGlobalString(value);
+        var length = (ulong)Encoding.UTF8.GetByteCount(value);
+        var lengthValue = LLVMValueRef.CreateConstInt(
+            GetOrCreateType(_compilation.GetSpecialType(SpecialType.USize)),
+            length
+        );
+        var structType = GetOrCreateType(type);
+        return LLVMValueRef.CreateConstNamedStruct(structType, [globalString, lengthValue]);
+    }
+
+    private LLVMValueRef ConvertByteBoolToI1IfNeeded(LLVMValueRef value)
+    {
+        return value.TypeOf.IntWidth == 8
+            ? _builder.BuildICmp(
+                LLVMIntPredicate.LLVMIntNE,
+                value,
+                LLVMValueRef.CreateConstInt(_context.Int8Type, 0)
+            )
+            : value;
+    }
+
+    private LLVMValueRef NormalizeValueForType(LLVMValueRef value, TypeSymbol targetType)
+    {
+        var llvmTargetType = GetOrCreateType(targetType);
+
+        if (value.TypeOf == llvmTargetType)
+            return value;
+
+        if (targetType.SpecialType == SpecialType.Bool && value.TypeOf.IntWidth == 1)
+        {
+            return _builder.BuildZExt(value, llvmTargetType);
+        }
+
+        return value;
+    }
+
+    private void InitializeLocalVariables(MirFunction function, FunctionEmissionContext context)
+    {
+        uint paramIndex = 0;
+        foreach (var local in function.Locals)
+        {
+            var classification = context.LocalClassification.Locals[local.Id];
+            if (local is MirParameter or MirThisParam)
+            {
+                var rawParam = context.LlvmFunction.GetParam(paramIndex);
+                if (classification.StorageKind == MirLocalStorageKind.Memory)
+                {
+                    var layout = _compilation.GetTypeLayout(local.Type);
+                    var alloca = _builder.BuildAlloca(GetOrCreateType(layout), local.Name);
+                    alloca.SetAlignment((uint)layout.Alignment);
+                    context.BindLocal(local.Id, alloca);
+                    _builder.BuildStore(rawParam, alloca);
+                }
+                else
+                {
+                    context.BindLocal(local.Id, rawParam);
+                }
+
+                paramIndex++;
+            }
+            else if (classification.StorageKind == MirLocalStorageKind.Memory)
+            {
+                var layout = _compilation.GetTypeLayout(local.Type);
+                var alloca = _builder.BuildAlloca(GetOrCreateType(layout), local.Name);
+                alloca.SetAlignment((uint)layout.Alignment);
+                context.BindLocal(local.Id, alloca);
+            }
+        }
+    }
+
+    private void EmitBlock(MirBasicBlock block, FunctionEmissionContext context)
+    {
+        var llvmBlock = context.LookupBlock(block.Id);
+        if (block.Id != context.MirFunction.EntryBlock)
+        {
+            context.LlvmFunction.AppendExistingBasicBlock(llvmBlock);
+        }
+
+        _builder.PositionAtEnd(llvmBlock);
+
+        foreach (var instruction in block.Instructions)
+        {
+            EmitInstruction(instruction, context);
+        }
+
+        EmitTerminator(block.Terminator, context);
+    }
+
+    private void EmitInstruction(MirInstruction instruction, FunctionEmissionContext context)
+    {
+        switch (instruction)
+        {
+            case MirLoadInstruction mirLoadInstruction:
+                EmitLoad(mirLoadInstruction, context);
+                break;
+            case MirStoreInstruction mirAssignInstruction:
+                EmitStore(mirAssignInstruction, context);
+                break;
+            case MirPhiInstruction mirPhiInstruction:
+                EmitPhi(mirPhiInstruction, context);
+                break;
+            case MirUnaryInstruction mirUnaryInstruction:
+                EmitUnaryOperation(mirUnaryInstruction, context);
+                break;
+            case MirBinaryInstruction mirBinaryInstruction:
+                EmitBinaryOperation(mirBinaryInstruction, context);
+                break;
+            case MirCallInstruction mirCallInstruction:
+                EmitCall(mirCallInstruction, context);
+                break;
+            case MirConvertInstruction mirConvertInstruction:
+                EmitConvert(mirConvertInstruction, context);
+                break;
+            case MirIsNotNullInstruction mirIsNotNullInstruction:
+                EmitIsNotNull(mirIsNotNullInstruction, context);
+                break;
+            case MirGetNullablePayloadInstruction getNullablePayloadInstruction:
+                EmitGetNullablePayload(getNullablePayloadInstruction, context);
+                break;
+            case MirMakeNullableInstruction makeNullableInstruction:
+                EmitMakeNullable(makeNullableInstruction, context);
+                break;
+            case MirSliceGetDataInstruction sliceGetDataInstruction:
+                EmitSliceGetData(sliceGetDataInstruction, context);
+                break;
+            case MirSliceGetLengthInstruction sliceGetLengthInstruction:
+                EmitSliceGetLength(sliceGetLengthInstruction, context);
+                break;
+            case MirStorageLiveInstruction mirStorageLiveInstruction:
+                EmitStorageLive(mirStorageLiveInstruction, context);
+                break;
+            case MirStorageDeadInstruction mirStorageDeadInstruction:
+                EmitStorageDead(mirStorageDeadInstruction, context);
+                break;
+        }
+    }
+
+    private void EmitLoad(MirLoadInstruction loadInstruction, FunctionEmissionContext context)
+    {
+        var result = EmitLoadFromPlace(loadInstruction.Source, context);
+        context.AddValue(loadInstruction.Result.Id, result);
+    }
+
+    private LLVMValueRef EmitLoadFromPlace(MirPlace place, FunctionEmissionContext context)
+    {
+        return place switch
+        {
+            MirGlobalPlace mirGlobalPlace => EmitReadGlobal(mirGlobalPlace),
+            MirIndexPlace mirIndexPlace => EmitReadIndex(mirIndexPlace, context),
+            MirFieldPlace mirFieldPlace => EmitReadField(mirFieldPlace, context),
+            MirLocalPlace mirLocalPlace => EmitReadLocal(mirLocalPlace, context),
+            MirDerefPlace mirDerefPlace => EmitDerefLocal(mirDerefPlace, context),
+        };
+    }
+
+    private void EmitStore(MirStoreInstruction assignment, FunctionEmissionContext context)
+    {
+        var source = GetValue(assignment.Source, context);
+        EmitWriteToDest(assignment.Destination, source, context);
+    }
+
+    private void EmitPhi(MirPhiInstruction phiInstruction, FunctionEmissionContext context)
+    {
+        var values = phiInstruction.Sources.Select(s => GetValue(s.Value, context)).ToArray();
+        var blocks = phiInstruction.Sources.Select(s => context.LookupBlock(s.Block)).ToArray();
+
+        var type = GetOrCreateType(phiInstruction.Result.Type);
+        var value = _builder.BuildPhi(type);
+        value.AddIncoming(values, blocks, (uint)values.Length);
+        context.AddValue(phiInstruction.Result.Id, value);
+    }
+
+    private void EmitUnaryOperation(MirUnaryInstruction operation, FunctionEmissionContext context)
+    {
+        var source = GetValue(operation.Value, context);
+        var result = operation.Op switch
+        {
+            MirUnaryOp.Negation => operation.Value.Type.SpecialType.IsInteger
+                ? _builder.BuildNeg(source)
+                : _builder.BuildFNeg(source),
+            MirUnaryOp.LogicalNot => NormalizeValueForType(
+                _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntEQ,
+                    source,
+                    LLVMValueRef.CreateConstInt(source.TypeOf, 0)
+                ),
+                operation.Result.Type
+            ),
+            MirUnaryOp.BitwiseNot => _builder.BuildNot(source),
+            _ => throw new InvalidOperationException("Unknown unary operation"),
+        };
+        context.AddValue(operation.Result.Id, result);
+    }
+
+    private void EmitBinaryOperation(
+        MirBinaryInstruction operation,
+        FunctionEmissionContext context
+    )
+    {
+        var left = GetValue(operation.Left, context);
+        var right = GetValue(operation.Right, context);
+        var type = operation.Left.Type;
+        var result = operation.Op switch
+        {
+            MirBinaryOp.Addition => type.SpecialType.IsInteger
+                ? _builder.BuildAdd(left, right)
+                : _builder.BuildFAdd(left, right),
+            MirBinaryOp.Subtraction => type.SpecialType.IsInteger
+                ? _builder.BuildSub(left, right)
+                : _builder.BuildFSub(left, right),
+            MirBinaryOp.Multiplication => type.SpecialType.IsInteger
+                ? _builder.BuildMul(left, right)
+                : _builder.BuildFMul(left, right),
+            MirBinaryOp.Division => type.SpecialType switch
+            {
+                { IsSignedInteger: true } => _builder.BuildSDiv(left, right),
+                { IsUnsignedInteger: true } => _builder.BuildUDiv(left, right),
+                _ => _builder.BuildFDiv(left, right),
+            },
+            MirBinaryOp.Modulo => type.SpecialType switch
+            {
+                { IsSignedInteger: true } => _builder.BuildSRem(left, right),
+                { IsUnsignedInteger: true } => _builder.BuildURem(left, right),
+                _ => _builder.BuildFRem(left, right),
+            },
+            MirBinaryOp.BitwiseAnd => _builder.BuildAnd(left, right),
+            MirBinaryOp.BitwiseOr => _builder.BuildOr(left, right),
+            MirBinaryOp.BitwiseXor => _builder.BuildXor(left, right),
+            MirBinaryOp.Equality => type.SpecialType.IsFloatingPoint
+                ? _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOEQ, left, right)
+                : _builder.BuildICmp(LLVMIntPredicate.LLVMIntEQ, left, right),
+            MirBinaryOp.NotEquals => type.SpecialType.IsFloatingPoint
+                ? _builder.BuildFCmp(LLVMRealPredicate.LLVMRealONE, left, right)
+                : _builder.BuildICmp(LLVMIntPredicate.LLVMIntNE, left, right),
+            MirBinaryOp.LessThan => type.SpecialType switch
+            {
+                { IsSignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntSLT,
+                    left,
+                    right
+                ),
+                { IsUnsignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntULT,
+                    left,
+                    right
+                ),
+                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOLT, left, right),
+            },
+            MirBinaryOp.LessThanOrEquals => type.SpecialType switch
+            {
+                { IsSignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntSLE,
+                    left,
+                    right
+                ),
+                { IsUnsignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntULE,
+                    left,
+                    right
+                ),
+                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOLE, left, right),
+            },
+            MirBinaryOp.GreaterThan => type.SpecialType switch
+            {
+                { IsSignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntSGT,
+                    left,
+                    right
+                ),
+                { IsUnsignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntUGT,
+                    left,
+                    right
+                ),
+                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOGT, left, right),
+            },
+            MirBinaryOp.GreaterThanOrEquals => type.SpecialType switch
+            {
+                { IsSignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntSGE,
+                    left,
+                    right
+                ),
+                { IsUnsignedInteger: true } => _builder.BuildICmp(
+                    LLVMIntPredicate.LLVMIntUGE,
+                    left,
+                    right
+                ),
+                _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOGE, left, right),
+            },
+            MirBinaryOp.ShiftLeft => _builder.BuildShl(left, right),
+            MirBinaryOp.ShiftRight => _builder.BuildAShr(left, right),
+            MirBinaryOp.UnsignedShiftRight => _builder.BuildLShr(left, right),
+            _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
+        };
+        context.AddValue(operation.Result.Id, result);
+    }
+
+    private void EmitCall(MirCallInstruction call, FunctionEmissionContext context)
+    {
+        var abi = _compilation.GetFunctionAbi(call.Callee);
+        var function = call.Callee;
+        var callee = GetOrCreateFunction(function);
+        var isIndirectReturn = abi.Return.IsIndirect;
+        var receiverType = function.ReceiverType;
+
+        var parameterCount = call.Arguments.Length;
+        if (isIndirectReturn)
+            parameterCount++;
+        if (receiverType is not null)
+            parameterCount++;
+
+        Span<LLVMValueRef> parameters = stackalloc LLVMValueRef[parameterCount];
+
+        int offsetIndex;
+        if (isIndirectReturn)
+        {
+            Debug.Assert(call.Result is not null);
+            var typeLayout = _compilation.GetTypeLayout(call.Result.Type);
+            var llvmType = GetOrCreateType(call.Result.Type);
+            var temporary = CreateEntryAlloca(llvmType, "return", context);
+            temporary.SetAlignment((uint)typeLayout.Alignment);
+            parameters[0] = temporary;
+            offsetIndex = 1;
+        }
+        else
+        {
+            offsetIndex = 0;
+        }
+
+        if (receiverType is not null)
+        {
+            var value = call.Receiver.RequireNonNull();
+            var llvmValue = GetValue(value, context);
+            if (abi.Receiver == AbiValueClassification.Indirect)
+            {
+                var destination = CreateEntryAlloca(llvmValue.TypeOf, "this", context);
+
+                var layout = _compilation.GetTypeLayout(receiverType);
+                destination.SetAlignment((uint)layout.Alignment);
+
+                _builder.BuildStore(llvmValue, destination);
+                parameters[offsetIndex] = destination;
+            }
+            else
+            {
+                parameters[offsetIndex] = llvmValue;
+            }
+
+            offsetIndex++;
+        }
+
+        foreach (var (i, argument) in abi.Parameters.AsValueEnumerable().Index())
+        {
+            var value = call.Arguments[i];
+            var llvmValue = GetValue(value, context);
+            if (argument.IsIndirect)
+            {
+                var destination = CreateEntryAlloca(
+                    llvmValue.TypeOf,
+                    argument.Parameter.Name,
+                    context
+                );
+
+                var layout = _compilation.GetTypeLayout(argument.Parameter.Type);
+                destination.SetAlignment((uint)layout.Alignment);
+
+                _builder.BuildStore(llvmValue, destination);
+                parameters[i + offsetIndex] = destination;
+            }
+            else
+            {
+                parameters[i + offsetIndex] = llvmValue;
+            }
+        }
+
+        var result = _builder.BuildCall2(callee.FunctionType, callee, parameters, "");
+        if (call.Result is null)
+            return;
+
+        if (isIndirectReturn)
+        {
+            var resultType = GetOrCreateType(call.Result.Type);
+            var loadedValue = _builder.BuildLoad2(resultType, parameters[0]);
+            context.AddValue(call.Result.Id, loadedValue);
+        }
+        else
+        {
+            context.AddValue(call.Result.Id, result);
+        }
+    }
+
+    private LLVMValueRef CreateEntryAlloca(
+        LLVMTypeRef type,
+        string name,
+        FunctionEmissionContext context
+    )
+    {
+        var entry = context.LlvmFunction.EntryBasicBlock;
+        using var entryBuilder = _context.CreateBuilder();
+
+        var instruction = entry.FirstInstruction;
+        while (instruction is { IsNull: false, InstructionOpcode: LLVMOpcode.LLVMAlloca })
+        {
+            instruction = instruction.NextInstruction;
+        }
+
+        if (instruction.IsNull || instruction.InstructionOpcode == 0)
+        {
+            entryBuilder.PositionAtEnd(entry);
+        }
+        else
+        {
+            entryBuilder.PositionBefore(instruction);
+        }
+
+        return entryBuilder.BuildAlloca(type, name);
+    }
+
+    private void EmitConvert(MirConvertInstruction conversion, FunctionEmissionContext context)
+    {
+        var baseValue = GetValue(conversion.Value, context);
+        var convertedValue = EmitScalarConversion(
+            baseValue,
+            conversion.Conversion,
+            conversion.Value.Type,
+            conversion.Result.Type
+        );
+        context.AddValue(conversion.Result.Id, convertedValue);
+    }
+
+    private LLVMValueRef EmitScalarConversion(
+        LLVMValueRef operand,
+        Conversion conversion,
+        TypeSymbol sourceType,
+        TypeSymbol targetType
+    )
+    {
+        var source = GetOrCreateType(sourceType);
+        var target = GetOrCreateType(targetType);
+
+        if (source == target)
+            return operand;
+
+        if (conversion.IsNumeric)
+        {
+            if (sourceType.SpecialType.IsInteger && targetType.SpecialType.IsInteger)
+            {
+                if (source.IntWidth < target.IntWidth)
+                {
+                    return sourceType.SpecialType.IsSignedInteger
+                        ? _builder.BuildSExt(operand, target)
+                        : _builder.BuildZExt(operand, target);
+                }
+
+                Debug.Assert(source.IntWidth > target.IntWidth);
+                return _builder.BuildTrunc(operand, target);
+            }
+
+            if (sourceType.SpecialType.IsFloatingPoint && targetType.SpecialType.IsFloatingPoint)
+            {
+                if (sourceType.SpecialType == SpecialType.F32)
+                {
+                    Debug.Assert(targetType.SpecialType == SpecialType.F64);
+                    return _builder.BuildFPExt(operand, target);
+                }
+
+                Debug.Assert(sourceType.SpecialType == SpecialType.F64);
+                Debug.Assert(targetType.SpecialType == SpecialType.F32);
+                return _builder.BuildFPTrunc(operand, target);
+            }
+
+            if (sourceType.SpecialType.IsFloatingPoint && targetType.SpecialType.IsInteger)
+            {
+                return targetType.SpecialType.IsSignedInteger
+                    ? _builder.BuildFPToSI(operand, target)
+                    : _builder.BuildFPToUI(operand, target);
+            }
+
+            if (sourceType.SpecialType.IsInteger && targetType.SpecialType.IsFloatingPoint)
+            {
+                return targetType.SpecialType.IsSignedInteger
+                    ? _builder.BuildSIToFP(operand, target)
+                    : _builder.BuildUIToFP(operand, target);
+            }
+        }
+
+        if (conversion.IsCharacter)
+        {
+            if (source.IntWidth < target.IntWidth)
+            {
+                return _builder.BuildZExt(operand, target);
+            }
+
+            Debug.Assert(source.IntWidth > target.IntWidth);
+            return _builder.BuildTrunc(operand, target);
+        }
+
+        if (conversion.IsReference)
+        {
+            // Pointers are pointers, so it shouldn't matter here
+            return operand;
+        }
+
+        // ReSharper disable once InvertIf
+        if (conversion.IsSpan)
+        {
+            var sourceReference = (ReferenceTypeSymbol)sourceType;
+
+            // ReSharper disable once InvertIf
+            if (sourceReference.ReferencedType is ArrayTypeSymbol { Size: { } size })
+            {
+                var structType = GetOrCreateType(targetType);
+                var structValue = structType.Undef;
+                structValue = _builder.BuildInsertValue(structValue, operand, 0);
+
+                var lengthValue = LLVMValueRef.CreateConstInt(
+                    GetOrCreateType(_compilation.GetSpecialType(SpecialType.USize)),
+                    size
+                );
+                structValue = _builder.BuildInsertValue(structValue, lengthValue, 1);
+
+                return structValue;
+            }
+        }
+
+        throw new InvalidOperationException("If we get here, the conversion is invalid");
+    }
+
+    private void EmitIsNotNull(MirIsNotNullInstruction notNull, FunctionEmissionContext context)
+    {
+        var layout = (NullableLayout)_compilation.GetTypeLayout(notNull.Value.Type);
+        var operand = GetValue(notNull.Value, context);
+        var notNullState = layout switch
+        {
+            TaggedNullableLayout => ConvertByteBoolToI1IfNeeded(
+                _builder.BuildExtractValue(operand, 0)
+            ),
+            OptimizedNullableLayout optimized => CompareToOptimizedNullValue(operand, optimized),
+        };
+
+        context.AddValue(notNull.Result.Id, notNullState);
+    }
+
+    private LLVMValueRef CreateTaggedNullValue(TaggedNullableLayout layout)
+    {
+        return LLVMValueRef.CreateConstNull(GetOrCreateType(layout));
+    }
+
+    private LLVMValueRef CompareToOptimizedNullValue(
+        LLVMValueRef operand,
+        OptimizedNullableLayout layout
+    )
+    {
+        return CompareToOptimizedNullValue(operand, layout.NullValue, layout.UnderlyingLayout);
+    }
+
+    private LLVMValueRef CompareToOptimizedNullValue(
+        LLVMValueRef operand,
+        NullValue value,
+        TypeLayout underlyingType
+    )
+    {
+        return value switch
+        {
+            ScalarNullValue scalar => CompareToOptimizedNullValue(operand, scalar, underlyingType),
+            CompositeNullValue composite => CompareToOptimizedNullValue(
+                operand,
+                composite,
+                underlyingType
+            ),
+        };
+    }
+
+    private LLVMValueRef CompareToOptimizedNullValue(
+        LLVMValueRef operand,
+        ScalarNullValue scalar,
+        TypeLayout underlyingType
+    )
+    {
+        var comparand = CreateOptimizedNullValue(scalar, underlyingType);
+        return _builder.BuildICmp(LLVMIntPredicate.LLVMIntNE, operand, comparand);
+    }
+
+    private LLVMValueRef CompareToOptimizedNullValue(
+        LLVMValueRef operand,
+        CompositeNullValue composite,
+        TypeLayout underlyingType
+    )
+    {
+        var fieldType = ((StructLayout)underlyingType).Fields[composite.FieldIndex].Type;
+        return CompareToOptimizedNullValue(
+            _builder.BuildExtractValue(operand, (uint)composite.FieldIndex),
+            composite.Value,
+            fieldType
+        );
+    }
+
+    private LLVMValueRef CreateOptimizedNullValue(NullValue value, TypeLayout underlyingType)
+    {
+        return value switch
+        {
+            ScalarNullValue scalar => CreateOptimizedNullValue(scalar, underlyingType),
+            CompositeNullValue composite => CreateOptimizedNullValue(composite, underlyingType),
+        };
+    }
+
+    private LLVMValueRef CreateOptimizedNullValue(ScalarNullValue scalar, TypeLayout underlyingType)
+    {
+        var llvmType = GetOrCreateType(underlyingType);
+        return underlyingType switch
+        {
+            IntegerLayout => LLVMValueRef.CreateConstInt(llvmType, scalar.BitPattern),
+            PointerLayout pointer => scalar.BitPattern == 0
+                ? LLVMValueRef.CreateConstPointerNull(llvmType)
+                : LLVMValueRef.CreateConstPointerCast(
+                    LLVMValueRef.CreateConstInt(
+                        _context.GetIntType((uint)pointer.BitWidth),
+                        scalar.BitPattern
+                    ),
+                    llvmType
+                ),
+            _ => throw new InvalidOperationException("Cannot have an optimized scalar null value"),
+        };
+    }
+
+    private LLVMValueRef CreateOptimizedNullValue(
+        CompositeNullValue composite,
+        TypeLayout underlyingType
+    )
+    {
+        var llvmType = GetOrCreateType(underlyingType);
+        var structType = (StructLayout)underlyingType;
+        var fieldType = structType.Fields[composite.FieldIndex].Type;
+        var keyValue = CreateOptimizedNullValue(composite.Value, fieldType);
+        if (keyValue.IsNull)
+            return LLVMValueRef.CreateConstNull(llvmType);
+
+        var fieldCount = llvmType.StructElementTypesCount;
+        Span<LLVMValueRef> elements = new LLVMValueRef[fieldCount];
+        for (var i = 0; i < fieldCount; i++)
+        {
+            var elementType = structType.Fields[i].Type;
+            var llvmElementType = GetOrCreateType(elementType);
+            elements[i] =
+                i == composite.FieldIndex
+                    ? keyValue
+                    : LLVMValueRef.CreateConstNull(llvmElementType);
+        }
+
+        return LLVMValueRef.CreateConstNamedStruct(llvmType, elements);
+    }
+
+    private void EmitGetNullablePayload(
+        MirGetNullablePayloadInstruction getNullablePayload,
+        FunctionEmissionContext context
+    )
+    {
+        var layout = (NullableLayout)_compilation.GetTypeLayout(getNullablePayload.Value.Type);
+        var value = GetValue(getNullablePayload.Value, context);
+        if (layout is TaggedNullableLayout)
+        {
+            value = _builder.BuildExtractValue(value, 1);
+        }
+
+        context.AddValue(getNullablePayload.Result.Id, value);
+    }
+
+    private void EmitMakeNullable(
+        MirMakeNullableInstruction makeNullable,
+        FunctionEmissionContext context
+    )
+    {
+        var layout = (NullableLayout)_compilation.GetTypeLayout(makeNullable.Result.Type);
+        var structType = GetOrCreateType(layout);
+        LLVMValueRef value;
+        if (makeNullable.Payload is not null)
+        {
+            value = GetValue(makeNullable.Payload, context);
+            if (layout is TaggedNullableLayout)
+            {
+                var nullableValue = structType.Undef;
+
+                var hasValue = LLVMValueRef.CreateConstInt(
+                    GetOrCreateType(_compilation.GetSpecialType(SpecialType.Bool)),
+                    1
+                );
+                nullableValue = _builder.BuildInsertValue(nullableValue, hasValue, 0);
+                value = _builder.BuildInsertValue(nullableValue, value, 1);
+            }
+        }
+        else
+        {
+            value = GetNullValue(layout);
+        }
+
+        context.AddValue(makeNullable.Result.Id, value);
+    }
+
+    private void EmitSliceGetData(
+        MirSliceGetDataInstruction sliceGetData,
+        FunctionEmissionContext context
+    )
+    {
+        var slice = GetValue(sliceGetData.Value, context);
+        var data = _builder.BuildExtractValue(slice, 0);
+        context.AddValue(sliceGetData.Result.Id, data);
+    }
+
+    private void EmitSliceGetLength(
+        MirSliceGetLengthInstruction sliceGetLength,
+        FunctionEmissionContext context
+    )
+    {
+        var slice = GetValue(sliceGetLength.Value, context);
+        var length = _builder.BuildExtractValue(slice, 1);
+        context.AddValue(sliceGetLength.Result.Id, length);
+    }
+
+    private void EmitStorageLive(
+        MirStorageLiveInstruction storageLive,
+        FunctionEmissionContext context
+    )
+    {
+        var classification = context.LocalClassification.Locals[storageLive.LocalId];
+        if (!classification.IsIndirectStorage)
+            return;
+
+        var lifetimeStartFunction = GetLifetimeStartFunction();
+        _builder.BuildCall2(
+            lifetimeStartFunction.FunctionType,
+            lifetimeStartFunction,
+            [context.LookupLocal(storageLive.LocalId)],
+            "start".AsSpan()
+        );
+    }
+
+    private void EmitStorageDead(
+        MirStorageDeadInstruction storageDead,
+        FunctionEmissionContext context
+    )
+    {
+        var classification = context.LocalClassification.Locals[storageDead.LocalId];
+        if (!classification.IsIndirectStorage)
+            return;
+
+        var lifetimeEndFunction = GetLifetimeEndFunction();
+        _builder.BuildCall2(
+            lifetimeEndFunction.FunctionType,
+            lifetimeEndFunction,
+            [context.LookupLocal(storageDead.LocalId)],
+            "end".AsSpan()
+        );
+    }
+
+    private void EmitTerminator(MirTerminator instruction, FunctionEmissionContext context)
+    {
+        switch (instruction)
+        {
+            case MirBranchTerminator mirBranchTerminator:
+            {
+                var condition = ConvertByteBoolToI1IfNeeded(
+                    GetValue(mirBranchTerminator.Condition, context)
+                );
+                _builder.BuildCondBr(
+                    condition,
+                    context.LookupBlock(mirBranchTerminator.WhenTrue),
+                    context.LookupBlock(mirBranchTerminator.WhenFalse)
+                );
+                break;
+            }
+            case MirGotoTerminator mirGotoTerminator:
+                _builder.BuildBr(context.LookupBlock(mirGotoTerminator.Target));
+                break;
+            case MirReturnTerminator mirReturnTerminator:
+                if (mirReturnTerminator.Value is not null)
+                {
+                    _builder.BuildRet(GetValue(mirReturnTerminator.Value, context));
+                }
+                else
+                {
+                    _builder.BuildRetVoid();
+                }
+
+                break;
+            case MirUnreachableTerminator:
+                _builder.BuildUnreachable();
+                break;
+        }
+    }
+
+    private LLVMValueRef GetValue(MirValue value, FunctionEmissionContext context)
+    {
+        return value switch
+        {
+            MirAddressOfValue mirAddressOfValue => EmitTakeAddress(mirAddressOfValue, context),
+            MirConstantValue mirConstantValue => MakeConstant(
+                mirConstantValue.Constant,
+                value.Type
+            ),
+            MirSsaValue ssaValue => context.LookupValue(ssaValue.Id),
+            MirVoidValue => throw new InvalidOperationException("Cannot get a null value"),
+        };
+    }
+
+    private LLVMValueRef GetNullValue(TypeSymbol type)
+    {
+        var layout = (NullableLayout)_compilation.GetTypeLayout(type);
+        return GetNullValue(layout);
+    }
+
+    private LLVMValueRef GetNullValue(NullableLayout layout)
+    {
+        return layout switch
+        {
+            TaggedNullableLayout tagged => CreateTaggedNullValue(tagged),
+            OptimizedNullableLayout optimizedNullableLayout => CreateOptimizedNullValue(
+                optimizedNullableLayout.NullValue,
+                optimizedNullableLayout.UnderlyingLayout
+            ),
+        };
+    }
+
+    private LLVMValueRef EmitTakeAddress(
+        MirAddressOfValue addressOf,
+        FunctionEmissionContext context
+    )
+    {
+        return EmitTakeAddress(addressOf.Place, context);
+    }
+
+    private LLVMValueRef EmitTakeAddress(MirPlace place, FunctionEmissionContext context)
+    {
+        return place switch
+        {
+            MirDerefPlace mirDerefPlace => GetValue(mirDerefPlace.Pointer, context),
+            MirGlobalPlace mirGlobalPlace => GetOrCreateGlobal(mirGlobalPlace.Variable),
+            MirIndexPlace mirIndexPlace => EmitReadIndexAddress(mirIndexPlace, context),
+            MirFieldPlace mirFieldPlace => EmitReadFieldAddress(mirFieldPlace, context),
+            MirLocalPlace mirLocalPlace => context.LookupLocal(mirLocalPlace.LocalId),
+        };
+    }
+
+    private LLVMValueRef EmitReadIndexAddress(
+        MirIndexPlace indexer,
+        FunctionEmissionContext context
+    )
+    {
+        var index = GetValue(indexer.Index, context);
+        var itemType = GetOrCreateType(indexer.Type);
+
+        LLVMValueRef pointer;
+        if (indexer.Base.Type.IsDynamicallySized)
+        {
+            var widePointer = EmitTakeAddress(indexer.Base, context);
+            pointer = _builder.BuildExtractValue(widePointer, 0, "pointer");
+        }
+        else
+        {
+            pointer = EmitTakeAddress(indexer.Base, context);
+        }
+
+        return _builder.BuildGEP2(itemType, pointer, [index], "element".AsSpan());
+    }
+
+    private LLVMValueRef EmitReadFieldAddress(MirFieldPlace field, FunctionEmissionContext context)
+    {
+        var layout = (StructLayout)_compilation.GetTypeLayout(field.Base.Type);
+        var elementType = GetOrCreateType(field.Base.Type);
+
+        uint i = 0;
+        foreach (var (name, type, _) in layout.Fields)
+        {
+            if (name == field.Field.Name)
+            {
+                var source = EmitTakeAddress(field.Base, context);
+                return _builder.BuildStructGEP2(elementType, source, i, name);
+            }
+
+            i++;
+        }
+
+        throw new InvalidOperationException($"Unknown field: {field.Field.Name}");
+    }
+
+    private LLVMValueRef EmitReadGlobal(MirGlobalPlace place)
+    {
+        var global = GetOrCreateGlobal(place.Variable);
+        var type = GetOrCreateType(place.Type);
+        return _builder.BuildLoad2(type, global);
+    }
+
+    private LLVMValueRef EmitReadLocal(MirLocalPlace place, FunctionEmissionContext context)
+    {
+        var local = context.LookupLocal(place.LocalId);
+        var classification = context.LocalClassification.Locals[place.LocalId];
+        if (!classification.IsIndirectStorage)
+            return local;
+
+        var type = GetOrCreateType(place.Type);
+        return _builder.BuildLoad2(type, local);
+    }
+
+    private LLVMValueRef EmitDerefLocal(MirDerefPlace place, FunctionEmissionContext context)
+    {
+        var location = GetValue(place.Pointer, context);
+        return _builder.BuildLoad2(GetOrCreateType(place.Type), location);
+    }
+
+    private LLVMValueRef EmitReadIndex(MirIndexPlace indexer, FunctionEmissionContext context)
+    {
+        var itemType = GetOrCreateType(indexer.Type);
+        var element = EmitReadIndexAddress(indexer, context);
+        return _builder.BuildLoad2(itemType, element);
+    }
+
+    private LLVMValueRef EmitReadField(MirFieldPlace field, FunctionEmissionContext context)
+    {
+        var layout = (StructLayout)_compilation.GetTypeLayout(field.Base.Type);
+
+        uint i = 0;
+        foreach (var (name, _, _) in layout.Fields)
+        {
+            if (name == field.Field.Name)
+            {
+                var source = EmitLoadFromPlace(field.Base, context);
+                return _builder.BuildExtractValue(source, i, name);
+            }
+
+            i++;
+        }
+
+        throw new InvalidOperationException($"Unknown field: {field.Field.Name}");
+    }
+
+    private static TypeSymbol RemoveReferencesAndNulls(TypeSymbol type)
+    {
+        while (true)
+        {
+            switch (type)
+            {
+                case NullableTypeSymbol { ElementType: var element }:
+                    type = element;
+                    continue;
+                case ReferenceTypeSymbol { ReferencedType: var element }:
+                    type = element;
+                    continue;
+            }
+
+            return type;
+        }
+    }
+
+    private void EmitWriteToDest(
+        MirPlace destination,
+        LLVMValueRef value,
+        FunctionEmissionContext context
+    )
+    {
+        switch (destination)
+        {
+            case MirGlobalPlace mirGlobalPlace:
+                EmitAssignGlobal(mirGlobalPlace, value);
+                break;
+            case MirIndexPlace mirIndexPlace:
+                EmitAssignIndex(mirIndexPlace, value, context);
+                break;
+            case MirFieldPlace mirFieldPlace:
+                EmitAssignField(mirFieldPlace, value, context);
+                break;
+            case MirLocalPlace mirLocalPlace:
+                EmitAssignLocal(mirLocalPlace, value, context);
+                break;
+            case MirDerefPlace mirDerefPlace:
+                EmitAssignDeref(mirDerefPlace, value, context);
+                break;
+        }
+    }
+
+    private void EmitAssignGlobal(MirGlobalPlace place, LLVMValueRef value)
+    {
+        _builder.BuildStore(value, GetOrCreateGlobal(place.Variable));
+    }
+
+    private void EmitAssignLocal(
+        MirLocalPlace destination,
+        LLVMValueRef value,
+        FunctionEmissionContext context
+    )
+    {
+        var classification = context.LocalClassification.Locals[destination.LocalId];
+        value = NormalizeValueForType(value, destination.Type);
+
+        switch (classification.StorageKind)
+        {
+            case MirLocalStorageKind.Ssa:
+                context.BindLocal(destination.LocalId, value);
+                break;
+            case MirLocalStorageKind.Memory or MirLocalStorageKind.IndirectParam:
+                {
+                    var local = context.LookupLocal(destination.LocalId);
+                    _builder.BuildStore(value, local);
+                }
+                break;
+            default:
+                throw new InvalidOperationException("Unknown enum type");
+        }
+    }
+
+    private void EmitAssignDeref(
+        MirDerefPlace destination,
+        LLVMValueRef value,
+        FunctionEmissionContext context
+    )
+    {
+        var location = GetValue(destination.Pointer, context);
+        _builder.BuildStore(value, location);
+    }
+
+    private void EmitAssignIndex(
+        MirIndexPlace indexer,
+        LLVMValueRef value,
+        FunctionEmissionContext context
+    )
+    {
+        var index = GetValue(indexer.Index, context);
+        var itemType = GetOrCreateType(indexer.Type);
+
+        LLVMValueRef pointer;
+        if (indexer.Base.Type.IsDynamicallySized)
+        {
+            var widePointer = EmitTakeAddress(indexer.Base, context);
+            pointer = _builder.BuildExtractValue(widePointer, 0, "pointer");
+        }
+        else
+        {
+            pointer = EmitTakeAddress(indexer.Base, context);
+        }
+
+        var element = _builder.BuildGEP2(itemType, pointer, [index], "element".AsSpan());
+        _builder.BuildStore(value, element);
+    }
+
+    private void EmitAssignField(
+        MirFieldPlace field,
+        LLVMValueRef value,
+        FunctionEmissionContext context
+    )
+    {
+        var address = EmitReadFieldAddress(field, context);
+        _builder.BuildStore(value, address);
+    }
+
+    private void WriteIR()
+    {
+        var targetPath = Path.Combine(_options.OutputDirectory, $"{_compilation.AssemblyName}.ll");
+        _module.PrintToFile(targetPath);
+    }
+
+    private void WriteOptimizedIR()
+    {
+        var targetPath = Path.Combine(
+            _options.OutputDirectory,
+            $"{_compilation.AssemblyName}.opt.ll"
+        );
+        _module.PrintToFile(targetPath);
+    }
+
+    private async Task<EmitResult> OutputBinaryAsync(
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        LLVM.InitializeNativeTarget();
+        LLVM.InitializeNativeAsmPrinter();
+        LLVM.InitializeNativeAsmParser();
+
+        var tripleString = _compilation.Settings.GetLlvmTriple();
+        if (!LLVMTargetRef.TryGetTargetFromTriple(tripleString, out var target, out _))
+        {
+            // TODO: Emit a diagnostic
+            return new EmitResult(false, []);
+        }
+
+        const string cpu = "generic";
+        const string features = "";
+        var targetMachine = target.CreateTargetMachine(
+            tripleString,
+            cpu,
+            features,
+            LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault,
+            LLVMRelocMode.LLVMRelocPIC,
+            LLVMCodeModel.LLVMCodeModelDefault
+        );
+
+        _module.Target = tripleString;
+        _module.DataLayoutObject = targetMachine.CreateTargetDataLayout();
+
+        WriteIR();
+
+        OptimizeModule(targetMachine);
+
+        WriteOptimizedIR();
+
+        var outputFilename = Path.Combine(
+            _options.OutputDirectory,
+            $"{_compilation.AssemblyName}.obj"
+        );
+
+        _module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+        if (
+            !targetMachine.TryEmitToFile(
+                _module,
+                outputFilename,
+                LLVMCodeGenFileType.LLVMObjectFile,
+                out _
+            )
+        )
+        {
+            return new EmitResult(false, context.CollectDiagnostics());
+        }
+
+        return _compilation.Settings.OutputKind switch
+        {
+            OutputKind.Executable => await LinkAsync(
+                outputFilename,
+                LinkOutput.Executable,
+                context,
+                cancellationToken
+            ),
+            OutputKind.StaticLibrary => await CreateStaticLibraryAsync(
+                outputFilename,
+                context,
+                cancellationToken
+            ),
+            OutputKind.SharedLibrary => await LinkAsync(
+                outputFilename,
+                LinkOutput.DynamicLibrary,
+                context,
+                cancellationToken
+            ),
+            _ => throw new InvalidOperationException("Unsupported output kind"),
+        };
+    }
+
+    private void OptimizeModule(LLVMTargetMachineRef targetMachine)
+    {
+        using var passBuilderOptions = LLVMPassBuilderOptionsRef.Create();
+        _module.RunPasses(GetPassesName(), targetMachine, passBuilderOptions);
+    }
+
+    private string GetPassesName()
+    {
+        return _compilation.Settings.OptimizationLevel switch
+        {
+            OptimizationLevel.None => "default<O0>",
+            OptimizationLevel.Less => "default<O1>",
+            OptimizationLevel.Default => "default<O2>",
+            OptimizationLevel.Aggressive => "default<O3>",
+            _ => throw new InvalidOperationException("Unsupported optimization level"),
+        };
+    }
+
+    private async Task<EmitResult> LinkAsync(
+        string objFileName,
+        LinkOutput kind,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            var toolchain = ToolchainFactory.Create(
+                new ToolchainRequest(
+                    _compilation.Settings.Architecture,
+                    _compilation.Settings.OperatingSystem,
+                    _compilation.Settings.Toolchain
+                )
+            );
+
+            var targetPath = kind switch
+            {
+                LinkOutput.Executable => Path.Join(
+                    _options.OutputDirectory,
+                    $"{_compilation.AssemblyName}.exe"
+                ),
+                LinkOutput.DynamicLibrary => Path.Join(
+                    _options.OutputDirectory,
+                    $"{_compilation.AssemblyName}.dll"
+                ),
+                _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+            };
+
+            var request = new LinkRequest
+            {
+                OutputPath = targetPath,
+                OutputKind = kind,
+                ObjectFiles = [objFileName],
+                EntryPoint = kind == LinkOutput.Executable ? _entryPoint : null,
+                Subsystem = kind == LinkOutput.Executable ? Subsystem.Console : null,
+                ImportLibraryPath =
+                    kind == LinkOutput.DynamicLibrary
+                        ? Path.Join(_options.OutputDirectory, $"{_compilation.AssemblyName}.lib")
+                        : null,
+            };
+
+            var result = await toolchain.LinkAsync(request, cancellationToken);
+            if (result.Success)
+                return new EmitResult(true, context.CollectDiagnostics());
+
+            context.ReportDiagnostic(Diagnostic.ExternalDiagnostic(Location.None, result.StdErr));
+            return new EmitResult(false, context.CollectDiagnostics());
+        }
+        catch (Exception ex)
+        {
+            context.ReportDiagnostic(Diagnostic.ExternalDiagnostic(Location.None, ex.Message));
+            return new EmitResult(false, context.CollectDiagnostics());
+        }
+    }
+
+    private async Task<EmitResult> CreateStaticLibraryAsync(
+        string objFileName,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            var toolchain = ToolchainFactory.Create(
+                new ToolchainRequest(
+                    _compilation.Settings.Architecture,
+                    _compilation.Settings.OperatingSystem,
+                    _compilation.Settings.Toolchain
+                )
+            );
+
+            var targetPath = Path.Join(
+                _options.OutputDirectory,
+                $"{_compilation.AssemblyName}.lib"
+            );
+
+            var request = new StaticLibraryRequest
+            {
+                OutputPath = targetPath,
+                ObjectFiles = [objFileName],
+            };
+
+            var result = await toolchain.CreateStaticLibraryAsync(request, cancellationToken);
+            if (result.Success)
+                return new EmitResult(true, context.CollectDiagnostics());
+
+            context.ReportDiagnostic(Diagnostic.ExternalDiagnostic(Location.None, result.StdErr));
+            return new EmitResult(false, context.CollectDiagnostics());
+        }
+        catch (Exception ex)
+        {
+            context.ReportDiagnostic(Diagnostic.ExternalDiagnostic(Location.None, ex.Message));
+            return new EmitResult(false, context.CollectDiagnostics());
+        }
+    }
+
+    public void Dispose()
+    {
+        _debugInfo?.Dispose();
+        _builder.Dispose();
+        _module.Dispose();
+        _context.Dispose();
+    }
+}

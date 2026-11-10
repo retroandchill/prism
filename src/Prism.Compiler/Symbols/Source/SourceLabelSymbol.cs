@@ -1,0 +1,45 @@
+﻿// @file SourceLabelSymbol.cs
+//
+// @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+using System.Collections.Immutable;
+using Prism.Compiler.Binding;
+using Prism.Diagnostics;
+using Prism.Syntax;
+
+namespace Prism.Compiler.Symbols.Source;
+
+internal sealed class SourceLabelSymbol(
+    FunctionSymbol containingFunction,
+    LabeledStatementSyntax syntax
+) : LabelSymbol
+{
+    public override string Name => syntax.Identifier.IdentifierName;
+
+    public override FunctionSymbol ContainingFunction { get; } = containingFunction;
+
+    public override ImmutableArray<Location> Locations
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            ImmutableInterlocked.InterlockedInitialize(ref field, [syntax.Location]);
+            return field;
+        }
+    }
+
+    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            ImmutableInterlocked.InterlockedInitialize(ref field, [new SyntaxReference(syntax)]);
+            return field;
+        }
+    }
+}

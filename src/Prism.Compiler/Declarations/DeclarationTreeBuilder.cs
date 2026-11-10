@@ -1,0 +1,282 @@
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
+using Prism.Compiler.Binding;
+using Prism.Compiler.Symbols;
+using Prism.Diagnostics;
+using Prism.Syntax;
+using ZLinq;
+
+namespace Prism.Compiler.Declarations;
+
+internal sealed class DeclarationTreeBuilder
+{
+    private readonly SyntaxTree _syntaxTree;
+
+    private DeclarationTreeBuilder(SyntaxTree syntaxTree)
+    {
+        _syntaxTree = syntaxTree;
+    }
+
+    public static SingleRootNamespaceDeclaration ForTree(SyntaxTree tree)
+    {
+        var builder = new DeclarationTreeBuilder(tree);
+        return builder.VisitTree();
+    }
+
+    private SingleRootNamespaceDeclaration VisitTree()
+    {
+        return _syntaxTree.Root is CompilationUnitSyntax compilationUnitSyntax
+            ? VisitCompilationUnit(compilationUnitSyntax)
+            : throw new InvalidOperationException("Compilation unit syntax expected");
+    }
+
+    private ImmutableArray<SingleDeclaration> VisitNamespaceChildren(
+        SyntaxNode node,
+        SyntaxList<DeclarationSyntax> members
+    )
+    {
+        Debug.Assert(node is CompilationUnitSyntax or NamespaceDeclarationSyntax);
+
+        if (members.Count == 0)
+            return [];
+
+        var builder = ImmutableArray.CreateBuilder<SingleDeclaration>();
+        foreach (var member in members)
+        {
+            SingleDeclaration? namespaceOrType = member switch
+            {
+                NamespaceDeclarationSyntax ns => VisitNamespaceDeclaration(ns),
+                AttributeDeclarationSyntax attribute => VisitAttributeDeclaration(
+                    attribute,
+                    DeclarationModifiers.Internal
+                ),
+                ClassDeclarationSyntax classDeclaration => VisitClassDeclaration(
+                    classDeclaration,
+                    DeclarationModifiers.Internal
+                ),
+                _ => null,
+            };
+
+            if (namespaceOrType is not null)
+                builder.Add(namespaceOrType);
+        }
+
+        return builder.DrainToImmutable();
+    }
+
+    private ImmutableArray<SingleTypeDeclaration> VisitClassChildren(
+        SyntaxNode node,
+        SyntaxList<DeclarationSyntax> members
+    )
+    {
+        Debug.Assert(node is ClassDeclarationSyntax);
+
+        if (members.Count == 0)
+            return [];
+
+        var builder = ImmutableArray.CreateBuilder<SingleTypeDeclaration>();
+        foreach (var member in members)
+        {
+            var type = member switch
+            {
+                AttributeDeclarationSyntax attribute => VisitAttributeDeclaration(
+                    attribute,
+                    DeclarationModifiers.Internal
+                ),
+                ClassDeclarationSyntax classDeclaration => VisitClassDeclaration(
+                    classDeclaration,
+                    DeclarationModifiers.Internal
+                ),
+                _ => null,
+            };
+
+            if (type is not null)
+                builder.Add(type);
+        }
+
+        return builder.DrainToImmutable();
+    }
+
+    private SingleRootNamespaceDeclaration VisitCompilationUnit(CompilationUnitSyntax syntax)
+    {
+        var children = VisitNamespaceChildren(syntax, syntax.Members);
+        return CreateSingleRootNamespaceDeclaration(syntax, children);
+    }
+
+    private SingleNamedNamespaceDeclaration VisitNamespaceDeclaration(
+        NamespaceDeclarationSyntax node
+    )
+    {
+        var children = VisitNamespaceChildren(node, node.Members);
+
+        var hasUsings = node.Usings.Count > 0;
+        var name = node.Name;
+        SyntaxNode currentNode = node;
+        var memberNames = GetNonTypeMemberNames(node.Members);
+        while (name is QualifiedNameSyntax qualified)
+        {
+            var rightName = qualified.UnqualifiedName;
+            var ns = new SingleNamedNamespaceDeclaration(
+                rightName,
+                new SyntaxReference(currentNode),
+                SourceLocation.Create(qualified.Right),
+                memberNames,
+                children
+            )
+            {
+                HasUsings = hasUsings,
+            };
+
+            memberNames = ImmutableHashSet<string>.Empty;
+            children = [ns];
+            name = qualified.Left;
+            currentNode = name;
+            hasUsings = false;
+        }
+
+        using var diagnostics = DiagnosticBag.Create();
+        switch (node)
+        {
+            case FileScopedNamespaceDeclarationSyntax:
+                switch (node.Parent)
+                {
+                    case FileScopedNamespaceDeclarationSyntax:
+                        diagnostics.Add(
+                            Diagnostic.MultipleFileScopedNamespaces(node.Name.Location)
+                        );
+                        break;
+                    case NamespaceDeclarationSyntax:
+                        diagnostics.Add(
+                            Diagnostic.FileScopedAndNormalNamespace(node.Name.Location)
+                        );
+                        break;
+                    case CompilationUnitSyntax compilationUnit:
+                    {
+                        if (!ReferenceEquals(node, compilationUnit.Members[0]))
+                        {
+                            diagnostics.Add(
+                                Diagnostic.FileScopedNamespaceNotBeforeAllMembers(
+                                    node.Name.Location
+                                )
+                            );
+                        }
+
+                        break;
+                    }
+                    default:
+                        throw new InvalidOperationException("This isn't a valid state");
+                }
+
+                break;
+            case BlockNamespaceDeclarationSyntax:
+            {
+                if (node.Parent is FileScopedNamespaceDeclarationSyntax)
+                {
+                    diagnostics.Add(Diagnostic.FileScopedAndNormalNamespace(node.Name.Location));
+                }
+
+                break;
+            }
+            default:
+                throw new InvalidOperationException("This isn't a valid state");
+        }
+
+        if (node.Modifiers.Count > 0)
+        {
+            diagnostics.Add(Diagnostic.BadModifiersOnNamespace(node.Modifiers[0].Location));
+        }
+
+        Debug.Assert(name is SimpleNameSyntax);
+        var unqualifiedName = name.UnqualifiedName;
+        return new SingleNamedNamespaceDeclaration(
+            unqualifiedName,
+            new SyntaxReference(currentNode),
+            SourceLocation.Create(name),
+            memberNames,
+            children
+        )
+        {
+            HasUsings = hasUsings,
+            Diagnostics = diagnostics.ToImmutableAndClear(),
+        };
+    }
+
+    private static SingleRootNamespaceDeclaration CreateSingleRootNamespaceDeclaration(
+        CompilationUnitSyntax syntax,
+        ImmutableArray<SingleDeclaration> children
+    )
+    {
+        return new SingleRootNamespaceDeclaration(
+            new SyntaxReference(syntax),
+            SourceLocation.Create(syntax),
+            GetNonTypeMemberNames(syntax.Members),
+            children
+        )
+        {
+            HasUsings = syntax.Usings.Count > 0,
+        };
+    }
+
+    private static ImmutableHashSet<string> GetNonTypeMemberNames(
+        SyntaxList<DeclarationSyntax> members
+    )
+    {
+        var memberNames = ImmutableHashSet.CreateBuilder<string>();
+        foreach (var member in members)
+        {
+            switch (member)
+            {
+                case VariableDeclarationSyntax variable:
+                    memberNames.Add(variable.Identifier.IdentifierName);
+                    break;
+                case FunctionDeclarationSyntax function:
+                    memberNames.Add(function.Identifier.IdentifierName);
+                    break;
+            }
+        }
+
+        return memberNames.ToImmutable();
+    }
+
+    private static SingleTypeDeclaration VisitAttributeDeclaration(
+        AttributeDeclarationSyntax attribute,
+        DeclarationModifiers defaultVisibility
+    )
+    {
+        var name = attribute.Identifier.IdentifierName;
+        var memberNames = attribute.Parameters is { Parameters: { Count: > 0 } parameters }
+            ? parameters.AsValueEnumerable().Select(x => x.Name.IdentifierName).ToImmutableHashSet()
+            : ImmutableHashSet<string>.Empty;
+        var modifiers = DeclarationModifiers.MakeModifiers(defaultVisibility, attribute.Modifiers);
+        return new SingleTypeDeclaration(
+            DeclarationKind.Attribute,
+            name,
+            new SyntaxReference(attribute),
+            modifiers,
+            SourceLocation.Create(attribute.Identifier),
+            memberNames,
+            []
+        );
+    }
+
+    private SingleTypeDeclaration VisitClassDeclaration(
+        ClassDeclarationSyntax @class,
+        DeclarationModifiers defaultVisibility
+    )
+    {
+        var name = @class.Identifier.IdentifierName;
+
+        var modifiers = DeclarationModifiers.MakeModifiers(defaultVisibility, @class.Modifiers);
+        var members = VisitClassChildren(@class, @class.Members);
+        var memberNames = GetNonTypeMemberNames(@class.Members);
+        return new SingleTypeDeclaration(
+            DeclarationKind.Class,
+            name,
+            new SyntaxReference(@class),
+            modifiers,
+            SourceLocation.Create(@class.Identifier),
+            memberNames,
+            members
+        );
+    }
+}

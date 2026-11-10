@@ -1,0 +1,250 @@
+﻿// @file SourceParameterSymbol.cs
+//
+// @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+using System.Collections.Immutable;
+using System.Diagnostics;
+using Prism.Compiler.Binding;
+using Prism.Compiler.BoundTree;
+using Prism.Compiler.Semantic;
+using Prism.Constants;
+using Prism.Diagnostics;
+using Prism.Syntax;
+
+namespace Prism.Compiler.Symbols.Source;
+
+internal closed class SourceParameterSymbol : ParameterSymbol
+{
+    protected ParameterSyntax Syntax { get; }
+    private SymbolCompletionState _completionState;
+    private ImmutableArray<AttributeData> _attributes;
+
+    internal SourceParameterSymbol(ParameterSyntax syntax)
+    {
+        Syntax = syntax;
+    }
+
+    public sealed override string Name => Syntax.Name.IdentifierName;
+
+    public sealed override ImmutableArray<Location> Locations
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            ImmutableInterlocked.InterlockedCompareExchange(
+                ref field,
+                [Syntax.Name.Location],
+                default
+            );
+            return field;
+        }
+    }
+
+    public sealed override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            ImmutableInterlocked.InterlockedCompareExchange(
+                ref field,
+                [new SyntaxReference(Syntax)],
+                default
+            );
+            return field;
+        }
+    }
+
+    public sealed override TypeSymbol Type
+    {
+        get
+        {
+            if (field is not null)
+                return field;
+
+            using var context = BindingContext.Create();
+            if (Interlocked.CompareExchange(ref field, ComputeType(context), null) is not null)
+                return field;
+
+            AddDeclarationDiagnostics(context);
+            _completionState.MarkPartComplete(CompletionPart.Type);
+            return field;
+        }
+    }
+
+    private TypeSymbol ComputeType(BindingContext context)
+    {
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        var factory = compilation.GetBinderFactory(Syntax.SyntaxTree);
+        var binder = factory.GetBinder(Syntax);
+
+        Debug.Assert(Syntax.TypeSpecifier is not null);
+        return binder.ResolveType(Syntax.TypeSpecifier.Type, context);
+    }
+
+    public sealed override ParameterDefault? DefaultValue
+    {
+        get
+        {
+            if (Syntax.DefaultValue is null)
+                return null;
+
+            if (field is not null)
+                return field;
+
+            using var context = BindingContext.Create();
+            if (
+                Interlocked.CompareExchange(ref field, CreateParameterDefault(context), null)
+                is not null
+            )
+                return field;
+
+            AddDeclarationDiagnostics(context);
+            _completionState.MarkPartComplete(CompletionPart.ConstantValue);
+            return field;
+        }
+    }
+
+    private ParameterDefault CreateParameterDefault(BindingContext context)
+    {
+        Debug.Assert(Syntax.DefaultValue is not null);
+
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        var factory = compilation.GetBinderFactory(Syntax.SyntaxTree);
+        var binder = factory.GetBinder(Syntax);
+
+        var expression = binder.BindExpression(
+            Syntax.DefaultValue.Value,
+            Type,
+            context,
+            CancellationToken.None
+        );
+        switch (expression)
+        {
+            case BoundLiteral literal:
+                return new ConstantParameterDefault(literal.Value, Syntax.DefaultValue.Value);
+            default:
+                // Use null for a non-constant default value
+                context.ReportDiagnostic(
+                    Diagnostic.DefaultParameterValueMustBeConstant(
+                        Syntax.DefaultValue.Value.Location
+                    )
+                );
+                return new ConstantParameterDefault(new NullConstant(), Syntax.DefaultValue.Value);
+        }
+    }
+
+    public override ImmutableArray<AttributeData> GetAttributes()
+    {
+        if (!_attributes.IsDefault)
+            return _attributes;
+
+        using var context = BindingContext.Create();
+        if (
+            !ImmutableInterlocked.InterlockedInitialize(ref _attributes, ComputeAttributes(context))
+        )
+            return _attributes;
+
+        AddDeclarationDiagnostics(context);
+        _completionState.MarkPartComplete(CompletionPart.Attributes);
+        return _attributes;
+    }
+
+    private ImmutableArray<AttributeData> ComputeAttributes(BindingContext context)
+    {
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        var semanticModel = compilation.GetSemanticModel(Syntax.SyntaxTree);
+        var binder = semanticModel.GetBinder(Syntax);
+        return binder.BindAttributes(Syntax.Attributes, context);
+    }
+
+    internal sealed override bool NeedsCompletion => true;
+
+    internal sealed override void ForceComplete(
+        SourceLocation? location,
+        Predicate<Symbol>? filter,
+        CancellationToken cancellationToken
+    )
+    {
+        if (filter?.Invoke(this) == false)
+            return;
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var incompletePart = _completionState.NextIncompletePart;
+            switch (incompletePart)
+            {
+                case CompletionPart.Attributes:
+                    _ = GetAttributes();
+                    break;
+                case CompletionPart.Type:
+                    _ = Type;
+                    break;
+                case CompletionPart.ConstantValue:
+                    _ = DefaultValue;
+                    _completionState.MarkPartComplete(CompletionPart.ConstantValue);
+                    break;
+                case CompletionPart.None:
+                    return;
+                default:
+                    _completionState.MarkPartComplete(
+                        CompletionPart.All & ~CompletionPart.ParameterAll
+                    );
+                    break;
+            }
+
+            _completionState.WaitPartComplete(incompletePart, cancellationToken);
+        }
+    }
+
+    internal sealed override bool IsComplete(CompletionPart part)
+    {
+        return _completionState.IsComplete(part);
+    }
+}
+
+internal sealed class SourceFunctionParameterSymbol : SourceParameterSymbol
+{
+    internal SourceFunctionParameterSymbol(FunctionSymbol containingSymbol, ParameterSyntax syntax)
+        : base(syntax)
+    {
+        ContainingFunction = containingSymbol;
+
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        compilation.CacheSymbol(Syntax, this);
+    }
+
+    public override FunctionSymbol ContainingFunction { get; }
+
+    public override Symbol ContainingSymbol => ContainingFunction;
+
+    public override bool IsMutable => Syntax.MutableKeyword is not null;
+}
+
+internal sealed class SourceAttributeParameterSymbol : SourceParameterSymbol
+{
+    public SourceAttributeParameterSymbol(NamedTypeSymbol containingSymbol, ParameterSyntax syntax)
+        : base(syntax)
+    {
+        ContainingType = containingSymbol;
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        compilation.CacheSymbol(Syntax, this);
+    }
+
+    public override TypeSymbol ContainingType { get; }
+
+    public override Symbol ContainingSymbol => ContainingType;
+
+    public override bool IsMutable => false;
+    public override FunctionSymbol? ContainingFunction => null;
+}

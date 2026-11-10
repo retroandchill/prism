@@ -1,0 +1,353 @@
+﻿// @file SourceNamedTypeSymbol.cs
+//
+// @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using Prism.Compiler.Binding;
+using Prism.Compiler.Declarations;
+using Prism.Diagnostics;
+using Prism.Metadata;
+using Prism.Syntax;
+using Prism.Utils;
+using ZLinq;
+
+namespace Prism.Compiler.Symbols.Source;
+
+internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
+{
+    private readonly MergedTypeDeclaration _mergedDeclaration;
+    private ImmutableArray<Symbol> _members;
+    private ImmutableDictionary<string, ImmutableArray<Symbol>>? _nameToMembersMap;
+    private SymbolCompletionState _completionState;
+    private ImmutableArray<AttributeData> _attributes;
+    private readonly Lock _memberChecksLock = new();
+
+    internal SourceNamedTypeSymbol(
+        MergedTypeDeclaration mergedDeclaration,
+        MemberContainerSymbol containingSymbol
+    )
+    {
+        _mergedDeclaration = mergedDeclaration;
+        ContainingSymbol = containingSymbol;
+        SpecialType = SpecialTypeFacts.FromMetadataName(
+            mergedDeclaration.Name,
+            containingSymbol as NamespaceSymbol
+        );
+    }
+
+    public sealed override string Name => _mergedDeclaration.Name;
+
+    public sealed override Symbol ContainingSymbol { get; }
+
+    public sealed override NamedTypeKind Kind => GetTypeKind(_mergedDeclaration);
+
+    public sealed override SpecialType SpecialType { get; }
+
+    private static NamedTypeKind GetTypeKind(MergedTypeDeclaration declaration)
+    {
+        return declaration.Kind switch
+        {
+            DeclarationKind.Namespace => throw new InvalidOperationException(
+                "Type kind cannot be a namespace"
+            ),
+            DeclarationKind.Attribute => NamedTypeKind.Attribute,
+            DeclarationKind.Class => NamedTypeKind.Class,
+            _ => throw new InvalidOperationException("Invalid declaration kind"),
+        };
+    }
+
+    public override ImmutableArray<Location> Locations
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            ImmutableInterlocked.InterlockedCompareExchange(
+                ref field,
+                [.. _mergedDeclaration.Declarations.Select(d => d.Location)],
+                default
+            );
+            return field;
+        }
+    }
+
+    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            ImmutableInterlocked.InterlockedCompareExchange(
+                ref field,
+                [.. _mergedDeclaration.Declarations.Select(d => d.SyntaxReference)],
+                default
+            );
+            return field;
+        }
+    }
+    public override DeclaredVisibility DeclaredVisibility =>
+        DeclaredVisibility.FromDeclarationModifiers(_mergedDeclaration.Modifiers);
+
+    public sealed override ImmutableArray<Symbol> GetMembers()
+    {
+        if (!_members.IsDefault)
+            return _members;
+
+        ImmutableInterlocked.InterlockedCompareExchange(ref _members, ComputeMembers(), default);
+        return _members;
+    }
+
+    public sealed override ImmutableArray<Symbol> GetMembers(string name)
+    {
+        return GetNameToMembersMap().GetValueOrDefault(name, []);
+    }
+
+    private ImmutableArray<Symbol> ComputeMembers()
+    {
+        var nameToMembersMap = GetNameToMembersMap();
+        if (nameToMembersMap.Count == 0)
+            return [];
+
+        var members = nameToMembersMap
+            .Values.AsValueEnumerable()
+            .SelectMany(v => v.AsValueEnumerable())
+            .ToArray();
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        Array.Sort(members, SymbolLocationComparer.Get(compilation));
+        return ImmutableCollectionsMarshal.AsImmutableArray(members);
+    }
+
+    private ImmutableDictionary<string, ImmutableArray<Symbol>> GetNameToMembersMap()
+    {
+        if (_nameToMembersMap is not null)
+            return _nameToMembersMap;
+
+        using var context = BindingContext.Create();
+        if (
+            Interlocked.CompareExchange(ref _nameToMembersMap, MakeNameToMembersMap(context), null)
+            is not null
+        )
+            return _nameToMembersMap;
+
+        AddDeclarationDiagnostics(context);
+        _completionState.MarkPartComplete(CompletionPart.Members);
+        return _nameToMembersMap;
+    }
+
+    protected virtual ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
+        BindingContext context
+    )
+    {
+        var builder = new Dictionary<string, ImmutableArray<Symbol>.Builder>();
+
+        foreach (var symbol in _mergedDeclaration.Members.Select(BuildSymbol))
+        {
+            builder.GetOrAdd(symbol.Name, ImmutableArray.CreateBuilder<Symbol>).Add(symbol);
+        }
+
+        foreach (
+            var syntax in _mergedDeclaration
+                .Declarations.AsValueEnumerable()
+                .SelectMany(x => GetSyntaxMembers(x).AsValueEnumerable())
+        )
+        {
+            Symbol? symbol = syntax switch
+            {
+                TypeDeclarationSyntax => null,
+                FieldDeclarationSyntax field => BuildSymbol(field),
+                FunctionDeclarationSyntax function => BuildSymbol(function),
+                ConstructorDeclarationSyntax constructor => BuildSymbol(constructor),
+                _ => null,
+            };
+            if (symbol is null)
+                continue;
+
+            builder.GetOrAdd(symbol.Name, ImmutableArray.CreateBuilder<Symbol>).Add(symbol);
+        }
+
+        AddSynthesizedMembers(builder);
+
+        return builder.ToImmutableDictionary(
+            pair => pair.Key,
+            pair => pair.Value.DrainToImmutable()
+        );
+
+        SyntaxList<DeclarationSyntax> GetSyntaxMembers(SingleTypeDeclaration x)
+        {
+            return x.SyntaxReference.Syntax switch
+            {
+                ClassDeclarationSyntax cu => cu.Members,
+                _ => new SyntaxList<DeclarationSyntax>(),
+            };
+        }
+    }
+
+    protected virtual void AddSynthesizedMembers(
+        Dictionary<string, ImmutableArray<Symbol>.Builder> nameToMembersMap
+    )
+    {
+        // By default, we don't need any
+    }
+
+    private void LazyMemberChecks()
+    {
+        if (_completionState.IsComplete(CompletionPart.FinishChecks))
+            return;
+
+        using var scope = _memberChecksLock.EnterScope();
+        if (!_completionState.MarkPartComplete(CompletionPart.StartChecks))
+            return;
+
+        using var context = BindingContext.Create();
+        try
+        {
+            foreach (var (name, members) in GetNameToMembersMap())
+            {
+                ValidateMembers(name, members, context);
+            }
+            AddDeclarationDiagnostics(context);
+        }
+        finally
+        {
+            _completionState.MarkPartComplete(CompletionPart.FinishChecks);
+        }
+    }
+
+    private Symbol BuildSymbol(MergedTypeDeclaration declaration)
+    {
+        return declaration.Kind switch
+        {
+            DeclarationKind.Namespace => throw new InvalidOperationException(
+                "Namespace declaration cannot be built as a type"
+            ),
+            DeclarationKind.Class => new SourceClassSymbol(declaration, this),
+            DeclarationKind.Attribute => new SourceAttributeSymbol(declaration, this),
+            _ => throw new InvalidOperationException("Unknown declaration kind"),
+        };
+    }
+
+    private SourceFieldSymbol BuildSymbol(FieldDeclarationSyntax fieldDeclaration)
+    {
+        return new SourceFieldSymbol(this, fieldDeclaration);
+    }
+
+    private SourceFunctionSymbol BuildSymbol(FunctionDeclarationSyntax functionDeclaration)
+    {
+        return new SourceFunctionSymbol(this, functionDeclaration);
+    }
+
+    private SourceConstructorSymbol BuildSymbol(ConstructorDeclarationSyntax constructorDeclaration)
+    {
+        return new SourceConstructorSymbol(this, constructorDeclaration);
+    }
+
+    public sealed override bool IsDynamicallySized => SpecialType == SpecialType.Str;
+
+    public override ImmutableArray<AttributeData> GetAttributes()
+    {
+        if (!_attributes.IsDefault)
+            return _attributes;
+
+        using var context = BindingContext.Create();
+        if (
+            !ImmutableInterlocked.InterlockedInitialize(ref _attributes, ComputeAttributes(context))
+        )
+            return _attributes;
+
+        AddDeclarationDiagnostics(context);
+        _completionState.MarkPartComplete(CompletionPart.Attributes);
+        return _attributes;
+    }
+
+    private ImmutableArray<AttributeData> ComputeAttributes(BindingContext context)
+    {
+        var compilation = DeclaringCompilation;
+        Debug.Assert(compilation is not null);
+        return _mergedDeclaration
+            .Declarations.AsValueEnumerable()
+            .SelectMany(x =>
+            {
+                var semanticModel = compilation.GetSemanticModel(x.SyntaxReference.SyntaxTree);
+                var typeSyntax = (TypeDeclarationSyntax)x.SyntaxReference.Syntax;
+                var binder = semanticModel.GetBinder(typeSyntax);
+                return binder.BindAttributes(typeSyntax.Attributes, context).AsValueEnumerable();
+            })
+            .ToImmutableArray();
+    }
+
+    internal sealed override bool NeedsCompletion => true;
+
+    internal sealed override void ForceComplete(
+        SourceLocation? location,
+        Predicate<Symbol>? filter,
+        CancellationToken cancellationToken
+    )
+    {
+        if (filter?.Invoke(this) == false)
+            return;
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var incompletePart = _completionState.NextIncompletePart;
+            switch (incompletePart)
+            {
+                case CompletionPart.Attributes:
+                    _ = GetAttributes();
+                    break;
+                case CompletionPart.Members:
+                    _ = GetNameToMembersMap();
+                    break;
+                case CompletionPart.MembersCompleted:
+                {
+                    var allCompleted = true;
+
+                    foreach (var member in GetMembers())
+                    {
+                        ForceCompleteMemberConditionally(
+                            location,
+                            filter,
+                            member,
+                            cancellationToken
+                        );
+                        allCompleted &= member.IsComplete(CompletionPart.Members);
+                    }
+
+                    if (allCompleted)
+                    {
+                        _completionState.MarkPartComplete(CompletionPart.MembersCompleted);
+                        break;
+                    }
+                    var allParts =
+                        location is null && filter is null
+                            ? CompletionPart.TypeAll
+                            : CompletionPart.TypeAll & ~CompletionPart.MembersCompleted;
+                    _completionState.MarkPartComplete(allParts);
+                    return;
+                }
+                case CompletionPart.StartChecks or CompletionPart.FinishChecks:
+                    LazyMemberChecks();
+                    break;
+                case CompletionPart.None:
+                    return;
+                default:
+                    // Any other values are for other kinds of symbols
+                    _completionState.MarkPartComplete(CompletionPart.All & ~CompletionPart.TypeAll);
+                    break;
+            }
+
+            _completionState.WaitPartComplete(incompletePart, cancellationToken);
+        }
+    }
+
+    internal sealed override bool IsComplete(CompletionPart part)
+    {
+        return _completionState.IsComplete(part);
+    }
+}

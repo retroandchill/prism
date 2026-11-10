@@ -1,5 +1,5 @@
-﻿using Prism.Core.Compiling;
-using Prism.Core.Symbols;
+﻿using Prism.Compiler;
+using Prism.Compiler.Symbols;
 using Prism.Syntax;
 
 namespace Prism.Core.Tests;

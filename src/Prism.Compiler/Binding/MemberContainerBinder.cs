@@ -1,0 +1,63 @@
+﻿using System.Collections.Immutable;
+using Prism.Compiler.Symbols;
+using Prism.Syntax;
+using ZLinq;
+
+namespace Prism.Compiler.Binding;
+
+internal sealed class MemberContainerBinder(
+    Binder next,
+    MemberContainerSymbol symbol,
+    DeclarationSyntax syntax
+) : Binder(next)
+{
+    protected override SyntaxNode ScopeDesignator => syntax;
+    protected override Symbol ContainingSymbol => symbol;
+    private ImmutableArray<NamespaceSymbol> _usingNamespaces;
+
+    protected override LookupResult LookupLocal(
+        string name,
+        LookupOptions options,
+        BindingContext context
+    )
+    {
+        for (Symbol? s = symbol; s is not null; s = s.ContainingSymbol)
+        {
+            if (s is not MemberContainerSymbol memberContainer)
+                continue;
+
+            if (LookupQualifiedName(name, memberContainer, options) is { IsViable: true } result)
+                return result;
+        }
+
+        var found = GetUsingNamespaces()
+            .AsValueEnumerable()
+            .SelectMany(x => LookupQualifiedName(name, x, options).Symbols.AsValueEnumerable())
+            .ToImmutableArray();
+        return MakeLookupResult(found, options);
+    }
+
+    private ImmutableArray<NamespaceSymbol> GetUsingNamespaces()
+    {
+        if (!_usingNamespaces.IsDefault)
+            return _usingNamespaces;
+
+        ImmutableInterlocked.InterlockedCompareExchange(
+            ref _usingNamespaces,
+            ComputeUsingNamespaces(),
+            default
+        );
+        return _usingNamespaces;
+    }
+
+    private ImmutableArray<NamespaceSymbol> ComputeUsingNamespaces()
+    {
+        return syntax switch
+        {
+            NamespaceDeclarationSyntax ns => BuildUsingNamespaces(ns.Usings),
+            _ => [],
+        };
+    }
+
+    public override LabelSymbol? LookupLoopLabel(string name, BindingContext context) => null;
+}
