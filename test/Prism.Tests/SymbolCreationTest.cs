@@ -3,7 +3,7 @@ using Prism.Compiler.Symbols;
 using Prism.Metadata;
 using Prism.Syntax;
 
-namespace Prism.Core.Tests;
+namespace Prism.Tests;
 
 public class SymbolCreationTest
 {

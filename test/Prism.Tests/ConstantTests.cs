@@ -5,7 +5,7 @@
 
 using Prism.Constants;
 
-namespace Prism.Core.Tests;
+namespace Prism.Tests;
 
 public class ConstantTests
 {

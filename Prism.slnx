@@ -16,6 +16,6 @@
     <Project Path="src/prismc/prismc.csproj" />
   </Folder>
   <Folder Name="/test/">
-    <Project Path="test/Prism.Core.Tests/Prism.Core.Tests.csproj" />
+    <Project Path="test/Prism.Tests/Prism.Tests.csproj" />
   </Folder>
 </Solution>

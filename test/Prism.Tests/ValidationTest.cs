@@ -7,7 +7,7 @@ using Prism.Compiler;
 using Prism.Compiler.Configuration;
 using Prism.Syntax;
 
-namespace Prism.Core.Tests;
+namespace Prism.Tests;
 
 public class ValidationTest
 {

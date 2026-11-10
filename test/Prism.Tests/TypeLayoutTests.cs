@@ -2,7 +2,7 @@
 using Prism.Compiler.Symbols;
 using Prism.Syntax;
 
-namespace Prism.Core.Tests;
+namespace Prism.Tests;
 
 public class TypeLayoutTests
 {

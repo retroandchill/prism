@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="Prism.Core.Tests" />
+        <InternalsVisibleTo Include="Prism.Tests" />
     </ItemGroup>
 
     <ItemGroup>

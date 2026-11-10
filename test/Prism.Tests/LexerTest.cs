@@ -6,7 +6,7 @@
 using Prism.Syntax;
 using Prism.Syntax.Parser;
 
-namespace Prism.Core.Tests;
+namespace Prism.Tests;
 
 public class LexerTests
 {
