@@ -41,8 +41,4 @@
     <ProjectReference Include="..\Prism.Syntax\Prism.Syntax.csproj" />
     <ProjectReference Include="..\Prism.Utils\Prism.Utils.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Configuration\" />
-  </ItemGroup>
 </Project>
