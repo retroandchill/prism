@@ -5,12 +5,13 @@
         <LangVersion>preview</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <RootNamespace>Prism.Metadata</RootNamespace>
+        <RootNamespace>Prism</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
         <InternalsVisibleTo Include="Prism.Compiler" />
         <InternalsVisibleTo Include="Prism.Metadata" />
+        <InternalsVisibleTo Include="Prism.Semantic" />
     </ItemGroup>
 
     <ItemGroup>

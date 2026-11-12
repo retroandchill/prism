@@ -13,7 +13,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Prism.Diagnostics\Prism.Diagnostics.csproj" />
-      <ProjectReference Include="..\Prism.Text\Prism.Text.csproj" />
         <ProjectReference
                 Include="..\Prism.SourceGenerator\Prism.SourceGenerator.csproj"
                 OutputItemType="Analyzer"

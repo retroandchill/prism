@@ -5,10 +5,8 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
-using Prism.Compiler.Semantic;
-using Prism.Metadata;
+using Prism.Constants;
 using Prism.Syntax;
-using ConstantValue = Prism.Constants.ConstantValue;
 
 namespace Prism.Compiler.Symbols;
 

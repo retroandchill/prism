@@ -9,7 +9,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Prism.Constants\Prism.Constants.csproj" />
-      <ProjectReference Include="..\Prism.Metadata.Abstractions\Prism.Metadata.Abstractions.csproj" />
+      <ProjectReference Include="..\Prism.Core\Prism.Core.csproj" />
         <ProjectReference
                 Include="..\Prism.SourceGenerator\Prism.SourceGenerator.csproj"
                 OutputItemType="Analyzer"

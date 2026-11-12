@@ -36,10 +36,13 @@
   <ItemGroup>
     <ProjectReference Include="..\Prism.Constants\Prism.Constants.csproj" />
     <ProjectReference Include="..\Prism.Diagnostics\Prism.Diagnostics.csproj" />
-    <ProjectReference Include="..\Prism.Metadata.Abstractions\Prism.Metadata.Abstractions.csproj" />
+    <ProjectReference Include="..\Prism.Core\Prism.Core.csproj" />
     <ProjectReference Include="..\Prism.Metadata\Prism.Metadata.csproj" />
     <ProjectReference Include="..\Prism.Syntax\Prism.Syntax.csproj" />
-    <ProjectReference Include="..\Prism.Text\Prism.Text.csproj" />
     <ProjectReference Include="..\Prism.Utils\Prism.Utils.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Configuration\" />
   </ItemGroup>
 </Project>

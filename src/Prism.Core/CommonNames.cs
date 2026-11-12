@@ -1,4 +1,4 @@
-﻿namespace Prism.Metadata;
+﻿namespace Prism;
 
 internal static class CommonNames
 {

@@ -24,7 +24,7 @@ internal sealed partial class MetadataRowMapper(
     private readonly Dictionary<ConstantValue, ConstantHandle> _constants = [];
     private readonly Dictionary<TypeSpecification, TypeSpecHandle> _typeSpecCache = [];
 
-    public partial AssemblyIdentityData Map(AssemblyIdentity identity);
+    public partial AssemblyIdentityData Map(Prism.AssemblyIdentity identity);
 
     private static VersionData Map(Version version) => version;
 

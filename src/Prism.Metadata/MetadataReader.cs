@@ -122,11 +122,11 @@ internal sealed class MetadataReader
         );
     }
 
-    public AssemblyIdentity MapAssemblyIdentity(AssemblyIdentityData data)
+    public Prism.AssemblyIdentity MapAssemblyIdentity(AssemblyIdentityData data)
     {
         var assemblyName = GetString(data.Name);
         var version = data.Version.ToVersion();
-        return new AssemblyIdentity(assemblyName, version);
+        return new Prism.AssemblyIdentity(assemblyName, version);
     }
 
     public NamespaceOrAssemblyReference GetNamespaceOrAssemblyReference(

@@ -2,9 +2,13 @@
 
     <PropertyGroup>
         <TargetFramework>net11.0</TargetFramework>
-        <LangVersion>preview</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Prism.Constants\Prism.Constants.csproj" />
+      <ProjectReference Include="..\Prism.Core\Prism.Core.csproj" />
+    </ItemGroup>
 
 </Project>

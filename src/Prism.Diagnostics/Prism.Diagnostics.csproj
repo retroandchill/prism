@@ -8,8 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Prism.Metadata.Abstractions\Prism.Metadata.Abstractions.csproj" />
-      <ProjectReference Include="..\Prism.Text\Prism.Text.csproj" />
+      <ProjectReference Include="..\Prism.Core\Prism.Core.csproj" />
         <ProjectReference
                 Include="..\Prism.SourceGenerator\Prism.SourceGenerator.csproj"
                 OutputItemType="Analyzer"

@@ -2,8 +2,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Prism.Compiler.Binding;
-using Prism.Diagnostics;
-using Prism.Metadata;
 using Prism.Syntax;
 using Prism.Text;
 

@@ -9,7 +9,7 @@ namespace Prism.Metadata;
 
 public sealed class AssemblyDefinitionBuilder
 {
-    public AssemblyIdentity Identity { get; }
+    public Prism.AssemblyIdentity Identity { get; }
 
     public TargetInfo TargetInfo { get; }
 
@@ -26,7 +26,7 @@ public sealed class AssemblyDefinitionBuilder
     private readonly List<ParameterDefinitionBuilder> _parameters = [];
     private readonly List<CustomAttributeDefinitionBuilder> _customAttributes = [];
 
-    public AssemblyDefinitionBuilder(AssemblyIdentity identity, TargetInfo targetInfo)
+    public AssemblyDefinitionBuilder(Prism.AssemblyIdentity identity, TargetInfo targetInfo)
     {
         Identity = identity;
         TargetInfo = targetInfo;
@@ -40,7 +40,7 @@ public sealed class AssemblyDefinitionBuilder
 
     public ReadOnlyCollection<AssemblyReference> ReferencedAssemblies => _references.AsReadOnly();
 
-    public AssemblyReference AddAssemblyReference(AssemblyIdentity identity)
+    public AssemblyReference AddAssemblyReference(Prism.AssemblyIdentity identity)
     {
         var reference = new AssemblyReference(
             AssemblyRefHandle.FromRowId(_references.Count + 1),

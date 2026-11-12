@@ -3,11 +3,6 @@ using Prism.Metadata;
 
 namespace Prism.Compiler.Symbols;
 
-public readonly record struct SizeAndAlignment(ulong Size, ulong Alignment)
-{
-    public bool IsZero => Size == 0 && Alignment == 0;
-}
-
 public closed class TypeSymbol : MemberContainerSymbol
 {
     public virtual SpecialType SpecialType => SpecialType.None;

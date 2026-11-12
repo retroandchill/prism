@@ -1,4 +1,4 @@
-﻿namespace Prism.Metadata;
+﻿namespace Prism;
 
 public enum NamedTypeKind : byte
 {
