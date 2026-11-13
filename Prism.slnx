@@ -9,6 +9,7 @@
     <Project Path="src/Prism.Core/Prism.Core.csproj" />
     <Project Path="src/Prism.Diagnostics/Prism.Diagnostics.csproj" />
     <Project Path="src/Prism.Metadata/Prism.Metadata.csproj" />
+    <Project Path="src/Prism.Mir/Prism.Mir.csproj" />
     <Project Path="src/Prism.Semantic/Prism.Semantic.csproj" />
     <Project Path="src/Prism.SourceGenerator/Prism.SourceGenerator.csproj" />
     <Project Path="src/Prism.Syntax/Prism.Syntax.csproj" />
