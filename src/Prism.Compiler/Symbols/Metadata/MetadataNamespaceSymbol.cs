@@ -1,32 +1,44 @@
 ﻿using System.Collections.Frozen;
 using System.Collections.Immutable;
 using Prism.Diagnostics;
+using Prism.Semantic;
 using Prism.Syntax;
 using ZLinq;
 using NamespaceDefinition = Prism.Metadata.NamespaceDefinition;
 
 namespace Prism.Compiler.Symbols.Metadata;
 
-internal sealed class MetadataNamespaceSymbol(
-    NamespaceDefinition definition,
-    MetadataAssemblySymbol containingAssembly
-) : NamespaceSymbol
+internal sealed class MetadataNamespaceSymbol : INamespaceSymbolData, ILocatableSymbolData
 {
     private ImmutableArray<Symbol> _members;
+    private readonly NamespaceDefinition _definition;
+    private readonly MetadataAssemblySymbol _containingAssembly;
 
-    public override NamespaceKind NamespaceKind => NamespaceKind.Assembly;
-    public override Compilation? ContainingCompilation => null;
+    public MetadataNamespaceSymbol(
+        NamespaceDefinition definition,
+        MetadataAssemblySymbol containingAssembly
+    )
+    {
+        _definition = definition;
+        _containingAssembly = containingAssembly;
+        PublicModel = new NamespaceSymbol(this);
+    }
 
-    public override string Name => definition.Name;
-    public override Symbol ContainingSymbol => (Symbol?)ContainingNamespace ?? containingAssembly;
-    public override ImmutableArray<Location> Locations => containingAssembly.Locations;
-    public override AssemblySymbol ContainingAssembly => containingAssembly;
+    public NamespaceSymbol PublicModel { get; }
 
-    public override NamespaceSymbol? ContainingNamespace
+    public NamespaceKind NamespaceKind => NamespaceKind.Assembly;
+
+    public string Name => _definition.Name;
+    public Symbol ContainingSymbol =>
+        (Symbol?)ContainingNamespace ?? _containingAssembly.PublicModel;
+    public AssemblySymbol ContainingAssembly => _containingAssembly.PublicModel;
+    public ImmutableArray<Location> Locations => _containingAssembly.Locations;
+
+    public NamespaceSymbol? ContainingNamespace
     {
         get
         {
-            if (definition.Parent is null)
+            if (_definition.Parent is null)
                 return null;
 
             if (field is not null)
@@ -34,17 +46,18 @@ internal sealed class MetadataNamespaceSymbol(
 
             Interlocked.CompareExchange(
                 ref field,
-                containingAssembly.GetOrAddNamespace(definition.Parent),
+                _containingAssembly.GetOrAddNamespace(_definition.Parent),
                 null
             );
             return field;
         }
     }
 
-    public override MemberContainerSymbol? ContainingMemberContainer => ContainingNamespace;
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
+    public TypeSymbol? ContainingType => null;
 
-    public override ImmutableArray<Symbol> GetMembers()
+    public MemberContainerSymbol? ContainingMemberContainer => ContainingNamespace;
+
+    public ImmutableArray<Symbol> GetMembers()
     {
         if (!_members.IsDefault)
             return _members;
@@ -53,7 +66,7 @@ internal sealed class MetadataNamespaceSymbol(
         return _members;
     }
 
-    public override ImmutableArray<Symbol> GetMembers(string name)
+    public ImmutableArray<Symbol> GetMembers(string name)
     {
         return MembersByName.GetValueOrDefault(name, []);
     }
@@ -72,23 +85,23 @@ internal sealed class MetadataNamespaceSymbol(
 
     private ImmutableArray<Symbol> ComputeMembers()
     {
-        return definition
+        return _definition
             .NestedNamespaces.AsValueEnumerable()
-            .Select(Symbol (x) => containingAssembly.GetOrAddNamespace(x))
+            .Select(Symbol (x) => _containingAssembly.GetOrAddNamespace(x))
             .Concat(
-                definition
+                _definition
                     .Types.AsValueEnumerable()
-                    .Select(Symbol (x) => containingAssembly.GetOrAddType(x))
+                    .Select(Symbol (x) => _containingAssembly.GetOrAddType(x))
             )
             .Concat(
-                definition
+                _definition
                     .Variables.AsValueEnumerable()
-                    .Select(Symbol (x) => containingAssembly.GetOrAddVariable(x))
+                    .Select(Symbol (x) => _containingAssembly.GetOrAddVariable(x))
             )
             .Concat(
-                definition
+                _definition
                     .Functions.AsValueEnumerable()
-                    .Select(Symbol (x) => containingAssembly.GetOrAddFunction(x))
+                    .Select(Symbol (x) => _containingAssembly.GetOrAddFunction(x))
             )
             .ToImmutableArray();
     }

@@ -1,10 +1,12 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Prism.Compiler.Binding;
 using Prism.Compiler.Declarations;
 using Prism.Compiler.Symbols.Synthesized;
 using Prism.Diagnostics;
+using Prism.Semantic;
 using Prism.Syntax;
 using Prism.Text;
 using Prism.Utils;
@@ -12,29 +14,37 @@ using ZLinq;
 
 namespace Prism.Compiler.Symbols.Source;
 
-internal sealed class SourceNamespaceSymbol : NamespaceSymbol
+internal sealed class SourceNamespaceSymbol
+    : SourceMemberContainerSymbol,
+        INamespaceSymbolData,
+        ICompletableSymbolData
 {
     private readonly MergedNamespaceDeclaration _mergedDeclaration;
-    private ImmutableArray<Symbol> _members;
-    private ImmutableDictionary<string, ImmutableArray<Symbol>>? _nameToMembersMap;
-    private SymbolCompletionState _completionState;
     private readonly Lock _memberChecksLock = new();
 
     public SourceNamespaceSymbol(
+        Compilation compilation,
         MergedNamespaceDeclaration declaration,
         AssemblySymbol assembly,
         NamespaceSymbol? containingSymbol = null
     )
+        : base(compilation)
     {
         _mergedDeclaration = declaration;
         ContainingAssembly = assembly;
         ContainingNamespace = containingSymbol;
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
+
+        PublicSymbol = new NamespaceSymbol(this);
         foreach (var decl in _mergedDeclaration.Declarations)
         {
-            compilation.CacheSymbol(decl.SyntaxReference.Syntax, this);
+            DeclaringCompilation.CacheSymbol(decl.SyntaxReference.Syntax, PublicSymbol);
         }
+    }
+
+    public new NamespaceSymbol PublicSymbol
+    {
+        get => Unsafe.As<NamespaceSymbol>(base.PublicSymbol);
+        private init => base.PublicSymbol = value;
     }
 
     public override string Name => _mergedDeclaration.Name;
@@ -67,7 +77,7 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
 
     public override bool IsDefinedInSourceTree(ISourceDocument tree, TextSpan? definedWithin)
     {
-        if (IsGlobal)
+        if (PublicSymbol.IsGlobal)
             return true;
 
         foreach (
@@ -88,21 +98,19 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
         return false;
     }
 
-    internal override bool NeedsCompletion => true;
-
-    internal override void ForceComplete(
+    public override void ForceComplete(
         SourceLocation? location,
         Predicate<Symbol>? filter,
         CancellationToken cancellationToken
     )
     {
-        if (filter?.Invoke(this) == false)
+        if (filter?.Invoke(PublicSymbol) == false)
             return;
 
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var incompletePart = _completionState.NextIncompletePart;
+            var incompletePart = CompletionState.NextIncompletePart;
             switch (incompletePart)
             {
                 case CompletionPart.Members:
@@ -125,14 +133,14 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
 
                     if (allCompleted)
                     {
-                        _completionState.MarkPartComplete(CompletionPart.MembersCompleted);
+                        CompletionState.MarkPartComplete(CompletionPart.MembersCompleted);
                         break;
                     }
                     var allParts =
                         location is null && filter is null
                             ? CompletionPart.NamespaceAll
                             : CompletionPart.NamespaceAll & ~CompletionPart.MembersCompleted;
-                    _completionState.MarkPartComplete(allParts);
+                    CompletionState.MarkPartComplete(allParts);
                     return;
                 }
                 case CompletionPart.StartChecks or CompletionPart.FinishChecks:
@@ -142,28 +150,23 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
                     return;
                 default:
                     // Any other values are for other kinds of symbols
-                    _completionState.MarkPartComplete(
+                    CompletionState.MarkPartComplete(
                         CompletionPart.All & ~CompletionPart.NamespaceAll
                     );
                     break;
             }
 
-            _completionState.WaitPartComplete(incompletePart, cancellationToken);
+            CompletionState.WaitPartComplete(incompletePart, cancellationToken);
         }
-    }
-
-    internal override bool IsComplete(CompletionPart part)
-    {
-        return _completionState.IsComplete(part);
     }
 
     private void LazyMemberChecks()
     {
-        if (_completionState.IsComplete(CompletionPart.FinishChecks))
+        if (CompletionState.IsComplete(CompletionPart.FinishChecks))
             return;
 
         using var scope = _memberChecksLock.EnterScope();
-        if (!_completionState.MarkPartComplete(CompletionPart.StartChecks))
+        if (!CompletionState.MarkPartComplete(CompletionPart.StartChecks))
             return;
 
         using var context = BindingContext.Create();
@@ -177,54 +180,11 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
         }
         finally
         {
-            _completionState.MarkPartComplete(CompletionPart.FinishChecks);
+            CompletionState.MarkPartComplete(CompletionPart.FinishChecks);
         }
     }
 
-    public override ImmutableArray<Symbol> GetMembers()
-    {
-        if (!_members.IsDefault)
-            return _members;
-
-        ImmutableInterlocked.InterlockedCompareExchange(ref _members, ComputeMembers(), default);
-        return _members;
-    }
-
-    public override ImmutableArray<Symbol> GetMembers(string name)
-    {
-        return GetNameToMembersMap().GetValueOrDefault(name, []);
-    }
-
-    private ImmutableArray<Symbol> ComputeMembers()
-    {
-        var members = GetNameToMembersMap()
-            .Values.AsValueEnumerable()
-            .SelectMany(v => v.AsValueEnumerable())
-            .ToArray();
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        Array.Sort(members, SymbolLocationComparer.Get(compilation));
-        return ImmutableCollectionsMarshal.AsImmutableArray(members);
-    }
-
-    private ImmutableDictionary<string, ImmutableArray<Symbol>> GetNameToMembersMap()
-    {
-        if (_nameToMembersMap is not null)
-            return _nameToMembersMap;
-
-        using var context = BindingContext.Create();
-        if (
-            Interlocked.CompareExchange(ref _nameToMembersMap, MakeNameToMembersMap(context), null)
-            is not null
-        )
-            return _nameToMembersMap;
-
-        AddDeclarationDiagnostics(context);
-        _completionState.MarkPartComplete(CompletionPart.Members);
-        return _nameToMembersMap;
-    }
-
-    private ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
+    protected override ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
         BindingContext context
     )
     {
@@ -274,54 +234,69 @@ internal sealed class SourceNamespaceSymbol : NamespaceSymbol
         return declaration switch
         {
             MergedNamespaceDeclaration ns => new SourceNamespaceSymbol(
+                DeclaringCompilation,
                 ns,
                 ContainingAssembly,
-                this
-            ),
+                PublicSymbol
+            ).PublicSymbol,
             MergedTypeDeclaration t => BuildSymbol(t),
         };
     }
 
-    private Symbol BuildSymbol(MergedTypeDeclaration declaration)
+    private NamedTypeSymbol BuildSymbol(MergedTypeDeclaration declaration)
     {
         return declaration.Kind switch
         {
             DeclarationKind.Namespace => throw new InvalidOperationException(
                 "Namespace declaration cannot be built as a type"
             ),
-            DeclarationKind.Class => new SourceClassSymbol(declaration, this),
-            DeclarationKind.Attribute => new SourceAttributeSymbol(declaration, this),
+            DeclarationKind.Class => new SourceClassSymbol(
+                DeclaringCompilation,
+                declaration,
+                PublicSymbol
+            ).PublicSymbol,
+            DeclarationKind.Attribute => new SourceAttributeSymbol(
+                DeclaringCompilation,
+                declaration,
+                PublicSymbol
+            ).PublicSymbol,
             _ => throw new InvalidOperationException("Unknown declaration kind"),
         };
     }
 
-    private SourceGlobalVariableSymbol BuildSymbol(
-        GlobalVariableDeclarationSyntax variableDeclaration
-    )
+    private VariableSymbol BuildSymbol(GlobalVariableDeclarationSyntax variableDeclaration)
     {
-        return new SourceGlobalVariableSymbol(this, variableDeclaration);
+        return new SourceGlobalVariableSymbol(
+            DeclaringCompilation,
+            PublicSymbol,
+            variableDeclaration
+        ).PublicSymbol;
     }
 
-    private SourceFunctionSymbol BuildSymbol(FunctionDeclarationSyntax functionDeclaration)
+    private FunctionSymbol BuildSymbol(FunctionDeclarationSyntax functionDeclaration)
     {
-        return new SourceFunctionSymbol(this, functionDeclaration);
+        return new SourceFunctionSymbol(
+            DeclaringCompilation,
+            PublicSymbol,
+            functionDeclaration
+        ).PublicSymbol;
     }
 
     private void AddSynthesizedMembers(
         Dictionary<string, ImmutableArray<Symbol>.Builder> nameToMembersMap
     )
     {
-        if (!IsGlobal)
+        if (!PublicSymbol.IsGlobal)
             return;
 
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        var globalCtor = new SynthesizedGlobalConstructor(this);
+        var globalCtor = new SynthesizedGlobalConstructor(
+            DeclaringCompilation,
+            PublicSymbol
+        ).PublicSymbol;
         nameToMembersMap
             .GetOrAdd(globalCtor.Name, ImmutableArray.CreateBuilder<Symbol>)
             .Add(globalCtor);
     }
 
-    public override NamespaceKind NamespaceKind => NamespaceKind.Assembly;
-    public override Compilation? ContainingCompilation => null;
+    public NamespaceKind NamespaceKind => NamespaceKind.Assembly;
 }

@@ -5,6 +5,7 @@
 
 using Prism.Compiler.Symbols;
 using Prism.Metadata;
+using Prism.Semantic;
 using Riok.Mapperly.Abstractions;
 
 namespace Prism.Compiler.Mappers;
@@ -22,7 +23,6 @@ internal static partial class SymbolToMetadataMapper
     [MapDerivedType<ConstantParameterDefaultDefinition, ConstantParameterDefault>]
     public static partial ParameterDefault ToSymbol(this ParameterDefaultDefinition value);
 
-    [MapperIgnoreTarget(nameof(ConstantParameterDefault.Syntax))]
     private static partial ConstantParameterDefault ToSymbol(
         this ConstantParameterDefaultDefinition value
     );

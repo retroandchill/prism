@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 using ZLinq;
 using AssemblyDefinition = Prism.Metadata.AssemblyDefinition;
@@ -16,8 +17,7 @@ using VariableDefinition = Prism.Metadata.VariableDefinition;
 
 namespace Prism.Compiler.Symbols.Metadata;
 
-internal sealed class MetadataAssemblySymbol(AssemblyDefinition definition)
-    : AssemblySymbol(definition.TargetInfo)
+internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSymbolData
 {
     private readonly ConcurrentDictionary<
         AssemblyReference,
@@ -56,22 +56,43 @@ internal sealed class MetadataAssemblySymbol(AssemblyDefinition definition)
         MetadataParameterSymbol
     > _ownedParameters = new();
 
-    public override ImmutableArray<Location> Locations
+    private readonly AssemblyDefinition _definition;
+
+    public MetadataAssemblySymbol(
+        AssemblyDefinition definition,
+        AssemblyReferences? references = null
+    )
+    {
+        _definition = definition;
+        References = references ?? AssemblyReferences.Empty;
+        PublicModel = new AssemblySymbol(this);
+    }
+
+    public AssemblySymbol PublicModel { get; }
+
+    public string Name => _definition.Identity.Name;
+    public Symbol? ContainingSymbol => null;
+
+    public ImmutableArray<Location> Locations
     {
         get
         {
             if (!field.IsDefault)
                 return field;
 
-            ImmutableInterlocked.InterlockedInitialize(ref field, [new MetadataLocation(this)]);
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                [new MetadataLocation(PublicModel)]
+            );
             return field;
         }
     }
 
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
-    public override AssemblyIdentity Identity => definition.Identity;
+    public AssemblyIdentity Identity => _definition.Identity;
+    public TargetInfo TargetInfo => _definition.TargetInfo;
+    public AssemblyReferences References { get; }
 
-    public override NamespaceSymbol GlobalNamespace
+    public NamespaceSymbol GlobalNamespace
     {
         get
         {
@@ -82,7 +103,7 @@ internal sealed class MetadataAssemblySymbol(AssemblyDefinition definition)
 
             Interlocked.CompareExchange(
                 ref field,
-                GetOrAddNamespace(definition.GlobalNamespace),
+                GetOrAddNamespace(_definition.GlobalNamespace),
                 null
             );
 
@@ -90,22 +111,18 @@ internal sealed class MetadataAssemblySymbol(AssemblyDefinition definition)
         }
     }
 
-    internal MetadataNamespaceSymbol GetOrAddNamespace(NamespaceDefinition ns)
+    internal NamespaceSymbol GetOrAddNamespace(NamespaceDefinition ns)
     {
-        return _ownedNamespaces.GetOrAdd(
-            ns,
-            static (d, @this) => new MetadataNamespaceSymbol(d, @this),
-            this
-        );
+        return _ownedNamespaces
+            .GetOrAdd(ns, static (d, @this) => new MetadataNamespaceSymbol(d, @this), this)
+            .PublicModel;
     }
 
-    internal MetadataNamedTypeSymbol GetOrAddType(TypeDefinition type)
+    internal NamedTypeSymbol GetOrAddType(TypeDefinition type)
     {
-        return _ownedNamedTypes.GetOrAdd(
-            type,
-            static (d, @this) => new MetadataNamedTypeSymbol(d, @this),
-            this
-        );
+        return _ownedNamedTypes
+            .GetOrAdd(type, static (d, @this) => new MetadataNamedTypeSymbol(d, @this), this)
+            .PublicModel;
     }
 
     internal MemberContainerSymbol GetOrAddMemberContainer(MemberContainerDefinition container)
@@ -188,7 +205,9 @@ internal sealed class MetadataAssemblySymbol(AssemblyDefinition definition)
             {
                 var (@this, reference) = ctx;
                 return @this
-                    .UnifiedAssemblies.Single(u => u.OriginalReference == reference.Identity)
+                    .References.UnifiedAssemblies.Single(u =>
+                        u.OriginalReference == reference.Identity
+                    )
                     .TargetAssembly;
             },
             (this, reference)
@@ -220,22 +239,18 @@ internal sealed class MetadataAssemblySymbol(AssemblyDefinition definition)
         );
     }
 
-    internal MetadataVariableSymbol GetOrAddVariable(VariableDefinition variable)
+    internal VariableSymbol GetOrAddVariable(VariableDefinition variable)
     {
-        return _ownedVariables.GetOrAdd(
-            variable,
-            static (d, @this) => new MetadataVariableSymbol(d, @this),
-            this
-        );
+        return _ownedVariables
+            .GetOrAdd(variable, static (d, @this) => new MetadataVariableSymbol(d, @this), this)
+            .PublicModel;
     }
 
-    internal MetadataFunctionSymbol GetOrAddFunction(FunctionDefinition function)
+    internal FunctionSymbol GetOrAddFunction(FunctionDefinition function)
     {
-        return _ownedFunctions.GetOrAdd(
-            function,
-            static (d, @this) => new MetadataFunctionSymbol(d, @this),
-            this
-        );
+        return _ownedFunctions
+            .GetOrAdd(function, static (d, @this) => new MetadataFunctionSymbol(d, @this), this)
+            .PublicModel;
     }
 
     internal Symbol GetOrAddFunctionOrAttribute(FunctionOrAttribute attribute)
@@ -247,13 +262,11 @@ internal sealed class MetadataAssemblySymbol(AssemblyDefinition definition)
         };
     }
 
-    internal MetadataParameterSymbol GetOrAddParameter(ParameterDefinition parameter)
+    internal ParameterSymbol GetOrAddParameter(ParameterDefinition parameter)
     {
-        return _ownedParameters.GetOrAdd(
-            parameter,
-            static (d, @this) => new MetadataParameterSymbol(d, @this),
-            this
-        );
+        return _ownedParameters
+            .GetOrAdd(parameter, static (d, @this) => new MetadataParameterSymbol(d, @this), this)
+            .PublicModel;
     }
 
     internal ImmutableArray<AttributeData> GetAttributes(IAttributeHolderDefinition holder)

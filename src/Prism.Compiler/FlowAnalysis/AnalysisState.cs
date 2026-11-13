@@ -5,6 +5,7 @@
 
 using System.Collections.Immutable;
 using Prism.Compiler.Symbols;
+using Prism.Semantic;
 using Prism.Utils;
 
 namespace Prism.Compiler.FlowAnalysis;

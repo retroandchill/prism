@@ -5,30 +5,35 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Prism.Compiler.Binding;
 using Prism.Compiler.Declarations;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 using Prism.Utils;
 using ZLinq;
 
 namespace Prism.Compiler.Symbols.Source;
 
-internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
+internal abstract class SourceNamedTypeSymbol
+    : SourceMemberContainerSymbol,
+        INamedTypeSymbolData,
+        IAttributeHolderSymbolData,
+        IVisibilityGuardedSymbolData
 {
     private readonly MergedTypeDeclaration _mergedDeclaration;
-    private ImmutableArray<Symbol> _members;
-    private ImmutableDictionary<string, ImmutableArray<Symbol>>? _nameToMembersMap;
-    private SymbolCompletionState _completionState;
     private ImmutableArray<AttributeData> _attributes;
     private readonly Lock _memberChecksLock = new();
 
     internal SourceNamedTypeSymbol(
+        Compilation compilation,
         MergedTypeDeclaration mergedDeclaration,
         MemberContainerSymbol containingSymbol
     )
+        : base(compilation)
     {
         _mergedDeclaration = mergedDeclaration;
         ContainingSymbol = containingSymbol;
@@ -36,15 +41,27 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
             mergedDeclaration.Name,
             containingSymbol as NamespaceSymbol
         );
+
+        PublicSymbol = new NamedTypeSymbol(this);
+        foreach (var decl in _mergedDeclaration.Declarations)
+        {
+            DeclaringCompilation.CacheSymbol(decl.SyntaxReference.Syntax, PublicSymbol);
+        }
+    }
+
+    public new NamedTypeSymbol PublicSymbol
+    {
+        get => Unsafe.As<NamedTypeSymbol>(base.PublicSymbol);
+        private init => base.PublicSymbol = Unsafe.As<NamedTypeSymbol>(value);
     }
 
     public sealed override string Name => _mergedDeclaration.Name;
 
     public sealed override Symbol ContainingSymbol { get; }
 
-    public sealed override NamedTypeKind Kind => GetTypeKind(_mergedDeclaration);
+    public NamedTypeKind Kind => GetTypeKind(_mergedDeclaration);
 
-    public sealed override SpecialType SpecialType { get; }
+    public SpecialType SpecialType { get; }
 
     private static NamedTypeKind GetTypeKind(MergedTypeDeclaration declaration)
     {
@@ -90,57 +107,10 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
             return field;
         }
     }
-    public override DeclaredVisibility DeclaredVisibility =>
+    public DeclaredVisibility DeclaredVisibility =>
         DeclaredVisibility.FromDeclarationModifiers(_mergedDeclaration.Modifiers);
 
-    public sealed override ImmutableArray<Symbol> GetMembers()
-    {
-        if (!_members.IsDefault)
-            return _members;
-
-        ImmutableInterlocked.InterlockedCompareExchange(ref _members, ComputeMembers(), default);
-        return _members;
-    }
-
-    public sealed override ImmutableArray<Symbol> GetMembers(string name)
-    {
-        return GetNameToMembersMap().GetValueOrDefault(name, []);
-    }
-
-    private ImmutableArray<Symbol> ComputeMembers()
-    {
-        var nameToMembersMap = GetNameToMembersMap();
-        if (nameToMembersMap.Count == 0)
-            return [];
-
-        var members = nameToMembersMap
-            .Values.AsValueEnumerable()
-            .SelectMany(v => v.AsValueEnumerable())
-            .ToArray();
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        Array.Sort(members, SymbolLocationComparer.Get(compilation));
-        return ImmutableCollectionsMarshal.AsImmutableArray(members);
-    }
-
-    private ImmutableDictionary<string, ImmutableArray<Symbol>> GetNameToMembersMap()
-    {
-        if (_nameToMembersMap is not null)
-            return _nameToMembersMap;
-
-        using var context = BindingContext.Create();
-        if (
-            Interlocked.CompareExchange(ref _nameToMembersMap, MakeNameToMembersMap(context), null)
-            is not null
-        )
-            return _nameToMembersMap;
-
-        AddDeclarationDiagnostics(context);
-        _completionState.MarkPartComplete(CompletionPart.Members);
-        return _nameToMembersMap;
-    }
-
-    protected virtual ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
+    protected override ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
         BindingContext context
     )
     {
@@ -188,6 +158,54 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
         }
     }
 
+    private Symbol BuildSymbol(MergedTypeDeclaration declaration)
+    {
+        return declaration.Kind switch
+        {
+            DeclarationKind.Namespace => throw new InvalidOperationException(
+                "Namespace declaration cannot be built as a type"
+            ),
+            DeclarationKind.Class => new SourceClassSymbol(
+                DeclaringCompilation,
+                declaration,
+                PublicSymbol
+            ).PublicSymbol,
+            DeclarationKind.Attribute => new SourceAttributeSymbol(
+                DeclaringCompilation,
+                declaration,
+                PublicSymbol
+            ).PublicSymbol,
+            _ => throw new InvalidOperationException("Unknown declaration kind"),
+        };
+    }
+
+    private VariableSymbol BuildSymbol(FieldDeclarationSyntax fieldDeclaration)
+    {
+        return new SourceFieldSymbol(
+            DeclaringCompilation,
+            PublicSymbol,
+            fieldDeclaration
+        ).PublicSymbol;
+    }
+
+    private FunctionSymbol BuildSymbol(FunctionDeclarationSyntax functionDeclaration)
+    {
+        return new SourceFunctionSymbol(
+            DeclaringCompilation,
+            PublicSymbol,
+            functionDeclaration
+        ).PublicSymbol;
+    }
+
+    private FunctionSymbol BuildSymbol(ConstructorDeclarationSyntax constructorDeclaration)
+    {
+        return new SourceConstructorSymbol(
+            DeclaringCompilation,
+            PublicSymbol,
+            constructorDeclaration
+        ).PublicSymbol;
+    }
+
     protected virtual void AddSynthesizedMembers(
         Dictionary<string, ImmutableArray<Symbol>.Builder> nameToMembersMap
     )
@@ -197,11 +215,11 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
 
     private void LazyMemberChecks()
     {
-        if (_completionState.IsComplete(CompletionPart.FinishChecks))
+        if (CompletionState.IsComplete(CompletionPart.FinishChecks))
             return;
 
         using var scope = _memberChecksLock.EnterScope();
-        if (!_completionState.MarkPartComplete(CompletionPart.StartChecks))
+        if (!CompletionState.MarkPartComplete(CompletionPart.StartChecks))
             return;
 
         using var context = BindingContext.Create();
@@ -215,41 +233,15 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
         }
         finally
         {
-            _completionState.MarkPartComplete(CompletionPart.FinishChecks);
+            CompletionState.MarkPartComplete(CompletionPart.FinishChecks);
         }
     }
 
-    private Symbol BuildSymbol(MergedTypeDeclaration declaration)
-    {
-        return declaration.Kind switch
-        {
-            DeclarationKind.Namespace => throw new InvalidOperationException(
-                "Namespace declaration cannot be built as a type"
-            ),
-            DeclarationKind.Class => new SourceClassSymbol(declaration, this),
-            DeclarationKind.Attribute => new SourceAttributeSymbol(declaration, this),
-            _ => throw new InvalidOperationException("Unknown declaration kind"),
-        };
-    }
+    public bool IsDynamicallySized => SpecialType == SpecialType.Str;
 
-    private SourceFieldSymbol BuildSymbol(FieldDeclarationSyntax fieldDeclaration)
-    {
-        return new SourceFieldSymbol(this, fieldDeclaration);
-    }
+    public abstract bool IsDefaultConstructible { get; }
 
-    private SourceFunctionSymbol BuildSymbol(FunctionDeclarationSyntax functionDeclaration)
-    {
-        return new SourceFunctionSymbol(this, functionDeclaration);
-    }
-
-    private SourceConstructorSymbol BuildSymbol(ConstructorDeclarationSyntax constructorDeclaration)
-    {
-        return new SourceConstructorSymbol(this, constructorDeclaration);
-    }
-
-    public sealed override bool IsDynamicallySized => SpecialType == SpecialType.Str;
-
-    public override ImmutableArray<AttributeData> GetAttributes()
+    public ImmutableArray<AttributeData> GetAttributes()
     {
         if (!_attributes.IsDefault)
             return _attributes;
@@ -261,7 +253,7 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
             return _attributes;
 
         AddDeclarationDiagnostics(context);
-        _completionState.MarkPartComplete(CompletionPart.Attributes);
+        CompletionState.MarkPartComplete(CompletionPart.Attributes);
         return _attributes;
     }
 
@@ -281,21 +273,19 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
             .ToImmutableArray();
     }
 
-    internal sealed override bool NeedsCompletion => true;
-
-    internal sealed override void ForceComplete(
+    public sealed override void ForceComplete(
         SourceLocation? location,
         Predicate<Symbol>? filter,
         CancellationToken cancellationToken
     )
     {
-        if (filter?.Invoke(this) == false)
+        if (filter?.Invoke(PublicSymbol) == false)
             return;
 
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var incompletePart = _completionState.NextIncompletePart;
+            var incompletePart = CompletionState.NextIncompletePart;
             switch (incompletePart)
             {
                 case CompletionPart.Attributes:
@@ -321,14 +311,14 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
 
                     if (allCompleted)
                     {
-                        _completionState.MarkPartComplete(CompletionPart.MembersCompleted);
+                        CompletionState.MarkPartComplete(CompletionPart.MembersCompleted);
                         break;
                     }
                     var allParts =
                         location is null && filter is null
                             ? CompletionPart.TypeAll
                             : CompletionPart.TypeAll & ~CompletionPart.MembersCompleted;
-                    _completionState.MarkPartComplete(allParts);
+                    CompletionState.MarkPartComplete(allParts);
                     return;
                 }
                 case CompletionPart.StartChecks or CompletionPart.FinishChecks:
@@ -338,16 +328,11 @@ internal abstract class SourceNamedTypeSymbol : NamedTypeSymbol
                     return;
                 default:
                     // Any other values are for other kinds of symbols
-                    _completionState.MarkPartComplete(CompletionPart.All & ~CompletionPart.TypeAll);
+                    CompletionState.MarkPartComplete(CompletionPart.All & ~CompletionPart.TypeAll);
                     break;
             }
 
-            _completionState.WaitPartComplete(incompletePart, cancellationToken);
+            CompletionState.WaitPartComplete(incompletePart, cancellationToken);
         }
-    }
-
-    internal sealed override bool IsComplete(CompletionPart part)
-    {
-        return _completionState.IsComplete(part);
     }
 }

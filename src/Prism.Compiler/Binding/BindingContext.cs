@@ -4,6 +4,7 @@ using Microsoft.Extensions.ObjectPool;
 using Prism.Compiler.Declarations;
 using Prism.Compiler.Symbols;
 using Prism.Diagnostics;
+using Prism.Semantic;
 
 namespace Prism.Compiler.Binding;
 

@@ -9,6 +9,7 @@ using Prism.Compiler.Symbols.Error;
 using Prism.Compiler.Symbols.Intermediate;
 using Prism.Constants;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 using ConstantValue = Prism.Constants.ConstantValue;
 
@@ -88,7 +89,7 @@ internal sealed record BoundUnfixedIntegerLiteral : BoundSpeculativeExpression
         IntegerLiteralData data,
         TypeSymbol defaultType
     )
-        : base(compilation, syntax, UnfixedIntegerTypeSymbol.Instance, defaultType)
+        : base(compilation, syntax, UnfixedIntegerTypeSymbol.Instance.PublicSymbol, defaultType)
     {
         Data = data;
     }
@@ -106,7 +107,7 @@ internal sealed record BoundUnfixedFloatLiteral : BoundSpeculativeExpression
         FloatLiteralData data,
         TypeSymbol defaultType
     )
-        : base(compilation, syntax, UnfixedFloatTypeSymbol.Instance, defaultType)
+        : base(compilation, syntax, UnfixedFloatTypeSymbol.Instance.PublicSymbol, defaultType)
     {
         Data = data;
     }
@@ -483,7 +484,12 @@ internal sealed record BoundSpeculativeCollectionExpression : BoundSpeculativeEx
         ImmutableArray<BoundExpression> expressions,
         TypeSymbol defaultType
     )
-        : base(compilation, syntax, UndeterminedCollectionTypeSymbol.Instance, defaultType)
+        : base(
+            compilation,
+            syntax,
+            UndeterminedCollectionTypeSymbol.Instance.PublicSymbol,
+            defaultType
+        )
     {
         Expressions = expressions;
     }
@@ -517,7 +523,12 @@ internal sealed record BoundSpeculativeNewExpression : BoundSpeculativeExpressio
         SyntaxNode syntax,
         ImmutableArray<CallArgument> arguments
     )
-        : base(compilation, syntax, UndeterminedObjectTypeSymbol.Instance, ErrorTypeSymbol.Unnamed)
+        : base(
+            compilation,
+            syntax,
+            UndeterminedObjectTypeSymbol.Instance.PublicSymbol,
+            ErrorTypeSymbol.Unnamed.PublicSymbol
+        )
     {
         Arguments = arguments;
     }

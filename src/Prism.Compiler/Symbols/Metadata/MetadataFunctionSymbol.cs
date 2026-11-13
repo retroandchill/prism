@@ -5,27 +5,35 @@
 
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
-using Prism.Compiler.Abi;
-using Prism.Diagnostics;
-using Prism.Metadata;
-using Prism.Syntax;
+using Prism.Semantic;
 using ZLinq;
 using FunctionDefinition = Prism.Metadata.FunctionDefinition;
 
 namespace Prism.Compiler.Symbols.Metadata;
 
-internal sealed class MetadataFunctionSymbol(
-    FunctionDefinition definition,
-    MetadataAssemblySymbol containingAssembly
-) : FunctionSymbol
+internal sealed class MetadataFunctionSymbol : IFunctionSymbolData, ILocatableSymbolData
 {
     private ImmutableArray<AttributeData> _attributes;
+    private readonly FunctionDefinition _definition;
+    private readonly MetadataAssemblySymbol _containingAssembly;
 
-    public override string Name => definition.Name;
-    public override ImmutableArray<Location> Locations => containingAssembly.Locations;
-    public override Symbol ContainingSymbol => ContainingMemberContainer;
+    public MetadataFunctionSymbol(
+        FunctionDefinition definition,
+        MetadataAssemblySymbol containingAssembly
+    )
+    {
+        _definition = definition;
+        PublicModel = new FunctionSymbol(this);
+        _containingAssembly = containingAssembly;
+    }
 
-    public override MemberContainerSymbol ContainingMemberContainer
+    public FunctionSymbol PublicModel { get; }
+
+    public string Name => _definition.Name;
+    public ImmutableArray<Location> Locations => ContainingAssembly.Locations;
+    public Symbol ContainingSymbol => ContainingMemberContainer;
+
+    public MemberContainerSymbol ContainingMemberContainer
     {
         get
         {
@@ -34,16 +42,15 @@ internal sealed class MetadataFunctionSymbol(
 
             Interlocked.CompareExchange(
                 ref field,
-                containingAssembly.GetOrAddMemberContainer(definition.Parent),
+                _containingAssembly.GetOrAddMemberContainer(_definition.Parent),
                 null
             );
             return field;
         }
     }
-    public override AssemblySymbol ContainingAssembly => containingAssembly;
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
+    public AssemblySymbol ContainingAssembly => _containingAssembly.PublicModel;
 
-    public override TypeSymbol ReturnType
+    public TypeSymbol ReturnType
     {
         get
         {
@@ -52,18 +59,18 @@ internal sealed class MetadataFunctionSymbol(
 
             Interlocked.CompareExchange(
                 ref field,
-                containingAssembly.GetReferencedType(definition.ReturnType),
+                _containingAssembly.GetReferencedType(_definition.ReturnType),
                 null
             );
             return field;
         }
     }
 
-    public override TypeSymbol? ReceiverType
+    public TypeSymbol? ReceiverType
     {
         get
         {
-            if (definition.ReceiverType is not { } receiver)
+            if (_definition.ReceiverType is not { } receiver)
                 return null;
 
             if (field is not null)
@@ -71,24 +78,24 @@ internal sealed class MetadataFunctionSymbol(
 
             Interlocked.CompareExchange(
                 ref field,
-                containingAssembly.GetReferencedType(receiver),
+                _containingAssembly.GetReferencedType(receiver),
                 null
             );
             return field;
         }
     }
 
-    public override ImmutableArray<ParameterSymbol> Parameters
+    public ImmutableArray<ParameterSymbol> Parameters
     {
         get
         {
             if (!field.IsDefault)
                 return field;
 
-            var parameters = new ParameterSymbol[definition.Parameters.Length];
-            foreach (var (i, param) in definition.Parameters.AsValueEnumerable().Index())
+            var parameters = new ParameterSymbol[_definition.Parameters.Length];
+            foreach (var (i, param) in _definition.Parameters.AsValueEnumerable().Index())
             {
-                parameters[i] = containingAssembly.GetOrAddParameter(param);
+                parameters[i] = _containingAssembly.GetOrAddParameter(param);
             }
 
             ImmutableInterlocked.InterlockedInitialize(
@@ -99,18 +106,18 @@ internal sealed class MetadataFunctionSymbol(
         }
     }
 
-    public override FunctionKind Kind => definition.Kind;
-    internal override AbiKind AbiKind => definition.AbiKind;
-    public override bool IsExtern => definition.IsExtern;
+    public FunctionKind Kind => _definition.Kind;
+    public AbiKind AbiKind => _definition.AbiKind;
+    public bool IsExtern => _definition.IsExtern;
 
-    public override ImmutableArray<AttributeData> GetAttributes()
+    public ImmutableArray<AttributeData> GetAttributes()
     {
         if (!_attributes.IsDefault)
             return _attributes;
 
         ImmutableInterlocked.InterlockedInitialize(
             ref _attributes,
-            containingAssembly.GetAttributes(definition)
+            _containingAssembly.GetAttributes(_definition)
         );
         return _attributes;
     }

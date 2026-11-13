@@ -5,27 +5,43 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Prism.Compiler.Binding;
 using Prism.Compiler.BoundTree;
-using Prism.Compiler.Semantic;
 using Prism.Constants;
 using Prism.Diagnostics;
+using Prism.Semantic;
 using Prism.Syntax;
 
 namespace Prism.Compiler.Symbols.Source;
 
-internal closed class SourceParameterSymbol : ParameterSymbol
+internal closed class SourceParameterSymbol
+    : SourceSymbol,
+        IParameterSymbolData,
+        IAttributeHolderSymbolData,
+        ICompletableSymbolData
 {
     protected ParameterSyntax Syntax { get; }
     private SymbolCompletionState _completionState;
     private ImmutableArray<AttributeData> _attributes;
 
-    internal SourceParameterSymbol(ParameterSyntax syntax)
+    internal SourceParameterSymbol(Compilation compilation, ParameterSyntax syntax)
+        : base(compilation)
     {
         Syntax = syntax;
+        PublicSymbol = new ParameterSymbol(this);
+        DeclaringCompilation.CacheSymbol(Syntax, PublicSymbol);
+    }
+
+    public new ParameterSymbol PublicSymbol
+    {
+        get => Unsafe.As<ParameterSymbol>(base.PublicSymbol);
+        private init => base.PublicSymbol = value;
     }
 
     public sealed override string Name => Syntax.Name.IdentifierName;
+
+    public abstract bool IsMutable { get; }
 
     public sealed override ImmutableArray<Location> Locations
     {
@@ -59,7 +75,7 @@ internal closed class SourceParameterSymbol : ParameterSymbol
         }
     }
 
-    public sealed override TypeSymbol Type
+    public TypeSymbol Type
     {
         get
         {
@@ -87,7 +103,7 @@ internal closed class SourceParameterSymbol : ParameterSymbol
         return binder.ResolveType(Syntax.TypeSpecifier.Type, context);
     }
 
-    public sealed override ParameterDefault? DefaultValue
+    public ParameterDefault? DefaultValue
     {
         get
         {
@@ -128,7 +144,7 @@ internal closed class SourceParameterSymbol : ParameterSymbol
         switch (expression)
         {
             case BoundLiteral literal:
-                return new ConstantParameterDefault(literal.Value, Syntax.DefaultValue.Value);
+                return new ConstantParameterDefault(literal.Value);
             default:
                 // Use null for a non-constant default value
                 context.ReportDiagnostic(
@@ -136,11 +152,11 @@ internal closed class SourceParameterSymbol : ParameterSymbol
                         Syntax.DefaultValue.Value.Location
                     )
                 );
-                return new ConstantParameterDefault(new NullConstant(), Syntax.DefaultValue.Value);
+                return new ConstantParameterDefault(new NullConstant());
         }
     }
 
-    public override ImmutableArray<AttributeData> GetAttributes()
+    public ImmutableArray<AttributeData> GetAttributes()
     {
         if (!_attributes.IsDefault)
             return _attributes;
@@ -165,15 +181,13 @@ internal closed class SourceParameterSymbol : ParameterSymbol
         return binder.BindAttributes(Syntax.Attributes, context);
     }
 
-    internal sealed override bool NeedsCompletion => true;
-
-    internal sealed override void ForceComplete(
+    public void ForceComplete(
         SourceLocation? location,
         Predicate<Symbol>? filter,
         CancellationToken cancellationToken
     )
     {
-        if (filter?.Invoke(this) == false)
+        if (filter?.Invoke(PublicSymbol) == false)
             return;
 
         while (true)
@@ -205,46 +219,34 @@ internal closed class SourceParameterSymbol : ParameterSymbol
         }
     }
 
-    internal sealed override bool IsComplete(CompletionPart part)
+    public bool IsComplete(CompletionPart part)
     {
         return _completionState.IsComplete(part);
     }
 }
 
-internal sealed class SourceFunctionParameterSymbol : SourceParameterSymbol
+internal sealed class SourceFunctionParameterSymbol(
+    Compilation compilation,
+    FunctionSymbol containingSymbol,
+    ParameterSyntax syntax
+) : SourceParameterSymbol(compilation, syntax), IFunctionOwnedSymbolData
 {
-    internal SourceFunctionParameterSymbol(FunctionSymbol containingSymbol, ParameterSyntax syntax)
-        : base(syntax)
-    {
-        ContainingFunction = containingSymbol;
-
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        compilation.CacheSymbol(Syntax, this);
-    }
-
-    public override FunctionSymbol ContainingFunction { get; }
+    public FunctionSymbol ContainingFunction { get; } = containingSymbol;
 
     public override Symbol ContainingSymbol => ContainingFunction;
 
     public override bool IsMutable => Syntax.MutableKeyword is not null;
 }
 
-internal sealed class SourceAttributeParameterSymbol : SourceParameterSymbol
+internal sealed class SourceAttributeParameterSymbol(
+    Compilation compilation,
+    NamedTypeSymbol containingSymbol,
+    ParameterSyntax syntax
+) : SourceParameterSymbol(compilation, syntax)
 {
-    public SourceAttributeParameterSymbol(NamedTypeSymbol containingSymbol, ParameterSyntax syntax)
-        : base(syntax)
-    {
-        ContainingType = containingSymbol;
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        compilation.CacheSymbol(Syntax, this);
-    }
-
-    public override TypeSymbol ContainingType { get; }
+    public override TypeSymbol ContainingType { get; } = containingSymbol;
 
     public override Symbol ContainingSymbol => ContainingType;
 
     public override bool IsMutable => false;
-    public override FunctionSymbol? ContainingFunction => null;
 }

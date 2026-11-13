@@ -5,6 +5,7 @@
 
 using Prism.Compiler;
 using Prism.Compiler.Symbols;
+using Prism.Semantic;
 using Prism.Syntax;
 
 namespace Prism.Tests;

@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using Prism.Compiler.Semantic;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 using ConstantValue = Prism.Constants.ConstantValue;
 using VariableDefinition = Prism.Metadata.VariableDefinition;
@@ -16,15 +17,16 @@ namespace Prism.Compiler.Symbols.Metadata;
 internal sealed class MetadataVariableSymbol(
     VariableDefinition definition,
     MetadataAssemblySymbol containingAssembly
-) : VariableSymbol
+) : IVariableSymbolData, ILocatableSymbolData
 {
     private ImmutableArray<AttributeData> _attributes;
 
-    public override string Name => definition.Name;
-    public override ImmutableArray<Location> Locations => containingAssembly.Locations;
-    public override Symbol ContainingSymbol => ContainingMemberContainer;
+    public VariableSymbol PublicModel { get; }
+    public string Name => definition.Name;
+    public ImmutableArray<Location> Locations => containingAssembly.Locations;
+    public Symbol ContainingSymbol => ContainingMemberContainer;
 
-    public override MemberContainerSymbol ContainingMemberContainer
+    public MemberContainerSymbol ContainingMemberContainer
     {
         get
         {
@@ -40,10 +42,9 @@ internal sealed class MetadataVariableSymbol(
         }
     }
 
-    public override AssemblySymbol ContainingAssembly => containingAssembly;
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
+    public AssemblySymbol ContainingAssembly => containingAssembly.PublicModel;
 
-    public override TypeSymbol Type
+    public TypeSymbol Type
     {
         get
         {
@@ -59,15 +60,15 @@ internal sealed class MetadataVariableSymbol(
         }
     }
 
-    public override bool IsMutable => false;
-    public override VariableKind Kind => definition.Kind;
+    public bool IsMutable => false;
+    public VariableKind Kind => definition.Kind;
 
     // TODO: Once we start encoding MIR into the code, we may use this to handle aggregate initialize of classes
-    public override bool HasInitializer => false;
+    public bool HasInitializer => false;
 
-    public override ConstantValue? ConstantValue => definition.ConstantValue;
+    public ConstantValue? ConstantValue => definition.ConstantValue;
 
-    public override ImmutableArray<AttributeData> GetAttributes()
+    public ImmutableArray<AttributeData> GetAttributes()
     {
         if (!_attributes.IsDefault)
             return _attributes;

@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
 using Prism.Diagnostics;
+using Prism.Semantic;
 
 namespace Prism.Compiler.Mir;
 

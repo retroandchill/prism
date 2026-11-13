@@ -8,6 +8,7 @@ using Prism.Compiler.Codegen;
 using Prism.Compiler.Symbols;
 using Prism.Compiler.Symbols.Synthesized;
 using Prism.Diagnostics;
+using Prism.Semantic;
 using ZLinq;
 
 namespace Prism.Compiler;
@@ -94,7 +95,7 @@ internal sealed class FunctionCompiler
         if (body.HasErrors)
             return;
 
-        if (functionSymbol is SynthesizedGlobalConstructor globalCtor)
+        if (functionSymbol.Data is SynthesizedGlobalConstructor globalCtor)
         {
             using var globals = _compilation
                 .GetGlobalVariables()

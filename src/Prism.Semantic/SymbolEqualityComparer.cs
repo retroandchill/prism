@@ -1,8 +1,8 @@
-﻿namespace Prism.Compiler.Symbols;
+﻿namespace Prism.Semantic;
 
 public sealed class SymbolEqualityComparer : IEqualityComparer<Symbol>
 {
-    private readonly TypeCompareKind _kind;
+    private readonly SymbolCompareKind _kind;
 
     public bool Equals(Symbol? x, Symbol? y)
     {

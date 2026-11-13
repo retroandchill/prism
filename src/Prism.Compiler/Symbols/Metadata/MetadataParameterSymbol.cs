@@ -6,22 +6,33 @@
 using System.Collections.Immutable;
 using Prism.Compiler.Mappers;
 using Prism.Diagnostics;
+using Prism.Semantic;
 using Prism.Syntax;
 using ParameterDefinition = Prism.Metadata.ParameterDefinition;
 
 namespace Prism.Compiler.Symbols.Metadata;
 
-internal sealed class MetadataParameterSymbol(
-    ParameterDefinition definition,
-    MetadataAssemblySymbol containingAssembly
-) : ParameterSymbol
+internal sealed class MetadataParameterSymbol : IParameterSymbolData, ILocatableSymbolData
 {
     private ImmutableArray<AttributeData> _attributes;
+    private readonly ParameterDefinition _definition;
+    private readonly MetadataAssemblySymbol _containingAssembly;
 
-    public override string Name => definition.Name;
-    public override ImmutableArray<Location> Locations => containingAssembly.Locations;
+    public MetadataParameterSymbol(
+        ParameterDefinition definition,
+        MetadataAssemblySymbol containingAssembly
+    )
+    {
+        _definition = definition;
+        _containingAssembly = containingAssembly;
+        PublicModel = new ParameterSymbol(this);
+    }
 
-    public override Symbol ContainingSymbol
+    public ParameterSymbol PublicModel { get; }
+    public string Name => _definition.Name;
+    public ImmutableArray<Location> Locations => _containingAssembly.Locations;
+
+    public Symbol ContainingSymbol
     {
         get
         {
@@ -30,17 +41,17 @@ internal sealed class MetadataParameterSymbol(
 
             Interlocked.CompareExchange(
                 ref field,
-                containingAssembly.GetOrAddFunctionOrAttribute(definition.Parent),
+                _containingAssembly.GetOrAddFunctionOrAttribute(_definition.Parent),
                 null
             );
             return field;
         }
     }
 
-    public override AssemblySymbol ContainingAssembly => containingAssembly;
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
+    public AssemblySymbol ContainingAssembly => _containingAssembly.PublicModel;
+    public ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
 
-    public override TypeSymbol Type
+    public TypeSymbol Type
     {
         get
         {
@@ -49,40 +60,40 @@ internal sealed class MetadataParameterSymbol(
 
             Interlocked.CompareExchange(
                 ref field,
-                containingAssembly.GetReferencedType(definition.Type),
+                _containingAssembly.GetReferencedType(_definition.Type),
                 null
             );
             return field;
         }
     }
 
-    public override bool IsMutable => false;
+    public bool IsMutable => false;
 
-    public override FunctionSymbol? ContainingFunction => ContainingSymbol as FunctionSymbol;
+    public FunctionSymbol? ContainingFunction => ContainingSymbol as FunctionSymbol;
 
-    public override ParameterDefault? DefaultValue
+    public ParameterDefault? DefaultValue
     {
         get
         {
-            if (definition.DefaultValue is null)
+            if (_definition.DefaultValue is null)
                 return null;
 
             if (field is not null)
                 return field;
 
-            Interlocked.CompareExchange(ref field, definition.DefaultValue.ToSymbol(), null);
+            Interlocked.CompareExchange(ref field, _definition.DefaultValue.ToSymbol(), null);
             return field;
         }
     }
 
-    public override ImmutableArray<AttributeData> GetAttributes()
+    public ImmutableArray<AttributeData> GetAttributes()
     {
         if (!_attributes.IsDefault)
             return _attributes;
 
         ImmutableInterlocked.InterlockedInitialize(
             ref _attributes,
-            containingAssembly.GetAttributes(definition)
+            _containingAssembly.GetAttributes(_definition)
         );
         return _attributes;
     }

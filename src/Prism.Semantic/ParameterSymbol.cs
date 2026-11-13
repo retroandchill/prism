@@ -5,6 +5,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Cysharp.Text;
 
 namespace Prism.Semantic;
 
@@ -15,8 +16,18 @@ public sealed class ParameterSymbol : ValueSymbol
 
     internal new IParameterSymbolData Data => Unsafe.As<IParameterSymbolData>(base.Data);
 
+    public FunctionSymbol? ContainingFunction =>
+        Data is IFunctionOwnedSymbolData functionOwned ? functionOwned.ContainingFunction : null;
+
     [MemberNotNullWhen(true, nameof(DefaultValue))]
     public bool HasDefaultValue => DefaultValue is not null;
 
     public ParameterDefault? DefaultValue => Data.DefaultValue;
+
+    public override void WriteDisplayString(ref Utf16ValueStringBuilder builder)
+    {
+        builder.Append(Name);
+        builder.Append(": ");
+        Type.WriteDisplayString(ref builder);
+    }
 }

@@ -6,6 +6,7 @@
 using System.Collections.Immutable;
 using Prism.Compiler.BoundTree;
 using Prism.Compiler.Symbols;
+using Prism.Semantic;
 
 namespace Prism.Compiler.FlowAnalysis;
 

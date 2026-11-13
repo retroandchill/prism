@@ -5,7 +5,7 @@
 
 using System.Collections.Immutable;
 
-namespace Prism.Compiler.Symbols;
+namespace Prism.Semantic;
 
 internal enum DispatchSpecifier
 {

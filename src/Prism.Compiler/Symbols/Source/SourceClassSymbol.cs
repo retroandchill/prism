@@ -6,9 +6,8 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Compiler.Declarations;
-using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols.Synthesized;
-using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Utils;
 using ZLinq;
 
@@ -19,22 +18,16 @@ internal sealed class SourceClassSymbol : SourceNamedTypeSymbol
     private ThreeState _isDefaultConstructible;
 
     internal SourceClassSymbol(
+        Compilation compilation,
         MergedTypeDeclaration declaration,
         MemberContainerSymbol containingSymbol
     )
-        : base(declaration, containingSymbol)
+        : base(compilation, declaration, containingSymbol)
     {
         Debug.Assert(declaration.Kind == DeclarationKind.Class);
 
         var declarations = declaration.Declarations;
         Debug.Assert(declarations.Length == 1);
-
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        foreach (var decl in declaration.Declarations)
-        {
-            compilation.CacheSymbol(decl.SyntaxReference.Syntax, this);
-        }
     }
 
     protected override void AddSynthesizedMembers(
@@ -67,7 +60,9 @@ internal sealed class SourceClassSymbol : SourceNamedTypeSymbol
         }
 
         var builder = ImmutableArray.CreateBuilder<Symbol>();
-        builder.Add(new SynthesizedDefaultConstructor(this));
+        builder.Add(
+            new SynthesizedDefaultConstructor(DeclaringCompilation, PublicSymbol).PublicSymbol
+        );
         nameToMembersMap.Add(CommonNames.Ctor, builder);
     }
 

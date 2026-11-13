@@ -1,6 +1,6 @@
 ﻿using NetEscapades.EnumGenerators;
 
-namespace Prism.Compiler.Symbols;
+namespace Prism.Semantic;
 
 [Flags]
 [EnumExtensions]

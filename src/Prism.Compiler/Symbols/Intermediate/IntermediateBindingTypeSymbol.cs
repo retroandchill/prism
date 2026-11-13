@@ -5,22 +5,25 @@
 
 using System.Collections.Immutable;
 using Prism.Diagnostics;
+using Prism.Semantic;
 using Prism.Syntax;
 
 namespace Prism.Compiler.Symbols.Intermediate;
 
-internal closed class IntermediateBindingTypeSymbol : NamedTypeSymbol
+internal closed class IntermediateBindingTypeSymbol : INamedTypeSymbolData
 {
-    public sealed override Symbol? ContainingSymbol => null;
+    public abstract string Name { get; }
+    public abstract NamedTypeKind Kind { get; }
+    public Symbol? ContainingSymbol => null;
 
-    public sealed override ImmutableArray<Location> Locations => [];
-    public sealed override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
+    public bool IsDefaultConstructible => false;
 
-    public override bool IsDefaultConstructible => false;
+    public bool IsDynamicallySized => false;
 
-    public sealed override ImmutableArray<Symbol> GetMembers() => [];
+    public NamedTypeSymbol PublicSymbol { get; }
 
-    public sealed override ImmutableArray<Symbol> GetMembers(string name) => [];
-
-    public sealed override bool IsDynamicallySized => false;
+    protected IntermediateBindingTypeSymbol()
+    {
+        PublicSymbol = new NamedTypeSymbol(this);
+    }
 }

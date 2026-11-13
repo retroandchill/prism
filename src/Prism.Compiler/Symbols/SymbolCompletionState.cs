@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Prism.Semantic;
 
 namespace Prism.Compiler.Symbols;
 

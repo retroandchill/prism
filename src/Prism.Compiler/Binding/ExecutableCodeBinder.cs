@@ -2,6 +2,7 @@
 using Prism.Compiler.Symbols;
 using Prism.Compiler.Symbols.Source;
 using Prism.Compiler.Symbols.Synthesized;
+using Prism.Semantic;
 using Prism.Syntax;
 
 namespace Prism.Compiler.Binding;
@@ -116,7 +117,7 @@ internal sealed class ExecutableCodeBinder(Binder next, SyntaxNode syntax) : Bin
         }
 
         return statement.Parent is not LabeledStatementSyntax labeledStatement
-            ? new SynthesizedLabelSymbol(function)
-            : new SourceLabelSymbol(function, labeledStatement);
+            ? new SynthesizedLabelSymbol(Compilation, function).PublicSymbol
+            : new SourceLabelSymbol(Compilation, function, labeledStatement).PublicSymbol;
     }
 }

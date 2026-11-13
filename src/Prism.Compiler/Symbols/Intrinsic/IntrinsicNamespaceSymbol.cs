@@ -1,10 +1,11 @@
 ﻿using System.Collections.Immutable;
 using Prism.Diagnostics;
+using Prism.Semantic;
 using Prism.Syntax;
 
 namespace Prism.Compiler.Symbols.Intrinsic;
 
-internal sealed class IntrinsicNamespaceSymbol : NamespaceSymbol
+internal sealed class IntrinsicNamespaceSymbol : INamespaceSymbolData
 {
     internal IntrinsicNamespaceSymbol(string name, Symbol containingSymbol)
     {
@@ -12,10 +13,8 @@ internal sealed class IntrinsicNamespaceSymbol : NamespaceSymbol
         ContainingSymbol = containingSymbol;
     }
 
-    public override string Name { get; }
-    public override Symbol ContainingSymbol { get; }
-    public override ImmutableArray<Location> Locations { get; }
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences { get; }
+    public string Name { get; }
+    public Symbol ContainingSymbol { get; }
 
     internal ImmutableArray<Symbol> Members
     {
@@ -29,13 +28,12 @@ internal sealed class IntrinsicNamespaceSymbol : NamespaceSymbol
         }
     }
 
-    public override ImmutableArray<Symbol> GetMembers() => Members;
+    public ImmutableArray<Symbol> GetMembers() => Members;
 
-    public override ImmutableArray<Symbol> GetMembers(string name)
+    public ImmutableArray<Symbol> GetMembers(string name)
     {
         return [.. Members.Where(m => m.Name == name)];
     }
 
-    public override NamespaceKind NamespaceKind => NamespaceKind.Assembly;
-    public override Compilation? ContainingCompilation => null;
+    public NamespaceKind NamespaceKind => NamespaceKind.Assembly;
 }

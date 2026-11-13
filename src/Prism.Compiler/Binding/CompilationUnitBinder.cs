@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using Prism.Compiler.Symbols;
+using Prism.Semantic;
 using Prism.Syntax;
 using ZLinq;
 

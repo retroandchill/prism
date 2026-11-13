@@ -2,6 +2,7 @@
 using Prism.Compiler.Binding.OverloadResolution;
 using Prism.Compiler.BoundTree;
 using Prism.Compiler.Symbols;
+using Prism.Semantic;
 using Prism.Syntax;
 using ZLinq;
 
@@ -72,9 +73,9 @@ internal static class ArgumentMapper
     {
         return parameter.DefaultValue switch
         {
-            ConstantParameterDefault(var constant, var syntax) => new BoundLiteral(
+            ConstantParameterDefault(var constant) => new BoundLiteral(
                 compilation,
-                syntax ?? fallbackSyntax,
+                fallbackSyntax,
                 parameter.Type,
                 constant
             ),

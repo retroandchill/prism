@@ -14,6 +14,7 @@ using Prism.Compiler.Symbols.Intrinsic;
 using Prism.Compiler.Symbols.Source;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 using Prism.Text;
 using ZLinq;
@@ -86,7 +87,11 @@ public class Compilation
             if (field is not null)
                 return field;
 
-            Interlocked.CompareExchange(ref field, new SourceAssemblySymbol(this), null);
+            Interlocked.CompareExchange(
+                ref field,
+                new SourceAssemblySymbol(this).PublicSymbol,
+                null
+            );
             return field;
         }
     }
@@ -477,20 +482,28 @@ public class Compilation
         if (candidates.Count == 1)
             return candidates[0];
 
-        var writer = new ZStringWriter();
-        var locations = new List<Location>();
-        foreach (var (i, candidate) in candidates.AsValueEnumerable().Index())
+        var builder = ZString.CreateStringBuilder();
+        try
         {
-            if (i > 0)
-                writer.Write(", ");
+            var locations = new List<Location>();
+            foreach (var (i, candidate) in candidates.AsValueEnumerable().Index())
+            {
+                if (i > 0)
+                    builder.Append(", ");
 
-            candidate.WriteDisplayString(writer);
-            locations.AddRange(candidate.Locations.AsSpan());
+                candidate.WriteDisplayString(ref builder);
+                locations.AddRange(candidate.Locations.AsSpan());
+            }
+
+            diagnostics.Add(
+                Diagnostic.AmbiguousEntryPoint(locations[0], locations.Skip(1), builder.ToString())
+            );
+        }
+        finally
+        {
+            builder.Dispose();
         }
 
-        diagnostics.Add(
-            Diagnostic.AmbiguousEntryPoint(locations[0], locations.Skip(1), writer.ToString())
-        );
         return null;
     }
 

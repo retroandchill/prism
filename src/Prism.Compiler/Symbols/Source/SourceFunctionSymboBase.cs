@@ -1,17 +1,22 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Prism.Compiler.Abi;
 using Prism.Compiler.Binding;
 using Prism.Diagnostics;
-using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 using Prism.Utils;
 using ZLinq;
 
 namespace Prism.Compiler.Symbols.Source;
 
-internal closed class SourceFunctionSymbolBase : FunctionSymbol
+internal closed class SourceFunctionSymbolBase
+    : SourceSymbol,
+        IFunctionSymbolData,
+        IAttributeHolderSymbolData,
+        IVisibilityGuardedSymbolData,
+        ICompletableSymbolData
 {
     private SymbolCompletionState _completionState;
     private readonly Lock _functionChecksLock = new();
@@ -19,13 +24,26 @@ internal closed class SourceFunctionSymbolBase : FunctionSymbol
     private ImmutableArray<AttributeData> _attributes;
 
     internal SourceFunctionSymbolBase(
+        Compilation compilation,
         MemberContainerSymbol containingSymbol,
         DeclarationSyntax syntax
     )
+        : base(compilation)
     {
         ContainingMemberContainer = containingSymbol;
         _modifiers = DeclarationModifiers.MakeModifiers(containingSymbol, syntax.Modifiers);
+
+        PublicSymbol = new FunctionSymbol(this);
+        DeclaringCompilation.CacheSymbol(syntax, PublicSymbol);
     }
+
+    public new FunctionSymbol PublicSymbol
+    {
+        get => Unsafe.As<FunctionSymbol>(base.PublicSymbol);
+        private init => base.PublicSymbol = new FunctionSymbol(this);
+    }
+
+    public abstract FunctionKind Kind { get; }
 
     public sealed override Symbol ContainingSymbol => ContainingMemberContainer;
 
@@ -33,7 +51,7 @@ internal closed class SourceFunctionSymbolBase : FunctionSymbol
 
     protected abstract DeclarationSyntax AbstractSyntax { get; }
 
-    public sealed override DeclaredVisibility DeclaredVisibility =>
+    public DeclaredVisibility DeclaredVisibility =>
         DeclaredVisibility.FromDeclarationModifiers(_modifiers);
 
     public sealed override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
@@ -52,7 +70,7 @@ internal closed class SourceFunctionSymbolBase : FunctionSymbol
         }
     }
 
-    public sealed override TypeSymbol ReturnType
+    public TypeSymbol ReturnType
     {
         get
         {
@@ -73,7 +91,7 @@ internal closed class SourceFunctionSymbolBase : FunctionSymbol
 
     protected abstract TypeSymbol ComputeReturnType(BindingContext context);
 
-    public sealed override TypeSymbol? ReceiverType
+    public TypeSymbol? ReceiverType
     {
         get
         {
@@ -91,7 +109,7 @@ internal closed class SourceFunctionSymbolBase : FunctionSymbol
 
     protected abstract TypeSymbol ComputeReceiverType(TypeSymbol containerType);
 
-    public sealed override ImmutableArray<ParameterSymbol> Parameters
+    public ImmutableArray<ParameterSymbol> Parameters
     {
         get
         {
@@ -107,8 +125,8 @@ internal closed class SourceFunctionSymbolBase : FunctionSymbol
         }
     }
 
-    internal override AbiKind AbiKind => AbiKind.Internal;
-    public sealed override bool IsExtern => _modifiers.HasFlag(DeclarationModifiers.Extern);
+    public AbiKind AbiKind => AbiKind.Internal;
+    public bool IsExtern => _modifiers.HasFlag(DeclarationModifiers.Extern);
 
     protected abstract ImmutableArray<ParameterSymbol> ComputeParameters(BindingContext context);
 
@@ -128,7 +146,11 @@ internal closed class SourceFunctionSymbolBase : FunctionSymbol
             var name = syntax.Name.IdentifierName;
             var list = parametersByName.GetOrAdd(name, () => []);
             list.Add(syntax);
-            var param = new SourceFunctionParameterSymbol(this, syntax);
+            var param = new SourceFunctionParameterSymbol(
+                DeclaringCompilation,
+                PublicSymbol,
+                syntax
+            ).PublicSymbol;
             parameters[i] = param;
 
             if (param.HasDefaultValue)
@@ -160,7 +182,7 @@ internal closed class SourceFunctionSymbolBase : FunctionSymbol
         return ImmutableCollectionsMarshal.AsImmutableArray(parameters);
     }
 
-    public sealed override ImmutableArray<AttributeData> GetAttributes()
+    public ImmutableArray<AttributeData> GetAttributes()
     {
         if (!_attributes.IsDefault)
             return _attributes;
@@ -185,15 +207,13 @@ internal closed class SourceFunctionSymbolBase : FunctionSymbol
         return binder.BindAttributes(AbstractSyntax.Attributes, context);
     }
 
-    internal sealed override bool NeedsCompletion => true;
-
-    internal sealed override void ForceComplete(
+    public void ForceComplete(
         SourceLocation? location,
         Predicate<Symbol>? filter,
         CancellationToken cancellationToken
     )
     {
-        if (filter?.Invoke(this) == false)
+        if (filter?.Invoke(PublicSymbol) == false)
             return;
 
         while (true)
@@ -255,7 +275,7 @@ internal closed class SourceFunctionSymbolBase : FunctionSymbol
 
     protected abstract void FunctionChecks(BindingContext context);
 
-    internal sealed override bool IsComplete(CompletionPart part)
+    public bool IsComplete(CompletionPart part)
     {
         return _completionState.IsComplete(part);
     }

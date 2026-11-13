@@ -1,32 +1,33 @@
 ﻿using Prism.Compiler.Semantic;
 using Prism.Metadata;
+using Prism.Semantic;
 
 namespace Prism.Compiler.Symbols.Intrinsic;
 
 internal static class IntrinsicSymbols
 {
-    public static readonly IntrinsicNamespaceSymbol GlobalNamespace;
+    public static readonly NamespaceSymbol GlobalNamespace;
 
-    private static readonly IntrinsicPrimitiveSymbol Void;
-    private static readonly IntrinsicPrimitiveSymbol Bool;
-    private static readonly IntrinsicPrimitiveSymbol I8;
-    private static readonly IntrinsicPrimitiveSymbol I16;
-    private static readonly IntrinsicPrimitiveSymbol I32;
-    private static readonly IntrinsicPrimitiveSymbol I64;
-    private static readonly IntrinsicPrimitiveSymbol I128;
-    private static readonly IntrinsicPrimitiveSymbol ISize;
-    private static readonly IntrinsicPrimitiveSymbol U8;
-    private static readonly IntrinsicPrimitiveSymbol U16;
-    private static readonly IntrinsicPrimitiveSymbol U32;
-    private static readonly IntrinsicPrimitiveSymbol U64;
-    private static readonly IntrinsicPrimitiveSymbol U128;
-    private static readonly IntrinsicPrimitiveSymbol USize;
-    private static readonly IntrinsicPrimitiveSymbol F32;
-    private static readonly IntrinsicPrimitiveSymbol F64;
-    private static readonly IntrinsicPrimitiveSymbol Char;
-    private static readonly IntrinsicPrimitiveSymbol Char16;
-    private static readonly IntrinsicPrimitiveSymbol Rune;
-    private static readonly IntrinsicPrimitiveSymbol Str;
+    private static readonly NamedTypeSymbol Void;
+    private static readonly NamedTypeSymbol Bool;
+    private static readonly NamedTypeSymbol I8;
+    private static readonly NamedTypeSymbol I16;
+    private static readonly NamedTypeSymbol I32;
+    private static readonly NamedTypeSymbol I64;
+    private static readonly NamedTypeSymbol I128;
+    private static readonly NamedTypeSymbol ISize;
+    private static readonly NamedTypeSymbol U8;
+    private static readonly NamedTypeSymbol U16;
+    private static readonly NamedTypeSymbol U32;
+    private static readonly NamedTypeSymbol U64;
+    private static readonly NamedTypeSymbol U128;
+    private static readonly NamedTypeSymbol USize;
+    private static readonly NamedTypeSymbol F32;
+    private static readonly NamedTypeSymbol F64;
+    private static readonly NamedTypeSymbol Char;
+    private static readonly NamedTypeSymbol Char16;
+    private static readonly NamedTypeSymbol Rune;
+    private static readonly NamedTypeSymbol Str;
 
     public static NamedTypeSymbol GetType(SpecialType type)
     {
@@ -59,30 +60,68 @@ internal static class IntrinsicSymbols
 
     static IntrinsicSymbols()
     {
-        GlobalNamespace = new IntrinsicNamespaceSymbol(CommonNames.Global, null);
+        var globalNamespace = new IntrinsicNamespaceSymbol(CommonNames.Global, null!);
+        GlobalNamespace = new NamespaceSymbol(globalNamespace);
         var stdNamespace = new IntrinsicNamespaceSymbol(CommonNames.Std, GlobalNamespace);
-        GlobalNamespace.Members = [stdNamespace];
+        var wrappedStdNamespace = new NamespaceSymbol(stdNamespace);
+        globalNamespace.Members = [wrappedStdNamespace];
 
-        Void = new IntrinsicPrimitiveSymbol(SpecialType.Void, GlobalNamespace);
-        Bool = new IntrinsicPrimitiveSymbol(SpecialType.Bool, GlobalNamespace);
-        I8 = new IntrinsicPrimitiveSymbol(SpecialType.I8, GlobalNamespace);
-        I16 = new IntrinsicPrimitiveSymbol(SpecialType.I16, GlobalNamespace);
-        I32 = new IntrinsicPrimitiveSymbol(SpecialType.I32, GlobalNamespace);
-        I64 = new IntrinsicPrimitiveSymbol(SpecialType.I64, GlobalNamespace);
-        I128 = new IntrinsicPrimitiveSymbol(SpecialType.I128, GlobalNamespace);
-        ISize = new IntrinsicPrimitiveSymbol(SpecialType.ISize, GlobalNamespace);
-        U8 = new IntrinsicPrimitiveSymbol(SpecialType.U8, GlobalNamespace);
-        U16 = new IntrinsicPrimitiveSymbol(SpecialType.U16, GlobalNamespace);
-        U32 = new IntrinsicPrimitiveSymbol(SpecialType.U32, GlobalNamespace);
-        U64 = new IntrinsicPrimitiveSymbol(SpecialType.U64, GlobalNamespace);
-        U128 = new IntrinsicPrimitiveSymbol(SpecialType.U128, GlobalNamespace);
-        USize = new IntrinsicPrimitiveSymbol(SpecialType.USize, GlobalNamespace);
-        F32 = new IntrinsicPrimitiveSymbol(SpecialType.F32, GlobalNamespace);
-        F64 = new IntrinsicPrimitiveSymbol(SpecialType.F64, GlobalNamespace);
-        Char = new IntrinsicPrimitiveSymbol(SpecialType.Char, GlobalNamespace);
-        Char16 = new IntrinsicPrimitiveSymbol(SpecialType.Char16, GlobalNamespace);
-        Rune = new IntrinsicPrimitiveSymbol(SpecialType.Rune, GlobalNamespace);
-        Str = new IntrinsicPrimitiveSymbol(SpecialType.Str, GlobalNamespace);
+        Void = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.Void, wrappedStdNamespace)
+        );
+        Bool = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.Bool, wrappedStdNamespace)
+        );
+        I8 = new NamedTypeSymbol(new IntrinsicPrimitiveSymbol(SpecialType.I8, wrappedStdNamespace));
+        I16 = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.I16, wrappedStdNamespace)
+        );
+        I32 = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.I32, wrappedStdNamespace)
+        );
+        I64 = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.I64, wrappedStdNamespace)
+        );
+        I128 = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.I128, wrappedStdNamespace)
+        );
+        ISize = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.ISize, wrappedStdNamespace)
+        );
+        U8 = new NamedTypeSymbol(new IntrinsicPrimitiveSymbol(SpecialType.U8, wrappedStdNamespace));
+        U16 = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.U16, wrappedStdNamespace)
+        );
+        U32 = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.U32, wrappedStdNamespace)
+        );
+        U64 = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.U64, wrappedStdNamespace)
+        );
+        U128 = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.U128, wrappedStdNamespace)
+        );
+        USize = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.USize, wrappedStdNamespace)
+        );
+        F32 = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.F32, wrappedStdNamespace)
+        );
+        F64 = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.F64, wrappedStdNamespace)
+        );
+        Char = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.Char, wrappedStdNamespace)
+        );
+        Char16 = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.Char16, wrappedStdNamespace)
+        );
+        Rune = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.Rune, wrappedStdNamespace)
+        );
+        Str = new NamedTypeSymbol(
+            new IntrinsicPrimitiveSymbol(SpecialType.Str, wrappedStdNamespace)
+        );
 
         stdNamespace.Members =
         [

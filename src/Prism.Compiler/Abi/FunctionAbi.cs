@@ -6,6 +6,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Compiler.Symbols;
+using Prism.Semantic;
 
 namespace Prism.Compiler.Abi;
 

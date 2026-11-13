@@ -5,6 +5,7 @@ using Prism.Compiler.BoundTree;
 using Prism.Compiler.Symbols;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 using Prism.Utils;
 using ZLinq;

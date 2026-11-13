@@ -10,14 +10,17 @@ using Prism.Compiler.BoundTree;
 using Prism.Compiler.Semantic;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 using Prism.Utils;
 using ZLinq;
 
 namespace Prism.Compiler.Symbols.Synthesized;
 
-internal sealed class SynthesizedGlobalConstructor(NamespaceSymbol containingNamespace)
-    : FunctionSymbol
+internal sealed class SynthesizedGlobalConstructor(
+    Compilation compilation,
+    NamespaceSymbol containingNamespace
+) : SynthesizedFunction(compilation)
 {
     private ThreeState _shouldEmit = ThreeState.Unknown;
 
@@ -29,8 +32,6 @@ internal sealed class SynthesizedGlobalConstructor(NamespaceSymbol containingNam
 
     public override FunctionKind Kind => FunctionKind.GlobalConstructor;
 
-    public override bool IsImplicitlyDeclared => true;
-    public override ImmutableArray<Location> Locations => [];
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
     public override TypeSymbol ReturnType
     {
@@ -44,7 +45,7 @@ internal sealed class SynthesizedGlobalConstructor(NamespaceSymbol containingNam
     public override TypeSymbol? ReceiverType => null;
 
     public override ImmutableArray<ParameterSymbol> Parameters => [];
-    internal override AbiKind AbiKind => AbiKind.Internal;
+    public override AbiKind AbiKind => AbiKind.Internal;
     public override bool IsExtern => false;
 
     internal bool ShouldEmit(ReadOnlySpan<BoundVariableInitializer> variables)

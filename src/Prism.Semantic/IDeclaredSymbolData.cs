@@ -3,10 +3,13 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using Prism.Text;
+
 namespace Prism.Semantic;
 
 internal interface IDeclaredSymbolData : ISymbolData
 {
-    DeclaredVisibility DeclaredVisibility { get; }
     bool IsImplicitlyDeclared { get; }
+
+    bool IsDefinedInSourceTree(ISourceDocument tree, TextSpan? definedWithin);
 }

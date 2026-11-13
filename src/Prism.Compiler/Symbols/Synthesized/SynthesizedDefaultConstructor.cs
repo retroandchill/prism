@@ -7,28 +7,27 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Compiler.Abi;
 using Prism.Compiler.Semantic;
+using Prism.Compiler.Symbols.Source;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 
 namespace Prism.Compiler.Symbols.Synthesized;
 
-internal sealed class SynthesizedDefaultConstructor(NamedTypeSymbol containingType) : FunctionSymbol
+internal sealed class SynthesizedDefaultConstructor : SynthesizedFunction
 {
+    public SynthesizedDefaultConstructor(Compilation compilation, NamedTypeSymbol containingType)
+        : base(compilation)
+    {
+        ContainingType = containingType;
+    }
+
     public override string Name => CommonNames.Ctor;
     public override Symbol ContainingSymbol => ContainingType;
-    public override TypeSymbol ContainingType { get; } = containingType;
+    public override TypeSymbol ContainingType { get; }
     public override MemberContainerSymbol ContainingMemberContainer => ContainingType;
-    public override ImmutableArray<Location> Locations => [];
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
-    public override TypeSymbol ReturnType
-    {
-        get
-        {
-            Debug.Assert(DeclaringCompilation is not null);
-            return DeclaringCompilation.GetSpecialType(SpecialType.Void);
-        }
-    }
+    public override TypeSymbol ReturnType => DeclaringCompilation.GetSpecialType(SpecialType.Void);
 
     public override TypeSymbol ReceiverType
     {
@@ -51,6 +50,6 @@ internal sealed class SynthesizedDefaultConstructor(NamedTypeSymbol containingTy
 
     public override ImmutableArray<ParameterSymbol> Parameters => [];
     public override FunctionKind Kind => FunctionKind.Constructor;
-    internal override AbiKind AbiKind => AbiKind.Internal;
+    public override AbiKind AbiKind => AbiKind.Internal;
     public override bool IsExtern => false;
 }

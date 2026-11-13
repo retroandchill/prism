@@ -1,6 +1,7 @@
 ﻿using Prism.Compiler.BoundTree;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
+using Prism.Semantic;
 
 namespace Prism.Compiler.Binding.OverloadResolution;
 

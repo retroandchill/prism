@@ -1,27 +1,26 @@
 ﻿using System.Collections.Immutable;
 using Prism.Diagnostics;
+using Prism.Semantic;
 using Prism.Syntax;
 
 namespace Prism.Compiler.Symbols.Error;
 
-internal sealed class ErrorNamespaceSymbol : NamespaceSymbol
+internal sealed class ErrorNamespaceSymbol : INamespaceSymbolData
 {
     internal ErrorNamespaceSymbol(string name, Symbol? containingSymbol)
     {
         Name = name;
         ContainingSymbol = containingSymbol;
+        PublicSymbol = new NamespaceSymbol(this);
     }
 
-    public override string Name { get; }
-    public override Symbol? ContainingSymbol { get; }
+    public NamespaceSymbol PublicSymbol { get; }
+    public string Name { get; }
+    public Symbol? ContainingSymbol { get; }
 
-    public override ImmutableArray<Location> Locations => [];
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
+    public ImmutableArray<Symbol> GetMembers() => [];
 
-    public override ImmutableArray<Symbol> GetMembers() => [];
+    public ImmutableArray<Symbol> GetMembers(string name) => [];
 
-    public override ImmutableArray<Symbol> GetMembers(string name) => [];
-
-    public override NamespaceKind NamespaceKind => NamespaceKind.Compilation;
-    public override Compilation? ContainingCompilation => null;
+    public NamespaceKind NamespaceKind => NamespaceKind.Assembly;
 }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 using Prism.Compiler.Binding;
 using Prism.Compiler.BoundTree;
@@ -7,6 +8,7 @@ using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols.Error;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 using Prism.Text;
 using ZLinq;
@@ -14,7 +16,11 @@ using ConstantValue = Prism.Constants.ConstantValue;
 
 namespace Prism.Compiler.Symbols.Source;
 
-internal closed class SourceVariableSymbol : VariableSymbol
+internal closed class SourceVariableSymbol
+    : SourceSymbol,
+        IVariableSymbolData,
+        IAttributeHolderSymbolData,
+        ICompletableSymbolData
 {
     private SymbolCompletionState _completionState;
     public VariableDeclarationSyntax Syntax { get; }
@@ -24,15 +30,26 @@ internal closed class SourceVariableSymbol : VariableSymbol
     private TypeSymbol? _type;
     private ImmutableArray<AttributeData> _attributes;
 
-    protected SourceVariableSymbol(VariableDeclarationSyntax syntax)
+    protected SourceVariableSymbol(Compilation compilation, VariableDeclarationSyntax syntax)
+        : base(compilation)
     {
         Syntax = syntax;
         IsMutable = syntax
             .Modifiers.AsValueEnumerable()
             .Any(t => t.Kind == SyntaxKind.MutableKeyword);
+        PublicSymbol = new VariableSymbol(this);
+        DeclaringCompilation.CacheSymbol(Syntax, PublicSymbol);
+    }
+
+    public new VariableSymbol PublicSymbol
+    {
+        get => Unsafe.As<VariableSymbol>(base.PublicSymbol);
+        private init => base.PublicSymbol = value;
     }
 
     public sealed override string Name => Syntax.Identifier.IdentifierName;
+
+    public abstract VariableKind Kind { get; }
 
     public sealed override ImmutableArray<Location> Locations
     {
@@ -50,7 +67,7 @@ internal closed class SourceVariableSymbol : VariableSymbol
         }
     }
 
-    public sealed override TypeSymbol Type
+    public TypeSymbol Type
     {
         get
         {
@@ -74,7 +91,7 @@ internal closed class SourceVariableSymbol : VariableSymbol
 
     internal void ForceSetType(TypeSymbol type)
     {
-        Debug.Assert(IsLocal);
+        Debug.Assert(PublicSymbol.IsLocal);
 
         if (Interlocked.CompareExchange(ref _type, type, null) is not null)
             return;
@@ -82,9 +99,9 @@ internal closed class SourceVariableSymbol : VariableSymbol
         _completionState.MarkPartComplete(CompletionPart.Type);
     }
 
-    public sealed override bool IsMutable { get; }
+    public bool IsMutable { get; }
 
-    public sealed override bool HasInitializer => Syntax.Initializer is not null;
+    public bool HasInitializer => Syntax.Initializer is not null;
 
     public sealed override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
     {
@@ -102,7 +119,7 @@ internal closed class SourceVariableSymbol : VariableSymbol
         }
     }
 
-    public sealed override ConstantValue? ConstantValue
+    public ConstantValue? ConstantValue
     {
         get
         {
@@ -157,7 +174,7 @@ internal closed class SourceVariableSymbol : VariableSymbol
         return IsDefinedInSourceTree(new SyntaxReference(Syntax), tree, definedWithin);
     }
 
-    public override ImmutableArray<AttributeData> GetAttributes()
+    public ImmutableArray<AttributeData> GetAttributes()
     {
         if (!_attributes.IsDefault)
             return _attributes;
@@ -182,15 +199,13 @@ internal closed class SourceVariableSymbol : VariableSymbol
         return binder.BindAttributes(Syntax.Attributes, context);
     }
 
-    internal sealed override bool NeedsCompletion => true;
-
-    internal sealed override void ForceComplete(
+    public void ForceComplete(
         SourceLocation? location,
         Predicate<Symbol>? filter,
         CancellationToken cancellationToken
     )
     {
-        if (filter?.Invoke(this) == false)
+        if (filter?.Invoke(PublicSymbol) == false)
             return;
 
         while (true)
@@ -221,35 +236,21 @@ internal closed class SourceVariableSymbol : VariableSymbol
         }
     }
 
-    internal sealed override bool IsComplete(CompletionPart part)
+    public bool IsComplete(CompletionPart part)
     {
         return _completionState.IsComplete(part);
     }
 }
 
-internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
+internal sealed class SourceLocalVariableSymbol(
+    Compilation compilation,
+    FunctionSymbol containingSymbol,
+    LocalVariableDeclarationSyntax syntax,
+    Binder scopeBinder,
+    Binder? initializerBinder
+) : SourceVariableSymbol(compilation, syntax), IFunctionOwnedSymbolData
 {
-    private readonly Binder _scopeBinder;
-    private readonly Binder? _initializerBinder;
-
-    public SourceLocalVariableSymbol(
-        FunctionSymbol containingSymbol,
-        LocalVariableDeclarationSyntax syntax,
-        Binder scopeBinder,
-        Binder? initializerBinder
-    )
-        : base(syntax)
-    {
-        _scopeBinder = scopeBinder;
-        _initializerBinder = initializerBinder;
-        ContainingFunction = containingSymbol;
-
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        compilation.CacheSymbol(Syntax, this);
-    }
-
-    public override FunctionSymbol ContainingFunction { get; }
+    public FunctionSymbol ContainingFunction { get; } = containingSymbol;
     public override Symbol ContainingSymbol => ContainingFunction;
 
     public override VariableKind Kind => VariableKind.Local;
@@ -263,7 +264,7 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
     {
         if (Syntax.Type is not null)
         {
-            var targetType = _scopeBinder.ResolveType(Syntax.Type.Type, context);
+            var targetType = scopeBinder.ResolveType(Syntax.Type.Type, context);
             if (!targetType.IsDynamicallySized)
                 return targetType;
         }
@@ -271,7 +272,7 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
         if (Syntax.Initializer is null)
         {
             context.ReportDiagnostic(Diagnostic.ExpectedTypeSpecifier(Syntax.Identifier.Location));
-            return ErrorTypeSymbol.Unnamed;
+            return ErrorTypeSymbol.Unnamed.PublicSymbol;
         }
 
         var initializer = GetInitializer(context);
@@ -280,9 +281,9 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
 
     protected override BoundExpression GetInitializer(BindingContext context)
     {
-        Debug.Assert(_initializerBinder is not null);
+        Debug.Assert(initializerBinder is not null);
         Debug.Assert(Syntax.Initializer is not null);
-        return _initializerBinder.BindExpression(
+        return initializerBinder.BindExpression(
             Syntax.Initializer.Value,
             context,
             CancellationToken.None
@@ -290,25 +291,18 @@ internal sealed class SourceLocalVariableSymbol : SourceVariableSymbol
     }
 }
 
-internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
+internal sealed class SourceGlobalVariableSymbol(
+    Compilation compilation,
+    MemberContainerSymbol containingSymbol,
+    GlobalVariableDeclarationSyntax syntax
+) : SourceVariableSymbol(compilation, syntax), IVisibilityGuardedSymbolData
 {
-    private readonly DeclarationModifiers _modifiers;
+    private readonly DeclarationModifiers _modifiers = DeclarationModifiers.MakeModifiers(
+        containingSymbol,
+        syntax.Modifiers
+    );
 
-    public SourceGlobalVariableSymbol(
-        MemberContainerSymbol containingSymbol,
-        GlobalVariableDeclarationSyntax syntax
-    )
-        : base(syntax)
-    {
-        _modifiers = DeclarationModifiers.MakeModifiers(containingSymbol, syntax.Modifiers);
-        ContainingMemberContainer = containingSymbol;
-
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        compilation.CacheSymbol(Syntax, this);
-    }
-
-    public override MemberContainerSymbol ContainingMemberContainer { get; }
+    public override MemberContainerSymbol ContainingMemberContainer { get; } = containingSymbol;
     public override Symbol ContainingSymbol => ContainingMemberContainer;
 
     public override VariableKind Kind => VariableKind.Global;
@@ -325,7 +319,7 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
         }
     }
 
-    public override DeclaredVisibility DeclaredVisibility =>
+    public DeclaredVisibility DeclaredVisibility =>
         DeclaredVisibility.FromDeclarationModifiers(_modifiers);
 
     protected override BindingContext CreateBindingContext()
@@ -351,26 +345,27 @@ internal sealed class SourceGlobalVariableSymbol : SourceVariableSymbol
         Debug.Assert(compilation is not null);
         var factory = compilation.GetBinderFactory(Syntax.SyntaxTree);
         var binder = factory.GetBinder(Syntax);
-        return binder.BindInitializer(this, Syntax.Initializer, context, CancellationToken.None);
+        return binder.BindInitializer(
+            PublicSymbol,
+            Syntax.Initializer,
+            context,
+            CancellationToken.None
+        );
     }
 }
 
-internal sealed class SourceFieldSymbol : SourceVariableSymbol
+internal sealed class SourceFieldSymbol(
+    Compilation compilation,
+    NamedTypeSymbol containingSymbol,
+    FieldDeclarationSyntax syntax
+) : SourceVariableSymbol(compilation, syntax), IVisibilityGuardedSymbolData
 {
-    private readonly DeclarationModifiers _modifiers;
+    private readonly DeclarationModifiers _modifiers = DeclarationModifiers.MakeModifiers(
+        containingSymbol,
+        syntax.Modifiers
+    );
 
-    public SourceFieldSymbol(NamedTypeSymbol containingSymbol, FieldDeclarationSyntax syntax)
-        : base(syntax)
-    {
-        _modifiers = DeclarationModifiers.MakeModifiers(containingSymbol, syntax.Modifiers);
-        ContainingType = containingSymbol;
-
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        compilation.CacheSymbol(Syntax, this);
-    }
-
-    public override TypeSymbol ContainingType { get; }
+    public override TypeSymbol ContainingType { get; } = containingSymbol;
     public override MemberContainerSymbol ContainingMemberContainer => ContainingType;
     public override Symbol ContainingSymbol => ContainingType;
 
@@ -391,7 +386,7 @@ internal sealed class SourceFieldSymbol : SourceVariableSymbol
         }
     }
 
-    public override DeclaredVisibility DeclaredVisibility =>
+    public DeclaredVisibility DeclaredVisibility =>
         DeclaredVisibility.FromDeclarationModifiers(_modifiers);
 
     protected override BindingContext CreateBindingContext()
@@ -418,6 +413,11 @@ internal sealed class SourceFieldSymbol : SourceVariableSymbol
         Debug.Assert(compilation is not null);
         var factory = compilation.GetBinderFactory(Syntax.SyntaxTree);
         var binder = factory.GetBinder(Syntax);
-        return binder.BindInitializer(this, Syntax.Initializer, context, CancellationToken.None);
+        return binder.BindInitializer(
+            PublicSymbol,
+            Syntax.Initializer,
+            context,
+            CancellationToken.None
+        );
     }
 }

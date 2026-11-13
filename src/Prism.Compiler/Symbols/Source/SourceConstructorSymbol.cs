@@ -9,26 +9,18 @@ using Prism.Compiler.Binding;
 using Prism.Compiler.Semantic;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 
 namespace Prism.Compiler.Symbols.Source;
 
-internal sealed class SourceConstructorSymbol : SourceFunctionSymbolBase
+internal sealed class SourceConstructorSymbol(
+    Compilation compilation,
+    NamedTypeSymbol containingSymbol,
+    ConstructorDeclarationSyntax syntax
+) : SourceFunctionSymbolBase(compilation, containingSymbol, syntax)
 {
-    public ConstructorDeclarationSyntax Syntax { get; }
-
-    public SourceConstructorSymbol(
-        NamedTypeSymbol containingSymbol,
-        ConstructorDeclarationSyntax syntax
-    )
-        : base(containingSymbol, syntax)
-    {
-        Syntax = syntax;
-        ContainingType = containingSymbol;
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        compilation.CacheSymbol(Syntax, this);
-    }
+    public ConstructorDeclarationSyntax Syntax { get; } = syntax;
 
     public override string Name => CommonNames.Ctor;
 
@@ -46,7 +38,7 @@ internal sealed class SourceConstructorSymbol : SourceFunctionSymbolBase
         }
     }
 
-    public override TypeSymbol ContainingType { get; }
+    public override TypeSymbol ContainingType { get; } = containingSymbol;
 
     public override ImmutableArray<Location> Locations
     {

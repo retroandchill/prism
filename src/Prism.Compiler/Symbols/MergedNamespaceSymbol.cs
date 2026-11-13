@@ -1,17 +1,21 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using Prism.Diagnostics;
+using Prism.Semantic;
 using Prism.Syntax;
 using ZLinq;
 
 namespace Prism.Compiler.Symbols;
 
-internal sealed class MergedNamespaceSymbol : NamespaceSymbol
+internal sealed class MergedNamespaceSymbol
+    : INamespaceSymbolData,
+        ICompletableSymbolData,
+        ILocatableSymbolData
 {
     private readonly ImmutableArray<NamespaceSymbol> _namespaces;
     private ImmutableArray<Symbol> _members;
     private readonly ConcurrentDictionary<string, ImmutableArray<Symbol>> _nameToMembers = new();
+    private readonly NamespaceSymbol _publicModel;
 
     private MergedNamespaceSymbol(
         Symbol? containingSymbol,
@@ -23,11 +27,12 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
         ContainingCompilation = compilation;
         ContainingSymbol = containingSymbol;
         _namespaces = namespaces;
+        _publicModel = new NamespaceSymbol(this);
     }
 
-    public override string Name => _namespaces[0].Name;
+    public string Name => _namespaces[0].Name;
 
-    public override Symbol? ContainingSymbol { get; }
+    public Symbol? ContainingSymbol { get; }
 
     public static NamespaceSymbol Create(
         Compilation compilation,
@@ -40,10 +45,10 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
         if (namespaces.Length == 1)
             return namespaces[0];
 
-        return new MergedNamespaceSymbol(containingSymbol, compilation, namespaces);
+        return new MergedNamespaceSymbol(containingSymbol, compilation, namespaces)._publicModel;
     }
 
-    public override ImmutableArray<Location> Locations
+    public ImmutableArray<Location> Locations
     {
         get
         {
@@ -63,7 +68,7 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
         }
     }
 
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
+    public ImmutableArray<SyntaxReference> DeclaringSyntaxReferences
     {
         get
         {
@@ -83,7 +88,7 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
         }
     }
 
-    public override ImmutableArray<Symbol> GetMembers()
+    public ImmutableArray<Symbol> GetMembers()
     {
         if (!_members.IsDefault)
             return _members;
@@ -109,7 +114,7 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
                 if (emittedNamespaces.Add(ns.Name))
                 {
                     mergedMembers.Add(
-                        Create(ContainingCompilation, this, namespaceGroups[ns.Name])
+                        Create(ContainingCompilation, _publicModel, namespaceGroups[ns.Name])
                     );
                 }
 
@@ -127,7 +132,7 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
         return _members;
     }
 
-    public override ImmutableArray<Symbol> GetMembers(string name)
+    public ImmutableArray<Symbol> GetMembers(string name)
     {
         return _nameToMembers.GetOrAdd(name, static (n, self) => self.ComputeMembers(n), this);
     }
@@ -153,7 +158,7 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
                 if (namespacesMerged)
                     continue;
 
-                var mergedNamespace = Create(ContainingCompilation, this, namespaces);
+                var mergedNamespace = Create(ContainingCompilation, _publicModel, namespaces);
                 allSymbols.Add(mergedNamespace);
                 namespacesMerged = true;
             }
@@ -166,10 +171,10 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
         return allSymbols.DrainToImmutable();
     }
 
-    public override NamespaceKind NamespaceKind => NamespaceKind.Compilation;
-    public override Compilation ContainingCompilation { get; }
+    public NamespaceKind NamespaceKind => NamespaceKind.Compilation;
+    public Compilation ContainingCompilation { get; }
 
-    internal override void ForceComplete(
+    public void ForceComplete(
         SourceLocation? location,
         Predicate<Symbol>? filter,
         CancellationToken cancellationToken
@@ -179,5 +184,10 @@ internal sealed class MergedNamespaceSymbol : NamespaceSymbol
         {
             ns.ForceComplete(location, filter, cancellationToken);
         }
+    }
+
+    public bool IsComplete(CompletionPart part)
+    {
+        return _namespaces.All(ns => ns.IsComplete(part));
     }
 }

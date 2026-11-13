@@ -5,6 +5,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Cysharp.Text;
 using Prism.Constants;
 
 namespace Prism.Semantic;
@@ -15,6 +16,11 @@ public sealed class VariableSymbol : ValueSymbol
         : base(data) { }
 
     internal new IVariableSymbolData Data => Unsafe.As<IVariableSymbolData>(base.Data);
+
+    public FunctionSymbol? ContainingFunction =>
+        Data is IFunctionOwnedSymbolData functionOwnedSymbolData
+            ? functionOwnedSymbolData.ContainingFunction
+            : null;
 
     public VariableKind Kind => Data.Kind;
 
@@ -30,4 +36,23 @@ public sealed class VariableSymbol : ValueSymbol
     public bool IsConst => ConstantValue is not null;
 
     public ConstantValue? ConstantValue => Data.ConstantValue;
+
+    public override void WriteDisplayString(ref Utf16ValueStringBuilder builder)
+    {
+        if (
+            ContainingSymbol
+            is not null
+                and not AssemblySymbol
+                and not FunctionSymbol
+                and NamespaceSymbol { IsGlobal: false }
+        )
+        {
+            ContainingSymbol.WriteDisplayString(ref builder);
+            builder.Append("::");
+        }
+
+        builder.Append(Name);
+        builder.Append(": ");
+        Type.WriteDisplayString(ref builder);
+    }
 }

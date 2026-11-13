@@ -4,6 +4,7 @@ using Prism.Compiler.Configuration;
 using Prism.Compiler.Symbols;
 using Prism.Compiler.Symbols.Intermediate;
 using Prism.Metadata;
+using Prism.Semantic;
 
 namespace Prism.Compiler.Semantic;
 
@@ -49,7 +50,7 @@ internal sealed class ConversionClassifier(Binder binder)
             return ClassifyCharacterConversion(source.SpecialType, target.SpecialType);
         }
 
-        if (source is UnboundNullTypeSymbol nullType && target is NullableTypeSymbol)
+        if (source.Data is UnboundNullTypeSymbol && target is NullableTypeSymbol)
         {
             return Conversion.NullToNullable;
         }
@@ -189,7 +190,7 @@ internal sealed class ConversionClassifier(Binder binder)
                     );
                 }
 
-                if (left is UnboundNullTypeSymbol && right is NullableTypeSymbol)
+                if (left.Data is UnboundNullTypeSymbol && right is NullableTypeSymbol)
                 {
                     return new BinaryOperandConversion(
                         Conversion.NullToNullable,
@@ -198,7 +199,7 @@ internal sealed class ConversionClassifier(Binder binder)
                     );
                 }
 
-                if (right is UnboundNullTypeSymbol && left is NullableTypeSymbol)
+                if (right.Data is UnboundNullTypeSymbol && left is NullableTypeSymbol)
                 {
                     return new BinaryOperandConversion(
                         Conversion.Identity,

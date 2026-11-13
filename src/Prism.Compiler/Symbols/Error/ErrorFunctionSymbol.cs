@@ -2,11 +2,12 @@
 using Prism.Compiler.Abi;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 
 namespace Prism.Compiler.Symbols.Error;
 
-internal sealed class ErrorFunctionSymbol : FunctionSymbol
+internal sealed class ErrorFunctionSymbol : IFunctionSymbolData
 {
     private ErrorFunctionSymbol(
         string name,
@@ -16,22 +17,23 @@ internal sealed class ErrorFunctionSymbol : FunctionSymbol
     {
         Name = name;
         ContainingSymbol = containingSymbol;
-        ReturnType = returnType ?? ErrorTypeSymbol.Unnamed;
+        ReturnType = returnType ?? ErrorTypeSymbol.Unnamed.PublicSymbol;
+        PublicSymbol = new FunctionSymbol(this);
     }
 
     private ErrorFunctionSymbol()
         : this("") { }
 
+    public FunctionSymbol PublicSymbol { get; }
+
     public static readonly ErrorFunctionSymbol Unnamed = new();
 
-    public override string Name { get; }
-    public override Symbol? ContainingSymbol { get; }
-    public override ImmutableArray<Location> Locations => [];
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
-    public override TypeSymbol ReturnType { get; }
-    public override TypeSymbol? ReceiverType => null;
-    public override ImmutableArray<ParameterSymbol> Parameters => [];
-    public override FunctionKind Kind => FunctionKind.Ordinary;
-    internal override AbiKind AbiKind => AbiKind.Internal;
-    public override bool IsExtern => false;
+    public string Name { get; }
+    public Symbol? ContainingSymbol { get; }
+    public TypeSymbol ReturnType { get; }
+    public TypeSymbol? ReceiverType => null;
+    public ImmutableArray<ParameterSymbol> Parameters => [];
+    public FunctionKind Kind => FunctionKind.Ordinary;
+    public AbiKind AbiKind => AbiKind.Internal;
+    public bool IsExtern => false;
 }

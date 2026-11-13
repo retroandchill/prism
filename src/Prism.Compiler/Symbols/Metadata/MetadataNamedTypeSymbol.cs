@@ -8,6 +8,7 @@ using System.Collections.Immutable;
 using Prism.Compiler.Semantic;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 using Prism.Utils;
 using ZLinq;
@@ -15,23 +16,38 @@ using TypeDefinition = Prism.Metadata.TypeDefinition;
 
 namespace Prism.Compiler.Symbols.Metadata;
 
-internal sealed class MetadataNamedTypeSymbol(
-    TypeDefinition definition,
-    MetadataAssemblySymbol containingAssembly
-) : NamedTypeSymbol
+internal sealed class MetadataNamedTypeSymbol
+    : INamedTypeSymbolData,
+        IMemberContainerSymbolData,
+        ILocatableSymbolData,
+        IVisibilityGuardedSymbolData
 {
     private ImmutableArray<Symbol> _members;
     private ImmutableArray<AttributeData> _attributes;
     private ThreeState _isDefaultConstructible;
+    private readonly TypeDefinition _definition;
+    private readonly MetadataAssemblySymbol _containingAssembly;
 
-    public override string Name => definition.Name;
-    public override DeclaredVisibility DeclaredVisibility => definition.Visibility;
-    public override NamedTypeKind Kind => definition.Kind;
-    public override SpecialType SpecialType => definition.SpecialType;
-    public override ImmutableArray<Location> Locations => containingAssembly.Locations;
-    public override Symbol ContainingSymbol => ContainingMemberContainer;
+    public MetadataNamedTypeSymbol(
+        TypeDefinition definition,
+        MetadataAssemblySymbol containingAssembly
+    )
+    {
+        _definition = definition;
+        _containingAssembly = containingAssembly;
+        PublicModel = new NamedTypeSymbol(this);
+    }
 
-    public override MemberContainerSymbol ContainingMemberContainer
+    public NamedTypeSymbol PublicModel { get; }
+
+    public string Name => _definition.Name;
+    public DeclaredVisibility DeclaredVisibility => _definition.Visibility;
+    public NamedTypeKind Kind => _definition.Kind;
+    public SpecialType SpecialType => _definition.SpecialType;
+    public ImmutableArray<Location> Locations => _containingAssembly.Locations;
+    public Symbol ContainingSymbol => ContainingMemberContainer;
+
+    public MemberContainerSymbol ContainingMemberContainer
     {
         get
         {
@@ -40,19 +56,18 @@ internal sealed class MetadataNamedTypeSymbol(
 
             Interlocked.CompareExchange(
                 ref field,
-                containingAssembly.GetOrAddMemberContainer(definition.Parent),
+                _containingAssembly.GetOrAddMemberContainer(_definition.Parent),
                 null
             );
             return field;
         }
     }
 
-    public override AssemblySymbol ContainingAssembly => containingAssembly;
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
+    public AssemblySymbol ContainingAssembly => _containingAssembly.PublicModel;
 
-    public override bool IsDynamicallySized => SpecialType == SpecialType.Str;
+    public bool IsDynamicallySized => SpecialType == SpecialType.Str;
 
-    public override ImmutableArray<Symbol> GetMembers()
+    public ImmutableArray<Symbol> GetMembers()
     {
         if (!_members.IsDefault)
             return _members;
@@ -61,7 +76,7 @@ internal sealed class MetadataNamedTypeSymbol(
         return _members;
     }
 
-    public override ImmutableArray<Symbol> GetMembers(string name)
+    public ImmutableArray<Symbol> GetMembers(string name)
     {
         return MembersByName.GetValueOrDefault(name, []);
     }
@@ -80,23 +95,23 @@ internal sealed class MetadataNamedTypeSymbol(
 
     private ImmutableArray<Symbol> ComputeMembers()
     {
-        return definition
+        return _definition
             .Types.AsValueEnumerable()
-            .Select(Symbol (x) => containingAssembly.GetOrAddType(x))
+            .Select(Symbol (x) => _containingAssembly.GetOrAddType(x))
             .Concat(
-                definition
+                _definition
                     .Variables.AsValueEnumerable()
-                    .Select(Symbol (x) => containingAssembly.GetOrAddVariable(x))
+                    .Select(Symbol (x) => _containingAssembly.GetOrAddVariable(x))
             )
             .Concat(
-                definition
+                _definition
                     .Functions.AsValueEnumerable()
-                    .Select(Symbol (x) => containingAssembly.GetOrAddFunction(x))
+                    .Select(Symbol (x) => _containingAssembly.GetOrAddFunction(x))
             )
             .Concat(
-                definition
+                _definition
                     .AttributeParameters.AsValueEnumerable()
-                    .Select(Symbol (x) => containingAssembly.GetOrAddParameter(x))
+                    .Select(Symbol (x) => _containingAssembly.GetOrAddParameter(x))
             )
             .ToImmutableArray();
     }
@@ -109,19 +124,19 @@ internal sealed class MetadataNamedTypeSymbol(
             .ToFrozenDictionary(x => x.Key, x => x.ToImmutableArray());
     }
 
-    public override ImmutableArray<AttributeData> GetAttributes()
+    public ImmutableArray<AttributeData> GetAttributes()
     {
         if (!_attributes.IsDefault)
             return _attributes;
 
         ImmutableInterlocked.InterlockedInitialize(
             ref _attributes,
-            containingAssembly.GetAttributes(definition)
+            _containingAssembly.GetAttributes(_definition)
         );
         return _attributes;
     }
 
-    public override bool IsDefaultConstructible
+    public bool IsDefaultConstructible
     {
         get
         {

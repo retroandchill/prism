@@ -20,6 +20,7 @@ using Prism.Compiler.Symbols;
 using Prism.Constants;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Utils;
 using ZLinq;
 

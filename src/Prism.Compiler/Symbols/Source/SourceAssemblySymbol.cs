@@ -1,14 +1,31 @@
 ﻿using System.Collections.Immutable;
-using Prism.Diagnostics;
+using System.Runtime.CompilerServices;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
+using Prism.Text;
 
 namespace Prism.Compiler.Symbols.Source;
 
-internal sealed class SourceAssemblySymbol(Compilation compilation)
-    : AssemblySymbol(compilation.TargetInfo)
+internal sealed class SourceAssemblySymbol
+    : SourceSymbol,
+        IAssemblySymbolData,
+        ICompletableSymbolData
 {
     private SymbolCompletionState _completionState;
+
+    public SourceAssemblySymbol(Compilation compilation, AssemblyReferences? references = null)
+        : base(compilation)
+    {
+        References = references ?? AssemblyReferences.Empty;
+        PublicSymbol = new AssemblySymbol(this);
+    }
+
+    public new AssemblySymbol PublicSymbol
+    {
+        get => Unsafe.As<AssemblySymbol>(base.PublicSymbol);
+        private init => base.PublicSymbol = value;
+    }
 
     public override ImmutableArray<Location> Locations
     {
@@ -30,9 +47,17 @@ internal sealed class SourceAssemblySymbol(Compilation compilation)
         }
     }
 
+    public override AssemblySymbol? ContainingAssembly => null;
+
+    public override Symbol? ContainingSymbol => null;
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
 
-    public override AssemblyIdentity Identity
+    public override bool IsDefinedInSourceTree(ISourceDocument tree, TextSpan? definedWithin)
+    {
+        return false;
+    }
+
+    public AssemblyIdentity Identity
     {
         get
         {
@@ -48,7 +73,10 @@ internal sealed class SourceAssemblySymbol(Compilation compilation)
         }
     }
 
-    public override NamespaceSymbol GlobalNamespace
+    public TargetInfo TargetInfo => DeclaringCompilation.TargetInfo;
+    public AssemblyReferences References { get; }
+
+    public NamespaceSymbol GlobalNamespace
     {
         get
         {
@@ -57,18 +85,20 @@ internal sealed class SourceAssemblySymbol(Compilation compilation)
 
             Interlocked.CompareExchange(
                 ref field,
-                new SourceNamespaceSymbol(DeclaringCompilation.MergedRootDeclaration, this),
+                new SourceNamespaceSymbol(
+                    DeclaringCompilation,
+                    DeclaringCompilation.MergedRootDeclaration,
+                    PublicSymbol
+                ).PublicSymbol,
                 null
             );
             return field;
         }
     }
 
-    internal override Compilation DeclaringCompilation { get; } = compilation;
+    public override string Name => Identity.Name;
 
-    internal override bool NeedsCompletion => true;
-
-    internal override void ForceComplete(
+    public void ForceComplete(
         SourceLocation? location,
         Predicate<Symbol>? filter,
         CancellationToken cancellationToken
@@ -101,7 +131,7 @@ internal sealed class SourceAssemblySymbol(Compilation compilation)
         }
     }
 
-    internal override bool IsComplete(CompletionPart part)
+    public bool IsComplete(CompletionPart part)
     {
         return _completionState.IsComplete(part);
     }

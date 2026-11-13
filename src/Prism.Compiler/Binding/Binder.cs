@@ -14,6 +14,7 @@ using Prism.Compiler.Symbols.Source;
 using Prism.Constants;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 using Prism.Utils;
 using ZLinq;
@@ -525,9 +526,7 @@ internal abstract class Binder : IOverloadResolutionHost
             }
 
             // TODO: We need to actually parse the arguments
-            builder.Add(
-                new AttributeData(attributeType, attributeParams, new SyntaxReference(attribute))
-            );
+            builder.Add(new AttributeData(attributeType, attributeParams));
         }
 
         return builder.DrainToImmutable();
@@ -702,7 +701,7 @@ internal abstract class Binder : IOverloadResolutionHost
         }
 
         // We can short-circuit a double type computation here
-        if (variable is SourceLocalVariableSymbol sourceSymbol)
+        if (variable.Data is SourceLocalVariableSymbol sourceSymbol)
         {
             sourceSymbol.ForceSetType(initializer.Type);
         }
@@ -882,8 +881,9 @@ internal abstract class Binder : IOverloadResolutionHost
             return new BoundBreakStatement(Compilation, syntax, label);
 
         context.ReportDiagnostic(Diagnostic.InvalidUseOfBreak(syntax.Location));
-        var enclosingFunction = ContainingSymbol as FunctionSymbol ?? ErrorFunctionSymbol.Unnamed;
-        label = new ErrorLabelSymbol(labelName, enclosingFunction);
+        var enclosingFunction =
+            ContainingSymbol as FunctionSymbol ?? ErrorFunctionSymbol.Unnamed.PublicSymbol;
+        label = new ErrorLabelSymbol(labelName, enclosingFunction).PublicSymbol;
 
         return new BoundBreakStatement(Compilation, syntax, label);
     }
@@ -899,8 +899,9 @@ internal abstract class Binder : IOverloadResolutionHost
             return new BoundContinueStatement(Compilation, syntax, label);
 
         context.ReportDiagnostic(Diagnostic.InvalidUseOfBreak(syntax.Location));
-        var enclosingFunction = ContainingSymbol as FunctionSymbol ?? ErrorFunctionSymbol.Unnamed;
-        label = new ErrorLabelSymbol(labelName, enclosingFunction);
+        var enclosingFunction =
+            ContainingSymbol as FunctionSymbol ?? ErrorFunctionSymbol.Unnamed.PublicSymbol;
+        label = new ErrorLabelSymbol(labelName, enclosingFunction).PublicSymbol;
 
         return new BoundContinueStatement(Compilation, syntax, label);
     }
@@ -1122,7 +1123,7 @@ internal abstract class Binder : IOverloadResolutionHost
             return new BoundLiteral(
                 Compilation,
                 syntax,
-                UnboundNullTypeSymbol.Instance,
+                UnboundNullTypeSymbol.Instance.PublicSymbol,
                 new NullConstant()
             );
         }
@@ -1148,7 +1149,7 @@ internal abstract class Binder : IOverloadResolutionHost
         }
 
         context.ReportDiagnostic(Diagnostic.InvalidThisAccess(syntax.Location));
-        return new BoundThisExpression(Compilation, syntax, ErrorTypeSymbol.Unnamed);
+        return new BoundThisExpression(Compilation, syntax, ErrorTypeSymbol.Unnamed.PublicSymbol);
     }
 
     private BoundTypeSize BindSizeOfExpression(
@@ -1186,7 +1187,7 @@ internal abstract class Binder : IOverloadResolutionHost
         }
 
         DiagnoseLookupFailure(result, syntax.Value, LookupOptions.Value, context);
-        return new BoundBadExpression(Compilation, syntax, ErrorTypeSymbol.Unnamed);
+        return new BoundBadExpression(Compilation, syntax, ErrorTypeSymbol.Unnamed.PublicSymbol);
     }
 
     private BoundVariableAccess BindVariableAccess(
@@ -1271,7 +1272,7 @@ internal abstract class Binder : IOverloadResolutionHost
         return new BoundBinaryOperation(
             Compilation,
             syntax,
-            targetType ?? ErrorTypeSymbol.Unnamed,
+            targetType ?? ErrorTypeSymbol.Unnamed.PublicSymbol,
             left,
             right,
             operation
@@ -1496,7 +1497,8 @@ internal abstract class Binder : IOverloadResolutionHost
         var whenTrue = BindExpression(syntax.WhenTrue, true, context, cancellationToken);
         var whenFalse = BindExpression(syntax.WhenFalse, true, context, cancellationToken);
 
-        var returnType = whenTrue.Type == whenFalse.Type ? whenTrue.Type : ErrorTypeSymbol.Unnamed;
+        var returnType =
+            whenTrue.Type == whenFalse.Type ? whenTrue.Type : ErrorTypeSymbol.Unnamed.PublicSymbol;
         return new BoundSpeculativeConditional(
             Compilation,
             syntax,
@@ -1612,7 +1614,7 @@ internal abstract class Binder : IOverloadResolutionHost
         return new BoundInvocation(
             Compilation,
             syntax,
-            ErrorFunctionSymbol.Unnamed,
+            ErrorFunctionSymbol.Unnamed.PublicSymbol,
             null,
             ImmutableCollectionsMarshal.AsImmutableArray(unknownArguments)
         );
@@ -1706,7 +1708,11 @@ internal abstract class Binder : IOverloadResolutionHost
         if (!result.IsViable)
         {
             DiagnoseLookupFailure(result, syntax.Name, LookupOptions.Value, context);
-            return new BoundBadExpression(Compilation, syntax, ErrorTypeSymbol.Unnamed);
+            return new BoundBadExpression(
+                Compilation,
+                syntax,
+                ErrorTypeSymbol.Unnamed.PublicSymbol
+            );
         }
 
         switch (result.Symbol)
@@ -1731,7 +1737,11 @@ internal abstract class Binder : IOverloadResolutionHost
                         owner.Type.ToDisplayString()
                     )
                 );
-                return new BoundBadExpression(Compilation, syntax, ErrorTypeSymbol.Unnamed);
+                return new BoundBadExpression(
+                    Compilation,
+                    syntax,
+                    ErrorTypeSymbol.Unnamed.PublicSymbol
+                );
         }
     }
 
@@ -1766,7 +1776,7 @@ internal abstract class Binder : IOverloadResolutionHost
                 );
                 break;
             default:
-                targetType = ErrorTypeSymbol.Unnamed;
+                targetType = ErrorTypeSymbol.Unnamed.PublicSymbol;
                 break;
         }
 
@@ -1794,7 +1804,7 @@ internal abstract class Binder : IOverloadResolutionHost
                         expressions[0].Type,
                         (ulong)expressions.Length
                     )
-                    : ErrorTypeSymbol.Unnamed;
+                    : ErrorTypeSymbol.Unnamed.PublicSymbol;
 
             return new BoundSpeculativeCollectionExpression(
                 Compilation,
@@ -1883,14 +1893,14 @@ internal abstract class Binder : IOverloadResolutionHost
         else
         {
             context.ReportDiagnostic(Diagnostic.CannotInferType(syntax.Location));
-            collectionType = ErrorTypeSymbol.Unnamed;
+            collectionType = ErrorTypeSymbol.Unnamed.PublicSymbol;
         }
 
         return new BoundCollectionExpression(
             Compilation,
             syntax,
             collectionType,
-            foundElementType ?? ErrorTypeSymbol.Unnamed,
+            foundElementType ?? ErrorTypeSymbol.Unnamed.PublicSymbol,
             expressions
         );
     }
@@ -1919,7 +1929,7 @@ internal abstract class Binder : IOverloadResolutionHost
         }
         else
         {
-            constructedType = ErrorTypeSymbol.Unnamed;
+            constructedType = ErrorTypeSymbol.Unnamed.PublicSymbol;
         }
 
         var ctors = LookupQualifiedName(CommonNames.Ctor, constructedType, LookupOptions.Callable);
@@ -2249,7 +2259,7 @@ internal abstract class Binder : IOverloadResolutionHost
             context.ReportDiagnostic(Diagnostic.CannotAssignExpression(syntax.Location));
         }
 
-        var finalType = resultType?.Type ?? ErrorTypeSymbol.Unnamed;
+        var finalType = resultType?.Type ?? ErrorTypeSymbol.Unnamed.PublicSymbol;
         return new BoundUnaryOperation(Compilation, syntax, finalType, operand, operation);
     }
 
@@ -2444,7 +2454,7 @@ internal abstract class Binder : IOverloadResolutionHost
         BindingContext context
     )
     {
-        targetType ??= ErrorTypeSymbol.Unnamed;
+        targetType ??= ErrorTypeSymbol.Unnamed.PublicSymbol;
         var ctors = LookupQualifiedName(CommonNames.Ctor, targetType, LookupOptions.Callable);
 
         var (overload, realArgs) = ResolveOverload(

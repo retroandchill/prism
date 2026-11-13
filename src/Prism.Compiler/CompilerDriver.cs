@@ -18,6 +18,7 @@ using Prism.Compiler.Symbols.Synthesized;
 using Prism.Constants;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 using Prism.Utils;
 using ZLinq;
@@ -33,8 +34,12 @@ internal static class CompilerDriver
     )
     {
         if (
-            variable
-            is not SourceVariableSymbol { Syntax: { Initializer: not null } syntax, IsLocal: false }
+            variable.Data
+            is not SourceVariableSymbol
+            {
+                Syntax: { Initializer: not null } syntax,
+                PublicSymbol.IsLocal: false
+            }
         )
             return new BoundVariableInitializer(variable, []);
         var binderFactory = compilation.GetBinderFactory(syntax.SyntaxTree);
@@ -64,7 +69,7 @@ internal static class CompilerDriver
         BoundStatement? body;
         SourceLocation? location = null;
         using var context = BindingContext.Create();
-        switch (function)
+        switch (function.Data)
         {
             case SourceFunctionSymbol { Syntax: var syntax }:
             {

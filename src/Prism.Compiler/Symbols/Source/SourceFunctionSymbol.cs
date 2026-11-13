@@ -5,25 +5,18 @@ using Prism.Compiler.Abi;
 using Prism.Compiler.Binding;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 using ZLinq;
 
 namespace Prism.Compiler.Symbols.Source;
 
-internal sealed class SourceFunctionSymbol : SourceFunctionSymbolBase
+internal sealed class SourceFunctionSymbol(
+    Compilation compilation,
+    MemberContainerSymbol containingSymbol,
+    FunctionDeclarationSyntax syntax
+) : SourceFunctionSymbolBase(compilation, containingSymbol, syntax)
 {
-    internal SourceFunctionSymbol(
-        MemberContainerSymbol containingSymbol,
-        FunctionDeclarationSyntax syntax
-    )
-        : base(containingSymbol, syntax)
-    {
-        Syntax = syntax;
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        compilation.CacheSymbol(Syntax, this);
-    }
-
     public override string Name => Syntax.Identifier.IdentifierName;
 
     public override string MetadataName
@@ -40,7 +33,7 @@ internal sealed class SourceFunctionSymbol : SourceFunctionSymbolBase
 
     public override FunctionKind Kind => FunctionKind.Ordinary;
 
-    public FunctionDeclarationSyntax Syntax { get; }
+    public FunctionDeclarationSyntax Syntax { get; } = syntax;
 
     protected override DeclarationSyntax AbstractSyntax => Syntax;
 

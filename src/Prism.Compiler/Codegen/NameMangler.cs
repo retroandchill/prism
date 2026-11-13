@@ -8,6 +8,7 @@ using Cysharp.Text;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
 using Prism.Metadata;
+using Prism.Semantic;
 
 namespace Prism.Compiler.Codegen;
 

@@ -23,4 +23,14 @@ public closed class TypeSymbol : MemberContainerSymbol
     public bool IsDynamicallySized => Data.IsDynamicallySized;
 
     public bool IsDefaultConstructible => Data.IsDefaultConstructible;
+
+    public sealed override bool Equals(Symbol other, SymbolCompareKind kind)
+    {
+        return other is TypeSymbol typeSymbol && Equals(typeSymbol, kind);
+    }
+
+    public virtual bool Equals(TypeSymbol other, SymbolCompareKind kind)
+    {
+        return ReferenceEquals(this, other);
+    }
 }

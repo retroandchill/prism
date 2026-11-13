@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using Prism.Compiler.FlowAnalysis;
 using Prism.Compiler.Symbols;
 using Prism.Diagnostics;
+using Prism.Semantic;
 using Prism.Utils;
 
 namespace Prism.Compiler.BoundTree;

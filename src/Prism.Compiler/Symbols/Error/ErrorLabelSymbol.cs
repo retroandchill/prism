@@ -5,14 +5,22 @@
 
 using System.Collections.Immutable;
 using Prism.Diagnostics;
+using Prism.Semantic;
 using Prism.Syntax;
 
 namespace Prism.Compiler.Symbols.Error;
 
-internal sealed class ErrorLabelSymbol(string name, FunctionSymbol containingFunction) : LabelSymbol
+internal sealed class ErrorLabelSymbol : IFunctionOwnedSymbolData
 {
-    public override string Name { get; } = name;
-    public override FunctionSymbol ContainingFunction { get; } = containingFunction;
-    public override ImmutableArray<Location> Locations => [];
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
+    public ErrorLabelSymbol(string name, FunctionSymbol containingFunction)
+    {
+        Name = name;
+        ContainingFunction = containingFunction;
+        PublicSymbol = new LabelSymbol(this);
+    }
+
+    public LabelSymbol PublicSymbol { get; }
+    public string Name { get; }
+    public Symbol ContainingSymbol => ContainingFunction;
+    public FunctionSymbol ContainingFunction { get; }
 }

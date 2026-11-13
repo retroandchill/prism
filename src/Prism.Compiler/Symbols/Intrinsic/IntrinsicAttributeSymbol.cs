@@ -6,12 +6,13 @@
 using System.Collections.Immutable;
 using Prism.Diagnostics;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 using ZLinq;
 
 namespace Prism.Compiler.Symbols.Intrinsic;
 
-internal sealed class IntrinsicAttributeSymbol : NamedTypeSymbol
+internal sealed class IntrinsicAttributeSymbol : INamedTypeSymbolData, IMemberContainerSymbolData
 {
     internal IntrinsicAttributeSymbol(string name, Symbol containingSymbol)
     {
@@ -19,14 +20,11 @@ internal sealed class IntrinsicAttributeSymbol : NamedTypeSymbol
         ContainingSymbol = containingSymbol;
     }
 
-    public override string Name { get; }
+    public string Name { get; }
 
-    public override Symbol ContainingSymbol { get; }
+    public Symbol ContainingSymbol { get; }
 
-    public override NamedTypeKind Kind => NamedTypeKind.Attribute;
-
-    public override ImmutableArray<Location> Locations => [];
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
+    public NamedTypeKind Kind => NamedTypeKind.Attribute;
 
     private ImmutableDictionary<string, ImmutableArray<Symbol>> _membersByName = [];
     internal ImmutableArray<Symbol> Members
@@ -45,16 +43,16 @@ internal sealed class IntrinsicAttributeSymbol : NamedTypeSymbol
         }
     }
 
-    public override ImmutableArray<Symbol> GetMembers()
+    public ImmutableArray<Symbol> GetMembers()
     {
         return Members;
     }
 
-    public override ImmutableArray<Symbol> GetMembers(string name)
+    public ImmutableArray<Symbol> GetMembers(string name)
     {
         return _membersByName.GetValueOrDefault(name, []);
     }
 
-    public override bool IsDynamicallySized => false;
-    public override bool IsDefaultConstructible => false;
+    public bool IsDynamicallySized => false;
+    public bool IsDefaultConstructible => false;
 }

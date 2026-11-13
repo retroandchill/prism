@@ -8,6 +8,7 @@ using System.Diagnostics;
 using Prism.Compiler.Binding;
 using Prism.Compiler.Declarations;
 using Prism.Diagnostics;
+using Prism.Semantic;
 using Prism.Syntax;
 using Prism.Utils;
 
@@ -18,20 +19,17 @@ internal sealed class SourceAttributeSymbol : SourceNamedTypeSymbol
     private readonly AttributeDeclarationSyntax _syntax;
 
     internal SourceAttributeSymbol(
+        Compilation compilation,
         MergedTypeDeclaration declaration,
         MemberContainerSymbol containingSymbol
     )
-        : base(declaration, containingSymbol)
+        : base(compilation, declaration, containingSymbol)
     {
         Debug.Assert(declaration.Kind == DeclarationKind.Attribute);
 
         var declarations = declaration.Declarations;
         Debug.Assert(declarations.Length == 1);
         _syntax = (AttributeDeclarationSyntax)declarations[0].SyntaxReference.Syntax;
-
-        var compilation = DeclaringCompilation;
-        Debug.Assert(compilation is not null);
-        compilation.CacheSymbol(_syntax, this);
     }
 
     protected override ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
@@ -50,7 +48,11 @@ internal sealed class SourceAttributeSymbol : SourceNamedTypeSymbol
             var name = parameter.Name.IdentifierName;
             var subBuilder = builder.GetOrAdd(name, () => ImmutableArray.CreateBuilder<Symbol>(1));
 
-            var symbol = new SourceAttributeParameterSymbol(this, parameter);
+            var symbol = new SourceAttributeParameterSymbol(
+                DeclaringCompilation,
+                PublicSymbol,
+                parameter
+            ).PublicSymbol;
             subBuilder.Add(symbol);
 
             if (symbol.HasDefaultValue)

@@ -10,6 +10,7 @@ using Prism.Compiler.Symbols;
 using Prism.Compiler.Symbols.Error;
 using Prism.Compiler.Symbols.Intrinsic;
 using Prism.Metadata;
+using Prism.Semantic;
 using Prism.Syntax;
 
 namespace Prism.Compiler;
@@ -145,16 +146,17 @@ internal sealed class CompilationCache(Compilation compilation)
     public NamedTypeSymbol CreateErrorTypeSymbol(Symbol? container, string name)
     {
         var key = new SymbolLookupKey(container, name);
-        return _errorTypes.GetOrAdd(key, static k => new ErrorTypeSymbol(k.Name, k.Container));
+        return _errorTypes.GetOrAdd(key, static k =>
+            new ErrorTypeSymbol(k.Name, k.Container).PublicSymbol
+        );
     }
 
     public NamespaceSymbol CreateErrorNamespaceSymbol(NamespaceSymbol? container, string name)
     {
         var key = new SymbolLookupKey(container, name);
-        return _errorNamespaces.GetOrAdd(key, static k => new ErrorNamespaceSymbol(
-            k.Name,
-            k.Container
-        ));
+        return _errorNamespaces.GetOrAdd(key, static k =>
+            new ErrorNamespaceSymbol(k.Name, k.Container).PublicSymbol
+        );
     }
 
     public NamespaceSymbol StdNamespace
