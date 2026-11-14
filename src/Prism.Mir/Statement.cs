@@ -15,14 +15,14 @@ public sealed record AssignmentStatement(Place Target, RValue Value) : Statement
     public override string ToString() => $"{Target} = {Value}";
 }
 
-public sealed record StorageLiveStatement(Place Place) : Statement
+public sealed record StorageLiveStatement(Local Local) : Statement
 {
-    public override string ToString() => $"Live({Place})";
+    public override string ToString() => $"Live({Local})";
 }
 
-public sealed record StorageDeadStatement(Place Place) : Statement
+public sealed record StorageDeadStatement(Local Local) : Statement
 {
-    public override string ToString() => $"Dead({Place})";
+    public override string ToString() => $"Dead({Local})";
 }
 
 public sealed record MakeNullStatement(Place Place) : Statement

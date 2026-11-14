@@ -25,6 +25,8 @@ internal sealed record CallTerminatorBuilder(
     BasicBlockBuilder? UnwindBlock = null
 ) : TerminatorBuilder;
 
+internal sealed record GotoTerminatorBuilder(BasicBlockBuilder Target) : TerminatorBuilder;
+
 internal sealed record BranchTerminatorBuilder(
     Operand Condition,
     BasicBlockBuilder TrueBlock,

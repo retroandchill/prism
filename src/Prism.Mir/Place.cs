@@ -9,13 +9,15 @@ using Prism.Semantic.Symbols;
 
 namespace Prism.Mir;
 
-public sealed record Place(PlaceBase Base, ImmutableArray<PlaceProjection> Projections)
+public readonly record struct Place(PlaceBase Base, ImmutableArray<PlaceProjection> Projections)
 {
-    public bool Equals(Place? other)
-    {
-        if (other is null)
-            return false;
+    public Place(PlaceBase @base)
+        : this(@base, []) { }
 
+    public static implicit operator Place(PlaceBase @base) => new(@base);
+
+    public bool Equals(Place other)
+    {
         return Base.Equals(other.Base) && Projections.SequenceEqual(other.Projections);
     }
 

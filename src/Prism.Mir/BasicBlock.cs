@@ -45,6 +45,7 @@ public sealed partial class BasicBlock
 
         [MapDerivedType<ReturnTerminatorBuilder, ReturnTerminator>]
         [MapDerivedType<CallTerminatorBuilder, CallTerminator>]
+        [MapDerivedType<GotoTerminatorBuilder, GotoTerminator>]
         [MapDerivedType<BranchTerminatorBuilder, BranchTerminator>]
         [MapDerivedType<UnreachableTerminatorBuilder, UnreachableTerminator>]
         private static partial Terminator Map(
@@ -60,6 +61,11 @@ public sealed partial class BasicBlock
 
         private static partial CallTerminator Map(
             CallTerminatorBuilder builder,
+            [ReferenceHandler] IReferenceHandler referenceHandler
+        );
+
+        private static partial GotoTerminator Map(
+            GotoTerminatorBuilder builder,
             [ReferenceHandler] IReferenceHandler referenceHandler
         );
 

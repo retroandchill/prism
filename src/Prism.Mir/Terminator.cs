@@ -40,6 +40,11 @@ public sealed record CallTerminator(
     }
 }
 
+public sealed record GotoTerminator(BasicBlock Target) : Terminator
+{
+    public override string ToString() => $"goto {Target}";
+}
+
 public sealed record BranchTerminator(
     Operand Condition,
     BasicBlock TrueBlock,

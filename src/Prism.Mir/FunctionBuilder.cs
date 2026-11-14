@@ -3,8 +3,12 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
+using System.Runtime.InteropServices;
 using Prism.Semantic.Symbols;
+using Prism.Utils;
 using Riok.Mapperly.Abstractions;
+using ZLinq;
 
 namespace Prism.Mir;
 
@@ -18,43 +22,73 @@ public sealed class FunctionBuilder
     private uint _nextBasicBlockId = 1;
     private uint _nextLocalId = 1;
 
+    public BasicBlockBuilder EntryBlock
+    {
+        get => field ?? throw new InvalidOperationException("Entry block not set");
+        set;
+    } = null!;
+
+    public Local? ReturnValueLocal { get; }
+
+    public Local? ReceiverLocal { get; }
+
+    public ImmutableArray<(ParameterSymbol Symbol, Local Local)> Parameters { get; }
+
     public FunctionBuilder(FunctionSymbol symbol)
     {
         Symbol = symbol;
 
         if (!Symbol.ReturnsVoid)
         {
-            _locals.Add(new Local(LocalId.ReturnSlot, Symbol.ReturnType));
+            ReturnValueLocal = new Local(LocalId.ReturnSlot, Symbol.ReturnType);
+            _locals.Add(ReturnValueLocal);
         }
 
         if (Symbol.ReceiverType is { } receiver)
         {
-            AddLocal(receiver);
+            ReceiverLocal = AddLocal(receiver);
         }
 
-        foreach (var parameter in Symbol.Parameters)
+        if (Symbol.Parameters.IsEmpty)
         {
-            AddLocal(parameter.Type);
+            Parameters = [];
+            return;
         }
+
+        var parameters = new (ParameterSymbol, Local)[Symbol.Parameters.Length];
+        foreach (var (i, parameter) in Symbol.Parameters.AsValueEnumerable().Index())
+        {
+            parameters[i] = (parameter, AddLocal(parameter.Type));
+        }
+
+        Parameters = ImmutableCollectionsMarshal.AsImmutableArray(parameters);
     }
 
-    internal IReadOnlyList<Local> Locals => _locals;
+    public ReadOnlyList<Local> Locals => _locals.AsReadOnlyList();
 
-    internal IReadOnlyList<BasicBlockBuilder> Blocks => _basicBlocks;
+    public ReadOnlyList<BasicBlockBuilder> Blocks => _basicBlocks.AsReadOnlyList();
 
     public BasicBlockBuilder AddBasicBlock(string name = "block")
     {
-        var builder = new BasicBlockBuilder(new BasicBlockId(_nextBasicBlockId), name);
+        var builder = new BasicBlockBuilder(new BasicBlockId(_nextBasicBlockId++), name);
         _basicBlocks.Add(builder);
-        _nextBasicBlockId++;
         return builder;
+    }
+
+    public void AddExistingBlock(BasicBlockBuilder builder)
+    {
+        _basicBlocks.Add(builder);
+    }
+
+    public BasicBlockBuilder AddDetachedBlock(string name = "block")
+    {
+        return new BasicBlockBuilder(new BasicBlockId(_nextBasicBlockId++), name);
     }
 
     public Local AddLocal(TypeSymbol type)
     {
-        var local = new Local(new LocalId(_nextLocalId), type);
+        var local = new Local(new LocalId(_nextLocalId++), type);
         _locals.Add(local);
-        _nextLocalId++;
         return local;
     }
 

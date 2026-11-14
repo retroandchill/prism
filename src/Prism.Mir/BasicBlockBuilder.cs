@@ -25,6 +25,8 @@ public sealed class BasicBlockBuilder
 
     internal IReadOnlyList<Statement> Statements => _statements;
 
+    public bool IsTerminated => _terminator is not null;
+
     internal TerminatorBuilder Terminator =>
         _terminator ?? throw new InvalidOperationException("Terminator not set");
 
@@ -33,14 +35,14 @@ public sealed class BasicBlockBuilder
         _statements.Add(new AssignmentStatement(target, value));
     }
 
-    public void StorageLive(Place place)
+    public void AddStorageLive(Local local)
     {
-        _statements.Add(new StorageLiveStatement(place));
+        _statements.Add(new StorageLiveStatement(local));
     }
 
-    public void AddStorageDead(Place place)
+    public void AddStorageDead(Local local)
     {
-        _statements.Add(new StorageDeadStatement(place));
+        _statements.Add(new StorageDeadStatement(local));
     }
 
     public void AddMakeNull(Place place)
@@ -54,7 +56,7 @@ public sealed class BasicBlockBuilder
             throw new InvalidOperationException("Terminator already set");
     }
 
-    public void SetReturn()
+    public void SetReturnTerminator()
     {
         EnsureTerminatorNotSet();
         _terminator = ReturnTerminatorBuilder.Instance;
@@ -70,6 +72,12 @@ public sealed class BasicBlockBuilder
     {
         EnsureTerminatorNotSet();
         _terminator = new CallTerminatorBuilder(function, arguments, target, next, unwind);
+    }
+
+    public void SetGotoTerminator(BasicBlockBuilder target)
+    {
+        EnsureTerminatorNotSet();
+        _terminator = new GotoTerminatorBuilder(target);
     }
 
     public void SetBranchTerminator(

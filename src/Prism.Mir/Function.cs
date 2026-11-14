@@ -15,6 +15,8 @@ public sealed partial class Function
 
     public ImmutableArray<BasicBlock> Blocks { get; private set; }
 
+    public BasicBlock EntryBlock { get; private set; } = null!;
+
     public ImmutableArray<Local> Locals { get; private set; }
 
     private Function(FunctionSymbol symbol)
