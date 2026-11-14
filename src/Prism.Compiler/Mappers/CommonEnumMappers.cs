@@ -4,6 +4,8 @@ using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
 using Prism.Constants;
 using Prism.Metadata;
+using Prism.Semantic;
+using Prism.Semantic.Conversions;
 using Prism.Syntax;
 using Riok.Mapperly.Abstractions;
 

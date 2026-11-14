@@ -5,6 +5,8 @@ using System.Runtime.InteropServices;
 using Prism.Compiler.Binding;
 using Prism.Diagnostics;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
+using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
 using Prism.Utils;
 using ZLinq;

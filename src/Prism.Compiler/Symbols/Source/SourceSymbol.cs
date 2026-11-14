@@ -7,6 +7,8 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Compiler.Binding;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
+using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
 using Prism.Text;
 

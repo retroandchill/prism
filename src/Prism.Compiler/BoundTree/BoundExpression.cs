@@ -10,6 +10,8 @@ using Prism.Compiler.Symbols.Intermediate;
 using Prism.Constants;
 using Prism.Metadata;
 using Prism.Semantic;
+using Prism.Semantic.Conversions;
+using Prism.Semantic.Symbols;
 using Prism.Syntax;
 using ConstantValue = Prism.Constants.ConstantValue;
 

@@ -10,4 +10,8 @@
       <ProjectReference Include="..\Prism.Semantic\Prism.Semantic.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Riok.Mapperly" />
+    </ItemGroup>
+
 </Project>

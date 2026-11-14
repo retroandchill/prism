@@ -5,6 +5,7 @@
 
 using System.Collections.Immutable;
 using Prism.Semantic;
+using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
 
 namespace Prism.Compiler.Symbols;

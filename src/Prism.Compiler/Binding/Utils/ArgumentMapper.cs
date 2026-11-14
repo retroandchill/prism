@@ -3,6 +3,8 @@ using Prism.Compiler.Binding.OverloadResolution;
 using Prism.Compiler.BoundTree;
 using Prism.Compiler.Symbols;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
+using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
 using ZLinq;
 

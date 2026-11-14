@@ -7,6 +7,7 @@ using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
 using Prism.Constants;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
 using ConstantValue = Prism.Constants.ConstantValue;
 
 namespace Prism.Compiler.Mir;

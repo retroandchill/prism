@@ -11,6 +11,8 @@ using Prism.Compiler.Symbols.Error;
 using Prism.Compiler.Symbols.Intrinsic;
 using Prism.Metadata;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
+using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
 
 namespace Prism.Compiler;

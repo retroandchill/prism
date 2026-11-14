@@ -7,6 +7,8 @@ using System.Collections.Immutable;
 using Prism.Compiler.Mappers;
 using Prism.Diagnostics;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
+using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
 using ParameterDefinition = Prism.Metadata.ParameterDefinition;
 

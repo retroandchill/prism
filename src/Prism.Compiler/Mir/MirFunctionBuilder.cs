@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using Prism.Compiler.Symbols;
 using Prism.Diagnostics;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
 
 namespace Prism.Compiler.Mir;
 

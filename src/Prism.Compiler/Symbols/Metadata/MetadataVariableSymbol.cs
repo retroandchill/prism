@@ -8,6 +8,8 @@ using Prism.Compiler.Semantic;
 using Prism.Diagnostics;
 using Prism.Metadata;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
+using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
 using ConstantValue = Prism.Constants.ConstantValue;
 using VariableDefinition = Prism.Metadata.VariableDefinition;

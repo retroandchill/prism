@@ -6,6 +6,7 @@
 using Prism.Compiler.Symbols;
 using Prism.Metadata;
 using Prism.Semantic;
+using Prism.Semantic.Symbols.Data;
 using Riok.Mapperly.Abstractions;
 
 namespace Prism.Compiler.Mappers;

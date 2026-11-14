@@ -6,6 +6,7 @@ using Prism.Compiler.Symbols;
 using Prism.Diagnostics;
 using Prism.Metadata;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
 using Prism.Syntax;
 using Prism.Utils;
 using ZLinq;

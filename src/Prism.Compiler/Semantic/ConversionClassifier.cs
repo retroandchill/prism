@@ -5,6 +5,8 @@ using Prism.Compiler.Symbols;
 using Prism.Compiler.Symbols.Intermediate;
 using Prism.Metadata;
 using Prism.Semantic;
+using Prism.Semantic.Conversions;
+using Prism.Semantic.Symbols;
 
 namespace Prism.Compiler.Semantic;
 

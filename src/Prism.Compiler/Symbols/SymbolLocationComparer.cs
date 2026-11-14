@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
 
 namespace Prism.Compiler.Symbols;
 

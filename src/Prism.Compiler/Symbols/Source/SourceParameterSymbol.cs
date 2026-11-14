@@ -11,6 +11,8 @@ using Prism.Compiler.BoundTree;
 using Prism.Constants;
 using Prism.Diagnostics;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
+using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
 
 namespace Prism.Compiler.Symbols.Source;
@@ -42,6 +44,8 @@ internal closed class SourceParameterSymbol
     public sealed override string Name => Syntax.Name.IdentifierName;
 
     public abstract bool IsMutable { get; }
+
+    public abstract FunctionSymbol? ContainingFunction { get; }
 
     public sealed override ImmutableArray<Location> Locations
     {
@@ -229,9 +233,9 @@ internal sealed class SourceFunctionParameterSymbol(
     Compilation compilation,
     FunctionSymbol containingSymbol,
     ParameterSyntax syntax
-) : SourceParameterSymbol(compilation, syntax), IFunctionOwnedSymbolData
+) : SourceParameterSymbol(compilation, syntax)
 {
-    public FunctionSymbol ContainingFunction { get; } = containingSymbol;
+    public override FunctionSymbol ContainingFunction { get; } = containingSymbol;
 
     public override Symbol ContainingSymbol => ContainingFunction;
 
@@ -247,6 +251,8 @@ internal sealed class SourceAttributeParameterSymbol(
     public override TypeSymbol ContainingType { get; } = containingSymbol;
 
     public override Symbol ContainingSymbol => ContainingType;
+
+    public override FunctionSymbol? ContainingFunction => null;
 
     public override bool IsMutable => false;
 }

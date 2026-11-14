@@ -4,11 +4,10 @@ using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 using Prism.Compiler.Binding;
 using Prism.Compiler.BoundTree;
-using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols.Error;
 using Prism.Diagnostics;
-using Prism.Metadata;
-using Prism.Semantic;
+using Prism.Semantic.Symbols;
+using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
 using Prism.Text;
 using ZLinq;
@@ -248,7 +247,7 @@ internal sealed class SourceLocalVariableSymbol(
     LocalVariableDeclarationSyntax syntax,
     Binder scopeBinder,
     Binder? initializerBinder
-) : SourceVariableSymbol(compilation, syntax), IFunctionOwnedSymbolData
+) : SourceVariableSymbol(compilation, syntax), ILocalVariableSymbolData
 {
     public FunctionSymbol ContainingFunction { get; } = containingSymbol;
     public override Symbol ContainingSymbol => ContainingFunction;

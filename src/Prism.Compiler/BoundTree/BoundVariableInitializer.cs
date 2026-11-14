@@ -4,6 +4,7 @@ using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
 using Prism.Diagnostics;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
 using Prism.Utils;
 using ConstantValue = Prism.Constants.ConstantValue;
 

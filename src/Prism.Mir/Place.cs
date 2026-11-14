@@ -5,6 +5,7 @@
 
 using System.Collections.Immutable;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
 
 namespace Prism.Mir;
 
@@ -28,11 +29,28 @@ public sealed record Place(PlaceBase Base, ImmutableArray<PlaceProjection> Proje
 
         return hashCode.ToHashCode();
     }
+
+    public override string ToString()
+    {
+        return Projections.Aggregate(Base.ToString(), (current, projection) => projection switch
+            {
+                FieldProjection(var field) => $"{current}.{field.Name}",
+                IndexProjection(var index) => $"{current}[{index}]",
+                DereferenceProjection => $"*({current})",
+                DiscriminantProjection => $"{current}.<discriminant>",
+                PayloadProjection => $"{current}.<payload>",
+                SliceDataProjection => $"{current}.<data>",
+                SliceLengthProjection => $"{current}.<length>",
+            });
+    }
 }
 
 public closed record PlaceBase;
 
-public sealed record LocalPlace(Local Local) : PlaceBase;
+public sealed record LocalPlace(Local Local) : PlaceBase
+{
+    public override string ToString() => Local.ToString();
+}
 
 public sealed record GlobalPlace : PlaceBase
 {
@@ -50,6 +68,8 @@ public sealed record GlobalPlace : PlaceBase
     {
         variable = Variable;
     }
+
+    public override string ToString() => Variable.ToDisplayString();
 }
 
 public closed record PlaceProjection;
@@ -79,4 +99,32 @@ public sealed record DereferenceProjection : PlaceProjection
     private DereferenceProjection() { }
 
     public static readonly DereferenceProjection Instance = new();
+}
+
+public sealed record DiscriminantProjection : PlaceProjection
+{
+    private DiscriminantProjection() { }
+
+    public static readonly DiscriminantProjection Instance = new();
+}
+
+public sealed record PayloadProjection : PlaceProjection
+{
+    private PayloadProjection() { }
+
+    public static readonly PayloadProjection Instance = new();
+}
+
+public sealed record SliceDataProjection : PlaceProjection
+{
+    private SliceDataProjection() { }
+
+    public static readonly SliceDataProjection Instance = new();
+}
+
+public sealed record SliceLengthProjection : PlaceProjection
+{
+    private SliceLengthProjection() { }
+
+    public static readonly SliceLengthProjection Instance = new();
 }

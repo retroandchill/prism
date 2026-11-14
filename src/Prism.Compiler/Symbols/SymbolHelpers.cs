@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
 using Prism.Syntax;
 
 namespace Prism.Compiler.Symbols;

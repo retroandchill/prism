@@ -7,6 +7,8 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Prism.Compiler.Symbols.Source;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
+using Prism.Semantic.Symbols.Data;
 
 namespace Prism.Compiler.Symbols.Synthesized;
 

@@ -6,6 +6,7 @@
 using Prism.Compiler.Mir;
 using Prism.Compiler.Symbols;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
 using Prism.Utils;
 using ZLinq;
 

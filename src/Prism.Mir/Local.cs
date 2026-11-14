@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
 
 namespace Prism.Mir;
 
@@ -17,4 +18,6 @@ public sealed class Local(LocalId id, TypeSymbol type)
     public LocalId Id { get; } = id;
 
     public TypeSymbol Type { get; } = type;
+
+    public override string ToString() => $"_{Id.Value}";
 }

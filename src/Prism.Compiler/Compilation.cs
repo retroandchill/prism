@@ -15,6 +15,7 @@ using Prism.Compiler.Symbols.Source;
 using Prism.Diagnostics;
 using Prism.Metadata;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
 using Prism.Syntax;
 using Prism.Text;
 using ZLinq;

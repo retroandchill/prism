@@ -8,11 +8,13 @@ using System.Runtime.CompilerServices;
 using Prism.Compiler.Binding;
 using Prism.Diagnostics;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
+using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
 
 namespace Prism.Compiler.Symbols.Source;
 
-internal sealed class SourceLabelSymbol : SourceSymbol, IFunctionOwnedSymbolData
+internal sealed class SourceLabelSymbol : SourceSymbol, ILabelSymbolData
 {
     private readonly LabeledStatementSyntax _syntax;
 

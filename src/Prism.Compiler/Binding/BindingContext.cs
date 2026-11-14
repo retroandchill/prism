@@ -5,6 +5,7 @@ using Prism.Compiler.Declarations;
 using Prism.Compiler.Symbols;
 using Prism.Diagnostics;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
 
 namespace Prism.Compiler.Binding;
 

@@ -7,6 +7,8 @@ using Prism.Compiler.Declarations;
 using Prism.Compiler.Symbols.Synthesized;
 using Prism.Diagnostics;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
+using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
 using Prism.Text;
 using Prism.Utils;

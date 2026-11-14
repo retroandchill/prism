@@ -6,6 +6,7 @@
 using System.Runtime.InteropServices;
 using Prism.Compiler.Symbols;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
 using ZLinq;
 
 namespace Prism.Compiler.Abi;

@@ -7,10 +7,22 @@ using Prism.Constants;
 
 namespace Prism.Mir;
 
-public closed class Operand;
+public closed class Operand
+{
+    public abstract override string ToString();
+}
 
-public sealed record ConstantOperand(ConstantValue Value);
+public sealed record ConstantOperand(ConstantValue Value)
+{
+    public override string ToString() => Value.ToString();
+}
 
-public sealed record CopyOperand(Place Source);
+public sealed record CopyOperand(Place Source)
+{
+    public override string ToString() => $"Copy({Source})";
+}
 
-public sealed record MoveOperand(Place Source);
+public sealed record MoveOperand(Place Source)
+{
+    public override string ToString() => $"Move({Source})";
+}

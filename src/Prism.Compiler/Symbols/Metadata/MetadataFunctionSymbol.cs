@@ -6,6 +6,8 @@
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
+using Prism.Semantic.Symbols.Data;
 using ZLinq;
 using FunctionDefinition = Prism.Metadata.FunctionDefinition;
 

@@ -5,10 +5,12 @@
 
 using System.Runtime.CompilerServices;
 using Prism.Semantic;
+using Prism.Semantic.Symbols;
+using Prism.Semantic.Symbols.Data;
 
 namespace Prism.Compiler.Symbols.Synthesized;
 
-internal sealed class SynthesizedLabelSymbol : SynthesizedSymbol, IFunctionOwnedSymbolData
+internal sealed class SynthesizedLabelSymbol : SynthesizedSymbol, ILabelSymbolData
 {
     public SynthesizedLabelSymbol(Compilation compilation, FunctionSymbol containingFunction)
         : base(compilation)
