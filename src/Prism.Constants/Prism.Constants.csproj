@@ -9,10 +9,12 @@
 
     <ItemGroup>
       <PackageReference Include="MagicArchive" />
+      <PackageReference Include="NetEscapades.EnumGenerators" />
     </ItemGroup>
 
     <ItemGroup>
         <InternalsVisibleTo Include="Prism.Metadata" />
+        <InternalsVisibleTo Include="Prism.Mir" />
     </ItemGroup>
 
 </Project>

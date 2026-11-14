@@ -7,7 +7,6 @@ namespace Prism.Mir;
 
 public enum UnaryOperator : byte
 {
-    Identity,
     Negation,
     LogicalNot,
     BitwiseNot,

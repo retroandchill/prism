@@ -6,6 +6,7 @@
 using System.Diagnostics;
 using Prism.Compiler;
 using Prism.Compiler.BoundTree;
+using Prism.Compiler.Semantic;
 using Prism.Mir;
 using Prism.Semantic.Symbols;
 
@@ -13,6 +14,24 @@ namespace Prism.Codegen.Mir;
 
 internal sealed class Emitter(Compilation compilation) : IEmitter
 {
+    private enum UnaryResultKind : byte
+    {
+        Prefix,
+        Postfix,
+    }
+
+    private enum UnaryArithmeticKind : byte
+    {
+        Increment,
+        Decrement,
+    }
+
+    private enum LogicalOperation : byte
+    {
+        And,
+        Or,
+    }
+
     public Function Emit(FunctionSymbol symbol, CancellationToken cancellationToken = default)
     {
         var boundBody = compilation.GetBoundBody(symbol, cancellationToken);
@@ -373,7 +392,49 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
         CancellationToken cancellationToken
     )
     {
-        throw new NotImplementedException();
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (expression.ConstantValue is { } constantValue)
+            {
+                return ConstantOperand.Create(in constantValue);
+            }
+
+            if (
+                expression is BoundUnaryOperation
+                {
+                    Operation: UnaryOperation.Identity,
+                    Operand: var operand
+                }
+            )
+            {
+                expression = operand;
+                continue;
+            }
+
+            switch (expression)
+            {
+                case BoundVariableAccess access:
+                    return EmitAccess(access, lifetime, context, cancellationToken);
+                case BoundParameterAccess access:
+                    return EmitAccess(access, context);
+                case BoundThisExpression:
+                    return EmitThis(context);
+            }
+
+            Place place;
+            if (!expression.Type.IsVoid)
+            {
+                (_, place) = context.CreateTemporary(expression.Type, lifetime);
+            }
+            else
+            {
+                place = default;
+            }
+
+            EmitExpression(place, expression, lifetime, context, cancellationToken);
+            return new MoveOperand(place);
+        }
     }
 
     private void EmitExpression(
@@ -384,6 +445,310 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
         CancellationToken cancellationToken
     )
     {
-        throw new NotImplementedException();
+        cancellationToken.ThrowIfCancellationRequested();
+        if (expression.ConstantValue is { } constantValue)
+        {
+            context.CurrentBlock.AddAssignment(
+                destination,
+                new UseRValue(ConstantOperand.Create(in constantValue))
+            );
+            return;
+        }
+
+        switch (expression)
+        {
+            case BoundVariableAccess access:
+                context.CurrentBlock.AddAssignment(
+                    destination,
+                    new UseRValue(EmitAccess(access, lifetime, context, cancellationToken))
+                );
+                break;
+            case BoundParameterAccess access:
+                context.CurrentBlock.AddAssignment(
+                    destination,
+                    new UseRValue(EmitAccess(access, context))
+                );
+                break;
+            case BoundThisExpression:
+                context.CurrentBlock.AddAssignment(destination, new UseRValue(EmitThis(context)));
+                break;
+            case BoundUnaryOperation unary:
+                EmitOperation(destination, unary, lifetime, context, cancellationToken);
+                break;
+            case BoundBinaryOperation binary:
+                break;
+            case BoundAssignmentOperation assignment:
+                break;
+            case BoundConditional conditional:
+                break;
+            case BoundInvocation invocation:
+                break;
+            case BoundConversion conversion:
+                break;
+            case BoundAddressOf addressOf:
+                break;
+            case BoundDereference dereference:
+                break;
+            case BoundIndex index:
+                break;
+            case BoundCollectionExpression collection:
+                break;
+            case BoundNewExpression newExpression:
+                break;
+            case BoundBadExpression or BoundSpeculativeExpression:
+                throw new InvalidOperationException(
+                    "Should only emit LLVM IR if the compilation is valid"
+                );
+            case BoundLiteral or BoundTypeSize:
+                throw new InvalidOperationException(
+                    "The constant folding should have grabbed this already"
+                );
+            default:
+                throw new ArgumentOutOfRangeException(nameof(expression));
+        }
+    }
+
+    private CopyOperand EmitAccess(
+        BoundVariableAccess access,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        return new CopyOperand(EmitPlace(access, lifetime, context, cancellationToken));
+    }
+
+    private static CopyOperand EmitAccess(BoundParameterAccess access, EmissionContext context)
+    {
+        var (_, place) = context.GetLocal(access.Symbol);
+        return new CopyOperand(EmitPlace(access, context));
+    }
+
+    private static CopyOperand EmitThis(EmissionContext context)
+    {
+        return new CopyOperand(EmitThisPlace(context));
+    }
+
+    private void EmitOperation(
+        Place destination,
+        BoundUnaryOperation operation,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        switch (operation.Operation)
+        {
+            case UnaryOperation.Identity:
+                EmitExpression(
+                    destination,
+                    operation.Operand,
+                    lifetime,
+                    context,
+                    cancellationToken
+                );
+                break;
+            case UnaryOperation.Negation:
+                EmitSimpleUnary(
+                    destination,
+                    UnaryOperator.Negation,
+                    operation.Operand,
+                    lifetime,
+                    context,
+                    cancellationToken
+                );
+                break;
+            case UnaryOperation.LogicalNot:
+                EmitSimpleUnary(
+                    destination,
+                    UnaryOperator.LogicalNot,
+                    operation.Operand,
+                    lifetime,
+                    context,
+                    cancellationToken
+                );
+                break;
+            case UnaryOperation.BitwiseNot:
+                EmitSimpleUnary(
+                    destination,
+                    UnaryOperator.BitwiseNot,
+                    operation.Operand,
+                    lifetime,
+                    context,
+                    cancellationToken
+                );
+                break;
+            case UnaryOperation.PreIncrement:
+                break;
+            case UnaryOperation.PreDecrement:
+                break;
+            case UnaryOperation.PostIncrement:
+                break;
+            case UnaryOperation.PostDecrement:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    private void EmitSimpleUnary(
+        Place destination,
+        UnaryOperator operation,
+        BoundExpression inner,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        context.CurrentBlock.AddAssignment(
+            destination,
+            new UnaryRValue(operation, EmitExpression(inner, lifetime, context, cancellationToken))
+        );
+    }
+
+    private void EmitUnaryIncrementDecrement(
+        Place place,
+        BoundExpression inner,
+        UnaryResultKind resultKind,
+        UnaryArithmeticKind arithmeticKind,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var expressionPlace = EmitPlace(inner, lifetime, context, cancellationToken);
+    }
+
+    private Place EmitPlace(
+        BoundExpression expression,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var builder = new PlaceBuilder();
+        EmitPlace(ref builder, expression, lifetime, context, cancellationToken);
+        return builder.Build();
+    }
+
+    private void EmitPlace(
+        ref PlaceBuilder builder,
+        BoundExpression expression,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        switch (expression)
+        {
+            case BoundVariableAccess access:
+                EmitPlace(ref builder, access, lifetime, context, cancellationToken);
+                break;
+            case BoundParameterAccess access:
+                EmitPlace(ref builder, access, context);
+                break;
+            case BoundDereference dereference:
+                EmitPlace(ref builder, dereference, lifetime, context, cancellationToken);
+                break;
+            case BoundIndex index:
+                EmitPlace(ref builder, index, lifetime, context, cancellationToken);
+                break;
+            case BoundThisExpression:
+                EmitThisPlace(ref builder, context);
+                break;
+            default:
+            {
+                var (_, place) = context.CreateTemporary(expression.Type, lifetime);
+                EmitExpression(place, expression, lifetime, context, cancellationToken);
+                builder.Base = place;
+                break;
+            }
+        }
+    }
+
+    private Place EmitPlace(
+        BoundVariableAccess access,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var builder = new PlaceBuilder();
+        EmitPlace(ref builder, access, lifetime, context, cancellationToken);
+        return builder.Build();
+    }
+
+    private void EmitPlace(
+        ref PlaceBuilder builder,
+        BoundVariableAccess access,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        if (access.Owner is not null)
+        {
+            EmitPlace(ref builder, access.Owner, lifetime, context, cancellationToken);
+            builder.AddProjection(new FieldProjection(access.Symbol));
+        }
+        else if (context.TryGetLocal(access.Symbol) is var (_, place))
+        {
+            builder.Base = place;
+        }
+        else
+        {
+            builder.Base = new GlobalPlace(access.Symbol);
+        }
+    }
+
+    private static Place EmitPlace(BoundParameterAccess access, EmissionContext context)
+    {
+        return context.GetLocal(access.Symbol).Place;
+    }
+
+    private static void EmitPlace(
+        ref PlaceBuilder builder,
+        BoundParameterAccess access,
+        EmissionContext context
+    )
+    {
+        builder.Base = context.GetLocal(access.Symbol).Place;
+    }
+
+    private void EmitPlace(
+        ref PlaceBuilder builder,
+        BoundDereference dereference,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        EmitPlace(ref builder, dereference.Operand, lifetime, context, cancellationToken);
+        builder.AddProjection(DereferenceProjection.Instance);
+    }
+
+    private void EmitPlace(
+        ref PlaceBuilder builder,
+        BoundIndex indexer,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        EmitPlace(ref builder, indexer.Operand, lifetime, context, cancellationToken);
+        var index = EmitExpression(indexer.Index, lifetime, context, cancellationToken);
+        builder.AddProjection(new IndexProjection(index));
+    }
+
+    private static Place EmitThisPlace(EmissionContext context)
+    {
+        Debug.Assert(context.ReceiverPlace is not null);
+        return context.ReceiverPlace;
+    }
+
+    private static void EmitThisPlace(ref PlaceBuilder builder, EmissionContext context)
+    {
+        Debug.Assert(context.ReceiverPlace is not null);
+        builder.Base = context.ReceiverPlace;
     }
 }

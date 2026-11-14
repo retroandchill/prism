@@ -35,6 +35,8 @@ public readonly partial record struct IntegerKind
     internal const byte SignMask = 0b0000_1000;
     internal const byte SignShift = 3;
 
+    internal const byte MaxValue = SignMask | WidthMask;
+
     public static IntegerKind I8 => Create(IntegerWidth.W8, IntegerSign.Signed);
     public static IntegerKind I16 => Create(IntegerWidth.W16, IntegerSign.Signed);
     public static IntegerKind I32 => Create(IntegerWidth.W32, IntegerSign.Signed);
@@ -160,6 +162,10 @@ public readonly partial record struct IntegerConstant : IUnion
         Kind = IntegerKind.Create(IntegerWidth.W128, IntegerSign.Unsigned);
         RawValue = value;
     }
+
+    public bool IsZero => RawValue == 0;
+
+    public bool IsOne => RawValue == 1;
 
     public bool IsNegative
     {

@@ -9,16 +9,18 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MagicArchive;
+using NetEscapades.EnumGenerators;
 
 namespace Prism.Constants;
 
+[EnumExtensions(ExtensionClassName = nameof(FloatKinds))]
 public enum FloatKind : byte
 {
     F32,
     F64,
 }
 
-public static class FloatKindExtensions
+public static partial class FloatKinds
 {
     extension(FloatKind)
     {
@@ -57,6 +59,24 @@ public readonly partial record struct FloatConstant : IUnion
         Kind = FloatKind.F64;
         _rawValue.F64 = value;
     }
+
+    public bool IsZero =>
+        Kind switch
+        {
+            FloatKind.F32 => _rawValue.F32 == 0,
+            FloatKind.F64 => _rawValue.F64 == 0,
+            _ => throw new InvalidOperationException("Invalid float kind"),
+        };
+
+    public bool IsOne =>
+        Kind switch
+        {
+            // ReSharper disable CompareOfFloatsByEqualityOperator
+            FloatKind.F32 => _rawValue.F32 == 1,
+            FloatKind.F64 => _rawValue.F64 == 1,
+            _ => throw new InvalidOperationException("Invalid float kind"),
+            // ReSharper restore CompareOfFloatsByEqualityOperator
+        };
 
     public object Value
     {
