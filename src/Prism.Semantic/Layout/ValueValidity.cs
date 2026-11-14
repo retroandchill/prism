@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 
-namespace Prism.Compiler.Semantic.Layout;
+namespace Prism.Semantic.Layout;
 
 /// <summary>
 /// Describes restrictions on valid bit patterns for a type.

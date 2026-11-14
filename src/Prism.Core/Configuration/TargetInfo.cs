@@ -5,7 +5,7 @@
 
 using MagicArchive;
 
-namespace Prism.Metadata;
+namespace Prism.Configuration;
 
 [Archivable]
 public readonly partial record struct TargetInfo(

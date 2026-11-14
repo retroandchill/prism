@@ -11,6 +11,7 @@ using Prism.Compiler.Symbols;
 using Prism.Compiler.Symbols.Error;
 using Prism.Compiler.Symbols.Intermediate;
 using Prism.Compiler.Symbols.Source;
+using Prism.Configuration;
 using Prism.Constants;
 using Prism.Diagnostics;
 using Prism.Metadata;

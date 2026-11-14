@@ -5,20 +5,21 @@ using Prism.Compiler.Abi;
 using Prism.Compiler.Binding;
 using Prism.Compiler.BoundTree;
 using Prism.Compiler.Codegen;
-using Prism.Compiler.Configuration;
 using Prism.Compiler.Declarations;
 using Prism.Compiler.Semantic;
-using Prism.Compiler.Semantic.Layout;
 using Prism.Compiler.Symbols;
 using Prism.Compiler.Symbols.Intrinsic;
 using Prism.Compiler.Symbols.Source;
+using Prism.Configuration;
 using Prism.Diagnostics;
 using Prism.Metadata;
 using Prism.Semantic;
+using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
 using Prism.Text;
 using ZLinq;
+using TargetInfo = Prism.Configuration.TargetInfo;
 
 namespace Prism.Compiler;
 
@@ -27,7 +28,7 @@ internal sealed record EntryPoint(FunctionSymbol? Function, ImmutableArray<Diagn
     public static readonly EntryPoint Empty = new(null, []);
 }
 
-public class Compilation
+public class Compilation : ILayoutSource
 {
     private readonly SyntaxAndDeclarationManager _syntaxAndDeclarationManager;
     private EntryPoint? _entryPoint;
@@ -66,6 +67,8 @@ public class Compilation
     }
 
     public CompilationSettings Settings { get; }
+
+    PointerWidth ILayoutSource.PointerWidth => Settings.PointerWidth;
 
     internal TargetInfo TargetInfo
     {

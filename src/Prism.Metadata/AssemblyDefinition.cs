@@ -10,7 +10,7 @@ namespace Prism.Metadata;
 public sealed partial class AssemblyDefinition
 {
     public Prism.AssemblyIdentity Identity { get; }
-    public TargetInfo TargetInfo { get; }
+    public Configuration.TargetInfo TargetInfo { get; }
 
     private readonly MetadataReader? _metadataReader;
 
@@ -22,7 +22,10 @@ public sealed partial class AssemblyDefinition
     }
 
     [MapperConstructor]
-    internal AssemblyDefinition(Prism.AssemblyIdentity identity, TargetInfo targetInfo)
+    internal AssemblyDefinition(
+        Prism.AssemblyIdentity identity,
+        Configuration.TargetInfo targetInfo
+    )
     {
         Identity = identity;
         TargetInfo = targetInfo;

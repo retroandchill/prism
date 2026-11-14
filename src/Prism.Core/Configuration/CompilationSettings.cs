@@ -1,7 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using Prism.Metadata;
-
-namespace Prism.Compiler.Configuration;
+﻿namespace Prism.Configuration;
 
 // TODO: Fill-Me Out
 public sealed record CompilationSettings

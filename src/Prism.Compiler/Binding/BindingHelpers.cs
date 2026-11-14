@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
-using Prism.Compiler.Configuration;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
+using Prism.Configuration;
 using Prism.Constants;
 using Prism.Diagnostics;
 using Prism.Metadata;

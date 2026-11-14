@@ -5,7 +5,6 @@
 
 using System.Collections.Immutable;
 using System.Reflection.PortableExecutable;
-using Prism.Compiler.Configuration;
 
 namespace Prism.Compiler.Codegen;
 

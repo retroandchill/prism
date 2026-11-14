@@ -10,6 +10,7 @@ using Prism.Compiler.Symbols;
 using Prism.Metadata;
 using Prism.Semantic;
 using Prism.Semantic.Symbols;
+using TargetInfo = Prism.Configuration.TargetInfo;
 
 namespace Prism.Compiler.Codegen;
 

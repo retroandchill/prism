@@ -14,7 +14,7 @@ namespace Prism.Metadata;
 [Archivable(GenerateType.Custom)]
 internal readonly partial record struct MetadataHeader(
     AssemblyIdentityData AssemblyIdentity,
-    TargetInfo TargetInfo
+    Configuration.TargetInfo TargetInfo
 )
 {
     private static readonly ImmutableArray<byte> HeaderSequence = [.. "PRISM"u8];
@@ -51,7 +51,10 @@ internal readonly partial record struct MetadataHeader(
             throw new ArchiveSerializationException("Invalid version");
         }
 
-        reader.ReadBlittable(out AssemblyIdentityData assemblyIdentity, out TargetInfo targetInfo);
+        reader.ReadBlittable(
+            out AssemblyIdentityData assemblyIdentity,
+            out Configuration.TargetInfo targetInfo
+        );
         value = new MetadataHeader(assemblyIdentity, targetInfo);
     }
 

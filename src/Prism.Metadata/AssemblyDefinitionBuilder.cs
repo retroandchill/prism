@@ -11,7 +11,7 @@ public sealed class AssemblyDefinitionBuilder
 {
     public Prism.AssemblyIdentity Identity { get; }
 
-    public TargetInfo TargetInfo { get; }
+    public Configuration.TargetInfo TargetInfo { get; }
 
     private readonly List<AssemblyReference> _references = [];
     private readonly List<NamespaceDefinitionBuilder> _namespaceDefs = [];
@@ -26,7 +26,10 @@ public sealed class AssemblyDefinitionBuilder
     private readonly List<ParameterDefinitionBuilder> _parameters = [];
     private readonly List<CustomAttributeDefinitionBuilder> _customAttributes = [];
 
-    public AssemblyDefinitionBuilder(Prism.AssemblyIdentity identity, TargetInfo targetInfo)
+    public AssemblyDefinitionBuilder(
+        Prism.AssemblyIdentity identity,
+        Configuration.TargetInfo targetInfo
+    )
     {
         Identity = identity;
         TargetInfo = targetInfo;

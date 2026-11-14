@@ -5,7 +5,7 @@
 
 using NetEscapades.EnumGenerators;
 
-namespace Prism.Metadata;
+namespace Prism.Configuration;
 
 [EnumExtensions]
 public enum ToolchainKind : byte

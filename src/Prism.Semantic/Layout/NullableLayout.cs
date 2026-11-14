@@ -1,6 +1,4 @@
-﻿using System.Collections.Immutable;
-
-namespace Prism.Compiler.Semantic.Layout;
+﻿namespace Prism.Semantic.Layout;
 
 public closed class NullableLayout : TypeLayout
 {

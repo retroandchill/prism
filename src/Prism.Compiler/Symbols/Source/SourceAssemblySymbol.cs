@@ -6,6 +6,7 @@ using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
 using Prism.Text;
+using TargetInfo = Prism.Configuration.TargetInfo;
 
 namespace Prism.Compiler.Symbols.Source;
 

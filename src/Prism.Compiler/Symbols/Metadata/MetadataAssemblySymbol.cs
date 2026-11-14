@@ -14,6 +14,7 @@ using FunctionDefinition = Prism.Metadata.FunctionDefinition;
 using MemberContainerDefinition = Prism.Metadata.MemberContainerDefinition;
 using NamespaceDefinition = Prism.Metadata.NamespaceDefinition;
 using ParameterDefinition = Prism.Metadata.ParameterDefinition;
+using TargetInfo = Prism.Configuration.TargetInfo;
 using TypeDefinition = Prism.Metadata.TypeDefinition;
 using VariableDefinition = Prism.Metadata.VariableDefinition;
 

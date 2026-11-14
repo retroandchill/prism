@@ -1,7 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Runtime.Serialization;
-
-namespace Prism.Compiler.Configuration;
+﻿namespace Prism.Configuration;
 
 public enum OutputKind : byte
 {

@@ -1,4 +1,4 @@
-﻿using Prism.Compiler.Configuration;
+﻿using Prism.Configuration;
 using Tomlyn;
 using Tomlyn.Serialization;
 

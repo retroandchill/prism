@@ -1,4 +1,4 @@
-﻿using Prism.Compiler.Configuration;
+﻿using Prism.Configuration;
 
 namespace Prism.Build.Manifest;
 

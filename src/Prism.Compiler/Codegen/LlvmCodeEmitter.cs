@@ -11,20 +11,21 @@ using Prism.Compiler.Abi;
 using Prism.Compiler.Binding;
 using Prism.Compiler.BoundTree;
 using Prism.Compiler.Codegen.Mir;
-using Prism.Compiler.Configuration;
 using Prism.Compiler.Mir;
 using Prism.Compiler.Mir.Analysis;
 using Prism.Compiler.Semantic;
-using Prism.Compiler.Semantic.Layout;
 using Prism.Compiler.Symbols;
+using Prism.Configuration;
 using Prism.Constants;
 using Prism.Diagnostics;
 using Prism.Metadata;
 using Prism.Semantic;
 using Prism.Semantic.Conversions;
+using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
 using Prism.Utils;
 using ZLinq;
+using FloatKind = Prism.Semantic.Layout.FloatKind;
 
 namespace Prism.Compiler.Codegen;
 
@@ -368,11 +369,11 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             IntegerLayout integer => _context.GetIntType((uint)integer.BitWidth),
             FloatLayout floating => floating.Kind switch
             {
-                Semantic.Layout.FloatKind.Half => _context.HalfType,
-                Semantic.Layout.FloatKind.Single => _context.FloatType,
-                Semantic.Layout.FloatKind.Double => _context.DoubleType,
-                Semantic.Layout.FloatKind.FP128 => _context.FP128Type,
-                Semantic.Layout.FloatKind.X86_FP80 => _context.X86FP80Type,
+                FloatKind.Half => _context.HalfType,
+                FloatKind.Single => _context.FloatType,
+                FloatKind.Double => _context.DoubleType,
+                FloatKind.FP128 => _context.FP128Type,
+                FloatKind.X86_FP80 => _context.X86FP80Type,
                 _ => throw new ArgumentException("Invalid floating point kind"),
             },
             PointerLayout pointer => _context.CreatePointerType(pointer.AddressSpace),

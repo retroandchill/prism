@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
 using Prism.Compiler.Binding;
-using Prism.Compiler.Configuration;
 using Prism.Compiler.Symbols;
 using Prism.Compiler.Symbols.Intermediate;
+using Prism.Configuration;
 using Prism.Metadata;
 using Prism.Semantic;
 using Prism.Semantic.Conversions;

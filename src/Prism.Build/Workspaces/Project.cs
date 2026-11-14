@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using Prism.Build.Manifest;
 using Prism.Compiler;
 using Prism.Compiler.Codegen;
-using Prism.Compiler.Configuration;
+using Prism.Configuration;
 using Prism.Syntax;
 using Tomlyn;
 using ZLinq;

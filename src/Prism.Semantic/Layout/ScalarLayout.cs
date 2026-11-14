@@ -1,8 +1,7 @@
 ﻿using System.Diagnostics;
-using Prism.Compiler.Configuration;
-using Prism.Metadata;
+using Prism.Configuration;
 
-namespace Prism.Compiler.Semantic.Layout;
+namespace Prism.Semantic.Layout;
 
 public closed class ScalarLayout : TypeLayout
 {

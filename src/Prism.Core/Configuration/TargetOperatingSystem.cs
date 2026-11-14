@@ -6,7 +6,7 @@
 using System.Runtime.InteropServices;
 using NetEscapades.EnumGenerators;
 
-namespace Prism.Metadata;
+namespace Prism.Configuration;
 
 [EnumExtensions]
 public enum TargetOperatingSystem : byte

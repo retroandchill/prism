@@ -1,4 +1,4 @@
-﻿namespace Prism.Compiler.Semantic.Layout;
+﻿namespace Prism.Semantic.Layout;
 
 public sealed class EmptyLayout : TypeLayout
 {

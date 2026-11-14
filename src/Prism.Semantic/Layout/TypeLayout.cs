@@ -1,4 +1,4 @@
-﻿namespace Prism.Compiler.Semantic.Layout;
+﻿namespace Prism.Semantic.Layout;
 
 internal readonly record struct TypeLayoutInfo(ulong Size, ulong Alignment)
 {

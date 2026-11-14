@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.Setup.Configuration;
-using Prism.Compiler.Configuration;
+using Prism.Configuration;
 using Prism.Metadata;
 
 namespace Prism.Compiler.Codegen.Platforms.Msvc;

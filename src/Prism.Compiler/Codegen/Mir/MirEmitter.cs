@@ -6,12 +6,12 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Compiler.BoundTree;
-using Prism.Compiler.Configuration;
 using Prism.Compiler.Mappers;
 using Prism.Compiler.Mir;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
 using Prism.Compiler.Symbols.Intrinsic;
+using Prism.Configuration;
 using Prism.Constants;
 using Prism.Diagnostics;
 using Prism.Metadata;

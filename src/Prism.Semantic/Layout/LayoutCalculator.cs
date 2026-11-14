@@ -2,19 +2,16 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Prism.Compiler.Configuration;
-using Prism.Compiler.Symbols;
-using Prism.Metadata;
-using Prism.Semantic;
+using Prism.Configuration;
 using Prism.Semantic.Symbols;
 using ZLinq;
 
-namespace Prism.Compiler.Semantic.Layout;
+namespace Prism.Semantic.Layout;
 
 internal static class LayoutCalculator
 {
     public static TypeLayout GetTypeLayout(
-        Compilation compilation,
+        ILayoutSource compilation,
         TypeSymbol typeSymbol,
         CancellationToken cancellationToken
     )
@@ -22,7 +19,11 @@ internal static class LayoutCalculator
         cancellationToken.ThrowIfCancellationRequested();
         return typeSymbol switch
         {
-            NamedTypeSymbol namedTypeSymbol => GetTypeLayout(compilation, namedTypeSymbol),
+            NamedTypeSymbol namedTypeSymbol => GetTypeLayout(
+                compilation,
+                namedTypeSymbol,
+                cancellationToken
+            ),
             ArrayTypeSymbol arrayTypeSymbol => GetTypeLayout(
                 compilation,
                 arrayTypeSymbol,
@@ -40,11 +41,15 @@ internal static class LayoutCalculator
         };
     }
 
-    private static TypeLayout GetTypeLayout(Compilation compilation, NamedTypeSymbol typeSymbol)
+    private static TypeLayout GetTypeLayout(
+        ILayoutSource compilation,
+        NamedTypeSymbol typeSymbol,
+        CancellationToken cancellationToken
+    )
     {
         return typeSymbol.SpecialType switch
         {
-            SpecialType.None => CreateClassLayout(compilation, typeSymbol),
+            SpecialType.None => CreateClassLayout(compilation, typeSymbol, cancellationToken),
             SpecialType.Void or SpecialType.Str => throw new ArgumentException(
                 "Invalid special type"
             ),
@@ -54,16 +59,13 @@ internal static class LayoutCalculator
             SpecialType.I32 => GetIntegerLayout(32, true),
             SpecialType.I64 => GetIntegerLayout(64, true),
             SpecialType.I128 => GetIntegerLayout(128, true),
-            SpecialType.ISize => GetIntegerLayout(compilation.Settings.PointerWidth.BitWidth, true),
+            SpecialType.ISize => GetIntegerLayout(compilation.PointerWidth.BitWidth, true),
             SpecialType.U8 => GetIntegerLayout(8, false),
             SpecialType.U16 => GetIntegerLayout(16, false),
             SpecialType.U32 => GetIntegerLayout(32, false),
             SpecialType.U64 => GetIntegerLayout(64, false),
             SpecialType.U128 => GetIntegerLayout(128, false),
-            SpecialType.USize => GetIntegerLayout(
-                compilation.Settings.PointerWidth.BitWidth,
-                false
-            ),
+            SpecialType.USize => GetIntegerLayout(compilation.PointerWidth.BitWidth, false),
             SpecialType.F32 => new FloatLayout(FloatKind.Single),
             SpecialType.F64 => new FloatLayout(FloatKind.Double),
             SpecialType.Char => GetIntegerLayout(8, false),
@@ -74,7 +76,7 @@ internal static class LayoutCalculator
     }
 
     private static ArrayLayout GetTypeLayout(
-        Compilation compilation,
+        ILayoutSource compilation,
         ArrayTypeSymbol typeSymbol,
         CancellationToken cancellationToken
     )
@@ -84,9 +86,12 @@ internal static class LayoutCalculator
         return new ArrayLayout(elementType, typeSymbol.Size.Value);
     }
 
-    private static TypeLayout GetTypeLayout(Compilation compilation, ReferenceTypeSymbol typeSymbol)
+    private static TypeLayout GetTypeLayout(
+        ILayoutSource compilation,
+        ReferenceTypeSymbol typeSymbol
+    )
     {
-        var pointerWidth = compilation.Settings.PointerWidth;
+        var pointerWidth = compilation.PointerWidth;
         if (typeSymbol.ReferencedType.IsDynamicallySized)
         {
             return pointerWidth switch
@@ -106,7 +111,7 @@ internal static class LayoutCalculator
     }
 
     private static NullableLayout GetTypeLayout(
-        Compilation compilation,
+        ILayoutSource compilation,
         NullableTypeSymbol typeSymbol,
         CancellationToken cancellationToken
     )
@@ -341,7 +346,11 @@ internal static class LayoutCalculator
         OptimizedNullableLayout?
     > CachedOptimizedNullableLayouts = new();
 
-    private static TypeLayout CreateClassLayout(Compilation compilation, NamedTypeSymbol symbol)
+    private static TypeLayout CreateClassLayout(
+        ILayoutSource compilation,
+        NamedTypeSymbol symbol,
+        CancellationToken cancellationToken
+    )
     {
         using var fields = symbol
             .GetMembers()
@@ -360,7 +369,7 @@ internal static class LayoutCalculator
         var builder = ImmutableArray.CreateBuilder<StructField>(fields.Size);
         foreach (var field in fields.Span)
         {
-            var layout = compilation.GetTypeLayout(field.Type);
+            var layout = compilation.GetTypeLayout(field.Type, cancellationToken);
             if (layout.Size == 0)
                 continue;
 
