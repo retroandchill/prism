@@ -45,11 +45,6 @@ public sealed class BasicBlockBuilder
         _statements.Add(new StorageDeadStatement(local));
     }
 
-    public void AddMakeNull(Place place)
-    {
-        _statements.Add(new MakeNullStatement(place));
-    }
-
     private void EnsureTerminatorNotSet()
     {
         if (_terminator is not null)

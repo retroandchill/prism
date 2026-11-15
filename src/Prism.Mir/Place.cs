@@ -16,6 +16,11 @@ public readonly record struct Place(PlaceBase Base, ImmutableArray<PlaceProjecti
 
     public static implicit operator Place(PlaceBase @base) => new(@base);
 
+    public Place AddProjection(PlaceProjection projection)
+    {
+        return this with { Projections = Projections.Add(projection) };
+    }
+
     public bool Equals(Place other)
     {
         return Base.Equals(other.Base) && Projections.SequenceEqual(other.Projections);

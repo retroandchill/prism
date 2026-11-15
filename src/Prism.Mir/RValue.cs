@@ -29,6 +29,16 @@ public sealed record BinaryRValue(BinaryOperator Operator, Operand Left, Operand
     public override string ToString() => $"{Operator}({Left}, {Right})";
 }
 
+public sealed record IsNull(Operand Operand) : RValue
+{
+    public override string ToString() => $"IsNull({Operand})";
+}
+
+public sealed record IsNotNull(Operand Operand) : RValue
+{
+    public override string ToString() => $"IsNotNull({Operand})";
+}
+
 public sealed record SelectRValue(Operand Condition, Operand TrueValue, Operand FalseValue) : RValue
 {
     public override string ToString() => $"Select({Condition}, {TrueValue}, {FalseValue})";

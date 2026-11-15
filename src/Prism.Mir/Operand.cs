@@ -33,6 +33,8 @@ public sealed record ConstantOperand : Operand
 
     public ConstantValue Value { get; init; }
 
+    public bool IsNull => Value is NullConstant;
+
     public static ConstantOperand Create(in ConstantValue value)
     {
         return value switch
@@ -111,12 +113,14 @@ public sealed record ConstantOperand : Operand
     }
 }
 
-public sealed record CopyOperand(Place Source) : Operand
+public closed record PlaceOperand(Place Source) : Operand;
+
+public sealed record CopyOperand(Place Source) : PlaceOperand(Source)
 {
     public override string ToString() => $"Copy({Source})";
 }
 
-public sealed record MoveOperand(Place Source) : Operand
+public sealed record MoveOperand(Place Source) : PlaceOperand(Source)
 {
     public override string ToString() => $"Move({Source})";
 }

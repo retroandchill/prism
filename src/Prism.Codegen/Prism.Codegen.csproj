@@ -11,4 +11,8 @@
       <ProjectReference Include="..\Prism.Mir\Prism.Mir.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Riok.Mapperly" />
+    </ItemGroup>
+
 </Project>

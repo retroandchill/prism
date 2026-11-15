@@ -6,11 +6,14 @@
 using System.Diagnostics;
 using Prism.Compiler;
 using Prism.Compiler.BoundTree;
+using Prism.Compiler.Mappers;
 using Prism.Compiler.Semantic;
 using Prism.Configuration;
 using Prism.Constants;
 using Prism.Mir;
+using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
+using FloatKind = Prism.Constants.FloatKind;
 
 namespace Prism.Codegen.Mir;
 
@@ -422,6 +425,8 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
                     return EmitAccess(access, context);
                 case BoundThisExpression:
                     return EmitThis(context);
+                case BoundAssignmentOperation assignment:
+                    return EmitAssignment(assignment, lifetime, context, cancellationToken);
             }
 
             Place place;
@@ -478,10 +483,10 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
                 EmitOperation(destination, unary, lifetime, context, cancellationToken);
                 break;
             case BoundBinaryOperation binary:
-                break;
-            case BoundAssignmentOperation assignment:
+                EmitOperation(destination, binary, lifetime, context, cancellationToken);
                 break;
             case BoundConditional conditional:
+                EmitConditional(destination, conditional, lifetime, context, cancellationToken);
                 break;
             case BoundInvocation invocation:
                 break;
@@ -505,6 +510,8 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
                 throw new InvalidOperationException(
                     "The constant folding should have grabbed this already"
                 );
+            case BoundAssignmentOperation:
+                throw new InvalidOperationException("Assignments do not return values");
             default:
                 throw new ArgumentOutOfRangeException(nameof(expression));
         }
@@ -683,36 +690,254 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
         }
     }
 
-    private ConstantOperand GetUnitConstant(SpecialType type)
+    private void EmitOperation(
+        Place destination,
+        BoundBinaryOperation operation,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
     {
-        return type switch
+        var left = EmitExpression(operation.Left, lifetime, context, cancellationToken);
+        Debug.Assert(operation.Left == operation.Right);
+        EmitBinaryOperation(
+            destination,
+            operation.Operation,
+            operation.Left.Type,
+            left,
+            operation.Right,
+            lifetime,
+            context,
+            cancellationToken
+        );
+    }
+
+    private void EmitBinaryOperation(
+        Place destination,
+        BinaryOperation operation,
+        TypeSymbol inputType,
+        Operand left,
+        BoundExpression right,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        switch (operation)
         {
-            SpecialType.I8 => ConstantOperand.One(IntegerKind.I8),
-            SpecialType.I16 => ConstantOperand.One(IntegerKind.I16),
-            SpecialType.I32 => ConstantOperand.One(IntegerKind.I32),
-            SpecialType.I64 => ConstantOperand.One(IntegerKind.I64),
-            SpecialType.I128 => ConstantOperand.One(IntegerKind.I128),
-            SpecialType.ISize => compilation.Settings.PointerWidth switch
-            {
-                PointerWidth.X32 => ConstantOperand.One(IntegerKind.I32),
-                PointerWidth.X64 => ConstantOperand.One(IntegerKind.I64),
-                _ => throw new InvalidOperationException("Invalid pointer width"),
-            },
-            SpecialType.U8 => ConstantOperand.One(IntegerKind.U8),
-            SpecialType.U16 => ConstantOperand.One(IntegerKind.U16),
-            SpecialType.U32 => ConstantOperand.One(IntegerKind.U32),
-            SpecialType.U64 => ConstantOperand.One(IntegerKind.U64),
-            SpecialType.U128 => ConstantOperand.One(IntegerKind.U128),
-            SpecialType.USize => compilation.Settings.PointerWidth switch
-            {
-                PointerWidth.X32 => ConstantOperand.One(IntegerKind.U32),
-                PointerWidth.X64 => ConstantOperand.One(IntegerKind.U64),
-                _ => throw new InvalidOperationException("Invalid pointer width"),
-            },
-            SpecialType.F32 => ConstantOperand.One(FloatKind.F32),
-            SpecialType.F64 => ConstantOperand.One(FloatKind.F64),
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+            case BinaryOperation.LogicalAnd:
+                EmitLogicalOperation(
+                    destination,
+                    LogicalOperation.And,
+                    left,
+                    right,
+                    lifetime,
+                    context,
+                    cancellationToken
+                );
+                break;
+            case BinaryOperation.LogicalOr:
+                EmitLogicalOperation(
+                    destination,
+                    LogicalOperation.Or,
+                    left,
+                    right,
+                    lifetime,
+                    context,
+                    cancellationToken
+                );
+                break;
+            default:
+                EmitSimpleBinaryOperation(
+                    destination,
+                    operation,
+                    inputType,
+                    left,
+                    right,
+                    lifetime,
+                    context,
+                    cancellationToken
+                );
+                break;
+        }
+    }
+
+    private void EmitLogicalOperation(
+        Place destination,
+        LogicalOperation operation,
+        Operand left,
+        BoundExpression right,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var evalNext = context.AddBlock("eval.right");
+        var evalSkip = context.AddDetachedBlock("eval.skip");
+        var evalMerge = context.AddDetachedBlock("eval.merge");
+
+        switch (operation)
+        {
+            case LogicalOperation.And:
+                context.CurrentBlock.SetBranchTerminator(left, evalNext, evalSkip);
+                break;
+            case LogicalOperation.Or:
+                context.CurrentBlock.SetBranchTerminator(left, evalSkip, evalNext);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
+        }
+
+        context.CurrentBlock = evalNext;
+        EmitExpression(destination, right, lifetime, context, cancellationToken);
+        context.CurrentBlock.SetGotoTerminator(evalMerge);
+
+        context.CurrentBlock = evalSkip;
+        context.AddBlock(evalSkip);
+        var skipResult = operation switch
+        {
+            LogicalOperation.And => ConstantOperand.False,
+            LogicalOperation.Or => ConstantOperand.True,
+            _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
         };
+        context.CurrentBlock.AddAssignment(destination, new UseRValue(skipResult));
+        context.CurrentBlock.SetGotoTerminator(evalMerge);
+
+        context.CurrentBlock = evalMerge;
+        context.AddBlock(evalMerge);
+    }
+
+    private void EmitSimpleBinaryOperation(
+        Place destination,
+        BinaryOperation operation,
+        TypeSymbol inputType,
+        Operand left,
+        BoundExpression right,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var rightValue = EmitExpression(right, lifetime, context, cancellationToken);
+        EmitBinaryStatement(destination, operation, inputType, left, rightValue, context);
+    }
+
+    private static void EmitBinaryStatement(
+        Place destination,
+        BinaryOperation operation,
+        TypeSymbol inputType,
+        Operand left,
+        Operand right,
+        EmissionContext context
+    )
+    {
+        if (
+            operation is BinaryOperation.Equality or BinaryOperation.NotEquals
+            && inputType is NullableTypeSymbol
+        )
+        {
+            var shouldBeNull = operation == BinaryOperation.Equality;
+            if (left is ConstantOperand { IsNull: true })
+            {
+                context.CurrentBlock.AddAssignment(
+                    destination,
+                    shouldBeNull ? new IsNull(right) : new IsNotNull(right)
+                );
+                return;
+            }
+
+            if (right is ConstantOperand { IsNull: true })
+            {
+                context.CurrentBlock.AddAssignment(
+                    destination,
+                    shouldBeNull ? new IsNotNull(left) : new IsNull(left)
+                );
+                return;
+            }
+        }
+
+        context.CurrentBlock.AddAssignment(
+            destination,
+            new BinaryRValue(operation.ToBinaryOperator(), left, right)
+        );
+    }
+
+    private ConstantOperand EmitAssignment(
+        BoundAssignmentOperation operation,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var place = EmitPlace(operation.Left, lifetime, context, cancellationToken);
+        if (operation.Operation == AssignmentOperation.Simple)
+        {
+            EmitExpression(place, operation.Right, lifetime, context, cancellationToken);
+        }
+        else
+        {
+            var binaryOperation = operation.Operation.ToBinaryOperation();
+            EmitBinaryOperation(
+                place,
+                binaryOperation,
+                operation.Left.Type,
+                new CopyOperand(place),
+                operation.Right,
+                lifetime,
+                context,
+                cancellationToken
+            );
+        }
+
+        // This is just a placeholder value as assignments do not return a value
+        return ConstantOperand.Null;
+    }
+
+    private void EmitConditional(
+        Place destination,
+        BoundConditional operation,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var condition = EmitExpression(operation.Condition, lifetime, context, cancellationToken);
+
+        if (
+            operation.WhenTrue.ConstantValue is { } trueConstant
+            && operation.WhenFalse.ConstantValue is { } falseConstant
+        )
+        {
+            context.CurrentBlock.AddAssignment(
+                destination,
+                new SelectRValue(
+                    condition,
+                    ConstantOperand.Create(in trueConstant),
+                    ConstantOperand.Create(in falseConstant)
+                )
+            );
+            return;
+        }
+
+        var thenBlock = context.AddBlock("cond.then");
+        var elseBlock = context.AddDetachedBlock("cond.else");
+        var mergeBlock = context.AddDetachedBlock("cond.merge");
+
+        context.CurrentBlock.SetBranchTerminator(condition, thenBlock, elseBlock);
+
+        context.CurrentBlock = thenBlock;
+        var value = EmitExpression(operation.WhenTrue, lifetime, context, cancellationToken);
+        context.CurrentBlock.AddAssignment(destination, new UseRValue(value));
+        context.CurrentBlock.SetGotoTerminator(mergeBlock);
+
+        context.CurrentBlock = elseBlock;
+        context.AddBlock(elseBlock);
+        value = EmitExpression(operation.WhenFalse, lifetime, context, cancellationToken);
+        context.CurrentBlock.AddAssignment(destination, new UseRValue(value));
+        context.CurrentBlock.SetGotoTerminator(mergeBlock);
+
+        context.CurrentBlock = mergeBlock;
+        context.AddBlock(mergeBlock);
     }
 
     private Place EmitPlace(
@@ -846,5 +1071,37 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
     {
         Debug.Assert(context.ReceiverPlace is not null);
         builder.Base = context.ReceiverPlace;
+    }
+
+    private ConstantOperand GetUnitConstant(SpecialType type)
+    {
+        return type switch
+        {
+            SpecialType.I8 => ConstantOperand.One(IntegerKind.I8),
+            SpecialType.I16 => ConstantOperand.One(IntegerKind.I16),
+            SpecialType.I32 => ConstantOperand.One(IntegerKind.I32),
+            SpecialType.I64 => ConstantOperand.One(IntegerKind.I64),
+            SpecialType.I128 => ConstantOperand.One(IntegerKind.I128),
+            SpecialType.ISize => compilation.Settings.PointerWidth switch
+            {
+                PointerWidth.X32 => ConstantOperand.One(IntegerKind.I32),
+                PointerWidth.X64 => ConstantOperand.One(IntegerKind.I64),
+                _ => throw new InvalidOperationException("Invalid pointer width"),
+            },
+            SpecialType.U8 => ConstantOperand.One(IntegerKind.U8),
+            SpecialType.U16 => ConstantOperand.One(IntegerKind.U16),
+            SpecialType.U32 => ConstantOperand.One(IntegerKind.U32),
+            SpecialType.U64 => ConstantOperand.One(IntegerKind.U64),
+            SpecialType.U128 => ConstantOperand.One(IntegerKind.U128),
+            SpecialType.USize => compilation.Settings.PointerWidth switch
+            {
+                PointerWidth.X32 => ConstantOperand.One(IntegerKind.U32),
+                PointerWidth.X64 => ConstantOperand.One(IntegerKind.U64),
+                _ => throw new InvalidOperationException("Invalid pointer width"),
+            },
+            SpecialType.F32 => ConstantOperand.One(FloatKind.F32),
+            SpecialType.F64 => ConstantOperand.One(FloatKind.F64),
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+        };
     }
 }

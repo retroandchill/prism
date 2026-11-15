@@ -24,8 +24,3 @@ public sealed record StorageDeadStatement(Local Local) : Statement
 {
     public override string ToString() => $"Dead({Local})";
 }
-
-public sealed record MakeNullStatement(Place Place) : Statement
-{
-    public override string ToString() => $"MakeNull({Place})";
-}

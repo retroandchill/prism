@@ -22,8 +22,6 @@ public enum BinaryOperator : byte
     BitwiseAnd,
     BitwiseOr,
     BitwiseXor,
-    LogicalAnd,
-    LogicalOr,
     Equality,
     NotEquals,
     LessThan,
