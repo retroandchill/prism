@@ -7,6 +7,8 @@ using System.Diagnostics;
 using Prism.Compiler;
 using Prism.Compiler.BoundTree;
 using Prism.Compiler.Semantic;
+using Prism.Configuration;
+using Prism.Constants;
 using Prism.Mir;
 using Prism.Semantic.Symbols;
 
@@ -579,15 +581,51 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
                 );
                 break;
             case UnaryOperation.PreIncrement:
+                EmitUnaryIncrementDecrement(
+                    destination,
+                    operation.Operand,
+                    UnaryResultKind.Prefix,
+                    UnaryArithmeticKind.Increment,
+                    lifetime,
+                    context,
+                    cancellationToken
+                );
                 break;
             case UnaryOperation.PreDecrement:
+                EmitUnaryIncrementDecrement(
+                    destination,
+                    operation.Operand,
+                    UnaryResultKind.Prefix,
+                    UnaryArithmeticKind.Decrement,
+                    lifetime,
+                    context,
+                    cancellationToken
+                );
                 break;
             case UnaryOperation.PostIncrement:
+                EmitUnaryIncrementDecrement(
+                    destination,
+                    operation.Operand,
+                    UnaryResultKind.Postfix,
+                    UnaryArithmeticKind.Increment,
+                    lifetime,
+                    context,
+                    cancellationToken
+                );
                 break;
             case UnaryOperation.PostDecrement:
+                EmitUnaryIncrementDecrement(
+                    destination,
+                    operation.Operand,
+                    UnaryResultKind.Postfix,
+                    UnaryArithmeticKind.Decrement,
+                    lifetime,
+                    context,
+                    cancellationToken
+                );
                 break;
             default:
-                throw new ArgumentOutOfRangeException();
+                throw new InvalidOperationException("Unknown unary operation");
         }
     }
 
@@ -617,6 +655,65 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
     )
     {
         var expressionPlace = EmitPlace(inner, lifetime, context, cancellationToken);
+        var binaryOperand = arithmeticKind switch
+        {
+            UnaryArithmeticKind.Increment => BinaryOperator.Addition,
+            UnaryArithmeticKind.Decrement => BinaryOperator.Subtraction,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(arithmeticKind),
+                arithmeticKind,
+                null
+            ),
+        };
+
+        var copyOperand = new CopyOperand(expressionPlace);
+        if (resultKind == UnaryResultKind.Postfix)
+        {
+            context.CurrentBlock.AddAssignment(place, new UseRValue(copyOperand));
+        }
+
+        Debug.Assert(inner.Type.SpecialType.IsNumeric);
+        context.CurrentBlock.AddAssignment(
+            expressionPlace,
+            new BinaryRValue(binaryOperand, copyOperand, GetUnitConstant(inner.Type.SpecialType))
+        );
+
+        if (resultKind == UnaryResultKind.Postfix)
+        {
+            context.CurrentBlock.AddAssignment(place, new UseRValue(copyOperand));
+        }
+    }
+
+    private ConstantOperand GetUnitConstant(SpecialType type)
+    {
+        return type switch
+        {
+            SpecialType.I8 => ConstantOperand.One(IntegerKind.I8),
+            SpecialType.I16 => ConstantOperand.One(IntegerKind.I16),
+            SpecialType.I32 => ConstantOperand.One(IntegerKind.I32),
+            SpecialType.I64 => ConstantOperand.One(IntegerKind.I64),
+            SpecialType.I128 => ConstantOperand.One(IntegerKind.I128),
+            SpecialType.ISize => compilation.Settings.PointerWidth switch
+            {
+                PointerWidth.X32 => ConstantOperand.One(IntegerKind.I32),
+                PointerWidth.X64 => ConstantOperand.One(IntegerKind.I64),
+                _ => throw new InvalidOperationException("Invalid pointer width"),
+            },
+            SpecialType.U8 => ConstantOperand.One(IntegerKind.U8),
+            SpecialType.U16 => ConstantOperand.One(IntegerKind.U16),
+            SpecialType.U32 => ConstantOperand.One(IntegerKind.U32),
+            SpecialType.U64 => ConstantOperand.One(IntegerKind.U64),
+            SpecialType.U128 => ConstantOperand.One(IntegerKind.U128),
+            SpecialType.USize => compilation.Settings.PointerWidth switch
+            {
+                PointerWidth.X32 => ConstantOperand.One(IntegerKind.U32),
+                PointerWidth.X64 => ConstantOperand.One(IntegerKind.U64),
+                _ => throw new InvalidOperationException("Invalid pointer width"),
+            },
+            SpecialType.F32 => ConstantOperand.One(FloatKind.F32),
+            SpecialType.F64 => ConstantOperand.One(FloatKind.F64),
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+        };
     }
 
     private Place EmitPlace(

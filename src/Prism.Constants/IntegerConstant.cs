@@ -103,6 +103,10 @@ public readonly partial record struct IntegerConstant : IUnion
 
     internal static IntegerConstant From(IntegerKind kind, UInt128 value) => new(kind, value);
 
+    public static IntegerConstant Zero(IntegerKind kind) => From(kind, 0);
+
+    public static IntegerConstant One(IntegerKind kind) => From(kind, 1);
+
     public IntegerConstant(sbyte value)
     {
         Kind = IntegerKind.Create(IntegerWidth.W8, IntegerSign.Signed);

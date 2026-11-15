@@ -42,18 +42,38 @@ public sealed record ConstantOperand : Operand
             CharacterConstant => new ConstantOperand(in value),
             IntegerConstant i => i switch
             {
-                { IsZero: true } => IntegerZeros[i.Kind.ToRaw()],
-                { IsOne: true } => IntegerOnes[i.Kind.ToRaw()],
+                { IsZero: true } => Zero(i.Kind),
+                { IsOne: true } => One(i.Kind),
                 _ => new ConstantOperand(in value),
             },
             FloatConstant f => f switch
             {
-                { IsZero: true } => IntegerZeros[f.Kind.AsUnderlyingType()],
-                { IsOne: true } => IntegerOnes[f.Kind.AsUnderlyingType()],
+                { IsZero: true } => Zero(f.Kind),
+                { IsOne: true } => One(f.Kind),
                 _ => new ConstantOperand(in value),
             },
             string str => str.Length == 0 ? EmptyString : new ConstantOperand(in value),
         };
+    }
+
+    public static ConstantOperand Zero(IntegerKind kind)
+    {
+        return IntegerZeros[kind.ToRaw()];
+    }
+
+    public static ConstantOperand Zero(FloatKind kind)
+    {
+        return FloatZeros[kind.AsUnderlyingType()];
+    }
+
+    public static ConstantOperand One(IntegerKind kind)
+    {
+        return IntegerOnes[kind.ToRaw()];
+    }
+
+    public static ConstantOperand One(FloatKind kind)
+    {
+        return FloatOnes[kind.AsUnderlyingType()];
     }
 
     public void Deconstruct(out ConstantValue value)
@@ -71,8 +91,8 @@ public sealed record ConstantOperand : Operand
         for (byte i = 0; i < IntegerKind.MaxValue + 1; i++)
         {
             var kind = IntegerKind.FromRaw(i);
-            integerZeros[i] = new ConstantOperand(IntegerConstant.From(kind, 0));
-            integerOnes[i] = new ConstantOperand(IntegerConstant.From(kind, 1));
+            integerZeros[i] = new ConstantOperand(IntegerConstant.Zero(kind));
+            integerOnes[i] = new ConstantOperand(IntegerConstant.One(kind));
         }
 
         IntegerZeros = ImmutableCollectionsMarshal.AsImmutableArray(integerZeros);
