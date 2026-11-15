@@ -522,7 +522,6 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
 
     private static CopyOperand EmitAccess(BoundParameterAccess access, EmissionContext context)
     {
-        var (_, place) = context.GetLocal(access.Symbol);
         return new CopyOperand(EmitPlace(access, context));
     }
 
