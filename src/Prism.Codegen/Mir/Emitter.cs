@@ -13,7 +13,6 @@ using Prism.Compiler.Symbols.Intrinsic;
 using Prism.Configuration;
 using Prism.Constants;
 using Prism.Mir;
-using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
 using Prism.Utils;
 using FloatKind = Prism.Constants.FloatKind;
@@ -420,33 +419,64 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
                 continue;
             }
 
-            switch (expression)
+            return expression switch
             {
-                case BoundVariableAccess access:
-                    return EmitAccess(access, lifetime, context, cancellationToken);
-                case BoundParameterAccess access:
-                    return EmitAccess(access, context);
-                case BoundThisExpression:
-                    return EmitThis(context);
-                case BoundAssignmentOperation assignment:
-                    return EmitAssignment(assignment, lifetime, context, cancellationToken);
-                case BoundInvocation invocation:
-                    return EmitCall(invocation, lifetime, context, cancellationToken);
-            }
-
-            Place place;
-            if (!expression.Type.IsVoid)
-            {
-                (_, place) = context.CreateTemporary(expression.Type, lifetime);
-            }
-            else
-            {
-                place = default;
-            }
-
-            EmitExpression(place, expression, lifetime, context, cancellationToken);
-            return new MoveOperand(place);
+                BoundVariableAccess access => EmitAccess(
+                    access,
+                    lifetime,
+                    context,
+                    cancellationToken
+                ),
+                BoundParameterAccess access => EmitAccess(access, context),
+                BoundThisExpression => EmitThis(context),
+                BoundAssignmentOperation assignment => EmitAssignment(
+                    assignment,
+                    lifetime,
+                    context,
+                    cancellationToken
+                ),
+                BoundDereference dereference => EmitDereference(
+                    dereference,
+                    lifetime,
+                    context,
+                    cancellationToken
+                ),
+                BoundIndex index => EmitIndex(index, lifetime, context, cancellationToken),
+                BoundConversion { Conversion.IsUnwrapping: true } conversion => EmitNullUnwrap(
+                    conversion,
+                    lifetime,
+                    context,
+                    cancellationToken
+                ),
+                _ => EmitExpressionIntoNewTemporary(
+                    expression,
+                    lifetime,
+                    context,
+                    cancellationToken
+                ),
+            };
         }
+    }
+
+    private MoveOperand EmitExpressionIntoNewTemporary(
+        BoundExpression expression,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        Place place;
+        if (!expression.Type.IsVoid)
+        {
+            (_, place) = context.CreateTemporary(expression.Type, lifetime);
+        }
+        else
+        {
+            place = default;
+        }
+
+        EmitExpression(place, expression, lifetime, context, cancellationToken);
+        return new MoveOperand(place);
     }
 
     private void EmitExpression(
@@ -497,16 +527,36 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
                 EmitCall(destination, invocation, lifetime, context, cancellationToken);
                 break;
             case BoundConversion conversion:
+                EmitConversion(destination, conversion, lifetime, context, cancellationToken);
                 break;
             case BoundAddressOf addressOf:
+                EmitAddressOf(destination, addressOf, lifetime, context, cancellationToken);
                 break;
             case BoundDereference dereference:
+                context.CurrentBlock.AddAssignment(
+                    destination,
+                    new UseRValue(
+                        EmitDereference(dereference, lifetime, context, cancellationToken)
+                    )
+                );
                 break;
             case BoundIndex index:
+                context.CurrentBlock.AddAssignment(
+                    destination,
+                    new UseRValue(EmitIndex(index, lifetime, context, cancellationToken))
+                );
                 break;
             case BoundCollectionExpression collection:
+                EmitCollectionExpression(
+                    destination,
+                    collection,
+                    lifetime,
+                    context,
+                    cancellationToken
+                );
                 break;
             case BoundNewExpression newExpression:
+                EmitNewExpression(destination, newExpression, lifetime, context, cancellationToken);
                 break;
             case BoundBadExpression or BoundSpeculativeExpression:
                 throw new InvalidOperationException(
@@ -946,45 +996,6 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
         context.AddBlock(mergeBlock);
     }
 
-    private Operand EmitCall(
-        BoundInvocation call,
-        ExpressionLifetime lifetime,
-        EmissionContext context,
-        CancellationToken cancellationToken
-    )
-    {
-        var intrinsicFunction = compilation.GetIntrinsicFunction(call.Function);
-        switch (intrinsicFunction)
-        {
-            case IntrinsicFunction.None:
-            {
-                var (_, destination) = context.CreateTemporary(call.Type, lifetime);
-                EmitDefaultCall(destination, call, lifetime, context, cancellationToken);
-                return new MoveOperand(destination);
-            }
-            case IntrinsicFunction.GetSliceData:
-            case IntrinsicFunction.GetSliceLength:
-            {
-                return EmitSliceMemberAccess(call, lifetime, context, cancellationToken);
-            }
-            default:
-                throw new InvalidOperationException(
-                    $"Unsupported intrinsic function: {intrinsicFunction}"
-                );
-        }
-    }
-
-    private CopyOperand EmitSliceMemberAccess(
-        BoundInvocation call,
-        ExpressionLifetime lifetime,
-        EmissionContext context,
-        CancellationToken cancellationToken
-    )
-    {
-        var place = EmitPlace(call, lifetime, context, cancellationToken);
-        return new CopyOperand(place);
-    }
-
     private void EmitCall(
         Place destination,
         BoundInvocation call,
@@ -1002,12 +1013,23 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
                 break;
             }
             case IntrinsicFunction.GetSliceData:
+                var receiver = EmitExpression(
+                    call.Receiver.RequireNonNull(),
+                    lifetime,
+                    context,
+                    cancellationToken
+                );
+                context.CurrentBlock.AddAssignment(destination, new DataRValue(receiver));
+                break;
             case IntrinsicFunction.GetSliceLength:
             {
-                context.CurrentBlock.AddAssignment(
-                    destination,
-                    new UseRValue(EmitSliceMemberAccess(call, lifetime, context, cancellationToken))
+                receiver = EmitExpression(
+                    call.Receiver.RequireNonNull(),
+                    lifetime,
+                    context,
+                    cancellationToken
                 );
+                context.CurrentBlock.AddAssignment(destination, new LengthRValue(receiver));
                 break;
             }
             default:
@@ -1057,6 +1079,114 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
         return [.. arguments.Select(a => EmitExpression(a, lifetime, context, cancellationToken))];
     }
 
+    private void EmitConversion(
+        Place destination,
+        BoundConversion conversion,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var operand = EmitExpression(conversion.Operand, lifetime, context, cancellationToken);
+        context.CurrentBlock.AddAssignment(
+            destination,
+            new ConversionRValue(operand, conversion.Conversion, conversion.Type)
+        );
+    }
+
+    private CopyOperand EmitNullUnwrap(
+        BoundConversion conversion,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        Debug.Assert(conversion.Conversion.IsUnwrapping);
+        var place = EmitPlace(conversion, lifetime, context, cancellationToken);
+        return new CopyOperand(place);
+    }
+
+    private void EmitAddressOf(
+        Place destination,
+        BoundAddressOf addressOf,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var operand = EmitExpression(addressOf.Operand, lifetime, context, cancellationToken);
+        context.CurrentBlock.AddAssignment(
+            destination,
+            new ReferenceRValue(operand, addressOf.IsMutable)
+        );
+    }
+
+    private CopyOperand EmitDereference(
+        BoundDereference dereference,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        return new CopyOperand(EmitPlace(dereference, lifetime, context, cancellationToken));
+    }
+
+    private CopyOperand EmitIndex(
+        BoundIndex index,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        return new CopyOperand(EmitPlace(index, lifetime, context, cancellationToken));
+    }
+
+    private void EmitCollectionExpression(
+        Place destination,
+        BoundCollectionExpression collectionExpression,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var elements = EmitExpressionList(
+            collectionExpression.Expressions,
+            lifetime,
+            context,
+            cancellationToken
+        );
+        context.CurrentBlock.AddAssignment(destination, new ArrayRValue(elements));
+    }
+
+    private void EmitNewExpression(
+        Place destination,
+        BoundNewExpression newExpression,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var referenceType = compilation.CreateReferenceTypeSymbol(newExpression.Type, true);
+        var (_, address) = context.CreateTemporary(referenceType, lifetime);
+        context.CurrentBlock.AddAssignment(
+            address,
+            new ReferenceRValue(new CopyOperand(destination), true)
+        );
+        var arguments = EmitExpressionList(
+            newExpression.Arguments,
+            lifetime,
+            context,
+            cancellationToken
+        );
+        CreateCallInstruction(
+            null,
+            newExpression.Constructor,
+            new MoveOperand(address),
+            arguments,
+            context
+        );
+    }
+
     private Place EmitPlace(
         BoundExpression expression,
         ExpressionLifetime lifetime,
@@ -1094,8 +1224,8 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
             case BoundThisExpression:
                 EmitThisPlace(ref builder, context);
                 break;
-            case BoundInvocation invocation:
-                EmitPlace(ref builder, invocation, lifetime, context, cancellationToken);
+            case BoundConversion { Conversion.IsUnwrapping: true } conversion:
+                EmitNullUnwrapPlace(ref builder, conversion, lifetime, context, cancellationToken);
                 break;
             default:
             {
@@ -1204,51 +1334,17 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
         builder.Base = context.ReceiverPlace;
     }
 
-    private void EmitPlace(
+    private void EmitNullUnwrapPlace(
         ref PlaceBuilder builder,
-        BoundInvocation invocation,
+        BoundConversion conversion,
         ExpressionLifetime lifetime,
         EmissionContext context,
         CancellationToken cancellationToken
     )
     {
-        var intrinsicFunction = compilation.GetIntrinsicFunction(invocation.Function);
-        switch (intrinsicFunction)
-        {
-            case IntrinsicFunction.None:
-            {
-                MaterializeTemporary(ref builder, invocation, lifetime, context, cancellationToken);
-                break;
-            }
-            case IntrinsicFunction.GetSliceData:
-            {
-                EmitPlace(
-                    ref builder,
-                    invocation.Receiver.RequireNonNull(),
-                    lifetime,
-                    context,
-                    cancellationToken
-                );
-                builder.AddProjection(SliceDataProjection.Instance);
-                break;
-            }
-            case IntrinsicFunction.GetSliceLength:
-            {
-                EmitPlace(
-                    ref builder,
-                    invocation.Receiver.RequireNonNull(),
-                    lifetime,
-                    context,
-                    cancellationToken
-                );
-                builder.AddProjection(SliceLengthProjection.Instance);
-                break;
-            }
-            default:
-                throw new InvalidOperationException(
-                    $"Unsupported intrinsic function: {intrinsicFunction}"
-                );
-        }
+        Debug.Assert(conversion.Conversion.IsUnwrapping);
+        EmitPlace(ref builder, conversion.Operand, lifetime, context, cancellationToken);
+        builder.AddProjection(PayloadProjection.Instance);
     }
 
     private ConstantOperand GetUnitConstant(SpecialType type)

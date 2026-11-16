@@ -4,8 +4,6 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
-using Prism.Semantic;
-using Prism.Semantic.Symbols;
 
 namespace Prism.Mir;
 
@@ -46,10 +44,7 @@ public readonly record struct Place(PlaceBase Base, ImmutableArray<PlaceProjecti
                 FieldProjection(var field) => $"{current}.{field.Name}",
                 IndexProjection(var index) => $"{current}[{index}]",
                 DereferenceProjection => $"*({current})",
-                DiscriminantProjection => $"{current}.<discriminant>",
                 PayloadProjection => $"{current}.<payload>",
-                SliceDataProjection => $"{current}.<data>",
-                SliceLengthProjection => $"{current}.<length>",
             });
     }
 }

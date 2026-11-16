@@ -36,30 +36,9 @@ public sealed record DereferenceProjection : PlaceProjection
     public static readonly DereferenceProjection Instance = new();
 }
 
-public sealed record DiscriminantProjection : PlaceProjection
-{
-    private DiscriminantProjection() { }
-
-    public static readonly DiscriminantProjection Instance = new();
-}
-
 public sealed record PayloadProjection : PlaceProjection
 {
     private PayloadProjection() { }
 
     public static readonly PayloadProjection Instance = new();
-}
-
-public sealed record SliceDataProjection : PlaceProjection
-{
-    private SliceDataProjection() { }
-
-    public static readonly SliceDataProjection Instance = new();
-}
-
-public sealed record SliceLengthProjection : PlaceProjection
-{
-    private SliceLengthProjection() { }
-
-    public static readonly SliceLengthProjection Instance = new();
 }

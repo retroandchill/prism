@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using Prism.Semantic;
 using Prism.Semantic.Conversions;
 using Prism.Semantic.Symbols;
@@ -47,10 +48,25 @@ public sealed record SelectRValue(Operand Condition, Operand TrueValue, Operand 
 public sealed record ConversionRValue(Operand Operand, Conversion Conversion, TypeSymbol TargetType)
     : RValue
 {
-    public override string ToString() => $"Cast({Operand})";
+    public override string ToString() => $"Cast({Operand}, {TargetType})";
 }
 
 public sealed record ReferenceRValue(Operand Operand, bool IsMutable) : RValue
 {
     public override string ToString() => $"Ref({(IsMutable ? "mutable" : "")}{Operand})";
+}
+
+public sealed record ArrayRValue(ImmutableArray<Operand> Elements) : RValue
+{
+    public override string ToString() => $"[{string.Join(", ", Elements)}]";
+}
+
+public sealed record DataRValue(Operand Operand) : RValue
+{
+    public override string ToString() => $"Data({Operand})";
+}
+
+public sealed record LengthRValue(Operand Operand) : RValue
+{
+    public override string ToString() => $"Length({Operand})";
 }
