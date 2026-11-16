@@ -15,4 +15,10 @@ public static class NullabilityExtensions
         ArgumentNullException.ThrowIfNull(value);
         return value;
     }
+
+    public static T RequireNonNull<T>([NotNull] this T? value)
+        where T : struct
+    {
+        return value ?? throw new ArgumentNullException(nameof(value));
+    }
 }

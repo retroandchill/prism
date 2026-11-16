@@ -3,16 +3,19 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Diagnostics;
 using Prism.Compiler;
 using Prism.Compiler.BoundTree;
 using Prism.Compiler.Mappers;
 using Prism.Compiler.Semantic;
+using Prism.Compiler.Symbols.Intrinsic;
 using Prism.Configuration;
 using Prism.Constants;
 using Prism.Mir;
 using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
+using Prism.Utils;
 using FloatKind = Prism.Constants.FloatKind;
 
 namespace Prism.Codegen.Mir;
@@ -427,6 +430,8 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
                     return EmitThis(context);
                 case BoundAssignmentOperation assignment:
                     return EmitAssignment(assignment, lifetime, context, cancellationToken);
+                case BoundInvocation invocation:
+                    return EmitCall(invocation, lifetime, context, cancellationToken);
             }
 
             Place place;
@@ -489,6 +494,7 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
                 EmitConditional(destination, conditional, lifetime, context, cancellationToken);
                 break;
             case BoundInvocation invocation:
+                EmitCall(destination, invocation, lifetime, context, cancellationToken);
                 break;
             case BoundConversion conversion:
                 break;
@@ -940,6 +946,117 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
         context.AddBlock(mergeBlock);
     }
 
+    private Operand EmitCall(
+        BoundInvocation call,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var intrinsicFunction = compilation.GetIntrinsicFunction(call.Function);
+        switch (intrinsicFunction)
+        {
+            case IntrinsicFunction.None:
+            {
+                var (_, destination) = context.CreateTemporary(call.Type, lifetime);
+                EmitDefaultCall(destination, call, lifetime, context, cancellationToken);
+                return new MoveOperand(destination);
+            }
+            case IntrinsicFunction.GetSliceData:
+            case IntrinsicFunction.GetSliceLength:
+            {
+                return EmitSliceMemberAccess(call, lifetime, context, cancellationToken);
+            }
+            default:
+                throw new InvalidOperationException(
+                    $"Unsupported intrinsic function: {intrinsicFunction}"
+                );
+        }
+    }
+
+    private CopyOperand EmitSliceMemberAccess(
+        BoundInvocation call,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var place = EmitPlace(call, lifetime, context, cancellationToken);
+        return new CopyOperand(place);
+    }
+
+    private void EmitCall(
+        Place destination,
+        BoundInvocation call,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var intrinsicFunction = compilation.GetIntrinsicFunction(call.Function);
+        switch (intrinsicFunction)
+        {
+            case IntrinsicFunction.None:
+            {
+                EmitDefaultCall(destination, call, lifetime, context, cancellationToken);
+                break;
+            }
+            case IntrinsicFunction.GetSliceData:
+            case IntrinsicFunction.GetSliceLength:
+            {
+                context.CurrentBlock.AddAssignment(
+                    destination,
+                    new UseRValue(EmitSliceMemberAccess(call, lifetime, context, cancellationToken))
+                );
+                break;
+            }
+            default:
+                throw new InvalidOperationException(
+                    $"Unsupported intrinsic function: {intrinsicFunction}"
+                );
+        }
+    }
+
+    private void EmitDefaultCall(
+        Place destination,
+        BoundInvocation call,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var returnPlace = !call.Function.ReturnsVoid ? destination : (Place?)null;
+        var receiver = call.Receiver is not null
+            ? EmitExpression(call.Receiver, lifetime, context, cancellationToken)
+            : null;
+        var arguments = EmitExpressionList(call.Arguments, lifetime, context, cancellationToken);
+        CreateCallInstruction(returnPlace, call.Function, receiver, arguments, context);
+    }
+
+    private static void CreateCallInstruction(
+        Place? destination,
+        FunctionSymbol function,
+        Operand? receiver,
+        ImmutableArray<Operand> arguments,
+        EmissionContext context
+    )
+    {
+        // TODO: Right now we don't have exception handling, but when we do we need to add unwinding
+        var block = context.AddBlock("after.call");
+        context.CurrentBlock.SetCallTerminator(function, receiver, arguments, destination, block);
+        context.CurrentBlock = block;
+    }
+
+    private ImmutableArray<Operand> EmitExpressionList(
+        ImmutableArray<BoundExpression> arguments,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        return [.. arguments.Select(a => EmitExpression(a, lifetime, context, cancellationToken))];
+    }
+
     private Place EmitPlace(
         BoundExpression expression,
         ExpressionLifetime lifetime,
@@ -977,14 +1094,28 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
             case BoundThisExpression:
                 EmitThisPlace(ref builder, context);
                 break;
+            case BoundInvocation invocation:
+                EmitPlace(ref builder, invocation, lifetime, context, cancellationToken);
+                break;
             default:
             {
-                var (_, place) = context.CreateTemporary(expression.Type, lifetime);
-                EmitExpression(place, expression, lifetime, context, cancellationToken);
-                builder.Base = place;
+                MaterializeTemporary(ref builder, expression, lifetime, context, cancellationToken);
                 break;
             }
         }
+    }
+
+    private void MaterializeTemporary(
+        ref PlaceBuilder builder,
+        BoundExpression expression,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var (_, place) = context.CreateTemporary(expression.Type, lifetime);
+        EmitExpression(place, expression, lifetime, context, cancellationToken);
+        builder.Base = place;
     }
 
     private Place EmitPlace(
@@ -1071,6 +1202,53 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
     {
         Debug.Assert(context.ReceiverPlace is not null);
         builder.Base = context.ReceiverPlace;
+    }
+
+    private void EmitPlace(
+        ref PlaceBuilder builder,
+        BoundInvocation invocation,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var intrinsicFunction = compilation.GetIntrinsicFunction(invocation.Function);
+        switch (intrinsicFunction)
+        {
+            case IntrinsicFunction.None:
+            {
+                MaterializeTemporary(ref builder, invocation, lifetime, context, cancellationToken);
+                break;
+            }
+            case IntrinsicFunction.GetSliceData:
+            {
+                EmitPlace(
+                    ref builder,
+                    invocation.Receiver.RequireNonNull(),
+                    lifetime,
+                    context,
+                    cancellationToken
+                );
+                builder.AddProjection(SliceDataProjection.Instance);
+                break;
+            }
+            case IntrinsicFunction.GetSliceLength:
+            {
+                EmitPlace(
+                    ref builder,
+                    invocation.Receiver.RequireNonNull(),
+                    lifetime,
+                    context,
+                    cancellationToken
+                );
+                builder.AddProjection(SliceLengthProjection.Instance);
+                break;
+            }
+            default:
+                throw new InvalidOperationException(
+                    $"Unsupported intrinsic function: {intrinsicFunction}"
+                );
+        }
     }
 
     private ConstantOperand GetUnitConstant(SpecialType type)

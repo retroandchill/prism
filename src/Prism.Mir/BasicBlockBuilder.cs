@@ -59,6 +59,7 @@ public sealed class BasicBlockBuilder
 
     public void SetCallTerminator(
         FunctionSymbol function,
+        Operand? receiver,
         ImmutableArray<Operand> arguments,
         Place? target,
         BasicBlockBuilder next,
@@ -66,7 +67,14 @@ public sealed class BasicBlockBuilder
     )
     {
         EnsureTerminatorNotSet();
-        _terminator = new CallTerminatorBuilder(function, arguments, target, next, unwind);
+        _terminator = new CallTerminatorBuilder(
+            function,
+            receiver,
+            arguments,
+            target,
+            next,
+            unwind
+        );
     }
 
     public void SetGotoTerminator(BasicBlockBuilder target)

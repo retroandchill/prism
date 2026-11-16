@@ -429,6 +429,9 @@ internal sealed class MirEmitter(Compilation compilation)
             BoundLiteral or BoundTypeSize => throw new InvalidOperationException(
                 "The constant folding should have grabbed this already"
             ),
+            _ => throw new InvalidOperationException(
+                $"Unexpected expression type: {expression.GetType().Name}"
+            ),
         };
     }
 

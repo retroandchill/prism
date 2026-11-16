@@ -19,6 +19,7 @@ internal sealed record ReturnTerminatorBuilder : TerminatorBuilder
 
 internal sealed record CallTerminatorBuilder(
     FunctionSymbol Function,
+    Operand? Receiver,
     ImmutableArray<Operand> Arguments,
     Place? Destination,
     BasicBlockBuilder NextBlock,

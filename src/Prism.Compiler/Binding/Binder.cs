@@ -674,8 +674,7 @@ internal abstract class Binder : IOverloadResolutionHost
     {
         var semanticModel = Compilation.GetSemanticModel(syntax.SyntaxTree);
         EnsureLocals();
-        var variable =
-            semanticModel.GetDeclaredSymbol(syntax)
+        var variable = semanticModel.GetDeclaredSymbol(syntax)
             ?? throw new InvalidOperationException("Declared variable not found");
 
         var targetType = syntax.Type switch
@@ -1560,7 +1559,7 @@ internal abstract class Binder : IOverloadResolutionHost
         );
     }
 
-    private BoundInvocation BindInvocationExpression(
+    private BoundExpression BindInvocationExpression(
         InvocationExpressionSyntax syntax,
         BindingContext context,
         CancellationToken cancellationToken
@@ -1623,7 +1622,7 @@ internal abstract class Binder : IOverloadResolutionHost
         );
     }
 
-    private BoundInvocation BindOverloadSet(
+    private BoundExpression BindOverloadSet(
         InvocationExpressionSyntax syntax,
         LookupResult overloads,
         BindingContext context,
@@ -1633,7 +1632,7 @@ internal abstract class Binder : IOverloadResolutionHost
         return BindOverloadSet(syntax, null, overloads, context, cancellationToken);
     }
 
-    private BoundInvocation BindOverloadSet(
+    private BoundExpression BindOverloadSet(
         InvocationExpressionSyntax syntax,
         BoundExpression? receiver,
         LookupResult overloads,
@@ -1858,7 +1857,7 @@ internal abstract class Binder : IOverloadResolutionHost
                 context.ReportDiagnostic(
                     Diagnostic.IncompatibleCollectionSizes(
                         syntax.Location,
-                        arrayType.Size.Value,
+                        arrayType.Size.RequireNonNull(),
                         expressions.Length
                     )
                 );

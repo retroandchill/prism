@@ -14,6 +14,8 @@ public readonly record struct Place(PlaceBase Base, ImmutableArray<PlaceProjecti
     public Place(PlaceBase @base)
         : this(@base, []) { }
 
+    public bool IsDefault => Base is null && Projections.IsDefault;
+
     public static implicit operator Place(PlaceBase @base) => new(@base);
 
     public Place AddProjection(PlaceProjection projection)
