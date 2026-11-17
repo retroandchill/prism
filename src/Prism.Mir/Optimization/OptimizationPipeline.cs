@@ -13,6 +13,8 @@ public sealed class OptimizationPipeline(ImmutableArray<OptimizationPass> passes
 {
     public Module Run(Module module, CancellationToken cancellationToken = default)
     {
+        var original = module;
+
         foreach (var pass in passes)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -49,6 +51,15 @@ public sealed class OptimizationPipeline(ImmutableArray<OptimizationPass> passes
                     module = modulePass.Run(module, cancellationToken);
                     break;
             }
+        }
+
+        if (module == original)
+            return module;
+
+        // We need to ensure all functions are valid after optimization
+        foreach (var function in module.Functions)
+        {
+            function.Validate();
         }
 
         return module;
