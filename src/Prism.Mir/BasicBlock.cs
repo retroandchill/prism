@@ -18,7 +18,7 @@ public sealed partial class BasicBlock
 
     public string Name { get; }
 
-    public ImmutableArray<Instruction> Statements { get; private set; }
+    public ImmutableArray<Instruction> Instructions { get; private set; }
 
     public Terminator Terminator { get; private set; } = null!;
 
@@ -32,16 +32,16 @@ public sealed partial class BasicBlock
     {
         Id = other.Id;
         Name = other.Name;
-        Statements = other.Statements;
+        Instructions = other.Instructions;
         Terminator = other.Terminator;
     }
 
     public BasicBlock ReplaceInstructions(ImmutableArray<Instruction> replacement)
     {
-        if (replacement == Statements)
+        if (replacement == Instructions)
             return this;
 
-        return new BasicBlock(this) { Statements = replacement };
+        return new BasicBlock(this) { Instructions = replacement };
     }
 
     public BasicBlock ReplaceTerminator(Terminator replacement)

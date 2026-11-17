@@ -86,7 +86,7 @@ internal static class FunctionAnalyzer
 
         foreach (var block in function.Blocks)
         {
-            foreach (var instruction in block.Statements)
+            foreach (var instruction in block.Instructions)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 AnalyzeInstructionLocalFlow(instruction, builders);

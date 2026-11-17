@@ -14,7 +14,7 @@ public sealed class BasicBlockBuilder
 
     public string Name { get; }
 
-    private readonly List<Instruction> _statements = [];
+    private readonly List<Instruction> _instructions = [];
     private TerminatorBuilder? _terminator;
 
     internal BasicBlockBuilder(BasicBlockId id, string name)
@@ -23,7 +23,7 @@ public sealed class BasicBlockBuilder
         Name = name;
     }
 
-    internal IReadOnlyList<Instruction> Statements => _statements;
+    internal IReadOnlyList<Instruction> Instructions => _instructions;
 
     public bool IsTerminated => _terminator is not null;
 
@@ -32,17 +32,17 @@ public sealed class BasicBlockBuilder
 
     public void AddAssignment(Place target, RValue value)
     {
-        _statements.Add(new AssignmentInstruction(target, value));
+        _instructions.Add(new AssignmentInstruction(target, value));
     }
 
     public void AddStorageLive(Local local)
     {
-        _statements.Add(new StorageLiveInstruction(local));
+        _instructions.Add(new StorageLiveInstruction(local));
     }
 
     public void AddStorageDead(Local local)
     {
-        _statements.Add(new StorageDeadInstruction(local));
+        _instructions.Add(new StorageDeadInstruction(local));
     }
 
     private void EnsureTerminatorNotSet()

@@ -122,7 +122,7 @@ public sealed partial class Function
             if (!explored.Add(block))
                 continue;
 
-            foreach (var instruction in block.Statements)
+            foreach (var instruction in block.Instructions)
             {
                 switch (instruction)
                 {
