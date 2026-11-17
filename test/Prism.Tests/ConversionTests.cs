@@ -4,8 +4,6 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using Prism.Compiler;
-using Prism.Compiler.Symbols;
-using Prism.Semantic;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
 
@@ -13,6 +11,20 @@ namespace Prism.Tests;
 
 public class ConversionTests
 {
+    private CompilationContext _context;
+
+    [SetUp]
+    public void CreateContext()
+    {
+        _context = CompilationContext.CreateTestContext();
+    }
+
+    [TearDown]
+    public void DisposeContext()
+    {
+        _context.Dispose();
+    }
+
     [Test]
     public void CanConvertFromCharArrayToStr()
     {
@@ -30,7 +42,7 @@ public class ConversionTests
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
         Assert.That(members, Has.Length.EqualTo(1));
@@ -56,7 +68,7 @@ public class ConversionTests
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
         Assert.That(members, Has.Length.EqualTo(1));

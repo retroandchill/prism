@@ -26,6 +26,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Prism.Codegen\Prism.Codegen.csproj" />
+    <ProjectReference Include="..\..\src\Prism.Compiler.Host\Prism.Compiler.Host.csproj" />
     <ProjectReference Include="..\..\src\Prism.Compiler\Prism.Compiler.csproj" />
   </ItemGroup>
 </Project>

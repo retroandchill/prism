@@ -3,8 +3,10 @@
     <Project Path="src/facet/facet.csproj" />
     <Project Path="src/prism-std/prism-std.csproj" />
     <Project Path="src/prism-syntax-highlighting/prism-syntax-highlighting.csproj" />
+    <Project Path="src/Prism.Abi/Prism.Abi.csproj" />
     <Project Path="src/Prism.Build/Prism.Build.csproj" />
     <Project Path="src/Prism.Codegen/Prism.Codegen.csproj" />
+    <Project Path="src/Prism.Compiler.Host/Prism.Compiler.Host.csproj" />
     <Project Path="src/Prism.Compiler/Prism.Compiler.csproj" />
     <Project Path="src/Prism.Constants/Prism.Constants.csproj" />
     <Project Path="src/Prism.Core/Prism.Core.csproj" />

@@ -12,6 +12,8 @@ internal sealed partial class LocalUsageInfoBuilder
 
     public ProjectionUsage Projection { get; set; }
 
+    public List<AssignmentInstruction> Assignments { get; } = [];
+
     public LocalUsageInfo Build() => Mapper.Map(this);
 
     [Mapper]

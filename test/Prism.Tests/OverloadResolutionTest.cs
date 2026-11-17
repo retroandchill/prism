@@ -14,13 +14,27 @@ namespace Prism.Tests;
 
 public class OverloadResolutionTest
 {
+    private CompilationContext _context;
+
+    [SetUp]
+    public void CreateContext()
+    {
+        _context = CompilationContext.CreateTestContext();
+    }
+
+    [TearDown]
+    public void DisposeContext()
+    {
+        _context.Dispose();
+    }
+
     [Test]
     public void DefaultValuesAreBound()
     {
         var tree = SyntaxTree.Parse("func foo(x: i32, y: i32 = 0, z: i32 = 0) { }");
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("foo");
         Assert.That(members, Has.Length.EqualTo(1));
@@ -51,7 +65,7 @@ public class OverloadResolutionTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("foo");
         Assert.That(members, Has.Length.EqualTo(1));
@@ -97,7 +111,7 @@ public class OverloadResolutionTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("bar");
         Assert.That(members, Has.Length.EqualTo(1));
@@ -123,7 +137,7 @@ public class OverloadResolutionTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("foo");
         Assert.That(members, Has.Length.EqualTo(1));
@@ -171,7 +185,7 @@ public class OverloadResolutionTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("bar");
         Assert.That(members, Has.Length.EqualTo(1));

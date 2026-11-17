@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Prism.Semantic.Symbols;
 using Prism.Utils;
@@ -46,6 +47,7 @@ public sealed class FunctionBuilder
         if (Symbol.ReceiverType is { } receiver)
         {
             ReceiverLocal = AddLocal(receiver);
+            Debug.Assert(ReceiverLocal.Id == LocalId.ThisSlot);
         }
 
         if (Symbol.Parameters.IsEmpty)
@@ -57,7 +59,7 @@ public sealed class FunctionBuilder
         var parameters = new (ParameterSymbol, Local)[Symbol.Parameters.Length];
         foreach (var (i, parameter) in Symbol.Parameters.AsValueEnumerable().Index())
         {
-            parameters[i] = (parameter, AddLocal(parameter.Type));
+            parameters[i] = (parameter, AddLocal(parameter));
         }
 
         Parameters = ImmutableCollectionsMarshal.AsImmutableArray(parameters);
@@ -82,6 +84,13 @@ public sealed class FunctionBuilder
     public BasicBlockBuilder AddDetachedBlock(string name = "block")
     {
         return new BasicBlockBuilder(new BasicBlockId(_nextBasicBlockId++), name);
+    }
+
+    public Local AddLocal(ValueSymbol valueSymbol)
+    {
+        var local = new Local(new LocalId(_nextLocalId++), valueSymbol);
+        _locals.Add(local);
+        return local;
     }
 
     public Local AddLocal(TypeSymbol type)

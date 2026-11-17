@@ -22,7 +22,9 @@ public struct PlaceBuilder
 
     public readonly Place Build()
     {
-        Debug.Assert(Base is not null, "Base must be set first");
+        if (Base is null)
+            throw new InvalidOperationException("Base must be set first");
+
         return new Place(Base, _projections?.ToImmutableArray() ?? []);
     }
 }

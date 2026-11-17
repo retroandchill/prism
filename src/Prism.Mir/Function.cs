@@ -177,7 +177,7 @@ public sealed partial class Function
         }
 
         var locals = Locals.RemoveAll(local => !usedLocals.Contains(local));
-        var blocks = Blocks.RemoveAll(block => !toExplore.Contains(block));
+        var blocks = Blocks.RemoveAll(block => !explored.Contains(block));
 
         if (locals == Locals && blocks == Blocks)
             return this;
@@ -198,10 +198,10 @@ public sealed partial class Function
                     CheckOperand(leftOperand);
                     CheckOperand(rightOperand);
                     break;
-                case IsNull(var operand):
+                case IsNullRValue(var operand):
                     CheckOperand(operand);
                     break;
-                case IsNotNull(var operand):
+                case IsNotNullRValue(var operand):
                     CheckOperand(operand);
                     break;
                 case SelectRValue(var condition, var whenTrue, var whenFalse):

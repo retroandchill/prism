@@ -5,6 +5,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Prism.Compiler;
 using Prism.Compiler.BoundTree;
 using Prism.Compiler.Mappers;
@@ -19,8 +20,49 @@ using FloatKind = Prism.Constants.FloatKind;
 
 namespace Prism.Codegen.Mir;
 
-internal sealed class Emitter(Compilation compilation) : IEmitter
+internal sealed class Emitter : IEmitter
 {
+    private readonly Compilation _compilation;
+    private readonly ConstantOperand _nullVoid;
+    private readonly ConstantOperand _true;
+    private readonly ConstantOperand _false;
+    private readonly ImmutableArray<ConstantOperand> _integerOnes;
+    private readonly ImmutableArray<ConstantOperand> _floatOnes;
+
+    public Emitter(Compilation compilation)
+    {
+        _compilation = compilation;
+
+        var voidType = _compilation.GetSpecialType(SpecialType.Void);
+        _nullVoid = new ConstantOperand(new NullConstant(), voidType);
+
+        var boolType = _compilation.GetSpecialType(SpecialType.Bool);
+        _true = new ConstantOperand(true, boolType);
+        _false = new ConstantOperand(false, boolType);
+
+        const int integerRange = SpecialType.USize - SpecialType.I8 + 1;
+        var integerOnes = new ConstantOperand[integerRange];
+
+        for (var specialType = SpecialType.I8; specialType <= SpecialType.USize; specialType++)
+        {
+            var kind = SpecialTypeToIntegerKind(specialType);
+            var i = specialType - SpecialType.I8;
+            var typeSymbol = _compilation.GetSpecialType(specialType);
+            integerOnes[i] = new ConstantOperand(IntegerConstant.One(kind), typeSymbol);
+        }
+
+        _integerOnes = ImmutableCollectionsMarshal.AsImmutableArray(integerOnes);
+
+        var f32 = _compilation.GetSpecialType(SpecialType.F32);
+        var f64 = _compilation.GetSpecialType(SpecialType.F64);
+
+        _floatOnes =
+        [
+            new ConstantOperand(new FloatConstant(1.0F), f32),
+            new ConstantOperand(new FloatConstant(1.0D), f64),
+        ];
+    }
+
     private enum UnaryResultKind : byte
     {
         Prefix,
@@ -41,7 +83,7 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
 
     public Function Emit(FunctionSymbol symbol, CancellationToken cancellationToken = default)
     {
-        var boundBody = compilation.GetBoundBody(symbol, cancellationToken);
+        var boundBody = _compilation.GetBoundBody(symbol, cancellationToken);
 
         var builder = new FunctionBuilder(symbol);
         var context = new EmissionContext(builder);
@@ -404,7 +446,7 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
             cancellationToken.ThrowIfCancellationRequested();
             if (expression.ConstantValue is { } constantValue)
             {
-                return ConstantOperand.Create(in constantValue);
+                return new ConstantOperand(constantValue, expression.Type);
             }
 
             if (
@@ -492,7 +534,7 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
         {
             context.CurrentBlock.AddAssignment(
                 destination,
-                new UseRValue(ConstantOperand.Create(in constantValue))
+                new UseRValue(new ConstantOperand(constantValue, expression.Type))
             );
             return;
         }
@@ -740,7 +782,7 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
             new BinaryRValue(binaryOperand, copyOperand, GetUnitConstant(inner.Type.SpecialType))
         );
 
-        if (resultKind == UnaryResultKind.Postfix)
+        if (resultKind == UnaryResultKind.Prefix)
         {
             context.CurrentBlock.AddAssignment(place, new UseRValue(copyOperand));
         }
@@ -755,7 +797,7 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
     )
     {
         var left = EmitExpression(operation.Left, lifetime, context, cancellationToken);
-        Debug.Assert(operation.Left == operation.Right);
+        Debug.Assert(operation.Left.Type == operation.Right.Type);
         EmitBinaryOperation(
             destination,
             operation.Operation,
@@ -852,8 +894,8 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
         context.AddBlock(evalSkip);
         var skipResult = operation switch
         {
-            LogicalOperation.And => ConstantOperand.False,
-            LogicalOperation.Or => ConstantOperand.True,
+            LogicalOperation.And => _false,
+            LogicalOperation.Or => _true,
             _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
         };
         context.CurrentBlock.AddAssignment(destination, new UseRValue(skipResult));
@@ -897,7 +939,7 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
             {
                 context.CurrentBlock.AddAssignment(
                     destination,
-                    shouldBeNull ? new IsNull(right) : new IsNotNull(right)
+                    shouldBeNull ? new IsNullRValue(right) : new IsNotNullRValue(right)
                 );
                 return;
             }
@@ -906,7 +948,7 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
             {
                 context.CurrentBlock.AddAssignment(
                     destination,
-                    shouldBeNull ? new IsNotNull(left) : new IsNull(left)
+                    shouldBeNull ? new IsNotNullRValue(left) : new IsNullRValue(left)
                 );
                 return;
             }
@@ -946,7 +988,7 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
         }
 
         // This is just a placeholder value as assignments do not return a value
-        return ConstantOperand.Null;
+        return _nullVoid;
     }
 
     private void EmitConditional(
@@ -968,8 +1010,8 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
                 destination,
                 new SelectRValue(
                     condition,
-                    ConstantOperand.Create(in trueConstant),
-                    ConstantOperand.Create(in falseConstant)
+                    new ConstantOperand(trueConstant, operation.WhenTrue.Type),
+                    new ConstantOperand(falseConstant, operation.WhenFalse.Type)
                 )
             );
             return;
@@ -1004,7 +1046,7 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
         CancellationToken cancellationToken
     )
     {
-        var intrinsicFunction = compilation.GetIntrinsicFunction(call.Function);
+        var intrinsicFunction = _compilation.GetIntrinsicFunction(call.Function);
         switch (intrinsicFunction)
         {
             case IntrinsicFunction.None:
@@ -1166,7 +1208,7 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
         CancellationToken cancellationToken
     )
     {
-        var referenceType = compilation.CreateReferenceTypeSymbol(newExpression.Type, true);
+        var referenceType = _compilation.CreateReferenceTypeSymbol(newExpression.Type, true);
         var (_, address) = context.CreateTemporary(referenceType, lifetime);
         context.CurrentBlock.AddAssignment(address, new ReferenceRValue(destination, true));
         var arguments = EmitExpressionList(
@@ -1303,7 +1345,7 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
     )
     {
         EmitPlace(ref builder, dereference.Operand, lifetime, context, cancellationToken);
-        builder.AddProjection(DereferenceProjection.Instance);
+        builder.AddProjection(new DereferenceProjection(dereference.Type));
     }
 
     private void EmitPlace(
@@ -1316,7 +1358,7 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
     {
         EmitPlace(ref builder, indexer.Operand, lifetime, context, cancellationToken);
         var index = EmitExpression(indexer.Index, lifetime, context, cancellationToken);
-        builder.AddProjection(new IndexProjection(index));
+        builder.AddProjection(new IndexProjection(index, indexer.Type));
     }
 
     private static Place EmitThisPlace(EmissionContext context)
@@ -1341,37 +1383,45 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
     {
         Debug.Assert(conversion.Conversion.IsUnwrapping);
         EmitPlace(ref builder, conversion.Operand, lifetime, context, cancellationToken);
-        builder.AddProjection(PayloadProjection.Instance);
+        builder.AddProjection(new PayloadProjection(conversion.Type));
+    }
+
+    private IntegerKind SpecialTypeToIntegerKind(SpecialType type)
+    {
+        return type switch
+        {
+            SpecialType.I8 => IntegerKind.I8,
+            SpecialType.I16 => IntegerKind.I16,
+            SpecialType.I32 => IntegerKind.I32,
+            SpecialType.I64 => IntegerKind.I64,
+            SpecialType.I128 => IntegerKind.I128,
+            SpecialType.ISize => _compilation.Settings.PointerWidth switch
+            {
+                PointerWidth.X32 => IntegerKind.I32,
+                PointerWidth.X64 => IntegerKind.I64,
+                _ => throw new InvalidOperationException("Invalid pointer width"),
+            },
+            SpecialType.U8 => IntegerKind.U8,
+            SpecialType.U16 => IntegerKind.U16,
+            SpecialType.U32 => IntegerKind.U32,
+            SpecialType.U64 => IntegerKind.U64,
+            SpecialType.U128 => IntegerKind.U128,
+            SpecialType.USize => _compilation.Settings.PointerWidth switch
+            {
+                PointerWidth.X32 => IntegerKind.U32,
+                PointerWidth.X64 => IntegerKind.U64,
+                _ => throw new InvalidOperationException("Invalid pointer width"),
+            },
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+        };
     }
 
     private ConstantOperand GetUnitConstant(SpecialType type)
     {
         return type switch
         {
-            SpecialType.I8 => ConstantOperand.One(IntegerKind.I8),
-            SpecialType.I16 => ConstantOperand.One(IntegerKind.I16),
-            SpecialType.I32 => ConstantOperand.One(IntegerKind.I32),
-            SpecialType.I64 => ConstantOperand.One(IntegerKind.I64),
-            SpecialType.I128 => ConstantOperand.One(IntegerKind.I128),
-            SpecialType.ISize => compilation.Settings.PointerWidth switch
-            {
-                PointerWidth.X32 => ConstantOperand.One(IntegerKind.I32),
-                PointerWidth.X64 => ConstantOperand.One(IntegerKind.I64),
-                _ => throw new InvalidOperationException("Invalid pointer width"),
-            },
-            SpecialType.U8 => ConstantOperand.One(IntegerKind.U8),
-            SpecialType.U16 => ConstantOperand.One(IntegerKind.U16),
-            SpecialType.U32 => ConstantOperand.One(IntegerKind.U32),
-            SpecialType.U64 => ConstantOperand.One(IntegerKind.U64),
-            SpecialType.U128 => ConstantOperand.One(IntegerKind.U128),
-            SpecialType.USize => compilation.Settings.PointerWidth switch
-            {
-                PointerWidth.X32 => ConstantOperand.One(IntegerKind.U32),
-                PointerWidth.X64 => ConstantOperand.One(IntegerKind.U64),
-                _ => throw new InvalidOperationException("Invalid pointer width"),
-            },
-            SpecialType.F32 => ConstantOperand.One(FloatKind.F32),
-            SpecialType.F64 => ConstantOperand.One(FloatKind.F64),
+            { IsInteger: true } => _integerOnes[type - SpecialType.I8],
+            { IsFloatingPoint: true } => _floatOnes[type - SpecialType.F32],
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
     }

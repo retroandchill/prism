@@ -5,6 +5,7 @@
 
 using System.Runtime.InteropServices;
 using DotMake.CommandLine;
+using Prism.Compiler.Host;
 using Prism.Configuration;
 using Prism.Syntax;
 
@@ -56,7 +57,9 @@ public class CompileCommand
             _ => throw new InvalidOperationException($"Invalid optimization level: {Optimization}"),
         };
 
+        using var compilationContext = CompilationContext.CreateDefault();
         var compilation = Compilation.Create(
+            compilationContext,
             Name,
             ImmutableCollectionsMarshal.AsImmutableArray(syntaxTress),
             settings: new CompilationSettings

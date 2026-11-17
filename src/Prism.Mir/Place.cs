@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using Prism.Semantic.Symbols;
 
 namespace Prism.Mir;
 
@@ -13,6 +14,8 @@ public readonly record struct Place(PlaceBase Base, ImmutableArray<PlaceProjecti
         : this(@base, []) { }
 
     public bool IsDefault => Base is null && Projections.IsDefault;
+
+    public TypeSymbol Type => !Projections.IsEmpty ? Projections[^1].Type : Base.Type;
 
     public static implicit operator Place(PlaceBase @base) => new(@base);
 
@@ -42,7 +45,7 @@ public readonly record struct Place(PlaceBase Base, ImmutableArray<PlaceProjecti
         return Projections.Aggregate(Base.ToString(), (current, projection) => projection switch
             {
                 FieldProjection(var field) => $"{current}.{field.Name}",
-                IndexProjection(var index) => $"{current}[{index}]",
+                IndexProjection(var index, _) => $"{current}[{index}]",
                 DereferenceProjection => $"*({current})",
                 PayloadProjection => $"{current}.<payload>",
             });

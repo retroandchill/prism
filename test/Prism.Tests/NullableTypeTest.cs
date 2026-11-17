@@ -13,6 +13,20 @@ namespace Prism.Tests;
 
 public class NullableTypeTest
 {
+    private CompilationContext _context;
+
+    [SetUp]
+    public void CreateContext()
+    {
+        _context = CompilationContext.CreateTestContext();
+    }
+
+    [TearDown]
+    public void DisposeContext()
+    {
+        _context.Dispose();
+    }
+
     [Test]
     public void CanAssignNullToNullableTypes()
     {
@@ -26,7 +40,7 @@ public class NullableTypeTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
         Assert.That(members, Has.Length.EqualTo(1));
@@ -50,7 +64,7 @@ public class NullableTypeTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
         Assert.That(members, Has.Length.EqualTo(1));
@@ -79,7 +93,7 @@ public class NullableTypeTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
         Assert.That(members, Has.Length.EqualTo(1));
@@ -107,7 +121,7 @@ public class NullableTypeTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
         Assert.That(members, Has.Length.EqualTo(1));
@@ -135,7 +149,7 @@ public class NullableTypeTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
         Assert.That(members, Has.Length.EqualTo(1));
@@ -163,7 +177,7 @@ public class NullableTypeTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
         Assert.That(members, Has.Length.EqualTo(1));
@@ -187,7 +201,7 @@ public class NullableTypeTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
         Assert.That(members, Has.Length.EqualTo(1));

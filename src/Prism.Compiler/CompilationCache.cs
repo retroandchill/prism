@@ -1,15 +1,13 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using Prism.Compiler.Abi;
+using Prism.Abi;
 using Prism.Compiler.Binding;
 using Prism.Compiler.BoundTree;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
 using Prism.Compiler.Symbols.Error;
 using Prism.Compiler.Symbols.Intrinsic;
-using Prism.Metadata;
-using Prism.Semantic;
 using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;

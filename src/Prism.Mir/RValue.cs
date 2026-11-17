@@ -30,12 +30,12 @@ public sealed record BinaryRValue(BinaryOperator Operator, Operand Left, Operand
     public override string ToString() => $"{Operator}({Left}, {Right})";
 }
 
-public sealed record IsNull(Operand Operand) : RValue
+public sealed record IsNullRValue(Operand Operand) : RValue
 {
     public override string ToString() => $"IsNull({Operand})";
 }
 
-public sealed record IsNotNull(Operand Operand) : RValue
+public sealed record IsNotNullRValue(Operand Operand) : RValue
 {
     public override string ToString() => $"IsNotNull({Operand})";
 }

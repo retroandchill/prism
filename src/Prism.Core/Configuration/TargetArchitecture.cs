@@ -53,7 +53,7 @@ public static partial class TargetArchitectureExtensions
             }
         }
 
-        internal string ArchitectureFolder
+        public string ArchitectureFolder
         {
             get
             {

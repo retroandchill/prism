@@ -4,7 +4,6 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
-using Prism.Compiler.Codegen.Mir;
 using Prism.Mir;
 using Prism.Semantic.Symbols;
 using Prism.Utils;
@@ -146,7 +145,7 @@ internal sealed class EmissionContext
 
     public (Local, PlaceBase) BindLocal(VariableSymbol variable)
     {
-        var local = _builder.AddLocal(variable.Type);
+        var local = _builder.AddLocal(variable);
 
         var result = (local, new LocalPlace(local));
         _locals.Add(variable, result);

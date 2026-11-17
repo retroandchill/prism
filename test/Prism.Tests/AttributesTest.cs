@@ -4,10 +4,6 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using Prism.Compiler;
-using Prism.Compiler.Semantic;
-using Prism.Compiler.Symbols;
-using Prism.Metadata;
-using Prism.Semantic;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
 
@@ -15,6 +11,20 @@ namespace Prism.Tests;
 
 public class AttributesTest
 {
+    private CompilationContext _context;
+
+    [SetUp]
+    public void CreateContext()
+    {
+        _context = CompilationContext.CreateTestContext();
+    }
+
+    [TearDown]
+    public void DisposeContext()
+    {
+        _context.Dispose();
+    }
+
     [Test]
     public void CanDeclareAttributes()
     {
@@ -26,7 +36,7 @@ public class AttributesTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var foos = compilation.Assembly.GlobalNamespace.GetMembers("Foo");
         var bars = compilation.Assembly.GlobalNamespace.GetMembers("Bar");
@@ -69,7 +79,7 @@ public class AttributesTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var bars = compilation.Assembly.GlobalNamespace.GetMembers("Bar");
         Assert.That(bars, Has.Length.EqualTo(1));
@@ -97,7 +107,7 @@ public class AttributesTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var bars = compilation.Assembly.GlobalNamespace.GetMembers("Bar");
         Assert.That(bars, Has.Length.EqualTo(1));

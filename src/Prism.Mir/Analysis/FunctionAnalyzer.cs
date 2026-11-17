@@ -1,12 +1,18 @@
 ﻿using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using Prism.Abi;
 using Prism.Utils;
 
 namespace Prism.Mir.Analysis;
 
-internal static class FunctionAnalyzer
+using LocalUsageMap = FrozenDictionary<Local, LocalUsageInfo>;
+
+public static class FunctionAnalyzer
 {
+    private static readonly ConditionalWeakTable<Function, LocalUsageMap> LocalUsages = [];
+
     public static ControlFlowGraph AnalyzeControlFlow(
         Function function,
         CancellationToken cancellationToken
@@ -74,29 +80,37 @@ internal static class FunctionAnalyzer
         }
     }
 
-    public static FrozenDictionary<Local, LocalUsageInfo> AnalyzeLocalFlow(
+    public static LocalUsageMap AnalyzeLocalFlow(
         Function function,
+        IAbiLookup abiLookup,
         CancellationToken cancellationToken
     )
     {
-        var builders = function.Locals.ToDictionary(
-            local => local,
-            _ => new LocalUsageInfoBuilder()
-        );
-
-        foreach (var block in function.Blocks)
-        {
-            foreach (var instruction in block.Instructions)
+        return LocalUsages.GetOrAdd(
+            function,
+            static (function, t) =>
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                AnalyzeInstructionLocalFlow(instruction, builders);
-            }
+                var builders = function.Locals.ToDictionary(
+                    local => local,
+                    _ => new LocalUsageInfoBuilder()
+                );
 
-            cancellationToken.ThrowIfCancellationRequested();
-            AnalyzeTerminatorLocalFlow(block.Terminator, builders);
-        }
+                foreach (var block in function.Blocks)
+                {
+                    foreach (var instruction in block.Instructions)
+                    {
+                        t.cancellationToken.ThrowIfCancellationRequested();
+                        AnalyzeInstructionLocalFlow(instruction, builders);
+                    }
 
-        return builders.ToFrozenDictionary(t => t.Key, t => t.Value.Build());
+                    t.cancellationToken.ThrowIfCancellationRequested();
+                    AnalyzeTerminatorLocalFlow(block.Terminator, t.abiLookup, builders);
+                }
+
+                return builders.ToFrozenDictionary(t => t.Key, t => t.Value.Build());
+            },
+            (abiLookup, cancellationToken)
+        );
     }
 
     private static void AnalyzeInstructionLocalFlow(
@@ -106,9 +120,14 @@ internal static class FunctionAnalyzer
     {
         switch (instruction)
         {
-            case AssignmentInstruction assignmentStatement:
-                AnalyzePlaceUsage(assignmentStatement.Target, builders, false);
-                AnalyzeRValue(assignmentStatement.Value, builders);
+            case AssignmentInstruction(var place, var value) assign:
+                if (place.Base is LocalPlace(var local))
+                {
+                    builders[local].Assignments.Add(assign);
+                }
+
+                AnalyzePlaceUsage(place, builders, false);
+                AnalyzeRValue(value, builders);
                 break;
             case StorageDeadInstruction:
             case StorageLiveInstruction:
@@ -118,6 +137,7 @@ internal static class FunctionAnalyzer
 
     private static void AnalyzeTerminatorLocalFlow(
         Terminator terminator,
+        IAbiLookup abiLookup,
         Dictionary<Local, LocalUsageInfoBuilder> builders
     )
     {
@@ -126,7 +146,8 @@ internal static class FunctionAnalyzer
             case BranchTerminator(var condition, _, _):
                 AnalyzeOperand(condition, builders);
                 break;
-            case CallTerminator(_, var receiver, var arguments, var destination, _, _):
+            case CallTerminator(var function, var receiver, var arguments, var destination, _, _):
+            {
                 if (receiver is not null)
                 {
                     AnalyzeOperand(receiver, builders);
@@ -139,10 +160,13 @@ internal static class FunctionAnalyzer
 
                 if (destination is { } dest)
                 {
-                    AnalyzePlaceUsage(dest, builders, false);
+                    // If we have an indirect return, we need to analyze the destination as a write
+                    var abi = abiLookup.GetFunctionAbi(function);
+                    AnalyzePlaceUsage(dest, builders, false, abi.Return.IsIndirect);
                 }
 
                 break;
+            }
             case GotoTerminator:
             case ReturnTerminator:
             case UnreachableTerminator:
@@ -220,10 +244,10 @@ internal static class FunctionAnalyzer
                 AnalyzeOperand(leftOperand, builders);
                 AnalyzeOperand(rightOperand, builders);
                 break;
-            case IsNull(var operand):
+            case IsNullRValue(var operand):
                 AnalyzeOperand(operand, builders);
                 break;
-            case IsNotNull(var operand):
+            case IsNotNullRValue(var operand):
                 AnalyzeOperand(operand, builders);
                 break;
             case SelectRValue(var condition, var whenTrue, var whenFalse):

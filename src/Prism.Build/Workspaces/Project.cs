@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using Prism.Build.Manifest;
 using Prism.Compiler;
 using Prism.Compiler.Codegen;
+using Prism.Compiler.Host;
 using Prism.Configuration;
 using Prism.Syntax;
 using Tomlyn;
@@ -41,8 +42,7 @@ public sealed class Project
         ProjectManifest manifest;
         using (var reader = file.OpenText())
         {
-            manifest =
-                TomlSerializer.Deserialize<ProjectManifest>(reader, PrismTomlContext.Default)
+            manifest = TomlSerializer.Deserialize<ProjectManifest>(reader, PrismTomlContext.Default)
                 ?? throw new TomlException("Failed to deserialize facet.toml");
         }
 
@@ -83,7 +83,8 @@ public sealed class Project
             OutputKind = _manifest.Output.Kind,
             BuildingCoreLibrary = _manifest.Package.IsCoreLibrary,
         };
-        return Compilation.Create(_manifest.Package.Name, trees, settings: settings);
+        using var context = CompilationContext.CreateDefault();
+        return Compilation.Create(context, _manifest.Package.Name, trees, settings: settings);
     }
 
     private ImmutableArray<SyntaxTree> ComputeSyntaxTrees(CancellationToken cancellationToken)

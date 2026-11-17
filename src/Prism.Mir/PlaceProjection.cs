@@ -7,7 +7,12 @@ using Prism.Semantic.Symbols;
 
 namespace Prism.Mir;
 
-public closed record PlaceProjection;
+public closed record PlaceProjection
+{
+    public TypeSymbol Type => GetTypeSymbol();
+
+    protected abstract TypeSymbol GetTypeSymbol();
+}
 
 public sealed record FieldProjection : PlaceProjection
 {
@@ -21,24 +26,27 @@ public sealed record FieldProjection : PlaceProjection
 
     public VariableSymbol Field { get; }
 
+    public new TypeSymbol Type => Field.Type;
+
     public void Deconstruct(out VariableSymbol field)
     {
         field = Field;
     }
+
+    protected override TypeSymbol GetTypeSymbol() => Field.Type;
 }
 
-public sealed record IndexProjection(Operand Index) : PlaceProjection;
-
-public sealed record DereferenceProjection : PlaceProjection
+public sealed record IndexProjection(Operand Index, TypeSymbol Type) : PlaceProjection
 {
-    private DereferenceProjection() { }
-
-    public static readonly DereferenceProjection Instance = new();
+    protected override TypeSymbol GetTypeSymbol() => Type;
 }
 
-public sealed record PayloadProjection : PlaceProjection
+public sealed record DereferenceProjection(TypeSymbol Type) : PlaceProjection
 {
-    private PayloadProjection() { }
+    protected override TypeSymbol GetTypeSymbol() => Type;
+}
 
-    public static readonly PayloadProjection Instance = new();
+public sealed record PayloadProjection(TypeSymbol Type) : PlaceProjection
+{
+    protected override TypeSymbol GetTypeSymbol() => Type;
 }

@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net11.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Prism.Codegen\Prism.Codegen.csproj" />
+      <ProjectReference Include="..\Prism.Compiler\Prism.Compiler.csproj" />
+    </ItemGroup>
+
+</Project>

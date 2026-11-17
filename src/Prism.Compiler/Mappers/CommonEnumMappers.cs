@@ -1,11 +1,5 @@
-﻿using Prism.Compiler.Binding;
-using Prism.Compiler.Mir;
-using Prism.Compiler.Semantic;
-using Prism.Compiler.Symbols;
+﻿using Prism.Compiler.Semantic;
 using Prism.Constants;
-using Prism.Metadata;
-using Prism.Semantic;
-using Prism.Semantic.Conversions;
 using Prism.Syntax;
 using Riok.Mapperly.Abstractions;
 
@@ -136,9 +130,4 @@ internal static partial class CommonEnumMappers
 
     [MapperIgnoreSourceValue(AssignmentOperation.Simple)]
     public static partial BinaryOperation ToBinaryOperation(this AssignmentOperation operation);
-
-    [MapperIgnoreSourceValue(BinaryOperation.LogicalAnd)]
-    [MapperIgnoreSourceValue(BinaryOperation.LogicalOr)]
-    [MapperIgnoreSourceValue(BinaryOperation.ThreeWayComparison)]
-    public static partial MirBinaryOp ToMirBinaryOperation(this BinaryOperation operation);
 }

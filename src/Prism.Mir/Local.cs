@@ -10,13 +10,20 @@ namespace Prism.Mir;
 public readonly record struct LocalId(uint Value)
 {
     public static LocalId ReturnSlot => new(0);
+
+    public static LocalId ThisSlot => new(1);
 }
 
-public sealed class Local(LocalId id, TypeSymbol type)
+public sealed class Local(LocalId id, TypeSymbol type, ValueSymbol? associatedSymbol = null)
 {
     public LocalId Id { get; } = id;
 
     public TypeSymbol Type { get; } = type;
+
+    public ValueSymbol? AssociatedSymbol { get; } = associatedSymbol;
+
+    public Local(LocalId id, ValueSymbol associatedSymbol)
+        : this(id, associatedSymbol.Type, associatedSymbol) { }
 
     public override string ToString() => $"_{Id.Value}";
 }

@@ -16,6 +16,20 @@ public class ValidationTest
         OutputKind = OutputKind.StaticLibrary,
     };
 
+    private CompilationContext _context;
+
+    [SetUp]
+    public void CreateContext()
+    {
+        _context = CompilationContext.CreateTestContext();
+    }
+
+    [TearDown]
+    public void DisposeContext()
+    {
+        _context.Dispose();
+    }
+
     [Test]
     public void CannotHaveDuplicateDeclarations()
     {
@@ -27,7 +41,7 @@ public class ValidationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var diagnostics = compilation.GetDeclarationDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(1));
@@ -48,7 +62,7 @@ public class ValidationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var diagnostics = compilation.GetDeclarationDiagnostics();
         Assert.That(diagnostics, Is.Empty);
@@ -65,7 +79,7 @@ public class ValidationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var diagnostics = compilation.GetDeclarationDiagnostics();
         Assert.That(diagnostics, Is.Empty);
@@ -82,7 +96,7 @@ public class ValidationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var diagnostics = compilation.GetDeclarationDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(1));
@@ -101,7 +115,7 @@ public class ValidationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var diagnostics = compilation.GetDeclarationDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(1));
@@ -114,7 +128,7 @@ public class ValidationTest
         var tree = SyntaxTree.Parse("func foo(x: i32, x: i32) { }");
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var diagnostics = compilation.GetDeclarationDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(1));
@@ -127,7 +141,7 @@ public class ValidationTest
         var tree = SyntaxTree.Parse("func foo(x: i32, y: i32 = 0, z: i32) { }");
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var diagnostics = compilation.GetDeclarationDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(1));
@@ -153,7 +167,7 @@ public class ValidationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree], settings: Settings);
+        var compilation = Compilation.Create(_context, assemblyName, [tree], settings: Settings);
 
         var diagnostics = compilation.GetFunctionBodyDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(2));
@@ -179,7 +193,7 @@ public class ValidationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree], settings: Settings);
+        var compilation = Compilation.Create(_context, assemblyName, [tree], settings: Settings);
 
         var diagnostics = compilation.GetFunctionBodyDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(1));
@@ -207,7 +221,7 @@ public class ValidationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree], settings: Settings);
+        var compilation = Compilation.Create(_context, assemblyName, [tree], settings: Settings);
 
         var diagnostics = compilation.GetFunctionBodyDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(1));
@@ -230,7 +244,7 @@ public class ValidationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree], settings: Settings);
+        var compilation = Compilation.Create(_context, assemblyName, [tree], settings: Settings);
 
         var diagnostics = compilation.GetFunctionBodyDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(1));
@@ -252,7 +266,7 @@ public class ValidationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree], settings: Settings);
+        var compilation = Compilation.Create(_context, assemblyName, [tree], settings: Settings);
 
         var diagnostics = compilation.GetDeclarationDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(1));
@@ -268,7 +282,7 @@ public class ValidationTest
         var tree = SyntaxTree.Parse("func foo(x: i32);");
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree], settings: Settings);
+        var compilation = Compilation.Create(_context, assemblyName, [tree], settings: Settings);
 
         var diagnostics = compilation.GetDeclarationDiagnostics();
         Assert.That(diagnostics, Has.Length.EqualTo(1));

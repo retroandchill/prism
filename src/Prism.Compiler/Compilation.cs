@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using Cysharp.Text;
-using Prism.Compiler.Abi;
+using Prism.Abi;
 using Prism.Compiler.Binding;
 using Prism.Compiler.BoundTree;
 using Prism.Compiler.Codegen;
@@ -12,8 +12,6 @@ using Prism.Compiler.Symbols.Intrinsic;
 using Prism.Compiler.Symbols.Source;
 using Prism.Configuration;
 using Prism.Diagnostics;
-using Prism.Metadata;
-using Prism.Semantic;
 using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
@@ -28,18 +26,21 @@ internal sealed record EntryPoint(FunctionSymbol? Function, ImmutableArray<Diagn
     public static readonly EntryPoint Empty = new(null, []);
 }
 
-public class Compilation : ILayoutSource
+public class Compilation : ILayoutSource, IAbiLookup
 {
+    private readonly CompilationContext _context;
     private readonly SyntaxAndDeclarationManager _syntaxAndDeclarationManager;
     private EntryPoint? _entryPoint;
 
     private Compilation(
+        CompilationContext context,
         string assemblyName,
         CompilationSettings settings,
         SyntaxAndDeclarationManager manager,
         ImmutableArray<MetadataReference> references
     )
     {
+        _context = context;
         AssemblyName = assemblyName;
         Settings = settings;
         _syntaxAndDeclarationManager = manager;
@@ -47,6 +48,7 @@ public class Compilation : ILayoutSource
     }
 
     public static Compilation Create(
+        CompilationContext context,
         string assemblyName,
         ImmutableArray<SyntaxTree> trees,
         IEnumerable<MetadataReference>? references = null,
@@ -59,6 +61,7 @@ public class Compilation : ILayoutSource
         var validatedReferences = ValidateReferences(references);
 
         return new Compilation(
+            context,
             assemblyName,
             settings ?? CompilationSettings.CurrentPlatform,
             new SyntaxAndDeclarationManager(trees),
@@ -335,7 +338,7 @@ public class Compilation : ILayoutSource
         CancellationToken cancellationToken = default
     )
     {
-        using var emitter = new LlvmCodeEmitter(
+        using var emitter = _context.EmitterFactory.CreateEmitter(
             this,
             new CodeGenOptions { OutputDirectory = filepath }
         );
@@ -420,7 +423,7 @@ public class Compilation : ILayoutSource
         }
     }
 
-    internal FunctionAbi GetFunctionAbi(FunctionSymbol function)
+    public FunctionAbi GetFunctionAbi(FunctionSymbol function)
     {
         var classifier = AbiClassifierFactory.Get(function.AbiKind);
         return Cache.GetFunctionAbi(classifier, function);

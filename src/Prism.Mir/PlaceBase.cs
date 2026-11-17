@@ -7,10 +7,15 @@ using Prism.Semantic.Symbols;
 
 namespace Prism.Mir;
 
-public closed record PlaceBase;
+public closed record PlaceBase
+{
+    public abstract TypeSymbol Type { get; }
+}
 
 public sealed record LocalPlace(Local Local) : PlaceBase
 {
+    public override TypeSymbol Type => Local.Type;
+
     public override string ToString() => Local.ToString();
 }
 
@@ -25,6 +30,8 @@ public sealed record GlobalPlace : PlaceBase
     }
 
     public VariableSymbol Variable { get; }
+
+    public override TypeSymbol Type => Variable.Type;
 
     public void Deconstruct(out VariableSymbol variable)
     {

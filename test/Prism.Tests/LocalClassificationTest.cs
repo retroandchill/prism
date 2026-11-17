@@ -1,9 +1,7 @@
 ﻿using System.Collections.Immutable;
+using Prism.Codegen.Mir;
 using Prism.Compiler;
-using Prism.Compiler.Codegen.Mir;
-using Prism.Compiler.Mir.Analysis;
-using Prism.Compiler.Symbols;
-using Prism.Semantic;
+using Prism.Mir.Analysis;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
 
@@ -11,6 +9,20 @@ namespace Prism.Tests;
 
 public class LocalClassificationTest
 {
+    private CompilationContext _context;
+
+    [SetUp]
+    public void CreateContext()
+    {
+        _context = CompilationContext.CreateTestContext();
+    }
+
+    [TearDown]
+    public void DisposeContext()
+    {
+        _context.Dispose();
+    }
+
     [Test]
     public void BooleanConditionsInLoopsShouldNotCauseAllocas()
     {
@@ -33,33 +45,26 @@ public class LocalClassificationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(assemblyName, [tree]);
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("nested_break_and_continue");
         Assert.That(members, Has.Length.EqualTo(1));
         Assert.That(members[0], Is.InstanceOf<FunctionSymbol>());
 
         var function = (FunctionSymbol)members[0];
-        var mirEmitter = new MirEmitter(compilation);
-        var mirFunction = mirEmitter.EmitFunction(function, CancellationToken.None);
+        var mirEmitter = new Emitter(compilation);
+        var mirFunction = mirEmitter.Emit(function, CancellationToken.None);
 
-        var cfg = MirFunctionAnalyzer.AnalyzeControlFlow(mirFunction, CancellationToken.None);
-        var localFlow = MirFunctionAnalyzer.AnalyzeLocalFlow(
-            mirFunction,
-            cfg,
-            CancellationToken.None
-        );
-        var classifiedLocals = MirFunctionAnalyzer.ClassifyLocals(
+        var classifiedLocals = LocalClassification.GetClassifications(
             compilation,
             mirFunction,
-            localFlow,
             CancellationToken.None
         );
 
         var allocatedLocals = classifiedLocals
-            .Locals.Where(l => l.Value.StorageKind == MirLocalStorageKind.Memory)
+            .Where(l => l.Value.StorageKind == LocalStorageKind.StackSlot)
             .ToImmutableArray();
 
-        Assert.That(allocatedLocals, Has.Length.EqualTo(2));
+        Assert.That(allocatedLocals, Has.Length.EqualTo(4));
     }
 }
