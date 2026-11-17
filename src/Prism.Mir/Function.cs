@@ -25,6 +25,144 @@ public sealed partial class Function
         Symbol = symbol;
     }
 
+    public Function PruneUnusedBlocksAndLocals()
+    {
+        var usedLocals = new HashSet<Local>();
+
+        var explored = new HashSet<BasicBlock>();
+        var toExplore = new Queue<BasicBlock>();
+        toExplore.Enqueue(EntryBlock);
+        while (toExplore.TryDequeue(out var block))
+        {
+            if (!explored.Add(block))
+                continue;
+
+            foreach (var instruction in block.Statements)
+            {
+                switch (instruction)
+                {
+                    case AssignmentStatement(var place, var target):
+                        CheckPlace(place);
+                        CheckRValue(target);
+                        break;
+                    case StorageDeadStatement(var local):
+                        usedLocals.Add(local);
+                        break;
+                    case StorageLiveStatement(var local):
+                        usedLocals.Add(local);
+                        break;
+                }
+            }
+
+            switch (block.Terminator)
+            {
+                case BranchTerminator(var condition, var trueBlock, var falseBlock):
+                    CheckOperand(condition);
+                    toExplore.Enqueue(trueBlock);
+                    toExplore.Enqueue(falseBlock);
+                    break;
+                case CallTerminator(
+                    _,
+                    var receiver,
+                    var arguments,
+                    var destination,
+                    var nextBlock,
+                    var unwindBlock
+                ):
+
+                    if (receiver is not null)
+                        CheckOperand(receiver);
+
+                    foreach (var argument in arguments)
+                        CheckOperand(argument);
+
+                    if (destination is not null)
+                        CheckPlace(destination.Value);
+                    toExplore.Enqueue(nextBlock);
+                    if (unwindBlock is not null)
+                        toExplore.Enqueue(unwindBlock);
+                    break;
+                case GotoTerminator(var nextBlock):
+                    toExplore.Enqueue(nextBlock);
+                    break;
+                case ReturnTerminator:
+                case UnreachableTerminator:
+                    break;
+            }
+        }
+
+        var locals = Locals.RemoveAll(local => !usedLocals.Contains(local));
+        var blocks = Blocks.RemoveAll(block => !toExplore.Contains(block));
+
+        if (locals == Locals && blocks == Blocks)
+            return this;
+
+        return new Function(Symbol)
+        {
+            Blocks = blocks,
+            EntryBlock = EntryBlock,
+            Locals = locals,
+        };
+
+        void CheckRValue(RValue rvalue)
+        {
+            switch (rvalue)
+            {
+                case UseRValue(var operand):
+                    CheckOperand(operand);
+                    break;
+                case UnaryRValue(_, var operand):
+                    CheckOperand(operand);
+                    break;
+                case BinaryRValue(_, var leftOperand, var rightOperand):
+                    CheckOperand(leftOperand);
+                    CheckOperand(rightOperand);
+                    break;
+                case IsNull(var operand):
+                    CheckOperand(operand);
+                    break;
+                case IsNotNull(var operand):
+                    CheckOperand(operand);
+                    break;
+                case SelectRValue(var condition, var whenTrue, var whenFalse):
+                    CheckOperand(condition);
+                    CheckOperand(whenTrue);
+                    CheckOperand(whenFalse);
+                    break;
+                case ConversionRValue(var operand, _, _):
+                    CheckOperand(operand);
+                    break;
+                case ReferenceRValue(var place, _):
+                    CheckPlace(place);
+                    break;
+                case ArrayRValue(var elements):
+                    foreach (var element in elements)
+                    {
+                        CheckOperand(element);
+                    }
+                    break;
+                case DataRValue(var operand):
+                    CheckOperand(operand);
+                    break;
+                case LengthRValue(var operand):
+                    CheckOperand(operand);
+                    break;
+            }
+        }
+
+        void CheckOperand(Operand operand)
+        {
+            if (operand is PlaceOperand(var place))
+                CheckPlace(place);
+        }
+
+        void CheckPlace(Place place)
+        {
+            if (place.Base is LocalPlace(var local))
+                usedLocals.Add(local);
+        }
+    }
+
     internal void Validate()
     {
         var blockSet = Blocks.AsValueEnumerable().ToHashSet();
@@ -38,6 +176,12 @@ public sealed partial class Function
                     ValidateOperand(condition);
                     ValidateBlock(trueBlock);
                     ValidateBlock(falseBlock);
+                    if (trueBlock == falseBlock)
+                    {
+                        throw new InvalidOperationException(
+                            "Branch terminator with identical true and false blocks"
+                        );
+                    }
                     break;
                 case CallTerminator(
                     _,
@@ -58,6 +202,13 @@ public sealed partial class Function
                     ValidateBlock(nextBlock);
                     if (unwindBlock is not null)
                         ValidateBlock(unwindBlock);
+
+                    if (nextBlock == unwindBlock)
+                    {
+                        throw new InvalidOperationException(
+                            "Branch terminator with identical next and unwind blocks"
+                        );
+                    }
                     break;
                 case GotoTerminator(var nextBlock):
                     ValidateBlock(nextBlock);
