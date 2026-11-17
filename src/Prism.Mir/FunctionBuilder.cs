@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using Prism.Semantic.Symbols;
 using Prism.Utils;
-using Riok.Mapperly.Abstractions;
 using ZLinq;
 
 namespace Prism.Mir;
@@ -94,6 +93,8 @@ public sealed class FunctionBuilder
 
     public Function Build()
     {
-        return Function.Mapper.Map(this);
+        var function = Function.Mapper.Map(this);
+        function.Validate();
+        return function;
     }
 }

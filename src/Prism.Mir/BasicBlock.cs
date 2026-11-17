@@ -18,21 +18,14 @@ public sealed partial class BasicBlock
 
     public string Name { get; }
 
-    public ImmutableArray<Statement> Statements { get; }
+    public ImmutableArray<Statement> Statements { get; private set; }
 
-    public Terminator Terminator { get; }
+    public Terminator Terminator { get; private set; } = null!;
 
-    private BasicBlock(
-        BasicBlockId id,
-        string name,
-        ImmutableArray<Statement> statements,
-        Terminator terminator
-    )
+    private BasicBlock(BasicBlockId id, string name)
     {
         Id = id;
         Name = name;
-        Statements = statements;
-        Terminator = terminator;
     }
 
     [Mapper(UseReferenceHandling = true, RequiredMappingStrategy = RequiredMappingStrategy.Target)]
