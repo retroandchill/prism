@@ -10,7 +10,7 @@ internal sealed partial class LocalUsageInfoBuilder
 
     public bool IsAddressed { get; set; }
 
-    public bool IsProjected { get; set; }
+    public ProjectionUsage Projection { get; set; }
 
     public LocalUsageInfo Build() => Mapper.Map(this);
 

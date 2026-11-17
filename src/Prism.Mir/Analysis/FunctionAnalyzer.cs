@@ -176,9 +176,6 @@ internal static class FunctionAnalyzer
             usageInfo.IsAddressed = true;
         }
 
-        if (usageInfo.IsProjected)
-            return;
-
         if (place.Projections.IsEmpty)
             return;
 
@@ -188,7 +185,7 @@ internal static class FunctionAnalyzer
         if (place.Projections[0] is DereferenceProjection)
             return;
 
-        usageInfo.IsProjected = true;
+        usageInfo.Projection |= isRead ? ProjectionUsage.Read : ProjectionUsage.Write;
     }
 
     private static void AnalyzeOperand(
