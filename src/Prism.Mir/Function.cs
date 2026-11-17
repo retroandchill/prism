@@ -4,6 +4,8 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Prism.Semantic.Symbols;
 using Riok.Mapperly.Abstractions;
 using ZLinq;
@@ -40,11 +42,72 @@ public sealed partial class Function
         if (blocks == Blocks)
             return this;
 
+        // If we replace a block, we need to update any terminators that reference the old block to use the new one.
+        BasicBlock[]? newBlocks = null;
+        foreach (var (i, block) in blocks.AsValueEnumerable().Index())
+        {
+            switch (block.Terminator)
+            {
+                case BranchTerminator branch:
+                    Debug.Assert(branch.TrueBlock != branch.FalseBlock);
+                    if (branch.TrueBlock == existing)
+                    {
+                        SwapBlock(
+                            block.ReplaceTerminator(branch with { TrueBlock = replacement }),
+                            i
+                        );
+                    }
+                    else if (branch.FalseBlock == existing)
+                    {
+                        SwapBlock(
+                            block.ReplaceTerminator(branch with { FalseBlock = replacement }),
+                            i
+                        );
+                    }
+                    break;
+                case CallTerminator call:
+                    Debug.Assert(call.NextBlock != call.UnwindBlock);
+                    if (call.NextBlock == existing)
+                    {
+                        SwapBlock(
+                            block.ReplaceTerminator(call with { NextBlock = replacement }),
+                            i
+                        );
+                    }
+                    else if (call.UnwindBlock == existing)
+                    {
+                        SwapBlock(
+                            block.ReplaceTerminator(call with { UnwindBlock = replacement }),
+                            i
+                        );
+                    }
+                    break;
+                case GotoTerminator gotoTerminator:
+                    if (gotoTerminator.Target == existing)
+                    {
+                        SwapBlock(block.ReplaceTerminator(new GotoTerminator(replacement)), i);
+                    }
+                    break;
+                case ReturnTerminator:
+                case UnreachableTerminator:
+                    break;
+            }
+        }
+
+        if (newBlocks is not null)
+            blocks = ImmutableCollectionsMarshal.AsImmutableArray(newBlocks);
+
         return new Function(this)
         {
             Blocks = blocks,
             EntryBlock = existing == EntryBlock ? replacement : EntryBlock,
         };
+
+        void SwapBlock(BasicBlock updatedBlock, int i)
+        {
+            newBlocks ??= [.. blocks];
+            newBlocks[i] = updatedBlock;
+        }
     }
 
     public Function PruneUnusedBlocksAndLocals()
