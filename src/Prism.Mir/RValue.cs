@@ -51,9 +51,9 @@ public sealed record ConversionRValue(Operand Operand, Conversion Conversion, Ty
     public override string ToString() => $"Cast({Operand}, {TargetType})";
 }
 
-public sealed record ReferenceRValue(Operand Operand, bool IsMutable) : RValue
+public sealed record ReferenceRValue(Place Place, bool IsMutable) : RValue
 {
-    public override string ToString() => $"Ref({(IsMutable ? "mutable" : "")}{Operand})";
+    public override string ToString() => $"Ref({(IsMutable ? "mutable" : "")}{Place})";
 }
 
 public sealed record ArrayRValue(ImmutableArray<Operand> Elements) : RValue

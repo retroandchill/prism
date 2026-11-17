@@ -1114,10 +1114,10 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
         CancellationToken cancellationToken
     )
     {
-        var operand = EmitExpression(addressOf.Operand, lifetime, context, cancellationToken);
+        var place = EmitPlace(addressOf.Operand, lifetime, context, cancellationToken);
         context.CurrentBlock.AddAssignment(
             destination,
-            new ReferenceRValue(operand, addressOf.IsMutable)
+            new ReferenceRValue(place, addressOf.IsMutable)
         );
     }
 
@@ -1168,10 +1168,7 @@ internal sealed class Emitter(Compilation compilation) : IEmitter
     {
         var referenceType = compilation.CreateReferenceTypeSymbol(newExpression.Type, true);
         var (_, address) = context.CreateTemporary(referenceType, lifetime);
-        context.CurrentBlock.AddAssignment(
-            address,
-            new ReferenceRValue(new CopyOperand(destination), true)
-        );
+        context.CurrentBlock.AddAssignment(address, new ReferenceRValue(destination, true));
         var arguments = EmitExpressionList(
             newExpression.Arguments,
             lifetime,

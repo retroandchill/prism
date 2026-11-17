@@ -25,6 +25,7 @@ public sealed record ReturnTerminator : Terminator
 
 public sealed record CallTerminator(
     FunctionSymbol Function,
+    Operand? Receiver,
     ImmutableArray<Operand> Arguments,
     Place? Destination,
     BasicBlock NextBlock,

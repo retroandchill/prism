@@ -104,7 +104,7 @@ internal static class MirFunctionAnalyzer
         foreach (var builder in builders.Values)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            FinalizeLocalFlow(builder, cfg);
+            FinalizeLocalFlow(builder);
         }
 
         return new MirLocalFlowAnalysis
@@ -368,7 +368,7 @@ internal static class MirFunctionAnalyzer
         builder.DefBlocks.Add(blockId);
     }
 
-    private static void FinalizeLocalFlow(MirLocalFlowInfoBuilder builder, MirControlFlowGraph cfg)
+    private static void FinalizeLocalFlow(MirLocalFlowInfoBuilder builder)
     {
         builder.IsUsedAcrossBlocks = IsUsedAcrossBlocks(builder);
         builder.HasMultipleDefinitions = HasMultipleDefinitions(builder);

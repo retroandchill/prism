@@ -1,6 +1,8 @@
-﻿namespace Prism.Mir.Analysis;
+﻿using Riok.Mapperly.Abstractions;
 
-internal sealed class LocalUsageInfoBuilder
+namespace Prism.Mir.Analysis;
+
+internal sealed partial class LocalUsageInfoBuilder
 {
     public int ReadCount { get; set; }
 
@@ -9,4 +11,12 @@ internal sealed class LocalUsageInfoBuilder
     public bool IsAddressed { get; set; }
 
     public bool IsProjected { get; set; }
+
+    public LocalUsageInfo Build() => Mapper.Map(this);
+
+    [Mapper]
+    private static partial class Mapper
+    {
+        public static partial LocalUsageInfo Map(LocalUsageInfoBuilder builder);
+    }
 }
