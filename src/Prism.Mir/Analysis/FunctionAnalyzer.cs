@@ -100,18 +100,18 @@ internal static class FunctionAnalyzer
     }
 
     private static void AnalyzeInstructionLocalFlow(
-        Statement instruction,
+        Instruction instruction,
         Dictionary<Local, LocalUsageInfoBuilder> builders
     )
     {
         switch (instruction)
         {
-            case AssignmentStatement assignmentStatement:
+            case AssignmentInstruction assignmentStatement:
                 AnalyzePlaceUsage(assignmentStatement.Target, builders, false);
                 AnalyzeRValue(assignmentStatement.Value, builders);
                 break;
-            case StorageDeadStatement:
-            case StorageLiveStatement:
+            case StorageDeadInstruction:
+            case StorageLiveInstruction:
                 break;
         }
     }

@@ -95,6 +95,6 @@ public sealed class FunctionBuilder
     {
         var function = Function.Mapper.Map(this);
         function.Validate();
-        return function;
+        return function.PruneUnusedBlocksAndLocals();
     }
 }

@@ -5,22 +5,22 @@
 
 namespace Prism.Mir;
 
-public closed record Statement
+public closed record Instruction
 {
     public abstract override string ToString();
 }
 
-public sealed record AssignmentStatement(Place Target, RValue Value) : Statement
+public sealed record AssignmentInstruction(Place Target, RValue Value) : Instruction
 {
     public override string ToString() => $"{Target} = {Value}";
 }
 
-public sealed record StorageLiveStatement(Local Local) : Statement
+public sealed record StorageLiveInstruction(Local Local) : Instruction
 {
     public override string ToString() => $"Live({Local})";
 }
 
-public sealed record StorageDeadStatement(Local Local) : Statement
+public sealed record StorageDeadInstruction(Local Local) : Instruction
 {
     public override string ToString() => $"Dead({Local})";
 }

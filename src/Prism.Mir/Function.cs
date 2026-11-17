@@ -25,6 +25,28 @@ public sealed partial class Function
         Symbol = symbol;
     }
 
+    private Function(Function function)
+    {
+        Symbol = function.Symbol;
+        Blocks = function.Blocks;
+        EntryBlock = function.EntryBlock;
+        Locals = function.Locals;
+    }
+
+    public Function ReplaceBlock(int index, BasicBlock replacement)
+    {
+        var existing = Blocks[index];
+        var blocks = Blocks.SetItem(index, replacement);
+        if (blocks == Blocks)
+            return this;
+
+        return new Function(this)
+        {
+            Blocks = blocks,
+            EntryBlock = existing == EntryBlock ? replacement : EntryBlock,
+        };
+    }
+
     public Function PruneUnusedBlocksAndLocals()
     {
         var usedLocals = new HashSet<Local>();
@@ -41,14 +63,14 @@ public sealed partial class Function
             {
                 switch (instruction)
                 {
-                    case AssignmentStatement(var place, var target):
+                    case AssignmentInstruction(var place, var target):
                         CheckPlace(place);
                         CheckRValue(target);
                         break;
-                    case StorageDeadStatement(var local):
+                    case StorageDeadInstruction(var local):
                         usedLocals.Add(local);
                         break;
-                    case StorageLiveStatement(var local):
+                    case StorageLiveInstruction(var local):
                         usedLocals.Add(local);
                         break;
                 }
@@ -97,12 +119,7 @@ public sealed partial class Function
         if (locals == Locals && blocks == Blocks)
             return this;
 
-        return new Function(Symbol)
-        {
-            Blocks = blocks,
-            EntryBlock = EntryBlock,
-            Locals = locals,
-        };
+        return new Function(this) { Blocks = blocks, Locals = locals };
 
         void CheckRValue(RValue rvalue)
         {

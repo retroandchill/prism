@@ -18,7 +18,7 @@ public sealed partial class BasicBlock
 
     public string Name { get; }
 
-    public ImmutableArray<Statement> Statements { get; private set; }
+    public ImmutableArray<Instruction> Statements { get; private set; }
 
     public Terminator Terminator { get; private set; } = null!;
 
@@ -26,6 +26,30 @@ public sealed partial class BasicBlock
     {
         Id = id;
         Name = name;
+    }
+
+    private BasicBlock(BasicBlock other)
+    {
+        Id = other.Id;
+        Name = other.Name;
+        Statements = other.Statements;
+        Terminator = other.Terminator;
+    }
+
+    public BasicBlock ReplaceInstructions(ImmutableArray<Instruction> replacement)
+    {
+        if (replacement == Statements)
+            return this;
+
+        return new BasicBlock(this) { Statements = replacement };
+    }
+
+    public BasicBlock ReplaceTerminator(Terminator replacement)
+    {
+        if (replacement == Terminator)
+            return this;
+
+        return new BasicBlock(this) { Terminator = replacement };
     }
 
     [Mapper(UseReferenceHandling = true, RequiredMappingStrategy = RequiredMappingStrategy.Target)]
