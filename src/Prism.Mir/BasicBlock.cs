@@ -38,18 +38,14 @@ public sealed partial class BasicBlock
 
     public BasicBlock ReplaceInstructions(ImmutableArray<Instruction> replacement)
     {
-        if (replacement == Instructions)
-            return this;
-
-        return new BasicBlock(this) { Instructions = replacement };
+        return replacement == Instructions
+            ? this
+            : new BasicBlock(this) { Instructions = replacement };
     }
 
     public BasicBlock ReplaceTerminator(Terminator replacement)
     {
-        if (replacement == Terminator)
-            return this;
-
-        return new BasicBlock(this) { Terminator = replacement };
+        return replacement == Terminator ? this : new BasicBlock(this) { Terminator = replacement };
     }
 
     [Mapper(UseReferenceHandling = true, RequiredMappingStrategy = RequiredMappingStrategy.Target)]
