@@ -382,6 +382,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             SyntaxKind.FuncKeyword => ParseFunctionDeclaration(attributes, modifiers),
             SyntaxKind.AttributeKeyword => ParseAttributeDeclaration(attributes, modifiers),
             SyntaxKind.ClassKeyword => ParseClassDeclaration(attributes, modifiers),
+            SyntaxKind.EnumKeyword => ParseEnumDeclaration(attributes, modifiers),
             _ => ParseIncompleteDeclaration(attributes, modifiers),
         };
     }
@@ -685,7 +686,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 keyword,
                 identifier,
                 null,
-                null,
+                [],
                 null,
                 semicolon
             );
@@ -741,6 +742,88 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             keyword,
             identifier,
             openBrace,
+            members.BuildAndClear(),
+            closeBrace,
+            null
+        );
+    }
+
+    private GreenEnumDeclaration ParseEnumDeclaration(
+        GreenSyntaxList<GreenAttributeList> attributes,
+        GreenSyntaxList<GreenToken> modifiers
+    )
+    {
+        var keyword = ExpectToken(SyntaxKind.EnumKeyword);
+        var identifier = ExpectToken(SyntaxKind.IdentifierToken);
+        if (MatchToken(SyntaxKind.SemicolonToken) is { } semicolon)
+        {
+            return new GreenEnumDeclaration(
+                attributes,
+                modifiers,
+                keyword,
+                identifier,
+                null,
+                [],
+                null,
+                [],
+                null,
+                semicolon
+            );
+        }
+
+        var openBrace = ExpectToken(SyntaxKind.OpenBraceToken);
+
+        var parseMembers = !openBrace.IsMissing;
+
+        GreenSeparatedList<GreenEnumOrdinalDeclaration> ordinals = [];
+        var members = GreenSyntaxList.CreateBuilder<GreenDeclaration>();
+        if (parseMembers)
+        {
+            while (true)
+            {
+                var kind = PeekToken().Kind;
+                if (CanStartMember(kind))
+                {
+                    using var scope = EnterTerminatorStateScope(
+                        TerminatorState.IsPossibleMemberStartOrStop
+                    );
+
+                    var member = ParseClassLevelDeclaration();
+                    if (member is not null)
+                    {
+                        members.Add(member);
+                    }
+                    else
+                    {
+                        SkipBadMemberListTokens(ref openBrace, ref members);
+                    }
+                }
+                else if (
+                    kind is SyntaxKind.CloseBraceToken or SyntaxKind.EofToken
+                    || IsTerminator()
+                )
+                {
+                    break;
+                }
+                else
+                {
+                    SkipBadMemberListTokens(ref openBrace, ref members);
+                }
+            }
+        }
+
+        var closeBrace = openBrace.IsMissing
+            ? GreenToken.GetMissing(SyntaxKind.CloseBraceToken)
+            : ExpectToken(SyntaxKind.CloseBraceToken);
+
+        return new GreenEnumDeclaration(
+            attributes,
+            modifiers,
+            keyword,
+            identifier,
+            openBrace,
+            ordinals,
+            null,
             members.BuildAndClear(),
             closeBrace,
             null

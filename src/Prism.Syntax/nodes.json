@@ -71,6 +71,10 @@
         "text": "class"
       },
       {
+        "name": "EnumKeyword",
+        "text": "enum"
+      },
+      {
         "name": "ExternKeyword",
         "text": "extern"
       },
@@ -2721,6 +2725,138 @@
                   ]
                 }
               ]
+            }
+          ]
+        },
+        {
+          "name": "EnumDeclaration",
+          "base": "TypeDeclaration",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "modifiers",
+              "type": "Token",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ClassKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "identifier",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            },
+
+            {
+              "$type": "choice",
+              "choices": [
+                {
+                  "$type": "sequence",
+                  "elements": [
+                    {
+                      "$type": "item",
+                      "name": "open_brace",
+                      "type": "Token",
+                      "shape": "single",
+                      "kinds": [
+                        "OpenBraceToken"
+                      ]
+                    },
+
+                    {
+                      "$type": "item",
+                      "name": "ordinals",
+                      "type": "EnumOrdinalDeclaration",
+                      "shape": "separated_list",
+                      "separators": [
+                        "CommaToken"
+                      ]
+                    },
+                    {
+                      "$type": "item",
+                      "name": "ordinal_list_separator",
+                      "type": "Token",
+                      "shape": "optional",
+                      "kinds": [
+                        "SemicolonToken"
+                      ]
+                    },
+                    {
+                      "$type": "item",
+                      "name": "members",
+                      "type": "Declaration",
+                      "shape": "list"
+                    },
+                    {
+                      "$type": "item",
+                      "name": "close_brace",
+                      "type": "Token",
+                      "shape": "single",
+                      "kinds": [
+                        "CloseBraceToken"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "$type": "item",
+                  "name": "semicolon",
+                  "type": "Token",
+                  "shape": "single",
+                  "kinds": [
+                    "SemicolonToken"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "EnumOrdinalDeclaration",
+          "base": "Declaration",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "modifiers",
+              "type": "Token",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "Identifier",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "value",
+              "type": "Initializer",
+              "shape": "optional"
             }
           ]
         }
