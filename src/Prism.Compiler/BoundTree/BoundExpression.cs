@@ -13,6 +13,7 @@ using Prism.Semantic;
 using Prism.Semantic.Conversions;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
+using Prism.Utils;
 using ConstantValue = Prism.Constants.ConstantValue;
 
 namespace Prism.Compiler.BoundTree;
@@ -499,6 +500,8 @@ internal sealed record BoundSpeculativeCollectionExpression : BoundSpeculativeEx
     public ImmutableArray<BoundExpression> Expressions { get; }
 }
 
+internal readonly record struct BoundFieldInitializer(VariableSymbol Field, BoundExpression Value);
+
 internal sealed record BoundNewExpression : BoundExpression
 {
     public BoundNewExpression(
@@ -506,34 +509,17 @@ internal sealed record BoundNewExpression : BoundExpression
         SyntaxNode syntax,
         TypeSymbol targetType,
         FunctionSymbol constructor,
-        ImmutableArray<BoundExpression> arguments
+        ImmutableArray<BoundExpression> arguments,
+        ImmutableArray<BoundFieldInitializer> initializers = default
     )
         : base(compilation, syntax, targetType)
     {
         Constructor = constructor;
         Arguments = arguments;
+        Initializers = initializers.NullToEmpty();
     }
 
     public FunctionSymbol Constructor { get; }
     public ImmutableArray<BoundExpression> Arguments { get; }
-}
-
-internal sealed record BoundSpeculativeNewExpression : BoundSpeculativeExpression
-{
-    public BoundSpeculativeNewExpression(
-        Compilation compilation,
-        SyntaxNode syntax,
-        ImmutableArray<CallArgument> arguments
-    )
-        : base(
-            compilation,
-            syntax,
-            UndeterminedObjectTypeSymbol.Instance.PublicSymbol,
-            ErrorTypeSymbol.Unnamed.PublicSymbol
-        )
-    {
-        Arguments = arguments;
-    }
-
-    public ImmutableArray<CallArgument> Arguments { get; }
+    public ImmutableArray<BoundFieldInitializer> Initializers { get; }
 }

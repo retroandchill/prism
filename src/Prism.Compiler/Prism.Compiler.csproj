@@ -49,7 +49,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Abi\" />
     <Folder Include="Semantic\Layout\" />
   </ItemGroup>
 </Project>

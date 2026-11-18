@@ -333,6 +333,11 @@ public class Compilation : ILayoutSource, IAbiLookup
         return Cache.CreateErrorNamespaceSymbol(containingNamespace, name);
     }
 
+    internal VariableSymbol CreateErrorFieldSymbol(NamedTypeSymbol containingType, string name)
+    {
+        return Cache.CreateErrorFieldSymbol(containingType, name);
+    }
+
     public async Task<EmitResult> EmitAsync(
         string filepath,
         CancellationToken cancellationToken = default

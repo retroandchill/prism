@@ -1217,6 +1217,8 @@ internal sealed class Emitter : IEmitter
             context,
             cancellationToken
         );
+
+        // TODO: At some point we will change this so that aggregate construction will not default initialize everything.
         CreateCallInstruction(
             null,
             newExpression.Constructor,
@@ -1224,6 +1226,12 @@ internal sealed class Emitter : IEmitter
             arguments,
             context
         );
+
+        foreach (var (field, value) in newExpression.Initializers)
+        {
+            var fieldPlace = destination.AddProjection(new FieldProjection(field));
+            EmitExpression(fieldPlace, value, lifetime, context, cancellationToken);
+        }
     }
 
     private Place EmitPlace(

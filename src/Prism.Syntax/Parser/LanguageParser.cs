@@ -1095,9 +1095,31 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             SyntaxKind.SizeOfKeyword => ParseSizeOfExpression(),
             SyntaxKind.OpenParenToken => ParseParenthesizedExpression(),
             SyntaxKind.OpenBracketToken => ParseCollectionExpression(),
-            SyntaxKind.NewKeyword => ParseNewExpression(),
-            _ => new GreenIdentifierExpression(ParseName()),
+            _ => ParseIdentifierWithInitializer(),
         };
+    }
+
+    private GreenExpression ParseIdentifierWithInitializer()
+    {
+        var name = ParseName();
+
+        var arguments = PeekToken().Kind == SyntaxKind.OpenParenToken ? ParseArgumentList() : null;
+
+        var next = PeekToken().Kind;
+        if (next != SyntaxKind.OpenBraceToken)
+        {
+            var identifier = new GreenIdentifierExpression(name);
+            if (arguments is not null)
+            {
+                return new GreenInvocationExpression(identifier, arguments);
+            }
+
+            return identifier;
+            ;
+        }
+
+        var initializer = ParseObjectInitializer();
+        return new GreenObjectCreationExpression(new GreenNamedType(name), arguments, initializer);
     }
 
     private GreenExpression ParseCastExpression()
@@ -1223,17 +1245,6 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 closeKind
             );
         }
-    }
-
-    private GreenNewExpression ParseNewExpression()
-    {
-        var newKeyword = ExpectToken(SyntaxKind.NewKeyword);
-        var type = PeekToken().Kind != SyntaxKind.OpenParenToken ? ParseType() : null;
-        var argumentsList =
-            PeekToken().Kind == SyntaxKind.OpenParenToken ? ParseArgumentList() : null;
-        var objectInitializer =
-            PeekToken().Kind == SyntaxKind.OpenBraceToken ? ParseObjectInitializer() : null;
-        return new GreenNewExpression(newKeyword, type, argumentsList, objectInitializer);
     }
 
     private GreenObjectInitializer ParseObjectInitializer()

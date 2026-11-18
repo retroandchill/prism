@@ -11,7 +11,7 @@ using ZLinq;
 
 namespace Prism.Syntax;
 
-public closed class SyntaxNode
+public closed class SyntaxNode : ISyntaxItem
 {
     private protected SyntaxNode(GreenNode green, SyntaxNode? parent, int position)
     {
@@ -121,6 +121,8 @@ public closed class SyntaxNode
             return field;
         }
     }
+
+    Location ISyntaxItem.Location => Location;
 
     internal abstract SyntaxNode? GetNodeSlot(int index);
 

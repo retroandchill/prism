@@ -9,7 +9,7 @@ using Prism.Text;
 
 namespace Prism.Syntax;
 
-public readonly struct SyntaxToken
+public readonly struct SyntaxToken : ISyntaxItem
 {
     internal SyntaxToken(GreenToken token, int position)
     {

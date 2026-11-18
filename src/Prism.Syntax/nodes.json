@@ -227,10 +227,6 @@
       {
         "name": "DefaultKeyword",
         "text": "default"
-      },
-      {
-        "name": "NewKeyword",
-        "text": "new"
       }
     ],
     "punctuations": [
@@ -1518,23 +1514,14 @@
           ]
         },
         {
-          "name": "NewExpression",
+          "name": "ObjectCreationExpression",
           "base": "Expression",
           "properties": [
             {
               "$type": "item",
-              "name": "new_keyword",
-              "type": "Token",
-              "shape": "single",
-              "kinds": [
-                "NewKeyword"
-              ]
-            },
-            {
-              "$type": "item",
               "name": "type",
-              "type": "Type",
-              "shape": "optional"
+              "type": "NamedType",
+              "shape": "single"
             },
             {
               "$type": "item",
@@ -1546,7 +1533,7 @@
               "$type": "item",
               "name": "initializer",
               "type": "ObjectInitializer",
-              "shape": "optional"
+              "shape": "single"
             }
           ]
         },

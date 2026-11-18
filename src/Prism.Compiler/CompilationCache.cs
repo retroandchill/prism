@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Prism.Abi;
 using Prism.Compiler.Binding;
 using Prism.Compiler.BoundTree;
@@ -47,6 +48,7 @@ internal sealed class CompilationCache(Compilation compilation)
     private readonly ConcurrentDictionary<SymbolLookupKey, NamedTypeSymbol> _errorTypes = new();
     private readonly ConcurrentDictionary<SymbolLookupKey, NamespaceSymbol> _errorNamespaces =
         new();
+    private readonly ConcurrentDictionary<SymbolLookupKey, VariableSymbol> _errorVariables = new();
 
     private readonly ConcurrentDictionary<
         VariableSymbol,
@@ -156,6 +158,14 @@ internal sealed class CompilationCache(Compilation compilation)
         var key = new SymbolLookupKey(container, name);
         return _errorNamespaces.GetOrAdd(key, static k =>
             new ErrorNamespaceSymbol(k.Name, k.Container).PublicSymbol
+        );
+    }
+
+    internal VariableSymbol CreateErrorFieldSymbol(NamedTypeSymbol container, string name)
+    {
+        var key = new SymbolLookupKey(container, name);
+        return _errorVariables.GetOrAdd(key, static k =>
+            new ErrorFieldSymbol(k.Name, Unsafe.As<NamedTypeSymbol>(k.Container)!).PublicSymbol
         );
     }
 

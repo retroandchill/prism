@@ -42,28 +42,36 @@ internal static class BindingHelpers
         BindingContext context
     )
     {
+        DiagnoseLookupFailure(result, syntax, s => s.UnqualifiedName, expected, context);
+    }
+
+    public static void DiagnoseLookupFailure<T>(
+        LookupResult result,
+        T syntax,
+        Func<T, string> expectedName,
+        LookupOptions expected,
+        BindingContext context
+    )
+        where T : ISyntaxItem
+    {
         switch (result.Kind)
         {
             case LookupResultKind.Viable or LookupResultKind.Error:
                 break;
             case LookupResultKind.NotFound:
                 context.ReportDiagnostic(
-                    Diagnostic.UnresolvedSymbol(syntax.Location, syntax.UnqualifiedName)
+                    Diagnostic.UnresolvedSymbol(syntax.Location, expectedName(syntax))
                 );
                 break;
             case LookupResultKind.Ambiguous:
             {
-                var name = !result.Symbols.IsEmpty
-                    ? result.Symbols[0].Name
-                    : syntax.UnqualifiedName;
+                var name = !result.Symbols.IsEmpty ? result.Symbols[0].Name : expectedName(syntax);
                 context.ReportDiagnostic(Diagnostic.AmbiguousSymbol(syntax.Location, name));
                 break;
             }
             case LookupResultKind.Inaccessible:
             {
-                var name = !result.Symbols.IsEmpty
-                    ? result.Symbols[0].Name
-                    : CollectNames(syntax)[^1].UnqualifiedName;
+                var name = !result.Symbols.IsEmpty ? result.Symbols[0].Name : expectedName(syntax);
                 context.ReportDiagnostic(Diagnostic.SymbolInaccessible(syntax.Location, name));
                 break;
             }
@@ -71,7 +79,7 @@ internal static class BindingHelpers
                 context.ReportDiagnostic(
                     Diagnostic.InvalidSymbol(
                         syntax.Location,
-                        syntax.UnqualifiedName,
+                        expectedName(syntax),
                         expected.ToDisplayString()
                     )
                 );

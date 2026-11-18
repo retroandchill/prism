@@ -8,7 +8,7 @@ using Prism.Text;
 
 namespace Prism.Syntax;
 
-public readonly struct SyntaxTrivia
+public readonly struct SyntaxTrivia : ISyntaxItem
 {
     public SyntaxToken Parent { get; }
     internal GreenNode Green { get; }
@@ -20,6 +20,8 @@ public readonly struct SyntaxTrivia
     public TextSpan Span => new(Position, Green.Width);
 
     public bool ContainsDiagnostics => Green.ContainsDiagnostics;
+
+    public Location Location => Parent.Location;
 
     internal SyntaxTrivia(in SyntaxToken parent, GreenNode green, int position)
     {

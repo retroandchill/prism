@@ -14,8 +14,6 @@ using Prism.Compiler.Symbols.Source;
 using Prism.Configuration;
 using Prism.Constants;
 using Prism.Diagnostics;
-using Prism.Metadata;
-using Prism.Semantic;
 using Prism.Semantic.Conversions;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
@@ -98,11 +96,7 @@ internal abstract class Binder : IOverloadResolutionHost
     {
         return syntax switch
         {
-            NamedTypeSyntax namedTypeSyntax => RequireType(
-                LookupFromSyntax(namedTypeSyntax.Identifier, LookupOptions.Type, context),
-                namedTypeSyntax.Identifier,
-                context
-            ),
+            NamedTypeSyntax namedTypeSyntax => ResolveType(namedTypeSyntax, context),
             PredefinedTypeSyntax predefinedTypeSyntax => Compilation.GetSpecialType(
                 predefinedTypeSyntax.Keyword.Kind.ToSpecialType()
             ),
@@ -119,6 +113,15 @@ internal abstract class Binder : IOverloadResolutionHost
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(syntax)),
         };
+    }
+
+    private NamedTypeSymbol ResolveType(NamedTypeSyntax syntax, BindingContext context)
+    {
+        return RequireType(
+            LookupFromSyntax(syntax.Identifier, LookupOptions.Type, context),
+            syntax.Identifier,
+            context
+        );
     }
 
     private ulong? GetArraySize(ArrayTypeSyntax syntax, BindingContext context)
@@ -146,9 +149,13 @@ internal abstract class Binder : IOverloadResolutionHost
         };
     }
 
-    private TypeSymbol RequireType(LookupResult result, NameSyntax syntax, BindingContext context)
+    private NamedTypeSymbol RequireType(
+        LookupResult result,
+        NameSyntax syntax,
+        BindingContext context
+    )
     {
-        if (result is { IsViable: true, Symbol: TypeSymbol typeSymbol })
+        if (result is { IsViable: true, Symbol: NamedTypeSymbol typeSymbol })
         {
             return typeSymbol;
         }
@@ -184,19 +191,19 @@ internal abstract class Binder : IOverloadResolutionHost
     {
         if (options.HasFlag(LookupOptions.Callable))
         {
-            var symbols = ImmutableArray.CreateBuilder<Symbol>();
+            var symbols = new List<Symbol>();
             for (var binder = this; binder is not null; binder = binder.Next)
             {
                 if (binder.LookupLocal(name, options, context) is not { Found: true } localResult)
                     continue;
 
-                if (!localResult.IsViable || localResult.Symbols.All(s => s is FunctionSymbol))
+                if (!localResult.IsViable || !localResult.Symbols.All(s => s is FunctionSymbol))
                     return localResult;
 
                 symbols.AddRange(localResult.Symbols);
             }
 
-            return MakeLookupResult(symbols.DrainToImmutable(), options);
+            return MakeLookupResult([.. symbols.Distinct()], options);
         }
 
         for (var binder = this; binder is not null; binder = binder.Next)
@@ -457,7 +464,7 @@ internal abstract class Binder : IOverloadResolutionHost
         )
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var attributeType = (NamedTypeSymbol)ResolveType(attribute.Type, context);
+            var attributeType = ResolveType(attribute.Type, context);
             if (attributeType.Kind != NamedTypeKind.Attribute)
             {
                 context.ReportDiagnostic(
@@ -1045,10 +1052,8 @@ internal abstract class Binder : IOverloadResolutionHost
                 context,
                 cancellationToken
             ),
-            NewExpressionSyntax newExpression => BindNewExpression(
+            ObjectCreationExpressionSyntax newExpression => BindObjectCreationExpression(
                 newExpression,
-                targetType,
-                isSpeculative,
                 context,
                 cancellationToken
             ),
@@ -1569,10 +1574,46 @@ internal abstract class Binder : IOverloadResolutionHost
         {
             case IdentifierExpressionSyntax nameSyntax:
             {
-                var overloads = LookupFromSyntax(nameSyntax.Value, LookupOptions.Callable, context);
+                var overloads = LookupFromSyntax(
+                    nameSyntax.Value,
+                    LookupOptions.Callable | LookupOptions.Type,
+                    context
+                );
                 if (overloads.IsViable)
                 {
-                    return BindOverloadSet(syntax, overloads, context, cancellationToken);
+                    if (overloads.Symbols is [NamedTypeSymbol named])
+                    {
+                        var ctors = LookupQualifiedName(
+                            CommonNames.Ctor,
+                            named,
+                            LookupOptions.Callable
+                        );
+
+                        var arguments = GetCallArguments(
+                            syntax.Arguments,
+                            context,
+                            cancellationToken
+                        );
+                        var (overload, realArgs) = ResolveOverload(
+                            ctors,
+                            null,
+                            arguments,
+                            syntax,
+                            context
+                        );
+
+                        return new BoundNewExpression(
+                            Compilation,
+                            syntax,
+                            named,
+                            overload,
+                            realArgs
+                        );
+                    }
+                    else
+                    {
+                        return BindOverloadSet(syntax, overloads, context, cancellationToken);
+                    }
                 }
 
                 break;
@@ -1907,39 +1948,66 @@ internal abstract class Binder : IOverloadResolutionHost
         );
     }
 
-    private BoundExpression BindNewExpression(
-        NewExpressionSyntax syntax,
-        TypeSymbol? targetType,
-        bool isSpeculative,
+    private BoundNewExpression BindObjectCreationExpression(
+        ObjectCreationExpressionSyntax syntax,
         BindingContext context,
         CancellationToken cancellationToken
     )
     {
-        TypeSymbol constructedType;
-        if (syntax.Type is not null)
-        {
-            constructedType = ResolveType(syntax.Type, context);
-        }
-        else if (targetType is not null)
-        {
-            constructedType = targetType;
-        }
-        else if (isSpeculative)
-        {
-            var specArgs = GetCallArguments(syntax.Arguments, context, cancellationToken);
-            return new BoundSpeculativeNewExpression(Compilation, syntax, specArgs);
-        }
-        else
-        {
-            constructedType = ErrorTypeSymbol.Unnamed.PublicSymbol;
-        }
-
+        var constructedType = ResolveType(syntax.Type, context);
         var ctors = LookupQualifiedName(CommonNames.Ctor, constructedType, LookupOptions.Callable);
 
         var arguments = GetCallArguments(syntax.Arguments, context, cancellationToken);
         var (overload, realArgs) = ResolveOverload(ctors, null, arguments, syntax, context);
 
-        return new BoundNewExpression(Compilation, syntax, constructedType, overload, realArgs);
+        if (syntax.Initializer.Items.Count == 0)
+            return new BoundNewExpression(Compilation, syntax, constructedType, overload, realArgs);
+
+        var items = new BoundFieldInitializer[syntax.Initializer.Items.Count];
+        foreach (var (i, item) in syntax.Initializer.Items.AsValueEnumerable().Index())
+        {
+            var result = LookupQualifiedName(
+                item.Name.IdentifierName,
+                constructedType,
+                LookupOptions.Value
+            );
+            VariableSymbol field;
+            TypeSymbol? fieldType;
+            if (!result.IsViable)
+            {
+                DiagnoseLookupFailure(
+                    result,
+                    item.Name,
+                    t => t.IdentifierName,
+                    LookupOptions.Value,
+                    context
+                );
+                field = Compilation.CreateErrorFieldSymbol(
+                    constructedType,
+                    item.Name.IdentifierName
+                );
+                fieldType = null;
+            }
+            else
+            {
+                field = (VariableSymbol)result.Symbol;
+                fieldType = field.Type;
+            }
+
+            var value = BindExpression(item.Value, fieldType, context, cancellationToken);
+            items[i] = new BoundFieldInitializer(field, value);
+        }
+
+        var initializers = ImmutableCollectionsMarshal.AsImmutableArray(items);
+
+        return new BoundNewExpression(
+            Compilation,
+            syntax,
+            constructedType,
+            overload,
+            realArgs,
+            initializers
+        );
     }
 
     private BoundExpression AddConversionIfNecessary(
@@ -2369,11 +2437,6 @@ internal abstract class Binder : IOverloadResolutionHost
             ),
             BoundSpeculativeCollectionExpression collectionExpression =>
                 ApplySpeculativeCollectionExpression(collectionExpression, targetType, context),
-            BoundSpeculativeNewExpression newExpression => ApplySpeculativeNewExpression(
-                newExpression,
-                targetType,
-                context
-            ),
         };
     }
 
@@ -2447,32 +2510,6 @@ internal abstract class Binder : IOverloadResolutionHost
             context,
             elementType,
             arguments
-        );
-    }
-
-    private BoundNewExpression ApplySpeculativeNewExpression(
-        BoundSpeculativeNewExpression expression,
-        TypeSymbol? targetType,
-        BindingContext context
-    )
-    {
-        targetType ??= ErrorTypeSymbol.Unnamed.PublicSymbol;
-        var ctors = LookupQualifiedName(CommonNames.Ctor, targetType, LookupOptions.Callable);
-
-        var (overload, realArgs) = ResolveOverload(
-            ctors,
-            null,
-            expression.Arguments,
-            expression.Syntax,
-            context
-        );
-
-        return new BoundNewExpression(
-            Compilation,
-            expression.Syntax,
-            targetType,
-            overload,
-            realArgs
         );
     }
 
