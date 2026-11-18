@@ -195,21 +195,21 @@ public static class FunctionAnalyzer
             usageInfo.WriteCount++;
         }
 
+        if (!place.Projections.IsEmpty)
+        {
+            // If the first projection is a dereference, we don't consider it a projection, otherwise we are accessing
+            // part of a place, which means we may need to be mutating parts individually, and thus we need to note that
+            // there may be a need for heap storage.
+            if (place.Projections[0] is DereferenceProjection)
+                return;
+
+            usageInfo.Projection |= isRead ? ProjectionUsage.Read : ProjectionUsage.Write;
+        }
+
         if (isTakingAddress)
         {
             usageInfo.IsAddressed = true;
         }
-
-        if (place.Projections.IsEmpty)
-            return;
-
-        // If the first projection is a dereference, we don't consider it a projection, otherwise we are accessing
-        // part of a place, which means we may need to be mutating parts individually, and thus we need to note that
-        // there may be a need for heap storage.
-        if (place.Projections[0] is DereferenceProjection)
-            return;
-
-        usageInfo.Projection |= isRead ? ProjectionUsage.Read : ProjectionUsage.Write;
     }
 
     private static void AnalyzeOperand(

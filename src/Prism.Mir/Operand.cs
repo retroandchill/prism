@@ -12,9 +12,7 @@ namespace Prism.Mir;
 
 public closed record Operand
 {
-    public TypeSymbol Type => GetTypeSymbol();
-
-    public abstract TypeSymbol GetTypeSymbol();
+    internal abstract TypeSymbol GetTypeSymbol();
 
     public abstract override string ToString();
 }
@@ -23,14 +21,12 @@ public sealed record ConstantOperand(ConstantValue Value, TypeSymbol Type) : Ope
 {
     public bool IsNull => Value is NullConstant;
 
-    public new TypeSymbol Type { get; init; } = Type;
-
-    public override TypeSymbol GetTypeSymbol() => Type;
+    internal override TypeSymbol GetTypeSymbol() => Type;
 }
 
 public closed record PlaceOperand(Place Source) : Operand
 {
-    public override TypeSymbol GetTypeSymbol() => Source.Type;
+    internal override TypeSymbol GetTypeSymbol() => Source.Type;
 }
 
 public sealed record CopyOperand(Place Source) : PlaceOperand(Source)
@@ -41,4 +37,12 @@ public sealed record CopyOperand(Place Source) : PlaceOperand(Source)
 public sealed record MoveOperand(Place Source) : PlaceOperand(Source)
 {
     public override string ToString() => $"Move({Source})";
+}
+
+public static class OperandExtensions
+{
+    extension(Operand operand)
+    {
+        public TypeSymbol Type => operand.GetTypeSymbol();
+    }
 }

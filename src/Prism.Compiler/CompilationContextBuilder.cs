@@ -12,10 +12,10 @@ public sealed class CompilationContextBuilder
 {
     private readonly ServiceCollection _services = [];
 
-    internal CompilationContextBuilder UseCodeEmitter<T>()
-        where T : class, ICodeEmitter
+    internal CompilationContextBuilder UseCodeEmitterFactory<T>()
+        where T : class, ICodeEmitterFactory
     {
-        _services.AddSingleton<ICodeEmitter, T>();
+        _services.AddSingleton<ICodeEmitterFactory, T>();
         return this;
     }
 

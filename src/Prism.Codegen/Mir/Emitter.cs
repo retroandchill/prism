@@ -1056,7 +1056,7 @@ internal sealed class Emitter : IEmitter
             }
             case IntrinsicFunction.GetSliceData:
                 var receiver = EmitExpression(
-                    call.Receiver.RequireNonNull(),
+                    call.Arguments[0],
                     lifetime,
                     context,
                     cancellationToken

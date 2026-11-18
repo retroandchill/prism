@@ -9,9 +9,7 @@ namespace Prism.Mir;
 
 public closed record PlaceProjection
 {
-    public TypeSymbol Type => GetTypeSymbol();
-
-    protected abstract TypeSymbol GetTypeSymbol();
+    internal abstract TypeSymbol GetTypeSymbol();
 }
 
 public sealed record FieldProjection : PlaceProjection
@@ -26,27 +24,35 @@ public sealed record FieldProjection : PlaceProjection
 
     public VariableSymbol Field { get; }
 
-    public new TypeSymbol Type => Field.Type;
+    public TypeSymbol Type => Field.Type;
 
     public void Deconstruct(out VariableSymbol field)
     {
         field = Field;
     }
 
-    protected override TypeSymbol GetTypeSymbol() => Field.Type;
+    internal override TypeSymbol GetTypeSymbol() => Field.Type;
 }
 
 public sealed record IndexProjection(Operand Index, TypeSymbol Type) : PlaceProjection
 {
-    protected override TypeSymbol GetTypeSymbol() => Type;
+    internal override TypeSymbol GetTypeSymbol() => Type;
 }
 
 public sealed record DereferenceProjection(TypeSymbol Type) : PlaceProjection
 {
-    protected override TypeSymbol GetTypeSymbol() => Type;
+    internal override TypeSymbol GetTypeSymbol() => Type;
 }
 
 public sealed record PayloadProjection(TypeSymbol Type) : PlaceProjection
 {
-    protected override TypeSymbol GetTypeSymbol() => Type;
+    internal override TypeSymbol GetTypeSymbol() => Type;
+}
+
+public static class ProjectionExtensions
+{
+    extension(PlaceProjection projection)
+    {
+        public TypeSymbol Type => projection.GetTypeSymbol();
+    }
 }

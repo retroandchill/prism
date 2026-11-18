@@ -15,23 +15,26 @@ public union ProjectResult(Project, string);
 
 public sealed class Project
 {
+    private readonly CompilationContext _context;
     private readonly ProjectManifest _manifest;
     private readonly ImmutableArray<FileInfo> _sourceFiles;
     private Compilation? _compilation;
     private readonly DirectoryInfo _buildDir;
 
     private Project(
+        CompilationContext context,
         ProjectManifest manifest,
         ImmutableArray<FileInfo> srcFiles,
         DirectoryInfo buildDir
     )
     {
+        _context = context;
         _manifest = manifest;
         _sourceFiles = srcFiles;
         _buildDir = buildDir;
     }
 
-    public static ProjectResult FromDirectory(DirectoryInfo directory)
+    public static ProjectResult FromDirectory(CompilationContext context, DirectoryInfo directory)
     {
         var file = new FileInfo(Path.Combine(directory.FullName, "facet.toml"));
         if (!file.Exists)
@@ -60,6 +63,7 @@ public sealed class Project
 
         var buildDir = new DirectoryInfo(Path.Combine(directory.FullName, "build"));
         return new Project(
+            context,
             manifest,
             ImmutableCollectionsMarshal.AsImmutableArray(srcFiles),
             buildDir
@@ -83,8 +87,7 @@ public sealed class Project
             OutputKind = _manifest.Output.Kind,
             BuildingCoreLibrary = _manifest.Package.IsCoreLibrary,
         };
-        using var context = CompilationContext.CreateDefault();
-        return Compilation.Create(context, _manifest.Package.Name, trees, settings: settings);
+        return Compilation.Create(_context, _manifest.Package.Name, trees, settings: settings);
     }
 
     private ImmutableArray<SyntaxTree> ComputeSyntaxTrees(CancellationToken cancellationToken)

@@ -1,5 +1,7 @@
 ﻿using DotMake.CommandLine;
 using Prism.Build.Workspaces;
+using Prism.Compiler;
+using Prism.Compiler.Host;
 
 namespace Prism.Facet;
 
@@ -27,7 +29,8 @@ public class RootCommand
                 return 1;
             }
 
-            var projectResult = Project.FromDirectory(folder);
+            using var compilationContext = CompilationContext.CreateDefault();
+            var projectResult = Project.FromDirectory(compilationContext, folder);
             return projectResult switch
             {
                 Project project => await BuildProjectAsync(project, context),

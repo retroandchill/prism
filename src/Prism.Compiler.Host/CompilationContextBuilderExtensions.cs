@@ -13,7 +13,7 @@ public static class CompilationContextBuilderExtensions
     {
         public static CompilationContextBuilder CreateBuilder()
         {
-            return new CompilationContextBuilder().UseCodeEmitter<LlvmCodeEmitter>();
+            return new CompilationContextBuilder().UseCodeEmitterFactory<LlvmCodeEmitterFactory>();
         }
 
         public static CompilationContext CreateDefault()

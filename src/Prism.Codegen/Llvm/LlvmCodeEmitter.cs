@@ -35,9 +35,10 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     private readonly CodeGenOptions _options;
     private readonly IEmitter _mirEmitter;
 
-    private const int NullTagIndex = 0;
-    private const int SliceDataIndex = 0;
-    private const int SliceLengthIndex = 1;
+    private const uint NullTagIndex = 0;
+    private const uint NullPayloadIndex = 1;
+    private const uint SliceDataIndex = 0;
+    private const uint SliceLengthIndex = 1;
 
     private LLVMContextRef _context;
     private LLVMModuleRef _module;
@@ -1062,13 +1063,17 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
             var llvmType = GetOrCreateType(place.Type);
             var address = EmitTakeAddress(place, context).Pointer;
-            var boundedPointer = _builder.BuildInBoundsGEP2(
-                llvmType,
-                address,
-                CollectionsMarshal.AsSpan(indices),
-                ""
-            );
-            return _builder.BuildLoad2(comparand.TypeOf, boundedPointer);
+            if (indices.Any(i => i.ConstIntZExt > 0))
+            {
+                address = _builder.BuildInBoundsGEP2(
+                    llvmType,
+                    address,
+                    CollectionsMarshal.AsSpan(indices),
+                    ""
+                );
+            }
+
+            return _builder.BuildLoad2(comparand.TypeOf, address);
         }
     }
 
@@ -1321,7 +1326,12 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
             var llvmType = GetOrCreateType(place.Type);
             var baseAddress = EmitTakeAddress(place, context).Pointer;
-            return ExtractFromSsa(_builder.BuildStructGEP2(llvmType, baseAddress, NullTagIndex));
+            var downstreamAddress =
+                index == 0 ? baseAddress : _builder.BuildStructGEP2(llvmType, baseAddress, index);
+            return _builder.BuildLoad2(
+                llvmType.GetStructElementTypes()[NullTagIndex],
+                downstreamAddress
+            );
         }
     }
 
@@ -1471,14 +1481,15 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             );
         }
 
+        LLVMValueRef result;
         if (call.UnwindBlock is null)
         {
-            _builder.BuildCall2(callee.FunctionType, callee, parameters, "");
+            result = _builder.BuildCall2(callee.FunctionType, callee, parameters, "");
             _builder.BuildBr(context.LookupBlock(call.NextBlock));
         }
         else
         {
-            _builder.BuildInvoke2(
+            result = _builder.BuildInvoke2(
                 callee.FunctionType,
                 callee,
                 parameters,
@@ -1486,6 +1497,11 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 context.LookupBlock(call.UnwindBlock),
                 ""
             );
+        }
+
+        if (!isIndirectReturn && call.Destination is { Base: LocalPlace(var local) })
+        {
+            context.BindLocal(local, result);
         }
     }
 
@@ -1536,10 +1552,11 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             LocalPlace(var local) => (context.LookupLocal(local), local),
         };
 
-        var pointerType = _context.CreatePointerType(0);
         var currentType = place.Base.Type;
 
-        ConstantByteRange? byteRange = new(0, _compilation.GetTypeLayout(place.Type).Size);
+        ConstantByteRange? byteRange = place.Type.IsDynamicallySized
+            ? null
+            : new(0, _compilation.GetTypeLayout(place.Type).Size);
 
         foreach (var projection in place.Projections)
         {
@@ -1548,7 +1565,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 FieldProjection(var field) => GetFieldAddress(field),
                 DereferenceProjection => TakeReferencedAddress(),
                 IndexProjection(var index, _) => GetReferencedIndex(index),
-                PayloadProjection => throw new NotImplementedException(),
+                PayloadProjection => GetPayload(),
             };
 
             currentType = projection.Type;
@@ -1560,7 +1577,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         {
             root = null;
             byteRange = null;
-            return _builder.BuildLoad2(pointerType, address);
+            return address;
         }
 
         LLVMValueRef GetFieldAddress(VariableSymbol field)
@@ -1575,7 +1592,9 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 byteRange = range with { Offset = offset };
             }
 
-            return _builder.BuildStructGEP2(GetOrCreateType(currentType), address, fieldIndex);
+            return fieldIndex == 0
+                ? address
+                : _builder.BuildStructGEP2(GetOrCreateType(currentType), address, fieldIndex);
         }
 
         LLVMValueRef GetReferencedIndex(Operand index)
@@ -1590,6 +1609,23 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 address,
                 [EmitOperandAsValue(index, context)],
                 []
+            );
+        }
+
+        LLVMValueRef GetPayload()
+        {
+            // ReSharper disable once InvertIf
+            if (byteRange is { Offset: var offset } range)
+            {
+                var layout = (TaggedNullableLayout)_compilation.GetTypeLayout(currentType);
+                offset += layout.StructRepresentation.Fields[(int)NullPayloadIndex].ByteOffset;
+                byteRange = range with { Offset = offset };
+            }
+
+            return _builder.BuildStructGEP2(
+                GetOrCreateType(currentType),
+                address,
+                NullPayloadIndex
             );
         }
 
