@@ -437,13 +437,18 @@ internal abstract class Binder : IOverloadResolutionHost
     )
     {
         Debug.Assert(!variable.IsLocal);
-        var expression = BindExpression(
-            initializer.Value,
-            variable.Type,
-            context,
-            cancellationToken
-        );
-        return AddConversionIfNecessary(expression, variable.Type, context);
+        return BindInitializer(variable.Type, initializer, context, cancellationToken);
+    }
+
+    public BoundExpression BindInitializer(
+        TypeSymbol targetType,
+        InitializerSyntax initializer,
+        BindingContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var expression = BindExpression(initializer.Value, targetType, context, cancellationToken);
+        return AddConversionIfNecessary(expression, targetType, context);
     }
 
     public ImmutableArray<AttributeData> BindAttributes(

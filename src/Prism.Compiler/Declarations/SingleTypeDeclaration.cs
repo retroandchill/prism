@@ -72,7 +72,7 @@ internal sealed class SingleTypeDeclaration : SingleDeclaration
                 _decl.SyntaxReference.SyntaxTree != other._decl.SyntaxReference.SyntaxTree
                 && (
                     _decl.Modifiers.HasFlag(DeclarationModifiers.File)
-                    || (other._decl.Modifiers.HasFlag(DeclarationModifiers.File))
+                    || other._decl.Modifiers.HasFlag(DeclarationModifiers.File)
                 )
             )
                 return false;

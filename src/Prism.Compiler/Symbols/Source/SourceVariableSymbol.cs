@@ -5,13 +5,13 @@ using JetBrains.Annotations;
 using Prism.Compiler.Binding;
 using Prism.Compiler.BoundTree;
 using Prism.Compiler.Symbols.Error;
+using Prism.Constants;
 using Prism.Diagnostics;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
 using Prism.Text;
 using ZLinq;
-using ConstantValue = Prism.Constants.ConstantValue;
 
 namespace Prism.Compiler.Symbols.Source;
 

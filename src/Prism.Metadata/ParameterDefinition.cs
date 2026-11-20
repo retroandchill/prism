@@ -81,15 +81,11 @@ public sealed partial class ParameterDefinition : IAttributeHolderDefinition
 
     public FunctionOrAttribute Parent
     {
-        get
-        {
-            if (field.Value is not null)
-                return field;
-
-            Debug.Assert(_reader is not null);
-            UnionInterlocked.Initialize(ref field, _reader.GetFunctionOrAttribute(ParentHandle));
-            return field;
-        }
+        get { return LazyComputation.LazyComputeUnion(ref field, this, static @this =>
+            {
+                Debug.Assert(@this._reader is not null);
+                return @this._reader.GetFunctionOrAttribute(@this.ParentHandle);
+            }); }
         private set
         {
             field = value;
@@ -99,15 +95,11 @@ public sealed partial class ParameterDefinition : IAttributeHolderDefinition
 
     public TypeDescriptor Type
     {
-        get
-        {
-            if (field.Value is not null)
-                return field;
-
-            Debug.Assert(_reader is not null);
-            UnionInterlocked.Initialize(ref field, _reader.GetTypeDescriptor(_type));
-            return field;
-        }
+        get { return LazyComputation.LazyComputeUnion(ref field, this, static @this =>
+            {
+                Debug.Assert(@this._reader is not null);
+                return @this._reader.GetTypeDescriptor(@this._type);
+            }); }
     }
 
     public ParameterDefaultHandle DefaultValueHandle { get; }

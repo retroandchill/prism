@@ -87,15 +87,11 @@ public sealed partial class FunctionDefinition : IAttributeHolderDefinition
     public TypeHandle ReturnTypeHandle { get; }
     public TypeDescriptor ReturnType
     {
-        get
-        {
-            if (field.Value is not null)
-                return field;
-
-            Debug.Assert(_reader is not null);
-            UnionInterlocked.Initialize(ref field, _reader.GetTypeDescriptor(ReturnTypeHandle));
-            return field;
-        }
+        get { return LazyComputation.LazyComputeUnion(ref field, this, static @this =>
+            {
+                Debug.Assert(@this._reader is not null);
+                return @this._reader.GetTypeDescriptor(@this.ReturnTypeHandle);
+            }); }
     }
 
     public TypeHandle ReceiverTypeHandle { get; private init; }
@@ -107,15 +103,11 @@ public sealed partial class FunctionDefinition : IAttributeHolderDefinition
             if (ReceiverTypeHandle.IsNone)
                 return null;
 
-            if (_lazyReceiverType.Value is not null)
-                return _lazyReceiverType;
-
-            Debug.Assert(_reader is not null);
-            UnionInterlocked.Initialize(
-                ref _lazyReceiverType,
-                _reader.GetTypeDescriptor(ReceiverTypeHandle)
-            );
-            return _lazyReceiverType;
+            return LazyComputation.LazyComputeUnion(ref _lazyReceiverType, this, static @this =>
+            {
+                Debug.Assert(@this._reader is not null);
+                return @this._reader.GetTypeDescriptor(@this.ReceiverTypeHandle);
+            });
         }
         private init
         {

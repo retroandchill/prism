@@ -95,16 +95,11 @@ public sealed class NamespaceReference : MemberContainerReferenceBase
 
     public new NamespaceOrAssemblyReference Parent
     {
-        get
-        {
-            if (field.Value is not null)
-                return field;
-
-            Debug.Assert(Reader is not null);
-            var reference = Reader.GetNamespaceOrAssemblyReference(ParentHandle);
-            UnionInterlocked.Initialize(ref field, reference);
-            return field;
-        }
+        get { return LazyComputation.LazyComputeUnion(ref field, this, static @this =>
+            {
+                Debug.Assert(@this.Reader is not null);
+                return @this.Reader.GetNamespaceOrAssemblyReference(@this.ParentHandle);
+            }); }
         private init
         {
             field = value;
@@ -142,16 +137,11 @@ public sealed class TypeReference : MemberContainerReferenceBase
 
     public new MemberContainerReference Parent
     {
-        get
-        {
-            if (field.Value is not null)
-                return field;
-
-            Debug.Assert(Reader is not null);
-            var reference = Reader.GetMemberContainerRef(ParentHandle);
-            UnionInterlocked.Initialize(ref field, reference);
-            return field;
-        }
+        get { return LazyComputation.LazyComputeUnion(ref field, this, static @this =>
+            {
+                Debug.Assert(@this.Reader is not null);
+                return @this.Reader.GetMemberContainerRef(@this.ParentHandle);
+            }); }
         private init
         {
             field = value;

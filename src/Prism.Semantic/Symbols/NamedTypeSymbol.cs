@@ -18,6 +18,9 @@ public sealed class NamedTypeSymbol : TypeSymbol, IAttributeHolderSymbolData
 
     public NamedTypeKind Kind => Data.Kind;
 
+    public NamedTypeSymbol? EnumUnderlyingType =>
+        Data is IEnumSymbolData enumData ? enumData.EnumUnderlyingType : null;
+
     public override void WriteDisplayString(ref Utf16ValueStringBuilder builder)
     {
         switch (SpecialType)

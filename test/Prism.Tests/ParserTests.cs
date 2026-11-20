@@ -66,8 +66,9 @@ public sealed class ParserTests
 
         var declaration = parser.ParseTopLevelDeclaration();
 
+        Assert.That(declaration, Is.Not.Null);
         Assert.That(declaration.ContainsDiagnostics, Is.False);
-        Assert.That(declaration is GreenFunctionDeclaration, Is.True);
+        Assert.That(declaration, Is.InstanceOf<GreenFunctionDeclaration>());
 
         var function = (GreenFunctionDeclaration)declaration;
 
@@ -217,6 +218,7 @@ public sealed class ParserTests
         var parser = new LanguageParser("file var x = 1;");
         var declaration = parser.ParseTopLevelDeclaration();
 
+        Assert.That(declaration, Is.Not.Null);
         Assert.That(declaration.Modifiers, Has.Count.EqualTo(1));
         Assert.That(declaration.Modifiers[0].Kind, Is.EqualTo(SyntaxKind.FileKeyword));
     }

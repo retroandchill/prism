@@ -45,7 +45,7 @@ internal sealed class Emitter : IEmitter
 
         for (var specialType = SpecialType.I8; specialType <= SpecialType.USize; specialType++)
         {
-            var kind = SpecialTypeToIntegerKind(specialType);
+            var kind = specialType.ToIntegerKind(_compilation.Settings.PointerWidth);
             var i = specialType - SpecialType.I8;
             var typeSymbol = _compilation.GetSpecialType(specialType);
             integerOnes[i] = new ConstantOperand(IntegerConstant.One(kind), typeSymbol);
@@ -1392,36 +1392,6 @@ internal sealed class Emitter : IEmitter
         Debug.Assert(conversion.Conversion.IsUnwrapping);
         EmitPlace(ref builder, conversion.Operand, lifetime, context, cancellationToken);
         builder.AddProjection(new PayloadProjection(conversion.Type));
-    }
-
-    private IntegerKind SpecialTypeToIntegerKind(SpecialType type)
-    {
-        return type switch
-        {
-            SpecialType.I8 => IntegerKind.I8,
-            SpecialType.I16 => IntegerKind.I16,
-            SpecialType.I32 => IntegerKind.I32,
-            SpecialType.I64 => IntegerKind.I64,
-            SpecialType.I128 => IntegerKind.I128,
-            SpecialType.ISize => _compilation.Settings.PointerWidth switch
-            {
-                PointerWidth.X32 => IntegerKind.I32,
-                PointerWidth.X64 => IntegerKind.I64,
-                _ => throw new InvalidOperationException("Invalid pointer width"),
-            },
-            SpecialType.U8 => IntegerKind.U8,
-            SpecialType.U16 => IntegerKind.U16,
-            SpecialType.U32 => IntegerKind.U32,
-            SpecialType.U64 => IntegerKind.U64,
-            SpecialType.U128 => IntegerKind.U128,
-            SpecialType.USize => _compilation.Settings.PointerWidth switch
-            {
-                PointerWidth.X32 => IntegerKind.U32,
-                PointerWidth.X64 => IntegerKind.U64,
-                _ => throw new InvalidOperationException("Invalid pointer width"),
-            },
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
-        };
     }
 
     private ConstantOperand GetUnitConstant(SpecialType type)

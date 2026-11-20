@@ -775,9 +775,75 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
         var parseMembers = !openBrace.IsMissing;
 
-        GreenSeparatedList<GreenEnumOrdinalDeclaration> ordinals = [];
+        GreenSeparatedList<GreenEnumOrdinalDeclaration> ordinals;
+        GreenToken? ordinalBreakSemicolon;
         var members = GreenSyntaxList.CreateBuilder<GreenDeclaration>();
         if (parseMembers)
+        {
+            ordinals = ParseCommaSeparatedSyntaxList(
+                ref openBrace,
+                SyntaxKind.CloseBraceToken,
+                static @this => @this.IsPossibleEnumMember(),
+                static @this => @this.ParseEnumOrdinalDeclaration(),
+                SkipBadOrdinalTokens,
+                allowTrailingSeparator: true,
+                requireOneElement: false,
+                allowSemicolonAsSeparator: false
+            );
+
+            ordinalBreakSemicolon = MatchToken(SyntaxKind.SemicolonToken);
+            if (ordinalBreakSemicolon is not null)
+            {
+                ParseRegularMembers();
+            }
+        }
+        else
+        {
+            ordinals = [];
+            ordinalBreakSemicolon = null;
+        }
+
+        var closeBrace = openBrace.IsMissing
+            ? GreenToken.GetMissing(SyntaxKind.CloseBraceToken)
+            : ExpectToken(SyntaxKind.CloseBraceToken);
+
+        return new GreenEnumDeclaration(
+            attributes,
+            modifiers,
+            keyword,
+            identifier,
+            openBrace,
+            ordinals,
+            ordinalBreakSemicolon,
+            members.BuildAndClear(),
+            closeBrace,
+            null
+        );
+
+        static PostSkipAction SkipBadOrdinalTokens(
+            LanguageParser @this,
+            ref GreenToken openBrace,
+            GreenSeparatedList<GreenEnumOrdinalDeclaration>.Builder list,
+            SyntaxKind expectedKind,
+            SyntaxKind closeKind
+        )
+        {
+            return @this.SkipBadSeparatedListTokensWithExpectedKind(
+                ref openBrace,
+                list,
+                static p =>
+                    p.PeekToken().Kind != SyntaxKind.CommaToken && !p.IsPossibleEnumMember(),
+                static (p, closeKind) =>
+                {
+                    var kind = p.PeekToken().Kind;
+                    return kind == closeKind || kind == SyntaxKind.SemicolonToken;
+                },
+                expectedKind,
+                closeKind
+            );
+        }
+
+        void ParseRegularMembers()
         {
             while (true)
             {
@@ -811,22 +877,20 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 }
             }
         }
+    }
 
-        var closeBrace = openBrace.IsMissing
-            ? GreenToken.GetMissing(SyntaxKind.CloseBraceToken)
-            : ExpectToken(SyntaxKind.CloseBraceToken);
+    private bool IsPossibleEnumMember()
+    {
+        return IsPossibleAttributeList() || PeekToken().Kind == SyntaxKind.IdentifierToken;
+    }
 
-        return new GreenEnumDeclaration(
-            attributes,
-            modifiers,
-            keyword,
-            identifier,
-            openBrace,
-            ordinals,
-            null,
-            members.BuildAndClear(),
-            closeBrace,
-            null
+    private GreenEnumOrdinalDeclaration ParseEnumOrdinalDeclaration()
+    {
+        return new GreenEnumOrdinalDeclaration(
+            ParseAttributes(),
+            [],
+            ExpectToken(SyntaxKind.IdentifierToken),
+            ParseInitializer()
         );
     }
 
@@ -1198,7 +1262,6 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             }
 
             return identifier;
-            ;
         }
 
         var initializer = ParseObjectInitializer();

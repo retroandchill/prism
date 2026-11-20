@@ -68,15 +68,11 @@ public sealed partial class CustomAttributeDefinition
 
     public AttributeHolderDefinition Parent
     {
-        get
-        {
-            if (field.Value is not null)
-                return field;
-
-            Debug.Assert(_reader is not null);
-            UnionInterlocked.Initialize(ref field, _reader.GetAttributeHolder(ParentHandle));
-            return field;
-        }
+        get { return LazyComputation.LazyComputeUnion(ref field, this, static @this =>
+            {
+                Debug.Assert(@this._reader is not null);
+                return @this._reader.GetAttributeHolder(@this.ParentHandle);
+            }); }
         private set
         {
             field = value;
@@ -88,15 +84,11 @@ public sealed partial class CustomAttributeDefinition
 
     public NamedType Type
     {
-        get
-        {
-            if (field.Value is not null)
-                return field;
-
-            Debug.Assert(_reader is not null);
-            UnionInterlocked.Initialize(ref field, _reader.GetNamedType(TypeHandle));
-            return field;
-        }
+        get { return LazyComputation.LazyComputeUnion(ref field, this, static @this =>
+            {
+                Debug.Assert(@this._reader is not null);
+                return @this._reader.GetNamedType(@this.TypeHandle);
+            }); }
         private init
         {
             field = value;

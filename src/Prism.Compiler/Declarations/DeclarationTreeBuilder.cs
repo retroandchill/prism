@@ -54,6 +54,10 @@ internal sealed class DeclarationTreeBuilder
                     classDeclaration,
                     DeclarationModifiers.Internal
                 ),
+                EnumDeclarationSyntax enumDeclaration => VisitEnumDeclaration(
+                    enumDeclaration,
+                    DeclarationModifiers.Internal
+                ),
                 _ => null,
             };
 
@@ -81,11 +85,15 @@ internal sealed class DeclarationTreeBuilder
             {
                 AttributeDeclarationSyntax attribute => VisitAttributeDeclaration(
                     attribute,
-                    DeclarationModifiers.Internal
+                    DeclarationModifiers.Private
                 ),
                 ClassDeclarationSyntax classDeclaration => VisitClassDeclaration(
                     classDeclaration,
-                    DeclarationModifiers.Internal
+                    DeclarationModifiers.Private
+                ),
+                EnumDeclarationSyntax enumDeclaration => VisitEnumDeclaration(
+                    enumDeclaration,
+                    DeclarationModifiers.Private
                 ),
                 _ => null,
             };
@@ -221,7 +229,20 @@ internal sealed class DeclarationTreeBuilder
         SyntaxList<DeclarationSyntax> members
     )
     {
+        return GetNonTypeMemberNames([], members);
+    }
+
+    private static ImmutableHashSet<string> GetNonTypeMemberNames(
+        SeparatedSyntaxList<EnumOrdinalDeclarationSyntax> enumOrdinals,
+        SyntaxList<DeclarationSyntax> members
+    )
+    {
         var memberNames = ImmutableHashSet.CreateBuilder<string>();
+        foreach (var ordinal in enumOrdinals)
+        {
+            memberNames.Add(ordinal.Identifier.IdentifierName);
+        }
+
         foreach (var member in members)
         {
             switch (member)
@@ -246,7 +267,7 @@ internal sealed class DeclarationTreeBuilder
         var name = attribute.Identifier.IdentifierName;
         var memberNames = attribute.Parameters is { Parameters: { Count: > 0 } parameters }
             ? parameters.AsValueEnumerable().Select(x => x.Name.IdentifierName).ToImmutableHashSet()
-            : ImmutableHashSet<string>.Empty;
+            : [];
         var modifiers = DeclarationModifiers.MakeModifiers(defaultVisibility, attribute.Modifiers);
         return new SingleTypeDeclaration(
             DeclarationKind.Attribute,
@@ -275,6 +296,27 @@ internal sealed class DeclarationTreeBuilder
             new SyntaxReference(@class),
             modifiers,
             SourceLocation.Create(@class.Identifier),
+            memberNames,
+            members
+        );
+    }
+
+    private SingleTypeDeclaration VisitEnumDeclaration(
+        EnumDeclarationSyntax @enum,
+        DeclarationModifiers defaultVisibility
+    )
+    {
+        var name = @enum.Identifier.IdentifierName;
+
+        var modifiers = DeclarationModifiers.MakeModifiers(defaultVisibility, @enum.Modifiers);
+        var members = VisitClassChildren(@enum, @enum.Members);
+        var memberNames = GetNonTypeMemberNames(@enum.Ordinals, @enum.Members);
+        return new SingleTypeDeclaration(
+            DeclarationKind.Class,
+            name,
+            new SyntaxReference(@enum),
+            modifiers,
+            SourceLocation.Create(@enum.Identifier),
             memberNames,
             members
         );
