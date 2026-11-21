@@ -5,7 +5,6 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using Prism.Utils;
 using Riok.Mapperly.Abstractions;
 using Riok.Mapperly.Abstractions.ReferenceHandling;
@@ -95,11 +94,7 @@ public sealed partial class VariableDefinition : IAttributeHolderDefinition
                 return field;
 
             Debug.Assert(_reader is not null);
-            Interlocked.CompareExchange(
-                ref Unsafe.As<TypeDescriptor, object?>(ref field),
-                _reader.GetTypeDescriptor(_type).Value,
-                null
-            );
+            UnionInterlocked.Initialize(ref field, _reader.GetTypeDescriptor(_type));
             return field;
         }
     }

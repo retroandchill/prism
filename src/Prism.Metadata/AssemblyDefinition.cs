@@ -1,8 +1,8 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.IO.Abstractions;
 using System.Runtime.InteropServices;
 using MagicArchive;
-using Microsoft.Extensions.FileProviders;
 using Riok.Mapperly.Abstractions;
 
 namespace Prism.Metadata;
@@ -271,7 +271,7 @@ public sealed partial class AssemblyDefinition
 
     public static AssemblyDefinition Load(IFileInfo filepath)
     {
-        using var stream = filepath.CreateReadStream();
+        using var stream = filepath.OpenRead();
         var layout = ArchiveSerializer.Deserialize<MetadataLayout>(
             stream,
             ArchiveSerializerOptions.LittleEndian

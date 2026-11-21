@@ -64,7 +64,7 @@ public sealed partial class FunctionDefinition : IAttributeHolderDefinition
 
     public string Name { get; }
 
-    public MemberContainerDefHandle ParentHandle { get; }
+    public MemberContainerDefHandle ParentHandle { get; private set; }
 
     public MemberContainerDefinition Parent
     {
@@ -81,7 +81,11 @@ public sealed partial class FunctionDefinition : IAttributeHolderDefinition
             );
             return field;
         }
-        private set;
+        private set
+        {
+            field = value;
+            ParentHandle = value.Handle;
+        }
     }
 
     public TypeHandle ReturnTypeHandle { get; }
@@ -130,7 +134,7 @@ public sealed partial class FunctionDefinition : IAttributeHolderDefinition
                 return field;
 
             Debug.Assert(_reader is not null);
-            var mappings = _reader.ParametersByParent[Handle];
+            var mappings = _reader.ParametersByParent.GetValueOrDefault(Handle, []);
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
                 [.. mappings.Select(_reader.GetParameter)]
@@ -167,6 +171,7 @@ public sealed partial class FunctionDefinition : IAttributeHolderDefinition
     internal static partial class Mapper
     {
         [MapperIgnoreTarget(nameof(ReceiverTypeHandle))]
+        [MapperIgnoreTarget(nameof(ParentHandle))]
         [MapperIgnoreTarget(nameof(_lazyReceiverType))]
         public static partial FunctionDefinition ToDefinition(
             FunctionDefinitionBuilder builder,

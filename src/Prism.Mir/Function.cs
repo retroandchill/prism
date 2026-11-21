@@ -240,6 +240,11 @@ public sealed partial class Function
         {
             if (place.Base is LocalPlace(var local))
                 usedLocals.Add(local);
+
+            foreach (var projections in place.Projections.OfType<IndexProjection>())
+            {
+                CheckOperand(projections.Index);
+            }
         }
     }
 

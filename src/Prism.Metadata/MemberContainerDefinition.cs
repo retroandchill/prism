@@ -26,7 +26,7 @@ public closed partial class MemberContainerDefinition
                 return field;
 
             Debug.Assert(MetadataReader is not null);
-            var mappings = MetadataReader.TypeDefsByParent[Handle];
+            var mappings = MetadataReader.TypeDefsByParent.GetValueOrDefault(Handle, []);
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
                 [.. mappings.Select(MetadataReader.GetTypeDef)]
@@ -44,7 +44,7 @@ public closed partial class MemberContainerDefinition
                 return field;
 
             Debug.Assert(MetadataReader is not null);
-            var mappings = MetadataReader.VariablesByParent[Handle];
+            var mappings = MetadataReader.VariablesByParent.GetValueOrDefault(Handle, []);
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
                 [.. mappings.Select(MetadataReader.GetVariable)]
@@ -62,7 +62,7 @@ public closed partial class MemberContainerDefinition
                 return field;
 
             Debug.Assert(MetadataReader is not null);
-            var mappings = MetadataReader.FunctionsByParent[Handle];
+            var mappings = MetadataReader.FunctionsByParent.GetValueOrDefault(Handle, []);
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
                 [.. mappings.Select(MetadataReader.GetFunction)]

@@ -36,14 +36,18 @@ public sealed partial class NamespaceDefinition : MemberContainerDefinition
     {
         get
         {
-            if (ParentHandle.IsNone)
+            if (ParentHandle.IsNone && IsGlobal)
                 return null;
 
             if (field is not null)
                 return field;
 
             Debug.Assert(MetadataReader is not null);
-            Interlocked.CompareExchange(ref field, MetadataReader.GetNamespaceDef(Handle), null);
+            Interlocked.CompareExchange(
+                ref field,
+                MetadataReader.GetNamespaceDef(ParentHandle),
+                null
+            );
             return field;
         }
         internal set
@@ -61,7 +65,7 @@ public sealed partial class NamespaceDefinition : MemberContainerDefinition
                 return field;
 
             Debug.Assert(MetadataReader is not null);
-            var mappings = MetadataReader.NamespaceDefsByParent[Handle];
+            var mappings = MetadataReader.NamespaceDefsByParent.GetValueOrDefault(Handle, []);
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
                 [.. mappings.Select(x => MetadataReader.GetNamespaceDef(x))]

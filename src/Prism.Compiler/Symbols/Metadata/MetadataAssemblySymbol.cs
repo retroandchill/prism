@@ -2,9 +2,11 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Prism.Compiler.References;
 using Prism.Metadata;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
+using Prism.Utils;
 using ZLinq;
 using AssemblyDefinition = Prism.Metadata.AssemblyDefinition;
 using FunctionDefinition = Prism.Metadata.FunctionDefinition;
@@ -57,14 +59,12 @@ internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSy
     > _ownedParameters = new();
 
     private readonly AssemblyDefinition _definition;
+    private readonly ReferenceManager _referenceManager;
 
-    public MetadataAssemblySymbol(
-        AssemblyDefinition definition,
-        AssemblyReferences? references = null
-    )
+    public MetadataAssemblySymbol(AssemblyDefinition definition, ReferenceManager referenceManager)
     {
         _definition = definition;
-        References = references ?? AssemblyReferences.Empty;
+        _referenceManager = referenceManager;
         PublicModel = new AssemblySymbol(this);
     }
 
@@ -90,7 +90,18 @@ internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSy
 
     public AssemblyIdentity Identity => _definition.Identity;
     public TargetInfo TargetInfo => _definition.TargetInfo;
-    public AssemblyReferences References { get; }
+
+    public AssemblyReferences References
+    {
+        get
+        {
+            return LazyComputation.LazyCompute(ref field, this, static @this =>
+                @this._referenceManager.ResolveAssemblyReference(
+                    @this._definition.ReferencedAssemblies
+                )
+            );
+        }
+    }
 
     public NamespaceSymbol GlobalNamespace
     {

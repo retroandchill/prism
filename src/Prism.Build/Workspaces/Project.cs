@@ -87,7 +87,27 @@ public sealed class Project
             OutputKind = _manifest.Output.Kind,
             BuildingCoreLibrary = _manifest.Package.IsCoreLibrary,
         };
-        return Compilation.Create(_context, _manifest.Package.Name, trees, settings: settings);
+
+        if (_manifest.Package.IsCoreLibrary)
+            return Compilation.Create(_context, _manifest.Package.Name, trees, settings: settings);
+
+        var metadataReferences = new List<MetadataReference>();
+        if (Environment.GetEnvironmentVariable("PRISM_CORELIB") is { } libPath)
+        {
+            metadataReferences.Add(new LibraryReference(libPath));
+        }
+        else
+        {
+            metadataReferences.Add(new UnresolvedReference("prism-std"));
+        }
+
+        return Compilation.Create(
+            _context,
+            _manifest.Package.Name,
+            trees,
+            metadataReferences,
+            settings
+        );
     }
 
     private ImmutableArray<SyntaxTree> ComputeSyntaxTrees(CancellationToken cancellationToken)

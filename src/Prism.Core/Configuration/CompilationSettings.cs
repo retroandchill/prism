@@ -1,4 +1,6 @@
-﻿namespace Prism.Configuration;
+﻿using System.Collections.Immutable;
+
+namespace Prism.Configuration;
 
 // TODO: Fill-Me Out
 public sealed record CompilationSettings
@@ -19,6 +21,8 @@ public sealed record CompilationSettings
         ToolchainKind.Detect(TargetOperatingSystem.CurrentPlatform);
     public PointerWidth PointerWidth => Architecture.PointerWidth;
 
+    public TargetInfo TargetInfo => new(Architecture, OperatingSystem, Toolchain);
+
     public OutputKind OutputKind { get; init; } = OutputKind.Executable;
 
     public bool IsApplication => OutputKind == OutputKind.Executable;
@@ -36,4 +40,6 @@ public sealed record CompilationSettings
     public bool IsOptimized => OptimizationLevel != OptimizationLevel.None;
 
     public bool BuildingCoreLibrary { get; init; }
+
+    public ImmutableArray<string> AdditionalReferencePaths { get; init; } = [];
 }

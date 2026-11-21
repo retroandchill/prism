@@ -10,7 +10,11 @@ namespace Prism.Compiler.Symbols.Error;
 
 internal sealed class ErrorTypeSymbol : INamedTypeSymbolData
 {
-    internal ErrorTypeSymbol(string name, Symbol? containingSymbol = null)
+    internal ErrorTypeSymbol(
+        string name,
+        Symbol? containingSymbol = null,
+        SpecialType specialType = SpecialType.None
+    )
     {
         Name = name;
         ContainingSymbol = containingSymbol;

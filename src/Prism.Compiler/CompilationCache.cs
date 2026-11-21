@@ -68,7 +68,7 @@ internal sealed class CompilationCache(Compilation compilation)
     > _wellKnownAttributes = new();
 
     private readonly ConcurrentDictionary<FunctionSymbol, IntrinsicFunction> _intrinsicFunctions =
-        new(ReferenceEqualityComparer.Instance);
+        new();
 
     private ImmutableArray<VariableSymbol> _topLevelVariables;
     private ImmutableArray<FunctionSymbol> _topLevelFunctions;
@@ -224,8 +224,8 @@ internal sealed class CompilationCache(Compilation compilation)
     {
         return _variableInitializers.GetOrAdd(
             variable,
-            static (v, T) =>
-                CompilerDriver.BindVariableInitializer(T.compilation, v, T.cancellationToken),
+            static (v, t) =>
+                CompilerDriver.BindVariableInitializer(t.compilation, v, t.cancellationToken),
             (compilation, cancellationToken)
         );
     }

@@ -6,8 +6,10 @@ using Prism.Compiler.Binding;
 using Prism.Compiler.BoundTree;
 using Prism.Compiler.Codegen;
 using Prism.Compiler.Declarations;
+using Prism.Compiler.References;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
+using Prism.Compiler.Symbols.Error;
 using Prism.Compiler.Symbols.Intrinsic;
 using Prism.Compiler.Symbols.Source;
 using Prism.Configuration;
@@ -30,6 +32,7 @@ public class Compilation : ILayoutSource, IAbiLookup
 {
     private readonly CompilationContext _context;
     private readonly SyntaxAndDeclarationManager _syntaxAndDeclarationManager;
+    private readonly ReferenceManager _referenceManager;
     private EntryPoint? _entryPoint;
 
     private Compilation(
@@ -45,6 +48,11 @@ public class Compilation : ILayoutSource, IAbiLookup
         Settings = settings;
         _syntaxAndDeclarationManager = manager;
         References = references;
+        _referenceManager = new ReferenceManager(
+            _context.AssemblyLoader,
+            _context.FileSystem,
+            Settings
+        );
     }
 
     public static Compilation Create(
@@ -73,17 +81,7 @@ public class Compilation : ILayoutSource, IAbiLookup
 
     PointerWidth ILayoutSource.PointerWidth => Settings.PointerWidth;
 
-    internal TargetInfo TargetInfo
-    {
-        get
-        {
-            return new TargetInfo(
-                Settings.Architecture,
-                Settings.OperatingSystem,
-                Settings.Toolchain
-            );
-        }
-    }
+    internal TargetInfo TargetInfo => Settings.TargetInfo;
 
     public string AssemblyName { get; }
 
@@ -96,7 +94,10 @@ public class Compilation : ILayoutSource, IAbiLookup
 
             Interlocked.CompareExchange(
                 ref field,
-                new SourceAssemblySymbol(this).PublicSymbol,
+                new SourceAssemblySymbol(
+                    this,
+                    _referenceManager.ResolveAssemblyReference(References)
+                ).PublicSymbol,
                 null
             );
             return field;
@@ -110,9 +111,9 @@ public class Compilation : ILayoutSource, IAbiLookup
             if (field is not null)
                 return field;
 
-            ReadOnlySpan<NamespaceSymbol> additionalNamespaces = Settings.BuildingCoreLibrary
-                ? []
-                : [IntrinsicSymbols.GlobalNamespace];
+            var additionalNamespaces = Assembly
+                .GetAllReferencedAssemblies()
+                .Select(a => a.GlobalNamespace);
 
             var mergedNamespace = MergedNamespaceSymbol.Create(
                 this,
@@ -135,26 +136,9 @@ public class Compilation : ILayoutSource, IAbiLookup
             : [];
     }
 
-    public AssemblySymbol? GetAssemblySymbol(MetadataReference reference)
+    public AssemblySymbol GetAssemblySymbol(MetadataReference reference)
     {
-        return reference switch
-        {
-            CompilationReference(var compilation) => compilation.Assembly,
-            LibraryReference libraryReference => LoadFromLibraryReference(libraryReference),
-            UnresolvedReference unresolvedReference => ResolveAssemblyReference(
-                unresolvedReference
-            ),
-        };
-    }
-
-    private AssemblySymbol? LoadFromLibraryReference(LibraryReference reference)
-    {
-        throw new NotImplementedException();
-    }
-
-    private AssemblySymbol? ResolveAssemblyReference(UnresolvedReference reference)
-    {
-        throw new NotImplementedException();
+        return _referenceManager.GetReferencedAssembly(reference);
     }
 
     public NamespaceSymbol? GetCompilationNamespace(NamespaceSymbol assemblyNamespace)
@@ -183,14 +167,19 @@ public class Compilation : ILayoutSource, IAbiLookup
 
     internal NamespaceSymbol FindStdNamespace()
     {
-        return GlobalNamespace.GetMembers(CommonNames.Std).OfType<NamespaceSymbol>().Single();
+        return GlobalNamespace
+            .GetMembers(CommonNames.Std)
+            .OfType<NamespaceSymbol>()
+            .SingleOrDefault()
+            ?? new ErrorNamespaceSymbol(CommonNames.Std, null).PublicSymbol;
     }
 
     internal NamedTypeSymbol FindSpecialType(SpecialType type)
     {
         var stdNamespace = Cache.StdNamespace;
         var typeName = GetBuiltInTypeName(type);
-        return stdNamespace.GetMembers(typeName).OfType<NamedTypeSymbol>().Single();
+        return stdNamespace.GetMembers(typeName).OfType<NamedTypeSymbol>().SingleOrDefault()
+            ?? new ErrorTypeSymbol(typeName, stdNamespace, type).PublicSymbol;
     }
 
     internal NamedTypeSymbol? GetWellKnownAttribute(WellKnownAttribute attribute)

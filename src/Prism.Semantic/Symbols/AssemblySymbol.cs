@@ -27,6 +27,23 @@ public sealed class AssemblySymbol : Symbol, IMetadataReferenceProvider
 
     internal ImmutableArray<UnifiedAssembly> UnifiedAssemblies => Data.References.UnifiedAssemblies;
 
+    internal IEnumerable<AssemblySymbol> GetAllReferencedAssemblies()
+    {
+        return ReferencedAssemblySymbols.SelectMany(a =>
+            a.GetAllReferenceAssembliesIncludingSelf()
+        );
+    }
+
+    private IEnumerable<AssemblySymbol> GetAllReferenceAssembliesIncludingSelf()
+    {
+        yield return this;
+
+        foreach (var assembly in GetAllReferencedAssemblies())
+        {
+            yield return assembly;
+        }
+    }
+
     public override void WriteDisplayString(ref Utf16ValueStringBuilder builder)
     {
         builder.Append(Name);

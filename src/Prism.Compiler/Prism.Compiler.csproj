@@ -14,8 +14,11 @@
     <PackageReference Include="JetBrains.Annotations" />
     <PackageReference Include="LLVMSharp" />
     <PackageReference Include="MagicArchive"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.ObjectPool" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
     <PackageReference Include="Microsoft.VisualStudio.Setup.Configuration.Interop" />
     <PackageReference Include="Nerdbank.Streams" />
     <PackageReference Include="NetEscapades.EnumGenerators" />
@@ -26,6 +29,8 @@
     <PackageReference Include="SoftUni.Wintellect.PowerCollections" />
     <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="System.Linq.AsyncEnumerable" />
+    <PackageReference Include="TestableIO.System.IO.Abstractions" />
+    <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" />
     <PackageReference Include="ZLinq" />
     <PackageReference Include="ZString" />
   </ItemGroup>

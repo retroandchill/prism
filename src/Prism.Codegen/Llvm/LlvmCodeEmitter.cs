@@ -484,6 +484,8 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     private void InitializeLocalVariables(Function function, FunctionEmissionContext context)
     {
         uint paramIndex = 0;
+        var abi = _compilation.GetFunctionAbi(function.Symbol);
+
         foreach (var local in function.Locals)
         {
             var classification = context.LocalClassification[local];
@@ -506,6 +508,9 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 {
                     context.BindLocal(local, rawParam);
                 }
+
+                if (local.Id == LocalId.ReturnSlot && !abi.Return.IsIndirect)
+                    continue;
 
                 paramIndex++;
             }
@@ -1086,6 +1091,9 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 case CompositeNullValue composite:
                     indices.Add(LLVMValueRef.CreateConstInt(i64Type, (uint)composite.FieldIndex));
                     nullValue = composite.Value;
+                    underlyingType = ((StructLayout)underlyingType)
+                        .Fields[composite.FieldIndex]
+                        .Type;
                     break;
             }
         }
@@ -1687,6 +1695,17 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 byteRange = null;
             }
 
+            if (currentType.IsDynamicallySized)
+            {
+                var elementType = GetUnderlyingType();
+                return _builder.BuildGEP2(
+                    GetOrCreateType(elementType),
+                    address,
+                    [EmitOperandAsValue(index, context)],
+                    []
+                );
+            }
+
             return _builder.BuildGEP2(
                 GetOrCreateType(currentType),
                 address,
@@ -1695,12 +1714,31 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             );
         }
 
+        TypeSymbol GetUnderlyingType()
+        {
+            if (currentType is ArrayTypeSymbol { ElementType: var elementType })
+                return elementType;
+            if (currentType.SpecialType == SpecialType.Str)
+                return _compilation.GetSpecialType(SpecialType.Char);
+
+            throw new InvalidOperationException($"Unsupported type: {currentType}");
+        }
+
         LLVMValueRef GetPayload()
+        {
+            var layout = (NullableLayout)_compilation.GetTypeLayout(currentType);
+            return layout switch
+            {
+                TaggedNullableLayout tagged => GetTaggedPayload(tagged),
+                OptimizedNullableLayout => address,
+            };
+        }
+
+        LLVMValueRef GetTaggedPayload(TaggedNullableLayout layout)
         {
             // ReSharper disable once InvertIf
             if (byteRange is { Offset: var offset } range)
             {
-                var layout = (TaggedNullableLayout)_compilation.GetTypeLayout(currentType);
                 offset += layout.StructRepresentation.Fields[(int)NullPayloadIndex].ByteOffset;
                 byteRange = range with { Offset = offset };
             }

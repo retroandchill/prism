@@ -93,7 +93,7 @@ internal partial struct MetadataLayout
         scoped in MetadataLayout value
     )
     {
-        writer.WriteBlittable(value.Header);
+        writer.WriteArchivable(value.Header);
 
         Span<SectionHeader> sectionHeaders = stackalloc SectionHeader[Sections.Length];
         for (var i = 0; i < Sections.Length; i++)
@@ -105,6 +105,7 @@ internal partial struct MetadataLayout
         try
         {
             var currentSection = 0;
+            var currentOffset = 0;
 
             var tempWriter = ArchiveWriter.Create(ref tempBuffer, writer.State);
 
@@ -113,91 +114,104 @@ internal partial struct MetadataLayout
                 value.StringHeap,
                 sectionHeaders,
                 Section.StringTable,
-                ref currentSection
+                ref currentSection,
+                ref currentOffset
             );
             WriteHeap(
                 ref tempWriter,
                 value.BlobHeap,
                 sectionHeaders,
                 Section.Blobs,
-                ref currentSection
+                ref currentSection,
+                ref currentOffset
             );
             WriteRows(
                 ref tempWriter,
                 value.AssemblyReferences,
                 sectionHeaders,
                 Section.AssemblyReferences,
-                ref currentSection
+                ref currentSection,
+                ref currentOffset
             );
             WriteRows(
                 ref tempWriter,
                 value.NamespaceDefinitions,
                 sectionHeaders,
                 Section.NamespaceDefs,
-                ref currentSection
+                ref currentSection,
+                ref currentOffset
             );
             WriteRows(
                 ref tempWriter,
                 value.NamespaceReferences,
                 sectionHeaders,
                 Section.NamespaceRefs,
-                ref currentSection
+                ref currentSection,
+                ref currentOffset
             );
             WriteRows(
                 ref tempWriter,
                 value.TypeDefinitions,
                 sectionHeaders,
                 Section.TypeDefs,
-                ref currentSection
+                ref currentSection,
+                ref currentOffset
             );
             WriteRows(
                 ref tempWriter,
                 value.TypeReferences,
                 sectionHeaders,
                 Section.TypeRefs,
-                ref currentSection
+                ref currentSection,
+                ref currentOffset
             );
             WriteHeap(
-                ref writer,
+                ref tempWriter,
                 value.TypeSpecHeap,
                 sectionHeaders,
                 Section.TypeSpecs,
-                ref currentSection
+                ref currentSection,
+                ref currentOffset
             );
             WriteRows(
                 ref tempWriter,
                 value.Variables,
                 sectionHeaders,
                 Section.Variables,
-                ref currentSection
+                ref currentSection,
+                ref currentOffset
             );
             WriteRows(
                 ref tempWriter,
                 value.Functions,
                 sectionHeaders,
                 Section.Functions,
-                ref currentSection
+                ref currentSection,
+                ref currentOffset
             );
             WriteRows(
                 ref tempWriter,
                 value.Parameters,
                 sectionHeaders,
                 Section.Parameters,
-                ref currentSection
+                ref currentSection,
+                ref currentOffset
             );
             WriteRows(
                 ref tempWriter,
                 value.EnumOrdinals,
                 sectionHeaders,
                 Section.EnumOrdinals,
-                ref currentSection
+                ref currentSection,
+                ref currentOffset
             );
             WriteRows(
                 ref tempWriter,
                 value.CustomAttributes,
                 sectionHeaders,
                 Section.CustomAttributes,
-                ref currentSection
+                ref currentSection,
+                ref currentOffset
             );
 
             tempWriter.Flush();
@@ -216,17 +230,19 @@ internal partial struct MetadataLayout
         MetadataHeap heap,
         scoped Span<SectionHeader> sectionHeaders,
         Section section,
-        ref int sectionIndex
+        ref int sectionIndex,
+        ref int currentOffset
     )
         where TBufferWriter : IBufferWriter<byte>
     {
         sectionHeaders[sectionIndex++] = new SectionHeader(
             section,
-            writer.WrittenBytes,
+            currentOffset,
             heap.Memory.Length,
             heap.Count
         );
         writer.WriteMetadataBytes(heap.Span);
+        currentOffset += heap.Memory.Length;
         writer.Flush();
     }
 
@@ -235,18 +251,21 @@ internal partial struct MetadataLayout
         ImmutableArray<T> rows,
         scoped Span<SectionHeader> sectionHeaders,
         Section section,
-        ref int sectionIndex
+        ref int sectionIndex,
+        ref int currentOffset
     )
         where T : struct, IArchivable<T>, IFixedSizeArchivable
         where TBufferWriter : IBufferWriter<byte>
     {
+        var totalSize = T.Size * rows.Length;
         sectionHeaders[sectionIndex++] = new SectionHeader(
             section,
-            writer.WrittenBytes,
-            T.Size * rows.Length,
+            currentOffset,
+            totalSize,
             rows.Length
         );
         writer.WriteMetadataRows(rows.AsSpan());
+        currentOffset += totalSize;
         writer.Flush();
     }
 
@@ -255,7 +274,7 @@ internal partial struct MetadataLayout
         scoped ref MetadataLayout value
     )
     {
-        value.Header = reader.ReadBlittable<MetadataHeader>();
+        value.Header = reader.ReadArchivable<MetadataHeader>();
 
         SectionHeader[]? rentedHeaders = null;
         try
@@ -265,10 +284,9 @@ internal partial struct MetadataLayout
             {
                 rentedHeaders = ArrayPool<SectionHeader>.Shared.Rent(length);
                 sectionHeaders = rentedHeaders.AsSpan(0, length);
+                var read = reader.TryReadInto(sectionHeaders, out _);
+                Debug.Assert(read);
             }
-
-            var read = reader.TryReadInto(sectionHeaders, out _);
-            Debug.Assert(read);
 
             sectionHeaders.Sort((a, b) => a.Offset.CompareTo(b.Offset));
 
@@ -338,6 +356,9 @@ internal partial struct MetadataLayout
                 break;
             case Section.Parameters:
                 value.Parameters = ReadMetadataRows<ParameterRow>(ref reader, header.Count);
+                break;
+            case Section.EnumOrdinals:
+                value.EnumOrdinals = ReadMetadataRows<EnumOrdinalRow>(ref reader, header.Count);
                 break;
             case Section.CustomAttributes:
                 value.CustomAttributes = ReadMetadataRows<CustomAttributeRow>(

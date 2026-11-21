@@ -288,7 +288,7 @@ internal sealed class Emitter : IEmitter
         context.BindLoop(statement.Label, loopTail, loopHead);
 
         context.CurrentBlock.SetGotoTerminator(loopHead);
-
+        context.CurrentBlock = loopHead;
         var (conditionLifetime, condition) = EmitConditionCheck(
             statement.Condition,
             context,

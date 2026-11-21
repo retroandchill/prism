@@ -98,10 +98,9 @@ public sealed partial class TypeDefinition : MemberContainerDefinition, IAttribu
                 return _lazyBaseType;
 
             Debug.Assert(MetadataReader is not null);
-            Interlocked.CompareExchange(
-                ref Unsafe.As<NamedType, object?>(ref _lazyBaseType),
-                MetadataReader.GetNamedType(BaseTypeHandle).Value,
-                null
+            UnionInterlocked.Initialize(
+                ref _lazyBaseType,
+                MetadataReader.GetNamedType(BaseTypeHandle)
             );
             return _lazyBaseType;
         }
@@ -128,7 +127,7 @@ public sealed partial class TypeDefinition : MemberContainerDefinition, IAttribu
                 return field;
 
             Debug.Assert(MetadataReader is not null);
-            var mappings = MetadataReader.OrdinalsByParent[Handle];
+            var mappings = MetadataReader.OrdinalsByParent.GetValueOrDefault(Handle, []);
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
                 [.. mappings.Select(MetadataReader.GetEnumOrdinal)]
@@ -146,7 +145,7 @@ public sealed partial class TypeDefinition : MemberContainerDefinition, IAttribu
                 return field;
 
             Debug.Assert(MetadataReader is not null);
-            var mappings = MetadataReader.ParametersByParent[Handle];
+            var mappings = MetadataReader.ParametersByParent.GetValueOrDefault(Handle, []);
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
                 [.. mappings.Select(MetadataReader.GetParameter)]

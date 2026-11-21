@@ -181,6 +181,11 @@ public static class FunctionAnalyzer
         bool isTakingAddress = false
     )
     {
+        foreach (var indexer in place.Projections.OfType<IndexProjection>())
+        {
+            AnalyzeOperand(indexer.Index, builders);
+        }
+
         if (place.Base is not LocalPlace(var local))
             return;
 

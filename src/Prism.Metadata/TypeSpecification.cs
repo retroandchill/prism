@@ -5,6 +5,7 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Prism.Utils;
 using Riok.Mapperly.Abstractions;
 
 namespace Prism.Metadata;
@@ -40,11 +41,7 @@ public sealed class ArrayTypeSpecification : TypeSpecification
                 return field;
 
             Debug.Assert(_reader is not null);
-            Interlocked.CompareExchange(
-                ref Unsafe.As<TypeDescriptor, object>(ref field),
-                _reader.GetTypeDescriptor(_elementType),
-                null
-            );
+            UnionInterlocked.Initialize(ref field, _reader.GetTypeDescriptor(_elementType));
             return field;
         }
         private init;
@@ -84,11 +81,7 @@ public sealed class ReferenceTypeSpecification : TypeSpecification
                 return field;
 
             Debug.Assert(_reader is not null);
-            Interlocked.CompareExchange(
-                ref Unsafe.As<TypeDescriptor, object>(ref field),
-                _reader.GetTypeDescriptor(_elementType),
-                null
-            );
+            UnionInterlocked.Initialize(ref field, _reader.GetTypeDescriptor(_elementType));
             return field;
         }
         private init;
@@ -122,11 +115,7 @@ public sealed class NullableTypeSpecification : TypeSpecification
                 return field;
 
             Debug.Assert(_reader is not null);
-            Interlocked.CompareExchange(
-                ref Unsafe.As<TypeDescriptor, object>(ref field),
-                _reader.GetTypeDescriptor(_elementType),
-                null
-            );
+            UnionInterlocked.Initialize(ref field, _reader.GetTypeDescriptor(_elementType));
             return field;
         }
         private init;
