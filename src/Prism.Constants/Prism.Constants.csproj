@@ -17,6 +17,7 @@
         <InternalsVisibleTo Include="Prism.Mir" />
         <InternalsVisibleTo Include="Prism.Semantic" />
         <InternalsVisibleTo Include="Prism.Compiler" />
+        <InternalsVisibleTo Include="Prism.Codegen" />
     </ItemGroup>
 
 </Project>

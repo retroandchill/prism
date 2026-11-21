@@ -23,8 +23,7 @@ public enum SpecialType : byte
     Char16,
     Rune,
     Str,
-    StrongOrdering,
-    PartialOrdering,
+    Ordering,
 }
 
 public static class SpecialTypeExtensions

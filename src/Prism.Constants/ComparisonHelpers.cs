@@ -33,4 +33,21 @@ internal static class ComparisonHelpers
             _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
         };
     }
+
+    public static ConstantValue ThreeWayCompareValue<T>(T a, T b)
+        where T : unmanaged, IFloatingPointIeee754<T>
+    {
+        const int sentinel = 2;
+
+        var comparison1 = a == b ? 0 : sentinel;
+        var comparison2 = a > b ? 1 : comparison1;
+        var comparison3 = a < b ? -1 : comparison2;
+
+        if (comparison3 != sentinel)
+        {
+            return IntegerConstant.From(IntegerKind.I8, unchecked((UInt128)comparison3));
+        }
+
+        return new NullConstant();
+    }
 }

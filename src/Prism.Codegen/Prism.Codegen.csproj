@@ -14,6 +14,7 @@
 
     <ItemGroup>
       <PackageReference Include="Riok.Mapperly" />
+      <PackageReference Include="Utf8StringInterpolation" />
     </ItemGroup>
 
     <ItemGroup>

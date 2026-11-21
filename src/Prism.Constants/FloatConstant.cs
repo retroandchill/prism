@@ -226,6 +226,27 @@ public readonly partial record struct FloatConstant : IUnion
         return Compare(other, ComparisonOperation.GreaterThanOrEqual);
     }
 
+    public ConstantValue ThreeWayCompare(FloatConstant other)
+    {
+        var common = FloatKind.FindCommon(Kind, other.Kind);
+
+        var commonThis = ConvertTo(common);
+        var commonOther = other.ConvertTo(common);
+
+        return common switch
+        {
+            FloatKind.F32 => ComparisonHelpers.ThreeWayCompareValue(
+                commonThis._rawValue.F32,
+                commonOther._rawValue.F64
+            ),
+            FloatKind.F64 => ComparisonHelpers.ThreeWayCompareValue(
+                commonThis._rawValue.F64,
+                commonOther._rawValue.F64
+            ),
+            _ => throw new InvalidOperationException("Invalid float kind"),
+        };
+    }
+
     private bool Compare(FloatConstant other, ComparisonOperation operation)
     {
         var common = FloatKind.FindCommon(Kind, other.Kind);

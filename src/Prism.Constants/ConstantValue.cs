@@ -307,6 +307,9 @@ public readonly partial struct ConstantValue
             ConstantBinaryOperation.GreaterThanOrEquals => FromNullable(
                 left.TryGreaterThanOrEqual(right)
             ),
+            ConstantBinaryOperation.ThreeWayComparison => FromNullable(
+                left.TryThreeWayCompare(right)
+            ),
             _ => null,
         };
     }
@@ -330,7 +333,8 @@ public readonly partial struct ConstantValue
             ConstantBinaryOperation.LessThanOrEquals => left.LessThanOrEqual(right),
             ConstantBinaryOperation.GreaterThan => left.GreaterThan(right),
             ConstantBinaryOperation.GreaterThanOrEquals => left.GreaterThanOrEqual(right),
-            _ => null,
+            ConstantBinaryOperation.ThreeWayComparison => left.ThreeWayCompare(right),
+            _ => (ConstantValue?)null,
         };
     }
 
@@ -497,8 +501,7 @@ public readonly partial struct ConstantValue
                 );
                 break;
             case ConstantKind.String:
-                value =
-                    reader.ReadString()
+                value = reader.ReadString()
                     ?? throw new ArchiveSerializationException("Invalid string constant");
                 break;
             case ConstantKind.Array:

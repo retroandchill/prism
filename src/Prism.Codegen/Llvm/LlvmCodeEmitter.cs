@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -15,6 +16,7 @@ using Prism.Compiler;
 using Prism.Compiler.Binding;
 using Prism.Compiler.BoundTree;
 using Prism.Compiler.Codegen;
+using Prism.Compiler.Mappers;
 using Prism.Configuration;
 using Prism.Constants;
 using Prism.Diagnostics;
@@ -24,6 +26,7 @@ using Prism.Semantic.Conversions;
 using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
 using Prism.Utils;
+using Utf8StringInterpolation;
 using ZLinq;
 using FloatKind = Prism.Semantic.Layout.FloatKind;
 
@@ -52,6 +55,12 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     private static readonly uint ByValAttr = LookupEnumAttributeKind("byval");
     private LLVMValueRef? _lifetimeStartFunction;
     private LLVMValueRef? _lifetimeEndFunction;
+
+    private readonly LLVMValueRef?[] _threeWayComparisonIntrinsics = new LLVMValueRef?[
+        IntegerKind.MaxValue - 1
+    ];
+
+    private LLVMValueRef? _nullOrderingValue;
 
     private string? _entryPoint;
 
@@ -279,7 +288,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         if (_lifetimeStartFunction is not null)
             return _lifetimeStartFunction.Value;
 
-        var id = LookupIntrinsicId("llvm.lifetime.start.p0");
+        var id = LookupIntrinsicId("llvm.lifetime.start.p0"u8);
         _lifetimeStartFunction = _module.GetIntrinsicDeclaration(
             id,
             [_context.CreatePointerType(0)]
@@ -292,21 +301,22 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         if (_lifetimeEndFunction is not null)
             return _lifetimeEndFunction.Value;
 
-        var id = LookupIntrinsicId("llvm.lifetime.end.p0");
+        var id = LookupIntrinsicId("llvm.lifetime.end.p0"u8);
         _lifetimeEndFunction = _module.GetIntrinsicDeclaration(id, [_context.CreatePointerType(0)]);
         return _lifetimeEndFunction.Value;
     }
 
-    private static uint LookupIntrinsicId(ReadOnlySpan<char> name)
+    private static uint LookupIntrinsicId(ref Utf8StringWriter<ArrayBufferWriter<byte>> writer)
     {
-        using var builder = ZString.CreateUtf8StringBuilder();
-        builder.Append(name);
-        unsafe
+        writer.Flush();
+        return LookupIntrinsicId(writer.GetBufferWriter().WrittenSpan);
+    }
+
+    private static unsafe uint LookupIntrinsicId(ReadOnlySpan<byte> name)
+    {
+        fixed (byte* p = name)
         {
-            fixed (byte* p = builder.AsSpan())
-            {
-                return LLVM.LookupIntrinsicID((sbyte*)p, (nuint)builder.Length);
-            }
+            return LLVM.LookupIntrinsicID((sbyte*)p, (nuint)name.Length);
         }
     }
 
@@ -898,11 +908,84 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 ),
                 _ => _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOGE, leftValue, rightValue),
             },
+            BinaryOperator.ThreeWayComparison => type.SpecialType switch
+            {
+                { IsInteger: true } => EmitIntegerThreeWayComparison(),
+                _ => EmitFloatingPointThreeWayComparison(),
+            },
             BinaryOperator.ShiftLeft => _builder.BuildShl(leftValue, rightValue),
             BinaryOperator.ShiftRight => _builder.BuildAShr(leftValue, rightValue),
             BinaryOperator.UnsignedShiftRight => _builder.BuildLShr(leftValue, rightValue),
             _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
         };
+
+        LLVMValueRef EmitIntegerThreeWayComparison()
+        {
+            var intrinsic = GetThreeWayComparisonIntrinsic(type.SpecialType);
+            var functionType = intrinsic.FunctionType;
+            return _builder.BuildCall2(functionType, intrinsic, [leftValue, rightValue], []);
+        }
+
+        LLVMValueRef EmitFloatingPointThreeWayComparison()
+        {
+            var lt = _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOLT, leftValue, rightValue);
+            var gt = _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOGT, leftValue, rightValue);
+            var eq = _builder.BuildFCmp(LLVMRealPredicate.LLVMRealOEQ, leftValue, rightValue);
+
+            var s1 = _builder.BuildSelect(
+                eq,
+                LLVMValueRef.CreateConstInt(_context.Int8Type, 0),
+                GetNullOrderingValue()
+            );
+            var s2 = _builder.BuildSelect(
+                gt,
+                LLVMValueRef.CreateConstInt(_context.Int8Type, 1),
+                s1
+            );
+            return _builder.BuildSelect(lt, LLVMValueRef.CreateConstInt(_context.Int8Type, -1), s2);
+        }
+    }
+
+    private LLVMValueRef GetThreeWayComparisonIntrinsic(SpecialType specialType)
+    {
+        var integerKind = specialType.ToIntegerKind(_compilation.Settings.PointerWidth);
+
+        var index = integerKind.ToRaw() - 1;
+        ref var intrinsic = ref _threeWayComparisonIntrinsics[index];
+        if (intrinsic is not null)
+            return intrinsic.Value;
+
+        var signChar = integerKind.Sign switch
+        {
+            IntegerSign.Unsigned => 'u',
+            IntegerSign.Signed => 's',
+            _ => throw new InvalidOperationException("Invalid integer sign"),
+        };
+        var id = LookupIntrinsicId($"llvm.{signChar}cmp.i8.i{integerKind.BitCount}");
+
+        intrinsic = _module.GetIntrinsicDeclaration(
+            id,
+            [_context.Int8Type, _context.GetIntType((uint)integerKind.BitCount)]
+        );
+        return intrinsic.Value;
+    }
+
+    private LLVMValueRef GetNullOrderingValue()
+    {
+        if (_nullOrderingValue.HasValue)
+            return _nullOrderingValue.Value;
+
+        var ordering = _compilation.GetSpecialType(SpecialType.Ordering);
+        Debug.Assert(ordering.EnumUnderlyingType?.SpecialType == SpecialType.I8);
+
+        var nullableOrdering = _compilation.CreateNullableTypeSymbol(ordering);
+        var layout = (OptimizedNullableLayout)_compilation.GetTypeLayout(nullableOrdering);
+
+        var nullValue = (ScalarNullValue)layout.NullValue;
+
+        var orderingValue = LLVMValueRef.CreateConstInt(_context.Int8Type, nullValue.BitPattern);
+        _nullOrderingValue = orderingValue;
+        return orderingValue;
     }
 
     private LLVMValueRef CreateEntryAlloca(

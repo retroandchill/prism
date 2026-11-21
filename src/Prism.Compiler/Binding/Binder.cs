@@ -1300,12 +1300,14 @@ internal abstract class Binder : IOverloadResolutionHost
 
         TypeSymbol GetThreeWayComparisonType()
         {
+            var orderingType = Compilation.GetSpecialType(SpecialType.Ordering);
+
             if (left.Type.SpecialType.IsFloatingPoint)
             {
-                Compilation.GetSpecialType(SpecialType.PartialOrdering);
+                return Compilation.CreateNullableTypeSymbol(orderingType);
             }
 
-            return Compilation.GetSpecialType(SpecialType.StrongOrdering);
+            return orderingType;
         }
     }
 

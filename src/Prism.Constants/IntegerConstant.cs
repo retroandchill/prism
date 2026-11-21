@@ -69,6 +69,18 @@ public readonly partial record struct IntegerKind
     [ArchiveIgnore]
     public IntegerSign Sign => (IntegerSign)((_value & SignMask) >> SignShift);
 
+    [ArchiveIgnore]
+    public int BitCount =>
+        Width switch
+        {
+            IntegerWidth.W8 => 8,
+            IntegerWidth.W16 => 16,
+            IntegerWidth.W32 => 32,
+            IntegerWidth.W64 => 64,
+            IntegerWidth.W128 => 128,
+            _ => throw new InvalidOperationException("Invalid integer kind"),
+        };
+
     public static IntegerKind? TryFindCommon(IntegerKind left, IntegerKind right)
     {
         // Unlike the semantic rules, we don't auto promote small integers to 32 bits, instead we find the smallest
@@ -573,6 +585,30 @@ public readonly partial record struct IntegerConstant : IUnion
     public bool? TryGreaterThanOrEqual(IntegerConstant other)
     {
         return TryCompare(other, ComparisonOperation.GreaterThanOrEqual);
+    }
+
+    public IntegerConstant? TryThreeWayCompare(IntegerConstant other)
+    {
+        if (IntegerKind.TryFindCommon(Kind, other.Kind) is not { } commonKind)
+            return null;
+
+        var commonThis = ConvertTo(commonKind);
+        var commonOther = other.ConvertTo(commonKind);
+
+        return commonKind.Sign switch
+        {
+            IntegerSign.Unsigned => From(
+                IntegerKind.I8,
+                unchecked((UInt128)commonThis.RawValue.CompareTo(commonOther.RawValue))
+            ),
+            IntegerSign.Signed => From(
+                IntegerKind.I8,
+                unchecked(
+                    (UInt128)commonThis.GetSignedValue().CompareTo(commonOther.GetSignedValue())
+                )
+            ),
+            _ => throw new InvalidOperationException("Invalid integer sign"),
+        };
     }
 
     private bool? TryCompare(IntegerConstant other, ComparisonOperation operation)

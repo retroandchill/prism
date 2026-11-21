@@ -29,8 +29,7 @@ internal static class CommonNames
     public const string Rune = "Rune";
     public const string Str = "Str";
 
-    public const string StrongOrdering = "StrongOrdering";
-    public const string PartialOrdering = "PartialOrdering";
+    public const string Ordering = "Ordering";
 
     public const string Main = "main";
 }

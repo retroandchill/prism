@@ -11,12 +11,10 @@ using Prism.Compiler.BoundTree;
 using Prism.Compiler.Mappers;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols.Intrinsic;
-using Prism.Configuration;
 using Prism.Constants;
 using Prism.Mir;
 using Prism.Semantic.Symbols;
 using Prism.Utils;
-using FloatKind = Prism.Constants.FloatKind;
 
 namespace Prism.Codegen.Mir;
 
