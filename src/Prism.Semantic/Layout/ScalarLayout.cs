@@ -28,6 +28,12 @@ public sealed class IntegerLayout : ScalarLayout
     }
 
     public bool IsSigned { get; }
+
+    internal IntegerLayout WithValueValidity(ValueValidity? validity)
+    {
+        validity ??= UnconstrainedValidity.Instance;
+        return Validity == validity ? this : new IntegerLayout(BitWidth, IsSigned, validity);
+    }
 }
 
 public enum FloatKind : byte

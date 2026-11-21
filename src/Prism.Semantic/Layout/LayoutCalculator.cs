@@ -3,7 +3,9 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Prism.Configuration;
+using Prism.Constants;
 using Prism.Semantic.Symbols;
+using Prism.Utils;
 using ZLinq;
 
 namespace Prism.Semantic.Layout;
@@ -47,32 +49,118 @@ internal static class LayoutCalculator
         CancellationToken cancellationToken
     )
     {
-        return typeSymbol.SpecialType switch
+        return typeSymbol.Kind switch
         {
-            SpecialType.None => CreateClassLayout(compilation, typeSymbol, cancellationToken),
-            SpecialType.Void or SpecialType.Str => throw new ArgumentException(
-                "Invalid special type"
-            ),
-            SpecialType.Bool => BoolLayout,
-            SpecialType.I8 => GetIntegerLayout(8, true),
-            SpecialType.I16 => GetIntegerLayout(16, true),
-            SpecialType.I32 => GetIntegerLayout(32, true),
-            SpecialType.I64 => GetIntegerLayout(64, true),
-            SpecialType.I128 => GetIntegerLayout(128, true),
-            SpecialType.ISize => GetIntegerLayout(compilation.PointerWidth.BitWidth, true),
-            SpecialType.U8 => GetIntegerLayout(8, false),
-            SpecialType.U16 => GetIntegerLayout(16, false),
-            SpecialType.U32 => GetIntegerLayout(32, false),
-            SpecialType.U64 => GetIntegerLayout(64, false),
-            SpecialType.U128 => GetIntegerLayout(128, false),
-            SpecialType.USize => GetIntegerLayout(compilation.PointerWidth.BitWidth, false),
-            SpecialType.F32 => new FloatLayout(FloatKind.Single),
-            SpecialType.F64 => new FloatLayout(FloatKind.Double),
-            SpecialType.Char => GetIntegerLayout(8, false),
-            SpecialType.Char16 => GetIntegerLayout(16, false),
-            SpecialType.Rune => GetIntegerLayout(32, false),
-            _ => throw new ArgumentException("Invalid special type"),
+            NamedTypeKind.Class => GetTypeLayoutForClass(),
+            NamedTypeKind.Enum => GetTypeLayoutForEnum(),
+            NamedTypeKind.Variant => GetTypeLayoutForVariant(),
+            _ => throw new ArgumentException("Type kind does not have a layout"),
         };
+
+        TypeLayout GetTypeLayoutForClass()
+        {
+            return typeSymbol.SpecialType switch
+            {
+                SpecialType.None => CreateClassLayout(compilation, typeSymbol, cancellationToken),
+                SpecialType.Void or SpecialType.Str => throw new ArgumentException(
+                    "Invalid special type"
+                ),
+                SpecialType.Bool => BoolLayout,
+                SpecialType.I8 => GetIntegerLayout(8, true),
+                SpecialType.I16 => GetIntegerLayout(16, true),
+                SpecialType.I32 => GetIntegerLayout(32, true),
+                SpecialType.I64 => GetIntegerLayout(64, true),
+                SpecialType.I128 => GetIntegerLayout(128, true),
+                SpecialType.ISize => GetIntegerLayout(compilation.PointerWidth.BitWidth, true),
+                SpecialType.U8 => GetIntegerLayout(8, false),
+                SpecialType.U16 => GetIntegerLayout(16, false),
+                SpecialType.U32 => GetIntegerLayout(32, false),
+                SpecialType.U64 => GetIntegerLayout(64, false),
+                SpecialType.U128 => GetIntegerLayout(128, false),
+                SpecialType.USize => GetIntegerLayout(compilation.PointerWidth.BitWidth, false),
+                SpecialType.F32 => new FloatLayout(FloatKind.Single),
+                SpecialType.F64 => new FloatLayout(FloatKind.Double),
+                SpecialType.Char => GetIntegerLayout(8, false),
+                SpecialType.Char16 => GetIntegerLayout(16, false),
+                SpecialType.Rune => GetIntegerLayout(32, false),
+                _ => throw new ArgumentException("Invalid special type"),
+            };
+        }
+
+        TypeLayout GetTypeLayoutForEnum()
+        {
+            var underlyingLayout = (IntegerLayout)
+                compilation.GetTypeLayout(
+                    typeSymbol.EnumUnderlyingType.RequireNonNull(),
+                    cancellationToken
+                );
+            return underlyingLayout.WithValueValidity(GetEnumValidity(underlyingLayout.BitWidth));
+        }
+
+        ValueValidity? GetEnumValidity(ulong bitWidth)
+        {
+            if (typeSymbol.EnumOrdinals.IsEmpty)
+                return NoValuesValidity.Instance;
+
+            var maxRepresentable = GetMaxRepresentable(bitWidth);
+
+            using var ordinals = typeSymbol
+                .EnumOrdinals.AsValueEnumerable()
+                .Select(ordinal =>
+                {
+                    if (ordinal.Value is not IntegerConstant integerConstant)
+                        throw new InvalidOperationException("Invalid ordinal value");
+
+                    return (ulong)integerConstant.RawValue;
+                })
+                .ToArrayPool();
+
+            ordinals.Span.Sort();
+
+            var ranges = new List<(ulong Min, ulong Max)>();
+
+            var start = ordinals.Span[0];
+            var previous = start;
+
+            foreach (var value in ordinals.Span.AsValueEnumerable().Skip(1))
+            {
+                if (value > previous + 1)
+                {
+                    ranges.Add((start, previous));
+                    start = value;
+                }
+
+                previous = value;
+            }
+
+            ranges.Add((start, previous));
+
+            if (ranges.Count == 1)
+            {
+                var (min, max) = ranges[0];
+                if (min == 0 && max == maxRepresentable)
+                    return null;
+
+                return new BoundedRangeValidity(min, max);
+            }
+
+            if (ShouldUseExplicitSet(ordinals.Size, ranges.Count))
+            {
+                return new EnumValidity([.. ordinals.Span]);
+            }
+
+            return new MultiRangeValidity([.. ranges]);
+        }
+
+        static bool ShouldUseExplicitSet(int valueCount, int rangeCount)
+        {
+            return valueCount <= 8 && rangeCount >= valueCount / 2;
+        }
+
+        TypeLayout GetTypeLayoutForVariant()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private static ArrayLayout GetTypeLayout(
@@ -166,32 +254,29 @@ internal static class LayoutCalculator
 
     private static OptimizedNullableLayout? MakeOptimizedNullableLayout(ScalarLayout innerLayout)
     {
-        return innerLayout.Validity switch
-        {
-            UnconstrainedValidity => null,
-            NicheValidity(var pattern) => new OptimizedNullableLayout(
-                innerLayout,
-                new ScalarNullValue(pattern)
-            ),
-            BoundedRangeValidity(var min, var max) => TryGetAdjacentNiche(
-                innerLayout.BitWidth,
-                min,
-                max
-            )
-                is { } nicheValue
-                ? new OptimizedNullableLayout(innerLayout, new ScalarNullValue(nicheValue))
-                : null,
-            EnumValidity(var values) => TryGetEnumNiche(innerLayout.BitWidth, values)
-                is { } nicheValue
-                ? new OptimizedNullableLayout(innerLayout, new ScalarNullValue(nicheValue))
-                : null,
-        };
+        return TryGetNiche(innerLayout.Validity, innerLayout.BitWidth) is { } nicheValue
+            ? new OptimizedNullableLayout(innerLayout, new ScalarNullValue(nicheValue))
+            : null;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ulong GetMaxRepresentable(ulong bitWidth)
     {
         return bitWidth == 64 ? ulong.MaxValue : (1UL << (int)bitWidth) - 1;
+    }
+
+    private static ulong? TryGetNiche(ValueValidity validity, ulong bitWidth)
+    {
+        return validity switch
+        {
+            UnconstrainedValidity => null,
+            NoValuesValidity => 0,
+            NicheValidity(var pattern) => pattern,
+            BoundedRangeValidity(var min, var max) => TryGetAdjacentNiche(bitWidth, min, max),
+            MultiRangeValidity(var ranges) => TryGetMultiRangeNiche(bitWidth, ranges),
+            EnumValidity(var values) => TryGetEnumNiche(bitWidth, values),
+            BitMaskValidity(var mask) => TryGetBitMaskNiche(bitWidth, mask),
+        };
     }
 
     private static ulong? TryGetAdjacentNiche(ulong bitWidth, ulong minValid, ulong maxValid)
@@ -204,6 +289,39 @@ internal static class LayoutCalculator
             return 0;
         }
 
+        if (maxValid < maxRepresentable)
+        {
+            return maxValid + 1;
+        }
+
+        return null;
+    }
+
+    private static ulong? TryGetMultiRangeNiche(
+        ulong bitWidth,
+        ImmutableArray<(ulong MinValidValue, ulong MaxValidValue)> ranges
+    )
+    {
+        Debug.Assert(!ranges.IsEmpty, "Cannot calculate niche for empty range");
+        var maxRepresentable = GetMaxRepresentable(bitWidth);
+
+        var minValue = ranges[0].MinValidValue;
+        if (minValue > 0)
+        {
+            return 0;
+        }
+
+        for (var i = 1; i < ranges.Length; i++)
+        {
+            var (_, previousMax) = ranges[i - 1];
+            var (currentMin, _) = ranges[i];
+            if (previousMax + 1 < currentMin)
+            {
+                return previousMax + 1;
+            }
+        }
+
+        var maxValid = ranges[^1].MaxValidValue;
         if (maxValid < maxRepresentable)
         {
             return maxValid + 1;
@@ -257,6 +375,17 @@ internal static class LayoutCalculator
                 ArrayPool<ulong>.Shared.Return(rentedArray);
             }
         }
+    }
+
+    private static ulong? TryGetBitMaskNiche(ulong bitWidth, ulong allowedMask)
+    {
+        var representableMask = GetMaxRepresentable(bitWidth);
+        var invalidBits = representableMask & ~allowedMask;
+
+        if (invalidBits == 0)
+            return null;
+
+        return invalidBits & (~invalidBits + 1);
     }
 
     private static OptimizedNullableLayout? MakeOptimizedNullableLayout(

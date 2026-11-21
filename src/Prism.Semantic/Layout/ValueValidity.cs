@@ -12,7 +12,14 @@ public sealed record UnconstrainedValidity : ValueValidity
 {
     private UnconstrainedValidity() { }
 
-    public static readonly UnconstrainedValidity Instance = new UnconstrainedValidity();
+    public static readonly UnconstrainedValidity Instance = new();
+}
+
+public sealed record NoValuesValidity : ValueValidity
+{
+    private NoValuesValidity() { }
+
+    public static readonly NoValuesValidity Instance = new();
 }
 
 /// <summary>
@@ -21,7 +28,7 @@ public sealed record UnconstrainedValidity : ValueValidity
 /// </summary>
 public sealed record NicheValidity(ulong Validity) : ValueValidity
 {
-    public static readonly NicheValidity NonNull = new NicheValidity(0);
+    public static readonly NicheValidity NonNull = new(0);
 }
 
 /// <summary>
@@ -31,7 +38,21 @@ public sealed record NicheValidity(ulong Validity) : ValueValidity
 public sealed record BoundedRangeValidity(ulong MinValidValue, ulong MaxValidValue) : ValueValidity;
 
 /// <summary>
+/// Valid values fall strictly within multiple inclusive integer range [Min, Max].
+/// Example: Ada/Pascal ranged integers, or sub-byte bitfields.
+/// </summary>
+public sealed record MultiRangeValidity(
+    ImmutableArray<(ulong MinValidValue, ulong MaxValidValue)> Ranges
+) : ValueValidity;
+
+/// <summary>
 /// Only a explicit set of bit patterns are valid.
-/// Example: Sparse C-style enums or bool (where only 0x0 and 0x1 are valid).
+/// Example: Sparse C-style enums
 /// </summary>
 public sealed record EnumValidity(ImmutableArray<ulong> ValidValues) : ValueValidity;
+
+/// <summary>
+/// Uses a bit mask to determine valid values.
+/// Example: Flag-based enums
+/// </summary>
+public sealed record BitMaskValidity(ulong Mask) : ValueValidity;

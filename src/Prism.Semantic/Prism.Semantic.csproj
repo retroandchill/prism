@@ -9,6 +9,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Prism.Constants\Prism.Constants.csproj" />
       <ProjectReference Include="..\Prism.Core\Prism.Core.csproj" />
+      <ProjectReference Include="..\Prism.Utils\Prism.Utils.csproj" />
     </ItemGroup>
 
     <ItemGroup>

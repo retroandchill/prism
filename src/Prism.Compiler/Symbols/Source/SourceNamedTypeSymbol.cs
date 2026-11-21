@@ -73,6 +73,7 @@ internal sealed class SourceNamedTypeSymbol
             ),
             DeclarationKind.Attribute => NamedTypeKind.Attribute,
             DeclarationKind.Class => NamedTypeKind.Class,
+            DeclarationKind.Enum => NamedTypeKind.Enum,
             _ => throw new InvalidOperationException("Invalid declaration kind"),
         };
     }

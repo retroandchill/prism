@@ -15,6 +15,7 @@
     <ItemGroup>
         <InternalsVisibleTo Include="Prism.Metadata" />
         <InternalsVisibleTo Include="Prism.Mir" />
+        <InternalsVisibleTo Include="Prism.Semantic" />
     </ItemGroup>
 
 </Project>

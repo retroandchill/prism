@@ -46,4 +46,68 @@ public class TypeLayoutTests
             Assert.That(layout.Alignment, Is.EqualTo(8));
         }
     }
+
+    [Test]
+    public void EnumsNicheFillCorrectly()
+    {
+        var tree = SyntaxTree.Parse(
+            """
+            public enum Color {
+                Red,
+                Blue,
+                Green
+            }
+
+            func foo(color: Color?) { }
+            """
+        );
+
+        const string assemblyName = "test";
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
+
+        var members = compilation.Assembly.GlobalNamespace.GetMembers("foo");
+        Assert.That(members, Has.Length.EqualTo(1));
+        Assert.That(members[0], Is.InstanceOf<FunctionSymbol>());
+        var foo = (FunctionSymbol)members[0];
+
+        Assert.That(foo.Parameters, Has.Length.EqualTo(1));
+        var param = foo.Parameters[0];
+        var paramType = param.Type;
+
+        var layout = compilation.GetTypeLayout(paramType);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(layout.Size, Is.EqualTo(4));
+            Assert.That(layout.Alignment, Is.EqualTo(4));
+        }
+    }
+
+    [Test]
+    public void EnumsWithExplicitWidth()
+    {
+        var tree = SyntaxTree.Parse(
+            """
+            public enum Color : u8 {
+                Red,
+                Blue,
+                Green
+            }
+            """
+        );
+
+        const string assemblyName = "test";
+        var compilation = Compilation.Create(_context, assemblyName, [tree]);
+
+        var members = compilation.Assembly.GlobalNamespace.GetMembers("Color");
+        Assert.That(members, Has.Length.EqualTo(1));
+        Assert.That(members[0], Is.InstanceOf<NamedTypeSymbol>());
+        var color = (NamedTypeSymbol)members[0];
+
+        var layout = compilation.GetTypeLayout(color);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(layout.Size, Is.EqualTo(1));
+            Assert.That(layout.Alignment, Is.EqualTo(1));
+        }
+    }
 }

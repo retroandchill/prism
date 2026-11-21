@@ -73,7 +73,7 @@ internal sealed class DeclarationTreeBuilder
         SyntaxList<DeclarationSyntax> members
     )
     {
-        Debug.Assert(node is ClassDeclarationSyntax);
+        Debug.Assert(node is ClassDeclarationSyntax or EnumDeclarationSyntax);
 
         if (members.Count == 0)
             return [];
@@ -312,7 +312,7 @@ internal sealed class DeclarationTreeBuilder
         var members = VisitClassChildren(@enum, @enum.Members);
         var memberNames = GetNonTypeMemberNames(@enum.Ordinals, @enum.Members);
         return new SingleTypeDeclaration(
-            DeclarationKind.Class,
+            DeclarationKind.Enum,
             name,
             new SyntaxReference(@enum),
             modifiers,
