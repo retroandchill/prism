@@ -15,16 +15,16 @@ internal enum CompletionPart : uint
     TypeParameters = 1 << 3,
 
     // explicit staged graph work
-    BaseTypesStarted = 1 << 5,
-    BaseTypesCompleted = 1 << 6,
+    BaseTypeStarted = 1 << 5,
+    BaseTypeCompleted = 1 << 6,
 
     // optional later if/when needed
     InterfacesStarted = 1 << 7,
     InterfacesCompleted = 1 << 8,
 
     // single-shot published/computed phases
-    Members = 1 << 9,
-    EnumUnderlyingType = 1 << 10,
+    EnumUnderlyingType = 1 << 9,
+    Members = 1 << 10,
     ConstantValue = 1 << 11,
     StartChecks = 1 << 12,
     FinishChecks = 1 << 13,
@@ -39,5 +39,6 @@ internal enum CompletionPart : uint
     VariableAll = Attributes | Type | ConstantValue,
     FunctionAll = Attributes | Parameters | Type | StartChecks | FinishChecks,
     ParameterAll = Attributes | Type | ConstantValue,
-    TypeAll = Attributes | Members | StartChecks | FinishChecks | MembersCompleted,
+    TypeAll =
+        Attributes | EnumUnderlyingType | Members | StartChecks | FinishChecks | MembersCompleted,
 }

@@ -655,6 +655,22 @@
               "type": "String"
             }
           ]
+        },
+        {
+          "name": "EnumOrdinalNotUnique",
+          "severity": "Error",
+          "format": "Enum ordinal {Value} is not unique",
+          "args": [
+            {
+              "name": "Value",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "PartialEnumOrdinalMustBeExplicit",
+          "severity": "Error",
+          "format": "The first ordinal of a partial enum declaration must be explicit"
         }
       ]
     },

@@ -115,25 +115,43 @@ internal sealed class SourceNamedTypeSymbol
     {
         get
         {
-            return LazyComputation.LazyCompute(ref field, this, static @this =>
-                @this.ComputeEnumOrdinals()
+            return LazySymbols.LazyCompute(
+                ref field,
+                this,
+                static (@this, context) => @this.ComputeEnumOrdinals(context),
+                static (@this, context) => @this.AddDeclarationDiagnostics(context)
             );
         }
     }
 
-    private ImmutableArray<EnumOrdinalSymbol> ComputeEnumOrdinals()
+    private ImmutableArray<EnumOrdinalSymbol> ComputeEnumOrdinals(BindingContext context)
     {
         if (Kind != NamedTypeKind.Enum)
             return [];
 
-        var builder = ImmutableArray.CreateBuilder<EnumOrdinalSymbol>();
         SourceEnumOrdinalSymbol? current = null;
-        foreach (
-            var declaration in _mergedDeclaration
-                .Declarations.AsValueEnumerable()
-                .Select(d => (EnumDeclarationSyntax)d.SyntaxReference.Syntax)
-        )
+
+        using var declarationList = _mergedDeclaration
+            .Declarations.AsValueEnumerable()
+            .Select(d => (EnumDeclarationSyntax)d.SyntaxReference.Syntax)
+            .Where(d => d.Ordinals.Count > 0)
+            .ToArrayPool();
+
+        if (declarationList.Size == 0)
+            return [];
+
+        var requireExplicitFirstElement = declarationList.Size > 1;
+
+        var builder = ImmutableArray.CreateBuilder<EnumOrdinalSymbol>();
+        foreach (var declaration in declarationList.Span)
         {
+            if (requireExplicitFirstElement && declaration.Ordinals[0].Value is null)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.PartialEnumOrdinalMustBeExplicit(declaration.Ordinals[0].Location)
+                );
+            }
+
             foreach (var ordinal in declaration.Ordinals)
             {
                 current = new SourceEnumOrdinalSymbol(
@@ -349,6 +367,7 @@ internal sealed class SourceNamedTypeSymbol
         using var context = BindingContext.Create();
         try
         {
+            ValidateEnumOrdinals(context);
             foreach (var (name, members) in GetNameToMembersMap())
             {
                 ValidateMembers(name, members, context);
@@ -358,6 +377,31 @@ internal sealed class SourceNamedTypeSymbol
         finally
         {
             CompletionState.MarkPartComplete(CompletionPart.FinishChecks);
+        }
+    }
+
+    private void ValidateEnumOrdinals(BindingContext context)
+    {
+        if (Kind != NamedTypeKind.Enum)
+            return;
+
+        var ordinals = EnumOrdinals;
+        if (ordinals.IsEmpty)
+            return;
+
+        var seenValues = new HashSet<ConstantValue>();
+
+        foreach (var ordinal in ordinals)
+        {
+            if (seenValues.Add(ordinal.Value))
+                continue;
+
+            var syntax = (EnumOrdinalDeclarationSyntax)
+                ordinal.DeclaringSyntaxReferences.Single().Syntax;
+            var location = syntax.Value?.Location ?? syntax.Location;
+            context.ReportDiagnostic(
+                Diagnostic.EnumOrdinalNotUnique(location, ordinal.Value.ToString())
+            );
         }
     }
 
