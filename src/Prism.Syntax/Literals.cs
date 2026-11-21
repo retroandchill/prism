@@ -8,6 +8,7 @@ public interface ISyntaxData<TSelf>
     where TSelf : struct, ISyntaxData<TSelf>
 {
     SyntaxKind Kind { get; }
+    SyntaxKind ContextualKind { get; }
     string Text { get; }
 
     internal static virtual TSelf? TryGetFrom(GreenToken token)
@@ -19,6 +20,8 @@ public interface ISyntaxData<TSelf>
 public readonly record struct BoolLiteralData(bool Value) : ISyntaxData<BoolLiteralData>
 {
     public SyntaxKind Kind => Value ? SyntaxKind.TrueKeyword : SyntaxKind.FalseKeyword;
+
+    public SyntaxKind ContextualKind => Kind;
 
     public string Text => Value ? "true" : "false";
 
@@ -68,6 +71,8 @@ public readonly record struct IntegerLiteralData(
 ) : ISyntaxData<IntegerLiteralData>
 {
     public SyntaxKind Kind => SyntaxKind.IntegerLiteralToken;
+
+    public SyntaxKind ContextualKind => Kind;
 }
 
 public enum FloatSuffix : byte
@@ -85,6 +90,8 @@ public readonly record struct FloatLiteralData(
 ) : ISyntaxData<FloatLiteralData>
 {
     public SyntaxKind Kind => SyntaxKind.FloatingPointLiteralToken;
+
+    public SyntaxKind ContextualKind => Kind;
 }
 
 public enum CharacterEncoding : byte
@@ -101,6 +108,8 @@ public readonly record struct CharacterLiteralData(
 ) : ISyntaxData<CharacterLiteralData>
 {
     public SyntaxKind Kind => SyntaxKind.CharacterLiteralToken;
+
+    public SyntaxKind ContextualKind => Kind;
 }
 
 public readonly record struct StringLiteralData(
@@ -110,6 +119,8 @@ public readonly record struct StringLiteralData(
 ) : ISyntaxData<StringLiteralData>
 {
     public SyntaxKind Kind => SyntaxKind.StringLiteralToken;
+
+    public SyntaxKind ContextualKind => Kind;
 }
 
 public readonly record struct IdentifierData : ISyntaxData<IdentifierData>
@@ -118,11 +129,13 @@ public readonly record struct IdentifierData : ISyntaxData<IdentifierData>
     public string Value { get; }
     public bool IsEscaped { get; }
     public SyntaxKind Kind => SyntaxKind.IdentifierToken;
+    public SyntaxKind ContextualKind { get; }
 
-    public IdentifierData(string text)
+    public IdentifierData(string text, SyntaxKind contextualKind = SyntaxKind.IdentifierToken)
     {
         Text = text;
         IsEscaped = text.StartsWith('@');
         Value = IsEscaped ? text[1..] : text;
+        ContextualKind = contextualKind;
     }
 }

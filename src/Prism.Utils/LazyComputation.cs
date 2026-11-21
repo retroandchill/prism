@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -35,6 +36,19 @@ internal static class LazyComputation
             return value;
 
         UnionInterlocked.Initialize(ref value, computation(context));
+        return value;
+    }
+
+    public static ImmutableArray<T> LazyCompute<T, TContext>(
+        ref ImmutableArray<T> value,
+        TContext context,
+        Func<TContext, ImmutableArray<T>> computation
+    )
+    {
+        if (!value.IsDefault)
+            return value;
+
+        ImmutableInterlocked.InterlockedInitialize(ref value, computation(context));
         return value;
     }
 }

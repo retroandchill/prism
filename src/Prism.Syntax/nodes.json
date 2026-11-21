@@ -1028,6 +1028,29 @@
               "shape": "single"
             }
           ]
+        },
+        {
+          "name": "BaseList",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "colon",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ColonToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "types",
+              "type": "Type",
+              "shape": "separated_list",
+              "separators": [
+                "CommaToken"
+              ]
+            }
+          ]
         }
       ]
     },
@@ -2762,7 +2785,12 @@
                 "IdentifierToken"
               ]
             },
-
+            {
+              "$type": "item",
+              "name": "base_list",
+              "type": "BaseList",
+              "shape": "optional"
+            },
             {
               "$type": "choice",
               "choices": [

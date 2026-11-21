@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Cysharp.Text;
 using Prism.Semantic.Symbols.Data;
@@ -18,8 +19,11 @@ public sealed class NamedTypeSymbol : TypeSymbol, IAttributeHolderSymbolData
 
     public NamedTypeKind Kind => Data.Kind;
 
-    public NamedTypeSymbol? EnumUnderlyingType =>
-        Data is IEnumSymbolData enumData ? enumData.EnumUnderlyingType : null;
+    public NamedTypeSymbol? EnumUnderlyingType => Data.EnumUnderlyingType;
+
+    public ImmutableArray<EnumOrdinalSymbol> EnumOrdinals => Data.EnumOrdinals;
+
+    public ImmutableArray<ParameterSymbol> AttributeParameters => Data.AttributeParameters;
 
     public override void WriteDisplayString(ref Utf16ValueStringBuilder builder)
     {

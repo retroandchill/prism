@@ -2,12 +2,9 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Prism.Diagnostics;
 using Prism.Metadata;
-using Prism.Semantic;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
-using Prism.Syntax;
 using ZLinq;
 using AssemblyDefinition = Prism.Metadata.AssemblyDefinition;
 using FunctionDefinition = Prism.Metadata.FunctionDefinition;
@@ -284,15 +281,11 @@ internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSy
         {
             var attributeType = GetReferencedType(attribute.Type);
             Debug.Assert(attributeType.Kind == NamedTypeKind.Attribute);
-            using var parameters = attributeType
-                .GetMembers()
-                .AsValueEnumerable()
-                .OfType<ParameterSymbol>()
-                .ToArrayPool();
+            var parameters = attributeType.AttributeParameters;
 
-            Debug.Assert(parameters.Size == attribute.Arguments.Length);
+            Debug.Assert(parameters.Length == attribute.Arguments.Length);
             var arguments = parameters
-                .Span.AsValueEnumerable()
+                .AsValueEnumerable()
                 .Zip(attribute.Arguments.AsValueEnumerable())
                 .Select(t => new AttributeArgument(t.First, t.Second))
                 .ToImmutableArray();

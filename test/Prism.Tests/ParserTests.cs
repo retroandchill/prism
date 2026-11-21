@@ -215,7 +215,7 @@ public sealed class ParserTests
     [Test]
     public void PicksUpFileModifierInTopLevelDeclarations()
     {
-        var parser = new LanguageParser("file var x = 1;");
+        var parser = new LanguageParser("file var: i32 x = 1;");
         var declaration = parser.ParseTopLevelDeclaration();
 
         Assert.That(declaration, Is.Not.Null);

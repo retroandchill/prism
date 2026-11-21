@@ -508,7 +508,7 @@ internal sealed class Lexer(string text)
 
         if (!isEscaped && SyntaxKind.MatchKeyword(identifier) is { } keyword)
         {
-            return GreenToken.From(keyword)!.Update(leadingTrivia, CollectTrivia());
+            return GreenToken.From(keyword, true)!.Update(leadingTrivia, CollectTrivia());
         }
 
         return GreenValueToken.Create(

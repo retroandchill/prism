@@ -12,7 +12,11 @@ internal abstract class SyntaxParser(string text)
 
     protected bool AtEnd => _stream.AtEnd;
 
-    protected GreenToken PeekToken(int offset = 1)
+    protected int Position => _stream.Position;
+
+    protected GreenToken CurrentToken => _stream.Current;
+
+    protected GreenToken PeekToken(int offset)
     {
         return _stream.Peek(offset);
     }
@@ -24,7 +28,7 @@ internal abstract class SyntaxParser(string text)
 
     protected GreenToken? MatchToken(SyntaxKind kind)
     {
-        var token = PeekToken();
+        var token = CurrentToken;
         if (token.Kind != kind)
         {
             return TryMatchContextualKeyword(kind, token);
@@ -36,7 +40,7 @@ internal abstract class SyntaxParser(string text)
 
     protected GreenToken ExpectToken(SyntaxKind kind)
     {
-        var next = PeekToken();
+        var next = CurrentToken;
         if (next.Kind != kind)
         {
             return TryMatchContextualKeyword(kind, next)
@@ -53,7 +57,7 @@ internal abstract class SyntaxParser(string text)
 
     protected GreenToken ConsumeTokenEvenIfWrong(SyntaxKind kind)
     {
-        var next = PeekToken();
+        var next = CurrentToken;
         if (next.Kind != kind)
         {
             if (TryMatchContextualKeyword(kind, next) is { } replaced)
@@ -80,18 +84,17 @@ internal abstract class SyntaxParser(string text)
         )
             return null;
 
-        return ReplaceWithContextualKeyword(kind, next);
+        _stream.Advance();
+        return ReplaceWithContextualKeyword(next);
     }
 
-    protected GreenToken ReplaceWithContextualKeyword(SyntaxKind kind, GreenToken next)
+    protected static GreenToken ReplaceWithContextualKeyword(GreenToken next)
     {
-        var correctKind = GreenToken
-            .From(kind)
+        return GreenToken
+            .From(next.ContextualKind)
             .RequireNonNull()
             .Update(next.LeadingTrivia, next.TrailingTrivia)
             .WithDiagnostics(next.Diagnostics);
-        _stream.ReplaceNext(correctKind);
-        return _stream.Consume();
     }
 
     protected static T AddLeadingSkippedSyntax<T>(T node, GreenNode skippedSyntax)
@@ -236,5 +239,10 @@ internal abstract class SyntaxParser(string text)
 
         Debug.Assert(!assertIfFalse);
         return false;
+    }
+
+    protected void Reset(int position)
+    {
+        _stream.Reset(position);
     }
 }

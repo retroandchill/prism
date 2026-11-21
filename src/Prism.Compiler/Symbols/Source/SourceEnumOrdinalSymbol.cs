@@ -17,19 +17,19 @@ using Prism.Utils;
 
 namespace Prism.Compiler.Symbols.Source;
 
-internal sealed class SourceEnumOrdinal : SourceSymbol, IEnumOrdinalSymbolData
+internal sealed class SourceEnumOrdinalSymbol : SourceSymbol, IEnumOrdinalSymbolData
 {
     private SymbolCompletionState _completionState;
     private readonly EnumOrdinalDeclarationSyntax _syntax;
-    private readonly SourceEnumOrdinal? _previous;
+    private readonly SourceEnumOrdinalSymbol? _previous;
     private ConstantValue _constantValue;
     private bool _constantValueComputed;
 
-    public SourceEnumOrdinal(
+    public SourceEnumOrdinalSymbol(
         Compilation declaringCompilation,
         EnumOrdinalDeclarationSyntax syntax,
         NamedTypeSymbol containingType,
-        SourceEnumOrdinal? previous
+        SourceEnumOrdinalSymbol? previous
     )
         : base(declaringCompilation)
     {

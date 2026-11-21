@@ -14,7 +14,7 @@ internal static class ArgumentMapper
 {
     public static BoundExpression[]? TryMapArgumentsToParameters(
         Compilation compilation,
-        ReadOnlySpan<ParameterSymbol> parameters,
+        ImmutableArray<ParameterSymbol> parameters,
         ImmutableArray<CallArgument> callArguments,
         SyntaxNode fallbackSyntax
     )
@@ -54,7 +54,7 @@ internal static class ArgumentMapper
     }
 
     private static int FindParameterIndexByName(
-        ReadOnlySpan<ParameterSymbol> parameters,
+        ImmutableArray<ParameterSymbol> parameters,
         string name
     )
     {

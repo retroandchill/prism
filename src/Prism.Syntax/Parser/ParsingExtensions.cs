@@ -14,6 +14,14 @@ internal static class ParsingExtensions
                     or SyntaxKind.PrivateKeyword
                     or SyntaxKind.StaticKeyword;
 
+        public bool IsMemberDeclarationStarter =>
+            kind
+                is SyntaxKind.VarKeyword
+                    or SyntaxKind.FuncKeyword
+                    or SyntaxKind.ClassKeyword
+                    or SyntaxKind.AttributeKeyword
+                    or SyntaxKind.EnumKeyword;
+
         public bool IsBuiltInType =>
             kind
                 is SyntaxKind.VoidKeyword

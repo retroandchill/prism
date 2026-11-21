@@ -115,7 +115,7 @@ internal abstract class Binder : IOverloadResolutionHost
         };
     }
 
-    private NamedTypeSymbol ResolveType(NamedTypeSyntax syntax, BindingContext context)
+    public NamedTypeSymbol ResolveType(NamedTypeSyntax syntax, BindingContext context)
     {
         return RequireType(
             LookupFromSyntax(syntax.Identifier, LookupOptions.Type, context),
@@ -481,16 +481,11 @@ internal abstract class Binder : IOverloadResolutionHost
                 continue;
             }
 
-            using var parameters = attributeType
-                .GetMembers()
-                .AsValueEnumerable()
-                .OfType<ParameterSymbol>()
-                .ToArrayPool();
-
+            var parameters = attributeType.AttributeParameters;
             var callArguments = GetCallArguments(attribute.Arguments, context, cancellationToken);
             var mappedParameters = ArgumentMapper.TryMapArgumentsToParameters(
                 Compilation,
-                parameters.Span,
+                parameters,
                 callArguments,
                 attribute.Type
             );
@@ -513,9 +508,9 @@ internal abstract class Binder : IOverloadResolutionHost
             }
             else
             {
-                Debug.Assert(parameters.Size == mappedParameters.Length);
-                var arguments = new AttributeArgument[parameters.Size];
-                foreach (var (i, param) in parameters.Span.AsValueEnumerable().Index())
+                Debug.Assert(parameters.Length == mappedParameters.Length);
+                var arguments = new AttributeArgument[parameters.Length];
+                foreach (var (i, param) in parameters.AsValueEnumerable().Index())
                 {
                     var arg = mappedParameters[i];
                     var newExpression = ApplySpeculativeBinding(arg, param.Type, context);

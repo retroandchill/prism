@@ -633,6 +633,28 @@
           "name": "InvalidThisAccess",
           "severity": "Error",
           "format": "Cannot access 'this' in a static context"
+        },
+        {
+          "name": "BaseTypeMismatch",
+          "severity": "Error",
+          "format": "Type {Type} does not have the same base type between declarations",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
+        },
+        {
+          "name": "InvalidEnumBaseType",
+          "severity": "Error",
+          "format": "Type {Type} is not a valid base type for an enum",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
         }
       ]
     },

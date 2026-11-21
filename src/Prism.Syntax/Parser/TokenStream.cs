@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using Nito.Collections;
 using Prism.Syntax.Green;
 
 namespace Prism.Syntax.Parser;
@@ -7,38 +6,50 @@ namespace Prism.Syntax.Parser;
 internal sealed class TokenStream(string text)
 {
     private readonly Lexer _lexer = new(text);
-    private GreenToken? _previous;
-    private readonly Deque<GreenToken> _lookahead = [];
+    private GreenToken? _current;
+    private readonly List<GreenToken> _tokens = [];
 
-    public bool AtEnd => Peek().Kind == SyntaxKind.EofToken;
+    public bool AtEnd => Current.Kind == SyntaxKind.EofToken;
 
     public int Position { get; private set; }
 
-    public GreenToken Previous
+    public GreenToken Current
     {
         get
         {
-            Debug.Assert(_previous is not null);
-            return _previous;
+            _current ??= GetCurrent();
+            return _current;
         }
     }
 
-    public GreenToken Peek(int count = 1)
+    private GreenToken GetCurrent()
     {
-        if (_lookahead.Count == 0)
+        if (Position >= _tokens.Count)
         {
             BufferTokens();
         }
 
-        return _lookahead[count - 1];
+        return _tokens[Position];
+    }
+
+    private GreenToken? GetCurrentWithoutBuffering()
+    {
+        return Position < _tokens.Count ? _tokens[Position] : null;
+    }
+
+    public GreenToken Peek(int count)
+    {
+        Debug.Assert(count >= 1);
+        var index = Position + count;
+        BufferThrough(index);
+        return _tokens[index];
     }
 
     public GreenToken Consume()
     {
-        var token = Peek();
-        _lookahead.RemoveFromFront();
-        _previous = token;
+        var token = Current;
         Position++;
+        _current = GetCurrentWithoutBuffering();
         return token;
     }
 
@@ -47,34 +58,34 @@ internal sealed class TokenStream(string text)
         _ = Consume();
     }
 
-    public void ReplaceNext(GreenToken token)
+    public void Reset(int position)
     {
-        var next = Peek();
-        Debug.Assert(next.Kind != SyntaxKind.EofToken);
-
-        _lookahead.RemoveFromFront();
-        _lookahead.AddToFront(token);
+        Debug.Assert(position >= 0);
+        Debug.Assert(position <= _tokens.Count);
+        Position = position;
+        _current = GetCurrentWithoutBuffering();
     }
 
-    public void ReplaceNext(params ReadOnlySpan<GreenToken> tokens)
+    private void BufferThrough(int index)
     {
-        var next = Peek();
-        Debug.Assert(next.Kind != SyntaxKind.EofToken);
-
-        _lookahead.RemoveFromFront();
-        foreach (var token in tokens)
+        while (_tokens.Count <= index)
         {
-            _lookahead.AddToFront(token);
+            BufferTokens();
         }
+
+        Debug.Assert(index < _tokens.Count);
     }
 
     private void BufferTokens()
     {
+        if (_tokens.Count > 0 && _tokens[^1].Kind == SyntaxKind.EofToken)
+            return;
+
         const int maxTokens = 1024;
         for (var i = 0; i < maxTokens; i++)
         {
             var token = _lexer.Next();
-            _lookahead.AddToBack(token);
+            _tokens.Add(token);
             if (token.Kind == SyntaxKind.EofToken)
                 break;
         }

@@ -6,6 +6,6 @@ public enum NamedTypeKind : byte
     Interface,
     Concept,
     Enum,
-    Union,
+    Variant,
     Attribute,
 }

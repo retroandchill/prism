@@ -177,12 +177,7 @@ public static class CSharpEmitter
                 {
                     writer.WriteLine($"case {sizeClass.Key}:");
                     using var indent = writer.EnterIndentationScope();
-                    foreach (
-                        var keyword in sizeClass
-                            .AsValueEnumerable()
-                            .Where(k => !k.Contextual)
-                            .OrderBy(k => k.Text)
-                    )
+                    foreach (var keyword in sizeClass.AsValueEnumerable().OrderBy(k => k.Text))
                     {
                         writer.WriteLine(
                             $"if (text.Equals(\"{keyword.Text!}\", StringComparison.Ordinal)) return {SyntaxKindClass}.{keyword.Kind.CSharpName};"
@@ -277,8 +272,7 @@ public static class CSharpEmitter
         private void EmitGreenNodeClass(CSharpNode node)
         {
             var qualifier = node.IsAbstract ? "closed" : "sealed";
-            var baseName =
-                node.Base?.GreenClassName
+            var baseName = node.Base?.GreenClassName
                 ?? node.Module.Kind switch
                 {
                     ModuleKind.Node => GreenNodeClass,
@@ -556,8 +550,7 @@ public static class CSharpEmitter
         private void EmitRedNodeClass(CSharpNode node)
         {
             var qualified = node.IsAbstract ? "closed" : "sealed";
-            var baseName =
-                node.Base?.RedClassName
+            var baseName = node.Base?.RedClassName
                 ?? node.Module.Kind switch
                 {
                     ModuleKind.Node => SyntaxNodeClass,

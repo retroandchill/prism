@@ -6,12 +6,11 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Prism.Compiler.Binding;
 using Prism.Compiler.Declarations;
+using Prism.Compiler.Symbols.Synthesized;
+using Prism.Constants;
 using Prism.Diagnostics;
-using Prism.Metadata;
-using Prism.Semantic;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
@@ -20,7 +19,7 @@ using ZLinq;
 
 namespace Prism.Compiler.Symbols.Source;
 
-internal abstract class SourceNamedTypeSymbol
+internal sealed class SourceNamedTypeSymbol
     : SourceMemberContainerSymbol,
         INamedTypeSymbolData,
         IAttributeHolderSymbolData,
@@ -29,6 +28,7 @@ internal abstract class SourceNamedTypeSymbol
     private readonly MergedTypeDeclaration _mergedDeclaration;
     private ImmutableArray<AttributeData> _attributes;
     private readonly Lock _memberChecksLock = new();
+    private ThreeState _isDefaultConstructible;
 
     internal SourceNamedTypeSymbol(
         Compilation compilation,
@@ -57,12 +57,11 @@ internal abstract class SourceNamedTypeSymbol
         private init => base.PublicSymbol = Unsafe.As<NamedTypeSymbol>(value);
     }
 
-    public sealed override string Name => _mergedDeclaration.Name;
+    public override string Name => _mergedDeclaration.Name;
 
-    public sealed override Symbol ContainingSymbol { get; }
+    public override Symbol ContainingSymbol { get; }
 
     public NamedTypeKind Kind => GetTypeKind(_mergedDeclaration);
-
     public SpecialType SpecialType { get; }
 
     private static NamedTypeKind GetTypeKind(MergedTypeDeclaration declaration)
@@ -112,6 +111,99 @@ internal abstract class SourceNamedTypeSymbol
     public DeclaredVisibility DeclaredVisibility =>
         DeclaredVisibility.FromDeclarationModifiers(_mergedDeclaration.Modifiers);
 
+    public ImmutableArray<EnumOrdinalSymbol> EnumOrdinals
+    {
+        get
+        {
+            return LazyComputation.LazyCompute(ref field, this, static @this =>
+                @this.ComputeEnumOrdinals()
+            );
+        }
+    }
+
+    private ImmutableArray<EnumOrdinalSymbol> ComputeEnumOrdinals()
+    {
+        if (Kind != NamedTypeKind.Enum)
+            return [];
+
+        var builder = ImmutableArray.CreateBuilder<EnumOrdinalSymbol>();
+        SourceEnumOrdinalSymbol? current = null;
+        foreach (
+            var declaration in _mergedDeclaration
+                .Declarations.AsValueEnumerable()
+                .Select(d => (EnumDeclarationSyntax)d.SyntaxReference.Syntax)
+        )
+        {
+            foreach (var ordinal in declaration.Ordinals)
+            {
+                current = new SourceEnumOrdinalSymbol(
+                    DeclaringCompilation,
+                    ordinal,
+                    PublicSymbol,
+                    current
+                );
+                builder.Add(current.PublicSymbol);
+            }
+        }
+
+        return builder.DrainToImmutable();
+    }
+
+    public ImmutableArray<ParameterSymbol> AttributeParameters
+    {
+        get
+        {
+            return LazySymbols.LazyCompute(
+                ref field,
+                this,
+                static (@this, context) => @this.ComputeAttributeParameters(context),
+                static (@this, context) => @this.AddDeclarationDiagnostics(context)
+            );
+        }
+    }
+
+    private ImmutableArray<ParameterSymbol> ComputeAttributeParameters(BindingContext context)
+    {
+        if (Kind != NamedTypeKind.Attribute)
+            return [];
+
+        var declarations = _mergedDeclaration.Declarations;
+        Debug.Assert(declarations.Length == 1);
+        var syntax = (AttributeDeclarationSyntax)declarations[0].SyntaxReference.Syntax;
+
+        if (syntax.Parameters is null || syntax.Parameters.Parameters.Count == 0)
+        {
+            return [];
+        }
+
+        var seenDefaultValue = false;
+        var builder = ImmutableArray.CreateBuilder<ParameterSymbol>();
+        foreach (var parameter in syntax.Parameters.Parameters)
+        {
+            var name = parameter.Name.IdentifierName;
+
+            var symbol = new SourceAttributeParameterSymbol(
+                DeclaringCompilation,
+                PublicSymbol,
+                parameter
+            ).PublicSymbol;
+            builder.Add(symbol);
+
+            if (symbol.HasDefaultValue)
+            {
+                seenDefaultValue = true;
+            }
+            else if (seenDefaultValue)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.DefaultValueAfterNonDefaultValue(parameter.Location, name)
+                );
+            }
+        }
+
+        return builder.DrainToImmutable();
+    }
+
     protected override ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
         BindingContext context
     )
@@ -121,6 +213,16 @@ internal abstract class SourceNamedTypeSymbol
         foreach (var symbol in _mergedDeclaration.Members.Select(BuildSymbol))
         {
             builder.GetOrAdd(symbol.Name, ImmutableArray.CreateBuilder<Symbol>).Add(symbol);
+        }
+
+        foreach (var ordinal in EnumOrdinals)
+        {
+            builder.GetOrAdd(ordinal.Name, ImmutableArray.CreateBuilder<Symbol>).Add(ordinal);
+        }
+
+        foreach (var parameter in AttributeParameters)
+        {
+            builder.GetOrAdd(parameter.Name, ImmutableArray.CreateBuilder<Symbol>).Add(parameter);
         }
 
         foreach (
@@ -150,7 +252,7 @@ internal abstract class SourceNamedTypeSymbol
             pair => pair.Value.DrainToImmutable()
         );
 
-        SyntaxList<DeclarationSyntax> GetSyntaxMembers(SingleTypeDeclaration x)
+        static SyntaxList<DeclarationSyntax> GetSyntaxMembers(SingleTypeDeclaration x)
         {
             return x.SyntaxReference.Syntax switch
             {
@@ -162,23 +264,11 @@ internal abstract class SourceNamedTypeSymbol
 
     private Symbol BuildSymbol(MergedTypeDeclaration declaration)
     {
-        return declaration.Kind switch
-        {
-            DeclarationKind.Namespace => throw new InvalidOperationException(
-                "Namespace declaration cannot be built as a type"
-            ),
-            DeclarationKind.Class => new SourceClassSymbol(
-                DeclaringCompilation,
-                declaration,
-                PublicSymbol
-            ).PublicSymbol,
-            DeclarationKind.Attribute => new SourceAttributeSymbol(
-                DeclaringCompilation,
-                declaration,
-                PublicSymbol
-            ).PublicSymbol,
-            _ => throw new InvalidOperationException("Unknown declaration kind"),
-        };
+        return new SourceNamedTypeSymbol(
+            DeclaringCompilation,
+            declaration,
+            PublicSymbol
+        ).PublicSymbol;
     }
 
     private VariableSymbol BuildSymbol(FieldDeclarationSyntax fieldDeclaration)
@@ -208,11 +298,43 @@ internal abstract class SourceNamedTypeSymbol
         ).PublicSymbol;
     }
 
-    protected virtual void AddSynthesizedMembers(
+    private void AddSynthesizedMembers(
         Dictionary<string, ImmutableArray<Symbol>.Builder> nameToMembersMap
     )
     {
-        // By default, we don't need any
+        if (Kind == NamedTypeKind.Class)
+        {
+            if (!nameToMembersMap.ContainsKey(CommonNames.Ctor))
+            {
+                TryAddDefaultConstructor(nameToMembersMap);
+            }
+        }
+    }
+
+    private void TryAddDefaultConstructor(
+        Dictionary<string, ImmutableArray<Symbol>.Builder> nameToMembersMap
+    )
+    {
+        if (SpecialType is SpecialType.Void or SpecialType.Str)
+            return;
+
+        foreach (
+            var field in nameToMembersMap
+                .AsValueEnumerable()
+                .SelectMany(x => x.Value.AsValueEnumerable())
+                .OfType<VariableSymbol>()
+                .Where(v => v.IsInstance)
+        )
+        {
+            if (field is { HasInitializer: false, Type.IsDefaultConstructible: false })
+                return;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<Symbol>();
+        builder.Add(
+            new SynthesizedDefaultConstructor(DeclaringCompilation, PublicSymbol).PublicSymbol
+        );
+        nameToMembersMap.Add(CommonNames.Ctor, builder);
     }
 
     private void LazyMemberChecks()
@@ -241,7 +363,132 @@ internal abstract class SourceNamedTypeSymbol
 
     public bool IsDynamicallySized => SpecialType == SpecialType.Str;
 
-    public abstract bool IsDefaultConstructible { get; }
+    public NamedTypeSymbol? EnumUnderlyingType
+    {
+        get
+        {
+            if (Kind != NamedTypeKind.Enum)
+                return null;
+
+            if (field is not null)
+                return field;
+
+            using var context = BindingContext.Create();
+            if (
+                Interlocked.CompareExchange(ref field, ComputeUnderlyingType(context), null)
+                is not null
+            )
+                return field;
+
+            AddDeclarationDiagnostics(context);
+            CompletionState.MarkPartComplete(CompletionPart.EnumUnderlyingType);
+            return field;
+        }
+    }
+
+    private NamedTypeSymbol ComputeUnderlyingType(BindingContext context)
+    {
+        // Fallback is i32 to line up with what C, C++, and C# use for defaults
+        const SpecialType defaultUnderlyingType = SpecialType.I32;
+
+        // TODO: Currently we don't actually have a syntax for the underlying type, once we do, we need to parse that
+        NamedTypeSymbol? underlyingType = null;
+        Location? primaryLocation = null;
+        List<Location>? secondaryLocations = null;
+        foreach (
+            var syntax in _mergedDeclaration
+                .Declarations.AsValueEnumerable()
+                .Select(declaration => (EnumDeclarationSyntax)declaration.SyntaxReference.Syntax)
+        )
+        {
+            if (syntax.BaseList is null)
+                continue;
+
+            var factory = DeclaringCompilation.GetBinderFactory(syntax.SyntaxTree);
+            var binder = factory.GetBinder(syntax);
+            var baseType = syntax.BaseList.Types[0];
+            primaryLocation ??= baseType.Location;
+
+            var resolvedType = (NamedTypeSymbol)binder.ResolveType(baseType, context);
+            // If the first type is an interface or a concept then we don't care about it because that's not the
+            // underlying type of an enum.
+            //
+            // Note: enums are not allow to implement interfaces, but that is a different story.
+            if (resolvedType.Kind is NamedTypeKind.Interface or NamedTypeKind.Concept)
+                continue;
+            if (underlyingType is null)
+            {
+                underlyingType = resolvedType;
+            }
+            else
+            {
+                secondaryLocations ??= [];
+                secondaryLocations.Add(baseType.Location);
+            }
+        }
+
+        if (underlyingType is null)
+            return DeclaringCompilation.GetSpecialType(defaultUnderlyingType);
+
+        Debug.Assert(primaryLocation is not null);
+        if (secondaryLocations is not null)
+        {
+            context.ReportDiagnostic(
+                Diagnostic.BaseTypeMismatch(
+                    primaryLocation,
+                    secondaryLocations,
+                    PublicSymbol.ToDisplayString()
+                )
+            );
+        }
+
+        if (
+            underlyingType.SpecialType.IsInteger
+            && underlyingType.SpecialType is not SpecialType.I128 and not SpecialType.U128
+        )
+        {
+            return underlyingType;
+        }
+
+        context.ReportDiagnostic(
+            Diagnostic.InvalidEnumBaseType(primaryLocation, PublicSymbol.ToDisplayString())
+        );
+        return DeclaringCompilation.GetSpecialType(defaultUnderlyingType);
+    }
+
+    public bool IsDefaultConstructible
+    {
+        get
+        {
+            if (_isDefaultConstructible.HasValue)
+                return _isDefaultConstructible.Value;
+
+            var isDefaultConstructible = ComputeIsDefaultConstructible();
+            Interlocked.Exchange(
+                ref _isDefaultConstructible,
+                isDefaultConstructible.ToThreeState()
+            );
+            return isDefaultConstructible;
+        }
+    }
+
+    private bool ComputeIsDefaultConstructible()
+    {
+        return Kind switch
+        {
+            NamedTypeKind.Class => GetMembers(CommonNames.Ctor)
+                .OfType<FunctionSymbol>()
+                .Any(f => f.Parameters.Length == 0),
+            NamedTypeKind.Interface => false,
+            NamedTypeKind.Concept => false,
+            NamedTypeKind.Enum => EnumOrdinals.Any(o =>
+                o.Value is IntegerConstant { IsZero: true }
+            ),
+            NamedTypeKind.Variant => throw new NotImplementedException(),
+            NamedTypeKind.Attribute => false,
+            _ => throw new InvalidOperationException("Unknown named type kind"),
+        };
+    }
 
     public ImmutableArray<AttributeData> GetAttributes()
     {
@@ -275,7 +522,7 @@ internal abstract class SourceNamedTypeSymbol
             .ToImmutableArray();
     }
 
-    public sealed override void ForceComplete(
+    public override void ForceComplete(
         SourceLocation? location,
         Predicate<Symbol>? filter,
         CancellationToken cancellationToken
@@ -292,6 +539,9 @@ internal abstract class SourceNamedTypeSymbol
             {
                 case CompletionPart.Attributes:
                     _ = GetAttributes();
+                    break;
+                case CompletionPart.EnumUnderlyingType:
+                    _ = EnumUnderlyingType;
                     break;
                 case CompletionPart.Members:
                     _ = GetNameToMembersMap();

@@ -14,6 +14,8 @@ internal class GreenToken : GreenNode
 {
     public virtual string Text => Kind.DisplayText;
 
+    public virtual SyntaxKind ContextualKind => Kind;
+
     public sealed override GreenNode? LeadingTrivia { get; }
     public sealed override int LeadingTriviaWidth => LeadingTrivia?.FullWidth ?? 0;
     public sealed override GreenNode? TrailingTrivia { get; }
@@ -158,16 +160,49 @@ internal class GreenToken : GreenNode
         var result = new GreenToken[size];
         for (var i = 0; i < size; i++)
         {
-            result[i] = new GreenToken((SyntaxKind)(start.AsUnderlyingType() + i));
+            var kind = (SyntaxKind)(start.AsUnderlyingType() + i);
+            result[i] = new GreenToken(kind);
         }
 
         return ImmutableCollectionsMarshal.AsImmutableArray(result);
     }
 
-    private static readonly ImmutableArray<GreenToken> Keywords = GetStaticTokenList(
+    private static KeywordSet GetStaticKeywordList(SyntaxKind start, SyntaxKind end)
+    {
+        var size = end.AsUnderlyingType() - start.AsUnderlyingType() + 1;
+        Debug.Assert(size > 0);
+        var regular = new GreenToken[size];
+        var contextual = new GreenToken[size];
+        for (var i = 0; i < size; i++)
+        {
+            var kind = (SyntaxKind)(start.AsUnderlyingType() + i);
+            regular[i] = new GreenToken(kind);
+            if (kind.IsContextual)
+            {
+                contextual[i] = GreenValueToken.Create(new IdentifierData(kind.DisplayText, kind));
+            }
+            else
+            {
+                contextual[i] = regular[i];
+            }
+        }
+
+        return new KeywordSet(
+            ImmutableCollectionsMarshal.AsImmutableArray(regular),
+            ImmutableCollectionsMarshal.AsImmutableArray(contextual)
+        );
+    }
+
+    private readonly record struct KeywordSet(
+        ImmutableArray<GreenToken> Regular,
+        ImmutableArray<GreenToken> Contextual
+    );
+
+    private static readonly KeywordSet Keywords = GetStaticKeywordList(
         SyntaxKind.KeywordStart,
         SyntaxKind.KeywordEnd
     );
+
     private static readonly ImmutableArray<GreenToken> Punctuators = GetStaticTokenList(
         SyntaxKind.PunctuationStart,
         SyntaxKind.PunctuationEnd
@@ -186,7 +221,7 @@ internal class GreenToken : GreenNode
         SyntaxKind.OtherTokenEnd
     );
 
-    public static GreenToken? From(SyntaxKind kind)
+    public static GreenToken? From(SyntaxKind kind, bool contextualAsIdentifiers = false)
     {
         // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
         switch (kind)
@@ -198,7 +233,8 @@ internal class GreenToken : GreenNode
             default:
                 if (kind.IsKeyword)
                 {
-                    return Keywords[
+                    var keywords = contextualAsIdentifiers ? Keywords.Contextual : Keywords.Regular;
+                    return keywords[
                         kind.AsUnderlyingType() - SyntaxKind.KeywordStart.AsUnderlyingType()
                     ];
                 }

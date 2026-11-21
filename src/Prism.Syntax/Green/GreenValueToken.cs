@@ -13,6 +13,8 @@ internal sealed class GreenValueToken<T>(
 
     public override string Text => Value.Text;
 
+    public override SyntaxKind ContextualKind => Value.ContextualKind;
+
     protected override GreenValueToken<T> UpdateInternal(
         GreenNode? leadingTrivia,
         GreenNode? trailingTrivia,

@@ -79,7 +79,7 @@ internal sealed class OverloadResolver(IOverloadResolutionHost host)
 
             var mappedArguments = ArgumentMapper.TryMapArgumentsToParameters(
                 host.Compilation,
-                overload.Parameters.AsSpan(),
+                overload.Parameters,
                 arguments,
                 overloadSyntax
             );

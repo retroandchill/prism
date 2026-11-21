@@ -24,14 +24,15 @@ internal enum CompletionPart : uint
 
     // single-shot published/computed phases
     Members = 1 << 9,
-    ConstantValue = 1 << 10,
-    StartChecks = 1 << 11,
-    FinishChecks = 1 << 12,
+    EnumUnderlyingType = 1 << 10,
+    ConstantValue = 1 << 11,
+    StartChecks = 1 << 12,
+    FinishChecks = 1 << 13,
 
     // terminal bit
-    MembersCompleted = 1 << 13,
+    MembersCompleted = 1 << 14,
 
-    All = (1 << 14) - 1,
+    All = (1 << 15) - 1,
 
     AssemblyAll = Members,
     NamespaceAll = Members | StartChecks | FinishChecks | MembersCompleted,

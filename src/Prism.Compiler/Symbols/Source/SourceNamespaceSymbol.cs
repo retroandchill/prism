@@ -247,23 +247,11 @@ internal sealed class SourceNamespaceSymbol
 
     private NamedTypeSymbol BuildSymbol(MergedTypeDeclaration declaration)
     {
-        return declaration.Kind switch
-        {
-            DeclarationKind.Namespace => throw new InvalidOperationException(
-                "Namespace declaration cannot be built as a type"
-            ),
-            DeclarationKind.Class => new SourceClassSymbol(
-                DeclaringCompilation,
-                declaration,
-                PublicSymbol
-            ).PublicSymbol,
-            DeclarationKind.Attribute => new SourceAttributeSymbol(
-                DeclaringCompilation,
-                declaration,
-                PublicSymbol
-            ).PublicSymbol,
-            _ => throw new InvalidOperationException("Unknown declaration kind"),
-        };
+        return new SourceNamedTypeSymbol(
+            DeclaringCompilation,
+            declaration,
+            PublicSymbol
+        ).PublicSymbol;
     }
 
     private VariableSymbol BuildSymbol(GlobalVariableDeclarationSyntax variableDeclaration)

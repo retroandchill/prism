@@ -95,6 +95,19 @@ internal sealed class MetadataNamedTypeSymbol
         }
     }
 
+    public ImmutableArray<ParameterSymbol> AttributeParameters
+    {
+        get
+        {
+            return LazyComputation.LazyCompute(ref field, this, static @this =>
+                @this
+                    ._definition.AttributeParameters.AsValueEnumerable()
+                    .Select(x => @this._containingAssembly.GetOrAddParameter(x))
+                    .ToImmutableArray()
+            );
+        }
+    }
+
     private ImmutableArray<Symbol> ComputeMembers()
     {
         return _definition
@@ -110,11 +123,7 @@ internal sealed class MetadataNamedTypeSymbol
                     .Functions.AsValueEnumerable()
                     .Select(Symbol (x) => _containingAssembly.GetOrAddFunction(x))
             )
-            .Concat(
-                _definition
-                    .AttributeParameters.AsValueEnumerable()
-                    .Select(Symbol (x) => _containingAssembly.GetOrAddParameter(x))
-            )
+            .Concat(ImmutableArray<Symbol>.CastUp(AttributeParameters).AsValueEnumerable())
             .ToImmutableArray();
     }
 
