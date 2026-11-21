@@ -21,7 +21,8 @@ public union AttributeHolderDefinition(
     TypeDefinition,
     VariableDefinition,
     FunctionDefinition,
-    ParameterDefinition
+    ParameterDefinition,
+    EnumOrdinalDefinition
 )
 {
     public readonly AttributeHolderHandle Handle
@@ -34,6 +35,7 @@ public union AttributeHolderDefinition(
                 ParameterDefinition parameterDefinition => parameterDefinition.Handle,
                 TypeDefinition typeDefinition => typeDefinition.Handle,
                 VariableDefinition variableDefinition => variableDefinition.Handle,
+                EnumOrdinalDefinition enumOrdinalDefinition => enumOrdinalDefinition.Handle,
             };
         }
     }
@@ -144,6 +146,7 @@ public sealed partial class CustomAttributeDefinition
                 VariableDefinitionBuilder def => def.ToDefinition(handler),
                 FunctionDefinitionBuilder def => def.ToDefinition(handler),
                 ParameterDefinitionBuilder def => def.ToDefinition(handler),
+                EnumOrdinalDefinitionBuilder def => def.ToDefinition(handler),
             };
         }
     }

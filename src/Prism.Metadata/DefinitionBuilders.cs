@@ -99,6 +99,7 @@ public sealed class TypeDefinitionBuilder(
     AssemblyDefinitionBuilder assembly
 ) : MemberContainerDefinitionBuilder(name, assembly), IAttributeHolderDefinitionBuilder
 {
+    private readonly List<EnumOrdinalDefinitionBuilder> _enumOrdinals = [];
     private readonly List<ParameterDefinitionBuilder> _attributeParameters = [];
     private readonly List<CustomAttributeDefinitionBuilder> _customAttributes = [];
 
@@ -128,6 +129,9 @@ public sealed class TypeDefinitionBuilder(
 
     public NamedTypeBuilder? BaseType { get; set; }
 
+    public ReadOnlyCollection<EnumOrdinalDefinitionBuilder> EnumOrdinals =>
+        _enumOrdinals.AsReadOnly();
+
     public ReadOnlyCollection<ParameterDefinitionBuilder> AttributeParameters =>
         _attributeParameters.AsReadOnly();
 
@@ -137,6 +141,13 @@ public sealed class TypeDefinitionBuilder(
     protected override MemberContainerDefHandle GetHandle()
     {
         return Handle;
+    }
+
+    public EnumOrdinalDefinitionBuilder AddEnumOrdinal(string name, ulong bits)
+    {
+        var ordinal = Assembly.AddEnumOrdinal(name, bits, this);
+        _enumOrdinals.Add(ordinal);
+        return ordinal;
     }
 
     public ParameterDefinitionBuilder AddAttributeParameter(string name, TypeDescriptorBuilder type)
@@ -417,7 +428,8 @@ public union AttributeHolderDefinitionBuilder(
     TypeDefinitionBuilder,
     VariableDefinitionBuilder,
     FunctionDefinitionBuilder,
-    ParameterDefinitionBuilder
+    ParameterDefinitionBuilder,
+    EnumOrdinalDefinitionBuilder
 );
 
 public sealed class CustomAttributeDefinitionBuilder
@@ -440,4 +452,48 @@ public sealed class CustomAttributeDefinitionBuilder
     public AttributeHolderDefinitionBuilder Parent { get; }
 
     public List<ConstantValue> Arguments { get; } = [];
+}
+
+public sealed class EnumOrdinalDefinitionBuilder : IAttributeHolderDefinitionBuilder
+{
+    private readonly List<CustomAttributeDefinitionBuilder> _customAttributes = [];
+    private readonly AssemblyDefinitionBuilder _assembly;
+
+    internal EnumOrdinalDefinitionBuilder(
+        EnumOrdinalHandle handle,
+        string name,
+        ulong bits,
+        TypeDefinitionBuilder parent,
+        AssemblyDefinitionBuilder assembly
+    )
+    {
+        Handle = handle;
+        Name = name;
+        Bits = bits;
+        Parent = parent;
+        _assembly = assembly;
+    }
+
+    public EnumOrdinalHandle Handle { get; }
+
+    public string Name { get; }
+
+    public TypeDefinitionBuilder Parent { get; }
+
+    public ulong Bits { get; }
+
+    public ReadOnlyCollection<CustomAttributeDefinitionBuilder> CustomAttributes =>
+        _customAttributes.AsReadOnly();
+
+    public CustomAttributeDefinitionBuilder AddCustomAttribute(NamedTypeBuilder type)
+    {
+        var attribute = _assembly.AddCustomAttribute(type, this);
+        _customAttributes.Add(attribute);
+        return attribute;
+    }
+
+    internal EnumOrdinalDefinition ToDefinition(IReferenceHandler handler)
+    {
+        return EnumOrdinalDefinition.Mapper.ToDefinition(this, handler);
+    }
 }

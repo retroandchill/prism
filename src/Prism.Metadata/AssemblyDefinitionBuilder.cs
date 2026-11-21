@@ -24,6 +24,7 @@ public sealed class AssemblyDefinitionBuilder
     private readonly List<VariableDefinitionBuilder> _variables = [];
     private readonly List<FunctionDefinitionBuilder> _functions = [];
     private readonly List<ParameterDefinitionBuilder> _parameters = [];
+    private readonly List<EnumOrdinalDefinitionBuilder> _enumOrdinals = [];
     private readonly List<CustomAttributeDefinitionBuilder> _customAttributes = [];
 
     public AssemblyDefinitionBuilder(
@@ -72,6 +73,9 @@ public sealed class AssemblyDefinitionBuilder
     internal ReadOnlyCollection<FunctionDefinitionBuilder> Functions => _functions.AsReadOnly();
 
     internal ReadOnlyCollection<ParameterDefinitionBuilder> Parameters => _parameters.AsReadOnly();
+
+    internal ReadOnlyCollection<EnumOrdinalDefinitionBuilder> EnumOrdinals =>
+        _enumOrdinals.AsReadOnly();
 
     internal ReadOnlyCollection<CustomAttributeDefinitionBuilder> CustomAttributes =>
         _customAttributes.AsReadOnly();
@@ -197,6 +201,23 @@ public sealed class AssemblyDefinitionBuilder
         );
         _parameters.Add(param);
         return param;
+    }
+
+    internal EnumOrdinalDefinitionBuilder AddEnumOrdinal(
+        string name,
+        ulong bits,
+        TypeDefinitionBuilder type
+    )
+    {
+        var ordinal = new EnumOrdinalDefinitionBuilder(
+            EnumOrdinalHandle.FromRowId(_enumOrdinals.Count + 1),
+            name,
+            bits,
+            type,
+            this
+        );
+        _enumOrdinals.Add(ordinal);
+        return ordinal;
     }
 
     internal CustomAttributeDefinitionBuilder AddCustomAttribute(

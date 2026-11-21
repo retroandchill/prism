@@ -587,6 +587,7 @@ internal sealed class SourceNamedTypeSymbol
                     break;
                 case CompletionPart.EnumUnderlyingType:
                     _ = EnumUnderlyingType;
+                    CompletionState.MarkPartComplete(CompletionPart.EnumUnderlyingType);
                     break;
                 case CompletionPart.Members:
                     _ = GetNameToMembersMap();

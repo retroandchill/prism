@@ -1,0 +1,16 @@
+﻿namespace std;
+
+
+public enum StrongOrdering : i8 {
+    Less = -1,
+    Equal = 0,
+    Greater = 1
+}
+
+
+public enum PartialOrdering : i8 {
+    Less = -1,
+    Equal = 0,
+    Greater = 1,
+    Unordered = 2
+}

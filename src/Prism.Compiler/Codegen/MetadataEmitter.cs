@@ -6,10 +6,10 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Prism.Compiler.Mappers;
-using Prism.Compiler.Symbols;
+using Prism.Constants;
 using Prism.Metadata;
-using Prism.Semantic;
 using Prism.Semantic.Symbols;
+using Prism.Utils;
 using TargetInfo = Prism.Configuration.TargetInfo;
 
 namespace Prism.Compiler.Codegen;
@@ -30,11 +30,12 @@ internal sealed class MetadataEmitter
 
     private readonly struct TrackedSymbols()
     {
-        public List<NamespaceSymbol> Namespaces { get; init; } = [];
-        public List<NamedTypeSymbol> Types { get; init; } = [];
-        public List<VariableSymbol> Variables { get; init; } = [];
-        public List<FunctionSymbol> Functions { get; init; } = [];
-        public List<ParameterSymbol> Parameters { get; init; } = [];
+        public List<NamespaceSymbol> Namespaces { get; } = [];
+        public List<NamedTypeSymbol> Types { get; } = [];
+        public List<VariableSymbol> Variables { get; } = [];
+        public List<FunctionSymbol> Functions { get; } = [];
+        public List<ParameterSymbol> Parameters { get; } = [];
+        public List<EnumOrdinalSymbol> EnumOrdinals { get; } = [];
     }
 
     public MetadataEmitter(Compilation compilation)
@@ -93,6 +94,11 @@ internal sealed class MetadataEmitter
         {
             AddParameter(parameter);
         }
+
+        foreach (var ordinal in trackedSymbols.EnumOrdinals)
+        {
+            AddEnumOrdinal(ordinal);
+        }
     }
 
     private static void AddSymbol(
@@ -137,6 +143,9 @@ internal sealed class MetadataEmitter
                 break;
             case ParameterSymbol parameterSymbol:
                 symbols.Parameters.Add(parameterSymbol);
+                break;
+            case EnumOrdinalSymbol ordinalSymbol:
+                symbols.EnumOrdinals.Add(ordinalSymbol);
                 break;
         }
     }
@@ -347,6 +356,17 @@ internal sealed class MetadataEmitter
         var parameter = owner.AddParameter(parameterSymbol.Name, type);
         parameter.DefaultValue = parameterSymbol.DefaultValue?.ToMetadata();
         AddCustomAttributes(parameterSymbol, parameter);
+    }
+
+    private void AddEnumOrdinal(EnumOrdinalSymbol ordinalSymbol)
+    {
+        var owner = _typeDefs[ordinalSymbol.ContainingType.RequireNonNull()];
+        if (ordinalSymbol.Value is not IntegerConstant integerConstant)
+            throw new InvalidOperationException("Enum ordinal value must be an integer constant");
+
+        var bits = (ulong)integerConstant.RawValue;
+        var ordinal = owner.AddEnumOrdinal(ordinalSymbol.Name, bits);
+        AddCustomAttributes(ordinalSymbol, ordinal);
     }
 
     private void AddCustomAttributes(Symbol symbol, IAttributeHolderDefinitionBuilder owner)

@@ -48,6 +48,8 @@ internal partial struct MetadataLayout
 
     public ImmutableArray<ParameterRow> Parameters { get; private set; }
 
+    public ImmutableArray<EnumOrdinalRow> EnumOrdinals { get; private set; }
+
     public ImmutableArray<CustomAttributeRow> CustomAttributes { get; private set; }
 
     public static MetadataLayout Create(AssemblyDefinition assembly)
@@ -69,6 +71,7 @@ internal partial struct MetadataLayout
             Variables = mapper.Map(assembly.Variables),
             Functions = mapper.Map(assembly.Functions),
             Parameters = mapper.Map(assembly.Parameters),
+            EnumOrdinals = mapper.Map(assembly.EnumOrdinals),
             CustomAttributes = mapper.Map(assembly.CustomAttributes),
 
             // We have to do the heaps last to ensure everything in them gets written correctly
@@ -180,6 +183,13 @@ internal partial struct MetadataLayout
                 value.Parameters,
                 sectionHeaders,
                 Section.Parameters,
+                ref currentSection
+            );
+            WriteRows(
+                ref tempWriter,
+                value.EnumOrdinals,
+                sectionHeaders,
+                Section.EnumOrdinals,
                 ref currentSection
             );
             WriteRows(

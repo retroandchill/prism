@@ -6,6 +6,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Prism.Utils;
 using Riok.Mapperly.Abstractions;
 using Riok.Mapperly.Abstractions.ReferenceHandling;
 
@@ -119,6 +120,24 @@ public sealed partial class TypeDefinition : MemberContainerDefinition, IAttribu
         }
     }
 
+    public ImmutableArray<EnumOrdinalDefinition> EnumOrdinals
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            Debug.Assert(MetadataReader is not null);
+            var mappings = MetadataReader.OrdinalsByParent[Handle];
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                [.. mappings.Select(MetadataReader.GetEnumOrdinal)]
+            );
+            return field;
+        }
+        private set;
+    }
+
     public ImmutableArray<ParameterDefinition> AttributeParameters
     {
         get
@@ -163,6 +182,7 @@ public sealed partial class TypeDefinition : MemberContainerDefinition, IAttribu
     [UseStaticMapper(typeof(VariableDefinition.Mapper))]
     [UseStaticMapper(typeof(FunctionDefinition.Mapper))]
     [UseStaticMapper(typeof(ParameterDefinition.Mapper))]
+    [UseStaticMapper(typeof(EnumOrdinalDefinition.Mapper))]
     [UseStaticMapper(typeof(CustomAttributeDefinition.Mapper))]
     internal static new partial class Mapper
     {

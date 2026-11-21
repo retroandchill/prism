@@ -24,7 +24,7 @@ internal sealed partial class MetadataRowMapper(
     private readonly Dictionary<ConstantValue, ConstantHandle> _constants = [];
     private readonly Dictionary<TypeSpecification, TypeSpecHandle> _typeSpecCache = [];
 
-    public partial AssemblyIdentityData Map(Prism.AssemblyIdentity identity);
+    public partial AssemblyIdentityData Map(AssemblyIdentity identity);
 
     private static VersionData Map(Version version) => version;
 
@@ -115,6 +115,14 @@ internal sealed partial class MetadataRowMapper(
     )]
     [MapProperty(nameof(ParameterDefinition.DefaultValueHandle), nameof(ParameterRow.DefaultValue))]
     private partial ParameterRow Map(ParameterDefinition function);
+
+    [MapProperty(nameof(EnumOrdinalDefinition.ParentHandle), nameof(EnumOrdinalRow.Parent))]
+    public partial ImmutableArray<EnumOrdinalRow> Map(
+        ImmutableArray<EnumOrdinalDefinition> ordinals
+    );
+
+    [MapProperty(nameof(EnumOrdinalDefinition.ParentHandle), nameof(EnumOrdinalRow.Parent))]
+    private partial EnumOrdinalRow Map(EnumOrdinalDefinition ordinal);
 
     public partial ImmutableArray<CustomAttributeRow> Map(
         ImmutableArray<CustomAttributeDefinition> namespaces

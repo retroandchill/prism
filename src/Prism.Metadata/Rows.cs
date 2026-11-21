@@ -118,3 +118,13 @@ internal readonly partial record struct CustomAttributeRow(
 {
     AttributeHolderHandle INestedContainerRow<AttributeHolderHandle>.Container => Holder;
 }
+
+[Archivable]
+internal readonly partial record struct EnumOrdinalRow(
+    TypeDefHandle Parent,
+    StringHandle Name,
+    ulong Bits
+) : INestedContainerRow<TypeDefHandle>
+{
+    TypeDefHandle INestedContainerRow<TypeDefHandle>.Container => Parent;
+}

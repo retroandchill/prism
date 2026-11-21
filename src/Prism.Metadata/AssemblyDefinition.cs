@@ -220,6 +220,25 @@ public sealed partial class AssemblyDefinition
         private set;
     }
 
+    internal ImmutableArray<EnumOrdinalDefinition> EnumOrdinals
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            Debug.Assert(_metadataReader is not null);
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                ReadAll(_metadataReader.ParameterCount, static (r, i) =>
+                    r.GetEnumOrdinal(EnumOrdinalHandle.FromRowId(i))
+                )
+            );
+            return field;
+        }
+        private set;
+    }
+
     internal ImmutableArray<CustomAttributeDefinition> CustomAttributes
     {
         get

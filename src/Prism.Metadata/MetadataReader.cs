@@ -12,6 +12,8 @@ using CustomAttributeMap = FrozenDictionary<
     ImmutableArray<CustomAttributeHandle>
 >;
 using CustomAttributeReader = TableRowReader<CustomAttributeRow, CustomAttributeDefinition>;
+using EnumOrdinalMap = FrozenDictionary<TypeDefHandle, ImmutableArray<EnumOrdinalHandle>>;
+using EnumOrdinalReader = TableRowReader<EnumOrdinalRow, EnumOrdinalDefinition>;
 using FunctionContainerMap = FrozenDictionary<
     MemberContainerDefHandle,
     ImmutableArray<FunctionHandle>
@@ -48,6 +50,7 @@ internal sealed class MetadataReader
     private readonly VariableReader _variables;
     private readonly FunctionReader _functions;
     private readonly ParameterReader _parameters;
+    private readonly EnumOrdinalReader _enumOrdinals;
     private readonly CustomAttributeReader _customAttributes;
 
     private readonly ConcurrentDictionary<ConstantHandle, ConstantValue> _constantsCache = new();
@@ -88,6 +91,12 @@ internal sealed class MetadataReader
         _parametersByParent = _parameters.RegisterAdditionalWork(
             CreateMemberMap<ParameterRow, FunctionOrAttributeHandle, ParameterHandle>
         );
+
+        _enumOrdinals = new EnumOrdinalReader(layout.EnumOrdinals, CreateEnumOrdinal);
+        _ordinalsByParent = _enumOrdinals.RegisterAdditionalWork(
+            CreateMemberMap<EnumOrdinalRow, TypeDefHandle, EnumOrdinalHandle>
+        );
+
         _customAttributes = new CustomAttributeReader(
             layout.CustomAttributes,
             CreateCustomAttribute
@@ -353,6 +362,25 @@ internal sealed class MetadataReader
     private readonly RegisteredLazy<ParameterContainerMap> _parametersByParent;
     public ParameterContainerMap ParametersByParent => _parametersByParent.Value;
 
+    public EnumOrdinalDefinition GetEnumOrdinal(EnumOrdinalHandle handle)
+    {
+        return _enumOrdinals.GetRow(handle.Id);
+    }
+
+    private EnumOrdinalDefinition CreateEnumOrdinal(int rowId, in EnumOrdinalRow row)
+    {
+        return new EnumOrdinalDefinition(
+            EnumOrdinalHandle.FromRowId(rowId),
+            GetString(row.Name),
+            row.Parent,
+            row.Bits,
+            this
+        );
+    }
+
+    private readonly RegisteredLazy<EnumOrdinalMap> _ordinalsByParent;
+    public EnumOrdinalMap OrdinalsByParent => _ordinalsByParent.Value;
+
     public AttributeHolderDefinition GetAttributeHolder(AttributeHolderHandle handle)
     {
         return handle switch
@@ -361,6 +389,7 @@ internal sealed class MetadataReader
             VariableHandle variable => GetVariable(variable),
             FunctionHandle function => GetFunction(function),
             ParameterHandle param => GetParameter(param),
+            EnumOrdinalHandle ordinal => GetEnumOrdinal(ordinal),
         };
     }
 

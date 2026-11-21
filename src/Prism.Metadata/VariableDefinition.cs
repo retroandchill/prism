@@ -63,7 +63,7 @@ public sealed partial class VariableDefinition : IAttributeHolderDefinition
 
     public DeclaredVisibility Visibility => Attributes.Visibility;
 
-    public MemberContainerDefHandle ParentHandle { get; }
+    public MemberContainerDefHandle ParentHandle { get; private set; }
 
     public MemberContainerDefinition Parent
     {
@@ -80,7 +80,11 @@ public sealed partial class VariableDefinition : IAttributeHolderDefinition
             );
             return field;
         }
-        private set;
+        private set
+        {
+            field = value;
+            ParentHandle = value.Handle;
+        }
     }
 
     public TypeDescriptor Type
@@ -137,6 +141,7 @@ public sealed partial class VariableDefinition : IAttributeHolderDefinition
     internal static partial class Mapper
     {
         [MapperIgnoreTarget(nameof(_constantValue))]
+        [MapperIgnoreTarget(nameof(ParentHandle))]
         public static partial VariableDefinition ToDefinition(
             VariableDefinitionBuilder builder,
             [ReferenceHandler] IReferenceHandler handler

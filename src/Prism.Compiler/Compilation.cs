@@ -289,6 +289,8 @@ public class Compilation : ILayoutSource, IAbiLookup
             SpecialType.Char16 => CommonNames.Char16,
             SpecialType.Rune => CommonNames.Rune,
             SpecialType.Str => CommonNames.Str,
+            SpecialType.StrongOrdering => CommonNames.StrongOrdering,
+            SpecialType.PartialOrdering => CommonNames.PartialOrdering,
             SpecialType.None => throw new InvalidOperationException("Invalid special type"),
             _ => throw new InvalidOperationException("Invalid special type"),
         };

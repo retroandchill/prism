@@ -363,6 +363,16 @@ public readonly partial record struct ParameterHandle
 
 [Archivable]
 [Handle]
+public readonly partial record struct EnumOrdinalHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial EnumOrdinalHandle(int id);
+}
+
+[Archivable]
+[Handle]
 public readonly partial record struct CustomAttributeHandle
 {
     [ArchiveInclude]
@@ -416,7 +426,8 @@ public readonly partial record struct ParameterDefaultHandle
     typeof(TypeDefHandle),
     typeof(VariableHandle),
     typeof(FunctionHandle),
-    typeof(ParameterHandle)
+    typeof(ParameterHandle),
+    typeof(EnumOrdinalHandle)
 )]
 public readonly partial record struct AttributeHolderHandle
 {

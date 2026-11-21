@@ -254,6 +254,13 @@ internal abstract class Binder : IOverloadResolutionHost
                     }
 
                     break;
+                case EnumOrdinalSymbol ordinal:
+                    if (options.HasFlag(LookupOptions.Value))
+                    {
+                        symbols.Add(ordinal);
+                    }
+
+                    break;
             }
         }
 
@@ -1187,6 +1194,12 @@ internal abstract class Binder : IOverloadResolutionHost
             {
                 VariableSymbol v => BindVariableAccess(syntax, v, context),
                 ParameterSymbol p => new BoundParameterAccess(Compilation, syntax, p),
+                EnumOrdinalSymbol o => new BoundLiteral(
+                    Compilation,
+                    syntax,
+                    o.ContainingType.RequireNonNull(),
+                    o.Value
+                ),
                 _ => throw new InvalidOperationException(
                     "We must have added a symbol type that can hold a value that we haven't accounted for yet."
                 ),
@@ -1272,7 +1285,7 @@ internal abstract class Binder : IOverloadResolutionHost
             or BinaryOperation.LessThanOrEquals
             or BinaryOperation.GreaterThan
             or BinaryOperation.GreaterThanOrEquals => Compilation.GetSpecialType(SpecialType.Bool),
-            BinaryOperation.ThreeWayComparison => throw new NotImplementedException(),
+            BinaryOperation.ThreeWayComparison => GetThreeWayComparisonType(),
             _ => throw new InvalidOperationException("Unknown binary operation"),
         };
 
@@ -1284,6 +1297,16 @@ internal abstract class Binder : IOverloadResolutionHost
             right,
             operation
         );
+
+        TypeSymbol GetThreeWayComparisonType()
+        {
+            if (left.Type.SpecialType.IsFloatingPoint)
+            {
+                Compilation.GetSpecialType(SpecialType.PartialOrdering);
+            }
+
+            return Compilation.GetSpecialType(SpecialType.StrongOrdering);
+        }
     }
 
     private BoundAssignmentOperation BindAssignmentExpression(
@@ -1373,8 +1396,9 @@ internal abstract class Binder : IOverloadResolutionHost
             if (syntax.Operand is LiteralExpressionSyntax literal)
             {
                 if (
-                    literal.Value.TryGetValue<IntegerLiteralData>() is
-                    { Suffix.CanBeSigned: true } intData
+                    literal.Value.TryGetValue<IntegerLiteralData>()
+                        is { Suffix.CanBeSigned: true } intData
+                    && returnType?.SpecialType.IsUnsignedInteger is not true
                 )
                 {
                     var (negated, specialType) = EvaluateNumericExpression(
