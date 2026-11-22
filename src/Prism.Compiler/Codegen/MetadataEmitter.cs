@@ -65,7 +65,7 @@ internal sealed class MetadataEmitter
     {
         var trackedSymbols = new TrackedSymbols();
 
-        foreach (var member in _compilation.GlobalNamespace.GetMembers())
+        foreach (var member in _compilation.Assembly.GlobalNamespace.GetMembers())
         {
             AddSymbol(member, in trackedSymbols, cancellationToken);
         }
