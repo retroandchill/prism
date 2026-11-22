@@ -6,6 +6,7 @@
 using Prism.Compiler;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
+using Prism.Tests.Helpers;
 
 namespace Prism.Tests;
 
@@ -42,7 +43,12 @@ public class ConversionTests
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(_context, assemblyName, [tree]);
+        var compilation = Compilation.Create(
+            _context,
+            assemblyName,
+            [tree],
+            TestHelpers.TestReferences
+        );
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
         Assert.That(members, Has.Length.EqualTo(1));
@@ -68,7 +74,12 @@ public class ConversionTests
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(_context, assemblyName, [tree]);
+        var compilation = Compilation.Create(
+            _context,
+            assemblyName,
+            [tree],
+            TestHelpers.TestReferences
+        );
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("f");
         Assert.That(members, Has.Length.EqualTo(1));

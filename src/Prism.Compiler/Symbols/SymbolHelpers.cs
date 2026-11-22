@@ -57,4 +57,40 @@ internal static class SymbolHelpers
                 ? mergedNamespace.ContainingCompilation
                 : null;
     }
+
+    extension(SpecialType type)
+    {
+        public string BuiltInTypeName
+        {
+            get
+            {
+                return type switch
+                {
+                    SpecialType.Void => CommonNames.Void,
+                    SpecialType.Bool => CommonNames.Bool,
+                    SpecialType.I8 => CommonNames.Int8,
+                    SpecialType.I16 => CommonNames.Int16,
+                    SpecialType.I32 => CommonNames.Int32,
+                    SpecialType.I64 => CommonNames.Int64,
+                    SpecialType.I128 => CommonNames.Int128,
+                    SpecialType.ISize => CommonNames.ISize,
+                    SpecialType.U8 => CommonNames.UInt8,
+                    SpecialType.U16 => CommonNames.UInt16,
+                    SpecialType.U32 => CommonNames.UInt32,
+                    SpecialType.U64 => CommonNames.UInt64,
+                    SpecialType.U128 => CommonNames.UInt128,
+                    SpecialType.USize => CommonNames.USize,
+                    SpecialType.F32 => CommonNames.Float32,
+                    SpecialType.F64 => CommonNames.Float64,
+                    SpecialType.Char => CommonNames.Char,
+                    SpecialType.Char16 => CommonNames.Char16,
+                    SpecialType.Rune => CommonNames.Rune,
+                    SpecialType.Str => CommonNames.Str,
+                    SpecialType.Ordering => CommonNames.Ordering,
+                    SpecialType.None => throw new InvalidOperationException("Invalid special type"),
+                    _ => throw new InvalidOperationException("Invalid special type"),
+                };
+            }
+        }
+    }
 }

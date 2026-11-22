@@ -1,5 +1,8 @@
-﻿namespace Prism;
+﻿using NetEscapades.EnumGenerators;
 
+namespace Prism;
+
+[EnumExtensions(ExtensionClassName = "SpecialTypes")]
 public enum SpecialType : byte
 {
     None,

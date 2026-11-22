@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Cysharp.Text;
 using Prism.Semantic.Symbols.Data;
@@ -18,6 +19,9 @@ public sealed class NamedTypeSymbol : TypeSymbol, IAttributeHolderSymbolData
     internal new INamedTypeSymbolData Data => Unsafe.As<INamedTypeSymbolData>(base.Data);
 
     public NamedTypeKind Kind => Data.Kind;
+
+    [MemberNotNullWhen(true, nameof(EnumUnderlyingType))]
+    public bool IsEnum => Kind == NamedTypeKind.Enum;
 
     public NamedTypeSymbol? EnumUnderlyingType => Data.EnumUnderlyingType;
 

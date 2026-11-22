@@ -4,6 +4,7 @@ using Prism.Metadata;
 using Prism.Semantic;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
+using Prism.Tests.Helpers;
 
 namespace Prism.Tests;
 
@@ -41,7 +42,12 @@ public class SymbolCreationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(_context, assemblyName, [tree]);
+        var compilation = Compilation.Create(
+            _context,
+            assemblyName,
+            [tree],
+            TestHelpers.TestReferences
+        );
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers();
         Assert.That(members, Has.Length.EqualTo(2));
@@ -87,7 +93,12 @@ public class SymbolCreationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(_context, assemblyName, [tree]);
+        var compilation = Compilation.Create(
+            _context,
+            assemblyName,
+            [tree],
+            TestHelpers.TestReferences
+        );
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers();
         Assert.That(members, Has.Length.EqualTo(3));

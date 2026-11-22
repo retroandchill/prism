@@ -41,6 +41,16 @@ public sealed class CompilationContext : IDisposable
         }
     }
 
+    public IReferenceResolver ReferenceResolver
+    {
+        get
+        {
+            return LazyComputation.LazyCompute(ref field, _serviceProvider, static p =>
+                p.GetRequiredService<IReferenceResolver>()
+            );
+        }
+    }
+
     internal IAssemblyLoader AssemblyLoader
     {
         get

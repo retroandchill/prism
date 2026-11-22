@@ -4,6 +4,7 @@ using Prism.Compiler;
 using Prism.Mir.Analysis;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
+using Prism.Tests.Helpers;
 
 namespace Prism.Tests;
 
@@ -45,7 +46,12 @@ public class LocalClassificationTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(_context, assemblyName, [tree]);
+        var compilation = Compilation.Create(
+            _context,
+            assemblyName,
+            [tree],
+            TestHelpers.TestReferences
+        );
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("nested_break_and_continue");
         Assert.That(members, Has.Length.EqualTo(1));

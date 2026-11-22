@@ -17,6 +17,7 @@ namespace Prism.Compiler.References;
 internal sealed class ReferenceManager
 {
     private readonly IAssemblyLoader _loader;
+    private readonly IReferenceResolver _resolver;
     private readonly IFileSystem _fileSystem;
     private readonly CompilationSettings _settings;
 
@@ -25,11 +26,13 @@ internal sealed class ReferenceManager
 
     public ReferenceManager(
         IAssemblyLoader loader,
+        IReferenceResolver resolver,
         IFileSystem fileSystem,
         CompilationSettings settings
     )
     {
         _loader = loader;
+        _resolver = resolver;
         _fileSystem = fileSystem;
         _settings = settings;
     }
@@ -49,8 +52,15 @@ internal sealed class ReferenceManager
         AssemblyIdentity? identity = null
     )
     {
-        var normalizedPath = GetTargetPath(filePath);
+        var normalizedPath = _fileSystem.Path.GetFullPath(filePath);
+        return LoadNormalizedAssemblyPath(normalizedPath, identity);
+    }
 
+    private AssemblySymbol LoadNormalizedAssemblyPath(
+        string normalizedPath,
+        AssemblyIdentity? identity
+    )
+    {
         var symbol = _pathCache.GetOrAdd(
             normalizedPath,
             static (path, t) =>
@@ -80,22 +90,6 @@ internal sealed class ReferenceManager
         return symbol;
     }
 
-    private string GetTargetPath(string path)
-    {
-        if (_fileSystem.Path.IsPathFullyQualified(path))
-            return _fileSystem.Path.GetFullPath(path);
-
-        // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
-        foreach (var referencePath in _settings.AdditionalReferencePaths)
-        {
-            var fullPath = _fileSystem.Path.GetFullPath(path, referencePath);
-            if (_fileSystem.File.Exists(fullPath))
-                return fullPath;
-        }
-
-        return _fileSystem.Path.GetFullPath(path);
-    }
-
     private AssemblySymbol ResolveAssemblyReference(string referenceText)
     {
         if (!AssemblyIdentity.TryParse(referenceText, out var identity))
@@ -112,8 +106,11 @@ internal sealed class ReferenceManager
         if (_identityCache.TryGetValue(identity, out var symbol))
             return symbol;
 
-        var fileName = $"{identity.Name}.prlib";
-        return LoadFromLibraryReference(fileName, identity);
+        var path = _resolver.ResolveReferencePath(
+            identity,
+            _settings.AdditionalReferencePaths.AsSpan()
+        );
+        return LoadNormalizedAssemblyPath(path, identity);
     }
 
     public AssemblyReferences ResolveAssemblyReference(ImmutableArray<AssemblyReference> references)

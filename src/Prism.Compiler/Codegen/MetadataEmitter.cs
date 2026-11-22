@@ -216,6 +216,10 @@ internal sealed class MetadataEmitter
         type.Visibility = namedTypeSymbol.DeclaredVisibility;
         type.SpecialType = namedTypeSymbol.SpecialType;
         _typeDefs.Add(namedTypeSymbol, type);
+        if (namedTypeSymbol.IsEnum)
+        {
+            type.BaseType = GetOrAddNamedType(namedTypeSymbol.EnumUnderlyingType);
+        }
         AddCustomAttributes(namedTypeSymbol, type);
         return type;
     }

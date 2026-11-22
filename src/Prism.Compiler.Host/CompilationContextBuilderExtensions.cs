@@ -21,6 +21,7 @@ public static class CompilationContextBuilderExtensions
             return new CompilationContextBuilder()
                 .UseCodeEmitterFactory<LlvmCodeEmitterFactory>()
                 .UseAssemblyLoader<DefaultAssemblyLoader>()
+                .UseReferenceResolver<FileSystemReferenceResolver>()
                 .UseFileSystem(DefaultFilesystem);
         }
 

@@ -3,6 +3,7 @@ using Prism.Compiler.Symbols;
 using Prism.Semantic;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
+using Prism.Tests.Helpers;
 
 namespace Prism.Tests;
 
@@ -28,7 +29,12 @@ public class TypeLayoutTests
         var tree = SyntaxTree.Parse("func foo(msg: str&?) { }");
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(_context, assemblyName, [tree]);
+        var compilation = Compilation.Create(
+            _context,
+            assemblyName,
+            [tree],
+            TestHelpers.TestReferences
+        );
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("foo");
         Assert.That(members, Has.Length.EqualTo(1));
@@ -63,7 +69,12 @@ public class TypeLayoutTests
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(_context, assemblyName, [tree]);
+        var compilation = Compilation.Create(
+            _context,
+            assemblyName,
+            [tree],
+            TestHelpers.TestReferences
+        );
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("foo");
         Assert.That(members, Has.Length.EqualTo(1));
@@ -96,7 +107,12 @@ public class TypeLayoutTests
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(_context, assemblyName, [tree]);
+        var compilation = Compilation.Create(
+            _context,
+            assemblyName,
+            [tree],
+            TestHelpers.TestReferences
+        );
 
         var members = compilation.Assembly.GlobalNamespace.GetMembers("Color");
         Assert.That(members, Has.Length.EqualTo(1));

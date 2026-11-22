@@ -6,6 +6,7 @@
 using Prism.Compiler;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
+using Prism.Tests.Helpers;
 
 namespace Prism.Tests;
 
@@ -36,7 +37,12 @@ public class AttributesTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(_context, assemblyName, [tree]);
+        var compilation = Compilation.Create(
+            _context,
+            assemblyName,
+            [tree],
+            TestHelpers.TestReferences
+        );
 
         var foos = compilation.Assembly.GlobalNamespace.GetMembers("Foo");
         var bars = compilation.Assembly.GlobalNamespace.GetMembers("Bar");
@@ -79,7 +85,12 @@ public class AttributesTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(_context, assemblyName, [tree]);
+        var compilation = Compilation.Create(
+            _context,
+            assemblyName,
+            [tree],
+            TestHelpers.TestReferences
+        );
 
         var bars = compilation.Assembly.GlobalNamespace.GetMembers("Bar");
         Assert.That(bars, Has.Length.EqualTo(1));
@@ -107,7 +118,12 @@ public class AttributesTest
         );
 
         const string assemblyName = "test";
-        var compilation = Compilation.Create(_context, assemblyName, [tree]);
+        var compilation = Compilation.Create(
+            _context,
+            assemblyName,
+            [tree],
+            TestHelpers.TestReferences
+        );
 
         var bars = compilation.Assembly.GlobalNamespace.GetMembers("Bar");
         Assert.That(bars, Has.Length.EqualTo(1));
