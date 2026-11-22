@@ -29,6 +29,8 @@ internal sealed class SynthesizedGlobalConstructor(
     public override FunctionKind Kind => FunctionKind.GlobalConstructor;
 
     public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
+    public override bool IsDefaultDefined => false;
+
     public override TypeSymbol ReturnType
     {
         get

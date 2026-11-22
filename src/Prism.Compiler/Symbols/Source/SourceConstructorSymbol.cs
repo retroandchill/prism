@@ -59,6 +59,8 @@ internal sealed class SourceConstructorSymbol(
 
     protected override DeclarationSyntax AbstractSyntax => Syntax;
 
+    public override bool IsDefaultDefined => Syntax.DefaultKeyword is not null;
+
     protected override TypeSymbol ComputeReturnType(BindingContext context)
     {
         var compilation = DeclaringCompilation;

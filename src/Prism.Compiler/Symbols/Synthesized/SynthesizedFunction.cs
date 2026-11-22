@@ -29,6 +29,7 @@ internal abstract class SynthesizedFunction : SynthesizedSymbol, IFunctionSymbol
     public abstract FunctionKind Kind { get; }
     public abstract AbiKind AbiKind { get; }
     public abstract bool IsExtern { get; }
+    public abstract bool IsDefaultDefined { get; }
     public abstract TypeSymbol ReturnType { get; }
     public abstract TypeSymbol? ReceiverType { get; }
     public abstract ImmutableArray<ParameterSymbol> Parameters { get; }

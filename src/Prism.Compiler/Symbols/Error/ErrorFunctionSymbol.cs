@@ -27,6 +27,7 @@ internal sealed class ErrorFunctionSymbol : IFunctionSymbolData
 
     public string Name { get; }
     public Symbol? ContainingSymbol { get; }
+    public bool IsDefaultDefined => false;
     public TypeSymbol ReturnType { get; }
     public TypeSymbol? ReceiverType => null;
     public ImmutableArray<ParameterSymbol> Parameters => [];

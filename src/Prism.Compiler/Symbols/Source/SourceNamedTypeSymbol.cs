@@ -321,7 +321,7 @@ internal sealed class SourceNamedTypeSymbol
         Dictionary<string, ImmutableArray<Symbol>.Builder> nameToMembersMap
     )
     {
-        if (Kind == NamedTypeKind.Class)
+        if (Kind == NamedTypeKind.Class && SpecialType is SpecialType.None)
         {
             if (!nameToMembersMap.ContainsKey(CommonNames.Ctor))
             {
@@ -334,9 +334,6 @@ internal sealed class SourceNamedTypeSymbol
         Dictionary<string, ImmutableArray<Symbol>.Builder> nameToMembersMap
     )
     {
-        if (SpecialType is SpecialType.Void or SpecialType.Str)
-            return;
-
         foreach (
             var field in nameToMembersMap
                 .AsValueEnumerable()

@@ -72,6 +72,8 @@ internal closed class SourceFunctionSymbolBase
         }
     }
 
+    public abstract bool IsDefaultDefined { get; }
+
     public TypeSymbol ReturnType
     {
         get

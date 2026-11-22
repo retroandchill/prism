@@ -5,11 +5,11 @@
 
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
+using Prism.Metadata;
 using Prism.Semantic;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
 using ZLinq;
-using FunctionDefinition = Prism.Metadata.FunctionDefinition;
 
 namespace Prism.Compiler.Symbols.Metadata;
 
@@ -51,6 +51,8 @@ internal sealed class MetadataFunctionSymbol : IFunctionSymbolData, ILocatableSy
         }
     }
     public AssemblySymbol ContainingAssembly => _containingAssembly.PublicModel;
+
+    public bool IsDefaultDefined => _definition.IsDefaultDefined;
 
     public TypeSymbol ReturnType
     {

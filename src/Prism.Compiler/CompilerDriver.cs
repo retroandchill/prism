@@ -17,10 +17,6 @@ using Prism.Compiler.Symbols.Source;
 using Prism.Compiler.Symbols.Synthesized;
 using Prism.Configuration;
 using Prism.Constants;
-using Prism.Diagnostics;
-using Prism.Metadata;
-using Prism.Semantic;
-using Prism.Semantic.Conversions;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
 using Prism.Utils;
@@ -276,8 +272,8 @@ internal static class CompilerDriver
                 thisReference,
                 member
             );
-            var initialValue =
-                initializer.Initializer ?? GetDefaultValue(compilation, declaringSyntax, type);
+            var initialValue = initializer.Initializer
+                ?? GetDefaultValue(compilation, declaringSyntax, type);
             var assignment = new BoundAssignmentOperation(
                 compilation,
                 declaringSyntax,

@@ -21,6 +21,7 @@ internal sealed class SynthesizedDefaultConstructor : SynthesizedFunction
     public override Symbol ContainingSymbol => ContainingType;
     public override TypeSymbol ContainingType { get; }
     public override MemberContainerSymbol ContainingMemberContainer => ContainingType;
+    public override bool IsDefaultDefined => true;
     public override TypeSymbol ReturnType => DeclaringCompilation.GetSpecialType(SpecialType.Void);
 
     public override TypeSymbol ReceiverType

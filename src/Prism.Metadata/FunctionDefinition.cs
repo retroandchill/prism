@@ -62,6 +62,8 @@ public sealed partial class FunctionDefinition : IAttributeHolderDefinition
 
     public FunctionKind Kind => Attributes.Kind;
 
+    public bool IsDefaultDefined => Attributes.IsDefaultDefined;
+
     public string Name { get; }
 
     public MemberContainerDefHandle ParentHandle { get; private set; }

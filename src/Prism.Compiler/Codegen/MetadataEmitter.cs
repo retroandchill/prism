@@ -338,6 +338,7 @@ internal sealed class MetadataEmitter
         function.IsExtern = function.IsExtern;
         function.AbiKind = functionSymbol.AbiKind;
         function.Kind = functionSymbol.Kind;
+        function.IsDefaultDefined = functionSymbol.IsDefaultDefined;
         _functions.Add(functionSymbol, function);
         AddCustomAttributes(functionSymbol, function);
     }

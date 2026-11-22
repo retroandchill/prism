@@ -15,6 +15,8 @@ internal interface IFunctionSymbolData : ISymbolData
 
     bool IsExtern { get; }
 
+    bool IsDefaultDefined { get; }
+
     TypeSymbol ReturnType { get; }
 
     TypeSymbol? ReceiverType { get; }

@@ -20,7 +20,9 @@ internal readonly partial record struct FunctionAttributes
 
     // Reserve 64 bits for special function kinds
     private const int KindShift = 4 + AbiShift;
-    private const uint KindMask = 0x3F << AbiShift;
+    private const uint KindMask = 0x3F << KindShift;
+
+    private const uint DefaultDefinedBit = 0x1 << (KindShift + 1);
 
     [ArchiveInclude]
     private readonly uint _value;
@@ -56,5 +58,12 @@ internal readonly partial record struct FunctionAttributes
     {
         get => (FunctionKind)((_value & KindMask) >> KindShift);
         init => _value = (_value & ~KindMask) | ((uint)value << KindShift);
+    }
+
+    [ArchiveIgnore]
+    public bool IsDefaultDefined
+    {
+        get => (_value & DefaultDefinedBit) != 0;
+        init => _value = (_value & ~DefaultDefinedBit) & (value ? DefaultDefinedBit : 0);
     }
 }

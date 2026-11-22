@@ -331,6 +331,12 @@ public sealed class FunctionDefinitionBuilder : IAttributeHolderDefinitionBuilde
         set => Attributes = Attributes with { Kind = value };
     }
 
+    public bool IsDefaultDefined
+    {
+        get => Attributes.IsDefaultDefined;
+        set => Attributes = Attributes with { IsDefaultDefined = value };
+    }
+
     public string Name { get; }
 
     public MemberContainerDefinitionBuilder Parent { get; }

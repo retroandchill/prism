@@ -33,6 +33,8 @@ public sealed class FunctionSymbol : Symbol
 
     public bool ReturnsVoid => ReturnType.IsVoid;
 
+    public bool IsDefaultDefined => Data.IsDefaultDefined;
+
     internal ImmutableArray<TypeSymbol> ParameterTypes
     {
         get

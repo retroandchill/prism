@@ -49,6 +49,8 @@ internal sealed class SourceFunctionSymbol(
         }
     }
 
+    public override bool IsDefaultDefined => false;
+
     protected override TypeSymbol ComputeReturnType(BindingContext context)
     {
         var compilation = DeclaringCompilation;
