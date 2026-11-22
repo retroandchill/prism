@@ -17,9 +17,9 @@ public closed record ParameterDefaultDefinition;
 public sealed record ConstantParameterDefaultDefinition(ConstantValue Value)
     : ParameterDefaultDefinition;
 
-public union FunctionOrAttribute(TypeDefinition, FunctionDefinition)
+public readonly union FunctionOrAttribute(TypeDefinition, FunctionDefinition)
 {
-    public readonly FunctionOrAttributeHandle Handle
+    public FunctionOrAttributeHandle Handle
     {
         get
         {

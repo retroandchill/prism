@@ -66,7 +66,7 @@ public sealed class FunctionSymbol : Symbol
         foreach (var (i, param) in Parameters.AsValueEnumerable().Index())
         {
             if (i > 0)
-                builder.Write(", ");
+                builder.Append(", ");
 
             param.WriteDisplayString(ref builder);
         }
@@ -74,7 +74,7 @@ public sealed class FunctionSymbol : Symbol
         if (ReturnsVoid)
             return;
 
-        builder.Write(": ");
+        builder.Append(": ");
         ReturnType.WriteDisplayString(ref builder);
     }
 }

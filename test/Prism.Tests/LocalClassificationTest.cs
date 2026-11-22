@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using Prism.Codegen.Mir;
 using Prism.Compiler;
 using Prism.Mir.Analysis;
@@ -58,12 +59,13 @@ public class LocalClassificationTest
         Assert.That(members[0], Is.InstanceOf<FunctionSymbol>());
 
         var function = (FunctionSymbol)members[0];
-        var mirEmitter = new Emitter(compilation);
+        var mirEmitter = new MirEmitter(compilation);
         var mirFunction = mirEmitter.Emit(function, CancellationToken.None);
+        Assert.That(mirFunction.Value, Is.Not.Null);
 
         var classifiedLocals = LocalClassification.GetClassifications(
             compilation,
-            mirFunction,
+            mirFunction.Value,
             CancellationToken.None
         );
 

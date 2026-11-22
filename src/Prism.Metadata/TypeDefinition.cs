@@ -12,7 +12,7 @@ using Riok.Mapperly.Abstractions.ReferenceHandling;
 
 namespace Prism.Metadata;
 
-public union NamedType(TypeDefinition, TypeReference)
+public readonly union NamedType(TypeDefinition, TypeReference)
 {
     public NamedTypeHandle Handle
     {

@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Prism.Compiler.Codegen;
 using Prism.Compiler.References;
 using Prism.Metadata;
+using Prism.Mir;
 using Prism.Utils;
 
 namespace Prism.Compiler;
@@ -57,6 +58,16 @@ public sealed class CompilationContext : IDisposable
         {
             return LazyComputation.LazyCompute(ref field, _serviceProvider, static p =>
                 p.GetRequiredService<IAssemblyLoader>()
+            );
+        }
+    }
+
+    internal IMirEmitterFactory<Compilation> MirEmitterFactory
+    {
+        get
+        {
+            return LazyComputation.LazyCompute(ref field, _serviceProvider, static p =>
+                p.GetRequiredService<IMirEmitterFactory<Compilation>>()
             );
         }
     }

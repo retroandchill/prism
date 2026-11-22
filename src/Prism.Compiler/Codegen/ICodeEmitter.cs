@@ -5,6 +5,7 @@
 
 using Prism.Compiler.Binding;
 using Prism.Compiler.BoundTree;
+using Prism.Mir;
 using Prism.Semantic.Symbols;
 
 namespace Prism.Compiler.Codegen;
@@ -18,13 +19,13 @@ internal interface ICodeEmitter : IDisposable
     );
 
     void AddGlobalVariable(
-        BoundVariableInitializer variable,
+        VariableInitializer variable,
         BindingContext bindingContext,
         CancellationToken cancellationToken
     );
 
     void AddFunction(
-        BoundFunctionBody function,
+        Function function,
         BindingContext bindingContext,
         CancellationToken cancellationToken
     );

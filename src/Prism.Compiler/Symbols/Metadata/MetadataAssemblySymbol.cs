@@ -155,7 +155,7 @@ internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSy
         };
     }
 
-    private NamedTypeSymbol GetReferencedType(NamedType descriptor)
+    internal NamedTypeSymbol GetReferencedType(NamedType descriptor)
     {
         return descriptor switch
         {

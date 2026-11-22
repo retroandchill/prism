@@ -10,7 +10,7 @@ using Riok.Mapperly.Abstractions;
 
 namespace Prism.Metadata;
 
-public union TypeDescriptor(TypeDefinition, TypeReference, TypeSpecification);
+public readonly union TypeDescriptor(TypeDefinition, TypeReference, TypeSpecification);
 
 public closed class TypeSpecification;
 

@@ -25,9 +25,9 @@ public closed class MemberContainerReferenceBase
     protected abstract MemberContainerReference GetParent();
 }
 
-public union NamespaceOrAssemblyReference(AssemblyReference, NamespaceReference)
+public readonly union NamespaceOrAssemblyReference(AssemblyReference, NamespaceReference)
 {
-    public readonly NamespaceOrAssemblyRefHandle Handle
+    public NamespaceOrAssemblyRefHandle Handle
     {
         get
         {
@@ -49,9 +49,9 @@ public union NamespaceOrAssemblyReference(AssemblyReference, NamespaceReference)
     }
 }
 
-public union MemberContainerReference(AssemblyReference, NamespaceReference, TypeReference)
+public readonly union MemberContainerReference(AssemblyReference, NamespaceReference, TypeReference)
 {
-    public readonly MemberContainerRefHandle Handle
+    public MemberContainerRefHandle Handle
     {
         get
         {

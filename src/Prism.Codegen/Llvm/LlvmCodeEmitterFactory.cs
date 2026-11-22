@@ -14,7 +14,6 @@ internal sealed class LlvmCodeEmitterFactory : ICodeEmitterFactory
 {
     public ICodeEmitter CreateEmitter(Compilation compilation, CodeGenOptions options)
     {
-        var mirEmitter = new Emitter(compilation);
-        return new LlvmCodeEmitter(compilation, mirEmitter, options);
+        return new LlvmCodeEmitter(compilation, options);
     }
 }

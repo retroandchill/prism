@@ -170,9 +170,9 @@ public sealed class TypeDefinitionBuilder(
     }
 }
 
-public union NamedTypeBuilder(TypeDefinitionBuilder, TypeReference);
+public readonly union NamedTypeBuilder(TypeDefinitionBuilder, TypeReference);
 
-public union TypeDescriptorBuilder(TypeDefinitionBuilder, TypeReference, TypeSpecBuilder)
+public readonly union TypeDescriptorBuilder(TypeDefinitionBuilder, TypeReference, TypeSpecBuilder)
 {
     public static implicit operator TypeDescriptorBuilder(NamedTypeBuilder builder)
     {
@@ -364,7 +364,7 @@ public sealed class FunctionDefinitionBuilder : IAttributeHolderDefinitionBuilde
     }
 }
 
-public union FunctionOrAttributeBuilder(FunctionDefinitionBuilder, TypeDefinitionBuilder)
+public readonly union FunctionOrAttributeBuilder(FunctionDefinitionBuilder, TypeDefinitionBuilder)
 {
     public ParameterDefinitionBuilder AddParameter(string name, TypeDescriptorBuilder type)
     {
@@ -424,7 +424,7 @@ public sealed class ParameterDefinitionBuilder : IAttributeHolderDefinitionBuild
     }
 }
 
-public union AttributeHolderDefinitionBuilder(
+public readonly union AttributeHolderDefinitionBuilder(
     TypeDefinitionBuilder,
     VariableDefinitionBuilder,
     FunctionDefinitionBuilder,

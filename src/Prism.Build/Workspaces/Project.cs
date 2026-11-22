@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using Prism.Build.Manifest;
 using Prism.Compiler;
 using Prism.Compiler.Codegen;
-using Prism.Compiler.Host;
 using Prism.Configuration;
 using Prism.Syntax;
 using Tomlyn;
@@ -11,7 +10,7 @@ using ZLinq;
 
 namespace Prism.Build.Workspaces;
 
-public union ProjectResult(Project, string);
+public readonly union ProjectResult(Project, string);
 
 public sealed class Project
 {

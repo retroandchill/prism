@@ -17,7 +17,7 @@ public interface IAttributeHolderDefinition
     ImmutableArray<CustomAttributeDefinition> CustomAttributes { get; }
 }
 
-public union AttributeHolderDefinition(
+public readonly union AttributeHolderDefinition(
     TypeDefinition,
     VariableDefinition,
     FunctionDefinition,
@@ -25,7 +25,7 @@ public union AttributeHolderDefinition(
     EnumOrdinalDefinition
 )
 {
-    public readonly AttributeHolderHandle Handle
+    public AttributeHolderHandle Handle
     {
         get
         {

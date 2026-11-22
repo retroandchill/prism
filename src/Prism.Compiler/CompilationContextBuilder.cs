@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Prism.Compiler.Codegen;
 using Prism.Compiler.References;
 using Prism.Metadata;
+using Prism.Mir;
 
 namespace Prism.Compiler;
 
@@ -22,6 +23,15 @@ public sealed class CompilationContextBuilder
         where T : class, ICodeEmitterFactory
     {
         _services.AddSingleton<ICodeEmitterFactory, T>();
+        return this;
+    }
+
+    internal CompilationContextBuilder UseMirEmitterFactory<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllConstructors)] T
+    >()
+        where T : class, IMirEmitterFactory<Compilation>
+    {
+        _services.AddSingleton<IMirEmitterFactory<Compilation>, T>();
         return this;
     }
 

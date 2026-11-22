@@ -16,6 +16,8 @@ public sealed class ExecutableBodyBuilder
     private uint _nextBasicBlockId = 1;
     private uint _nextLocalId = 1;
 
+    public Local? ReturnValueLocal { get; private set; }
+
     public BasicBlockBuilder EntryBlock
     {
         get => field ?? throw new InvalidOperationException("Entry block not set");
@@ -25,6 +27,12 @@ public sealed class ExecutableBodyBuilder
     public ReadOnlyList<Local> Locals => _locals.AsReadOnlyList();
 
     public ReadOnlyList<BasicBlockBuilder> Blocks => _basicBlocks.AsReadOnlyList();
+
+    public void SetReturnValueLocal(TypeSymbol type)
+    {
+        ReturnValueLocal = new Local(LocalId.ReturnSlot, type);
+        _locals.Add(ReturnValueLocal);
+    }
 
     public BasicBlockBuilder AddBasicBlock(string name = "block")
     {
@@ -55,10 +63,5 @@ public sealed class ExecutableBodyBuilder
         var local = new Local(new LocalId(_nextLocalId++), type);
         _locals.Add(local);
         return local;
-    }
-
-    internal void AddLocal(Local local)
-    {
-        _locals.Add(local);
     }
 }

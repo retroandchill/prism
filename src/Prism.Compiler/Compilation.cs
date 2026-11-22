@@ -14,6 +14,7 @@ using Prism.Compiler.Symbols.Intrinsic;
 using Prism.Compiler.Symbols.Source;
 using Prism.Configuration;
 using Prism.Diagnostics;
+using Prism.Mir;
 using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
@@ -420,6 +421,22 @@ public class Compilation : ILayoutSource, IAbiLookup
         return Cache.GetBoundFunctionBody(function, cancellationToken);
     }
 
+    internal Result<VariableInitializer> GetMirInitializer(
+        VariableSymbol variableSymbol,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return MirManager.GetInitializer(variableSymbol, cancellationToken);
+    }
+
+    internal Result<Function> GetMirFunction(
+        FunctionSymbol function,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return MirManager.GetFunction(function, cancellationToken);
+    }
+
     internal EntryPoint GetEntryPointAndDiagnostics()
     {
         if (_entryPoint is not null)
@@ -688,6 +705,19 @@ public class Compilation : ILayoutSource, IAbiLookup
                 return field;
 
             Interlocked.CompareExchange(ref field, new CompilationCache(this), null);
+            return field;
+        }
+    }
+
+    private MirCodeManager MirManager
+    {
+        get
+        {
+            if (field is not null)
+                return field;
+
+            var emitter = _context.MirEmitterFactory.CreateEmitter(this);
+            Interlocked.CompareExchange(ref field, new MirCodeManager(emitter), null);
             return field;
         }
     }

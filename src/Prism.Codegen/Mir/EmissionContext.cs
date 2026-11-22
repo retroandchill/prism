@@ -53,7 +53,7 @@ internal sealed class EmissionContext
     private readonly Dictionary<ValueSymbol, (Local Local, PlaceBase Place)> _locals = [];
     private readonly Dictionary<LabelSymbol, LoopTargets> _loopTargets = [];
 
-    private readonly FunctionBuilder _builder;
+    private readonly ExecutableBodyBuilder _builder;
     private Scope _scope = new();
 
     public PlaceBase? ReturnPlace { get; }
@@ -62,21 +62,34 @@ internal sealed class EmissionContext
 
     public EmissionContext(FunctionBuilder builder)
     {
-        _builder = builder;
+        _builder = builder.ExecutableBody;
+
+        if (builder.ReturnValueLocal is not null)
+        {
+            ReturnPlace = new LocalPlace(builder.ReturnValueLocal);
+        }
+
+        if (builder.ReceiverLocal is not null)
+        {
+            ReceiverPlace = new LocalPlace(builder.ReceiverLocal);
+        }
+
+        foreach (var (parameter, local) in builder.Parameters)
+        {
+            _locals.Add(parameter, (local, new LocalPlace(local)));
+        }
+
+        CurrentBlock = _builder.AddBasicBlock("entry");
+        _builder.EntryBlock = CurrentBlock;
+    }
+
+    public EmissionContext(VariableInitializerBuilder builder)
+    {
+        _builder = builder.WithExecutableBody();
 
         if (_builder.ReturnValueLocal is not null)
         {
             ReturnPlace = new LocalPlace(_builder.ReturnValueLocal);
-        }
-
-        if (_builder.ReceiverLocal is not null)
-        {
-            ReceiverPlace = new LocalPlace(_builder.ReceiverLocal);
-        }
-
-        foreach (var (parameter, local) in _builder.Parameters)
-        {
-            _locals.Add(parameter, (local, new LocalPlace(local)));
         }
 
         CurrentBlock = _builder.AddBasicBlock("entry");

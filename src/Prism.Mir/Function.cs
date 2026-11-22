@@ -47,7 +47,7 @@ public sealed partial class Function
         _executableBody.Validate();
     }
 
-    [Mapper(UseReferenceHandling = true, RequiredMappingStrategy = RequiredMappingStrategy.Target)]
+    [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]
     [UseStaticMapper(typeof(ExecutableBody.Mapper))]
     internal static partial class Mapper
     {

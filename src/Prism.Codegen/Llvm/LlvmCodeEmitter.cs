@@ -14,7 +14,6 @@ using LLVMSharp.Interop;
 using Prism.Abi;
 using Prism.Compiler;
 using Prism.Compiler.Binding;
-using Prism.Compiler.BoundTree;
 using Prism.Compiler.Codegen;
 using Prism.Compiler.Mappers;
 using Prism.Configuration;
@@ -36,7 +35,6 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 {
     private readonly Compilation _compilation;
     private readonly CodeGenOptions _options;
-    private readonly IEmitter _mirEmitter;
 
     private const uint NullTagIndex = 0;
     private const uint NullPayloadIndex = 1;
@@ -64,11 +62,10 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
     private string? _entryPoint;
 
-    public LlvmCodeEmitter(Compilation compilation, IEmitter emitter, CodeGenOptions options)
+    public LlvmCodeEmitter(Compilation compilation, CodeGenOptions options)
     {
         _compilation = compilation;
         _options = options;
-        _mirEmitter = emitter;
         _context = LLVMContextRef.Create();
         _module = _context.CreateModuleWithName(compilation.AssemblyName);
         _builder = _context.CreateBuilder();
@@ -103,59 +100,47 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     }
 
     public void AddGlobalVariable(
-        BoundVariableInitializer variable,
+        VariableInitializer variable,
         BindingContext bindingContext,
         CancellationToken cancellationToken
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var llvmVariable = GetOrCreateGlobal(variable.Variable);
-        if (!variable.Variable.HasInitializer)
+        var llvmVariable = GetOrCreateGlobal(variable.Symbol);
+        if (variable.Value is not ConstantValue constantValue)
             return;
 
-        if (!variable.HasInitializer)
-            return;
-
-        if (variable.ConstantValue is not { } constant)
-            return;
-
-        llvmVariable.Initializer = MakeConstant(constant, variable.Variable.Type);
+        llvmVariable.Initializer = MakeConstant(constantValue, variable.Symbol.Type);
     }
 
     public void AddFunction(
-        BoundFunctionBody function,
+        Function function,
         BindingContext bindingContext,
         CancellationToken cancellationToken
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var llvmFunction = GetOrCreateFunction(function.Function);
-        if (!function.HasBody)
-        {
-            llvmFunction.Linkage = LLVMLinkage.LLVMExternalLinkage;
-            return;
-        }
+        var llvmFunction = GetOrCreateFunction(function.Symbol);
 
-        var mirFunction = _mirEmitter.Emit(function.Function, cancellationToken);
         var classifiedLocals = LocalClassification.GetClassifications(
             _compilation,
-            mirFunction,
+            function,
             cancellationToken
         );
 
-        var context = new FunctionEmissionContext(mirFunction, llvmFunction, classifiedLocals);
-        foreach (var block in mirFunction.Blocks)
+        var context = new FunctionEmissionContext(function, llvmFunction, classifiedLocals);
+        foreach (var block in function.Blocks)
         {
             var blockRef = LLVMBasicBlockRef.CreateInContext(_context, block.Name);
             context.BindBlock(block, blockRef);
         }
 
-        var entryBlock = context.LookupBlock(mirFunction.EntryBlock);
+        var entryBlock = context.LookupBlock(function.EntryBlock);
         llvmFunction.AppendExistingBasicBlock(entryBlock);
         _builder.PositionAtEnd(entryBlock);
 
-        InitializeLocalVariables(mirFunction, context);
-        foreach (var block in mirFunction.Blocks)
+        InitializeLocalVariables(function, context);
+        foreach (var block in function.Blocks)
         {
             EmitBlock(block, context);
         }
@@ -2038,7 +2023,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     );
 
     // ReSharper disable UnusedUnionCase.Local
-    private union AliasRoot(Local, VariableSymbol);
+    private readonly union AliasRoot(Local, VariableSymbol);
 
     // ReSharper restore UnusedUnionCase.Local
 

@@ -76,14 +76,14 @@ internal sealed class FunctionCompiler
             return;
         }
 
-        var initializer = _compilation.GetBoundInitializer(variableSymbol, _cancellationToken);
+        var initializer = _compilation.GetMirInitializer(variableSymbol, _cancellationToken);
         _context.ReportDiagnostics(initializer.Diagnostics);
-        if (initializer.HasErrors)
+        if (initializer.Value is null)
             return;
 
         if (variableSymbol.IsStaticStorage)
         {
-            _emitter?.AddGlobalVariable(initializer, _context, _cancellationToken);
+            _emitter?.AddGlobalVariable(initializer.Value, _context, _cancellationToken);
         }
     }
 
@@ -91,9 +91,9 @@ internal sealed class FunctionCompiler
     {
         _cancellationToken.ThrowIfCancellationRequested();
 
-        var body = _compilation.GetBoundBody(functionSymbol, _cancellationToken);
+        var body = _compilation.GetMirFunction(functionSymbol, _cancellationToken);
         _context.ReportDiagnostics(body.Diagnostics);
-        if (body.HasErrors)
+        if (body.Value is null)
             return;
 
         if (functionSymbol.Data is SynthesizedGlobalConstructor globalCtor)
@@ -106,12 +106,12 @@ internal sealed class FunctionCompiler
             if (_emitter is null || !globalCtor.ShouldEmit(globals.Span))
                 return;
 
-            _emitter.AddFunction(body, _context, _cancellationToken);
+            _emitter.AddFunction(body.Value, _context, _cancellationToken);
             _emitter.RegisterGlobalConstructor(functionSymbol);
         }
         else
         {
-            _emitter?.AddFunction(body, _context, _cancellationToken);
+            _emitter?.AddFunction(body.Value, _context, _cancellationToken);
         }
     }
 

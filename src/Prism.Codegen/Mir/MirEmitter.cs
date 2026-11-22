@@ -18,7 +18,7 @@ using Prism.Utils;
 
 namespace Prism.Codegen.Mir;
 
-internal sealed class Emitter : IEmitter
+internal sealed class MirEmitter : IMirEmitter
 {
     private readonly Compilation _compilation;
     private readonly ConstantOperand _nullVoid;
@@ -27,7 +27,7 @@ internal sealed class Emitter : IEmitter
     private readonly ImmutableArray<ConstantOperand> _integerOnes;
     private readonly ImmutableArray<ConstantOperand> _floatOnes;
 
-    public Emitter(Compilation compilation)
+    public MirEmitter(Compilation compilation)
     {
         _compilation = compilation;
 
@@ -79,28 +79,61 @@ internal sealed class Emitter : IEmitter
         Or,
     }
 
-    public Function Emit(FunctionSymbol symbol, CancellationToken cancellationToken = default)
+    public Result<VariableInitializer> Emit(
+        VariableSymbol variable,
+        CancellationToken cancellationToken = default
+    )
     {
-        var boundBody = _compilation.GetBoundBody(symbol, cancellationToken);
-
-        var builder = new FunctionBuilder(symbol);
-        var context = new EmissionContext(builder);
-
-        if (boundBody.Body is not null)
+        var boundInitializer = _compilation.GetBoundInitializer(variable, cancellationToken);
+        if (boundInitializer.HasErrors || boundInitializer.Initializer is null)
         {
-            EmitStatement(boundBody.Body, context, cancellationToken);
+            return Result.NoPayload<VariableInitializer>(boundInitializer.Diagnostics);
+        }
 
-            if (!context.CurrentBlock.IsTerminated && symbol.ReturnsVoid)
-            {
-                context.CurrentBlock.SetReturnTerminator();
-            }
+        var builder = new VariableInitializerBuilder(variable);
+        if (boundInitializer.Initializer.ConstantValue is { } constantValue)
+        {
+            builder.WithConstantValue(in constantValue);
         }
         else
         {
-            context.CurrentBlock.SetUnreachable();
+            var context = new EmissionContext(builder);
+            Debug.Assert(context.ReturnPlace is not null);
+            var lifetime = context.CreateExpressionLifetime();
+            EmitExpression(
+                context.ReturnPlace,
+                boundInitializer.Initializer,
+                lifetime,
+                context,
+                cancellationToken
+            );
+            context.CurrentBlock.SetReturnTerminator();
         }
 
-        return builder.Build();
+        return Result.WithPayload(builder.Build(), boundInitializer.Diagnostics);
+    }
+
+    public Result<Function> Emit(
+        FunctionSymbol function,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var boundBody = _compilation.GetBoundBody(function, cancellationToken);
+        if (boundBody.HasErrors || boundBody.Body is null)
+        {
+            return Result.NoPayload<Function>(boundBody.Diagnostics);
+        }
+
+        var builder = new FunctionBuilder(function);
+        var context = new EmissionContext(builder);
+        EmitStatement(boundBody.Body, context, cancellationToken);
+
+        if (!context.CurrentBlock.IsTerminated && function.ReturnsVoid)
+        {
+            context.CurrentBlock.SetReturnTerminator();
+        }
+
+        return Result.WithPayload(builder.Build(), boundBody.Diagnostics);
     }
 
     private void EmitStatement(

@@ -1,13 +1,11 @@
-﻿// @file IEmitter.cs
+﻿// @file IEmitterFactory.cs
 //
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using Prism.Semantic.Symbols;
-
 namespace Prism.Mir;
 
-public interface IEmitter
+public interface IMirEmitterFactory<in TContext>
 {
-    Function Emit(FunctionSymbol function, CancellationToken cancellationToken = default);
+    IMirEmitter CreateEmitter(TContext context);
 }

@@ -5,6 +5,7 @@
 
 using System.IO.Abstractions;
 using Prism.Codegen.Llvm;
+using Prism.Codegen.Mir;
 using Prism.Compiler.References;
 using Prism.Metadata;
 
@@ -20,6 +21,7 @@ public static class CompilationContextBuilderExtensions
         {
             return new CompilationContextBuilder()
                 .UseCodeEmitterFactory<LlvmCodeEmitterFactory>()
+                .UseMirEmitterFactory<MirEmitterFactory>()
                 .UseAssemblyLoader<DefaultAssemblyLoader>()
                 .UseReferenceResolver<FileSystemReferenceResolver>()
                 .UseFileSystem(DefaultFilesystem);

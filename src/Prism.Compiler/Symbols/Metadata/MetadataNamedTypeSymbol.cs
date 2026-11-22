@@ -5,6 +5,7 @@
 
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Prism.Compiler.Semantic;
 using Prism.Diagnostics;
 using Prism.Metadata;
@@ -68,6 +69,22 @@ internal sealed class MetadataNamedTypeSymbol
     public AssemblySymbol ContainingAssembly => _containingAssembly.PublicModel;
 
     public bool IsDynamicallySized => SpecialType == SpecialType.Str;
+
+    public NamedTypeSymbol? EnumUnderlyingType
+    {
+        get
+        {
+            if (Kind != NamedTypeKind.Enum)
+                return null;
+
+            return LazyComputation.LazyCompute(ref field, this, static @this =>
+            {
+                var baseType = @this._definition.BaseType;
+                Debug.Assert(baseType is not null);
+                return @this._containingAssembly.GetReferencedType(baseType.Value);
+            });
+        }
+    }
 
     public ImmutableArray<Symbol> GetMembers()
     {
