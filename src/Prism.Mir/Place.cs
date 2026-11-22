@@ -24,6 +24,11 @@ public readonly record struct Place(PlaceBase Base, ImmutableArray<PlaceProjecti
         return this with { Projections = Projections.Add(projection) };
     }
 
+    public Place AddProjections(ImmutableArray<PlaceProjection> projections)
+    {
+        return this with { Projections = Projections.AddRange(projections) };
+    }
+
     public bool Equals(Place other)
     {
         return Base.Equals(other.Base) && Projections.SequenceEqual(other.Projections);

@@ -11,19 +11,35 @@ using LocalUsageMap = FrozenDictionary<Local, LocalUsageInfo>;
 
 public static class FunctionAnalyzer
 {
+    private static readonly ConditionalWeakTable<
+        ExecutableBody,
+        ControlFlowGraph
+    > ControlFlowGraphs = [];
     private static readonly ConditionalWeakTable<Function, LocalUsageMap> LocalUsages = [];
 
     public static ControlFlowGraph AnalyzeControlFlow(
-        Function function,
+        ExecutableBody body,
         CancellationToken cancellationToken
     )
     {
-        var blocks = ImmutableArray.CreateBuilder<BasicBlock>(function.Blocks.Length);
+        return ControlFlowGraphs.GetOrAdd(
+            body,
+            static (body, cancellationToken) => AnalyzeControlFlowInternal(body, cancellationToken),
+            cancellationToken
+        );
+    }
+
+    private static ControlFlowGraph AnalyzeControlFlowInternal(
+        ExecutableBody body,
+        CancellationToken cancellationToken
+    )
+    {
+        var blocks = ImmutableArray.CreateBuilder<BasicBlock>(body.Blocks.Length);
         var successors = new Dictionary<BasicBlock, List<BasicBlock>>();
         var predecessors = new Dictionary<BasicBlock, List<BasicBlock>>();
         var explored = new HashSet<BasicBlock>();
         var toExplore = new Queue<BasicBlock>();
-        toExplore.Enqueue(function.EntryBlock);
+        toExplore.Enqueue(body.EntryBlock);
 
         while (toExplore.TryDequeue(out var block))
         {

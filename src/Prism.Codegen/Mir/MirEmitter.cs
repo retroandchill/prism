@@ -13,8 +13,10 @@ using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols.Intrinsic;
 using Prism.Constants;
 using Prism.Mir;
+using Prism.Mir.Analysis;
 using Prism.Semantic.Symbols;
 using Prism.Utils;
+using ZLinq;
 
 namespace Prism.Codegen.Mir;
 
@@ -1242,26 +1244,280 @@ internal sealed class MirEmitter : IMirEmitter
         var referenceType = _compilation.CreateReferenceTypeSymbol(newExpression.Type, true);
         var (_, address) = context.CreateTemporary(referenceType, lifetime);
         context.CurrentBlock.AddAssignment(address, new ReferenceRValue(destination, true));
-        var arguments = EmitExpressionList(
-            newExpression.Arguments,
-            lifetime,
-            context,
-            cancellationToken
-        );
-
-        // TODO: At some point we will change this so that aggregate construction will not default initialize everything.
-        CreateCallInstruction(
-            null,
-            newExpression.Constructor,
-            new MoveOperand(address),
-            arguments,
-            context
-        );
-
-        foreach (var (field, value) in newExpression.Initializers)
+        if (
+            newExpression.Arguments.IsEmpty
+            && newExpression.Constructor.IsDefaultDefined
+            && !newExpression.Initializers.IsEmpty
+        )
         {
-            var fieldPlace = destination.AddProjection(new FieldProjection(field));
-            EmitExpression(fieldPlace, value, lifetime, context, cancellationToken);
+            // Special case where we do full aggregate initialization
+            var lookup = newExpression.Initializers.ToDictionary(x => x.Field, x => x.Value);
+
+            foreach (
+                var field in newExpression
+                    .Type.GetMembers()
+                    .OfType<VariableSymbol>()
+                    .Where(v => v.IsInstance)
+            )
+            {
+                var fieldPlace = destination.AddProjection(new FieldProjection(field));
+
+                if (lookup.TryGetValue(field, out var value))
+                {
+                    EmitExpression(fieldPlace, value, lifetime, context, cancellationToken);
+                }
+                else
+                {
+                    EmitVariableDefaultInline(
+                        fieldPlace,
+                        field,
+                        lifetime,
+                        context,
+                        cancellationToken
+                    );
+                }
+            }
+        }
+        else
+        {
+            var arguments = EmitExpressionList(
+                newExpression.Arguments,
+                lifetime,
+                context,
+                cancellationToken
+            );
+
+            // TODO: At some point we will change this so that aggregate construction will not default initialize everything.
+            CreateCallInstruction(
+                null,
+                newExpression.Constructor,
+                new MoveOperand(address),
+                arguments,
+                context
+            );
+
+            foreach (var (field, value) in newExpression.Initializers)
+            {
+                var fieldPlace = destination.AddProjection(new FieldProjection(field));
+                EmitExpression(fieldPlace, value, lifetime, context, cancellationToken);
+            }
+        }
+    }
+
+    private void EmitVariableDefaultInline(
+        Place destination,
+        VariableSymbol variable,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var initializer = _compilation.GetMirInitializer(variable, cancellationToken);
+        if (initializer.Value is not null)
+        {
+            SubstituteVariableInitializer(
+                destination,
+                initializer.Value,
+                lifetime,
+                context,
+                cancellationToken
+            );
+        }
+        else
+        {
+            Debug.Assert(variable.Type.IsDefaultConstructible);
+        }
+    }
+
+    private void SubstituteVariableInitializer(
+        Place destination,
+        VariableInitializer initializer,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        switch (initializer.Value)
+        {
+            case ConstantValue constant:
+                context.CurrentBlock.AddAssignment(
+                    destination,
+                    new UseRValue(new ConstantOperand(constant, initializer.Symbol.Type))
+                );
+                break;
+            case ExecutableBody body:
+                break;
+        }
+    }
+
+    private void InlineExecutableBody(
+        Place destination,
+        ExecutableBody body,
+        ExpressionLifetime lifetime,
+        EmissionContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        var newLocals = new Dictionary<Local, Local>();
+        foreach (
+            var local in body
+                .Locals.AsValueEnumerable()
+                .Where(local => local.Id != LocalId.ReturnSlot)
+        )
+        {
+            var (newLocal, _) = context.CreateTemporary(local.Type, lifetime);
+            newLocals.Add(local, newLocal);
+        }
+
+        var blockMapping = new Dictionary<BasicBlock, BasicBlockBuilder>();
+        var cfg = FunctionAnalyzer.AnalyzeControlFlow(body, cancellationToken);
+        foreach (var block in body.Blocks)
+        {
+            if (block == body.EntryBlock)
+            {
+                var entryPredecessors = cfg.Predecessors[body.EntryBlock];
+                if (entryPredecessors.IsEmpty)
+                    continue;
+
+                var entry = context.AddBlock(block.Name);
+                context.CurrentBlock.SetGotoTerminator(entry);
+                context.CurrentBlock = entry;
+                blockMapping.Add(block, entry);
+            }
+            else
+            {
+                var newBlock = context.AddBlock(block.Name);
+                blockMapping.Add(block, newBlock);
+            }
+        }
+
+        foreach (var block in body.Blocks)
+        {
+            if (block != body.EntryBlock)
+            {
+                context.CurrentBlock = blockMapping[block];
+            }
+
+            foreach (var instruction in block.Instructions)
+            {
+                switch (instruction)
+                {
+                    case AssignmentInstruction(var target, var rvalue):
+                        context.CurrentBlock.AddAssignment(VisitPlace(target), VisitRValue(rvalue));
+                        break;
+                    case StorageLiveInstruction:
+                    case StorageDeadInstruction:
+                        // We want to skip these instructions as these will get automatically emitted by the copy
+                        break;
+                }
+            }
+
+            switch (block.Terminator)
+            {
+                case BranchTerminator branchTerminator:
+                    break;
+                case CallTerminator callTerminator:
+                    break;
+                case GotoTerminator(var target):
+                    context.CurrentBlock.SetGotoTerminator(blockMapping[target]);
+                    break;
+                case ReturnTerminator:
+                    // TODO: We need to figure out what to do if there's only one return.
+                    // Ideally we can just break the blocks up and let the optimizer do the rest.
+                    break;
+                case UnreachableTerminator:
+                    context.CurrentBlock.SetUnreachable();
+                    break;
+            }
+        }
+
+        return;
+
+        Place VisitPlace(Place place)
+        {
+            return place.Base switch
+            {
+                LocalPlace(var local) when local.Id == LocalId.ReturnSlot =>
+                    destination.AddProjections(VisitPlaceProjections(place.Projections)),
+                LocalPlace(var local) => new Place(
+                    new LocalPlace(newLocals[local]),
+                    VisitPlaceProjections(place.Projections)
+                ),
+                GlobalPlace => place with
+                {
+                    Projections = VisitPlaceProjections(place.Projections),
+                },
+            };
+        }
+
+        ImmutableArray<PlaceProjection> VisitPlaceProjections(
+            ImmutableArray<PlaceProjection> projections
+        )
+        {
+            PlaceProjection[]? copy = null;
+            foreach (var (i, projection) in projections.AsValueEnumerable().Index())
+            {
+                var newProjection = VisitPlaceProjection(projection);
+                if (projection == newProjection)
+                {
+                    copy?[i] = newProjection;
+                }
+                else
+                {
+                    copy = new PlaceProjection[projections.Length];
+                    projections.CopyTo(copy, i);
+                    copy[i] = newProjection;
+                }
+            }
+
+            return copy is null ? projections : ImmutableCollectionsMarshal.AsImmutableArray(copy);
+        }
+
+        PlaceProjection VisitPlaceProjection(PlaceProjection projection)
+        {
+            return projection switch
+            {
+                IndexProjection index => VisitIndexProjection(index),
+                PayloadProjection or DereferenceProjection or FieldProjection => projection,
+            };
+        }
+
+        IndexProjection VisitIndexProjection(IndexProjection index)
+        {
+            var newOperand = VisitOperand(index.Index);
+            if (newOperand == index.Index)
+                return index;
+
+            return index with
+            {
+                Index = newOperand,
+            };
+        }
+
+        Operand VisitOperand(Operand operand)
+        {
+            return operand switch
+            {
+                ConstantOperand constant => constant,
+                PlaceOperand place => VisitPlaceOperand(place),
+            };
+        }
+
+        PlaceOperand VisitPlaceOperand(PlaceOperand operand)
+        {
+            var newPlace = VisitPlace(operand.Source);
+            if (newPlace == operand.Source)
+                return operand;
+
+            return operand with
+            {
+                Source = newPlace,
+            };
+        }
+
+        RValue VisitRValue(RValue rvalue)
+        {
+            throw new NotImplementedException();
         }
     }
 
