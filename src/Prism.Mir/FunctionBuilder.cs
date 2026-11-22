@@ -16,17 +16,13 @@ public sealed class FunctionBuilder
 {
     public FunctionSymbol Symbol { get; }
 
-    private readonly List<BasicBlockBuilder> _basicBlocks = [];
-    private readonly List<Local> _locals = [];
-
-    private uint _nextBasicBlockId = 1;
-    private uint _nextLocalId = 1;
+    internal ExecutableBodyBuilder ExecutableBody { get; } = new();
 
     public BasicBlockBuilder EntryBlock
     {
-        get => field ?? throw new InvalidOperationException("Entry block not set");
-        set;
-    } = null!;
+        get => ExecutableBody.EntryBlock;
+        set => ExecutableBody.EntryBlock = value;
+    }
 
     public Local? ReturnValueLocal { get; }
 
@@ -41,7 +37,7 @@ public sealed class FunctionBuilder
         if (!Symbol.ReturnsVoid)
         {
             ReturnValueLocal = new Local(LocalId.ReturnSlot, Symbol.ReturnType);
-            _locals.Add(ReturnValueLocal);
+            ExecutableBody.AddLocal(ReturnValueLocal);
         }
 
         if (Symbol.ReceiverType is { } receiver)
@@ -65,39 +61,33 @@ public sealed class FunctionBuilder
         Parameters = ImmutableCollectionsMarshal.AsImmutableArray(parameters);
     }
 
-    public ReadOnlyList<Local> Locals => _locals.AsReadOnlyList();
+    public ReadOnlyList<Local> Locals => ExecutableBody.Locals;
 
-    public ReadOnlyList<BasicBlockBuilder> Blocks => _basicBlocks.AsReadOnlyList();
+    public ReadOnlyList<BasicBlockBuilder> Blocks => ExecutableBody.Blocks;
 
     public BasicBlockBuilder AddBasicBlock(string name = "block")
     {
-        var builder = new BasicBlockBuilder(new BasicBlockId(_nextBasicBlockId++), name);
-        _basicBlocks.Add(builder);
-        return builder;
+        return ExecutableBody.AddBasicBlock(name);
     }
 
     public void AddExistingBlock(BasicBlockBuilder builder)
     {
-        _basicBlocks.Add(builder);
+        ExecutableBody.AddExistingBlock(builder);
     }
 
     public BasicBlockBuilder AddDetachedBlock(string name = "block")
     {
-        return new BasicBlockBuilder(new BasicBlockId(_nextBasicBlockId++), name);
+        return ExecutableBody.AddDetachedBlock(name);
     }
 
     public Local AddLocal(ValueSymbol valueSymbol)
     {
-        var local = new Local(new LocalId(_nextLocalId++), valueSymbol);
-        _locals.Add(local);
-        return local;
+        return ExecutableBody.AddLocal(valueSymbol);
     }
 
     public Local AddLocal(TypeSymbol type)
     {
-        var local = new Local(new LocalId(_nextLocalId++), type);
-        _locals.Add(local);
-        return local;
+        return ExecutableBody.AddLocal(type);
     }
 
     public Function Build()
