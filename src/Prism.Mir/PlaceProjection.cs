@@ -37,6 +37,11 @@ public sealed record FieldProjection : PlaceProjection
 public sealed record IndexProjection(Operand Index, TypeSymbol Type) : PlaceProjection
 {
     internal override TypeSymbol GetTypeSymbol() => Type;
+
+    public IndexProjection WithIndex(Operand index)
+    {
+        return index == Index ? this : this with { Index = index };
+    }
 }
 
 public sealed record DereferenceProjection(TypeSymbol Type) : PlaceProjection

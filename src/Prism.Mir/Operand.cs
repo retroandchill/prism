@@ -27,6 +27,11 @@ public sealed record ConstantOperand(ConstantValue Value, TypeSymbol Type) : Ope
 public closed record PlaceOperand(Place Source) : Operand
 {
     internal override TypeSymbol GetTypeSymbol() => Source.Type;
+
+    public PlaceOperand WithSource(Place source)
+    {
+        return source == Source ? this : this with { Source = source };
+    }
 }
 
 public sealed record CopyOperand(Place Source) : PlaceOperand(Source)

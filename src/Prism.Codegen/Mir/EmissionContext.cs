@@ -53,7 +53,7 @@ internal sealed class EmissionContext
     private readonly Dictionary<ValueSymbol, (Local Local, PlaceBase Place)> _locals = [];
     private readonly Dictionary<LabelSymbol, LoopTargets> _loopTargets = [];
 
-    private readonly ExecutableBodyBuilder _builder;
+    public ExecutableBodyBuilder Builder { get; }
     private Scope _scope = new();
 
     public PlaceBase? ReturnPlace { get; }
@@ -62,7 +62,7 @@ internal sealed class EmissionContext
 
     public EmissionContext(FunctionBuilder builder)
     {
-        _builder = builder.ExecutableBody;
+        Builder = builder.ExecutableBody;
 
         if (builder.ReturnValueLocal is not null)
         {
@@ -79,38 +79,38 @@ internal sealed class EmissionContext
             _locals.Add(parameter, (local, new LocalPlace(local)));
         }
 
-        CurrentBlock = _builder.AddBasicBlock("entry");
-        _builder.EntryBlock = CurrentBlock;
+        CurrentBlock = Builder.AddBasicBlock("entry");
+        Builder.EntryBlock = CurrentBlock;
     }
 
     public EmissionContext(VariableInitializerBuilder builder)
     {
-        _builder = builder.WithExecutableBody();
+        Builder = builder.WithExecutableBody();
 
-        if (_builder.ReturnValueLocal is not null)
+        if (Builder.ReturnValueLocal is not null)
         {
-            ReturnPlace = new LocalPlace(_builder.ReturnValueLocal);
+            ReturnPlace = new LocalPlace(Builder.ReturnValueLocal);
         }
 
-        CurrentBlock = _builder.AddBasicBlock("entry");
-        _builder.EntryBlock = CurrentBlock;
+        CurrentBlock = Builder.AddBasicBlock("entry");
+        Builder.EntryBlock = CurrentBlock;
     }
 
     public BasicBlockBuilder CurrentBlock { get; set; }
 
     public BasicBlockBuilder AddBlock(string name)
     {
-        return _builder.AddBasicBlock(name);
+        return Builder.AddBasicBlock(name);
     }
 
     public void AddBlock(BasicBlockBuilder block)
     {
-        _builder.AddExistingBlock(block);
+        Builder.AddExistingBlock(block);
     }
 
     public BasicBlockBuilder AddDetachedBlock(string name)
     {
-        return _builder.AddDetachedBlock(name);
+        return Builder.AddDetachedBlock(name);
     }
 
     public ExpressionLifetime CreateExpressionLifetime() => new(this);
@@ -158,7 +158,7 @@ internal sealed class EmissionContext
 
     public (Local, PlaceBase) BindLocal(VariableSymbol variable)
     {
-        var local = _builder.AddLocal(variable);
+        var local = Builder.AddLocal(variable);
 
         var result = (local, new LocalPlace(local));
         _locals.Add(variable, result);
@@ -169,7 +169,7 @@ internal sealed class EmissionContext
 
     public (Local, PlaceBase) CreateTemporary(TypeSymbol type, ExpressionLifetime lifetime)
     {
-        var local = _builder.AddLocal(type);
+        var local = Builder.AddLocal(type);
         var result = (local, new LocalPlace(local));
         lifetime.AddTemporary(local);
         CurrentBlock.AddStorageLive(local);
