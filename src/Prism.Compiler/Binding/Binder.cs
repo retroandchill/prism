@@ -1064,8 +1064,11 @@ internal abstract class Binder : IOverloadResolutionHost
                 context,
                 cancellationToken
             ),
-            ObjectInitializerSyntax => throw new InvalidOperationException(
-                "Object initializer syntax is not supported in this context."
+            DefaultExpressionSyntax defaultExpression => BindDefaultExpression(
+                defaultExpression,
+                targetType,
+                isSpeculative,
+                context
             ),
         };
     }
@@ -2036,6 +2039,48 @@ internal abstract class Binder : IOverloadResolutionHost
         );
     }
 
+    private BoundExpression BindDefaultExpression(
+        DefaultExpressionSyntax syntax,
+        TypeSymbol? targetType,
+        bool isSpeculative,
+        BindingContext context
+    )
+    {
+        var isErrorType = false;
+        TypeSymbol type;
+        if (syntax.Type is not null)
+        {
+            type = ResolveType(syntax.Type, context);
+        }
+        else if (targetType is not null)
+        {
+            type = targetType;
+        }
+        else if (isSpeculative)
+        {
+            return new BoundSpeculativeDefaultExpression(
+                Compilation,
+                syntax,
+                UndeterminedObjectTypeSymbol.Instance.PublicSymbol
+            );
+        }
+        else
+        {
+            context.ReportDiagnostic(Diagnostic.CannotInferType(syntax.Location));
+            type = ErrorTypeSymbol.Unnamed.PublicSymbol;
+            isErrorType = true;
+        }
+
+        if (!isErrorType && !type.IsDefaultConstructible)
+        {
+            context.ReportDiagnostic(
+                Diagnostic.NotDefaultConstructible(syntax.Location, type.ToDisplayString())
+            );
+        }
+
+        return new BoundDefaultExpression(Compilation, syntax, type);
+    }
+
     private BoundExpression AddConversionIfNecessary(
         BoundExpression expression,
         TypeSymbol type,
@@ -2463,6 +2508,8 @@ internal abstract class Binder : IOverloadResolutionHost
             ),
             BoundSpeculativeCollectionExpression collectionExpression =>
                 ApplySpeculativeCollectionExpression(collectionExpression, targetType, context),
+            BoundSpeculativeDefaultExpression defaultExpression =>
+                ApplySpeculativeDefaultExpression(defaultExpression, targetType, context),
         };
     }
 
@@ -2536,6 +2583,29 @@ internal abstract class Binder : IOverloadResolutionHost
             context,
             elementType,
             arguments
+        );
+    }
+
+    private BoundDefaultExpression ApplySpeculativeDefaultExpression(
+        BoundSpeculativeDefaultExpression expression,
+        TypeSymbol? targetType,
+        BindingContext context
+    )
+    {
+        if (targetType is not null && !targetType.IsDefaultConstructible)
+        {
+            context.ReportDiagnostic(
+                Diagnostic.NotDefaultConstructible(
+                    expression.Location,
+                    targetType.ToDisplayString()
+                )
+            );
+        }
+
+        return new BoundDefaultExpression(
+            Compilation,
+            expression.Syntax,
+            targetType ?? expression.DefaultType
         );
     }
 

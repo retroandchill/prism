@@ -1347,6 +1347,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             SyntaxKind.NullKeyword => new GreenNullLiteralExpression(ConsumeToken()),
             SyntaxKind.ThisKeyword => new GreenThisExpression(ConsumeToken()),
             SyntaxKind.SizeOfKeyword => ParseSizeOfExpression(),
+            SyntaxKind.DefaultKeyword => ParseDefaultExpression(),
             SyntaxKind.OpenParenToken => ParseParenthesizedExpression(),
             SyntaxKind.OpenBracketToken => ParseCollectionExpression(),
             _ => ParseIdentifierWithInitializer(),
@@ -1451,6 +1452,21 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         );
     }
 
+    private GreenDefaultExpression ParseDefaultExpression()
+    {
+        var keyword = ExpectToken(SyntaxKind.DefaultKeyword);
+
+        var openParen = MatchToken(SyntaxKind.OpenParenToken);
+        return openParen is null
+            ? new GreenDefaultExpression(keyword, null, null, null)
+            : new GreenDefaultExpression(
+                keyword,
+                openParen,
+                ParseType(),
+                ExpectToken(SyntaxKind.CloseParenToken)
+            );
+    }
+
     private GreenParenthesizedExpression ParseParenthesizedExpression()
     {
         return new GreenParenthesizedExpression(
@@ -1527,20 +1543,11 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
     private GreenObjectInitializerItem ParseObjectInitializerMember()
     {
-        var name = ExpectToken(SyntaxKind.IdentifierToken);
-        var equals = ExpectToken(SyntaxKind.EqualToken);
-
-        GreenExpression value;
-        if (CurrentToken.Kind == SyntaxKind.OpenBraceToken)
-        {
-            value = ParseObjectInitializer();
-        }
-        else
-        {
-            value = ParseExpression();
-        }
-
-        return new GreenObjectInitializerItem(name, equals, value);
+        return new GreenObjectInitializerItem(
+            ExpectToken(SyntaxKind.IdentifierToken),
+            ExpectToken(SyntaxKind.EqualToken),
+            ParseExpression()
+        );
     }
 
     private static PostSkipAction SkipBadInitializerListTokens<T>(

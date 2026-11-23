@@ -60,6 +60,16 @@ public readonly partial record struct FloatConstant : IUnion
         _rawValue.F64 = value;
     }
 
+    public static FloatConstant Zero(FloatKind kind)
+    {
+        return kind switch
+        {
+            FloatKind.F32 => 0.0f,
+            FloatKind.F64 => 0.0d,
+            _ => throw new InvalidOperationException("Invalid float kind"),
+        };
+    }
+
     public bool IsZero =>
         Kind switch
         {

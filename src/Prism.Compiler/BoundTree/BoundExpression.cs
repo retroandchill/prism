@@ -14,7 +14,6 @@ using Prism.Semantic.Conversions;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
 using Prism.Utils;
-using ConstantValue = Prism.Constants.ConstantValue;
 
 namespace Prism.Compiler.BoundTree;
 
@@ -522,4 +521,41 @@ internal sealed record BoundNewExpression : BoundExpression
     public FunctionSymbol Constructor { get; }
     public ImmutableArray<BoundExpression> Arguments { get; }
     public ImmutableArray<BoundFieldInitializer> Initializers { get; }
+}
+
+internal sealed record BoundDefaultExpression : BoundExpression
+{
+    public BoundDefaultExpression(Compilation compilation, SyntaxNode syntax, TypeSymbol type)
+        : base(compilation, syntax, type) { }
+
+    protected override ConstantValue? ComputeConstantValue()
+    {
+        return Type switch
+        {
+            NullableTypeSymbol => new NullConstant(),
+            NamedTypeSymbol
+            {
+                IsEnum: false,
+                SpecialType: { IsNumeric: false, IsCharacter: false }
+            } => null,
+            NamedTypeSymbol type => CreateEnumOrNumericConstant(type),
+            _ => (ConstantValue?)null,
+        };
+
+        ConstantValue CreateEnumOrNumericConstant(NamedTypeSymbol type)
+        {
+            var specialType = type.IsEnum ? type.EnumUnderlyingType.SpecialType : type.SpecialType;
+            return Constants.ConstantValue.Zero(specialType, Compilation.Settings.PointerWidth);
+        }
+    }
+}
+
+internal sealed record BoundSpeculativeDefaultExpression : BoundSpeculativeExpression
+{
+    public BoundSpeculativeDefaultExpression(
+        Compilation compilation,
+        SyntaxNode syntax,
+        TypeSymbol type
+    )
+        : base(compilation, syntax, type, ErrorTypeSymbol.Unnamed.PublicSymbol) { }
 }

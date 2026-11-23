@@ -13,11 +13,9 @@ using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols.Intrinsic;
 using Prism.Constants;
 using Prism.Mir;
-using Prism.Mir.Analysis;
 using Prism.Mir.Optimization;
 using Prism.Semantic.Symbols;
 using Prism.Utils;
-using ZLinq;
 
 namespace Prism.Codegen.Mir;
 
@@ -633,6 +631,9 @@ internal sealed class MirEmitter : IMirEmitter
                 break;
             case BoundNewExpression newExpression:
                 EmitNewExpression(destination, newExpression, lifetime, context, cancellationToken);
+                break;
+            case BoundDefaultExpression defaultExpression:
+                EmitDefaultExpression(destination, defaultExpression, context);
                 break;
             case BoundBadExpression or BoundSpeculativeExpression:
                 throw new InvalidOperationException(
@@ -1269,13 +1270,7 @@ internal sealed class MirEmitter : IMirEmitter
                 }
                 else
                 {
-                    EmitVariableDefaultInline(
-                        fieldPlace,
-                        field,
-                        lifetime,
-                        context,
-                        cancellationToken
-                    );
+                    EmitVariableDefaultInline(fieldPlace, field, context, cancellationToken);
                 }
             }
         }
@@ -1308,7 +1303,6 @@ internal sealed class MirEmitter : IMirEmitter
     private void EmitVariableDefaultInline(
         Place destination,
         VariableSymbol variable,
-        ExpressionLifetime lifetime,
         EmissionContext context,
         CancellationToken cancellationToken
     )
@@ -1325,10 +1319,7 @@ internal sealed class MirEmitter : IMirEmitter
         }
         else
         {
-            Debug.Assert(variable.Type.IsDefaultConstructible);
-            // TODO: We need to handle default values.
-            // The rules are primitives and defaultable enums are initialized to 0,
-            // and everything else calls the default constructor
+            EmitDefaultValueToPlace(destination, variable.Type, context);
         }
     }
 
@@ -1357,6 +1348,109 @@ internal sealed class MirEmitter : IMirEmitter
                 );
                 break;
         }
+    }
+
+    private void EmitDefaultValueToPlace(
+        Place destination,
+        TypeSymbol type,
+        EmissionContext context
+    )
+    {
+        Debug.Assert(type.IsDefaultConstructible);
+        switch (type)
+        {
+            case NamedTypeSymbol namedType:
+                EmitDefaultValueToPlace(destination, namedType, context);
+                break;
+            case ArrayTypeSymbol arrayType:
+                EmitDefaultValueToPlace(destination, arrayType, context);
+                break;
+            case NullableTypeSymbol nullableType:
+                EmitDefaultValueToPlace(destination, nullableType, context);
+                break;
+            case ReferenceTypeSymbol:
+                throw new InvalidOperationException(
+                    "Reference types cannot be default constructed"
+                );
+        }
+    }
+
+    private void EmitDefaultValueToPlace(
+        Place destination,
+        NamedTypeSymbol type,
+        EmissionContext context
+    )
+    {
+        if (type.IsEnum || type.SpecialType.IsNumeric || type.SpecialType.IsCharacter)
+        {
+            var specialType = type.IsEnum ? type.EnumUnderlyingType.SpecialType : type.SpecialType;
+            context.CurrentBlock.AddAssignment(
+                destination,
+                new UseRValue(
+                    new ConstantOperand(
+                        ConstantValue.Zero(specialType, _compilation.Settings.PointerWidth),
+                        type
+                    )
+                )
+            );
+            return;
+        }
+
+        var defaultCtor = type.GetMembers(CommonNames.Ctor)
+            .OfType<FunctionSymbol>()
+            .Single(f => f.Parameters.IsEmpty);
+
+        var afterCall = context.AddBlock("after.call");
+        context.CurrentBlock.SetCallTerminator(
+            defaultCtor,
+            new CopyOperand(destination),
+            [],
+            null,
+            afterCall
+        );
+        context.CurrentBlock = afterCall;
+    }
+
+    private void EmitDefaultValueToPlace(
+        Place destination,
+        ArrayTypeSymbol type,
+        EmissionContext context
+    )
+    {
+        Debug.Assert(type.Size is not null, "Array must have a definite size");
+        var size = type.Size.Value;
+
+        var usizeType = _compilation.GetSpecialType(SpecialType.USize);
+        var integerKind = SpecialType.USize.ToIntegerKind(_compilation.Settings.PointerWidth);
+        for (var i = 0UL; i < size; i++)
+        {
+            var index = new ConstantOperand(IntegerConstant.From(integerKind, 0), usizeType);
+            var indexDestination = destination.AddProjection(
+                new IndexProjection(index, type.ElementType)
+            );
+            EmitDefaultValueToPlace(indexDestination, type.ElementType, context);
+        }
+    }
+
+    private static void EmitDefaultValueToPlace(
+        Place destination,
+        NullableTypeSymbol type,
+        EmissionContext context
+    )
+    {
+        context.CurrentBlock.AddAssignment(
+            destination,
+            new UseRValue(new ConstantOperand(new NullConstant(), type))
+        );
+    }
+
+    private void EmitDefaultExpression(
+        Place destination,
+        BoundDefaultExpression expression,
+        EmissionContext context
+    )
+    {
+        EmitDefaultValueToPlace(destination, expression.Type, context);
     }
 
     private Place EmitPlace(

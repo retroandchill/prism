@@ -10,6 +10,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="Prism.Compiler" />
+        <InternalsVisibleTo Include="Prism.Codegen" />
         <InternalsVisibleTo Include="Prism.Syntax" />
         <InternalsVisibleTo Include="Prism.Metadata" />
         <InternalsVisibleTo Include="Prism.Semantic" />

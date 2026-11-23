@@ -1030,6 +1030,35 @@
           ]
         },
         {
+          "name": "ObjectInitializer",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "open_brace",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "OpenBraceToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "items",
+              "type": "ObjectInitializerItem",
+              "shape": "separated_list"
+            },
+            {
+              "$type": "item",
+              "name": "close_brace",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "CloseBraceToken"
+              ]
+            }
+          ]
+        },
+        {
           "name": "BaseList",
           "properties": [
             {
@@ -1565,34 +1594,43 @@
           ]
         },
         {
-          "name": "ObjectInitializer",
+          "name": "DefaultExpression",
           "base": "Expression",
           "properties": [
             {
               "$type": "item",
-              "name": "open_brace",
+              "name": "keyword",
               "type": "Token",
               "shape": "single",
               "kinds": [
-                "OpenBraceToken"
+                "DefaultKeyword"
               ]
             },
             {
               "$type": "item",
-              "name": "items",
-              "type": "ObjectInitializerItem",
-              "shape": "separated_list"
+              "name": "open_paren",
+              "type": "Token",
+              "shape": "optional",
+              "kinds": [
+                "OpenParenToken"
+              ]
             },
             {
               "$type": "item",
-              "name": "close_brace",
+              "name": "type",
+              "type": "Type",
+              "shape": "optional"
+            },
+            {
+              "$type": "item",
+              "name": "close_paren",
               "type": "Token",
-              "shape": "single",
+              "shape": "optional",
               "kinds": [
-                "CloseBraceToken"
+                "CloseParenToken"
               ]
             }
-          ]
+            ]
         }
       ]
     },

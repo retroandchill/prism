@@ -671,6 +671,17 @@
           "name": "PartialEnumOrdinalMustBeExplicit",
           "severity": "Error",
           "format": "The first ordinal of a partial enum declaration must be explicit"
+        },
+        {
+          "name": "NotDefaultConstructible",
+          "severity": "Error",
+          "format": "Type {Type} is not default constructible",
+          "args": [
+            {
+              "name": "Type",
+              "type": "String"
+            }
+          ]
         }
       ]
     },

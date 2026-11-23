@@ -41,6 +41,8 @@ public readonly partial record struct CharacterConstant : IUnion
     public CharacterConstant(Rune value)
         : this(CharacterKind.C32, value) { }
 
+    public static CharacterConstant Zero(CharacterKind kind) => new(kind, new Rune('\0'));
+
     public object Value
     {
         get
