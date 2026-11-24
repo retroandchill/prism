@@ -281,34 +281,28 @@ public readonly partial record struct TypeSpecHandle
 }
 
 [Archivable]
-[CompositeHandle(typeof(TypeDefHandle), typeof(TypeRefHandle), typeof(TypeSpecHandle))]
+[Handle]
+public readonly partial record struct TypeAliasHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial TypeAliasHandle(int id);
+}
+
+[Archivable]
+[CompositeHandle(
+    typeof(TypeDefHandle),
+    typeof(TypeRefHandle),
+    typeof(TypeSpecHandle),
+    typeof(TypeAliasHandle)
+)]
 public readonly partial record struct TypeHandle
 {
     [ArchiveInclude]
     private readonly MetadataToken _token;
 
     private partial TypeHandle(MetadataToken token);
-
-    public static explicit operator NamedTypeHandle(TypeHandle handle)
-    {
-        return handle switch
-        {
-            TypeDefHandle d => d,
-            TypeRefHandle r => r,
-            TypeSpecHandle => throw new InvalidCastException("Not a named type"),
-            null => NamedTypeHandle.None,
-        };
-    }
-}
-
-[Archivable]
-[CompositeHandle(typeof(TypeDefHandle), typeof(TypeRefHandle))]
-public readonly partial record struct NamedTypeHandle
-{
-    [ArchiveInclude]
-    private readonly MetadataToken _token;
-
-    private partial NamedTypeHandle(MetadataToken token);
 }
 
 [Archivable]

@@ -23,7 +23,7 @@ public sealed class NamedTypeSymbol : TypeSymbol, IAttributeHolderSymbolData
     [MemberNotNullWhen(true, nameof(EnumUnderlyingType))]
     public bool IsEnum => Kind == NamedTypeKind.Enum;
 
-    public NamedTypeSymbol? EnumUnderlyingType => Data.EnumUnderlyingType;
+    public TypeSymbol? EnumUnderlyingType => Data.EnumUnderlyingType;
 
     public ImmutableArray<EnumOrdinalSymbol> EnumOrdinals => Data.EnumOrdinals;
 

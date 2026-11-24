@@ -115,7 +115,7 @@ internal abstract class Binder : IOverloadResolutionHost
         };
     }
 
-    public NamedTypeSymbol ResolveType(NamedTypeSyntax syntax, BindingContext context)
+    public TypeSymbol ResolveType(NamedTypeSyntax syntax, BindingContext context)
     {
         return RequireType(
             LookupFromSyntax(syntax.Identifier, LookupOptions.Type, context),
@@ -149,13 +149,9 @@ internal abstract class Binder : IOverloadResolutionHost
         };
     }
 
-    private NamedTypeSymbol RequireType(
-        LookupResult result,
-        NameSyntax syntax,
-        BindingContext context
-    )
+    private TypeSymbol RequireType(LookupResult result, NameSyntax syntax, BindingContext context)
     {
-        if (result is { IsViable: true, Symbol: NamedTypeSymbol typeSymbol })
+        if (result is { IsViable: true, Symbol: TypeSymbol typeSymbol })
         {
             return typeSymbol;
         }
@@ -476,13 +472,14 @@ internal abstract class Binder : IOverloadResolutionHost
         )
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var attributeType = ResolveType(attribute.Type, context);
-            if (attributeType.Kind != NamedTypeKind.Attribute)
+            var resolvedType = ResolveType(attribute.Type, context);
+            var unaliased = resolvedType.UnwrapTypeAlias();
+            if (unaliased is not NamedTypeSymbol { Kind: NamedTypeKind.Attribute } attributeType)
             {
                 context.ReportDiagnostic(
                     Diagnostic.TypeIsNotAttribute(
                         attribute.Type.Location,
-                        attributeType.ToDisplayString()
+                        resolvedType.ToDisplayString()
                     )
                 );
                 continue;

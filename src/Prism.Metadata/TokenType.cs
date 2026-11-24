@@ -19,6 +19,7 @@ internal enum Section
     TypeDefs = 20,
     TypeRefs = 21,
     TypeSpecs = 22,
+    TypeAliases = 23,
     Variables = 30,
     Functions = 31,
     Parameters = 32,
@@ -36,6 +37,7 @@ internal static partial class Sections
     public const uint TypeRef = 12;
     public const uint TypeDef = 13;
     public const uint TypeSpec = 14;
+    public const uint TypeAlias = 15;
 
     public const uint Variable = 24;
     public const uint Function = 25;
@@ -70,6 +72,7 @@ public enum TokenType : uint
     TypeRef = Sections.TypeRef << Sections.RowIdBitCount,
     TypeDef = Sections.TypeDef << Sections.RowIdBitCount,
     TypeSpec = Sections.TypeSpec << Sections.RowIdBitCount,
+    TypeAlias = Sections.TypeAlias << Sections.RowIdBitCount,
 
     Variable = Sections.Variable << Sections.RowIdBitCount,
     Function = Sections.Function << Sections.RowIdBitCount,

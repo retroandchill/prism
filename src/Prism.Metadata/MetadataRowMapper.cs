@@ -51,7 +51,7 @@ internal sealed partial class MetadataRowMapper(
     public partial ImmutableArray<TypeDefinitionRow> Map(ImmutableArray<TypeDefinition> namespaces);
 
     [MapProperty(nameof(TypeDefinition.ParentHandle), nameof(TypeDefinitionRow.Container))]
-    [MapProperty(nameof(TypeDefinition.BaseTypeHandle), nameof(TypeDefinitionRow.Base))]
+    [MapProperty(nameof(TypeDefinition.BaseType), nameof(TypeDefinitionRow.Base))]
     private partial TypeDefinitionRow Map(TypeDefinition definition);
 
     public partial ImmutableArray<TypeReferenceRow> Map(ImmutableArray<TypeReference> namespaces);
@@ -62,7 +62,12 @@ internal sealed partial class MetadataRowMapper(
     [MapDerivedType<ArrayTypeSpecification, ArrayTypeRow>]
     [MapDerivedType<ReferenceTypeSpecification, ReferenceTypeRow>]
     [MapDerivedType<NullableTypeSpecification, NullableTypeRow>]
-    public partial TypeSpecRow Map(TypeSpecification specification);
+    private partial TypeSpecRow Map(TypeSpecification specification);
+
+    public partial ImmutableArray<TypeAliasRow> Map(ImmutableArray<TypeAlias> aliases);
+
+    [MapProperty(nameof(TypeReference.ParentHandle), nameof(TypeReferenceRow.Container))]
+    private partial TypeAliasRow Map(TypeAlias alias);
 
     private partial ArrayTypeRow Map(ArrayTypeSpecification specification);
 
@@ -85,6 +90,7 @@ internal sealed partial class MetadataRowMapper(
                 },
                 this
             ),
+            TypeAlias typeAlias => typeAlias.Handle,
         };
     }
 
@@ -129,7 +135,7 @@ internal sealed partial class MetadataRowMapper(
     );
 
     [MapProperty(nameof(CustomAttributeDefinition.ParentHandle), nameof(CustomAttributeRow.Holder))]
-    [MapProperty(nameof(CustomAttributeDefinition.TypeHandle), nameof(CustomAttributeRow.Type))]
+    [MapProperty(nameof(CustomAttributeDefinition.Type), nameof(CustomAttributeRow.Type))]
     private partial CustomAttributeRow Map(CustomAttributeDefinition definition);
 
     private BlobHandle MapConstantArray(ImmutableArray<ConstantValue> arguments)

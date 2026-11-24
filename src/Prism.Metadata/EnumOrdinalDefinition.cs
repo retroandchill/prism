@@ -64,6 +64,7 @@ public partial class EnumOrdinalDefinition : IAttributeHolderDefinition
 
     [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target, UseReferenceHandling = true)]
     [UseStaticMapper(typeof(TypeDefinition.Mapper))]
+    [UseStaticMapper(typeof(CustomAttributeDefinition.Mapper))]
     internal static partial class Mapper
     {
         [MapperIgnoreTarget(nameof(ParentHandle))]
@@ -81,5 +82,6 @@ public partial class EnumOrdinalDefinition : IAttributeHolderDefinition
                 var mappings = @this._reader.CustomAttributesByMember[@this.Handle];
                 return [.. mappings.Select(@this._reader.GetCustomAttribute)];
             }); }
+        private set;
     }
 }

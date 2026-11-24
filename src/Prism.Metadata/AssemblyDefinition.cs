@@ -9,7 +9,7 @@ namespace Prism.Metadata;
 
 public sealed partial class AssemblyDefinition
 {
-    public Prism.AssemblyIdentity Identity { get; }
+    public AssemblyIdentity Identity { get; }
     public Configuration.TargetInfo TargetInfo { get; }
 
     private readonly MetadataReader? _metadataReader;
@@ -22,10 +22,7 @@ public sealed partial class AssemblyDefinition
     }
 
     [MapperConstructor]
-    internal AssemblyDefinition(
-        Prism.AssemblyIdentity identity,
-        Configuration.TargetInfo targetInfo
-    )
+    private AssemblyDefinition(AssemblyIdentity identity, Configuration.TargetInfo targetInfo)
     {
         Identity = identity;
         TargetInfo = targetInfo;
@@ -137,6 +134,25 @@ public sealed partial class AssemblyDefinition
                 ref field,
                 ReadAll(_metadataReader.TypeReferenceCount, static (r, i) =>
                     r.GetTypeRef(TypeRefHandle.FromRowId(i))
+                )
+            );
+            return field;
+        }
+        private set;
+    }
+
+    internal ImmutableArray<TypeAlias> TypeAliases
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            Debug.Assert(_metadataReader is not null);
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                ReadAll(_metadataReader.TypeReferenceCount, static (r, i) =>
+                    r.GetTypeAlias(TypeAliasHandle.FromRowId(i))
                 )
             );
             return field;
@@ -293,6 +309,7 @@ public sealed partial class AssemblyDefinition
     [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target, UseReferenceHandling = true)]
     [UseStaticMapper(typeof(NamespaceDefinition.Mapper))]
     [UseStaticMapper(typeof(TypeDefinition.Mapper))]
+    [UseStaticMapper(typeof(TypeAlias.Mapper))]
     [UseStaticMapper(typeof(TypeMapper))]
     [UseStaticMapper(typeof(VariableDefinition.Mapper))]
     [UseStaticMapper(typeof(FunctionDefinition.Mapper))]

@@ -42,6 +42,8 @@ internal partial struct MetadataLayout
 
     public MetadataHeap TypeSpecHeap { get; private set; }
 
+    public ImmutableArray<TypeAliasRow> TypeAliases { get; private set; }
+
     public ImmutableArray<VariableRow> Variables { get; private set; }
 
     public ImmutableArray<FunctionRow> Functions { get; private set; }
@@ -68,6 +70,7 @@ internal partial struct MetadataLayout
             NamespaceReferences = mapper.Map(assembly.ReferencedNamespaces),
             TypeDefinitions = mapper.Map(assembly.DefinedTypes),
             TypeReferences = mapper.Map(assembly.ReferencedTypes),
+            TypeAliases = mapper.Map(assembly.TypeAliases),
             Variables = mapper.Map(assembly.Variables),
             Functions = mapper.Map(assembly.Functions),
             Parameters = mapper.Map(assembly.Parameters),
@@ -170,6 +173,14 @@ internal partial struct MetadataLayout
                 value.TypeSpecHeap,
                 sectionHeaders,
                 Section.TypeSpecs,
+                ref currentSection,
+                ref currentOffset
+            );
+            WriteRows(
+                ref tempWriter,
+                value.TypeAliases,
+                sectionHeaders,
+                Section.TypeAliases,
                 ref currentSection,
                 ref currentOffset
             );

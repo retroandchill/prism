@@ -23,7 +23,7 @@ internal abstract class SynthesizedFunction : SynthesizedSymbol, IFunctionSymbol
     public new FunctionSymbol PublicSymbol
     {
         get => Unsafe.As<FunctionSymbol>(base.PublicSymbol);
-        private init => base.PublicSymbol = new FunctionSymbol(this);
+        private init => base.PublicSymbol = value;
     }
 
     public abstract FunctionKind Kind { get; }

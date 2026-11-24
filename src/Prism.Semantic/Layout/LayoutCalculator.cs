@@ -40,6 +40,11 @@ internal static class LayoutCalculator
                 nullableTypeSymbol,
                 cancellationToken
             ),
+            TypeAliasSymbol typeAliasSymbol => GetTypeLayout(
+                compilation,
+                typeAliasSymbol.AliasedType,
+                cancellationToken
+            ),
         };
     }
 

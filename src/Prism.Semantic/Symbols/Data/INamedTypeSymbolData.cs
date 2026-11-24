@@ -11,7 +11,7 @@ internal interface INamedTypeSymbolData : ITypeSymbolData
 {
     NamedTypeKind Kind { get; }
 
-    NamedTypeSymbol? EnumUnderlyingType => null;
+    TypeSymbol? EnumUnderlyingType => null;
 
     ImmutableArray<EnumOrdinalSymbol> EnumOrdinals => [];
 

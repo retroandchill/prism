@@ -6,7 +6,7 @@ namespace Prism.Compiler.Symbols.Error;
 
 public class ErrorFieldSymbol : IVariableSymbolData
 {
-    internal ErrorFieldSymbol(string name, NamedTypeSymbol containingSymbol)
+    internal ErrorFieldSymbol(string name, TypeSymbol containingSymbol)
     {
         Name = name;
         ContainingType = containingSymbol;

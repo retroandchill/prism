@@ -25,9 +25,25 @@ public closed class TypeSymbol : MemberContainerSymbol
 
     public bool IsDefaultConstructible => Data.IsDefaultConstructible;
 
+    public TypeSymbol UnwrapTypeAlias()
+    {
+        var typeSymbol = this;
+        while (typeSymbol is TypeAliasSymbol typeAliasSymbol)
+        {
+            typeSymbol = typeAliasSymbol.AliasedType;
+        }
+
+        return typeSymbol;
+    }
+
     public sealed override bool Equals(Symbol other, SymbolCompareKind kind)
     {
-        return other is TypeSymbol typeSymbol && Equals(typeSymbol, kind);
+        return other switch
+        {
+            TypeAliasSymbol typeAliasSymbol => Equals(typeAliasSymbol.AliasedType, kind),
+            TypeSymbol typeSymbol => Equals(typeSymbol, kind),
+            _ => false,
+        };
     }
 
     public virtual bool Equals(TypeSymbol other, SymbolCompareKind kind)

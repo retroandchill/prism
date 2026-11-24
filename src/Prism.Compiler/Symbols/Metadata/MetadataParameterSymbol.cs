@@ -27,10 +27,10 @@ internal sealed class MetadataParameterSymbol : IParameterSymbolData, ILocatable
     {
         _definition = definition;
         _containingAssembly = containingAssembly;
-        PublicModel = new ParameterSymbol(this);
+        PublicSymbol = new ParameterSymbol(this);
     }
 
-    public ParameterSymbol PublicModel { get; }
+    public ParameterSymbol PublicSymbol { get; }
     public string Name => _definition.Name;
     public ImmutableArray<Location> Locations => _containingAssembly.Locations;
 
@@ -50,7 +50,7 @@ internal sealed class MetadataParameterSymbol : IParameterSymbolData, ILocatable
         }
     }
 
-    public AssemblySymbol ContainingAssembly => _containingAssembly.PublicModel;
+    public AssemblySymbol ContainingAssembly => _containingAssembly.PublicSymbol;
     public ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => [];
 
     public TypeSymbol Type

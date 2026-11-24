@@ -34,6 +34,9 @@ internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSy
         MetadataNamedTypeSymbol
     > _ownedNamedTypes = new();
 
+    private readonly ConcurrentDictionary<TypeAlias, MetadataTypeAliasSymbol> _ownedTypeAliases =
+        new();
+
     private readonly ConcurrentDictionary<
         NamespaceReference,
         NamespaceSymbol
@@ -65,10 +68,10 @@ internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSy
     {
         _definition = definition;
         _referenceManager = referenceManager;
-        PublicModel = new AssemblySymbol(this);
+        PublicSymbol = new AssemblySymbol(this);
     }
 
-    public AssemblySymbol PublicModel { get; }
+    public AssemblySymbol PublicSymbol { get; }
 
     public string Name => _definition.Identity.Name;
     public Symbol? ContainingSymbol => null;
@@ -82,7 +85,7 @@ internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSy
 
             ImmutableInterlocked.InterlockedInitialize(
                 ref field,
-                [new MetadataLocation(PublicModel)]
+                [new MetadataLocation(PublicSymbol)]
             );
             return field;
         }
@@ -126,14 +129,21 @@ internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSy
     {
         return _ownedNamespaces
             .GetOrAdd(ns, static (d, @this) => new MetadataNamespaceSymbol(d, @this), this)
-            .PublicModel;
+            .PublicSymbol;
     }
 
     internal NamedTypeSymbol GetOrAddType(TypeDefinition type)
     {
         return _ownedNamedTypes
             .GetOrAdd(type, static (d, @this) => new MetadataNamedTypeSymbol(d, @this), this)
-            .PublicModel;
+            .PublicSymbol;
+    }
+
+    internal TypeAliasSymbol GetOrAddTypeAlias(TypeAlias typeAlias)
+    {
+        return _ownedTypeAliases
+            .GetOrAdd(typeAlias, static (d, @this) => new MetadataTypeAliasSymbol(d, @this), this)
+            .PublicSymbol;
     }
 
     internal MemberContainerSymbol GetOrAddMemberContainer(MemberContainerDefinition container)
@@ -152,15 +162,7 @@ internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSy
             TypeDefinition def => GetOrAddType(def),
             TypeReference reference => GetReferencedType(reference),
             TypeSpecification specification => GetReferencedTypeSpecification(specification),
-        };
-    }
-
-    internal NamedTypeSymbol GetReferencedType(NamedType descriptor)
-    {
-        return descriptor switch
-        {
-            TypeDefinition def => GetOrAddType(def),
-            TypeReference reference => GetReferencedType(reference),
+            TypeAlias alias => GetOrAddTypeAlias(alias),
         };
     }
 
@@ -254,14 +256,14 @@ internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSy
     {
         return _ownedVariables
             .GetOrAdd(variable, static (d, @this) => new MetadataVariableSymbol(d, @this), this)
-            .PublicModel;
+            .PublicSymbol;
     }
 
     internal FunctionSymbol GetOrAddFunction(FunctionDefinition function)
     {
         return _ownedFunctions
             .GetOrAdd(function, static (d, @this) => new MetadataFunctionSymbol(d, @this), this)
-            .PublicModel;
+            .PublicSymbol;
     }
 
     internal Symbol GetOrAddFunctionOrAttribute(FunctionOrAttribute attribute)
@@ -277,7 +279,7 @@ internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSy
     {
         return _ownedParameters
             .GetOrAdd(parameter, static (d, @this) => new MetadataParameterSymbol(d, @this), this)
-            .PublicModel;
+            .PublicSymbol;
     }
 
     internal ImmutableArray<AttributeData> GetAttributes(IAttributeHolderDefinition holder)
@@ -291,8 +293,9 @@ internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSy
         foreach (var (i, attribute) in attributes.AsValueEnumerable().Index())
         {
             var attributeType = GetReferencedType(attribute.Type);
-            Debug.Assert(attributeType.Kind == NamedTypeKind.Attribute);
-            var parameters = attributeType.AttributeParameters;
+            var unwrapped = (NamedTypeSymbol)attributeType.UnwrapTypeAlias();
+            Debug.Assert(unwrapped.Kind == NamedTypeKind.Attribute);
+            var parameters = unwrapped.AttributeParameters;
 
             Debug.Assert(parameters.Length == attribute.Arguments.Length);
             var arguments = parameters

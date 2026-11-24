@@ -80,6 +80,7 @@ public sealed partial class NamespaceDefinition : MemberContainerDefinition
     [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target, UseReferenceHandling = true)]
     [UseStaticMapper(typeof(MemberContainerDefinition.Mapper))]
     [UseStaticMapper(typeof(TypeDefinition.Mapper))]
+    [UseStaticMapper(typeof(TypeAlias.Mapper))]
     [UseStaticMapper(typeof(VariableDefinition.Mapper))]
     [UseStaticMapper(typeof(FunctionDefinition.Mapper))]
     internal static new partial class Mapper

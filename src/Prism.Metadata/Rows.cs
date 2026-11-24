@@ -53,7 +53,7 @@ internal readonly partial record struct TypeDefinitionRow(
     NamedTypeAttributes Attributes,
     StringHandle Name,
     MemberContainerDefHandle Container,
-    NamedTypeHandle Base = default
+    TypeHandle Base = default
 ) : INestedContainerRow<MemberContainerDefHandle>;
 
 [Archivable]
@@ -77,6 +77,14 @@ internal sealed partial record ReferenceTypeRow(TypeHandle ElementType, bool IsM
 
 [Archivable]
 internal sealed partial record NullableTypeRow(TypeHandle ElementType) : TypeSpecRow;
+
+[Archivable]
+internal readonly partial record struct TypeAliasRow(
+    StringHandle Name,
+    TypeAliasAttributes Attributes,
+    TypeHandle AliasedType,
+    MemberContainerDefHandle Container
+) : INestedContainerRow<MemberContainerDefHandle>;
 
 [Archivable]
 internal readonly partial record struct VariableRow(
@@ -111,7 +119,7 @@ internal readonly partial record struct ParameterRow(
 
 [Archivable]
 internal readonly partial record struct CustomAttributeRow(
-    NamedTypeHandle Type,
+    TypeHandle Type,
     AttributeHolderHandle Holder,
     BlobHandle Arguments
 ) : INestedContainerRow<AttributeHolderHandle>

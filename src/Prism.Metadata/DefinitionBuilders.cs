@@ -13,7 +13,7 @@ public interface IAttributeHolderDefinitionBuilder
 {
     ReadOnlyCollection<CustomAttributeDefinitionBuilder> CustomAttributes { get; }
 
-    CustomAttributeDefinitionBuilder AddCustomAttribute(NamedTypeBuilder type);
+    CustomAttributeDefinitionBuilder AddCustomAttribute(TypeDescriptorBuilder type);
 }
 
 public closed class MemberContainerDefinitionBuilder(
@@ -22,6 +22,7 @@ public closed class MemberContainerDefinitionBuilder(
 )
 {
     private readonly List<TypeDefinitionBuilder> _types = [];
+    private readonly List<TypeAliasBuilder> _typeAliases = [];
     private readonly List<VariableDefinitionBuilder> _variables = [];
     private readonly List<FunctionDefinitionBuilder> _functions = [];
 
@@ -34,6 +35,7 @@ public closed class MemberContainerDefinitionBuilder(
     protected abstract MemberContainerDefHandle GetHandle();
 
     public ReadOnlyCollection<TypeDefinitionBuilder> Types => _types.AsReadOnly();
+    public ReadOnlyCollection<TypeAliasBuilder> TypeAliases => _typeAliases.AsReadOnly();
     public ReadOnlyCollection<VariableDefinitionBuilder> Variables => _variables.AsReadOnly();
     public ReadOnlyCollection<FunctionDefinitionBuilder> Functions => _functions.AsReadOnly();
 
@@ -42,6 +44,13 @@ public closed class MemberContainerDefinitionBuilder(
         var type = Assembly.AddTypeDefinition(name, this);
         _types.Add(type);
         return type;
+    }
+
+    public TypeAliasBuilder AddTypeAlias(string name)
+    {
+        var typeAlias = Assembly.AddTypeAlias(name, this);
+        _typeAliases.Add(typeAlias);
+        return typeAlias;
     }
 
     public VariableDefinitionBuilder AddVariable(string name, TypeDescriptorBuilder type)
@@ -127,7 +136,7 @@ public sealed class TypeDefinitionBuilder(
         set => Attributes = Attributes with { SpecialType = value };
     }
 
-    public NamedTypeBuilder? BaseType { get; set; }
+    public TypeDescriptorBuilder? BaseType { get; set; }
 
     public ReadOnlyCollection<EnumOrdinalDefinitionBuilder> EnumOrdinals =>
         _enumOrdinals.AsReadOnly();
@@ -157,7 +166,7 @@ public sealed class TypeDefinitionBuilder(
         return parameter;
     }
 
-    public CustomAttributeDefinitionBuilder AddCustomAttribute(NamedTypeBuilder type)
+    public CustomAttributeDefinitionBuilder AddCustomAttribute(TypeDescriptorBuilder type)
     {
         var attribute = Assembly.AddCustomAttribute(type, this);
         _customAttributes.Add(attribute);
@@ -170,19 +179,40 @@ public sealed class TypeDefinitionBuilder(
     }
 }
 
-public readonly union NamedTypeBuilder(TypeDefinitionBuilder, TypeReference);
-
-public readonly union TypeDescriptorBuilder(TypeDefinitionBuilder, TypeReference, TypeSpecBuilder)
+public sealed class TypeAliasBuilder(
+    TypeAliasHandle handle,
+    string name,
+    MemberContainerDefinitionBuilder container
+)
 {
-    public static implicit operator TypeDescriptorBuilder(NamedTypeBuilder builder)
+    public TypeAliasHandle Handle { get; } = handle;
+
+    public string Name { get; } = name;
+
+    internal TypeAliasAttributes Attributes { get; set; }
+
+    public DeclaredVisibility Visibility
     {
-        return builder switch
-        {
-            TypeDefinitionBuilder b => b,
-            TypeReference r => r,
-        };
+        get => Attributes.Visibility;
+        set => Attributes = Attributes with { Visibility = value };
+    }
+
+    public MemberContainerDefinitionBuilder Container { get; } = container;
+
+    public TypeDescriptorBuilder AliasedType { get; set; }
+
+    public TypeAlias ToDefinition(IReferenceHandler handler)
+    {
+        return TypeAlias.Mapper.ToDefinition(this, handler);
     }
 }
+
+public readonly union TypeDescriptorBuilder(
+    TypeDefinitionBuilder,
+    TypeReference,
+    TypeSpecBuilder,
+    TypeAliasBuilder
+);
 
 public closed class TypeSpecBuilder;
 
@@ -269,7 +299,7 @@ public sealed class VariableDefinitionBuilder : IAttributeHolderDefinitionBuilde
     public ReadOnlyCollection<CustomAttributeDefinitionBuilder> CustomAttributes =>
         _customAttributes.AsReadOnly();
 
-    public CustomAttributeDefinitionBuilder AddCustomAttribute(NamedTypeBuilder type)
+    public CustomAttributeDefinitionBuilder AddCustomAttribute(TypeDescriptorBuilder type)
     {
         var attribute = _assembly.AddCustomAttribute(type, this);
         _customAttributes.Add(attribute);
@@ -357,7 +387,7 @@ public sealed class FunctionDefinitionBuilder : IAttributeHolderDefinitionBuilde
         return parameter;
     }
 
-    public CustomAttributeDefinitionBuilder AddCustomAttribute(NamedTypeBuilder type)
+    public CustomAttributeDefinitionBuilder AddCustomAttribute(TypeDescriptorBuilder type)
     {
         var attribute = _assembly.AddCustomAttribute(type, this);
         _customAttributes.Add(attribute);
@@ -417,7 +447,7 @@ public sealed class ParameterDefinitionBuilder : IAttributeHolderDefinitionBuild
     public ReadOnlyCollection<CustomAttributeDefinitionBuilder> CustomAttributes =>
         _customAttributes.AsReadOnly();
 
-    public CustomAttributeDefinitionBuilder AddCustomAttribute(NamedTypeBuilder type)
+    public CustomAttributeDefinitionBuilder AddCustomAttribute(TypeDescriptorBuilder type)
     {
         var attribute = _assembly.AddCustomAttribute(type, this);
         _customAttributes.Add(attribute);
@@ -442,7 +472,7 @@ public sealed class CustomAttributeDefinitionBuilder
 {
     internal CustomAttributeDefinitionBuilder(
         CustomAttributeHandle handle,
-        NamedTypeBuilder type,
+        TypeDescriptorBuilder type,
         AttributeHolderDefinitionBuilder parent
     )
     {
@@ -453,7 +483,7 @@ public sealed class CustomAttributeDefinitionBuilder
 
     public CustomAttributeHandle Handle { get; }
 
-    public NamedTypeBuilder Type { get; }
+    public TypeDescriptorBuilder Type { get; }
 
     public AttributeHolderDefinitionBuilder Parent { get; }
 
@@ -491,7 +521,7 @@ public sealed class EnumOrdinalDefinitionBuilder : IAttributeHolderDefinitionBui
     public ReadOnlyCollection<CustomAttributeDefinitionBuilder> CustomAttributes =>
         _customAttributes.AsReadOnly();
 
-    public CustomAttributeDefinitionBuilder AddCustomAttribute(NamedTypeBuilder type)
+    public CustomAttributeDefinitionBuilder AddCustomAttribute(TypeDescriptorBuilder type)
     {
         var attribute = _assembly.AddCustomAttribute(type, this);
         _customAttributes.Add(attribute);

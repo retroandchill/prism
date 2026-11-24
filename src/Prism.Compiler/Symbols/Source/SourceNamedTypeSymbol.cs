@@ -253,6 +253,9 @@ internal sealed class SourceNamedTypeSymbol
             Symbol? symbol = syntax switch
             {
                 TypeDeclarationSyntax => null,
+                TypeAliasDeclarationSyntax typeAliasDeclaration => BuildSymbol(
+                    typeAliasDeclaration
+                ),
                 FieldDeclarationSyntax field => BuildSymbol(field),
                 FunctionDeclarationSyntax function => BuildSymbol(function),
                 ConstructorDeclarationSyntax constructor => BuildSymbol(constructor),
@@ -290,6 +293,15 @@ internal sealed class SourceNamedTypeSymbol
         ).PublicSymbol;
     }
 
+    private TypeAliasSymbol BuildSymbol(TypeAliasDeclarationSyntax typeAliasDeclaration)
+    {
+        return new SourceTypeAliasSymbol(
+            DeclaringCompilation,
+            PublicSymbol,
+            typeAliasDeclaration
+        ).PublicSymbol;
+    }
+
     private VariableSymbol BuildSymbol(FieldDeclarationSyntax fieldDeclaration)
     {
         return new SourceFieldSymbol(
@@ -321,11 +333,30 @@ internal sealed class SourceNamedTypeSymbol
         Dictionary<string, ImmutableArray<Symbol>.Builder> nameToMembersMap
     )
     {
-        if (Kind == NamedTypeKind.Class && SpecialType is SpecialType.None)
+        switch (Kind)
         {
-            if (!nameToMembersMap.ContainsKey(CommonNames.Ctor))
+            case NamedTypeKind.Class when SpecialType is SpecialType.None:
             {
-                TryAddDefaultConstructor(nameToMembersMap);
+                if (!nameToMembersMap.ContainsKey(CommonNames.Ctor))
+                {
+                    TryAddDefaultConstructor(nameToMembersMap);
+                }
+
+                break;
+            }
+            case NamedTypeKind.Enum:
+            {
+                var builder = nameToMembersMap.GetOrAdd(
+                    CommonNames.UnderlyingType,
+                    ImmutableArray.CreateBuilder<Symbol>
+                );
+                builder.Add(
+                    new SynthesizedEnumUnderlyingType(
+                        DeclaringCompilation,
+                        PublicSymbol
+                    ).PublicSymbol
+                );
+                break;
             }
         }
     }
@@ -405,7 +436,7 @@ internal sealed class SourceNamedTypeSymbol
 
     public bool IsDynamicallySized => SpecialType == SpecialType.Str;
 
-    public NamedTypeSymbol? EnumUnderlyingType
+    public TypeSymbol? EnumUnderlyingType
     {
         get
         {

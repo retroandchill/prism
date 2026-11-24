@@ -69,7 +69,7 @@ internal sealed class ReferenceManager
 
                 var definition = @this._loader.LoadAssembly(path);
                 if (definition is not null)
-                    return new MetadataAssemblySymbol(definition, @this).PublicModel;
+                    return new MetadataAssemblySymbol(definition, @this).PublicSymbol;
 
                 if (identity is not null)
                     return new MissingAssemblySymbol(

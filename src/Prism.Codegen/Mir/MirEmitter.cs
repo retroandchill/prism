@@ -10,7 +10,7 @@ using Prism.Compiler;
 using Prism.Compiler.BoundTree;
 using Prism.Compiler.Mappers;
 using Prism.Compiler.Semantic;
-using Prism.Compiler.Symbols.Intrinsic;
+using Prism.Compiler.Symbols;
 using Prism.Constants;
 using Prism.Mir;
 using Prism.Mir.Optimization;

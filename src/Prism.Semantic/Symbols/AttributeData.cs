@@ -13,15 +13,17 @@ public readonly record struct AttributeArgument(ParameterSymbol Parameter, Const
 
 public sealed class AttributeData
 {
-    internal AttributeData(NamedTypeSymbol attribute, ImmutableArray<AttributeArgument> arguments)
+    internal AttributeData(TypeSymbol attribute, ImmutableArray<AttributeArgument> arguments)
     {
-        Debug.Assert(attribute.Kind == NamedTypeKind.Attribute);
+        Debug.Assert(
+            attribute.UnwrapTypeAlias() is NamedTypeSymbol { Kind: NamedTypeKind.Attribute }
+        );
 
         Attribute = attribute;
         Arguments = arguments;
     }
 
-    public NamedTypeSymbol Attribute { get; }
+    public TypeSymbol Attribute { get; }
 
     public ImmutableArray<AttributeArgument> Arguments { get; }
 }

@@ -6,13 +6,8 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using Prism.Compiler.Semantic;
-using Prism.Diagnostics;
-using Prism.Metadata;
-using Prism.Semantic;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
-using Prism.Syntax;
 using Prism.Utils;
 using ZLinq;
 using TypeDefinition = Prism.Metadata.TypeDefinition;
@@ -38,10 +33,10 @@ internal sealed class MetadataNamedTypeSymbol
     {
         _definition = definition;
         _containingAssembly = containingAssembly;
-        PublicModel = new NamedTypeSymbol(this);
+        PublicSymbol = new NamedTypeSymbol(this);
     }
 
-    public NamedTypeSymbol PublicModel { get; }
+    public NamedTypeSymbol PublicSymbol { get; }
 
     public string Name => _definition.Name;
     public DeclaredVisibility DeclaredVisibility => _definition.Visibility;
@@ -66,11 +61,11 @@ internal sealed class MetadataNamedTypeSymbol
         }
     }
 
-    public AssemblySymbol ContainingAssembly => _containingAssembly.PublicModel;
+    public AssemblySymbol ContainingAssembly => _containingAssembly.PublicSymbol;
 
     public bool IsDynamicallySized => SpecialType == SpecialType.Str;
 
-    public NamedTypeSymbol? EnumUnderlyingType
+    public TypeSymbol? EnumUnderlyingType
     {
         get
         {
@@ -130,6 +125,11 @@ internal sealed class MetadataNamedTypeSymbol
         return _definition
             .Types.AsValueEnumerable()
             .Select(Symbol (x) => _containingAssembly.GetOrAddType(x))
+            .Concat(
+                _definition
+                    .TypeAliases.AsValueEnumerable()
+                    .Select(Symbol (x) => _containingAssembly.GetOrAddTypeAlias(x))
+            )
             .Concat(
                 _definition
                     .Variables.AsValueEnumerable()

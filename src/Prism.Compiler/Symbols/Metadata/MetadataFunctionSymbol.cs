@@ -25,11 +25,11 @@ internal sealed class MetadataFunctionSymbol : IFunctionSymbolData, ILocatableSy
     )
     {
         _definition = definition;
-        PublicModel = new FunctionSymbol(this);
         _containingAssembly = containingAssembly;
+        PublicSymbol = new FunctionSymbol(this);
     }
 
-    public FunctionSymbol PublicModel { get; }
+    public FunctionSymbol PublicSymbol { get; }
 
     public string Name => _definition.Name;
     public ImmutableArray<Location> Locations => ContainingAssembly.Locations;
@@ -50,7 +50,7 @@ internal sealed class MetadataFunctionSymbol : IFunctionSymbolData, ILocatableSy
             return field;
         }
     }
-    public AssemblySymbol ContainingAssembly => _containingAssembly.PublicModel;
+    public AssemblySymbol ContainingAssembly => _containingAssembly.PublicSymbol;
 
     public bool IsDefaultDefined => _definition.IsDefaultDefined;
 

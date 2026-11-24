@@ -27,6 +27,11 @@ using ParameterContainerMap = FrozenDictionary<
     ImmutableArray<ParameterHandle>
 >;
 using ParameterReader = TableRowReader<ParameterRow, ParameterDefinition>;
+using TypeAliasContainerMap = FrozenDictionary<
+    MemberContainerDefHandle,
+    ImmutableArray<TypeAliasHandle>
+>;
+using TypeAliasReader = TableRowReader<TypeAliasRow, TypeAlias>;
 using TypeContainerMap = FrozenDictionary<MemberContainerDefHandle, ImmutableArray<TypeDefHandle>>;
 using TypeDefReader = TableRowReader<TypeDefinitionRow, TypeDefinition>;
 using TypeRefReader = TableRowReader<TypeReferenceRow, TypeReference>;
@@ -47,6 +52,7 @@ internal sealed class MetadataReader
     private readonly TypeDefReader _typeDefs;
     private readonly TypeRefReader _typeRefs;
     private readonly TypeSpecHeapReader _typeSpecs;
+    private readonly TypeAliasReader _typeAliases;
     private readonly VariableReader _variables;
     private readonly FunctionReader _functions;
     private readonly ParameterReader _parameters;
@@ -77,6 +83,11 @@ internal sealed class MetadataReader
             layout.TypeSpecHeap.Memory,
             layout.TypeSpecHeap.Count,
             this
+        );
+
+        _typeAliases = new TypeAliasReader(layout.TypeAliases, CreateTypeAlias);
+        _typeAliasesByParent = _typeAliases.RegisterAdditionalWork(
+            CreateMemberMap<TypeAliasRow, MemberContainerDefHandle, TypeAliasHandle>
         );
 
         _variables = new VariableReader(layout.Variables, CreateVariable);
@@ -131,11 +142,11 @@ internal sealed class MetadataReader
         );
     }
 
-    public Prism.AssemblyIdentity MapAssemblyIdentity(AssemblyIdentityData data)
+    public AssemblyIdentity MapAssemblyIdentity(AssemblyIdentityData data)
     {
         var assemblyName = GetString(data.Name);
         var version = data.Version.ToVersion();
-        return new Prism.AssemblyIdentity(assemblyName, version);
+        return new AssemblyIdentity(assemblyName, version);
     }
 
     public NamespaceOrAssemblyReference GetNamespaceOrAssemblyReference(
@@ -258,21 +269,32 @@ internal sealed class MetadataReader
         );
     }
 
-    public NamedType GetNamedType(NamedTypeHandle handle)
-    {
-        return handle switch
-        {
-            TypeDefHandle def => GetTypeDef(def),
-            TypeRefHandle @ref => GetTypeRef(@ref),
-        };
-    }
-
     public int TypeSpecificationCount => _typeSpecs.Count;
 
     public TypeSpecification GetTypeSpec(TypeSpecHandle handle)
     {
         return _typeSpecs.GetValue(handle.Id);
     }
+
+    public TypeAlias GetTypeAlias(TypeAliasHandle handle)
+    {
+        return _typeAliases.GetRow(handle.Id);
+    }
+
+    private TypeAlias CreateTypeAlias(int rowId, in TypeAliasRow row)
+    {
+        return new TypeAlias(
+            TypeAliasHandle.FromRowId(rowId),
+            row.Attributes,
+            GetString(row.Name),
+            row.AliasedType,
+            row.Container,
+            this
+        );
+    }
+
+    private readonly RegisteredLazy<TypeAliasContainerMap> _typeAliasesByParent;
+    public TypeAliasContainerMap TypeAliasesByParent => _typeAliasesByParent.Value;
 
     public TypeDescriptor GetTypeDescriptor(TypeHandle handle)
     {
@@ -281,6 +303,7 @@ internal sealed class MetadataReader
             TypeDefHandle def => GetTypeDef(def),
             TypeRefHandle @ref => GetTypeRef(@ref),
             TypeSpecHandle spec => GetTypeSpec(spec),
+            TypeAliasHandle alias => GetTypeAlias(alias),
         };
     }
 

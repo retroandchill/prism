@@ -8,7 +8,6 @@ using Prism.Compiler.BoundTree;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
 using Prism.Compiler.Symbols.Error;
-using Prism.Compiler.Symbols.Intrinsic;
 using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
@@ -161,11 +160,11 @@ internal sealed class CompilationCache(Compilation compilation)
         );
     }
 
-    internal VariableSymbol CreateErrorFieldSymbol(NamedTypeSymbol container, string name)
+    internal VariableSymbol CreateErrorFieldSymbol(TypeSymbol container, string name)
     {
         var key = new SymbolLookupKey(container, name);
         return _errorVariables.GetOrAdd(key, static k =>
-            new ErrorFieldSymbol(k.Name, Unsafe.As<NamedTypeSymbol>(k.Container)!).PublicSymbol
+            new ErrorFieldSymbol(k.Name, Unsafe.As<TypeSymbol>(k.Container)!).PublicSymbol
         );
     }
 

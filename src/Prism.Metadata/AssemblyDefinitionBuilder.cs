@@ -4,14 +4,15 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.ObjectModel;
+using Prism.Configuration;
 
 namespace Prism.Metadata;
 
 public sealed class AssemblyDefinitionBuilder
 {
-    public Prism.AssemblyIdentity Identity { get; }
+    public AssemblyIdentity Identity { get; }
 
-    public Configuration.TargetInfo TargetInfo { get; }
+    public TargetInfo TargetInfo { get; }
 
     private readonly List<AssemblyReference> _references = [];
     private readonly List<NamespaceDefinitionBuilder> _namespaceDefs = [];
@@ -20,6 +21,7 @@ public sealed class AssemblyDefinitionBuilder
     private readonly List<TypeDefinitionBuilder> _typeDefs = [];
     private readonly List<TypeReference> _typeRefs = [];
     private readonly List<TypeSpecBuilder> _typeSpecs = [];
+    private readonly List<TypeAliasBuilder> _typeAliases = [];
 
     private readonly List<VariableDefinitionBuilder> _variables = [];
     private readonly List<FunctionDefinitionBuilder> _functions = [];
@@ -27,10 +29,7 @@ public sealed class AssemblyDefinitionBuilder
     private readonly List<EnumOrdinalDefinitionBuilder> _enumOrdinals = [];
     private readonly List<CustomAttributeDefinitionBuilder> _customAttributes = [];
 
-    public AssemblyDefinitionBuilder(
-        Prism.AssemblyIdentity identity,
-        Configuration.TargetInfo targetInfo
-    )
+    public AssemblyDefinitionBuilder(AssemblyIdentity identity, Configuration.TargetInfo targetInfo)
     {
         Identity = identity;
         TargetInfo = targetInfo;
@@ -44,7 +43,7 @@ public sealed class AssemblyDefinitionBuilder
 
     public ReadOnlyCollection<AssemblyReference> ReferencedAssemblies => _references.AsReadOnly();
 
-    public AssemblyReference AddAssemblyReference(Prism.AssemblyIdentity identity)
+    public AssemblyReference AddAssemblyReference(AssemblyIdentity identity)
     {
         var reference = new AssemblyReference(
             AssemblyRefHandle.FromRowId(_references.Count + 1),
@@ -67,6 +66,8 @@ public sealed class AssemblyDefinitionBuilder
     internal ReadOnlyCollection<TypeReference> ReferencedTypes => _typeRefs.AsReadOnly();
 
     internal ReadOnlyCollection<TypeSpecBuilder> TypeSpecifications => _typeSpecs.AsReadOnly();
+
+    internal ReadOnlyCollection<TypeAliasBuilder> TypeAliases => _typeAliases.AsReadOnly();
 
     internal ReadOnlyCollection<VariableDefinitionBuilder> Variables => _variables.AsReadOnly();
 
@@ -152,6 +153,17 @@ public sealed class AssemblyDefinitionBuilder
         return type;
     }
 
+    public TypeAliasBuilder AddTypeAlias(string name, MemberContainerDefinitionBuilder parent)
+    {
+        var typeAlias = new TypeAliasBuilder(
+            TypeAliasHandle.FromRowId(_typeAliases.Count + 1),
+            name,
+            parent
+        );
+        _typeAliases.Add(typeAlias);
+        return typeAlias;
+    }
+
     internal VariableDefinitionBuilder AddVariable(
         string name,
         TypeDescriptorBuilder type,
@@ -221,7 +233,7 @@ public sealed class AssemblyDefinitionBuilder
     }
 
     internal CustomAttributeDefinitionBuilder AddCustomAttribute(
-        NamedTypeBuilder type,
+        TypeDescriptorBuilder type,
         AttributeHolderDefinitionBuilder parent
     )
     {

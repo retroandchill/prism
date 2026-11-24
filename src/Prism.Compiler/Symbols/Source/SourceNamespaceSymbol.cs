@@ -208,6 +208,9 @@ internal sealed class SourceNamespaceSymbol
                 NamespaceDeclarationSyntax or TypeDeclarationSyntax => null,
                 GlobalVariableDeclarationSyntax variable => BuildSymbol(variable),
                 FunctionDeclarationSyntax function => BuildSymbol(function),
+                TypeAliasDeclarationSyntax typeAliasDeclaration => BuildSymbol(
+                    typeAliasDeclaration
+                ),
                 _ => null,
             };
             if (symbol is null)
@@ -269,6 +272,15 @@ internal sealed class SourceNamespaceSymbol
             DeclaringCompilation,
             PublicSymbol,
             functionDeclaration
+        ).PublicSymbol;
+    }
+
+    private TypeAliasSymbol BuildSymbol(TypeAliasDeclarationSyntax typeAliasDeclaration)
+    {
+        return new SourceTypeAliasSymbol(
+            DeclaringCompilation,
+            PublicSymbol,
+            typeAliasDeclaration
         ).PublicSymbol;
     }
 

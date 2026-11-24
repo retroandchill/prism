@@ -25,6 +25,7 @@ internal sealed class MetadataEmitter
     private readonly Dictionary<TypeSymbol, TypeDefinitionBuilder> _typeDefs = [];
     private readonly Dictionary<TypeSymbol, TypeReference> _typeRefs = [];
     private readonly Dictionary<TypeSymbol, TypeSpecBuilder> _typeSpecs = [];
+    private readonly Dictionary<TypeAliasSymbol, TypeAliasBuilder> _typeAliases = [];
 
     private readonly Dictionary<FunctionSymbol, FunctionDefinitionBuilder> _functions = [];
 
@@ -32,6 +33,7 @@ internal sealed class MetadataEmitter
     {
         public List<NamespaceSymbol> Namespaces { get; } = [];
         public List<NamedTypeSymbol> Types { get; } = [];
+        public List<TypeAliasSymbol> TypeAliases { get; } = [];
         public List<VariableSymbol> Variables { get; } = [];
         public List<FunctionSymbol> Functions { get; } = [];
         public List<ParameterSymbol> Parameters { get; } = [];
@@ -78,6 +80,26 @@ internal sealed class MetadataEmitter
         foreach (var type in trackedSymbols.Types)
         {
             AddTypeDef(type);
+        }
+
+        foreach (var type in trackedSymbols.TypeAliases)
+        {
+            GetOrAddTypeAlias(type);
+        }
+
+        // We need to do these last because these could be become cyclic, especially once generics get involved and
+        // we start having recursive type definitions.
+        foreach (var (type, builder) in _typeDefs)
+        {
+            if (type is NamedTypeSymbol { IsEnum: true, EnumUnderlyingType: var underlyingType })
+            {
+                builder.BaseType = GetOrAddType(underlyingType);
+            }
+        }
+
+        foreach (var (alias, builder) in _typeAliases)
+        {
+            builder.AliasedType = GetOrAddType(alias.AliasedType).Value;
         }
 
         foreach (var variable in trackedSymbols.Variables)
@@ -130,6 +152,9 @@ internal sealed class MetadataEmitter
 
                 break;
             }
+            case TypeAliasSymbol typeAlias:
+                symbols.TypeAliases.Add(typeAlias);
+                break;
             case VariableSymbol variable:
                 symbols.Variables.Add(variable);
                 break;
@@ -216,10 +241,6 @@ internal sealed class MetadataEmitter
         type.Visibility = namedTypeSymbol.DeclaredVisibility;
         type.SpecialType = namedTypeSymbol.SpecialType;
         _typeDefs.Add(namedTypeSymbol, type);
-        if (namedTypeSymbol.IsEnum)
-        {
-            type.BaseType = GetOrAddNamedType(namedTypeSymbol.EnumUnderlyingType);
-        }
         AddCustomAttributes(namedTypeSymbol, type);
         return type;
     }
@@ -248,11 +269,12 @@ internal sealed class MetadataEmitter
         return typeSymbol switch
         {
             NamedTypeSymbol namedTypeSymbol => GetOrAddNamedType(namedTypeSymbol),
+            TypeAliasSymbol typeAlias => GetOrAddTypeAlias(typeAlias),
             _ => GetOrAddTypeSpec(typeSymbol),
         };
     }
 
-    private NamedTypeBuilder GetOrAddNamedType(NamedTypeSymbol namedTypeSymbol)
+    private TypeDescriptorBuilder GetOrAddNamedType(NamedTypeSymbol namedTypeSymbol)
     {
         var assembly = namedTypeSymbol.ContainingAssembly;
         Debug.Assert(assembly is not null);
@@ -291,12 +313,20 @@ internal sealed class MetadataEmitter
             NullableTypeSymbol nullable => _builder.AddNullableType(
                 GetOrAddType(nullable.ElementType).Value
             ),
-            NamedTypeSymbol => throw new InvalidOperationException(
+            NamedTypeSymbol or TypeAliasSymbol => throw new InvalidOperationException(
                 "This should already have been handled above"
             ),
         };
         _typeSpecs.Add(symbol, typeSpec);
         return typeSpec;
+    }
+
+    private TypeAliasBuilder GetOrAddTypeAlias(TypeAliasSymbol typeAlias)
+    {
+        var container = GetContainerDef(typeAlias);
+        var typeAliasBuilder = _builder.AddTypeAlias(typeAlias.Name, container);
+        _typeAliases.Add(typeAlias, typeAliasBuilder);
+        return typeAliasBuilder;
     }
 
     private MemberContainerReference GetContainerRef(Symbol symbol)
@@ -382,7 +412,7 @@ internal sealed class MetadataEmitter
 
         foreach (var attribute in attributes)
         {
-            var type = GetOrAddNamedType(attribute.Attribute);
+            var type = GetOrAddType(attribute.Attribute).Value;
             var attributeBuilder = owner.AddCustomAttribute(type);
             foreach (var (_, value) in attribute.Arguments)
             {

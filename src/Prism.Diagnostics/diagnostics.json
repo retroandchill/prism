@@ -682,6 +682,17 @@
               "type": "String"
             }
           ]
+        },
+        {
+          "name": "TypeAliasMustSpecifyType",
+          "severity": "Error",
+          "format": "Type alias {Name} must specify a type",
+          "args": [
+            {
+              "name": "Name",
+              "type": "String"
+            }
+          ]
         }
       ]
     },

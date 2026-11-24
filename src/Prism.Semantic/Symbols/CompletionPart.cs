@@ -39,6 +39,7 @@ internal enum CompletionPart : uint
     VariableAll = Attributes | Type | ConstantValue,
     FunctionAll = Attributes | Parameters | Type | StartChecks | FinishChecks,
     ParameterAll = Attributes | Type | ConstantValue,
+    TypeAliasAll = Type,
     TypeAll =
         Attributes | EnumUnderlyingType | Members | StartChecks | FinishChecks | MembersCompleted,
 }

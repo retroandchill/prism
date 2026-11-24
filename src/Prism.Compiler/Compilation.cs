@@ -10,7 +10,6 @@ using Prism.Compiler.References;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
 using Prism.Compiler.Symbols.Error;
-using Prism.Compiler.Symbols.Intrinsic;
 using Prism.Compiler.Symbols.Source;
 using Prism.Configuration;
 using Prism.Diagnostics;
@@ -294,7 +293,7 @@ public class Compilation : ILayoutSource, IAbiLookup
         return Cache.CreateErrorNamespaceSymbol(containingNamespace, name);
     }
 
-    internal VariableSymbol CreateErrorFieldSymbol(NamedTypeSymbol containingType, string name)
+    internal VariableSymbol CreateErrorFieldSymbol(TypeSymbol containingType, string name)
     {
         return Cache.CreateErrorFieldSymbol(containingType, name);
     }

@@ -12,29 +12,16 @@ using Riok.Mapperly.Abstractions.ReferenceHandling;
 
 namespace Prism.Metadata;
 
-public readonly union NamedType(TypeDefinition, TypeReference)
-{
-    public NamedTypeHandle Handle
-    {
-        get
-        {
-            return this switch
-            {
-                TypeDefinition typeDefinition => typeDefinition.Handle,
-                TypeReference typeReference => typeReference.Handle,
-            };
-        }
-    }
-}
-
 public sealed partial class TypeDefinition : MemberContainerDefinition, IAttributeHolderDefinition
 {
+    private readonly TypeHandle _baseType;
+
     internal TypeDefinition(
         TypeDefHandle handle,
         NamedTypeAttributes attributes,
         string name,
         MemberContainerDefHandle parent,
-        NamedTypeHandle baseType,
+        TypeHandle baseType,
         MetadataReader reader
     )
         : base(name, reader)
@@ -42,7 +29,7 @@ public sealed partial class TypeDefinition : MemberContainerDefinition, IAttribu
         Handle = handle;
         Attributes = attributes;
         ParentHandle = parent;
-        BaseTypeHandle = baseType;
+        _baseType = baseType;
     }
 
     [MapperConstructor]
@@ -83,15 +70,13 @@ public sealed partial class TypeDefinition : MemberContainerDefinition, IAttribu
         private set;
     }
 
-    public NamedTypeHandle BaseTypeHandle { get; private set; }
+    private TypeDescriptor _lazyBaseType;
 
-    private NamedType _lazyBaseType;
-
-    public NamedType? BaseType
+    public TypeDescriptor? BaseType
     {
         get
         {
-            if (BaseTypeHandle.IsNone)
+            if (_baseType.IsNone)
                 return null;
 
             if (_lazyBaseType.Value is not null)
@@ -100,23 +85,11 @@ public sealed partial class TypeDefinition : MemberContainerDefinition, IAttribu
             Debug.Assert(MetadataReader is not null);
             UnionInterlocked.Initialize(
                 ref _lazyBaseType,
-                MetadataReader.GetNamedType(BaseTypeHandle)
+                MetadataReader.GetTypeDescriptor(_baseType)
             );
             return _lazyBaseType;
         }
-        internal set
-        {
-            if (value is { } namedType)
-            {
-                _lazyBaseType = namedType;
-                BaseTypeHandle = namedType.Handle;
-            }
-            else
-            {
-                _lazyBaseType = default;
-                BaseTypeHandle = NamedTypeHandle.None;
-            }
-        }
+        internal set;
     }
 
     public ImmutableArray<EnumOrdinalDefinition> EnumOrdinals
@@ -178,6 +151,7 @@ public sealed partial class TypeDefinition : MemberContainerDefinition, IAttribu
     [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target, UseReferenceHandling = true)]
     [UseStaticMapper(typeof(MemberContainerDefinition.Mapper))]
     [UseStaticMapper(typeof(TypeMapper))]
+    [UseStaticMapper(typeof(TypeAlias.Mapper))]
     [UseStaticMapper(typeof(VariableDefinition.Mapper))]
     [UseStaticMapper(typeof(FunctionDefinition.Mapper))]
     [UseStaticMapper(typeof(ParameterDefinition.Mapper))]
@@ -186,7 +160,6 @@ public sealed partial class TypeDefinition : MemberContainerDefinition, IAttribu
     internal static new partial class Mapper
     {
         [MapperIgnoreTarget(nameof(_lazyBaseType))]
-        [MapperIgnoreTarget(nameof(BaseTypeHandle))]
         public static partial TypeDefinition ToDefinition(
             TypeDefinitionBuilder builder,
             [ReferenceHandler] IReferenceHandler handler

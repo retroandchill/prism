@@ -23,17 +23,17 @@ internal sealed class MetadataNamespaceSymbol : INamespaceSymbolData, ILocatable
     {
         _definition = definition;
         _containingAssembly = containingAssembly;
-        PublicModel = new NamespaceSymbol(this);
+        PublicSymbol = new NamespaceSymbol(this);
     }
 
-    public NamespaceSymbol PublicModel { get; }
+    public NamespaceSymbol PublicSymbol { get; }
 
     public NamespaceKind NamespaceKind => NamespaceKind.Assembly;
 
     public string Name => _definition.Name;
     public Symbol ContainingSymbol =>
-        (Symbol?)ContainingNamespace ?? _containingAssembly.PublicModel;
-    public AssemblySymbol ContainingAssembly => _containingAssembly.PublicModel;
+        (Symbol?)ContainingNamespace ?? _containingAssembly.PublicSymbol;
+    public AssemblySymbol ContainingAssembly => _containingAssembly.PublicSymbol;
     public ImmutableArray<Location> Locations => _containingAssembly.Locations;
 
     public NamespaceSymbol? ContainingNamespace
@@ -94,6 +94,11 @@ internal sealed class MetadataNamespaceSymbol : INamespaceSymbolData, ILocatable
                 _definition
                     .Types.AsValueEnumerable()
                     .Select(Symbol (x) => _containingAssembly.GetOrAddType(x))
+            )
+            .Concat(
+                _definition
+                    .TypeAliases.AsValueEnumerable()
+                    .Select(Symbol (x) => _containingAssembly.GetOrAddTypeAlias(x))
             )
             .Concat(
                 _definition

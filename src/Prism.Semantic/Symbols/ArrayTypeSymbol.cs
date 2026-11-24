@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Cysharp.Text;
 using Prism.Semantic.Symbols.Data;
@@ -17,6 +18,9 @@ public sealed class ArrayTypeSymbol : TypeSymbol
     private new DataInternal Data => Unsafe.As<DataInternal>(base.Data);
 
     public TypeSymbol ElementType => Data.ElementType;
+
+    [MemberNotNullWhen(false, nameof(Size))]
+    public new bool IsDynamicallySized => base.IsDynamicallySized;
 
     public ulong? Size => Data.Size;
 

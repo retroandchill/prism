@@ -45,10 +45,11 @@ public sealed partial class CustomAttributeDefinition
 {
     private readonly BlobHandle _arguments;
     private readonly MetadataReader? _reader;
+    private readonly TypeHandle _type;
 
     internal CustomAttributeDefinition(
         AttributeHolderHandle parent,
-        NamedTypeHandle type,
+        TypeHandle type,
         BlobHandle arguments,
         MetadataReader reader
     )
@@ -56,11 +57,11 @@ public sealed partial class CustomAttributeDefinition
         _arguments = arguments;
         _reader = reader;
         ParentHandle = parent;
-        TypeHandle = type;
+        _type = type;
     }
 
     [MapperConstructor]
-    private CustomAttributeDefinition(NamedType type, ImmutableArray<ConstantValue> arguments)
+    private CustomAttributeDefinition(TypeDescriptor type, ImmutableArray<ConstantValue> arguments)
     {
         Type = type;
         Arguments = arguments;
@@ -82,20 +83,14 @@ public sealed partial class CustomAttributeDefinition
         }
     }
 
-    public NamedTypeHandle TypeHandle { get; private init; }
-
-    public NamedType Type
+    public TypeDescriptor Type
     {
         get { return LazyComputation.LazyComputeUnion(ref field, this, static @this =>
             {
                 Debug.Assert(@this._reader is not null);
-                return @this._reader.GetNamedType(@this.TypeHandle);
+                return @this._reader.GetTypeDescriptor(@this._type);
             }); }
-        private init
-        {
-            field = value;
-            TypeHandle = value.Handle;
-        }
+        private init;
     }
 
     public ImmutableArray<ConstantValue> Arguments
@@ -128,7 +123,6 @@ public sealed partial class CustomAttributeDefinition
     [UseStaticMapper(typeof(FunctionDefinition.Mapper))]
     internal static partial class Mapper
     {
-        [MapperIgnoreTarget(nameof(TypeHandle))]
         [MapperIgnoreTarget(nameof(ParentHandle))]
         public static partial CustomAttributeDefinition ToDefinition(
             CustomAttributeDefinitionBuilder builder,

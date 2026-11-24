@@ -428,6 +428,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             SyntaxKind.AttributeKeyword => ParseAttributeDeclaration(attributes, modifiers),
             SyntaxKind.ClassKeyword => ParseClassDeclaration(attributes, modifiers),
             SyntaxKind.EnumKeyword => ParseEnumDeclaration(attributes, modifiers),
+            SyntaxKind.TypeKeyword => ParseTypeAliasDeclaration(attributes, modifiers),
             _ => ParseIncompleteDeclaration(attributes, modifiers),
         };
     }
@@ -454,6 +455,8 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             SyntaxKind.FuncKeyword => ParseFunctionDeclaration(attributes, modifiers),
             SyntaxKind.AttributeKeyword => ParseAttributeDeclaration(attributes, modifiers),
             SyntaxKind.ClassKeyword => ParseClassDeclaration(attributes, modifiers),
+            SyntaxKind.EnumKeyword => ParseEnumDeclaration(attributes, modifiers),
+            SyntaxKind.TypeKeyword => ParseTypeAliasDeclaration(attributes, modifiers),
             _ => ParseIncompleteDeclaration(attributes, modifiers),
         };
     }
@@ -1073,6 +1076,36 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         {
             previousNode = AddTrailingSkippedSyntax(previousNode, skippedSyntax);
         }
+    }
+
+    private GreenTypeAliasDeclaration ParseTypeAliasDeclaration(
+        GreenSyntaxList<GreenAttributeList> attributes,
+        GreenSyntaxList<GreenToken> modifiers
+    )
+    {
+        var token = ExpectToken(SyntaxKind.TypeKeyword);
+        var name = ExpectToken(SyntaxKind.IdentifierToken);
+
+        var equalsSign = MatchToken(SyntaxKind.EqualToken);
+        return equalsSign is null
+            ? new GreenTypeAliasDeclaration(
+                attributes,
+                modifiers,
+                token,
+                name,
+                null,
+                null,
+                ExpectToken(SyntaxKind.SemicolonToken)
+            )
+            : new GreenTypeAliasDeclaration(
+                attributes,
+                modifiers,
+                token,
+                name,
+                equalsSign,
+                ParseType(),
+                ExpectToken(SyntaxKind.SemicolonToken)
+            );
     }
 
     public GreenStatement ParseStatement()

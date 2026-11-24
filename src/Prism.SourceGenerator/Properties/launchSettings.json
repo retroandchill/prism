@@ -2,7 +2,7 @@
   "profiles": {
     "Prism.SourceGenerator": {
       "commandName": "DebugRoslynComponent",
-      "targetProject": "..\\Prism.Core\\Prism.Core.csproj"
+      "targetProject": "..\\Prism.Syntax\\Prism.Syntax.csproj"
     }
   }
 }

@@ -83,6 +83,8 @@ public static class NameMangler
 
     private static void MangleType(TypeSymbol type, ref Utf16ValueStringBuilder builder)
     {
+        // We want to ensure stable symbol names in the ABI regardless of how a type is aliased.
+        type = type.UnwrapTypeAlias();
         switch (type)
         {
             case ArrayTypeSymbol arrayType:
@@ -115,10 +117,6 @@ public static class NameMangler
 
         switch (type.SpecialType)
         {
-            case SpecialType.None:
-                MangleContainerPath(type, ref builder);
-                MangleName(type.MetadataName, ref builder);
-                break;
             case SpecialType.Void:
                 builder.Append('V');
                 break;
@@ -180,7 +178,9 @@ public static class NameMangler
                 builder.Append('S');
                 break;
             default:
-                throw new ArgumentException("Invalid special type");
+                MangleContainerPath(type, ref builder);
+                MangleName(type.MetadataName, ref builder);
+                break;
         }
     }
 

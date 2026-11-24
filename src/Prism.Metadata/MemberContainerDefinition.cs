@@ -36,6 +36,24 @@ public closed partial class MemberContainerDefinition
         internal set;
     }
 
+    public ImmutableArray<TypeAlias> TypeAliases
+    {
+        get
+        {
+            if (!field.IsDefault)
+                return field;
+
+            Debug.Assert(MetadataReader is not null);
+            var mappings = MetadataReader.TypeAliasesByParent.GetValueOrDefault(Handle, []);
+            ImmutableInterlocked.InterlockedInitialize(
+                ref field,
+                [.. mappings.Select(MetadataReader.GetTypeAlias)]
+            );
+            return field;
+        }
+        internal set;
+    }
+
     public ImmutableArray<VariableDefinition> Variables
     {
         get

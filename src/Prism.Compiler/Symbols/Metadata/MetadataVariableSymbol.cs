@@ -16,16 +16,25 @@ using VariableDefinition = Prism.Metadata.VariableDefinition;
 
 namespace Prism.Compiler.Symbols.Metadata;
 
-internal sealed class MetadataVariableSymbol(
-    VariableDefinition definition,
-    MetadataAssemblySymbol containingAssembly
-) : IVariableSymbolData, ILocatableSymbolData
+internal sealed class MetadataVariableSymbol : IVariableSymbolData, ILocatableSymbolData
 {
     private ImmutableArray<AttributeData> _attributes;
+    private readonly VariableDefinition _definition;
+    private readonly MetadataAssemblySymbol _containingAssembly;
 
-    public VariableSymbol PublicModel { get; }
-    public string Name => definition.Name;
-    public ImmutableArray<Location> Locations => containingAssembly.Locations;
+    public MetadataVariableSymbol(
+        VariableDefinition definition,
+        MetadataAssemblySymbol containingAssembly
+    )
+    {
+        _definition = definition;
+        _containingAssembly = containingAssembly;
+        PublicSymbol = new VariableSymbol(this);
+    }
+
+    public VariableSymbol PublicSymbol { get; }
+    public string Name => _definition.Name;
+    public ImmutableArray<Location> Locations => _containingAssembly.Locations;
     public Symbol ContainingSymbol => ContainingMemberContainer;
 
     public MemberContainerSymbol ContainingMemberContainer
@@ -37,14 +46,14 @@ internal sealed class MetadataVariableSymbol(
 
             Interlocked.CompareExchange(
                 ref field,
-                containingAssembly.GetOrAddMemberContainer(definition.Parent),
+                _containingAssembly.GetOrAddMemberContainer(_definition.Parent),
                 null
             );
             return field;
         }
     }
 
-    public AssemblySymbol ContainingAssembly => containingAssembly.PublicModel;
+    public AssemblySymbol ContainingAssembly => _containingAssembly.PublicSymbol;
 
     public TypeSymbol Type
     {
@@ -55,7 +64,7 @@ internal sealed class MetadataVariableSymbol(
 
             Interlocked.CompareExchange(
                 ref field,
-                containingAssembly.GetReferencedType(definition.Type),
+                _containingAssembly.GetReferencedType(_definition.Type),
                 null
             );
             return field;
@@ -63,12 +72,12 @@ internal sealed class MetadataVariableSymbol(
     }
 
     public bool IsMutable => false;
-    public VariableKind Kind => definition.Kind;
+    public VariableKind Kind => _definition.Kind;
 
     // TODO: Once we start encoding MIR into the code, we may use this to handle aggregate initialize of classes
     public bool HasInitializer => false;
 
-    public ConstantValue? ConstantValue => definition.ConstantValue;
+    public ConstantValue? ConstantValue => _definition.ConstantValue;
 
     public ImmutableArray<AttributeData> GetAttributes()
     {
@@ -77,7 +86,7 @@ internal sealed class MetadataVariableSymbol(
 
         ImmutableInterlocked.InterlockedInitialize(
             ref _attributes,
-            containingAssembly.GetAttributes(definition)
+            _containingAssembly.GetAttributes(_definition)
         );
         return _attributes;
     }

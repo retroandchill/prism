@@ -34,18 +34,6 @@ internal static partial class TypeMapper
         [ReferenceHandler] IReferenceHandler handler
     );
 
-    public static NamedType ToDefinition(
-        this NamedTypeBuilder builder,
-        [ReferenceHandler] IReferenceHandler handler
-    )
-    {
-        return builder switch
-        {
-            TypeDefinitionBuilder b => b.ToDefinition(handler),
-            TypeReference r => r,
-        };
-    }
-
     public static TypeDescriptor ToDefinition(
         this TypeDescriptorBuilder builder,
         [ReferenceHandler] IReferenceHandler handler
@@ -58,6 +46,7 @@ internal static partial class TypeMapper
             NullableTypeBuilder b => b.ToDefinition(handler),
             ReferenceTypeBuilder b => b.ToDefinition(handler),
             ArrayTypeBuilder b => b.ToDefinition(handler),
+            TypeAliasBuilder b => b.ToDefinition(handler),
         };
     }
 }
