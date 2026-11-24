@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO.Abstractions;
 using System.Runtime.InteropServices;
 using MagicArchive;
+using Prism.Configuration;
 using Riok.Mapperly.Abstractions;
 
 namespace Prism.Metadata;
@@ -10,7 +11,7 @@ namespace Prism.Metadata;
 public sealed partial class AssemblyDefinition
 {
     public AssemblyIdentity Identity { get; }
-    public Configuration.TargetInfo TargetInfo { get; }
+    public TargetInfo TargetInfo { get; }
 
     private readonly MetadataReader? _metadataReader;
 
@@ -22,7 +23,7 @@ public sealed partial class AssemblyDefinition
     }
 
     [MapperConstructor]
-    private AssemblyDefinition(AssemblyIdentity identity, Configuration.TargetInfo targetInfo)
+    private AssemblyDefinition(AssemblyIdentity identity, TargetInfo targetInfo)
     {
         Identity = identity;
         TargetInfo = targetInfo;

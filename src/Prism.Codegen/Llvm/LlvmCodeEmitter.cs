@@ -1947,7 +1947,13 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             if (result.Success)
                 return new EmitResult(true, context.CollectDiagnostics());
 
-            context.ReportDiagnostic(Diagnostic.ExternalDiagnostic(Location.None, result.StdErr));
+            context.ReportDiagnostic(
+                Diagnostic.ExternalDiagnostic(
+                    DiagnosticSeverity.Error,
+                    Location.None,
+                    result.StdOut
+                )
+            );
             return new EmitResult(false, context.CollectDiagnostics());
         }
         catch (Exception ex)
