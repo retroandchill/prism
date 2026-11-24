@@ -1,5 +1,5 @@
-build/test-funcs.lib
-build/test-funcs.ll
-build/test-funcs.obj
-build/test-funcs.opt.ll
-build/test-funcs.prlib
+test_funcs.lib
+test_funcs.ll
+test_funcs.obj
+test_funcs.opt.ll
+test_funcs.prlib

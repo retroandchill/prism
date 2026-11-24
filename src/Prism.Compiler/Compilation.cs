@@ -299,14 +299,11 @@ public class Compilation : ILayoutSource, IAbiLookup
     }
 
     public async Task<EmitResult> EmitAsync(
-        string filepath,
+        CodeGenOptions options,
         CancellationToken cancellationToken = default
     )
     {
-        using var emitter = _context.EmitterFactory.CreateEmitter(
-            this,
-            new CodeGenOptions { OutputDirectory = filepath }
-        );
+        using var emitter = _context.EmitterFactory.CreateEmitter(this, options);
         using var context = BindingContext.Create();
         GetAllDiagnostics(CompilationStage.Declare, true, context, null, cancellationToken);
         FunctionCompiler.CompileFunctions(this, emitter, context, cancellationToken);
@@ -314,7 +311,11 @@ public class Compilation : ILayoutSource, IAbiLookup
         if (!Settings.IsLibrary)
             return await codeEmitTask;
 
-        await CompilerDriver.WriteMetadataFileAsync(this, filepath, cancellationToken);
+        await CompilerDriver.WriteMetadataFileAsync(
+            this,
+            options.OutputDirectory,
+            cancellationToken
+        );
         return await codeEmitTask;
     }
 

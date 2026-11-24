@@ -5,6 +5,7 @@
 
 using System.Runtime.InteropServices;
 using DotMake.CommandLine;
+using Prism.Compiler.Codegen;
 using Prism.Compiler.Host;
 using Prism.Configuration;
 using Prism.Syntax;
@@ -58,11 +59,23 @@ public class CompileCommand
         };
 
         using var compilationContext = CompilationContext.CreateDefault();
+
+        var metadataReferences = new List<MetadataReference>();
+        if (Environment.GetEnvironmentVariable("PRISM_CORELIB") is { } libPath)
+        {
+            metadataReferences.Add(new LibraryReference(libPath));
+        }
+        else
+        {
+            metadataReferences.Add(new UnresolvedReference("prism-std"));
+        }
+
         var compilation = Compilation.Create(
             compilationContext,
             Name,
             ImmutableCollectionsMarshal.AsImmutableArray(syntaxTress),
-            settings: new CompilationSettings
+            metadataReferences,
+            new CompilationSettings
             {
                 OutputKind = GetOutputKind(),
                 OptimizationLevel = optimizationLevel,
@@ -70,7 +83,7 @@ public class CompileCommand
         );
 
         var (succeeded, diagnostics) = await compilation.EmitAsync(
-            Directory.GetCurrentDirectory(),
+            new CodeGenOptions { OutputDirectory = Directory.GetCurrentDirectory() },
             context.CancellationToken
         );
 

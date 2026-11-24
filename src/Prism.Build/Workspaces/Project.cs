@@ -135,6 +135,9 @@ public sealed class Project
             _buildDir.Create();
         }
 
-        return await compilation.EmitAsync(_buildDir.FullName, cancellationToken);
+        return await compilation.EmitAsync(
+            new CodeGenOptions { OutputDirectory = _buildDir.FullName },
+            cancellationToken
+        );
     }
 }

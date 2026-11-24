@@ -8,12 +8,18 @@
     "HelloWorld": {
       "commandName": "Project",
       "commandLineArgs": "main.pr --name hello_world",
-      "workingDirectory": "../../examples/hello_world"
+      "workingDirectory": "../../examples/hello_world",
+      "environmentVariables": {
+        "PRISM_CORELIB": "../../src/prism-std/build/prism-std.prlib"
+      }
     },
     "TestFuncs": {
       "commandName": "Project",
       "commandLineArgs": "test_funcs.pr --name test_funcs --kind static-lib",
-      "workingDirectory": "../../examples/test_funcs"
+      "workingDirectory": "../../examples/test_funcs",
+      "environmentVariables": {
+        "PRISM_CORELIB": "../../src/prism-std/build/prism-std.prlib"
+      }
     }
   }
 }

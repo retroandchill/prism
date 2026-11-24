@@ -359,6 +359,9 @@ internal partial struct MetadataLayout
             case Section.TypeSpecs:
                 value.TypeSpecHeap = ReadMetadataHeap(ref reader, header.Size, header.Count);
                 break;
+            case Section.TypeAliases:
+                value.TypeAliases = ReadMetadataRows<TypeAliasRow>(ref reader, header.Count);
+                break;
             case Section.Variables:
                 value.Variables = ReadMetadataRows<VariableRow>(ref reader, header.Count);
                 break;

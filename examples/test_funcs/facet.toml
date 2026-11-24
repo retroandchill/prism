@@ -1,6 +1,0 @@
-﻿#:schema ../Prism.Build/Manifest/schema.json
-[package]
-name = "test-funcs"
-
-[output]
-kind = "static-library"

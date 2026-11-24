@@ -9,14 +9,6 @@
       "commandName": "Project",
       "commandLineArgs": "build",
       "workingDirectory": "../prism-std"
-    },
-    "TestFunctions": {
-      "commandName": "Project",
-      "commandLineArgs": "build",
-      "workingDirectory": "../../examples/test_funcs",
-      "environmentVariables": {
-        "PRISM_CORELIB": "../../src/prism-std/build/prism-std.prlib"
-      }
     }
   }
 }
