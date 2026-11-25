@@ -3,8 +3,12 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using Prism.Configuration;
+using Prism.Metadata.BoundTree.Builders;
+using Prism.Metadata.Builders;
+using Prism.Metadata.Symbols;
 
 namespace Prism.Metadata;
 
@@ -29,7 +33,15 @@ public sealed class AssemblyDefinitionBuilder
     private readonly List<EnumOrdinalDefinitionBuilder> _enumOrdinals = [];
     private readonly List<CustomAttributeDefinitionBuilder> _customAttributes = [];
 
-    public AssemblyDefinitionBuilder(AssemblyIdentity identity, Configuration.TargetInfo targetInfo)
+    private readonly List<VariableReference> _variableRefs = [];
+    private readonly List<FunctionReferenceBuilder> _functionRefs = [];
+
+    private readonly OrderedDictionary<
+        VariableHandle,
+        MetadataExpressionBuilder
+    > _variableInitializers = [];
+
+    public AssemblyDefinitionBuilder(AssemblyIdentity identity, TargetInfo targetInfo)
     {
         Identity = identity;
         TargetInfo = targetInfo;
@@ -80,6 +92,12 @@ public sealed class AssemblyDefinitionBuilder
 
     internal ReadOnlyCollection<CustomAttributeDefinitionBuilder> CustomAttributes =>
         _customAttributes.AsReadOnly();
+
+    internal ReadOnlyCollection<VariableReference> ReferencedVariables =>
+        _variableRefs.AsReadOnly();
+
+    internal ReadOnlyCollection<FunctionReferenceBuilder> ReferencedFunctions =>
+        _functionRefs.AsReadOnly();
 
     internal NamespaceDefinitionBuilder AddNamespaceDefinition(
         string name,
@@ -244,6 +262,46 @@ public sealed class AssemblyDefinitionBuilder
         );
         _customAttributes.Add(attribute);
         return attribute;
+    }
+
+    public VariableReference AddVariableReference(string name, MemberContainerReference container)
+    {
+        var variable = new VariableReference(
+            VariableRefHandle.FromRowId(_variableRefs.Count + 1),
+            name,
+            container
+        );
+        _variableRefs.Add(variable);
+        return variable;
+    }
+
+    public FunctionReferenceBuilder AddFunctionReference(
+        string name,
+        MemberContainerReference container
+    )
+    {
+        var function = new FunctionReferenceBuilder(
+            FunctionRefHandle.FromRowId(_functionRefs.Count + 1),
+            name,
+            container
+        );
+        _functionRefs.Add(function);
+        return function;
+    }
+
+    internal void SetVariableInitializer(
+        VariableHandle handle,
+        MetadataExpressionBuilder? initializer
+    )
+    {
+        if (initializer is not null)
+        {
+            _variableInitializers[handle] = initializer;
+        }
+        else
+        {
+            _variableInitializers.Remove(handle);
+        }
     }
 
     public AssemblyDefinition Build()

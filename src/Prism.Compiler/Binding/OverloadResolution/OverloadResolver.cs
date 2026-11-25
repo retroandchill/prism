@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Runtime.InteropServices;
+using Prism.BoundTree;
 using Prism.Compiler.Binding.Utils;
-using Prism.Compiler.BoundTree;
 using Prism.Compiler.Symbols;
 using Prism.Diagnostics;
 using Prism.Metadata;

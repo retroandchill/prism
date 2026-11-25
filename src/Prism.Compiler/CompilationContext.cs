@@ -62,12 +62,12 @@ public sealed class CompilationContext : IDisposable
         }
     }
 
-    internal IMirEmitterFactory<Compilation> MirEmitterFactory
+    internal IMirEmitterFactory MirEmitterFactory
     {
         get
         {
             return LazyComputation.LazyCompute(ref field, _serviceProvider, static p =>
-                p.GetRequiredService<IMirEmitterFactory<Compilation>>()
+                p.GetRequiredService<IMirEmitterFactory>()
             );
         }
     }

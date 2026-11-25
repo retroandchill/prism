@@ -5,16 +5,15 @@
 
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
+using Prism.BoundTree;
+using Prism.BoundTree.Analysis;
 using Prism.Compiler.Binding;
-using Prism.Compiler.BoundTree;
 using Prism.Compiler.Semantic;
-using Prism.Compiler.Symbols;
 using Prism.Compiler.Symbols.Synthesized;
 using Prism.Diagnostics;
-using Prism.Semantic;
-using Prism.Semantic.Conversions;
 using Prism.Semantic.Symbols;
 using Prism.Utils;
+using VariableSymbol = Prism.Semantic.Symbols.VariableSymbol;
 
 namespace Prism.Compiler.FlowAnalysis;
 
@@ -109,7 +108,7 @@ internal sealed class FunctionAnalysisBuilder
         if (!_function.ReturnsVoid && state.IsReachable)
         {
             _bindingContext.ReportDiagnostic(
-                Diagnostic.AllPathsMustReturnValue(statement.Syntax.Location)
+                Diagnostic.AllPathsMustReturnValue(statement.Location)
             );
         }
 
@@ -145,9 +144,7 @@ internal sealed class FunctionAnalysisBuilder
         {
             if (!state.IsReachable)
             {
-                _bindingContext.ReportDiagnostic(
-                    Diagnostic.UnreachableCode(statement.Syntax.Location)
-                );
+                _bindingContext.ReportDiagnostic(Diagnostic.UnreachableCode(statement.Location));
                 break;
             }
 
@@ -207,14 +204,14 @@ internal sealed class FunctionAnalysisBuilder
                 if (statement.ElseStatement is not null)
                 {
                     _bindingContext.ReportDiagnostic(
-                        Diagnostic.UnreachableCode(statement.ElseStatement.Syntax.Location)
+                        Diagnostic.UnreachableCode(statement.ElseStatement.Location)
                     );
                 }
             }
             else
             {
                 _bindingContext.ReportDiagnostic(
-                    Diagnostic.UnreachableCode(statement.ThenStatement.Syntax.Location)
+                    Diagnostic.UnreachableCode(statement.ThenStatement.Location)
                 );
                 if (statement.ElseStatement is not null)
                 {
@@ -261,7 +258,7 @@ internal sealed class FunctionAnalysisBuilder
             else
             {
                 _bindingContext.ReportDiagnostic(
-                    Diagnostic.UnreachableCode(statement.Body.Syntax.Location)
+                    Diagnostic.UnreachableCode(statement.Body.Location)
                 );
             }
         }
@@ -337,7 +334,7 @@ internal sealed class FunctionAnalysisBuilder
                 else
                 {
                     _bindingContext.ReportDiagnostic(
-                        Diagnostic.UnreachableCode(statement.Body.Syntax.Location)
+                        Diagnostic.UnreachableCode(statement.Body.Location)
                     );
                 }
             }
@@ -426,29 +423,26 @@ internal sealed class FunctionAnalysisBuilder
                         if (!_flags.HasFlag(Flags.ConstructingArguments))
                         {
                             _bindingContext.ReportDiagnostic(
-                                Diagnostic.CannotTakeAddress(addressOf.Operand.Syntax.Location)
+                                Diagnostic.CannotTakeAddress(addressOf.Operand.Location)
                             );
                         }
                         else if (addressOf.IsMutable)
                         {
                             _bindingContext.ReportDiagnostic(
-                                Diagnostic.NoMutableTemporaryRefs(addressOf.Syntax.Location)
+                                Diagnostic.NoMutableTemporaryRefs(addressOf.Location)
                             );
                         }
                     }
 
                     if (addressOf.IsMutable)
                     {
-                        HandleMutableReferencing(
-                            addressOf.Operand,
-                            addressOf.Operand.Syntax.Location
-                        );
+                        HandleMutableReferencing(addressOf.Operand, addressOf.Operand.Location);
                     }
 
                     expression = addressOf.Operand;
                     continue;
 
-                case BoundVariableAccess { Symbol: var variable, Syntax.Location: var location }:
+                case BoundVariableAccess { Symbol: var variable, Location: var location }:
                     switch (state.State.GetVariableInitialization(variable))
                     {
                         case InitializationState.DefinitelyInitialized:
@@ -472,11 +466,7 @@ internal sealed class FunctionAnalysisBuilder
                 case BoundUnaryOperation unary:
                     if (unary.Operation.IsAssigning)
                     {
-                        state = HandleAssignmentOperand(
-                            unary.Operand,
-                            unary.Syntax.Location,
-                            state
-                        );
+                        state = HandleAssignmentOperand(unary.Operand, unary.Location, state);
                     }
                     expression = unary.Operand;
                     continue;
@@ -487,11 +477,7 @@ internal sealed class FunctionAnalysisBuilder
                     continue;
 
                 case BoundAssignmentOperation assignment:
-                    state = HandleAssignmentOperand(
-                        assignment.Left,
-                        assignment.Syntax.Location,
-                        state
-                    );
+                    state = HandleAssignmentOperand(assignment.Left, assignment.Location, state);
                     state = HandleNullableAssignment(assignment.Left, assignment.Right, state);
                     state = VisitExpression(assignment.Left, state);
                     expression = assignment.Right;
@@ -688,7 +674,7 @@ internal sealed class FunctionAnalysisBuilder
         if (nullableState == NullableState.NotNull)
             return;
 
-        _bindingContext.ReportDiagnostic(Diagnostic.MayBeNull(expression.Syntax.Location));
+        _bindingContext.ReportDiagnostic(Diagnostic.MayBeNull(expression.Location));
     }
 
     private ConditionFlow AnalyzeCondition(BoundExpression condition, AnalysisState state)

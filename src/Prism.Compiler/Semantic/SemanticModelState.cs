@@ -1,7 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using Prism.Compiler.Binding;
-using Prism.Compiler.BoundTree;
 using Prism.Compiler.Symbols;
 using Prism.Semantic;
 using Prism.Semantic.Symbols;

@@ -10,7 +10,7 @@ using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
 using Prism.Utils;
 using ZLinq;
-using TypeDefinition = Prism.Metadata.TypeDefinition;
+using TypeDefinition = Prism.Metadata.Symbols.TypeDefinition;
 
 namespace Prism.Compiler.Symbols.Metadata;
 

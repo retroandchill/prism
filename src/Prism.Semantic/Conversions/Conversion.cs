@@ -1,15 +1,18 @@
 ﻿using System.Collections.Immutable;
+using System.Numerics;
 
 namespace Prism.Semantic.Conversions;
 
 public readonly struct Conversion
+    : IEquatable<Conversion>,
+        IEqualityOperators<Conversion, Conversion, bool>
 {
-    private readonly ConversionKind _kind;
+    internal ConversionKind Kind { get; }
     private readonly SpecialData? _specialData;
 
     private Conversion(ConversionKind kind, SpecialData? specialData = null)
     {
-        _kind = kind;
+        Kind = kind;
         _specialData = specialData;
     }
 
@@ -42,36 +45,77 @@ public readonly struct Conversion
 
     internal static Conversion NullToNullable => new(ConversionKind.NullToNullable);
 
-    public bool Exists => _kind != ConversionKind.NoConversion;
+    public bool Exists => Kind != ConversionKind.NoConversion;
 
-    public bool IsIdentity => _kind == ConversionKind.Identity;
+    public bool IsIdentity => Kind == ConversionKind.Identity;
 
-    public bool IsImplicit => _kind.IsImplicit;
+    public bool IsImplicit => Kind.IsImplicit;
 
-    public bool IsExplicit => Exists && !_kind.IsImplicit;
+    public bool IsExplicit => Exists && !Kind.IsImplicit;
 
     public bool IsNumeric =>
-        _kind is ConversionKind.ImplicitNumeric or ConversionKind.ExplicitNumeric;
+        Kind is ConversionKind.ImplicitNumeric or ConversionKind.ExplicitNumeric;
 
     public bool IsCharacter =>
-        _kind is ConversionKind.ImplicitCharacter or ConversionKind.ExplicitCharacter;
+        Kind is ConversionKind.ImplicitCharacter or ConversionKind.ExplicitCharacter;
 
     public bool IsReference =>
-        _kind is ConversionKind.ImplicitReference or ConversionKind.ExplicitReference;
+        Kind is ConversionKind.ImplicitReference or ConversionKind.ExplicitReference;
 
-    public bool IsSpan => _kind is ConversionKind.ImplicitSpan;
+    public bool IsSpan => Kind is ConversionKind.ImplicitSpan;
 
     public bool IsNullable =>
-        _kind is ConversionKind.ImplicitNullable or ConversionKind.UnwrapNullable;
+        Kind is ConversionKind.ImplicitNullable or ConversionKind.UnwrapNullable;
 
-    public bool IsUnwrapping => _kind is ConversionKind.UnwrapNullable;
+    public bool IsUnwrapping => Kind is ConversionKind.UnwrapNullable;
 
-    public bool IsNullToNullable => _kind is ConversionKind.NullToNullable;
+    public bool IsNullToNullable => Kind is ConversionKind.NullToNullable;
 
     public ImmutableArray<Conversion> UnderlyingConversions =>
         _specialData is NestedData nestedData ? nestedData.NestedConversions : [];
 
     private closed record SpecialData;
 
-    private sealed record NestedData(ImmutableArray<Conversion> NestedConversions) : SpecialData;
+    private sealed record NestedData(ImmutableArray<Conversion> NestedConversions) : SpecialData
+    {
+        public bool Equals(NestedData? other)
+        {
+            return other is not null && NestedConversions.SequenceEqual(other.NestedConversions);
+        }
+
+        public override int GetHashCode()
+        {
+            var hashCode = new HashCode();
+            foreach (var conversion in NestedConversions)
+            {
+                hashCode.Add(conversion);
+            }
+            return hashCode.ToHashCode();
+        }
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is Conversion other && Equals(other);
+    }
+
+    public bool Equals(Conversion other)
+    {
+        return Kind == other.Kind && Equals(_specialData, other._specialData);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine((int)Kind, _specialData);
+    }
+
+    public static bool operator ==(Conversion left, Conversion right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(Conversion left, Conversion right)
+    {
+        return !left.Equals(right);
+    }
 }

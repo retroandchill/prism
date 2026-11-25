@@ -10,6 +10,7 @@ using Prism.Compiler.Binding;
 using Prism.Compiler.Mappers;
 using Prism.Constants;
 using Prism.Diagnostics;
+using Prism.Semantic.Mappers;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;

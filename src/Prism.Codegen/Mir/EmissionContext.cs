@@ -83,19 +83,6 @@ internal sealed class EmissionContext
         Builder.EntryBlock = CurrentBlock;
     }
 
-    public EmissionContext(VariableInitializerBuilder builder)
-    {
-        Builder = builder.WithExecutableBody();
-
-        if (Builder.ReturnValueLocal is not null)
-        {
-            ReturnPlace = new LocalPlace(Builder.ReturnValueLocal);
-        }
-
-        CurrentBlock = Builder.AddBasicBlock("entry");
-        Builder.EntryBlock = CurrentBlock;
-    }
-
     public BasicBlockBuilder CurrentBlock { get; set; }
 
     public BasicBlockBuilder AddBlock(string name)

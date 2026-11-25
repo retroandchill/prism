@@ -1,4 +1,4 @@
-﻿using Prism.Compiler.BoundTree;
+﻿using Prism.BoundTree;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
 using Prism.Semantic;

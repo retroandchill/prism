@@ -7,8 +7,8 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using Prism.BoundTree;
 using Prism.Compiler.Binding;
-using Prism.Compiler.BoundTree;
 using Prism.Compiler.Codegen;
 using Prism.Compiler.FlowAnalysis;
 using Prism.Compiler.Semantic;
@@ -28,7 +28,7 @@ internal static class CompilerDriver
 {
     public static BoundVariableInitializer BindVariableInitializer(
         Compilation compilation,
-        VariableSymbol variable,
+        Prism.Semantic.Symbols.VariableSymbol variable,
         CancellationToken cancellationToken
     )
     {
@@ -254,7 +254,7 @@ internal static class CompilerDriver
         foreach (
             var member in type.GetMembers()
                 .AsValueEnumerable()
-                .OfType<VariableSymbol>()
+                .OfType<Prism.Semantic.Symbols.VariableSymbol>()
                 .Where(v => v.IsInstance)
         )
         {
@@ -329,7 +329,6 @@ internal static class CompilerDriver
             compilation,
             syntax,
             type,
-            type.ElementType,
             ImmutableCollectionsMarshal.AsImmutableArray(elements)
         );
     }

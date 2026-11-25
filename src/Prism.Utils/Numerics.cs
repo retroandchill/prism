@@ -5,6 +5,37 @@ using Cysharp.Text;
 
 namespace Prism.Utils;
 
+public enum IntegerBase : byte
+{
+    Decimal,
+    Hex,
+    Binary,
+}
+
+public enum IntegerSuffix : byte
+{
+    None,
+    I8,
+    I16,
+    I32,
+    I64,
+    I128,
+    ISize,
+    U8,
+    U16,
+    U32,
+    U64,
+    U128,
+    USize,
+}
+
+public enum FloatSuffix : byte
+{
+    None,
+    F32,
+    F64,
+}
+
 public static class Numerics
 {
     extension(char)

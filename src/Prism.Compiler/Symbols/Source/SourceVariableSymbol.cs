@@ -2,22 +2,24 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
+using Prism.BoundTree;
+using Prism.BoundTree.Symbols;
 using Prism.Compiler.Binding;
-using Prism.Compiler.BoundTree;
-using Prism.Compiler.Symbols.Error;
 using Prism.Constants;
 using Prism.Diagnostics;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
+using Prism.Semantic.Symbols.Error;
 using Prism.Syntax;
 using Prism.Text;
 using ZLinq;
+using VariableSymbol = Prism.Semantic.Symbols.VariableSymbol;
 
 namespace Prism.Compiler.Symbols.Source;
 
 internal closed class SourceVariableSymbol
     : SourceSymbol,
-        IVariableSymbolData,
+        IBoundVariableSymbolData,
         IAttributeHolderSymbolData,
         ICompletableSymbolData
 {
@@ -135,6 +137,13 @@ internal closed class SourceVariableSymbol
             _completionState.MarkPartComplete(CompletionPart.ConstantValue);
             return _constantValue;
         }
+    }
+
+    public BoundVariableInitializer GetBoundInitializer(
+        CancellationToken cancellationToken = default
+    )
+    {
+        return DeclaringCompilation.GetBoundInitializer(PublicSymbol, cancellationToken);
     }
 
     private (ConstantValue?, bool) TryComputeConstantValue(BindingContext context)

@@ -6,8 +6,8 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Prism.BoundTree;
 using Prism.Compiler.Binding;
-using Prism.Compiler.BoundTree;
 using Prism.Constants;
 using Prism.Diagnostics;
 using Prism.Semantic;

@@ -3,19 +3,13 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Prism.Compiler.References;
+using Prism.Configuration;
 using Prism.Metadata;
+using Prism.Metadata.Symbols;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
 using Prism.Utils;
 using ZLinq;
-using AssemblyDefinition = Prism.Metadata.AssemblyDefinition;
-using FunctionDefinition = Prism.Metadata.FunctionDefinition;
-using MemberContainerDefinition = Prism.Metadata.MemberContainerDefinition;
-using NamespaceDefinition = Prism.Metadata.NamespaceDefinition;
-using ParameterDefinition = Prism.Metadata.ParameterDefinition;
-using TargetInfo = Prism.Configuration.TargetInfo;
-using TypeDefinition = Prism.Metadata.TypeDefinition;
-using VariableDefinition = Prism.Metadata.VariableDefinition;
 
 namespace Prism.Compiler.Symbols.Metadata;
 

@@ -11,7 +11,7 @@ using ZLinq;
 
 namespace Prism.Syntax;
 
-public closed class SyntaxNode : ISyntaxItem
+public closed class SyntaxNode : ISyntaxItem, IBoundSource
 {
     private protected SyntaxNode(GreenNode green, SyntaxNode? parent, int position)
     {

@@ -6,7 +6,7 @@ using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
 using ZLinq;
-using NamespaceDefinition = Prism.Metadata.NamespaceDefinition;
+using NamespaceDefinition = Prism.Metadata.Symbols.NamespaceDefinition;
 
 namespace Prism.Compiler.Symbols.Metadata;
 

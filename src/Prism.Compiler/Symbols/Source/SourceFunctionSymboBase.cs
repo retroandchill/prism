@@ -2,6 +2,8 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Prism.BoundTree;
+using Prism.BoundTree.Symbols;
 using Prism.Compiler.Binding;
 using Prism.Diagnostics;
 using Prism.Semantic;
@@ -15,7 +17,7 @@ namespace Prism.Compiler.Symbols.Source;
 
 internal closed class SourceFunctionSymbolBase
     : SourceSymbol,
-        IFunctionSymbolData,
+        IBoundFunctionSymbolData,
         IAttributeHolderSymbolData,
         IVisibilityGuardedSymbolData,
         ICompletableSymbolData
@@ -127,6 +129,11 @@ internal closed class SourceFunctionSymbolBase
             AddDeclarationDiagnostics(context);
             return field;
         }
+    }
+
+    public BoundFunctionBody GetBoundBody(CancellationToken cancellationToken = default)
+    {
+        return DeclaringCompilation.GetBoundBody(PublicSymbol, cancellationToken);
     }
 
     public AbiKind AbiKind => AbiKind.Internal;

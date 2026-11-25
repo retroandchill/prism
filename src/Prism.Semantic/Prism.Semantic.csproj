@@ -13,7 +13,13 @@
     </ItemGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="Prism.BoundTree" />
         <InternalsVisibleTo Include="Prism.Compiler" />
+        <InternalsVisibleTo Include="Prism.Codegen" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Riok.Mapperly" />
     </ItemGroup>
 
 </Project>

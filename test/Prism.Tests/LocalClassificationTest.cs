@@ -59,13 +59,16 @@ public class LocalClassificationTest
         Assert.That(members[0], Is.InstanceOf<FunctionSymbol>());
 
         var function = (FunctionSymbol)members[0];
+        var boundBody = compilation.GetBoundBody(function);
         var mirEmitter = new MirEmitter(compilation);
-        var mirFunction = mirEmitter.Emit(function, CancellationToken.None);
-        Assert.That(mirFunction.Value, Is.Not.Null);
+        mirEmitter.EmitFunctionBody(boundBody, CancellationToken.None);
 
+        var module = mirEmitter.BuildModule();
+
+        var mirFunction = module.Functions.First();
         var classifiedLocals = LocalClassification.GetClassifications(
             compilation,
-            mirFunction.Value,
+            mirFunction,
             CancellationToken.None
         );
 

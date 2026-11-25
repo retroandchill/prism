@@ -1,10 +1,10 @@
 ﻿using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Prism.Compiler.Binding;
-using Prism.Compiler.Symbols.Error;
 using Prism.Diagnostics;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
+using Prism.Semantic.Symbols.Error;
 using Prism.Syntax;
 using Prism.Utils;
 

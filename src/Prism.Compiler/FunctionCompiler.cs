@@ -17,13 +17,13 @@ namespace Prism.Compiler;
 internal sealed class FunctionCompiler
 {
     private readonly Compilation _compilation;
-    private readonly ICodeEmitter? _emitter;
+    private readonly IMirEmitter? _emitter;
     private readonly BindingContext _context;
     private readonly CancellationToken _cancellationToken;
 
     private FunctionCompiler(
         Compilation compilation,
-        ICodeEmitter? emitter,
+        IMirEmitter? emitter,
         BindingContext context,
         CancellationToken cancellationToken
     )
@@ -36,7 +36,7 @@ internal sealed class FunctionCompiler
 
     public static void CompileFunctions(
         Compilation compilation,
-        ICodeEmitter? emitter,
+        IMirEmitter? emitter,
         BindingContext context,
         CancellationToken cancellationToken
     )
@@ -70,30 +70,21 @@ internal sealed class FunctionCompiler
     {
         _cancellationToken.ThrowIfCancellationRequested();
 
-        if (variableSymbol.IsConst)
-        {
-            _emitter?.AddGlobalConstant(variableSymbol, _context, _cancellationToken);
-            return;
-        }
-
-        var initializer = _compilation.GetMirInitializer(variableSymbol, _cancellationToken);
+        var initializer = _compilation.GetBoundInitializer(variableSymbol, _cancellationToken);
         _context.ReportDiagnostics(initializer.Diagnostics);
-        if (initializer.Value is null)
+        if (initializer.Initializer is null)
             return;
 
-        if (variableSymbol.IsStaticStorage)
-        {
-            _emitter?.AddGlobalVariable(initializer.Value, _context, _cancellationToken);
-        }
+        _emitter?.RegisterGlobalVariable(initializer, _cancellationToken);
     }
 
     private void CompileFunction(FunctionSymbol functionSymbol)
     {
         _cancellationToken.ThrowIfCancellationRequested();
 
-        var body = _compilation.GetMirFunction(functionSymbol, _cancellationToken);
+        var body = _compilation.GetBoundBody(functionSymbol, _cancellationToken);
         _context.ReportDiagnostics(body.Diagnostics);
-        if (body.Value is null)
+        if (body.Body is null)
             return;
 
         if (functionSymbol.Data is SynthesizedGlobalConstructor globalCtor)
@@ -106,12 +97,11 @@ internal sealed class FunctionCompiler
             if (_emitter is null || !globalCtor.ShouldEmit(globals.Span))
                 return;
 
-            _emitter.AddFunction(body.Value, _context, _cancellationToken);
-            _emitter.RegisterGlobalConstructor(functionSymbol);
+            _emitter.EmitFunctionBody(body, _cancellationToken);
         }
         else
         {
-            _emitter?.AddFunction(body.Value, _context, _cancellationToken);
+            _emitter?.EmitFunctionBody(body, _cancellationToken);
         }
     }
 

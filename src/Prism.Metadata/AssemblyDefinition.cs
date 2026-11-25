@@ -4,6 +4,9 @@ using System.IO.Abstractions;
 using System.Runtime.InteropServices;
 using MagicArchive;
 using Prism.Configuration;
+using Prism.Metadata.Serialization;
+using Prism.Metadata.Symbols;
+using Prism.Utils;
 using Riok.Mapperly.Abstractions;
 
 namespace Prism.Metadata;
@@ -275,6 +278,30 @@ public sealed partial class AssemblyDefinition
         private set;
     }
 
+    internal ImmutableArray<VariableReference> ReferencedVariables
+    {
+        get { return LazyComputation.LazyCompute(ref field, this, static @this =>
+            {
+                Debug.Assert(@this._metadataReader is not null);
+                return @this.ReadAll(@this._metadataReader.VariableRefCount, static (r, i) =>
+                    r.GetVariableRef(VariableRefHandle.FromRowId(i))
+                );
+            }); }
+        private set;
+    }
+
+    internal ImmutableArray<FunctionReference> ReferencedFunctions
+    {
+        get { return LazyComputation.LazyCompute(ref field, this, static @this =>
+            {
+                Debug.Assert(@this._metadataReader is not null);
+                return @this.ReadAll(@this._metadataReader.FunctionRefCount, static (r, i) =>
+                    r.GetFunctionRef(FunctionRefHandle.FromRowId(i))
+                );
+            }); }
+        private set;
+    }
+
     private ImmutableArray<T> ReadAll<T>(int count, Func<MetadataReader, int, T> reader)
     {
         Debug.Assert(_metadataReader is not null);
@@ -311,9 +338,10 @@ public sealed partial class AssemblyDefinition
     [UseStaticMapper(typeof(NamespaceDefinition.Mapper))]
     [UseStaticMapper(typeof(TypeDefinition.Mapper))]
     [UseStaticMapper(typeof(TypeAlias.Mapper))]
-    [UseStaticMapper(typeof(TypeMapper))]
+    [UseStaticMapper(typeof(Builders.DescriptorMapper))]
     [UseStaticMapper(typeof(VariableDefinition.Mapper))]
     [UseStaticMapper(typeof(FunctionDefinition.Mapper))]
+    [UseStaticMapper(typeof(FunctionReference.Mapper))]
     [UseStaticMapper(typeof(ParameterDefinition.Mapper))]
     [UseStaticMapper(typeof(CustomAttributeDefinition.Mapper))]
     internal static partial class Mapper

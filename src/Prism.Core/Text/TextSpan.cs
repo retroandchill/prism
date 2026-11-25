@@ -1,14 +1,19 @@
 ﻿using System.Numerics;
+using MagicArchive;
 
 namespace Prism.Text;
 
-public readonly record struct TextSpan
+[Archivable]
+public readonly partial record struct TextSpan
     : IComparable<TextSpan>,
         IEqualityOperators<TextSpan, TextSpan, bool>
 {
+    [ArchiveIgnore]
     public int End => Start + Length;
 
+    [ArchiveIgnore]
     public bool IsEmpty => Length == 0;
+
     public int Start { get; }
     public int Length { get; }
 

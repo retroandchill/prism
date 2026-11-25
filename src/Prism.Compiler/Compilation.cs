@@ -2,20 +2,19 @@
 using System.Diagnostics;
 using Cysharp.Text;
 using Prism.Abi;
+using Prism.BoundTree;
 using Prism.Compiler.Binding;
-using Prism.Compiler.BoundTree;
 using Prism.Compiler.Codegen;
 using Prism.Compiler.Declarations;
 using Prism.Compiler.References;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
-using Prism.Compiler.Symbols.Error;
 using Prism.Compiler.Symbols.Source;
 using Prism.Configuration;
 using Prism.Diagnostics;
-using Prism.Mir;
 using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
+using Prism.Semantic.Symbols.Error;
 using Prism.Syntax;
 using Prism.Text;
 using ZLinq;
@@ -27,7 +26,7 @@ internal sealed record EntryPoint(FunctionSymbol? Function, ImmutableArray<Diagn
     public static readonly EntryPoint Empty = new(null, []);
 }
 
-public class Compilation : ILayoutSource, IAbiLookup
+public class Compilation : IAbiLookup, IBoundSemanticContext
 {
     private readonly CompilationContext _context;
     private readonly SyntaxAndDeclarationManager _syntaxAndDeclarationManager;
@@ -293,7 +292,10 @@ public class Compilation : ILayoutSource, IAbiLookup
         return Cache.CreateErrorNamespaceSymbol(containingNamespace, name);
     }
 
-    internal VariableSymbol CreateErrorFieldSymbol(TypeSymbol containingType, string name)
+    internal Prism.Semantic.Symbols.VariableSymbol CreateErrorFieldSymbol(
+        TypeSymbol containingType,
+        string name
+    )
     {
         return Cache.CreateErrorFieldSymbol(containingType, name);
     }
@@ -303,11 +305,15 @@ public class Compilation : ILayoutSource, IAbiLookup
         CancellationToken cancellationToken = default
     )
     {
-        using var emitter = _context.EmitterFactory.CreateEmitter(this, options);
+        var emitter = _context.MirEmitterFactory.CreateEmitter(this);
         using var context = BindingContext.Create();
         GetAllDiagnostics(CompilationStage.Declare, true, context, null, cancellationToken);
         FunctionCompiler.CompileFunctions(this, emitter, context, cancellationToken);
-        var codeEmitTask = emitter.EmitAsync(context, cancellationToken);
+
+        var module = emitter.BuildModule(cancellationToken);
+
+        using var codeEmitter = _context.EmitterFactory.CreateEmitter(this, options);
+        var codeEmitTask = codeEmitter.EmitAsync(module, context, cancellationToken);
         if (!Settings.IsLibrary)
             return await codeEmitTask;
 
@@ -395,7 +401,7 @@ public class Compilation : ILayoutSource, IAbiLookup
         return Cache.GetFunctionAbi(classifier, function);
     }
 
-    internal ImmutableArray<VariableSymbol> GetGlobalVariables()
+    internal ImmutableArray<Prism.Semantic.Symbols.VariableSymbol> GetGlobalVariables()
     {
         return Cache.GetGlobalVariables();
     }
@@ -419,22 +425,6 @@ public class Compilation : ILayoutSource, IAbiLookup
     )
     {
         return Cache.GetBoundFunctionBody(function, cancellationToken);
-    }
-
-    internal Result<VariableInitializer> GetMirInitializer(
-        VariableSymbol variableSymbol,
-        CancellationToken cancellationToken = default
-    )
-    {
-        return MirManager.GetInitializer(variableSymbol, cancellationToken);
-    }
-
-    internal Result<Function> GetMirFunction(
-        FunctionSymbol function,
-        CancellationToken cancellationToken = default
-    )
-    {
-        return MirManager.GetFunction(function, cancellationToken);
     }
 
     internal EntryPoint GetEntryPointAndDiagnostics()
@@ -705,19 +695,6 @@ public class Compilation : ILayoutSource, IAbiLookup
                 return field;
 
             Interlocked.CompareExchange(ref field, new CompilationCache(this), null);
-            return field;
-        }
-    }
-
-    private MirCodeManager MirManager
-    {
-        get
-        {
-            if (field is not null)
-                return field;
-
-            var emitter = _context.MirEmitterFactory.CreateEmitter(this);
-            Interlocked.CompareExchange(ref field, new MirCodeManager(emitter), null);
             return field;
         }
     }

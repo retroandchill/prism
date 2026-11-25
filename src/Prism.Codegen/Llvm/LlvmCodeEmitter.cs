@@ -12,6 +12,7 @@ using System.Text;
 using Cysharp.Text;
 using LLVMSharp.Interop;
 using Prism.Abi;
+using Prism.BoundTree.Symbols;
 using Prism.Compiler;
 using Prism.Compiler.Binding;
 using Prism.Compiler.Codegen;
@@ -23,6 +24,7 @@ using Prism.Mir;
 using Prism.Mir.Analysis;
 using Prism.Semantic.Conversions;
 using Prism.Semantic.Layout;
+using Prism.Semantic.Mappers;
 using Prism.Semantic.Symbols;
 using Prism.Utils;
 using Utf8StringInterpolation;
@@ -75,47 +77,57 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     }
 
     public async Task<EmitResult> EmitAsync(
+        Module mirModule,
         BindingContext context,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken = default
     )
     {
-        return !context.HasErrors
-            ? await OutputBinaryAsync(context, cancellationToken)
-            : new EmitResult(false, context.CollectDiagnostics());
+        if (context.HasErrors)
+        {
+            return new EmitResult(false, context.CollectDiagnostics());
+            ;
+        }
+
+        foreach (var globalVariable in mirModule.GlobalVariables)
+        {
+            AddGlobalVariable(globalVariable, cancellationToken);
+        }
+
+        foreach (var function in mirModule.Functions)
+        {
+            AddFunction(function, context, cancellationToken);
+        }
+
+        if (mirModule.EntryPoint is not null)
+        {
+            RegisterEntryPoint(mirModule.EntryPoint);
+        }
+
+        return await OutputBinaryAsync(context, cancellationToken);
     }
 
-    public void AddGlobalConstant(
-        VariableSymbol variable,
-        BindingContext bindingContext,
-        CancellationToken cancellationToken
-    )
+    private void AddGlobalVariable(VariableSymbol variable, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var llvmVariable = GetOrCreateGlobal(variable);
-        llvmVariable.IsGlobalConstant = true;
-
-        var constant = variable.ConstantValue;
-        Debug.Assert(constant is not null);
-        llvmVariable.Initializer = MakeConstant(constant.Value, variable.Type);
-    }
-
-    public void AddGlobalVariable(
-        VariableInitializer variable,
-        BindingContext bindingContext,
-        CancellationToken cancellationToken
-    )
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        var llvmVariable = GetOrCreateGlobal(variable.Symbol);
-        if (variable.Value is ConstantValue constantValue)
+        if (variable.IsConst)
         {
-            llvmVariable.Initializer = MakeConstant(constantValue, variable.Symbol.Type);
+            llvmVariable.IsGlobalConstant = true;
+            llvmVariable.Initializer = MakeConstant(variable.ConstantValue.Value, variable.Type);
         }
         else
         {
-            var llvmType = GetOrCreateType(variable.Symbol.Type);
-            var initialValue = LLVMValueRef.CreateConstNull(llvmType);
-            llvmVariable.Initializer = initialValue;
+            var boundInitializer = variable.GetBoundInitializer(cancellationToken);
+            if (boundInitializer.ConstantValue is { } constantValue)
+            {
+                llvmVariable.Initializer = MakeConstant(constantValue, variable.Type);
+            }
+            else
+            {
+                var llvmType = GetOrCreateType(variable.Type);
+                var initialValue = LLVMValueRef.CreateConstNull(llvmType);
+                llvmVariable.Initializer = initialValue;
+            }
         }
     }
 

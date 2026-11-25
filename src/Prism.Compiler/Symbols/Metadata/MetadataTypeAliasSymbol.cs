@@ -3,6 +3,7 @@ using Prism.Metadata;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
 using Prism.Utils;
+using TypeAlias = Prism.Metadata.Symbols.TypeAlias;
 
 namespace Prism.Compiler.Symbols.Metadata;
 

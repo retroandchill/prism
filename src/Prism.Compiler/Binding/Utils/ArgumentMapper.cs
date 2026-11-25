@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
+using Prism.BoundTree;
 using Prism.Compiler.Binding.OverloadResolution;
-using Prism.Compiler.BoundTree;
 using Prism.Compiler.Symbols;
 using Prism.Semantic;
 using Prism.Semantic.Symbols;

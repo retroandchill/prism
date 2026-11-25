@@ -1,6 +1,7 @@
 ﻿using Prism.Compiler.Symbols;
 using Prism.Configuration;
 using Prism.Metadata;
+using Prism.Metadata.Builders;
 
 namespace Prism.Tests.Helpers;
 

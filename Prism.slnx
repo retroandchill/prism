@@ -4,6 +4,7 @@
     <Project Path="src/prism-std/prism-std.csproj" />
     <Project Path="src/prism-syntax-highlighting/prism-syntax-highlighting.csproj" />
     <Project Path="src/Prism.Abi/Prism.Abi.csproj" />
+    <Project Path="src/Prism.BoundTree/Prism.BoundTree.csproj" />
     <Project Path="src/Prism.Build/Prism.Build.csproj" />
     <Project Path="src/Prism.Codegen/Prism.Codegen.csproj" />
     <Project Path="src/Prism.Compiler.Host/Prism.Compiler.Host.csproj" />

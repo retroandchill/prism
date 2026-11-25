@@ -2,25 +2,24 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Prism.BoundTree;
+using Prism.BoundTree.Symbols.Intermediate;
 using Prism.Compiler.Binding.OverloadResolution;
 using Prism.Compiler.Binding.Utils;
-using Prism.Compiler.BoundTree;
 using Prism.Compiler.Mappers;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
-using Prism.Compiler.Symbols.Error;
-using Prism.Compiler.Symbols.Intermediate;
 using Prism.Compiler.Symbols.Source;
 using Prism.Configuration;
 using Prism.Constants;
 using Prism.Diagnostics;
 using Prism.Semantic.Conversions;
 using Prism.Semantic.Symbols;
+using Prism.Semantic.Symbols.Error;
 using Prism.Syntax;
 using Prism.Utils;
 using ZLinq;
 using static Prism.Compiler.Binding.BindingHelpers;
-using ConstantValue = Prism.Constants.ConstantValue;
 
 namespace Prism.Compiler.Binding;
 
@@ -752,7 +751,7 @@ internal abstract class Binder : IOverloadResolutionHost
         {
             if (returnType.IsVoid)
             {
-                context.ReportDiagnostic(Diagnostic.CannotReturnValue(expression.Syntax.Location));
+                context.ReportDiagnostic(Diagnostic.CannotReturnValue(expression.Location));
             }
             else
             {
@@ -1087,7 +1086,7 @@ internal abstract class Binder : IOverloadResolutionHost
             )
             {
                 var (_, specialType) = EvaluateNumericExpression(
-                    in integerValue,
+                    integerValue.ToRaw(),
                     null,
                     syntax.Location,
                     BindingContext.Discarded
@@ -1095,7 +1094,7 @@ internal abstract class Binder : IOverloadResolutionHost
                 return new BoundUnfixedIntegerLiteral(
                     Compilation,
                     syntax,
-                    integerValue,
+                    integerValue.ToRaw(),
                     Compilation.GetSpecialType(specialType)
                 );
             }
@@ -1103,7 +1102,7 @@ internal abstract class Binder : IOverloadResolutionHost
             if (token.TryGetValue<FloatLiteralData>() is { Suffix: FloatSuffix.None } floatingValue)
             {
                 var (_, specialType) = EvaluateNumericExpression(
-                    in floatingValue,
+                    floatingValue.ToRaw(),
                     null,
                     syntax.Location,
                     BindingContext.Discarded
@@ -1111,7 +1110,7 @@ internal abstract class Binder : IOverloadResolutionHost
                 return new BoundUnfixedFloatLiteral(
                     Compilation,
                     syntax,
-                    floatingValue,
+                    floatingValue.ToRaw(),
                     Compilation.GetSpecialType(specialType)
                 );
             }
@@ -1404,7 +1403,7 @@ internal abstract class Binder : IOverloadResolutionHost
                 )
                 {
                     var (negated, specialType) = EvaluateNumericExpression(
-                        in intData,
+                        intData.ToRaw(),
                         returnType,
                         syntax.Location,
                         context,
@@ -1416,7 +1415,7 @@ internal abstract class Binder : IOverloadResolutionHost
                         return new BoundUnfixedIntegerLiteral(
                             Compilation,
                             syntax,
-                            intData,
+                            intData.ToRaw(),
                             Compilation.GetSpecialType(specialType)
                         )
                         {
@@ -1435,7 +1434,7 @@ internal abstract class Binder : IOverloadResolutionHost
                 if (literal.Value.TryGetValue<FloatLiteralData>() is { } floatData)
                 {
                     var (negated, specialType) = EvaluateNumericExpression(
-                        in floatData,
+                        floatData.ToRaw(),
                         returnType,
                         syntax.Location,
                         context,
@@ -1447,7 +1446,7 @@ internal abstract class Binder : IOverloadResolutionHost
                         return new BoundUnfixedFloatLiteral(
                             Compilation,
                             syntax,
-                            floatData,
+                            floatData.ToRaw(),
                             Compilation.GetSpecialType(specialType)
                         )
                         {
@@ -1561,7 +1560,7 @@ internal abstract class Binder : IOverloadResolutionHost
     }
 
     private BoundConditional ConstructConditional(
-        SyntaxNode syntax,
+        IBoundSource syntax,
         TypeSymbol? returnType,
         BoundExpression condition,
         BoundExpression whenTrue,
@@ -1901,7 +1900,7 @@ internal abstract class Binder : IOverloadResolutionHost
     }
 
     private BoundCollectionExpression ConstructCollectionExpression(
-        SyntaxNode syntax,
+        IBoundSource syntax,
         TypeSymbol? targetType,
         BindingContext context,
         TypeSymbol? elementType,
@@ -1965,13 +1964,7 @@ internal abstract class Binder : IOverloadResolutionHost
             collectionType = ErrorTypeSymbol.Unnamed.PublicSymbol;
         }
 
-        return new BoundCollectionExpression(
-            Compilation,
-            syntax,
-            collectionType,
-            foundElementType ?? ErrorTypeSymbol.Unnamed.PublicSymbol,
-            expressions
-        );
+        return new BoundCollectionExpression(Compilation, syntax, collectionType, expressions);
     }
 
     private BoundNewExpression BindObjectCreationExpression(
@@ -2192,12 +2185,22 @@ internal abstract class Binder : IOverloadResolutionHost
 
         if (token.TryGetValue<IntegerLiteralData>() is { } integerValue)
         {
-            return EvaluateNumericExpression(integerValue, returnType, token.Location, context);
+            return EvaluateNumericExpression(
+                integerValue.ToRaw(),
+                returnType,
+                token.Location,
+                context
+            );
         }
 
         if (token.TryGetValue<FloatLiteralData>() is { } floatingValue)
         {
-            return EvaluateNumericExpression(floatingValue, returnType, token.Location, context);
+            return EvaluateNumericExpression(
+                floatingValue.ToRaw(),
+                returnType,
+                token.Location,
+                context
+            );
         }
 
         if (
@@ -2226,7 +2229,7 @@ internal abstract class Binder : IOverloadResolutionHost
     }
 
     private (ConstantValue, SpecialType) EvaluateNumericExpression(
-        in IntegerLiteralData data,
+        in RawIntegerLiteralData data,
         TypeSymbol? returnType,
         Location location,
         BindingContext context,
@@ -2316,7 +2319,7 @@ internal abstract class Binder : IOverloadResolutionHost
     }
 
     private static (ConstantValue, SpecialType) EvaluateNumericExpression(
-        in FloatLiteralData data,
+        in RawFloatLiteralData data,
         TypeSymbol? returnType,
         Location location,
         BindingContext context,
@@ -2514,14 +2517,14 @@ internal abstract class Binder : IOverloadResolutionHost
         BoundSpeculativeExpression expression,
         TypeSymbol? targetType,
         BindingContext context,
-        FloatLiteralData floatLiteral,
+        RawFloatLiteralData floatLiteral,
         bool negated
     )
     {
         var (constant, specialType) = EvaluateNumericExpression(
             in floatLiteral,
             targetType,
-            expression.Syntax.Location,
+            expression.Location,
             context,
             negated
         );
@@ -2533,14 +2536,14 @@ internal abstract class Binder : IOverloadResolutionHost
         BoundSpeculativeExpression expression,
         TypeSymbol? targetType,
         BindingContext context,
-        IntegerLiteralData integerLiteral,
+        RawIntegerLiteralData integerLiteral,
         bool negated
     )
     {
         var (constant, specialType) = EvaluateNumericExpression(
             in integerLiteral,
             targetType,
-            expression.Syntax.Location,
+            expression.Location,
             context,
             negated
         );

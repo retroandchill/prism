@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Text;
+using JetBrains.Annotations;
 using MagicArchive;
 using Prism.Constants;
 using CharacterConstant = Prism.Constants.CharacterConstant;
@@ -27,7 +28,7 @@ public readonly partial record struct StringHandle
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial StringHandle(int id);
+    private partial StringHandle([UsedImplicitly] int id);
 }
 
 [Archivable]
@@ -37,7 +38,7 @@ public readonly partial record struct BlobHandle
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial BlobHandle(int id);
+    private partial BlobHandle([UsedImplicitly] int id);
 }
 
 [Archivable]
@@ -51,7 +52,7 @@ public readonly partial record struct InlineConstHandle
     private const int KindShift = 16;
     private const int PayloadMask = 0x0000FFFF;
 
-    private partial InlineConstHandle(int id);
+    private partial InlineConstHandle([UsedImplicitly] int id);
 
     public static InlineConstHandle? TryCreate(in ConstantValue value)
     {
@@ -177,17 +178,7 @@ public readonly partial record struct ConstantHandle
     [ArchiveInclude]
     private readonly MetadataToken _token;
 
-    private partial ConstantHandle(MetadataToken token);
-}
-
-[Archivable]
-[Handle]
-public readonly partial record struct AssemblyDefHandle
-{
-    [ArchiveInclude]
-    private readonly int _id;
-
-    private partial AssemblyDefHandle(int id);
+    private partial ConstantHandle([UsedImplicitly] MetadataToken token);
 }
 
 [Archivable]
@@ -197,17 +188,7 @@ public readonly partial record struct AssemblyRefHandle
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial AssemblyRefHandle(int id);
-}
-
-[Archivable]
-[CompositeHandle(typeof(AssemblyDefHandle), typeof(AssemblyRefHandle))]
-public readonly partial record struct AssemblyHandle
-{
-    [ArchiveInclude]
-    private readonly MetadataToken _token;
-
-    private partial AssemblyHandle(MetadataToken token);
+    private partial AssemblyRefHandle([UsedImplicitly] int id);
 }
 
 [Archivable]
@@ -217,7 +198,7 @@ public readonly partial record struct NamespaceDefHandle
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial NamespaceDefHandle(int id);
+    private partial NamespaceDefHandle([UsedImplicitly] int id);
 }
 
 [Archivable]
@@ -227,7 +208,7 @@ public readonly partial record struct NamespaceRefHandle
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial NamespaceRefHandle(int id);
+    private partial NamespaceRefHandle([UsedImplicitly] int id);
 }
 
 [Archivable]
@@ -237,7 +218,7 @@ public readonly partial record struct NamespaceOrAssemblyRefHandle
     [ArchiveInclude]
     private readonly MetadataToken _token;
 
-    private partial NamespaceOrAssemblyRefHandle(MetadataToken token);
+    private partial NamespaceOrAssemblyRefHandle([UsedImplicitly] MetadataToken token);
 
     public static implicit operator MemberContainerRefHandle(NamespaceOrAssemblyRefHandle handle)
     {
@@ -257,7 +238,7 @@ public readonly partial record struct TypeDefHandle
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial TypeDefHandle(int id);
+    private partial TypeDefHandle([UsedImplicitly] int id);
 }
 
 [Archivable]
@@ -267,7 +248,7 @@ public readonly partial record struct TypeRefHandle
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial TypeRefHandle(int id);
+    private partial TypeRefHandle([UsedImplicitly] int id);
 }
 
 [Archivable]
@@ -277,7 +258,7 @@ public readonly partial record struct TypeSpecHandle
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial TypeSpecHandle(int id);
+    private partial TypeSpecHandle([UsedImplicitly] int id);
 }
 
 [Archivable]
@@ -287,7 +268,7 @@ public readonly partial record struct TypeAliasHandle
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial TypeAliasHandle(int id);
+    private partial TypeAliasHandle([UsedImplicitly] int id);
 }
 
 [Archivable]
@@ -302,7 +283,7 @@ public readonly partial record struct TypeHandle
     [ArchiveInclude]
     private readonly MetadataToken _token;
 
-    private partial TypeHandle(MetadataToken token);
+    private partial TypeHandle([UsedImplicitly] MetadataToken token);
 }
 
 [Archivable]
@@ -312,7 +293,7 @@ public readonly partial record struct MemberContainerDefHandle
     [ArchiveInclude]
     private readonly MetadataToken _token;
 
-    private partial MemberContainerDefHandle(MetadataToken token);
+    private partial MemberContainerDefHandle([UsedImplicitly] MetadataToken token);
 }
 
 [Archivable]
@@ -322,7 +303,7 @@ public readonly partial record struct MemberContainerRefHandle
     [ArchiveInclude]
     private readonly MetadataToken _token;
 
-    private partial MemberContainerRefHandle(MetadataToken token);
+    private partial MemberContainerRefHandle([UsedImplicitly] MetadataToken token);
 }
 
 [Archivable]
@@ -332,7 +313,7 @@ public readonly partial record struct VariableHandle
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial VariableHandle(int id);
+    private partial VariableHandle([UsedImplicitly] int id);
 }
 
 [Archivable]
@@ -342,7 +323,7 @@ public readonly partial record struct FunctionHandle
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial FunctionHandle(int id);
+    private partial FunctionHandle([UsedImplicitly] int id);
 }
 
 [Archivable]
@@ -352,7 +333,7 @@ public readonly partial record struct ParameterHandle
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial ParameterHandle(int id);
+    private partial ParameterHandle([UsedImplicitly] int id);
 }
 
 [Archivable]
@@ -362,7 +343,7 @@ public readonly partial record struct EnumOrdinalHandle
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial EnumOrdinalHandle(int id);
+    private partial EnumOrdinalHandle([UsedImplicitly] int id);
 }
 
 [Archivable]
@@ -372,7 +353,7 @@ public readonly partial record struct CustomAttributeHandle
     [ArchiveInclude]
     private readonly int _id;
 
-    private partial CustomAttributeHandle(int id);
+    private partial CustomAttributeHandle([UsedImplicitly] int id);
 }
 
 [Archivable]
@@ -382,7 +363,7 @@ public readonly partial record struct FunctionOrAttributeHandle
     [ArchiveInclude]
     private readonly MetadataToken _token;
 
-    private partial FunctionOrAttributeHandle(MetadataToken token);
+    private partial FunctionOrAttributeHandle([UsedImplicitly] MetadataToken token);
 }
 
 [Archivable]
@@ -392,7 +373,7 @@ public readonly partial record struct ParameterDefaultHandle
     [ArchiveInclude]
     private readonly MetadataToken _token;
 
-    private partial ParameterDefaultHandle(MetadataToken token);
+    private partial ParameterDefaultHandle([UsedImplicitly] MetadataToken token);
 
     public static implicit operator ParameterDefaultHandle(ConstantHandle handle)
     {
@@ -428,5 +409,44 @@ public readonly partial record struct AttributeHolderHandle
     [ArchiveInclude]
     private readonly MetadataToken _token;
 
-    private partial AttributeHolderHandle(MetadataToken token);
+    private partial AttributeHolderHandle([UsedImplicitly] MetadataToken token);
+}
+
+[Archivable]
+[Handle]
+public readonly partial record struct VariableRefHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial VariableRefHandle([UsedImplicitly] int id);
+}
+
+[Archivable]
+[Handle]
+public readonly partial record struct FunctionRefHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial FunctionRefHandle([UsedImplicitly] int id);
+}
+
+[Archivable]
+[CompositeHandle(typeof(VariableHandle), typeof(VariableRefHandle))]
+public readonly partial record struct VariableDescriptorHandle
+{
+    [ArchiveInclude]
+    private readonly MetadataToken _token;
+
+    private partial VariableDescriptorHandle([UsedImplicitly] MetadataToken token);
+}
+
+[CompositeHandle(typeof(FunctionHandle), typeof(FunctionRefHandle))]
+public readonly partial record struct FunctionDescriptorHandle
+{
+    [ArchiveInclude]
+    private readonly MetadataToken _token;
+
+    private partial FunctionDescriptorHandle([UsedImplicitly] MetadataToken token);
 }

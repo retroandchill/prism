@@ -4,8 +4,6 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using Prism.Compiler;
-using Prism.Compiler.Symbols;
-using Prism.Semantic;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
 using Prism.Tests.Helpers;

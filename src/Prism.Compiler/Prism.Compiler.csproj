@@ -43,6 +43,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Prism.Abi\Prism.Abi.csproj" />
+    <ProjectReference Include="..\Prism.BoundTree\Prism.BoundTree.csproj" />
     <ProjectReference Include="..\Prism.Constants\Prism.Constants.csproj" />
     <ProjectReference Include="..\Prism.Diagnostics\Prism.Diagnostics.csproj" />
     <ProjectReference Include="..\Prism.Core\Prism.Core.csproj" />
@@ -51,5 +52,10 @@
     <ProjectReference Include="..\Prism.Semantic\Prism.Semantic.csproj" />
     <ProjectReference Include="..\Prism.Syntax\Prism.Syntax.csproj" />
     <ProjectReference Include="..\Prism.Utils\Prism.Utils.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="BoundTree\" />
+    <Folder Include="Symbols\Error\" />
   </ItemGroup>
 </Project>

@@ -4,7 +4,6 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using Prism.Compiler.Binding;
-using Prism.Compiler.BoundTree;
 using Prism.Mir;
 using Prism.Semantic.Symbols;
 
@@ -12,27 +11,9 @@ namespace Prism.Compiler.Codegen;
 
 internal interface ICodeEmitter : IDisposable
 {
-    void AddGlobalConstant(
-        VariableSymbol variable,
-        BindingContext bindingContext,
-        CancellationToken cancellationToken
+    Task<EmitResult> EmitAsync(
+        Module mirModule,
+        BindingContext context,
+        CancellationToken cancellationToken = default
     );
-
-    void AddGlobalVariable(
-        VariableInitializer variable,
-        BindingContext bindingContext,
-        CancellationToken cancellationToken
-    );
-
-    void AddFunction(
-        Function function,
-        BindingContext bindingContext,
-        CancellationToken cancellationToken
-    );
-
-    void RegisterGlobalConstructor(FunctionSymbol function);
-
-    void RegisterEntryPoint(FunctionSymbol function);
-
-    Task<EmitResult> EmitAsync(BindingContext context, CancellationToken cancellationToken);
 }

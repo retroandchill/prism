@@ -25,6 +25,8 @@ internal enum Section
     Parameters = 32,
     EnumOrdinals = 33,
     CustomAttributes = 50,
+    VariableRefs = 80,
+    FunctionRefs = 81,
 }
 
 internal static partial class Sections
@@ -43,6 +45,9 @@ internal static partial class Sections
     public const uint Function = 25;
     public const uint Parameter = 26;
     public const uint EnumOrdinal = 27;
+
+    public const uint VariableRef = 40;
+    public const uint FunctionRef = 41;
 
     public const uint CustomAttribute = 80;
 
@@ -78,6 +83,9 @@ public enum TokenType : uint
     Function = Sections.Function << Sections.RowIdBitCount,
     Parameter = Sections.Parameter << Sections.RowIdBitCount,
     EnumOrdinal = Sections.EnumOrdinal << Sections.RowIdBitCount,
+
+    VariableRef = Sections.VariableRef << Sections.RowIdBitCount,
+    FunctionRef = Sections.FunctionRef << Sections.RowIdBitCount,
 
     CustomAttribute = Sections.CustomAttribute << Sections.RowIdBitCount,
 

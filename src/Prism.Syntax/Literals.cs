@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using System.Text;
 using Prism.Syntax.Green;
+using Prism.Utils;
 
 namespace Prism.Syntax;
 
@@ -39,30 +40,6 @@ public readonly record struct BoolLiteralData(bool Value) : ISyntaxData<BoolLite
     }
 }
 
-public enum IntegerBase : byte
-{
-    Decimal,
-    Hex,
-    Binary,
-}
-
-public enum IntegerSuffix : byte
-{
-    None,
-    I8,
-    I16,
-    I32,
-    I64,
-    I128,
-    ISize,
-    U8,
-    U16,
-    U32,
-    U64,
-    U128,
-    USize,
-}
-
 public readonly record struct IntegerLiteralData(
     string Text,
     BigInteger Value,
@@ -73,13 +50,6 @@ public readonly record struct IntegerLiteralData(
     public SyntaxKind Kind => SyntaxKind.IntegerLiteralToken;
 
     public SyntaxKind ContextualKind => Kind;
-}
-
-public enum FloatSuffix : byte
-{
-    None,
-    F32,
-    F64,
 }
 
 public readonly record struct FloatLiteralData(

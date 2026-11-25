@@ -12,7 +12,7 @@ using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
 using ConstantValue = Prism.Constants.ConstantValue;
-using VariableDefinition = Prism.Metadata.VariableDefinition;
+using VariableDefinition = Prism.Metadata.Symbols.VariableDefinition;
 
 namespace Prism.Compiler.Symbols.Metadata;
 

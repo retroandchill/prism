@@ -3,9 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using Prism.Compiler.Symbols;
-using Prism.Metadata;
-using Prism.Semantic;
+using Prism.Metadata.Symbols;
 using Prism.Semantic.Symbols.Data;
 using Riok.Mapperly.Abstractions;
 

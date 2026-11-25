@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
+using Prism.BoundTree.Symbols.Intermediate;
 using Prism.Compiler.Binding;
 using Prism.Compiler.Symbols;
-using Prism.Compiler.Symbols.Intermediate;
 using Prism.Configuration;
 using Prism.Metadata;
 using Prism.Semantic;

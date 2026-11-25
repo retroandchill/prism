@@ -3,17 +3,21 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Prism.BoundTree;
+using Prism.BoundTree.Symbols;
 using Prism.Compiler;
-using Prism.Compiler.BoundTree;
+using Prism.Compiler.Codegen;
 using Prism.Compiler.Mappers;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
 using Prism.Constants;
 using Prism.Mir;
-using Prism.Mir.Optimization;
+using Prism.Semantic;
+using Prism.Semantic.Mappers;
 using Prism.Semantic.Symbols;
 using Prism.Utils;
 
@@ -27,6 +31,10 @@ internal sealed class MirEmitter : IMirEmitter
     private readonly ConstantOperand _false;
     private readonly ImmutableArray<ConstantOperand> _integerOnes;
     private readonly ImmutableArray<ConstantOperand> _floatOnes;
+
+    private FunctionSymbol? _entryPoint;
+    private readonly ConcurrentBag<Semantic.Symbols.VariableSymbol> _globalVariables = [];
+    private readonly ConcurrentDictionary<FunctionSymbol, Function> _functions = [];
 
     public MirEmitter(Compilation compilation)
     {
@@ -80,61 +88,61 @@ internal sealed class MirEmitter : IMirEmitter
         Or,
     }
 
-    public Result<VariableInitializer> Emit(
-        VariableSymbol variable,
+    public void RegisterGlobalVariable(
+        BoundVariableInitializer initializer,
         CancellationToken cancellationToken = default
     )
     {
-        var boundInitializer = _compilation.GetBoundInitializer(variable, cancellationToken);
-        if (boundInitializer.HasErrors || boundInitializer.Initializer is null)
+        if (initializer.HasErrors || initializer.Initializer is null)
         {
-            return Result.NoPayload<VariableInitializer>(boundInitializer.Diagnostics);
-        }
-
-        var builder = new VariableInitializerBuilder(variable);
-        if (boundInitializer.Initializer.ConstantValue is { } constantValue)
-        {
-            builder.WithConstantValue(in constantValue);
-        }
-        else
-        {
-            var context = new EmissionContext(builder);
-            Debug.Assert(context.ReturnPlace is not null);
-            var lifetime = context.CreateExpressionLifetime();
-            EmitExpression(
-                context.ReturnPlace,
-                boundInitializer.Initializer,
-                lifetime,
-                context,
-                cancellationToken
+            throw new InvalidOperationException(
+                "Invalid variable initializer passed to MIR Emission"
             );
-            context.CurrentBlock.SetReturnTerminator();
         }
 
-        return Result.WithPayload(builder.Build(), boundInitializer.Diagnostics);
+        _globalVariables.Add(initializer.Variable);
     }
 
-    public Result<Function> Emit(
-        FunctionSymbol function,
+    public void EmitFunctionBody(
+        BoundFunctionBody boundBody,
         CancellationToken cancellationToken = default
     )
     {
-        var boundBody = _compilation.GetBoundBody(function, cancellationToken);
         if (boundBody.HasErrors || boundBody.Body is null)
         {
-            return Result.NoPayload<Function>(boundBody.Diagnostics);
+            throw new InvalidOperationException("Invalid function body passed to MIR Emission");
         }
 
-        var builder = new FunctionBuilder(function);
+        var builder = new FunctionBuilder(boundBody.Function);
         var context = new EmissionContext(builder);
         EmitStatement(boundBody.Body, context, cancellationToken);
 
-        if (!context.CurrentBlock.IsTerminated && function.ReturnsVoid)
+        if (!context.CurrentBlock.IsTerminated && boundBody.Function.ReturnsVoid)
         {
             context.CurrentBlock.SetReturnTerminator();
         }
 
-        return Result.WithPayload(builder.Build(), boundBody.Diagnostics);
+        _functions.TryAdd(boundBody.Function, builder.Build());
+    }
+
+    public void RegisterEntryPoint(FunctionSymbol functionSymbol)
+    {
+        if (Interlocked.CompareExchange(ref _entryPoint, functionSymbol, null) is not null)
+        {
+            throw new InvalidOperationException("Entry point already registered");
+        }
+    }
+
+    public Module BuildModule(CancellationToken cancellationToken = default)
+    {
+        var variables = _globalVariables.OrderBy(x => x.GetLexicalSortKey()).ToImmutableArray();
+
+        var functions = _functions
+            .OrderBy(x => x.Key.GetLexicalSortKey())
+            .Select(x => x.Value)
+            .ToImmutableArray();
+
+        return new Module(variables, functions, _entryPoint);
     }
 
     private void EmitStatement(
@@ -1258,7 +1266,7 @@ internal sealed class MirEmitter : IMirEmitter
             foreach (
                 var field in newExpression
                     .Type.GetMembers()
-                    .OfType<VariableSymbol>()
+                    .OfType<Semantic.Symbols.VariableSymbol>()
                     .Where(v => v.IsInstance)
             )
             {
@@ -1270,7 +1278,13 @@ internal sealed class MirEmitter : IMirEmitter
                 }
                 else
                 {
-                    EmitVariableDefaultInline(fieldPlace, field, context, cancellationToken);
+                    EmitVariableDefaultInline(
+                        fieldPlace,
+                        field,
+                        lifetime,
+                        context,
+                        cancellationToken
+                    );
                 }
             }
         }
@@ -1303,16 +1317,18 @@ internal sealed class MirEmitter : IMirEmitter
     private void EmitVariableDefaultInline(
         Place destination,
         VariableSymbol variable,
+        ExpressionLifetime lifetime,
         EmissionContext context,
         CancellationToken cancellationToken
     )
     {
-        var initializer = _compilation.GetMirInitializer(variable, cancellationToken);
-        if (initializer.Value is not null)
+        var initializer = variable.GetBoundInitializer(cancellationToken);
+        if (initializer.Initializer is not null)
         {
-            SubstituteVariableInitializer(
+            EmitExpression(
                 destination,
-                initializer.Value,
+                initializer.Initializer,
+                lifetime,
                 context,
                 cancellationToken
             );
@@ -1320,33 +1336,6 @@ internal sealed class MirEmitter : IMirEmitter
         else
         {
             EmitDefaultValueToPlace(destination, variable.Type, context);
-        }
-    }
-
-    private static void SubstituteVariableInitializer(
-        Place destination,
-        VariableInitializer initializer,
-        EmissionContext context,
-        CancellationToken cancellationToken
-    )
-    {
-        switch (initializer.Value)
-        {
-            case ConstantValue constant:
-                context.CurrentBlock.AddAssignment(
-                    destination,
-                    new UseRValue(new ConstantOperand(constant, initializer.Symbol.Type))
-                );
-                break;
-            case ExecutableBody body:
-                context.CurrentBlock = BodyInliner.InlineBody(
-                    body,
-                    destination,
-                    context.Builder,
-                    context.CurrentBlock,
-                    cancellationToken
-                );
-                break;
         }
     }
 

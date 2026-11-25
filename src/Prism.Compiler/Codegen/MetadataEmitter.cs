@@ -5,9 +5,12 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Prism.BoundTree.Symbols;
 using Prism.Compiler.Mappers;
 using Prism.Constants;
 using Prism.Metadata;
+using Prism.Metadata.Builders;
+using Prism.Metadata.Symbols;
 using Prism.Semantic.Symbols;
 using Prism.Utils;
 using TargetInfo = Prism.Configuration.TargetInfo;
@@ -27,7 +30,14 @@ internal sealed class MetadataEmitter
     private readonly Dictionary<TypeSymbol, TypeSpecBuilder> _typeSpecs = [];
     private readonly Dictionary<TypeAliasSymbol, TypeAliasBuilder> _typeAliases = [];
 
+    private readonly Dictionary<VariableSymbol, VariableDefinitionBuilder> _variables = [];
+
     private readonly Dictionary<FunctionSymbol, FunctionDefinitionBuilder> _functions = [];
+
+    private readonly Dictionary<ParameterSymbol, ParameterDefinitionBuilder> _parameters = [];
+
+    private readonly Dictionary<VariableSymbol, VariableReference> _variableRefs = [];
+    private readonly Dictionary<FunctionSymbol, FunctionReferenceBuilder> _functionRefs = [];
 
     private readonly struct TrackedSymbols()
     {
@@ -56,14 +66,16 @@ internal sealed class MetadataEmitter
 
     public async ValueTask EmitAsync(string fileName, CancellationToken cancellationToken)
     {
-        AddSymbols(cancellationToken);
+        var symbols = AddSymbols(cancellationToken);
+
+        AddBoundBodies(in symbols, cancellationToken);
 
         await using var file = File.Create(fileName);
         var definition = _builder.Build();
         await definition.WriteAsync(file, cancellationToken);
     }
 
-    private void AddSymbols(CancellationToken cancellationToken)
+    private TrackedSymbols AddSymbols(CancellationToken cancellationToken)
     {
         var trackedSymbols = new TrackedSymbols();
 
@@ -72,16 +84,19 @@ internal sealed class MetadataEmitter
             AddSymbol(member, in trackedSymbols, cancellationToken);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (var ns in trackedSymbols.Namespaces)
         {
             AddNamespaceDef(ns);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (var type in trackedSymbols.Types)
         {
             AddTypeDef(type);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (var type in trackedSymbols.TypeAliases)
         {
             GetOrAddTypeAlias(type);
@@ -89,6 +104,7 @@ internal sealed class MetadataEmitter
 
         // We need to do these last because these could be become cyclic, especially once generics get involved and
         // we start having recursive type definitions.
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (var (type, builder) in _typeDefs)
         {
             if (type is NamedTypeSymbol { IsEnum: true, EnumUnderlyingType: var underlyingType })
@@ -97,30 +113,37 @@ internal sealed class MetadataEmitter
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (var (alias, builder) in _typeAliases)
         {
             builder.AliasedType = GetOrAddType(alias.AliasedType).Value;
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (var variable in trackedSymbols.Variables)
         {
             AddVariable(variable);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (var function in trackedSymbols.Functions)
         {
             AddFunction(function);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (var parameter in trackedSymbols.Parameters)
         {
             AddParameter(parameter);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (var ordinal in trackedSymbols.EnumOrdinals)
         {
             AddEnumOrdinal(ordinal);
         }
+
+        return trackedSymbols;
     }
 
     private static void AddSymbol(
@@ -261,7 +284,7 @@ internal sealed class MetadataEmitter
     }
 
     [return: NotNullIfNotNull(nameof(typeSymbol))]
-    private TypeDescriptorBuilder? GetOrAddType(TypeSymbol? typeSymbol)
+    public TypeDescriptorBuilder? GetOrAddType(TypeSymbol? typeSymbol)
     {
         if (typeSymbol is null)
             return null;
@@ -355,7 +378,26 @@ internal sealed class MetadataEmitter
         var container = GetContainerDef(variableSymbol);
         var variable = container.AddVariable(variableSymbol.Name, type);
         variable.ConstantValue = variableSymbol.ConstantValue;
+        _variables.Add(variableSymbol, variable);
         AddCustomAttributes(variableSymbol, variable);
+    }
+
+    public VariableDescriptorBuilder GetOrAddVariable(VariableSymbol variableSymbol)
+    {
+        if (variableSymbol.ContainingAssembly == _compilation.Assembly)
+        {
+            return _variables[variableSymbol];
+        }
+
+        return _variableRefs.GetOrAdd(
+            variableSymbol,
+            static (symbol, @this) =>
+            {
+                var container = @this.GetContainerRef(symbol);
+                return @this._builder.AddVariableReference(symbol.Name, container);
+            },
+            this
+        );
     }
 
     private void AddFunction(FunctionSymbol functionSymbol)
@@ -371,6 +413,29 @@ internal sealed class MetadataEmitter
         function.IsDefaultDefined = functionSymbol.IsDefaultDefined;
         _functions.Add(functionSymbol, function);
         AddCustomAttributes(functionSymbol, function);
+    }
+
+    public FunctionDescriptorBuilder GetOrAddFunction(FunctionSymbol functionSymbol)
+    {
+        if (functionSymbol.ContainingAssembly == _compilation.Assembly)
+        {
+            return _functions[functionSymbol];
+        }
+
+        return _functionRefs.GetOrAdd(
+            functionSymbol,
+            static (symbol, @this) =>
+            {
+                var container = @this.GetContainerRef(symbol);
+                var functionRef = @this._builder.AddFunctionReference(symbol.Name, container);
+                functionRef.Parameters =
+                [
+                    .. symbol.ParameterTypes.Select(t => @this.GetOrAddType(t).Value),
+                ];
+                return functionRef;
+            },
+            this
+        );
     }
 
     private void AddParameter(ParameterSymbol parameterSymbol)
@@ -390,7 +455,13 @@ internal sealed class MetadataEmitter
 
         var parameter = owner.AddParameter(parameterSymbol.Name, type);
         parameter.DefaultValue = parameterSymbol.DefaultValue?.ToMetadata();
+        _parameters.Add(parameterSymbol, parameter);
         AddCustomAttributes(parameterSymbol, parameter);
+    }
+
+    public ParameterDefinitionBuilder GetParameter(ParameterSymbol parameterSymbol)
+    {
+        return _parameters[parameterSymbol];
     }
 
     private void AddEnumOrdinal(EnumOrdinalSymbol ordinalSymbol)
@@ -418,6 +489,27 @@ internal sealed class MetadataEmitter
             {
                 attributeBuilder.Arguments.Add(value);
             }
+        }
+    }
+
+    private void AddBoundBodies(in TrackedSymbols symbols, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var mapper = new BoundNodeMetadataMapper(this);
+        foreach (var variable in symbols.Variables)
+        {
+            // We don't need to store the initializers for constants as that is already baked into the metadata.
+            if (variable.IsConst)
+                continue;
+
+            var boundInitializer = variable.GetBoundInitializer(cancellationToken);
+            if (!boundInitializer.HasInitializer)
+                continue;
+
+            var mapped = mapper.Map(boundInitializer.Initializer);
+
+            var variableBuilder = _variables[variable];
+            variableBuilder.Initializer = mapped;
         }
     }
 }

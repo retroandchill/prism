@@ -5,7 +5,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
-using Prism.Compiler.BoundTree;
+using Prism.BoundTree;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
 using Prism.Utils;

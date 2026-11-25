@@ -3,14 +3,14 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Prism.Abi;
+using Prism.BoundTree;
 using Prism.Compiler.Binding;
-using Prism.Compiler.BoundTree;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
-using Prism.Compiler.Symbols.Error;
 using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
+using Prism.Semantic.Symbols.Error;
 using Prism.Syntax;
 
 namespace Prism.Compiler;
@@ -160,7 +160,10 @@ internal sealed class CompilationCache(Compilation compilation)
         );
     }
 
-    internal VariableSymbol CreateErrorFieldSymbol(TypeSymbol container, string name)
+    internal Prism.Semantic.Symbols.VariableSymbol CreateErrorFieldSymbol(
+        TypeSymbol container,
+        string name
+    )
     {
         var key = new SymbolLookupKey(container, name);
         return _errorVariables.GetOrAdd(key, static k =>
@@ -246,12 +249,12 @@ internal sealed class CompilationCache(Compilation compilation)
         return _functionAbis.GetOrAdd(functionSymbol, static (f, c) => c.Classify(f), classifier);
     }
 
-    public ImmutableArray<VariableSymbol> GetGlobalVariables()
+    public ImmutableArray<Prism.Semantic.Symbols.VariableSymbol> GetGlobalVariables()
     {
         if (!_topLevelVariables.IsDefault)
             return _topLevelVariables;
 
-        var variables = ImmutableArray.CreateBuilder<VariableSymbol>();
+        var variables = ImmutableArray.CreateBuilder<Prism.Semantic.Symbols.VariableSymbol>();
         CollectGlobalVariables(compilation.Assembly.GlobalNamespace, variables);
         variables.Sort((a, b) => a.GetLexicalSortKey().CompareTo(b.GetLexicalSortKey()));
         ImmutableInterlocked.InterlockedCompareExchange(
@@ -264,14 +267,14 @@ internal sealed class CompilationCache(Compilation compilation)
 
     private static void CollectGlobalVariables(
         MemberContainerSymbol namespaceSymbol,
-        ImmutableArray<VariableSymbol>.Builder variables
+        ImmutableArray<Prism.Semantic.Symbols.VariableSymbol>.Builder variables
     )
     {
         foreach (var member in namespaceSymbol.GetMembers())
         {
             switch (member)
             {
-                case VariableSymbol { IsStaticStorage: true } variable:
+                case Prism.Semantic.Symbols.VariableSymbol { IsStaticStorage: true } variable:
                     variables.Add(variable);
                     break;
                 case MemberContainerSymbol nestedNamespace:

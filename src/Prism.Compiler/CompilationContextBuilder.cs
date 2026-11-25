@@ -29,9 +29,9 @@ public sealed class CompilationContextBuilder
     internal CompilationContextBuilder UseMirEmitterFactory<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllConstructors)] T
     >()
-        where T : class, IMirEmitterFactory<Compilation>
+        where T : class, IMirEmitterFactory
     {
-        _services.AddSingleton<IMirEmitterFactory<Compilation>, T>();
+        _services.AddSingleton<IMirEmitterFactory, T>();
         return this;
     }
 
