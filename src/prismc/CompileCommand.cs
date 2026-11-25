@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using DotMake.CommandLine;
 using Prism.Compiler.Codegen;
@@ -43,6 +44,14 @@ public class CompileCommand
     )]
     public int Optimization { get; set; } = 2;
 
+    [CliOption(
+        Alias = "l",
+        Arity = CliArgumentArity.ZeroOrMore,
+        AllowMultipleArgumentsPerToken = false,
+        Description = "Any link libraries that need to be provided"
+    )]
+    public IEnumerable<string> LinkLibraries { get; set; } = [];
+
     public async Task<int> RunAsync(CliContext context)
     {
         var syntaxTress = await Task.WhenAll(
@@ -61,13 +70,21 @@ public class CompileCommand
         using var compilationContext = CompilationContext.CreateDefault();
 
         var metadataReferences = new List<MetadataReference>();
-        if (Environment.GetEnvironmentVariable("PRISM_CORELIB") is { } libPath)
+        var linkLibraries = LinkLibraries.ToImmutableArray();
+        if (
+            Environment.GetEnvironmentVariable("PRISM_CORELIB") is { } libPath
+            && File.Exists(libPath)
+        )
         {
             metadataReferences.Add(new LibraryReference(libPath));
+            linkLibraries = linkLibraries.Add(
+                Path.ChangeExtension(libPath, GetLinkLibraryExtension())
+            );
         }
         else
         {
             metadataReferences.Add(new UnresolvedReference("prism-std"));
+            linkLibraries = linkLibraries.Add($"prism-std{GetLinkLibraryExtension()}");
         }
 
         var compilation = Compilation.Create(
@@ -83,7 +100,11 @@ public class CompileCommand
         );
 
         var (succeeded, diagnostics) = await compilation.EmitAsync(
-            new CodeGenOptions { OutputDirectory = Directory.GetCurrentDirectory() },
+            new CodeGenOptions
+            {
+                OutputDirectory = Directory.GetCurrentDirectory(),
+                LinkLibraries = linkLibraries,
+            },
             context.CancellationToken
         );
 
@@ -111,6 +132,12 @@ public class CompileCommand
             SharedLib => OutputKind.SharedLibrary,
             _ => throw new ArgumentOutOfRangeException(nameof(Kind), Kind, null),
         };
+    }
+
+    private static string GetLinkLibraryExtension()
+    {
+        // TODO: It's a bit more complicated than this, especially when dynamic linking is involved, but this will do for now.
+        return OperatingSystem.IsWindows() ? ".lib" : ".a";
     }
 
     private static async Task<SyntaxTree> ParseFile(

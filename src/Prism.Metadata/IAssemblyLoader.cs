@@ -7,15 +7,6 @@ using System.Collections.Immutable;
 
 namespace Prism.Metadata;
 
-public sealed record ResolvedReference
-{
-    public required string MetadataPath { get; init; }
-    public required AssemblyDefinition Metadata { get; init; }
-    public string? LinkArtifactPath { get; init; }
-    public ImmutableArray<string> AdditionalLibraries { get; init; } = [];
-    public ImmutableArray<string> AdditionalLibraryPaths { get; init; } = [];
-}
-
 public interface IAssemblyLoader
 {
     AssemblyDefinition? LoadAssembly(

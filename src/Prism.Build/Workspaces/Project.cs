@@ -91,7 +91,10 @@ public sealed class Project
             return Compilation.Create(_context, _manifest.Package.Name, trees, settings: settings);
 
         var metadataReferences = new List<MetadataReference>();
-        if (Environment.GetEnvironmentVariable("PRISM_CORELIB") is { } libPath)
+        if (
+            Environment.GetEnvironmentVariable("PRISM_CORELIB") is { } libPath
+            && Path.Exists(libPath)
+        )
         {
             metadataReferences.Add(new LibraryReference(libPath));
         }
@@ -107,6 +110,12 @@ public sealed class Project
             metadataReferences,
             settings
         );
+    }
+
+    private static string GetLinkLibraryExtension()
+    {
+        // TODO: It's a bit more complicated than this, especially when dynamic linking is involved, but this will do for now.
+        return OperatingSystem.IsWindows() ? ".lib" : ".a";
     }
 
     private ImmutableArray<SyntaxTree> ComputeSyntaxTrees(CancellationToken cancellationToken)
@@ -135,8 +144,33 @@ public sealed class Project
             _buildDir.Create();
         }
 
+        if (_manifest.Package.IsCoreLibrary)
+        {
+            return await compilation.EmitAsync(
+                new CodeGenOptions { OutputDirectory = _buildDir.FullName },
+                cancellationToken
+            );
+        }
+
+        var linkLibraries = new List<string>();
+        if (
+            Environment.GetEnvironmentVariable("PRISM_CORELIB") is { } libPath
+            && Path.Exists(libPath)
+        )
+        {
+            linkLibraries.Add(Path.ChangeExtension(libPath, GetLinkLibraryExtension()));
+        }
+        else
+        {
+            linkLibraries.Add($"prism-std{GetLinkLibraryExtension()}");
+        }
+
         return await compilation.EmitAsync(
-            new CodeGenOptions { OutputDirectory = _buildDir.FullName },
+            new CodeGenOptions
+            {
+                OutputDirectory = _buildDir.FullName,
+                LinkLibraries = [.. linkLibraries],
+            },
             cancellationToken
         );
     }

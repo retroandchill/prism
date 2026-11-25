@@ -9,7 +9,10 @@ namespace std::io;
  * @param msg The text to print
  */
 public func print(msg: str&) {
-    Console::out.write(msg);
+    var handle = get_std_handle(STD_OUTPUT_HANDLE);
+    var data = get_data(msg);
+    var length = msg.length();
+    write_win32(handle, data, length as u32, null, null);
 }
 
 internal const STD_INPUT_HANDLE: u32 = -10 as u32;
@@ -19,22 +22,5 @@ internal const STD_ERROR_HANDLE: u32 = -12 as u32;
 [CLinkage("GetStdHandle")]
 internal extern func get_std_handle(std_handle: u32): usize;
 
-public class Console {
-    private handle: usize;
-
-    public static out: Console = Console(get_std_handle(STD_OUTPUT_HANDLE));
-    public static err: Console = Console(get_std_handle(STD_ERROR_HANDLE));
-
-    private constructor(handle: usize) {
-        this.handle = handle;
-    }
-
-    public func write(msg: str&) {
-        var data = get_data(msg);
-        var length = msg.length();
-        write_win32(handle, data, length as u32, null, null);
-    }
-
-    [CLinkage("WriteConsoleA")]
-    private static extern func write_win32(output: usize, buffer: char&, num_to_write: u32, chars_written: char mutable&?, reserved: u8&?): i32;
-}
+[CLinkage("WriteConsoleA")]
+internal extern func write_win32(output: usize, buffer: char&, num_to_write: u32, chars_written: char mutable&?, reserved: u8&?): i32;

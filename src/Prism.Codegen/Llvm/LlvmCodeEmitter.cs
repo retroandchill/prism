@@ -107,10 +107,16 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     {
         cancellationToken.ThrowIfCancellationRequested();
         var llvmVariable = GetOrCreateGlobal(variable.Symbol);
-        if (variable.Value is not ConstantValue constantValue)
-            return;
-
-        llvmVariable.Initializer = MakeConstant(constantValue, variable.Symbol.Type);
+        if (variable.Value is ConstantValue constantValue)
+        {
+            llvmVariable.Initializer = MakeConstant(constantValue, variable.Symbol.Type);
+        }
+        else
+        {
+            var llvmType = GetOrCreateType(variable.Symbol.Type);
+            var initialValue = LLVMValueRef.CreateConstNull(llvmType);
+            llvmVariable.Initializer = initialValue;
+        }
     }
 
     public void AddFunction(
@@ -1941,6 +1947,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                     kind == LinkOutput.DynamicLibrary
                         ? Path.Join(_options.OutputDirectory, $"{_compilation.AssemblyName}.lib")
                         : null,
+                Libraries = _options.LinkLibraries,
             };
 
             var result = await toolchain.LinkAsync(request, cancellationToken);

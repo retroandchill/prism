@@ -10,4 +10,6 @@ namespace Prism.Compiler.Codegen;
 public sealed record CodeGenOptions
 {
     public required string OutputDirectory { get; init; }
+
+    public ImmutableArray<string> LinkLibraries { get; init; } = [];
 }
