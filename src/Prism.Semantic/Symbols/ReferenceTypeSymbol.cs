@@ -4,6 +4,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using Cysharp.Text;
+using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols.Data;
 
 namespace Prism.Semantic.Symbols;
@@ -23,6 +24,11 @@ public sealed class ReferenceTypeSymbol : TypeSymbol
     {
         ReferencedType.WriteDisplayString(ref builder);
         builder.Append(IsMutable ? " mutable&" : "&");
+    }
+
+    public override TypeLayout GetLayout(CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
     }
 
     public override bool Equals(TypeSymbol other, SymbolCompareKind kind)

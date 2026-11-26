@@ -6,6 +6,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Cysharp.Text;
+using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols.Data;
 
 namespace Prism.Semantic.Symbols;
@@ -23,6 +24,11 @@ public sealed class ArrayTypeSymbol : TypeSymbol
     public new bool IsDynamicallySized => base.IsDynamicallySized;
 
     public ulong? Size => Data.Size;
+
+    public override TypeLayout GetLayout(CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
 
     public override void WriteDisplayString(ref Utf16ValueStringBuilder builder)
     {

@@ -5,6 +5,7 @@
 
 using System.Runtime.CompilerServices;
 using Cysharp.Text;
+using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols.Data;
 
 namespace Prism.Semantic.Symbols;
@@ -22,6 +23,11 @@ public sealed class NullableTypeSymbol : TypeSymbol
     {
         ElementType.WriteDisplayString(ref builder);
         builder.Append('?');
+    }
+
+    public override TypeLayout GetLayout(CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
     }
 
     public override bool Equals(TypeSymbol other, SymbolCompareKind kind)

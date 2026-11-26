@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Cysharp.Text;
+using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols.Data;
 
 namespace Prism.Semantic.Symbols;
@@ -28,6 +29,11 @@ public sealed class NamedTypeSymbol : TypeSymbol, IAttributeHolderSymbolData
     public ImmutableArray<EnumOrdinalSymbol> EnumOrdinals => Data.EnumOrdinals;
 
     public ImmutableArray<ParameterSymbol> AttributeParameters => Data.AttributeParameters;
+
+    public override TypeLayout GetLayout(CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
 
     public override void WriteDisplayString(ref Utf16ValueStringBuilder builder)
     {

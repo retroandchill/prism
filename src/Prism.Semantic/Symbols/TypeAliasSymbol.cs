@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using Cysharp.Text;
+using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols.Data;
 
 namespace Prism.Semantic.Symbols;
@@ -22,6 +23,11 @@ public sealed class TypeAliasSymbol : TypeSymbol
         }
 
         builder.Append(Name);
+    }
+
+    public override TypeLayout GetLayout(CancellationToken cancellationToken = default)
+    {
+        return AliasedType.GetLayout(cancellationToken);
     }
 
     public override bool Equals(TypeSymbol other, SymbolCompareKind kind)
