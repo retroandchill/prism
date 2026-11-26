@@ -13,6 +13,8 @@ internal interface IAssemblySymbolData : ISymbolData
 
     TargetInfo TargetInfo { get; }
 
+    AssemblySymbol StandardLibrary { get; }
+
     AssemblyReferences References { get; }
 
     NamespaceSymbol GlobalNamespace { get; }

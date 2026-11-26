@@ -72,5 +72,38 @@ public static class SpecialTypeExtensions
 
         public bool IsCharacter =>
             type is SpecialType.Char or SpecialType.Char16 or SpecialType.Rune;
+
+        public string MetadataName
+        {
+            get
+            {
+                return type switch
+                {
+                    SpecialType.None => throw new InvalidOperationException("Not a special type"),
+                    SpecialType.Void => $"{CommonNames.Std}::{CommonNames.Void}",
+                    SpecialType.Bool => $"{CommonNames.Std}::{CommonNames.Bool}",
+                    SpecialType.I8 => $"{CommonNames.Std}::{CommonNames.Int8}",
+                    SpecialType.I16 => $"{CommonNames.Std}::{CommonNames.Int16}",
+                    SpecialType.I32 => $"{CommonNames.Std}::{CommonNames.Int32}",
+                    SpecialType.I64 => $"{CommonNames.Std}::{CommonNames.Int64}",
+                    SpecialType.I128 => $"{CommonNames.Std}::{CommonNames.Int128}",
+                    SpecialType.ISize => $"{CommonNames.Std}::{CommonNames.ISize}",
+                    SpecialType.U8 => $"{CommonNames.Std}::{CommonNames.UInt8}",
+                    SpecialType.U16 => $"{CommonNames.Std}::{CommonNames.UInt16}",
+                    SpecialType.U32 => $"{CommonNames.Std}::{CommonNames.UInt32}",
+                    SpecialType.U64 => $"{CommonNames.Std}::{CommonNames.UInt64}",
+                    SpecialType.U128 => $"{CommonNames.Std}::{CommonNames.UInt128}",
+                    SpecialType.USize => $"{CommonNames.Std}::{CommonNames.USize}",
+                    SpecialType.F32 => $"{CommonNames.Std}::{CommonNames.Float32}",
+                    SpecialType.F64 => $"{CommonNames.Std}::{CommonNames.Float64}",
+                    SpecialType.Char => $"{CommonNames.Std}::{CommonNames.Char}",
+                    SpecialType.Char16 => $"{CommonNames.Std}::{CommonNames.Char16}",
+                    SpecialType.Rune => $"{CommonNames.Std}::{CommonNames.Rune}",
+                    SpecialType.Str => $"{CommonNames.Std}::{CommonNames.Str}",
+                    SpecialType.Ordering => $"{CommonNames.Std}::{CommonNames.Ordering}",
+                    _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+                };
+            }
+        }
     }
 }

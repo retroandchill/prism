@@ -18,7 +18,7 @@ internal sealed class ErrorNamespaceSymbol : INamespaceSymbolData
 
     public ImmutableArray<Symbol> GetMembers() => [];
 
-    public ImmutableArray<Symbol> GetMembers(string name) => [];
+    public ImmutableArray<Symbol> GetMembers(ReadOnlySpan<char> name) => [];
 
     public NamespaceKind NamespaceKind => NamespaceKind.Assembly;
 }

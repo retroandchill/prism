@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -25,7 +26,7 @@ internal abstract class SourceMemberContainerSymbol(Compilation declaringCompila
 {
     private SymbolCompletionState _completionState;
     private ImmutableArray<Symbol> _members;
-    private ImmutableDictionary<string, ImmutableArray<Symbol>>? _nameToMembersMap;
+    private FrozenDictionary<string, ImmutableArray<Symbol>>? _nameToMembersMap;
 
     protected ref SymbolCompletionState CompletionState => ref _completionState;
 
@@ -49,6 +50,15 @@ internal abstract class SourceMemberContainerSymbol(Compilation declaringCompila
         return GetNameToMembersMap().GetValueOrDefault(name, []);
     }
 
+    public ImmutableArray<Symbol> GetMembers(ReadOnlySpan<char> name)
+    {
+        return GetNameToMembersMap()
+            .GetAlternateLookup<ReadOnlySpan<char>>()
+            .TryGetValue(name, out var value)
+            ? value
+            : [];
+    }
+
     private ImmutableArray<Symbol> ComputeMembers()
     {
         var members = GetNameToMembersMap()
@@ -59,7 +69,7 @@ internal abstract class SourceMemberContainerSymbol(Compilation declaringCompila
         return ImmutableCollectionsMarshal.AsImmutableArray(members);
     }
 
-    protected ImmutableDictionary<string, ImmutableArray<Symbol>> GetNameToMembersMap()
+    protected FrozenDictionary<string, ImmutableArray<Symbol>> GetNameToMembersMap()
     {
         if (_nameToMembersMap is not null)
             return _nameToMembersMap;
@@ -76,7 +86,7 @@ internal abstract class SourceMemberContainerSymbol(Compilation declaringCompila
         return _nameToMembersMap;
     }
 
-    protected abstract ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
+    protected abstract FrozenDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
         BindingContext context
     );
 

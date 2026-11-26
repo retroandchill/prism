@@ -26,6 +26,11 @@ public sealed class NamespaceSymbol : MemberContainerSymbol
         return GetMembers(name).AsValueEnumerable().OfType<NamespaceSymbol>().FirstOrDefault();
     }
 
+    public NamespaceSymbol? GetNestedNamespace(ReadOnlySpan<char> name)
+    {
+        return GetMembers(name).AsValueEnumerable().OfType<NamespaceSymbol>().FirstOrDefault();
+    }
+
     public override void WriteDisplayString(ref Utf16ValueStringBuilder builder)
     {
         if (ContainingNamespace is { IsGlobal: false } owner)

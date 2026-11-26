@@ -3,6 +3,7 @@
 // @copyright Copyright (c) 2026 Retro & Chill. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -223,7 +224,7 @@ internal sealed class SourceNamedTypeSymbol
         return builder.DrainToImmutable();
     }
 
-    protected override ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
+    protected override FrozenDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
         BindingContext context
     )
     {
@@ -269,10 +270,7 @@ internal sealed class SourceNamedTypeSymbol
 
         AddSynthesizedMembers(builder);
 
-        return builder.ToImmutableDictionary(
-            pair => pair.Key,
-            pair => pair.Value.DrainToImmutable()
-        );
+        return builder.ToFrozenDictionary(pair => pair.Key, pair => pair.Value.DrainToImmutable());
 
         static SyntaxList<DeclarationSyntax> GetSyntaxMembers(SingleTypeDeclaration x)
         {

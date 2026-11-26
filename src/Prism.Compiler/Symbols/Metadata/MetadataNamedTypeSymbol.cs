@@ -95,6 +95,15 @@ internal sealed class MetadataNamedTypeSymbol
         return MembersByName.GetValueOrDefault(name, []);
     }
 
+    public ImmutableArray<Symbol> GetMembers(ReadOnlySpan<char> name)
+    {
+        return MembersByName
+            .GetAlternateLookup<ReadOnlySpan<char>>()
+            .TryGetValue(name, out var value)
+            ? value
+            : [];
+    }
+
     private FrozenDictionary<string, ImmutableArray<Symbol>> MembersByName
     {
         get

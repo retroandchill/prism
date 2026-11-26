@@ -1,7 +1,5 @@
 ﻿using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
-using Prism.Metadata;
-using Prism.Semantic;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
 using Prism.Syntax;
@@ -16,12 +14,29 @@ internal sealed class SourceAssemblySymbol
         ICompletableSymbolData
 {
     private SymbolCompletionState _completionState;
+    private readonly DeclaredSymbolLocator _declaredSymbolLocator;
 
     public SourceAssemblySymbol(Compilation compilation, AssemblyReferences? references = null)
         : base(compilation)
     {
         References = references ?? AssemblyReferences.Empty;
         PublicSymbol = new AssemblySymbol(this);
+        _declaredSymbolLocator = new DeclaredSymbolLocator(PublicSymbol);
+
+        if (compilation.Settings.BuildingCoreLibrary)
+        {
+            StandardLibrary = PublicSymbol;
+        }
+        else
+        {
+            StandardLibrary = References
+                .UnifiedAssemblies.Select(a => a.TargetAssembly)
+                .FirstOrDefault(a => a.Name == CommonNames.StdLib)
+                ?? new MissingAssemblySymbol(
+                    new AssemblyIdentity(CommonNames.StdLib),
+                    TargetInfo
+                ).PublicSymbol;
+        }
     }
 
     public new AssemblySymbol PublicSymbol
@@ -77,6 +92,7 @@ internal sealed class SourceAssemblySymbol
     }
 
     public TargetInfo TargetInfo => DeclaringCompilation.TargetInfo;
+    public AssemblySymbol StandardLibrary { get; }
     public AssemblyReferences References { get; }
 
     public NamespaceSymbol GlobalNamespace
@@ -101,7 +117,7 @@ internal sealed class SourceAssemblySymbol
 
     public NamedTypeSymbol GetDeclaredSpecialType(SpecialType specialType)
     {
-        throw new NotImplementedException();
+        return _declaredSymbolLocator.GetDeclaredSpecialType(specialType);
     }
 
     public override string Name => Identity.Name;

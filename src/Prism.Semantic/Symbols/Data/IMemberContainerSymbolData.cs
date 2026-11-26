@@ -11,5 +11,7 @@ internal interface IMemberContainerSymbolData : ISymbolData
 {
     ImmutableArray<Symbol> GetMembers();
 
-    ImmutableArray<Symbol> GetMembers(string name);
+    ImmutableArray<Symbol> GetMembers(string name) => GetMembers(name.AsSpan());
+
+    ImmutableArray<Symbol> GetMembers(ReadOnlySpan<char> name);
 }

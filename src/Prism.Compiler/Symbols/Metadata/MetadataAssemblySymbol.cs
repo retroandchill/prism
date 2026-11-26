@@ -69,6 +69,7 @@ internal sealed class MetadataAssemblySymbol
     private readonly AssemblyDefinition _definition;
     private readonly ReferenceManager _referenceManager;
     private readonly MetadataBoundNodeMapper _mapper;
+    private readonly DeclaredSymbolLocator _declaredSymbolLocator;
 
     public MetadataAssemblySymbol(AssemblyDefinition definition, ReferenceManager referenceManager)
     {
@@ -76,6 +77,7 @@ internal sealed class MetadataAssemblySymbol
         _referenceManager = referenceManager;
         PublicSymbol = new AssemblySymbol(this);
         _mapper = new MetadataBoundNodeMapper(this);
+        _declaredSymbolLocator = new DeclaredSymbolLocator(PublicSymbol);
     }
 
     public AssemblySymbol PublicSymbol { get; }
@@ -100,6 +102,30 @@ internal sealed class MetadataAssemblySymbol
 
     public AssemblyIdentity Identity => _definition.Identity;
     public TargetInfo TargetInfo => _definition.TargetInfo;
+
+    public AssemblySymbol StandardLibrary
+    {
+        get
+        {
+            return LazyComputation.LazyCompute(ref field, this, static @this =>
+                @this.ComputeStandardLibrary()
+            );
+        }
+    }
+
+    private AssemblySymbol ComputeStandardLibrary()
+    {
+        if (Name == CommonNames.StdLib)
+            return PublicSymbol;
+
+        return References
+            .UnifiedAssemblies.Select(a => a.TargetAssembly)
+            .FirstOrDefault(a => a.Name == CommonNames.StdLib)
+            ?? new MissingAssemblySymbol(
+                new AssemblyIdentity(CommonNames.StdLib),
+                TargetInfo
+            ).PublicSymbol;
+    }
 
     public AssemblyReferences References
     {
@@ -134,7 +160,7 @@ internal sealed class MetadataAssemblySymbol
 
     public NamedTypeSymbol GetDeclaredSpecialType(SpecialType specialType)
     {
-        throw new NotImplementedException();
+        return _declaredSymbolLocator.GetDeclaredSpecialType(specialType);
     }
 
     internal NamespaceSymbol GetOrAddNamespace(NamespaceDefinition ns)

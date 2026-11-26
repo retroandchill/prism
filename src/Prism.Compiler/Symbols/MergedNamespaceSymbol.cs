@@ -139,6 +139,12 @@ internal sealed class MergedNamespaceSymbol
         return _nameToMembers.GetOrAdd(name, static (n, self) => self.ComputeMembers(n), this);
     }
 
+    public ImmutableArray<Symbol> GetMembers(ReadOnlySpan<char> name)
+    {
+        var lookup = _nameToMembers.GetAlternateLookup<ReadOnlySpan<char>>();
+        return lookup.TryGetValue(name, out var symbols) ? symbols : GetMembers(name.ToString());
+    }
+
     private ImmutableArray<Symbol> ComputeMembers(string name)
     {
         using var foundSymbols = _namespaces

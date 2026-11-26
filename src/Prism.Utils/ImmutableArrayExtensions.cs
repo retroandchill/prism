@@ -13,4 +13,9 @@ public static class ImmutableArrayExtensions
     {
         return array.IsDefault ? [] : array;
     }
+
+    public static T[] NullToEmpty<T>(this T[]? array)
+    {
+        return array ?? [];
+    }
 }

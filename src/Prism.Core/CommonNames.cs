@@ -33,4 +33,6 @@ internal static class CommonNames
     public const string Ordering = "Ordering";
 
     public const string Main = "main";
+
+    public const string StdLib = "prism-std";
 }

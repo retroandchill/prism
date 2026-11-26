@@ -28,7 +28,7 @@ internal sealed class SynthesizedEnumUnderlyingType
     }
 
     public override string Name => "UnderlyingType";
-    public override Symbol? ContainingSymbol => ContainingType;
+    public override Symbol ContainingSymbol => ContainingType;
 
     public override MemberContainerSymbol ContainingMemberContainer => ContainingType;
     public override NamedTypeSymbol ContainingType { get; }
@@ -48,5 +48,6 @@ internal sealed class SynthesizedEnumUnderlyingType
 
     public ImmutableArray<Symbol> GetMembers() => AliasedType.GetMembers();
 
-    public ImmutableArray<Symbol> GetMembers(string name) => AliasedType.GetMembers(name);
+    public ImmutableArray<Symbol> GetMembers(ReadOnlySpan<char> name) =>
+        AliasedType.GetMembers(name);
 }

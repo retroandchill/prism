@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using Prism.Configuration;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
+using Prism.Semantic.Symbols.Error;
 
 namespace Prism.Compiler.Symbols;
 
@@ -26,12 +27,13 @@ internal sealed class MissingAssemblySymbol : IAssemblySymbolData
     public Symbol? ContainingSymbol => null;
     public AssemblyIdentity Identity { get; }
     public TargetInfo TargetInfo { get; }
+    public AssemblySymbol StandardLibrary => PublicSymbol;
     public AssemblyReferences References => AssemblyReferences.Empty;
     public NamespaceSymbol GlobalNamespace { get; }
 
     public NamedTypeSymbol GetDeclaredSpecialType(SpecialType specialType)
     {
-        throw new NotImplementedException();
+        return new ErrorTypeSymbol(specialType.BuiltInTypeName).PublicSymbol;
     }
 }
 
@@ -54,7 +56,7 @@ internal sealed class MissingGlobalNamespace : INamespaceSymbolData
 
     public ImmutableArray<Symbol> GetMembers() => [];
 
-    public ImmutableArray<Symbol> GetMembers(string name) => [];
+    public ImmutableArray<Symbol> GetMembers(ReadOnlySpan<char> name) => [];
 
     public NamespaceKind NamespaceKind => NamespaceKind.Assembly;
 }

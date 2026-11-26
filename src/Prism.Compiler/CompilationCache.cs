@@ -23,8 +23,6 @@ internal sealed class CompilationCache(Compilation compilation)
 
     private readonly record struct ReferenceLookupKey(TypeSymbol ReferencedType, bool IsMutable);
 
-    private readonly ConcurrentDictionary<SpecialType, NamedTypeSymbol> _specialTypes = new();
-
     private readonly ConcurrentDictionary<
         NamespaceSymbol,
         NamespaceSymbol?
@@ -160,10 +158,7 @@ internal sealed class CompilationCache(Compilation compilation)
         );
     }
 
-    internal Prism.Semantic.Symbols.VariableSymbol CreateErrorFieldSymbol(
-        TypeSymbol container,
-        string name
-    )
+    internal VariableSymbol CreateErrorFieldSymbol(TypeSymbol container, string name)
     {
         var key = new SymbolLookupKey(container, name);
         return _errorVariables.GetOrAdd(key, static k =>
@@ -181,15 +176,6 @@ internal sealed class CompilationCache(Compilation compilation)
             Interlocked.Exchange(ref field, compilation.FindStdNamespace());
             return field;
         }
-    }
-
-    public NamedTypeSymbol GetSpecialType(SpecialType specialType)
-    {
-        return _specialTypes.GetOrAdd(
-            specialType,
-            static (t, c) => c.FindSpecialType(t),
-            compilation
-        );
     }
 
     public NamedTypeSymbol? GetWellKnownAttribute(WellKnownAttribute attribute)
@@ -249,12 +235,12 @@ internal sealed class CompilationCache(Compilation compilation)
         return _functionAbis.GetOrAdd(functionSymbol, static (f, c) => c.Classify(f), classifier);
     }
 
-    public ImmutableArray<Prism.Semantic.Symbols.VariableSymbol> GetGlobalVariables()
+    public ImmutableArray<VariableSymbol> GetGlobalVariables()
     {
         if (!_topLevelVariables.IsDefault)
             return _topLevelVariables;
 
-        var variables = ImmutableArray.CreateBuilder<Prism.Semantic.Symbols.VariableSymbol>();
+        var variables = ImmutableArray.CreateBuilder<VariableSymbol>();
         CollectGlobalVariables(compilation.Assembly.GlobalNamespace, variables);
         variables.Sort((a, b) => a.GetLexicalSortKey().CompareTo(b.GetLexicalSortKey()));
         ImmutableInterlocked.InterlockedCompareExchange(
@@ -267,14 +253,14 @@ internal sealed class CompilationCache(Compilation compilation)
 
     private static void CollectGlobalVariables(
         MemberContainerSymbol namespaceSymbol,
-        ImmutableArray<Prism.Semantic.Symbols.VariableSymbol>.Builder variables
+        ImmutableArray<VariableSymbol>.Builder variables
     )
     {
         foreach (var member in namespaceSymbol.GetMembers())
         {
             switch (member)
             {
-                case Prism.Semantic.Symbols.VariableSymbol { IsStaticStorage: true } variable:
+                case VariableSymbol { IsStaticStorage: true } variable:
                     variables.Add(variable);
                     break;
                 case MemberContainerSymbol nestedNamespace:

@@ -62,5 +62,6 @@ internal sealed class MetadataTypeAliasSymbol
 
     public ImmutableArray<Symbol> GetMembers() => AliasedType.GetMembers();
 
-    public ImmutableArray<Symbol> GetMembers(string name) => AliasedType.GetMembers(name);
+    public ImmutableArray<Symbol> GetMembers(ReadOnlySpan<char> name) =>
+        AliasedType.GetMembers(name);
 }

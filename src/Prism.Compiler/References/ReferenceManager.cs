@@ -11,6 +11,7 @@ using Prism.Compiler.Symbols.Metadata;
 using Prism.Configuration;
 using Prism.Metadata;
 using Prism.Semantic.Symbols;
+using Prism.Utils;
 
 namespace Prism.Compiler.References;
 

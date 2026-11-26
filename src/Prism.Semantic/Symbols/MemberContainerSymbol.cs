@@ -18,7 +18,7 @@ public closed class MemberContainerSymbol : Symbol
         return Data is IMemberContainerSymbolData container ? container.GetMembers() : [];
     }
 
-    public ImmutableArray<Symbol> GetMembers(string name)
+    public ImmutableArray<Symbol> GetMembers(ReadOnlySpan<char> name)
     {
         return Data is IMemberContainerSymbolData container ? container.GetMembers(name) : [];
     }

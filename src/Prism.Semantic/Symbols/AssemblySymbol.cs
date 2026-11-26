@@ -5,22 +5,21 @@
 
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Cysharp.Text;
 using Prism.Semantic.Symbols.Data;
+using Prism.Utils;
 
 namespace Prism.Semantic.Symbols;
 
 public sealed class AssemblySymbol : Symbol, IMetadataReferenceProvider
 {
-    internal AssemblySymbol(IAssemblySymbolData data, AssemblySymbol? standardLibrary = null)
-        : base(data)
-    {
-        StandardLibrary = standardLibrary ?? this;
-    }
+    internal AssemblySymbol(IAssemblySymbolData data)
+        : base(data) { }
 
     internal new IAssemblySymbolData Data => Unsafe.As<IAssemblySymbolData>(base.Data);
 
-    internal AssemblySymbol StandardLibrary { get; }
+    internal AssemblySymbol StandardLibrary => Data.StandardLibrary;
 
     public AssemblyIdentity Identity => Data.Identity;
 
@@ -44,9 +43,10 @@ public sealed class AssemblySymbol : Symbol, IMetadataReferenceProvider
 
     internal IEnumerable<AssemblySymbol> GetAllReferencedAssemblies()
     {
-        return ReferencedAssemblySymbols.SelectMany(a =>
-            a.GetAllReferenceAssembliesIncludingSelf()
-        );
+        return ImmutableCollectionsMarshal
+            .AsArray(ReferencedAssemblySymbols)
+            .NullToEmpty()
+            .SelectMany(a => a.GetAllReferenceAssembliesIncludingSelf());
     }
 
     private IEnumerable<AssemblySymbol> GetAllReferenceAssembliesIncludingSelf()

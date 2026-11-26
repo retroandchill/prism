@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using System.Collections.Frozen;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -186,7 +187,7 @@ internal sealed class SourceNamespaceSymbol
         }
     }
 
-    protected override ImmutableDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
+    protected override FrozenDictionary<string, ImmutableArray<Symbol>> MakeNameToMembersMap(
         BindingContext context
     )
     {
@@ -221,7 +222,7 @@ internal sealed class SourceNamespaceSymbol
 
         AddSynthesizedMembers(result);
 
-        return result.ToImmutableDictionary(x => x.Key, x => x.Value.DrainToImmutable());
+        return result.ToFrozenDictionary(x => x.Key, x => x.Value.DrainToImmutable());
 
         SyntaxList<DeclarationSyntax> GetSyntaxMembers(SingleNamespaceDeclaration x)
         {

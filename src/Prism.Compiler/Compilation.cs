@@ -159,10 +159,8 @@ public class Compilation : IAbiLookup, IBoundSemanticContext
 
     public NamedTypeSymbol GetSpecialType(SpecialType specialType)
     {
-        return Cache.GetSpecialType(specialType);
+        return Assembly.GetSpecialType(specialType);
     }
-
-    internal NamespaceSymbol StdNamespace => Cache.StdNamespace;
 
     internal NamespaceSymbol FindStdNamespace()
     {
@@ -171,14 +169,6 @@ public class Compilation : IAbiLookup, IBoundSemanticContext
             .OfType<NamespaceSymbol>()
             .SingleOrDefault()
             ?? new ErrorNamespaceSymbol(CommonNames.Std, null).PublicSymbol;
-    }
-
-    internal NamedTypeSymbol FindSpecialType(SpecialType type)
-    {
-        var stdNamespace = Cache.StdNamespace;
-        var typeName = type.BuiltInTypeName;
-        return stdNamespace.GetMembers(typeName).OfType<NamedTypeSymbol>().SingleOrDefault()
-            ?? new ErrorTypeSymbol(typeName, stdNamespace, type).PublicSymbol;
     }
 
     internal NamedTypeSymbol? GetWellKnownAttribute(WellKnownAttribute attribute)
