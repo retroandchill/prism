@@ -169,7 +169,7 @@ internal sealed record BoundTypeSize : BoundExpression
         if (TargetType.IsDynamicallySized)
             return null;
 
-        var layout = SemanticContext.GetTypeLayout(TargetType);
+        var layout = TargetType.GetLayout();
         return SemanticContext.PointerWidth switch
         {
             PointerWidth.X32 => new IntegerConstant((uint)layout.Size),

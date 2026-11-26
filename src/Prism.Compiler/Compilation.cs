@@ -50,7 +50,8 @@ public class Compilation : IAbiLookup, IBoundSemanticContext
             _context.AssemblyLoader,
             _context.ReferenceResolver,
             _context.FileSystem,
-            Settings
+            Settings.TargetInfo,
+            Settings.AdditionalReferencePaths
         );
     }
 
@@ -78,7 +79,7 @@ public class Compilation : IAbiLookup, IBoundSemanticContext
 
     public CompilationSettings Settings { get; }
 
-    PointerWidth ILayoutSource.PointerWidth => Settings.PointerWidth;
+    PointerWidth IBoundSemanticContext.PointerWidth => Settings.PointerWidth;
 
     internal TargetInfo TargetInfo => Settings.TargetInfo;
 
@@ -245,7 +246,7 @@ public class Compilation : IAbiLookup, IBoundSemanticContext
 
     public ArrayTypeSymbol CreateArrayTypeSymbol(TypeSymbol elementType, ulong? size = null)
     {
-        return Cache.CreateArrayTypeSymbol(elementType, size);
+        return new ArrayTypeSymbol(elementType, size);
     }
 
     public ReferenceTypeSymbol CreateReferenceTypeSymbol(
@@ -253,20 +254,12 @@ public class Compilation : IAbiLookup, IBoundSemanticContext
         bool isMutable = false
     )
     {
-        return Cache.CreateReferenceTypeSymbol(elementType, isMutable);
+        return new ReferenceTypeSymbol(Assembly, elementType, isMutable);
     }
 
     public NullableTypeSymbol CreateNullableTypeSymbol(TypeSymbol elementType)
     {
-        return Cache.CreateNullableTypeSymbol(elementType);
-    }
-
-    public TypeLayout GetTypeLayout(
-        TypeSymbol typeSymbol,
-        CancellationToken cancellationToken = default
-    )
-    {
-        return Cache.GetTypeLayout(typeSymbol, cancellationToken);
+        return new NullableTypeSymbol(elementType);
     }
 
     public NamedTypeSymbol CreateErrorTypeSymbol(Symbol? containingSymbol, string name)
@@ -282,10 +275,7 @@ public class Compilation : IAbiLookup, IBoundSemanticContext
         return Cache.CreateErrorNamespaceSymbol(containingNamespace, name);
     }
 
-    internal Prism.Semantic.Symbols.VariableSymbol CreateErrorFieldSymbol(
-        TypeSymbol containingType,
-        string name
-    )
+    internal VariableSymbol CreateErrorFieldSymbol(TypeSymbol containingType, string name)
     {
         return Cache.CreateErrorFieldSymbol(containingType, name);
     }
@@ -373,32 +363,15 @@ public class Compilation : IAbiLookup, IBoundSemanticContext
         return Cache.GetBinderFactory(tree);
     }
 
-    private AbiClassifierFactory AbiClassifierFactory
-    {
-        get
-        {
-            if (field is not null)
-                return field;
-
-            Interlocked.CompareExchange(ref field, new AbiClassifierFactory(this), null);
-            return field;
-        }
-    }
-
     public FunctionAbi GetFunctionAbi(FunctionSymbol function)
     {
         var classifier = AbiClassifierFactory.Get(function.AbiKind);
         return Cache.GetFunctionAbi(classifier, function);
     }
 
-    internal ImmutableArray<Prism.Semantic.Symbols.VariableSymbol> GetGlobalVariables()
+    internal ImmutableArray<VariableSymbol> GetGlobalVariables()
     {
         return Cache.GetGlobalVariables();
-    }
-
-    internal ImmutableArray<FunctionSymbol> GetGlobalFunctions()
-    {
-        return Cache.GetGlobalFunctions();
     }
 
     internal BoundVariableInitializer GetBoundInitializer(

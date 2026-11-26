@@ -1,6 +1,4 @@
 ﻿using Prism.Compiler;
-using Prism.Compiler.Symbols;
-using Prism.Semantic;
 using Prism.Semantic.Symbols;
 using Prism.Syntax;
 using Prism.Tests.Helpers;
@@ -45,7 +43,7 @@ public class TypeLayoutTests
         var param = foo.Parameters[0];
         var paramType = param.Type;
 
-        var layout = compilation.GetTypeLayout(paramType);
+        var layout = paramType.GetLayout();
         using (Assert.EnterMultipleScope())
         {
             Assert.That(layout.Size, Is.EqualTo(16));
@@ -85,7 +83,7 @@ public class TypeLayoutTests
         var param = foo.Parameters[0];
         var paramType = param.Type;
 
-        var layout = compilation.GetTypeLayout(paramType);
+        var layout = paramType.GetLayout();
         using (Assert.EnterMultipleScope())
         {
             Assert.That(layout.Size, Is.EqualTo(4));
@@ -119,7 +117,7 @@ public class TypeLayoutTests
         Assert.That(members[0], Is.InstanceOf<NamedTypeSymbol>());
         var color = (NamedTypeSymbol)members[0];
 
-        var layout = compilation.GetTypeLayout(color);
+        var layout = color.GetLayout();
         using (Assert.EnterMultipleScope())
         {
             Assert.That(layout.Size, Is.EqualTo(1));

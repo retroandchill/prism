@@ -5,7 +5,6 @@
 
 using System.Collections.Frozen;
 using Prism.Abi;
-using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
 using Singulink.Enums;
 
@@ -32,7 +31,7 @@ public readonly record struct LocalClassification
         Function mirFunction,
         CancellationToken cancellationToken
     )
-        where T : class, IAbiLookup, ILayoutSource
+        where T : class, IAbiLookup
     {
         var localFlow = FunctionAnalyzer.AnalyzeLocalFlow(
             mirFunction,
@@ -42,12 +41,11 @@ public readonly record struct LocalClassification
 
         return localFlow.ToFrozenDictionary(
             pair => pair.Key,
-            pair => ClassifyLocal(compilation, pair.Key, pair.Value, cancellationToken)
+            pair => ClassifyLocal(pair.Key, pair.Value, cancellationToken)
         );
     }
 
     private static LocalClassification ClassifyLocal(
-        ILayoutSource compilation,
         Local local,
         LocalUsageInfo info,
         CancellationToken cancellationToken
@@ -58,7 +56,7 @@ public readonly record struct LocalClassification
             return new LocalClassification { StorageKind = LocalStorageKind.StackSlot };
         }
 
-        var layout = compilation.GetTypeLayout(local.Type, cancellationToken);
+        var layout = local.Type.GetLayout(cancellationToken);
         if (
             layout.Size > MaxRegisterSlotSize
             || info.IsAddressed

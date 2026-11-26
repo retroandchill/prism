@@ -278,6 +278,7 @@ internal sealed class MetadataAssemblySymbol
                         array.Size
                     ),
                     ReferenceTypeSpecification reference => new ReferenceTypeSymbol(
+                        @this.PublicSymbol,
                         @this.GetReferencedType(reference.ElementType),
                         reference.IsMutable
                     ),
@@ -419,14 +420,6 @@ internal sealed class MetadataAssemblySymbol
 
     private const string NotImplementedError =
         "All cases where type layout is used (i.e. sizeof) should have been folded";
-
-    TypeLayout ILayoutSource.GetTypeLayout(
-        TypeSymbol typeSymbol,
-        CancellationToken cancellationToken
-    )
-    {
-        throw new NotSupportedException(NotImplementedError);
-    }
 
     NamedTypeSymbol IBoundSemanticContext.GetSpecialType(SpecialType specialType)
     {

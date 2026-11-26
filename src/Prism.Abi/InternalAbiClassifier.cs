@@ -4,14 +4,17 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Runtime.InteropServices;
-using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
 using ZLinq;
 
 namespace Prism.Abi;
 
-internal sealed class InternalAbiClassifier(ILayoutSource layoutSource) : IAbiClassifier
+internal sealed class InternalAbiClassifier : IAbiClassifier
 {
+    private InternalAbiClassifier() { }
+
+    public static InternalAbiClassifier Instance { get; } = new();
+
     private const ulong MaxDirectSize = 16;
 
     public FunctionAbi Classify(FunctionSymbol function)
@@ -38,13 +41,13 @@ internal sealed class InternalAbiClassifier(ILayoutSource layoutSource) : IAbiCl
         );
     }
 
-    private AbiValueClassification ClassifyType(TypeSymbol type)
+    private static AbiValueClassification ClassifyType(TypeSymbol type)
     {
         // Arrays must always be indirect
         if (type is ArrayTypeSymbol)
             return AbiValueClassification.Indirect;
 
-        var layout = layoutSource.GetTypeLayout(type);
+        var layout = type.GetLayout();
         return layout.Size switch
         {
             0 => AbiValueClassification.Ignore,

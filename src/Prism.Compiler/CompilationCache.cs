@@ -7,7 +7,6 @@ using Prism.BoundTree;
 using Prism.Compiler.Binding;
 using Prism.Compiler.Semantic;
 using Prism.Compiler.Symbols;
-using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
 using Prism.Semantic.Symbols.Error;
@@ -19,10 +18,6 @@ internal sealed class CompilationCache(Compilation compilation)
 {
     private readonly record struct SymbolLookupKey(Symbol? Container, string Name);
 
-    private readonly record struct ArrayLookupKey(TypeSymbol ElementType, ulong? Size);
-
-    private readonly record struct ReferenceLookupKey(TypeSymbol ReferencedType, bool IsMutable);
-
     private readonly ConcurrentDictionary<
         NamespaceSymbol,
         NamespaceSymbol?
@@ -31,15 +26,6 @@ internal sealed class CompilationCache(Compilation compilation)
         ReferenceEqualityComparer.Instance
     );
     private readonly ConcurrentDictionary<SyntaxTree, SemanticModel> _semanticModels = new(
-        ReferenceEqualityComparer.Instance
-    );
-    private readonly ConcurrentDictionary<ArrayLookupKey, ArrayTypeSymbol> _arrayTypes = new();
-    private readonly ConcurrentDictionary<ReferenceLookupKey, ReferenceTypeSymbol> _referenceTypes =
-        new();
-    private readonly ConcurrentDictionary<TypeSymbol, NullableTypeSymbol> _nullableTypes = new(
-        ReferenceEqualityComparer.Instance
-    );
-    private readonly ConcurrentDictionary<TypeSymbol, TypeLayout> _typeLayouts = new(
         ReferenceEqualityComparer.Instance
     );
     private readonly ConcurrentDictionary<SymbolLookupKey, NamedTypeSymbol> _errorTypes = new();
@@ -68,7 +54,6 @@ internal sealed class CompilationCache(Compilation compilation)
         new();
 
     private ImmutableArray<VariableSymbol> _topLevelVariables;
-    private ImmutableArray<FunctionSymbol> _topLevelFunctions;
 
     public NamespaceSymbol? GetCompilationNamespace(NamespaceSymbol symbol)
     {
@@ -107,39 +92,6 @@ internal sealed class CompilationCache(Compilation compilation)
             static (t, c) => new SemanticModel(c, t),
             compilation
         );
-    }
-
-    public ArrayTypeSymbol CreateArrayTypeSymbol(TypeSymbol elementType, ulong? size)
-    {
-        return _arrayTypes.GetOrAdd(
-            new ArrayLookupKey(elementType, size),
-            static k => new ArrayTypeSymbol(k.ElementType, k.Size)
-        );
-    }
-
-    public ReferenceTypeSymbol CreateReferenceTypeSymbol(TypeSymbol elementType, bool isMutable)
-    {
-        return _referenceTypes.GetOrAdd(
-            new ReferenceLookupKey(elementType, isMutable),
-            static k => new ReferenceTypeSymbol(k.ReferencedType, k.IsMutable)
-        );
-    }
-
-    public NullableTypeSymbol CreateNullableTypeSymbol(TypeSymbol elementType)
-    {
-        return _nullableTypes.GetOrAdd(elementType, static e => new NullableTypeSymbol(e));
-    }
-
-    public TypeLayout GetTypeLayout(TypeSymbol typeSymbol, CancellationToken cancellationToken)
-    {
-        return !typeSymbol.IsDynamicallySized
-            ? _typeLayouts.GetOrAdd(
-                typeSymbol,
-                static (s, t) =>
-                    LayoutCalculator.GetTypeLayout(t.compilation, s, t.cancellationToken),
-                (compilation, cancellationToken)
-            )
-            : throw new InvalidOperationException("Cannot get layout of dynamically sized type");
     }
 
     public NamedTypeSymbol CreateErrorTypeSymbol(Symbol? container, string name)
@@ -265,43 +217,6 @@ internal sealed class CompilationCache(Compilation compilation)
                     break;
                 case MemberContainerSymbol nestedNamespace:
                     CollectGlobalVariables(nestedNamespace, variables);
-                    break;
-            }
-        }
-    }
-
-    public ImmutableArray<FunctionSymbol> GetGlobalFunctions()
-    {
-        if (!_topLevelFunctions.IsDefault)
-            return _topLevelFunctions;
-
-        var functions = ImmutableArray.CreateBuilder<FunctionSymbol>();
-        CollectGlobalFunctions(compilation.Assembly.GlobalNamespace, functions);
-        functions.Sort(
-            (a, b) => compilation.CompareSourceLocations(a.FirstLocation(), b.FirstLocation())
-        );
-        ImmutableInterlocked.InterlockedCompareExchange(
-            ref _topLevelFunctions,
-            functions.DrainToImmutable(),
-            default
-        );
-        return _topLevelFunctions;
-    }
-
-    private static void CollectGlobalFunctions(
-        NamespaceSymbol namespaceSymbol,
-        ImmutableArray<FunctionSymbol>.Builder functions
-    )
-    {
-        foreach (var member in namespaceSymbol.GetMembers())
-        {
-            switch (member)
-            {
-                case FunctionSymbol function:
-                    functions.Add(function);
-                    break;
-                case NamespaceSymbol nestedNamespace:
-                    CollectGlobalFunctions(nestedNamespace, functions);
                     break;
             }
         }

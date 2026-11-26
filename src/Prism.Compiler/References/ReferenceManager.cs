@@ -11,7 +11,6 @@ using Prism.Compiler.Symbols.Metadata;
 using Prism.Configuration;
 using Prism.Metadata;
 using Prism.Semantic.Symbols;
-using Prism.Utils;
 
 namespace Prism.Compiler.References;
 
@@ -20,7 +19,8 @@ internal sealed class ReferenceManager
     private readonly IAssemblyLoader _loader;
     private readonly IReferenceResolver _resolver;
     private readonly IFileSystem _fileSystem;
-    private readonly CompilationSettings _settings;
+    private readonly TargetInfo _targetInfo;
+    private readonly ImmutableArray<string> _additionalSearchPaths;
 
     private readonly ConcurrentDictionary<string, AssemblySymbol> _pathCache = [];
     private readonly ConcurrentDictionary<AssemblyIdentity, AssemblySymbol> _identityCache = [];
@@ -29,13 +29,15 @@ internal sealed class ReferenceManager
         IAssemblyLoader loader,
         IReferenceResolver resolver,
         IFileSystem fileSystem,
-        CompilationSettings settings
+        TargetInfo targetInfo,
+        ImmutableArray<string> additionalSearchPaths
     )
     {
         _loader = loader;
         _resolver = resolver;
         _fileSystem = fileSystem;
-        _settings = settings;
+        _targetInfo = targetInfo;
+        _additionalSearchPaths = additionalSearchPaths;
     }
 
     public AssemblySymbol GetReferencedAssembly(MetadataReference reference)
@@ -73,15 +75,12 @@ internal sealed class ReferenceManager
                     return new MetadataAssemblySymbol(definition, @this).PublicSymbol;
 
                 if (identity is not null)
-                    return new MissingAssemblySymbol(
-                        identity,
-                        @this._settings.TargetInfo
-                    ).PublicSymbol;
+                    return new MissingAssemblySymbol(identity, @this._targetInfo).PublicSymbol;
 
                 var baseName = @this._fileSystem.Path.GetFileNameWithoutExtension(path);
                 return new MissingAssemblySymbol(
                     new AssemblyIdentity(baseName),
-                    @this._settings.TargetInfo
+                    @this._targetInfo
                 ).PublicSymbol;
             },
             (this, identity)
@@ -107,10 +106,7 @@ internal sealed class ReferenceManager
         if (_identityCache.TryGetValue(identity, out var symbol))
             return symbol;
 
-        var path = _resolver.ResolveReferencePath(
-            identity,
-            _settings.AdditionalReferencePaths.AsSpan()
-        );
+        var path = _resolver.ResolveReferencePath(identity, _additionalSearchPaths.AsSpan());
         return LoadNormalizedAssemblyPath(path, identity);
     }
 

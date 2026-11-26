@@ -16,5 +16,6 @@
         <InternalsVisibleTo Include="Prism.Compiler" />
         <InternalsVisibleTo Include="Prism.Metadata" />
         <InternalsVisibleTo Include="Prism.BoundTree" />
+        <InternalsVisibleTo Include="Prism.Semantic" />
     </ItemGroup>
 </Project>

@@ -21,4 +21,7 @@ public readonly partial record struct TargetInfo(
         : this(architecture, operatingSystem, ToolchainKind.Detect(operatingSystem)) { }
 
     public static TargetInfo CurrentPlatform => new();
+
+    [ArchiveIgnore]
+    public PointerWidth PointerWidth => Architecture.PointerWidth;
 }

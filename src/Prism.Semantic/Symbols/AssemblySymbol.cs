@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Cysharp.Text;
+using Prism.Configuration;
 using Prism.Semantic.Symbols.Data;
 using Prism.Utils;
 
@@ -22,6 +23,8 @@ public sealed class AssemblySymbol : Symbol, IMetadataReferenceProvider
     internal AssemblySymbol StandardLibrary => Data.StandardLibrary;
 
     public AssemblyIdentity Identity => Data.Identity;
+
+    public TargetInfo TargetInfo => Data.TargetInfo;
 
     public NamespaceSymbol GlobalNamespace => Data.GlobalNamespace;
 

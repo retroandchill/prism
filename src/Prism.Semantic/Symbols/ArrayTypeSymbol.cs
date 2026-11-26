@@ -27,7 +27,13 @@ public sealed class ArrayTypeSymbol : TypeSymbol
 
     public override TypeLayout GetLayout(CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        if (Size is null)
+            throw new InvalidOperationException(
+                "Cannot get the layout of a dynamically sized type"
+            );
+
+        var elementType = ElementType.GetLayout(cancellationToken);
+        return new ArrayLayout(elementType, Size.Value);
     }
 
     public override void WriteDisplayString(ref Utf16ValueStringBuilder builder)

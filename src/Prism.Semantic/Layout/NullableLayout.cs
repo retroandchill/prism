@@ -1,4 +1,6 @@
-﻿namespace Prism.Semantic.Layout;
+﻿using Prism.Semantic.Symbols;
+
+namespace Prism.Semantic.Layout;
 
 public closed class NullableLayout : TypeLayout
 {
@@ -20,8 +22,8 @@ public class TaggedNullableLayout : NullableLayout
 
     private static StructLayout CreateStructRepresentation(TypeLayout valueLayout)
     {
-        var boolLayout = LayoutCalculator.BoolLayout;
-        var tagField = new StructField("is_some", LayoutCalculator.BoolLayout, 0);
+        var boolLayout = TypeSymbol.BoolLayout;
+        var tagField = new StructField("is_some", TypeSymbol.BoolLayout, 0);
 
         var maxAlignment = Math.Max(boolLayout.Alignment, valueLayout.Alignment);
         var payloadOffset = AlignTo(boolLayout.Size, valueLayout.Alignment);

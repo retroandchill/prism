@@ -16,7 +16,6 @@ using Prism.BoundTree.Symbols;
 using Prism.Compiler;
 using Prism.Compiler.Binding;
 using Prism.Compiler.Codegen;
-using Prism.Compiler.Mappers;
 using Prism.Configuration;
 using Prism.Constants;
 using Prism.Diagnostics;
@@ -356,7 +355,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         if (symbol.IsVoid)
             return _context.VoidType;
 
-        var layout = _compilation.GetTypeLayout(symbol);
+        var layout = symbol.GetLayout();
         return GetOrCreateType(layout);
     }
 
@@ -501,7 +500,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 var rawParam = context.LlvmFunction.GetParam(paramIndex);
                 if (classification.StorageKind == LocalStorageKind.StackSlot)
                 {
-                    var layout = _compilation.GetTypeLayout(local.Type);
+                    var layout = local.Type.GetLayout();
                     var alloca = _builder.BuildAlloca(GetOrCreateType(layout));
                     alloca.SetAlignment((uint)layout.Alignment);
                     context.BindLocal(local, alloca);
@@ -519,7 +518,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             }
             else if (classification.StorageKind == LocalStorageKind.StackSlot)
             {
-                var layout = _compilation.GetTypeLayout(local.Type);
+                var layout = local.Type.GetLayout();
                 var alloca = _builder.BuildAlloca(GetOrCreateType(layout));
                 alloca.SetAlignment((uint)layout.Alignment);
                 context.BindLocal(local, alloca);
@@ -570,7 +569,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         if (type is ArrayTypeSymbol)
             return false;
 
-        return _compilation.GetTypeLayout(type).Size <= 16;
+        return type.GetLayout().Size <= 16;
     }
 
     private void EmitAssignment(Place destination, RValue rvalue, FunctionEmissionContext context)
@@ -753,7 +752,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
                 else
                 {
                     var sourceAddress = EmitTakeAddress(source, context);
-                    var layout = _compilation.GetTypeLayout(source.Type);
+                    var layout = source.Type.GetLayout();
                     var type = GetOrCreateType(layout);
                     var alignment = (uint)layout.Alignment;
                     if (CanUseMemCopy(in sourceAddress, in address))
@@ -987,7 +986,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         Debug.Assert(ordering.EnumUnderlyingType?.SpecialType == SpecialType.I8);
 
         var nullableOrdering = _compilation.CreateNullableTypeSymbol(ordering);
-        var layout = (OptimizedNullableLayout)_compilation.GetTypeLayout(nullableOrdering);
+        var layout = (OptimizedNullableLayout)nullableOrdering.GetLayout();
 
         var nullValue = (ScalarNullValue)layout.NullValue;
 
@@ -1039,7 +1038,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         FunctionEmissionContext context
     )
     {
-        var layout = (NullableLayout)_compilation.GetTypeLayout(operand.Type);
+        var layout = (NullableLayout)operand.Type.GetLayout();
         return layout switch
         {
             OptimizedNullableLayout optimized => CompareToOptimizedNullValue(
@@ -1358,7 +1357,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
         var baseAddress = EmitTakeAddress(destination, context);
         var arrayType = GetOrCreateType(destination.Type);
         var elementType = ((ArrayTypeSymbol)destination.Type).ElementType;
-        var layout = _compilation.GetTypeLayout(elementType);
+        var layout = elementType.GetLayout();
         var elementSize = layout.Size;
         foreach (var (i, operand) in elements.AsValueEnumerable().Index())
         {
@@ -1609,7 +1608,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     {
         if (classification != AbiValueClassification.Indirect)
             return EmitOperandAsValue(value, context);
-        var layout = _compilation.GetTypeLayout(receiverType);
+        var layout = receiverType.GetLayout();
         var llvmType = GetOrCreateType(layout);
         var destination = CreateEntryAlloca(llvmType, name, context);
         destination.SetAlignment((uint)layout.Alignment);
@@ -1622,7 +1621,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
     private LLVMValueRef GetNullValue(TypeSymbol type)
     {
-        var layout = (NullableLayout)_compilation.GetTypeLayout(type);
+        var layout = (NullableLayout)type.GetLayout();
         return GetNullValue(layout);
     }
 
@@ -1650,7 +1649,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
         ConstantByteRange? byteRange = place.Type.IsDynamicallySized
             ? null
-            : new(0, _compilation.GetTypeLayout(place.Type).Size);
+            : new(0, place.Type.GetLayout().Size);
 
         foreach (var projection in place.Projections)
         {
@@ -1681,7 +1680,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             // ReSharper disable once InvertIf
             if (byteRange is { Offset: var offset } range)
             {
-                var layout = (StructLayout)_compilation.GetTypeLayout(currentType);
+                var layout = (StructLayout)currentType.GetLayout();
                 offset += layout.Fields[(int)fieldIndex].ByteOffset;
                 byteRange = range with { Offset = offset };
             }
@@ -1729,7 +1728,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
 
         LLVMValueRef GetPayload()
         {
-            var layout = (NullableLayout)_compilation.GetTypeLayout(currentType);
+            var layout = (NullableLayout)currentType.GetLayout();
             return layout switch
             {
                 TaggedNullableLayout tagged => GetTaggedPayload(tagged),
@@ -1780,7 +1779,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
             if (elementIndex < 0)
                 return false;
 
-            if (_compilation.GetTypeLayout(currentType) is not ArrayLayout arrayLayout)
+            if (currentType.GetLayout() is not ArrayLayout arrayLayout)
                 return false;
 
             offset += (ulong)elementIndex * arrayLayout.ElementType.Size;
@@ -1792,7 +1791,7 @@ internal sealed class LlvmCodeEmitter : ICodeEmitter
     private uint GetFieldIndex(VariableSymbol field)
     {
         var baseType = field.ContainingType.RequireNonNull();
-        var layout = (StructLayout)_compilation.GetTypeLayout(baseType);
+        var layout = (StructLayout)baseType.GetLayout();
 
         uint i = 0;
         foreach (var (name, _, _) in layout.Fields)

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Cysharp.Text;
 
 namespace Prism.Utils;
@@ -187,5 +188,11 @@ public static class Numerics
 
             return isNegative ? -result : result;
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ulong GetMaxRepresentable(ulong bitWidth)
+    {
+        return bitWidth == 64 ? ulong.MaxValue : (1UL << (int)bitWidth) - 1;
     }
 }
