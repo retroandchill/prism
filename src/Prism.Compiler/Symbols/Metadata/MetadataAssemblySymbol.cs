@@ -16,7 +16,7 @@ using ZLinq;
 
 namespace Prism.Compiler.Symbols.Metadata;
 
-internal sealed partial class MetadataAssemblySymbol
+internal sealed class MetadataAssemblySymbol
     : IAssemblySymbolData,
         ILocatableSymbolData,
         IBoundSemanticContext
@@ -130,6 +130,11 @@ internal sealed partial class MetadataAssemblySymbol
 
             return field;
         }
+    }
+
+    public NamedTypeSymbol GetDeclaredSpecialType(SpecialType specialType)
+    {
+        throw new NotImplementedException();
     }
 
     internal NamespaceSymbol GetOrAddNamespace(NamespaceDefinition ns)

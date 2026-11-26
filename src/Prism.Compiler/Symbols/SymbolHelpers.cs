@@ -17,7 +17,7 @@ internal static class SymbolHelpers
     public static SyntaxNode GetNamespaceDeclarationSyntax(SyntaxReference reference)
     {
         var node = reference.Syntax;
-        while (node is NameSyntax nameSyntax)
+        while (node is NameSyntax)
         {
             node = node.Parent;
         }

@@ -127,7 +127,9 @@ internal sealed class ReferenceManager
         return new AssemblyReferences(identities, symbols, unifiedSymbols);
     }
 
-    public AssemblyReferences ResolveAssemblyReference(ImmutableArray<MetadataReference> references)
+    public AssemblyReferences ResolveAssemblyReferences(
+        ImmutableArray<MetadataReference> references
+    )
     {
         if (references.IsEmpty)
             return AssemblyReferences.Empty;

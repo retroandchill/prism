@@ -95,7 +95,7 @@ public class Compilation : IAbiLookup, IBoundSemanticContext
                 ref field,
                 new SourceAssemblySymbol(
                     this,
-                    _referenceManager.ResolveAssemblyReference(References)
+                    _referenceManager.ResolveAssemblyReferences(References)
                 ).PublicSymbol,
                 null
             );

@@ -28,6 +28,11 @@ internal sealed class MissingAssemblySymbol : IAssemblySymbolData
     public TargetInfo TargetInfo { get; }
     public AssemblyReferences References => AssemblyReferences.Empty;
     public NamespaceSymbol GlobalNamespace { get; }
+
+    public NamedTypeSymbol GetDeclaredSpecialType(SpecialType specialType)
+    {
+        throw new NotImplementedException();
+    }
 }
 
 internal sealed class MissingGlobalNamespace : INamespaceSymbolData

@@ -12,14 +12,29 @@ namespace Prism.Semantic.Symbols;
 
 public sealed class AssemblySymbol : Symbol, IMetadataReferenceProvider
 {
-    internal AssemblySymbol(IAssemblySymbolData data)
-        : base(data) { }
+    internal AssemblySymbol(IAssemblySymbolData data, AssemblySymbol? standardLibrary = null)
+        : base(data)
+    {
+        StandardLibrary = standardLibrary ?? this;
+    }
 
     internal new IAssemblySymbolData Data => Unsafe.As<IAssemblySymbolData>(base.Data);
+
+    internal AssemblySymbol StandardLibrary { get; }
 
     public AssemblyIdentity Identity => Data.Identity;
 
     public NamespaceSymbol GlobalNamespace => Data.GlobalNamespace;
+
+    internal NamedTypeSymbol GetSpecialType(SpecialType specialType)
+    {
+        return StandardLibrary.GetDeclaredSpecialType(specialType);
+    }
+
+    private NamedTypeSymbol GetDeclaredSpecialType(SpecialType specialType)
+    {
+        return Data.GetDeclaredSpecialType(specialType);
+    }
 
     internal ImmutableArray<AssemblyIdentity> ReferencedAssemblies => Data.References.Identities;
 

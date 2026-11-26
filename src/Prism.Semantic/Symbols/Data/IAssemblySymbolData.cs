@@ -16,4 +16,6 @@ internal interface IAssemblySymbolData : ISymbolData
     AssemblyReferences References { get; }
 
     NamespaceSymbol GlobalNamespace { get; }
+
+    NamedTypeSymbol GetDeclaredSpecialType(SpecialType specialType);
 }

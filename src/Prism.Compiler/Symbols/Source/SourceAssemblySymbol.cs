@@ -99,6 +99,11 @@ internal sealed class SourceAssemblySymbol
         }
     }
 
+    public NamedTypeSymbol GetDeclaredSpecialType(SpecialType specialType)
+    {
+        throw new NotImplementedException();
+    }
+
     public override string Name => Identity.Name;
 
     public void ForceComplete(
