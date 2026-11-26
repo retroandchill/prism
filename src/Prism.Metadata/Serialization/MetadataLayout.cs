@@ -58,11 +58,16 @@ internal partial struct MetadataLayout
 
     public ImmutableArray<FunctionReferenceRow> FunctionReferences { get; private set; }
 
+    public ImmutableArray<VariableInitializerRow> VariableInitializerLookup { get; private set; }
+
+    public MetadataHeap VariableInitializersHeap { get; private set; }
+
     public static MetadataLayout Create(AssemblyDefinition assembly)
     {
         using var strings = new StringHeapBuilder();
         using var blobs = new BlobHeapBuilder();
         using var typeSpecs = new TypeSpecHeapBuilder();
+        using var variableInitializers = new VariableInitializerHeapBuilder();
 
         var mapper = new MetadataRowMapper(strings, blobs, typeSpecs);
 
@@ -82,14 +87,34 @@ internal partial struct MetadataLayout
             CustomAttributes = mapper.Map(assembly.CustomAttributes),
             VariableReferences = mapper.Map(assembly.ReferencedVariables),
             FunctionReferences = mapper.Map(assembly.ReferencedFunctions),
+            VariableInitializerLookup = CreateVariableInitializerRows(
+                assembly,
+                variableInitializers
+            ),
 
             // We have to do the heaps last to ensure everything in them gets written correctly
             StringHeap = FinalizeHeap(strings),
             BlobHeap = FinalizeHeap(blobs),
             TypeSpecHeap = FinalizeHeap(typeSpecs),
+            VariableInitializersHeap = FinalizeHeap(variableInitializers),
         };
 
         return target;
+
+        static ImmutableArray<VariableInitializerRow> CreateVariableInitializerRows(
+            AssemblyDefinition assembly,
+            VariableInitializerHeapBuilder variableInitializers
+        )
+        {
+            return
+            [
+                .. assembly.VariableInitializers.Select(x => new VariableInitializerRow(
+                    x.Key,
+                    // ReSharper disable once AccessToDisposedClosure
+                    variableInitializers.Add(x.Value)
+                )),
+            ];
+        }
     }
 
     private static MetadataHeap FinalizeHeap(IHeapBuilder builder)

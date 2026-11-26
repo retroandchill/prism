@@ -149,3 +149,9 @@ internal readonly partial record struct FunctionReferenceRow(
     MemberContainerRefHandle Container,
     BlobHandle Parameters
 ) : INestedContainerRow<MemberContainerRefHandle>;
+
+[Archivable]
+internal readonly partial record struct VariableInitializerRow(
+    VariableHandle Variable,
+    VariableInitializerHandle Initializer
+);

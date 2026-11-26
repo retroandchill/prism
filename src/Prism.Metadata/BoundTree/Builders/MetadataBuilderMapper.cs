@@ -16,7 +16,7 @@ namespace Prism.Metadata.BoundTree.Builders;
 internal static partial class MetadataBuilderMapper
 {
     [MapDerivedType<MetadataConstantExpressionBuilder, MetadataConstantExpression>]
-    [MapDerivedType<ThisMetadataExpressionBuilder, ThisMetadataExpression>]
+    [MapDerivedType<ThisMetadataExpressionBuilder, MetadataThisExpression>]
     [MapDerivedType<MetadataVariableAccessBuilder, MetadataVariableAccess>]
     [MapDerivedType<MetadataParameterAccessBuilder, MetadataParameterAccess>]
     [MapDerivedType<MetadataUnaryOperationBuilder, MetadataUnaryOperation>]

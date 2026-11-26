@@ -4,23 +4,22 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
-using Prism.Compiler.Semantic;
-using Prism.Diagnostics;
-using Prism.Metadata;
-using Prism.Semantic;
+using Prism.BoundTree;
+using Prism.BoundTree.Symbols;
+using Prism.Constants;
+using Prism.Metadata.Symbols;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
-using Prism.Syntax;
-using ConstantValue = Prism.Constants.ConstantValue;
-using VariableDefinition = Prism.Metadata.Symbols.VariableDefinition;
+using Prism.Utils;
 
 namespace Prism.Compiler.Symbols.Metadata;
 
-internal sealed class MetadataVariableSymbol : IVariableSymbolData, ILocatableSymbolData
+internal sealed class MetadataVariableSymbol : IBoundVariableSymbolData, ILocatableSymbolData
 {
     private ImmutableArray<AttributeData> _attributes;
     private readonly VariableDefinition _definition;
     private readonly MetadataAssemblySymbol _containingAssembly;
+    private BoundVariableInitializer? _boundInitializer;
 
     public MetadataVariableSymbol(
         VariableDefinition definition,
@@ -74,10 +73,18 @@ internal sealed class MetadataVariableSymbol : IVariableSymbolData, ILocatableSy
     public bool IsMutable => false;
     public VariableKind Kind => _definition.Kind;
 
-    // TODO: Once we start encoding MIR into the code, we may use this to handle aggregate initialize of classes
-    public bool HasInitializer => false;
+    public bool HasInitializer => _definition.Initializer is not null;
 
     public ConstantValue? ConstantValue => _definition.ConstantValue;
+
+    public BoundVariableInitializer GetBoundInitializer(
+        CancellationToken cancellationToken = default
+    )
+    {
+        return LazyComputation.LazyCompute(ref _boundInitializer, this, static @this =>
+            @this._containingAssembly.GetBoundInitializer(@this.PublicSymbol, @this._definition)
+        );
+    }
 
     public ImmutableArray<AttributeData> GetAttributes()
     {

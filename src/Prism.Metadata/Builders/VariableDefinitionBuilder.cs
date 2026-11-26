@@ -70,15 +70,7 @@ public sealed class VariableDefinitionBuilder : IAttributeHolderDefinitionBuilde
 
     public ConstantValue? ConstantValue { get; set; }
 
-    public MetadataExpressionBuilder? Initializer
-    {
-        get;
-        set
-        {
-            field = value;
-            _assembly.SetVariableInitializer(Handle, value);
-        }
-    }
+    public MetadataExpressionBuilder? Initializer { get; set; }
 
     public ReadOnlyCollection<CustomAttributeDefinitionBuilder> CustomAttributes =>
         _customAttributes.AsReadOnly();

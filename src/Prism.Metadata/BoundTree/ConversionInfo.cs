@@ -4,53 +4,77 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using Riok.Mapperly.Abstractions;
 
 namespace Prism.Metadata.BoundTree;
 
+public enum ConversionInfoKind : byte
+{
+    NoConversion,
+    Identity,
+
+    ImplicitNumeric,
+    ImplicitCharacter,
+    ImplicitReference,
+    ImplicitSpan,
+    ImplicitNullable,
+
+    ExplicitNumeric,
+    ExplicitCharacter,
+    ExplicitReference,
+
+    UnwrapNullable,
+    NullToNullable,
+}
+
 public readonly struct ConversionInfo
 {
-    internal ConversionKind Kind { get; }
+    public ConversionInfoKind Kind { get; }
 
     internal SpecialData? AdditionalData { get; }
 
-    internal ConversionInfo(ConversionKind kind, SpecialData? additionalData = null)
+    [MapperConstructor]
+    internal ConversionInfo(ConversionInfoKind kind, SpecialData? additionalData = null)
     {
         Kind = kind;
         AdditionalData = additionalData;
     }
 
-    public static ConversionInfo None => new(ConversionKind.NoConversion);
-    public static ConversionInfo Identity => new(ConversionKind.Identity);
-    public static ConversionInfo ImplicitNumeric => new(ConversionKind.ImplicitNumeric);
-    public static ConversionInfo ImplicitCharacter => new(ConversionKind.ImplicitCharacter);
-    public static ConversionInfo ImplicitReference => new(ConversionKind.ImplicitReference);
-    public static ConversionInfo ImplicitSpan => new(ConversionKind.ImplicitSpan);
+    public static ConversionInfo None => new(ConversionInfoKind.NoConversion);
+    public static ConversionInfo Identity => new(ConversionInfoKind.Identity);
+    public static ConversionInfo ImplicitNumeric => new(ConversionInfoKind.ImplicitNumeric);
+    public static ConversionInfo ImplicitCharacter => new(ConversionInfoKind.ImplicitCharacter);
+    public static ConversionInfo ImplicitReference => new(ConversionInfoKind.ImplicitReference);
+    public static ConversionInfo ImplicitSpan => new(ConversionInfoKind.ImplicitSpan);
 
     public static ConversionInfo ImplicitNullable(
         params ImmutableArray<ConversionInfo> nestedConversions
     )
     {
         return new ConversionInfo(
-            ConversionKind.ImplicitNullable,
+            ConversionInfoKind.ImplicitNullable,
             !nestedConversions.IsEmpty ? new NestedData(nestedConversions) : null
         );
     }
 
-    public static ConversionInfo ExplicitNumeric => new(ConversionKind.ExplicitNumeric);
-    public static ConversionInfo ExplicitCharacter => new(ConversionKind.ExplicitCharacter);
-    public static ConversionInfo ExplicitReference => new(ConversionKind.ExplicitReference);
+    public static ConversionInfo ExplicitNumeric => new(ConversionInfoKind.ExplicitNumeric);
+    public static ConversionInfo ExplicitCharacter => new(ConversionInfoKind.ExplicitCharacter);
+    public static ConversionInfo ExplicitReference => new(ConversionInfoKind.ExplicitReference);
 
     public static ConversionInfo UnwrapNullable(
         params ImmutableArray<ConversionInfo> nestedConversions
     )
     {
         return new ConversionInfo(
-            ConversionKind.UnwrapNullable,
+            ConversionInfoKind.UnwrapNullable,
             !nestedConversions.IsEmpty ? new NestedData(nestedConversions) : null
         );
     }
 
-    public static ConversionInfo NullToNullable => new(ConversionKind.NullToNullable);
+    public static ConversionInfo NullToNullable => new(ConversionInfoKind.NullToNullable);
+
+    public ImmutableArray<ConversionInfo> UnderlyingConversions =>
+        AdditionalData is NestedData nestedData ? nestedData.NestedConversions : [];
 
     internal closed record SpecialData;
 

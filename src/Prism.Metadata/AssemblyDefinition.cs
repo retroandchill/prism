@@ -4,6 +4,8 @@ using System.IO.Abstractions;
 using System.Runtime.InteropServices;
 using MagicArchive;
 using Prism.Configuration;
+using Prism.Metadata.BoundTree;
+using Prism.Metadata.BoundTree.Builders;
 using Prism.Metadata.Serialization;
 using Prism.Metadata.Symbols;
 using Prism.Utils;
@@ -302,6 +304,19 @@ public sealed partial class AssemblyDefinition
         private set;
     }
 
+    internal ImmutableSortedDictionary<VariableHandle, MetadataExpression> VariableInitializers
+    {
+        get { return LazyComputation.LazyCompute(ref field, this, static @this =>
+            {
+                Debug.Assert(@this._metadataReader is not null);
+                return @this._metadataReader.VariableInitializerMapping.ToImmutableSortedDictionary(
+                    x => x.Key,
+                    x => @this._metadataReader.GetVariableInitializer(x.Value)
+                );
+            }); }
+        private set;
+    }
+
     private ImmutableArray<T> ReadAll<T>(int count, Func<MetadataReader, int, T> reader)
     {
         Debug.Assert(_metadataReader is not null);
@@ -344,6 +359,7 @@ public sealed partial class AssemblyDefinition
     [UseStaticMapper(typeof(FunctionReference.Mapper))]
     [UseStaticMapper(typeof(ParameterDefinition.Mapper))]
     [UseStaticMapper(typeof(CustomAttributeDefinition.Mapper))]
+    [UseStaticMapper(typeof(MetadataBuilderMapper))]
     internal static partial class Mapper
     {
         public static partial AssemblyDefinition ToDefinition(AssemblyDefinitionBuilder builder);

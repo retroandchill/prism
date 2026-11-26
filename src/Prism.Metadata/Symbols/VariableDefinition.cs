@@ -153,7 +153,8 @@ public sealed partial class VariableDefinition : IAttributeHolderDefinition
         get { return _initializer.GetOrInitialize(this, static @this =>
             {
                 Debug.Assert(@this._reader is not null);
-                throw new NotImplementedException();
+                var handle = @this._reader.VariableInitializerMapping[@this.Handle];
+                return @this._reader.GetVariableInitializer(handle);
             }); }
         private set => _initializer = PublicationOnlyValue.Create(value);
     }

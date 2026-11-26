@@ -27,6 +27,10 @@ internal enum Section
     CustomAttributes = 50,
     VariableRefs = 80,
     FunctionRefs = 81,
+
+    VariableInitializerContents = 120,
+
+    VariableInitializers = 150,
 }
 
 internal static partial class Sections
@@ -54,6 +58,8 @@ internal static partial class Sections
     public const uint String = 120;
     public const uint Blob = 121;
     public const uint InlineConst = 122;
+
+    public const uint VariableInitializers = 150;
 
     public const int RowIdBitCount = 24;
 }
@@ -92,4 +98,6 @@ public enum TokenType : uint
     String = Sections.String << Sections.RowIdBitCount,
     Blob = Sections.Blob << Sections.RowIdBitCount,
     InlineConst = Sections.InlineConst << Sections.RowIdBitCount,
+
+    VariableInitializer = Sections.VariableInitializers << Sections.RowIdBitCount,
 }

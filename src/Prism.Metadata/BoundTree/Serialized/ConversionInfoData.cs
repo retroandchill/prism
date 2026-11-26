@@ -13,15 +13,15 @@ namespace Prism.Metadata.BoundTree.Serialized;
 [Archivable(GenerateType.Custom)]
 internal readonly partial struct ConversionInfoData
 {
-    private readonly ConversionKind _kind;
+    internal ConversionInfoKind Kind { get; }
 
-    private readonly SpecialData? _additionalData;
+    internal SpecialData? AdditionalData { get; }
 
     [MapperConstructor]
-    internal ConversionInfoData(ConversionKind kind, SpecialData? additionalData = null)
+    internal ConversionInfoData(ConversionInfoKind kind, SpecialData? additionalData = null)
     {
-        _kind = kind;
-        _additionalData = additionalData;
+        Kind = kind;
+        AdditionalData = additionalData;
     }
 
     internal closed record SpecialData;
@@ -34,8 +34,8 @@ internal readonly partial struct ConversionInfoData
         scoped in ConversionInfoData value
     )
     {
-        writer.WriteBlittable(value._kind);
-        switch (value._additionalData)
+        writer.WriteBlittable(value.Kind);
+        switch (value.AdditionalData)
         {
             case null:
                 break;
@@ -50,12 +50,11 @@ internal readonly partial struct ConversionInfoData
         scoped ref ConversionInfoData value
     )
     {
-        var kind = reader.ReadBlittable<ConversionKind>();
+        var kind = reader.ReadBlittable<ConversionInfoKind>();
         var specialData = kind switch
         {
-            ConversionKind.ImplicitNullable or ConversionKind.UnwrapNullable => new NestedData(
-                reader.ReadValue<ImmutableArray<ConversionInfoData>>()
-            ),
+            ConversionInfoKind.ImplicitNullable or ConversionInfoKind.UnwrapNullable =>
+                new NestedData(reader.ReadValue<ImmutableArray<ConversionInfoData>>()),
             _ => null,
         };
 

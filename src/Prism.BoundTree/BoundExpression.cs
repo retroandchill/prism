@@ -7,6 +7,7 @@ using Prism.Semantic.Conversions;
 using Prism.Semantic.Mappers;
 using Prism.Semantic.Symbols;
 using Prism.Utils;
+using Riok.Mapperly.Abstractions;
 
 namespace Prism.BoundTree;
 
@@ -122,6 +123,7 @@ internal sealed record BoundUnfixedFloatLiteral : BoundSpeculativeExpression
 
 internal sealed record BoundLiteral : BoundExpression
 {
+    [MapperConstructor]
     public BoundLiteral(
         IBoundSemanticContext semanticContext,
         IBoundSource syntax,
@@ -189,6 +191,7 @@ internal sealed record BoundVariableAccess : BoundExpression
         Symbol = symbol;
     }
 
+    [MapperConstructor]
     public BoundVariableAccess(
         IBoundSemanticContext semanticContext,
         IBoundSource syntax,
@@ -442,12 +445,12 @@ internal sealed record BoundDereference : BoundExpression
         IBoundSource syntax,
         BoundExpression operand,
         TypeSymbol type,
-        bool isMutable
+        bool isAssignable
     )
         : base(semanticContext, syntax, type)
     {
         Operand = operand;
-        IsAssignable = isMutable;
+        IsAssignable = isAssignable;
     }
 
     public BoundExpression Operand { get; }
@@ -520,12 +523,12 @@ internal sealed record BoundNewExpression : BoundExpression
     public BoundNewExpression(
         IBoundSemanticContext semanticContext,
         IBoundSource syntax,
-        TypeSymbol targetType,
+        TypeSymbol type,
         FunctionSymbol constructor,
         ImmutableArray<BoundExpression> arguments,
         ImmutableArray<BoundFieldInitializer> initializers = default
     )
-        : base(semanticContext, syntax, targetType)
+        : base(semanticContext, syntax, type)
     {
         Constructor = constructor;
         Arguments = arguments;

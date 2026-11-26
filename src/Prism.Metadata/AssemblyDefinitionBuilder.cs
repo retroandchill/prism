@@ -36,10 +36,8 @@ public sealed class AssemblyDefinitionBuilder
     private readonly List<VariableReference> _variableRefs = [];
     private readonly List<FunctionReferenceBuilder> _functionRefs = [];
 
-    private readonly OrderedDictionary<
-        VariableHandle,
-        MetadataExpressionBuilder
-    > _variableInitializers = [];
+    private readonly Dictionary<VariableHandle, MetadataExpressionBuilder> _variableInitializers =
+    [];
 
     public AssemblyDefinitionBuilder(AssemblyIdentity identity, TargetInfo targetInfo)
     {
@@ -98,6 +96,9 @@ public sealed class AssemblyDefinitionBuilder
 
     internal ReadOnlyCollection<FunctionReferenceBuilder> ReferencedFunctions =>
         _functionRefs.AsReadOnly();
+
+    internal ReadOnlyDictionary<VariableHandle, MetadataExpressionBuilder> VariableInitializers =>
+        _variableInitializers.AsReadOnly();
 
     internal NamespaceDefinitionBuilder AddNamespaceDefinition(
         string name,

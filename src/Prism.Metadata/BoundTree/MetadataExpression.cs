@@ -36,9 +36,9 @@ public sealed class MetadataConstantExpression : MetadataExpression
     public ConstantValue Value { get; }
 }
 
-public sealed class ThisMetadataExpression : MetadataExpression
+public sealed class MetadataThisExpression : MetadataExpression
 {
-    internal ThisMetadataExpression(SourceLocation location, TypeDescriptor type)
+    internal MetadataThisExpression(SourceLocation location, TypeDescriptor type)
         : base(location, type) { }
 }
 

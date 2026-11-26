@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using Prism.Metadata.BoundTree;
 using Prism.Metadata.Symbols;
 using Prism.Utils;
 using ConstantValue = Prism.Constants.ConstantValue;
@@ -72,6 +73,7 @@ internal sealed class MetadataReader
     private readonly CustomAttributeReader _customAttributes;
     private readonly VariableRefReader _variableRefs;
     private readonly FunctionRefReader _functionRefs;
+    private readonly VariableInitializerHeapReader _variableInitializers;
 
     private readonly ConcurrentDictionary<ConstantHandle, ConstantValue> _constantsCache = new();
 
@@ -132,6 +134,16 @@ internal sealed class MetadataReader
 
         _variableRefs = new VariableRefReader(layout.VariableReferences, CreateVariableRef);
         _functionRefs = new FunctionRefReader(layout.FunctionReferences, CreateFunctionRef);
+
+        VariableInitializerMapping = layout.VariableInitializerLookup.ToFrozenDictionary(
+            x => x.Variable,
+            x => x.Initializer
+        );
+        _variableInitializers = new VariableInitializerHeapReader(
+            layout.VariableInitializersHeap.Memory,
+            layout.VariableInitializersHeap.Count,
+            this
+        );
     }
 
     public string GetString(StringHandle handle)
@@ -465,6 +477,15 @@ internal sealed class MetadataReader
         );
     }
 
+    public VariableDescriptor GetVariableDescriptor(VariableDescriptorHandle handle)
+    {
+        return handle switch
+        {
+            VariableHandle h => GetVariable(h),
+            VariableRefHandle h => GetVariableRef(h),
+        };
+    }
+
     public int FunctionRefCount => _functionRefs.Count;
 
     public FunctionReference GetFunctionRef(FunctionRefHandle handle)
@@ -481,6 +502,25 @@ internal sealed class MetadataReader
             row.Parameters,
             this
         );
+    }
+
+    public FunctionDescriptor GetFunctionDescriptor(FunctionDescriptorHandle handle)
+    {
+        return handle switch
+        {
+            FunctionHandle h => GetFunction(h),
+            FunctionRefHandle h => GetFunctionRef(h),
+        };
+    }
+
+    internal FrozenDictionary<
+        VariableHandle,
+        VariableInitializerHandle
+    > VariableInitializerMapping { get; }
+
+    public MetadataExpression GetVariableInitializer(VariableInitializerHandle handle)
+    {
+        return _variableInitializers.GetValue(handle.Id);
     }
 
     public ConstantValue GetConstant(ConstantHandle handle)

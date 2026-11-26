@@ -2,10 +2,13 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Prism.BoundTree;
+using Prism.Compiler.Mappers;
 using Prism.Compiler.References;
 using Prism.Configuration;
 using Prism.Metadata;
 using Prism.Metadata.Symbols;
+using Prism.Semantic.Layout;
 using Prism.Semantic.Symbols;
 using Prism.Semantic.Symbols.Data;
 using Prism.Utils;
@@ -13,7 +16,10 @@ using ZLinq;
 
 namespace Prism.Compiler.Symbols.Metadata;
 
-internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSymbolData
+internal sealed partial class MetadataAssemblySymbol
+    : IAssemblySymbolData,
+        ILocatableSymbolData,
+        IBoundSemanticContext
 {
     private readonly ConcurrentDictionary<
         AssemblyReference,
@@ -55,14 +61,21 @@ internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSy
         MetadataParameterSymbol
     > _ownedParameters = new();
 
+    private readonly ConcurrentDictionary<VariableReference, VariableSymbol> _referencedVariables =
+        new();
+    private readonly ConcurrentDictionary<FunctionReference, FunctionSymbol> _referencedFunctions =
+        new();
+
     private readonly AssemblyDefinition _definition;
     private readonly ReferenceManager _referenceManager;
+    private readonly MetadataBoundNodeMapper _mapper;
 
     public MetadataAssemblySymbol(AssemblyDefinition definition, ReferenceManager referenceManager)
     {
         _definition = definition;
         _referenceManager = referenceManager;
         PublicSymbol = new AssemblySymbol(this);
+        _mapper = new MetadataBoundNodeMapper(this);
     }
 
     public AssemblySymbol PublicSymbol { get; }
@@ -253,11 +266,66 @@ internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSy
             .PublicSymbol;
     }
 
+    internal VariableSymbol GetReferencedVariable(VariableDescriptor descriptor)
+    {
+        return descriptor switch
+        {
+            VariableDefinition variable => GetOrAddVariable(variable),
+            VariableReference reference => GetReferencedVariable(reference),
+        };
+    }
+
+    private VariableSymbol GetReferencedVariable(VariableReference reference)
+    {
+        return _referencedVariables.GetOrAdd(
+            reference,
+            static (d, @this) =>
+            {
+                var container = @this.GetContainer(d.Parent);
+                return container
+                    .GetMembers(d.Name)
+                    .AsValueEnumerable()
+                    .OfType<VariableSymbol>()
+                    .Single();
+            },
+            this
+        );
+    }
+
     internal FunctionSymbol GetOrAddFunction(FunctionDefinition function)
     {
         return _ownedFunctions
             .GetOrAdd(function, static (d, @this) => new MetadataFunctionSymbol(d, @this), this)
             .PublicSymbol;
+    }
+
+    internal FunctionSymbol GetReferencedFunction(FunctionDescriptor function)
+    {
+        return function switch
+        {
+            FunctionDefinition definition => GetOrAddFunction(definition),
+            FunctionReference reference => GetReferencedFunction(reference),
+        };
+    }
+
+    private FunctionSymbol GetReferencedFunction(FunctionReference reference)
+    {
+        return _referencedFunctions.GetOrAdd(
+            reference,
+            static (d, @this) =>
+            {
+                var parameterTypes = d
+                    .Parameters.Select(@this.GetReferencedType)
+                    .ToImmutableArray();
+                var container = @this.GetContainer(d.Parent);
+                return container
+                    .GetMembers(d.Name)
+                    .AsValueEnumerable()
+                    .OfType<FunctionSymbol>()
+                    .Single(f => f.ParameterTypes.SequenceEqual(parameterTypes));
+            },
+            this
+        );
     }
 
     internal Symbol GetOrAddFunctionOrAttribute(FunctionOrAttribute attribute)
@@ -302,5 +370,35 @@ internal sealed class MetadataAssemblySymbol : IAssemblySymbolData, ILocatableSy
         }
 
         return ImmutableCollectionsMarshal.AsImmutableArray(data);
+    }
+
+    internal BoundVariableInitializer GetBoundInitializer(
+        VariableSymbol symbol,
+        VariableDefinition variable
+    )
+    {
+        if (variable.Initializer is null)
+            return new BoundVariableInitializer(symbol, []);
+
+        var expression = _mapper.Map(variable.Initializer);
+        return new BoundVariableInitializer(symbol, expression, []);
+    }
+
+    public PointerWidth PointerWidth => _definition.TargetInfo.Architecture.PointerWidth;
+
+    private const string NotImplementedError =
+        "All cases where type layout is used (i.e. sizeof) should have been folded";
+
+    TypeLayout ILayoutSource.GetTypeLayout(
+        TypeSymbol typeSymbol,
+        CancellationToken cancellationToken
+    )
+    {
+        throw new NotSupportedException(NotImplementedError);
+    }
+
+    NamedTypeSymbol IBoundSemanticContext.GetSpecialType(SpecialType specialType)
+    {
+        throw new NotSupportedException(NotImplementedError);
     }
 }

@@ -215,7 +215,7 @@ internal sealed partial class MetadataRowMapper(
     private partial ConversionInfoData.SpecialData Map(ConversionInfo.SpecialData data);
 
     [MapDerivedType<MetadataConstantExpression, MetadataConstantExpressionEntry>]
-    [MapDerivedType<ThisMetadataExpression, ThisMetadataExpressionEntry>]
+    [MapDerivedType<MetadataThisExpression, ThisMetadataExpressionEntry>]
     [MapDerivedType<MetadataVariableAccess, MetadataVariableAccessEntry>]
     [MapDerivedType<MetadataParameterAccess, MetadataParameterAccessEntry>]
     [MapDerivedType<MetadataUnaryOperation, MetadataUnaryOperationEntry>]

@@ -1,6 +1,6 @@
 ﻿using NetEscapades.EnumGenerators;
 
-namespace Prism;
+namespace Prism.Semantic.Conversions;
 
 [EnumExtensions]
 internal enum ConversionKind : byte

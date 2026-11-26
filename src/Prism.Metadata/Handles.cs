@@ -450,3 +450,13 @@ public readonly partial record struct FunctionDescriptorHandle
 
     private partial FunctionDescriptorHandle([UsedImplicitly] MetadataToken token);
 }
+
+[Archivable]
+[Handle]
+public readonly partial record struct VariableInitializerHandle
+{
+    [ArchiveInclude]
+    private readonly int _id;
+
+    private partial VariableInitializerHandle([UsedImplicitly] int id);
+}
