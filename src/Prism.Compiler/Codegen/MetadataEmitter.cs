@@ -496,12 +496,8 @@ internal sealed class MetadataEmitter
     {
         cancellationToken.ThrowIfCancellationRequested();
         var mapper = new BoundNodeMetadataMapper(this);
-        foreach (var variable in symbols.Variables)
+        foreach (var variable in symbols.Variables.Where(v => v.IsInstance))
         {
-            // We don't need to store the initializers for constants as that is already baked into the metadata.
-            if (variable.IsConst)
-                continue;
-
             var boundInitializer = variable.GetBoundInitializer(cancellationToken);
             if (!boundInitializer.HasInitializer)
                 continue;
