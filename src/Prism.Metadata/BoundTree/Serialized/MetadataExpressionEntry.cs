@@ -27,7 +27,7 @@ namespace Prism.Metadata.BoundTree.Serialized;
 [ArchivableUnion(ExpressionOffset + 16, typeof(MetadataDefaultExpressionEntry))]
 internal closed partial class MetadataExpressionEntry : MetadataNodeEntry
 {
-    private protected MetadataExpressionEntry(SourceLocationData location, TypeHandle type)
+    private protected MetadataExpressionEntry(SyntaxLocationData location, TypeHandle type)
         : base(location)
     {
         Type = type;
@@ -40,7 +40,7 @@ internal closed partial class MetadataExpressionEntry : MetadataNodeEntry
 internal sealed partial class MetadataConstantExpressionEntry : MetadataExpressionEntry
 {
     internal MetadataConstantExpressionEntry(
-        SourceLocationData location,
+        SyntaxLocationData location,
         TypeHandle type,
         ConstantHandle value
     )
@@ -55,7 +55,7 @@ internal sealed partial class MetadataConstantExpressionEntry : MetadataExpressi
 [Archivable]
 internal sealed partial class ThisMetadataExpressionEntry : MetadataExpressionEntry
 {
-    internal ThisMetadataExpressionEntry(SourceLocationData location, TypeHandle type)
+    internal ThisMetadataExpressionEntry(SyntaxLocationData location, TypeHandle type)
         : base(location, type) { }
 }
 
@@ -63,7 +63,7 @@ internal sealed partial class ThisMetadataExpressionEntry : MetadataExpressionEn
 internal sealed partial class MetadataVariableAccessEntry : MetadataExpressionEntry
 {
     internal MetadataVariableAccessEntry(
-        SourceLocationData location,
+        SyntaxLocationData location,
         TypeHandle type,
         MetadataExpressionEntry? owner,
         VariableDescriptorHandle symbol
@@ -83,7 +83,7 @@ internal sealed partial class MetadataVariableAccessEntry : MetadataExpressionEn
 internal sealed partial class MetadataParameterAccessEntry : MetadataExpressionEntry
 {
     internal MetadataParameterAccessEntry(
-        SourceLocationData location,
+        SyntaxLocationData location,
         TypeHandle type,
         ParameterHandle symbol
     )
@@ -99,7 +99,7 @@ internal sealed partial class MetadataParameterAccessEntry : MetadataExpressionE
 internal sealed partial class MetadataUnaryOperationEntry : MetadataExpressionEntry
 {
     internal MetadataUnaryOperationEntry(
-        SourceLocationData location,
+        SyntaxLocationData location,
         TypeHandle type,
         MetadataExpressionEntry operand,
         UnaryOperation operation
@@ -119,7 +119,7 @@ internal sealed partial class MetadataUnaryOperationEntry : MetadataExpressionEn
 internal sealed partial class MetadataBinaryOperationEntry : MetadataExpressionEntry
 {
     internal MetadataBinaryOperationEntry(
-        SourceLocationData location,
+        SyntaxLocationData location,
         TypeHandle type,
         MetadataExpressionEntry left,
         MetadataExpressionEntry right,
@@ -143,7 +143,7 @@ internal sealed partial class MetadataBinaryOperationEntry : MetadataExpressionE
 internal sealed partial class MetadataAssignmentOperationEntry : MetadataExpressionEntry
 {
     internal MetadataAssignmentOperationEntry(
-        SourceLocationData location,
+        SyntaxLocationData location,
         TypeHandle type,
         MetadataExpressionEntry left,
         MetadataExpressionEntry right,
@@ -167,7 +167,7 @@ internal sealed partial class MetadataAssignmentOperationEntry : MetadataExpress
 internal sealed partial class MetadataConditionalEntry : MetadataExpressionEntry
 {
     internal MetadataConditionalEntry(
-        SourceLocationData location,
+        SyntaxLocationData location,
         TypeHandle type,
         MetadataExpressionEntry condition,
         MetadataExpressionEntry whenTrue,
@@ -191,7 +191,7 @@ internal sealed partial class MetadataConditionalEntry : MetadataExpressionEntry
 internal sealed partial class MetadataInvocationEntry : MetadataExpressionEntry
 {
     internal MetadataInvocationEntry(
-        SourceLocationData location,
+        SyntaxLocationData location,
         TypeHandle type,
         FunctionDescriptorHandle function,
         MetadataExpressionEntry? receiver,
@@ -215,7 +215,7 @@ internal sealed partial class MetadataInvocationEntry : MetadataExpressionEntry
 internal sealed partial class MetadataConversionEntry : MetadataExpressionEntry
 {
     internal MetadataConversionEntry(
-        SourceLocationData location,
+        SyntaxLocationData location,
         TypeHandle type,
         MetadataExpressionEntry operand,
         ConversionInfoData conversion
@@ -235,7 +235,7 @@ internal sealed partial class MetadataConversionEntry : MetadataExpressionEntry
 internal sealed partial class MetadataAddressOfEntry : MetadataExpressionEntry
 {
     internal MetadataAddressOfEntry(
-        SourceLocationData location,
+        SyntaxLocationData location,
         TypeHandle type,
         MetadataExpressionEntry operand,
         bool isMutable
@@ -255,7 +255,7 @@ internal sealed partial class MetadataAddressOfEntry : MetadataExpressionEntry
 internal sealed partial class MetadataDereferenceEntry : MetadataExpressionEntry
 {
     internal MetadataDereferenceEntry(
-        SourceLocationData location,
+        SyntaxLocationData location,
         TypeHandle type,
         MetadataExpressionEntry operand,
         bool isAssignable
@@ -275,7 +275,7 @@ internal sealed partial class MetadataDereferenceEntry : MetadataExpressionEntry
 internal sealed partial class MetadataIndexEntry : MetadataExpressionEntry
 {
     internal MetadataIndexEntry(
-        SourceLocationData location,
+        SyntaxLocationData location,
         TypeHandle type,
         MetadataExpressionEntry operand,
         MetadataExpressionEntry index
@@ -295,7 +295,7 @@ internal sealed partial class MetadataIndexEntry : MetadataExpressionEntry
 internal sealed partial class MetadataCollectionExpressionEntry : MetadataExpressionEntry
 {
     internal MetadataCollectionExpressionEntry(
-        SourceLocationData location,
+        SyntaxLocationData location,
         TypeHandle type,
         ImmutableArray<MetadataExpressionEntry> expressions
     )
@@ -317,7 +317,7 @@ internal readonly partial record struct MetadataFieldInitializerData(
 internal sealed partial class MetadataNewExpressionEntry : MetadataExpressionEntry
 {
     internal MetadataNewExpressionEntry(
-        SourceLocationData location,
+        SyntaxLocationData location,
         TypeHandle type,
         FunctionDescriptorHandle constructor,
         ImmutableArray<MetadataExpressionEntry> arguments,
@@ -340,6 +340,6 @@ internal sealed partial class MetadataNewExpressionEntry : MetadataExpressionEnt
 [Archivable]
 internal sealed partial class MetadataDefaultExpressionEntry : MetadataExpressionEntry
 {
-    internal MetadataDefaultExpressionEntry(SourceLocationData location, TypeHandle type)
+    internal MetadataDefaultExpressionEntry(SyntaxLocationData location, TypeHandle type)
         : base(location, type) { }
 }

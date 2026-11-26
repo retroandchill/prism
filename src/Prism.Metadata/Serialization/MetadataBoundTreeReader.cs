@@ -27,18 +27,6 @@ internal sealed partial class MetadataBoundTreeReader(MetadataReader reader)
     [MapDerivedType<MetadataDefaultExpressionEntry, MetadataDefaultExpression>]
     public partial MetadataExpression Map(MetadataExpressionEntry entry);
 
-    private SourceLocation MapLocation(SourceLocationData data)
-    {
-        return new SourceLocation(GetSourceDocument(data.File), data.SourceSpan);
-    }
-
-    private ISourceDocument GetSourceDocument(StringHandle handle)
-    {
-        // TODO: We need to create our source document implementation
-        var path = reader.GetString(handle);
-        return null!;
-    }
-
     private ConstantValue GetConstantValue(ConstantHandle handle)
     {
         return reader.GetConstant(handle);

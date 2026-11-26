@@ -4,6 +4,7 @@ using Prism.Metadata.BoundTree;
 using Prism.Metadata.Symbols;
 using Prism.Semantic.Conversions;
 using Prism.Semantic.Symbols;
+using Prism.Text;
 using Riok.Mapperly.Abstractions;
 
 namespace Prism.Compiler.Mappers;
@@ -39,7 +40,7 @@ internal sealed partial class MetadataBoundNodeMapper(MetadataAssemblySymbol ass
 #pragma warning disable CA1859
     private IBoundSemanticContext GetSemanticContext() => assemblySymbol;
 
-    private static IBoundSource CreateSource(SourceLocation location) => new BoundSource(location);
+    private static IBoundSource CreateSource(SyntaxLocation location) => new BoundSource(location);
 #pragma warning restore CA1859
 
     private TypeSymbol MapType(TypeDescriptor typeDescriptor)
@@ -86,9 +87,30 @@ internal sealed partial class MetadataBoundNodeMapper(MetadataAssemblySymbol ass
         };
     }
 
-    private sealed class BoundSource(SourceLocation location) : IBoundSource
+    private sealed class BoundSource(SyntaxLocation location) : IBoundSource
     {
-        public SourceLocation Location { get; } = location;
+        public SourceLocation Location { get; } =
+            new(new StubSourceDocument(location.File), location.SourceSpan);
         public bool HasErrors => false;
+    }
+
+    // TODO: Replace this with a real source document class that can load from PDB files or other sources to get the actual source code.
+    private sealed class StubSourceDocument(string path) : ISourceDocument
+    {
+        public string Path => path;
+
+        public FileSourcePositionSpan GetPositionSpan(TextSpan span)
+        {
+            return new FileSourcePositionSpan(
+                Path,
+                new SourcePosition(1, 1),
+                new SourcePosition(1, 1)
+            );
+        }
+
+        public ReadOnlySpan<char> GetText(TextSpan span)
+        {
+            return "";
+        }
     }
 }

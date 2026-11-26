@@ -418,11 +418,8 @@ internal sealed class MetadataAssemblySymbol
 
     public PointerWidth PointerWidth => _definition.TargetInfo.Architecture.PointerWidth;
 
-    private const string NotImplementedError =
-        "All cases where type layout is used (i.e. sizeof) should have been folded";
-
     NamedTypeSymbol IBoundSemanticContext.GetSpecialType(SpecialType specialType)
     {
-        throw new NotSupportedException(NotImplementedError);
+        return PublicSymbol.GetSpecialType(specialType);
     }
 }

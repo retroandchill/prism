@@ -186,9 +186,9 @@ internal sealed partial class MetadataRowMapper(
         }
     }
 
-    private SourceLocationData Map(SourceLocation location)
+    private SyntaxLocationData Map(SourceLocation location)
     {
-        return new SourceLocationData(
+        return new SyntaxLocationData(
             MapString(location.SyntaxTree.Path ?? ""),
             location.SourceSpan
         );

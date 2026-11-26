@@ -9,4 +9,4 @@ using Prism.Text;
 namespace Prism.Metadata.BoundTree.Serialized;
 
 [Archivable]
-internal readonly partial record struct SourceLocationData(StringHandle File, TextSpan SourceSpan);
+internal readonly partial record struct SyntaxLocationData(StringHandle File, TextSpan SourceSpan);

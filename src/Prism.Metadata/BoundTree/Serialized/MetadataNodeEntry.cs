@@ -26,10 +26,10 @@ internal closed partial class MetadataNodeEntry
 {
     internal const ushort ExpressionOffset = 128;
 
-    internal MetadataNodeEntry(SourceLocationData location)
+    internal MetadataNodeEntry(SyntaxLocationData location)
     {
         Location = location;
     }
 
-    public SourceLocationData Location { get; }
+    public SyntaxLocationData Location { get; }
 }

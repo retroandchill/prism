@@ -12,7 +12,7 @@ namespace Prism.Metadata.BoundTree;
 
 public closed class MetadataExpression : MetadataNode
 {
-    private protected MetadataExpression(SourceLocation location, TypeDescriptor type)
+    private protected MetadataExpression(SyntaxLocation location, TypeDescriptor type)
         : base(location)
     {
         Type = type;
@@ -24,7 +24,7 @@ public closed class MetadataExpression : MetadataNode
 public sealed class MetadataConstantExpression : MetadataExpression
 {
     internal MetadataConstantExpression(
-        SourceLocation location,
+        SyntaxLocation location,
         TypeDescriptor type,
         ConstantValue value
     )
@@ -38,14 +38,14 @@ public sealed class MetadataConstantExpression : MetadataExpression
 
 public sealed class MetadataThisExpression : MetadataExpression
 {
-    internal MetadataThisExpression(SourceLocation location, TypeDescriptor type)
+    internal MetadataThisExpression(SyntaxLocation location, TypeDescriptor type)
         : base(location, type) { }
 }
 
 public sealed class MetadataVariableAccess : MetadataExpression
 {
     internal MetadataVariableAccess(
-        SourceLocation location,
+        SyntaxLocation location,
         TypeDescriptor type,
         MetadataExpression? owner,
         VariableDescriptor symbol
@@ -64,7 +64,7 @@ public sealed class MetadataVariableAccess : MetadataExpression
 public sealed class MetadataParameterAccess : MetadataExpression
 {
     internal MetadataParameterAccess(
-        SourceLocation location,
+        SyntaxLocation location,
         TypeDescriptor type,
         ParameterDefinition symbol
     )
@@ -79,7 +79,7 @@ public sealed class MetadataParameterAccess : MetadataExpression
 public sealed class MetadataUnaryOperation : MetadataExpression
 {
     internal MetadataUnaryOperation(
-        SourceLocation location,
+        SyntaxLocation location,
         TypeDescriptor type,
         MetadataExpression operand,
         UnaryOperation operation
@@ -98,7 +98,7 @@ public sealed class MetadataUnaryOperation : MetadataExpression
 public sealed class MetadataBinaryOperation : MetadataExpression
 {
     internal MetadataBinaryOperation(
-        SourceLocation location,
+        SyntaxLocation location,
         TypeDescriptor type,
         MetadataExpression left,
         MetadataExpression right,
@@ -121,7 +121,7 @@ public sealed class MetadataBinaryOperation : MetadataExpression
 public sealed class MetadataAssignmentOperation : MetadataExpression
 {
     internal MetadataAssignmentOperation(
-        SourceLocation location,
+        SyntaxLocation location,
         TypeDescriptor type,
         MetadataExpression left,
         MetadataExpression right,
@@ -144,7 +144,7 @@ public sealed class MetadataAssignmentOperation : MetadataExpression
 public sealed class MetadataConditional : MetadataExpression
 {
     internal MetadataConditional(
-        SourceLocation location,
+        SyntaxLocation location,
         TypeDescriptor type,
         MetadataExpression condition,
         MetadataExpression whenTrue,
@@ -167,7 +167,7 @@ public sealed class MetadataConditional : MetadataExpression
 public sealed class MetadataInvocation : MetadataExpression
 {
     internal MetadataInvocation(
-        SourceLocation location,
+        SyntaxLocation location,
         TypeDescriptor type,
         FunctionDescriptor function,
         MetadataExpression? receiver,
@@ -190,7 +190,7 @@ public sealed class MetadataInvocation : MetadataExpression
 public sealed class MetadataConversion : MetadataExpression
 {
     internal MetadataConversion(
-        SourceLocation location,
+        SyntaxLocation location,
         TypeDescriptor type,
         MetadataExpression operand,
         ConversionInfo conversion
@@ -209,7 +209,7 @@ public sealed class MetadataConversion : MetadataExpression
 public sealed class MetadataAddressOf : MetadataExpression
 {
     internal MetadataAddressOf(
-        SourceLocation location,
+        SyntaxLocation location,
         TypeDescriptor type,
         MetadataExpression operand,
         bool isMutable
@@ -228,7 +228,7 @@ public sealed class MetadataAddressOf : MetadataExpression
 public sealed class MetadataDereference : MetadataExpression
 {
     internal MetadataDereference(
-        SourceLocation location,
+        SyntaxLocation location,
         TypeDescriptor type,
         MetadataExpression operand,
         bool isAssignable
@@ -247,7 +247,7 @@ public sealed class MetadataDereference : MetadataExpression
 public sealed class MetadataIndex : MetadataExpression
 {
     internal MetadataIndex(
-        SourceLocation location,
+        SyntaxLocation location,
         TypeDescriptor type,
         MetadataExpression operand,
         MetadataExpression index
@@ -266,7 +266,7 @@ public sealed class MetadataIndex : MetadataExpression
 public sealed class MetadataCollectionExpression : MetadataExpression
 {
     internal MetadataCollectionExpression(
-        SourceLocation location,
+        SyntaxLocation location,
         TypeDescriptor type,
         ImmutableArray<MetadataExpression> expressions
     )
@@ -286,7 +286,7 @@ public readonly record struct MetadataFieldInitializer(
 public sealed class MetadataNewExpression : MetadataExpression
 {
     internal MetadataNewExpression(
-        SourceLocation location,
+        SyntaxLocation location,
         TypeDescriptor type,
         FunctionDescriptor constructor,
         ImmutableArray<MetadataExpression> arguments,
@@ -308,6 +308,6 @@ public sealed class MetadataNewExpression : MetadataExpression
 
 public sealed class MetadataDefaultExpression : MetadataExpression
 {
-    internal MetadataDefaultExpression(SourceLocation location, TypeDescriptor type)
+    internal MetadataDefaultExpression(SyntaxLocation location, TypeDescriptor type)
         : base(location, type) { }
 }
