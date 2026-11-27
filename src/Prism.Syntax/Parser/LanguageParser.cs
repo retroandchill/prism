@@ -1326,7 +1326,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             }
             else
             {
-                var op = ConsumeToken();
+                var op = ParseBinaryOperatorToken();
                 var right = ParseCastExpression();
                 next = CurrentToken;
                 var innerPrecedence = next.Kind.OperatorPrecedence;
@@ -1354,6 +1354,67 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         }
 
         return left;
+    }
+
+    private GreenToken ParseBinaryOperatorToken()
+    {
+        var token1 = ConsumeToken();
+        if (token1.Kind != SyntaxKind.GreaterToken)
+            return token1;
+
+        switch (CurrentToken)
+        {
+            case { Kind: SyntaxKind.GreaterToken } token2 when NoTriviaBetween(token1, token2):
+                ConsumeToken();
+                switch (CurrentToken)
+                {
+                    case { Kind: SyntaxKind.GreaterToken } token3
+                        when NoTriviaBetween(token2, token3):
+                        ConsumeToken();
+                        switch (CurrentToken)
+                        {
+                            case { Kind: SyntaxKind.EqualToken } token4
+                                when NoTriviaBetween(token3, token4):
+                                ConsumeToken();
+                                return GreenToken
+                                    .From(SyntaxKind.GreaterGreaterGreaterEqualToken)
+                                    .RequireNonNull()
+                                    .Update(token1.LeadingTrivia, token4.TrailingTrivia);
+                            default:
+                                return GreenToken
+                                    .From(SyntaxKind.GreaterGreaterGreaterToken)
+                                    .RequireNonNull()
+                                    .Update(token1.LeadingTrivia, token2.TrailingTrivia);
+                        }
+                    case { Kind: SyntaxKind.EqualToken } token3
+                        when NoTriviaBetween(token2, token3):
+                        ConsumeToken();
+                        return GreenToken
+                            .From(SyntaxKind.GreaterGreaterEqualToken)
+                            .RequireNonNull()
+                            .Update(token1.LeadingTrivia, token3.TrailingTrivia);
+                    default:
+                        return GreenToken
+                            .From(SyntaxKind.GreaterGreaterToken)
+                            .RequireNonNull()
+                            .Update(token1.LeadingTrivia, token2.TrailingTrivia);
+                }
+            case { Kind: SyntaxKind.EqualToken } token2 when NoTriviaBetween(token1, token2):
+            {
+                ConsumeToken();
+                return GreenToken
+                    .From(SyntaxKind.GreaterEqualToken)
+                    .RequireNonNull()
+                    .Update(token1.LeadingTrivia, token2.TrailingTrivia);
+            }
+            default:
+                return token1;
+        }
+    }
+
+    private static bool NoTriviaBetween(GreenToken token1, GreenToken token2)
+    {
+        return token1.TrailingTriviaWidth == 0 && token2.LeadingTriviaWidth == 0;
     }
 
     private GreenTernaryExpression ParseTernaryExpression(GreenExpression condition)

@@ -109,6 +109,7 @@ public sealed class SyntaxModelBuilder
         {
             var token = new SyntaxToken(definition.Name, TokenCategory.Punctuation)
             {
+                Flags = definition.Contextual ? TokenFlags.Contextual : TokenFlags.None,
                 Text = definition.Text,
             };
             token.Kind = new SyntaxKind(token.Name, PunctuationsStart + i, token);

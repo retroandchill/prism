@@ -33,6 +33,8 @@ public sealed record KeywordTokenDefinition : TokenDefinition
 public sealed record PunctuationTokenDefinition : TokenDefinition
 {
     public required string Text { get; init; }
+
+    public bool Contextual { get; init; } = false;
 }
 
 public sealed record OtherTokenDefinition : TokenDefinition

@@ -372,23 +372,28 @@
       },
       {
         "name": "GreaterGreaterToken",
-        "text": ">>"
+        "text": ">>",
+        "contextual": true
       },
       {
         "name": "GreaterGreaterGreaterToken",
-        "text": ">>>"
+        "text": ">>>",
+        "contextual": true
       },
       {
         "name": "GreaterEqualToken",
-        "text": ">="
+        "text": ">=",
+        "contextual": true
       },
       {
         "name": "GreaterGreaterEqualToken",
-        "text": ">>="
+        "text": ">>=",
+        "contextual": true
       },
       {
         "name": "GreaterGreaterGreaterEqualToken",
-        "text": ">>>="
+        "text": ">>>=",
+        "contextual": true
       },
       {
         "name": "CaretToken",

@@ -1243,7 +1243,7 @@ public static class CSharpEmitter
         foreach (
             var production in model
                 .Tokens.AsValueEnumerable()
-                .Where(t => t.Category == TokenCategory.Punctuation)
+                .Where(t => t.Category == TokenCategory.Punctuation && !t.Contextual)
         )
         {
             var current = node;
