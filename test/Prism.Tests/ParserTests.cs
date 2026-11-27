@@ -233,4 +233,27 @@ public sealed class ParserTests
         var operand = ((GreenPostfixExpression)expression).Operand;
         Assert.That(operand, Is.InstanceOf<GreenPostfixExpression>());
     }
+
+    [TestCase(">>", SyntaxKind.GreaterGreaterToken)]
+    [TestCase(">>>", SyntaxKind.GreaterGreaterGreaterToken)]
+    [TestCase(">=", SyntaxKind.GreaterEqualToken)]
+    [TestCase(">>=", SyntaxKind.GreaterGreaterEqualToken)]
+    [TestCase(">>>=", SyntaxKind.GreaterGreaterGreaterEqualToken)]
+    public void CompoundOperatorWithAngleBracket(string operand, SyntaxKind kind)
+    {
+        var parser = new LanguageParser($"x {operand} y");
+        var expression = parser.ParseExpression();
+
+        Assert.That(
+            expression,
+            Is.InstanceOf<GreenBinaryExpression>().Or.InstanceOf<GreenAssignmentExpression>()
+        );
+        var token = expression switch
+        {
+            GreenBinaryExpression ex => ex.Op,
+            GreenAssignmentExpression ex => ex.Op,
+            _ => throw new InvalidOperationException(),
+        };
+        Assert.That(token.Kind, Is.EqualTo(kind));
+    }
 }
