@@ -1089,6 +1089,115 @@
               ]
             }
           ]
+        },
+        {
+          "name": "GenericParameter",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "name",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "TypeParameter",
+          "base": "GenericParameter",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "name",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ConstantParameter",
+          "base": "GenericParameter",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "attributes",
+              "type": "AttributeList",
+              "shape": "list"
+            },
+            {
+              "$type": "item",
+              "name": "const_keyword",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "ConstKeywordToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "name",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "IdentifierToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "type",
+              "type": "TypeSpecifier",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "GenericParameterList",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "less_than",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "LessToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "parameters",
+              "type": "GenericParameter",
+              "shape": "separated_list",
+              "separators": [
+                "CommaToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "greater_than",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "GreaterToken"
+              ]
+            }
+          ]
         }
       ]
     },
@@ -2435,6 +2544,12 @@
               "kinds": [
                 "IdentifierToken"
               ]
+            },
+            {
+              "$type": "item",
+              "name": "generic_parameters",
+              "type": "GenericParameterList",
+              "shape": "optional"
             },
             {
               "$type": "item",

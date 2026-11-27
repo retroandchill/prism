@@ -38,6 +38,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         IsAttributeTerminator = 1 << 2,
         IsPossibleMemberStartOrStop = 1 << 3,
         IsEndOfParameterList = 1 << 4,
+        IsEndOfGenericParameterList = 1 << 5,
     }
 
     private const int LastTerminatorState = (int)TerminatorState.IsEndOfParameterList;
@@ -192,6 +193,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 case TerminatorState.IsAttributeTerminator when IsAttributeTerminator():
                 case TerminatorState.IsPossibleMemberStartOrStop when IsPossibleMemberStartOrStop():
                 case TerminatorState.IsEndOfParameterList when IsEndOfParameterList():
+                case TerminatorState.IsEndOfGenericParameterList when IsEndOfGenericParameterList():
                     return true;
             }
         }
@@ -619,6 +621,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     {
         var funcKeyword = ExpectToken(SyntaxKind.FuncKeyword);
         var name = ExpectToken(SyntaxKind.IdentifierToken);
+        var genericParameters = TryParseGenericParameterList();
         var parameters = ParseParameterList();
         var refQualifier = ParseRefQualifier();
         var returnType = ParseTypeSpecifier();
@@ -643,6 +646,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             modifiers,
             funcKeyword,
             name,
+            genericParameters,
             parameters,
             refQualifier,
             returnType,
@@ -650,6 +654,103 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             expressionBody,
             semicolon
         );
+    }
+
+    private GreenGenericParameterList ParseGenericParameterList()
+    {
+        var open = ExpectToken(SyntaxKind.LessToken);
+
+        GreenSeparatedList<GreenGenericParameter> parameters;
+        using (EnterTerminatorStateScope(TerminatorState.IsEndOfGenericParameterList))
+        {
+            parameters = ParseCommaSeparatedSyntaxList(
+                ref open,
+                SyntaxKind.CloseParenToken,
+                static @this => @this.IsPossibleGenericParameter(),
+                static @this => @this.ParseGenericParameter(),
+                SkipBadGenericParameterListTokens,
+                allowTrailingSeparator: false,
+                requireOneElement: false,
+                allowSemicolonAsSeparator: false
+            );
+        }
+
+        return new GreenGenericParameterList(
+            open,
+            parameters,
+            ExpectToken(SyntaxKind.GreaterToken)
+        );
+
+        static PostSkipAction SkipBadGenericParameterListTokens(
+            LanguageParser @this,
+            ref GreenToken open,
+            GreenSeparatedList<GreenGenericParameter>.Builder list,
+            SyntaxKind expectedKind,
+            ReadOnlySpan<SyntaxKind> closeKinds
+        )
+        {
+            return @this.SkipBadSeparatedListTokensWithExpectedKind(
+                ref open,
+                list,
+                static p =>
+                    p.CurrentToken.Kind != SyntaxKind.CommaToken && !p.IsPossibleGenericParameter(),
+                static (p, closeKinds) => closeKinds.Contains(p.CurrentToken.Kind),
+                expectedKind,
+                closeKinds
+            );
+        }
+    }
+
+    private GreenGenericParameterList? TryParseGenericParameterList()
+    {
+        return CurrentToken.Kind == SyntaxKind.LessToken ? ParseGenericParameterList() : null;
+    }
+
+    private bool IsEndOfGenericParameterList()
+    {
+        return CurrentToken.Kind
+            is SyntaxKind.OpenParenToken
+                or SyntaxKind.ColonToken
+                or SyntaxKind.OpenBraceToken;
+    }
+
+    private bool IsPossibleGenericParameter()
+    {
+        return CurrentToken.Kind switch
+        {
+            SyntaxKind.OpenBracketToken or SyntaxKind.ConstKeyword => true,
+            SyntaxKind.IdentifierToken => IsTrueIdentifier(),
+            _ => false,
+        };
+    }
+
+    private GreenGenericParameter ParseGenericParameter()
+    {
+        var attributes = ParseAttributes();
+
+        if (CurrentToken.Kind == SyntaxKind.ConstKeyword)
+        {
+            return ParseConstGenericParameter(attributes);
+        }
+
+        return ParseTypeParameter(attributes);
+    }
+
+    private GreenConstantParameter ParseConstGenericParameter(
+        GreenSyntaxList<GreenAttributeList> attributes
+    )
+    {
+        return new GreenConstantParameter(
+            attributes,
+            ExpectToken(SyntaxKind.ConstKeyword),
+            ExpectToken(SyntaxKind.IdentifierToken),
+            ParseRequiredTypeSpecifier()
+        );
+    }
+
+    private GreenTypeParameter ParseTypeParameter(GreenSyntaxList<GreenAttributeList> attributes)
+    {
+        return new GreenTypeParameter(attributes, ExpectToken(SyntaxKind.IdentifierToken));
     }
 
     private GreenConstructorDeclaration ParseConstructorDeclaration(
