@@ -124,7 +124,6 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
     private readonly record struct ScanGenericListResult(
         ScanGenericKind Kind,
-        GreenToken? GreaterThanToken,
         bool DefinitelyTypeArgumentList
     );
 
@@ -2450,8 +2449,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             return ScanGenericArgumentListResult.DefinitelyYes;
         }
 
-        var (kind, greaterThanToken, isDefinitelyTypeArgumentList) =
-            ScanPossibleGenericArgumentList();
+        var (kind, isDefinitelyTypeArgumentList) = ScanPossibleGenericArgumentList();
         if (kind == ScanGenericKind.NotValid)
         {
             return ScanGenericArgumentListResult.DefinitelyNo;
@@ -2461,8 +2459,6 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         {
             return ScanGenericArgumentListResult.DefinitelyYes;
         }
-
-        Debug.Assert(greaterThanToken is { Kind: SyntaxKind.GreaterToken });
 
         return CurrentToken.Kind switch
         {
@@ -2535,11 +2531,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
             if (CurrentToken.Kind == SyntaxKind.GreaterToken)
             {
-                return new ScanGenericListResult(
-                    kind,
-                    ConsumeToken(),
-                    isDefinitelyTypeArgumentList
-                );
+                return new ScanGenericListResult(kind, isDefinitelyTypeArgumentList);
             }
 
             if (CurrentToken.Kind == SyntaxKind.CommaToken)
@@ -2547,11 +2539,11 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 continue;
             }
 
-            var (lastScannedGeneric, _) = ScanGenericArg();
+            var lastScannedGeneric = ScanGenericArg();
             switch (lastScannedGeneric)
             {
                 case ScanGenericKind.NotValid:
-                    return new ScanGenericListResult(kind, null, isDefinitelyTypeArgumentList);
+                    return new ScanGenericListResult(kind, isDefinitelyTypeArgumentList);
                 case ScanGenericKind.MustBeType:
                 case ScanGenericKind.ConstantExpression:
                     isDefinitelyTypeArgumentList =
@@ -2591,21 +2583,16 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         {
             if (CurrentToken.Kind is SyntaxKind.IdentifierToken)
             {
-                return new ScanGenericListResult(
-                    kind,
-                    ExpectToken(SyntaxKind.GreaterToken),
-                    isDefinitelyTypeArgumentList
-                );
+                return new ScanGenericListResult(kind, isDefinitelyTypeArgumentList);
             }
 
             return new ScanGenericListResult(
                 ScanGenericKind.NotValid,
-                null,
                 isDefinitelyTypeArgumentList
             );
         }
 
-        var greaterToken = ConsumeToken();
+        ConsumeToken();
 
         isDefinitelyTypeArgumentList =
             isDefinitelyTypeArgumentList || CurrentToken.Kind is SyntaxKind.CloseParenToken;
@@ -2614,24 +2601,26 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             kind = ScanGenericKind.GenericTypeOrFunction;
         }
 
-        return new ScanGenericListResult(kind, greaterToken, isDefinitelyTypeArgumentList);
+        return new ScanGenericListResult(kind, isDefinitelyTypeArgumentList);
     }
 
-    private (ScanGenericKind Kind, GreenToken? LastToken) ScanGenericArg()
+    private ScanGenericKind ScanGenericArg()
     {
         if (CurrentToken.Kind.IsLiteral)
         {
-            return (ScanGenericKind.ConstantExpression, ConsumeToken());
+            ConsumeToken();
+            return ScanGenericKind.ConstantExpression;
         }
 
         if (CurrentToken.Kind is SyntaxKind.MinusToken && PeekToken(1).Kind.IsNumericLiteral)
         {
             ConsumeToken();
-            return (ScanGenericKind.ConstantExpression, ConsumeToken());
+            ConsumeToken();
+            return ScanGenericKind.ConstantExpression;
         }
 
         if (
-            CurrentToken.Kind is not SyntaxKind.ExprKeyword
+            CurrentToken.ContextualKind is not SyntaxKind.ExprKeyword
             || PeekToken(1).Kind is SyntaxKind.CommaToken or SyntaxKind.GreaterToken
         )
         {
@@ -2639,88 +2628,59 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         }
 
         ConsumeToken();
-        return (ScanGenericKind.ConstantExpression, ScanGenericExpression());
-    }
+        ScanGenericExpression();
+        return ScanGenericKind.ConstantExpression;
 
-    private GreenToken? ScanGenericExpression()
-    {
-        var parenDepth = 0;
-        var bracketDepth = 0;
-        var braceDepth = 0;
-        GreenToken? lastToken = null;
-        while (true)
+        void ScanGenericExpression()
         {
-            switch (CurrentToken.Kind)
+            var parenDepth = 0;
+            while (true)
             {
-                case SyntaxKind.CommaToken or SyntaxKind.GreaterToken when parenDepth == 0:
-                    return lastToken;
-                case SyntaxKind.OpenParenToken:
-                    parenDepth++;
-                    break;
-                case SyntaxKind.OpenBracketToken:
-                    bracketDepth++;
-                    break;
-                case SyntaxKind.CloseBracketToken:
-                    // If we see a close bracket this may mean we broke out of a nested context
-                    if (AtEndOfConstantExpression())
-                    {
-                        return lastToken;
-                    }
+                switch (CurrentToken.Kind)
+                {
+                    case SyntaxKind.CommaToken or SyntaxKind.GreaterToken when parenDepth == 0:
+                        return;
+                    case SyntaxKind.OpenParenToken:
+                        parenDepth++;
+                        break;
+                    case SyntaxKind.CloseParenToken:
+                        // If we see a close parenthesis this may mean we broke out of a nested context
+                        if (parenDepth == 0)
+                        {
+                            return;
+                        }
 
-                    bracketDepth = Math.Max(bracketDepth - 1, 0);
-                    break;
-                case SyntaxKind.CloseParenToken:
-                    // If we see a close parenthesis this may mean we broke out of a nested context
-                    if (AtEndOfConstantExpression())
-                    {
-                        return lastToken;
-                    }
+                        parenDepth--;
+                        break;
+                }
 
-                    parenDepth = Math.Max(parenDepth - 1, 0);
-                    break;
-                case SyntaxKind.OpenBraceToken:
-                    braceDepth++;
-                    break;
-                case SyntaxKind.CloseBraceToken:
-                    // If we see a close brace this may mean we broke out of a nested context
-                    if (AtEndOfConstantExpression())
-                    {
-                        return lastToken;
-                    }
-                    braceDepth = Math.Max(braceDepth - 1, 0);
-                    break;
+                ConsumeToken();
             }
-
-            lastToken = ConsumeToken();
-        }
-
-        bool AtEndOfConstantExpression()
-        {
-            return braceDepth == 0 && bracketDepth == 0 && parenDepth == 0;
         }
     }
 
-    private (ScanGenericKind Kind, GreenToken? LastToken) ScanTypeArgument()
+    private ScanGenericKind ScanTypeArgument()
     {
-        (ScanGenericKind Kind, GreenToken? LastToken) result = default;
+        ScanGenericKind result = default;
 
         if (CurrentToken.Kind is SyntaxKind.IdentifierToken)
         {
             result = ScanNamedTypePart();
-            if (result.Kind == ScanGenericKind.NotValid)
+            if (result == ScanGenericKind.NotValid)
                 return result;
 
             while (CurrentToken.Kind is SyntaxKind.DoubleColonToken)
             {
                 ConsumeToken();
                 result = ScanNamedTypePart();
-                if (result.Kind == ScanGenericKind.NotValid)
+                if (result == ScanGenericKind.NotValid)
                     return result;
             }
         }
         else if (CurrentToken.Kind.IsBuiltInType)
         {
-            return (ScanGenericKind.MustBeType, ConsumeToken());
+            ConsumeToken();
+            return ScanGenericKind.MustBeType;
         }
 
         var lastTokenPosition = -1;
@@ -2730,41 +2690,43 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             switch (CurrentToken.Kind)
             {
                 case SyntaxKind.QuestionToken:
-                    result = (ScanGenericKind.MustBeType, ConsumeToken());
+                    ConsumeToken();
+                    result = ScanGenericKind.MustBeType;
                     break;
                 case SyntaxKind.MutableKeyword when PeekToken(1).Kind is SyntaxKind.AmpToken:
                     ConsumeToken();
-                    result = (ScanGenericKind.MustBeType, ConsumeToken());
+                    ConsumeToken();
+                    result = ScanGenericKind.MustBeType;
                     break;
                 case SyntaxKind.AmpToken:
-                    result = result.Kind switch
+                    switch (result)
                     {
-                        ScanGenericKind.GenericTypeOrExpression
-                        or ScanGenericKind.NonGenericTypeOrExpression => (
-                            ScanGenericKind.ReferenceOrAnd,
-                            ConsumeToken()
-                        ),
-                        ScanGenericKind.GenericTypeOrFunction => (
-                            ScanGenericKind.MustBeType,
-                            ConsumeToken()
-                        ),
-                        _ => result,
-                    };
+                        case ScanGenericKind.GenericTypeOrExpression
+                        or ScanGenericKind.NonGenericTypeOrExpression:
+                            ConsumeToken();
+                            result = ScanGenericKind.ReferenceOrAnd;
+                            break;
+                        case ScanGenericKind.GenericTypeOrFunction:
+                            ConsumeToken();
+                            result = ScanGenericKind.MustBeType;
+                            break;
+                    }
+
                     break;
 
                 case SyntaxKind.OpenBracketToken:
                     ConsumeToken();
                     if (CurrentToken.Kind != SyntaxKind.CloseBracketToken)
                     {
-                        ScanGenericExpression();
+                        ScanArraySizeExpression();
                     }
 
                     if (CurrentToken.Kind != SyntaxKind.CloseBracketToken)
                     {
-                        return (ScanGenericKind.NotValid, null);
+                        return ScanGenericKind.NotValid;
                     }
 
-                    result = (ScanGenericKind.MustBeType, ScanGenericExpression());
+                    result = ScanGenericKind.MustBeType;
                     break;
                 default:
                     break loop;
@@ -2772,20 +2734,47 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         }
 
         return result;
+
+        void ScanArraySizeExpression()
+        {
+            var bracketDepth = 0;
+            while (true)
+            {
+                switch (CurrentToken.Kind)
+                {
+                    case SyntaxKind.CommaToken or SyntaxKind.GreaterToken when bracketDepth == 0:
+                        return;
+                    case SyntaxKind.OpenBracketToken:
+                        bracketDepth++;
+                        break;
+                    case SyntaxKind.CloseBracketToken:
+                        // If we see a close parenthesis this may mean we broke out of a nested context
+                        if (bracketDepth == 0)
+                        {
+                            return;
+                        }
+
+                        bracketDepth--;
+                        break;
+                }
+
+                ConsumeToken();
+            }
+        }
     }
 
-    private (ScanGenericKind Kind, GreenToken? LastToken) ScanNamedTypePart()
+    private ScanGenericKind ScanNamedTypePart()
     {
         if (CurrentToken.Kind != SyntaxKind.IdentifierToken || !IsTrueIdentifier())
         {
-            return (ScanGenericKind.NotValid, null);
+            return ScanGenericKind.NotValid;
         }
 
-        var lastToken = ConsumeToken();
+        ConsumeToken();
         if (CurrentToken.Kind != SyntaxKind.LessToken)
-            return (ScanGenericKind.NonGenericTypeOrExpression, lastToken);
-        var (kind, token, _) = ScanPossibleGenericArgumentList();
-        return (kind, token);
+            return ScanGenericKind.NonGenericTypeOrExpression;
+        var (kind, _) = ScanPossibleGenericArgumentList();
+        return kind;
     }
 
     private GreenGenericArgumentList ParseGenericArgumentList()
@@ -2873,13 +2862,19 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     {
         return IsPossibleType()
             || CurrentToken.Kind.IsLiteral
-            || (CurrentToken.Kind == SyntaxKind.MinusToken && PeekToken(1).Kind.IsNumericLiteral)
+            || (
+                CurrentToken.Kind is SyntaxKind.MinusToken or SyntaxKind.PlusToken
+                && PeekToken(1).Kind.IsNumericLiteral
+            )
             || CurrentToken.ContextualKind == SyntaxKind.ExprKeyword;
     }
 
     private GreenGenericArgument ParseGenericArgument()
     {
-        if (CurrentToken.Kind.IsLiteral || CurrentToken.Kind == SyntaxKind.MinusToken)
+        if (
+            CurrentToken.Kind.IsLiteral
+            || CurrentToken.Kind is SyntaxKind.MinusToken or SyntaxKind.PlusToken
+        )
         {
             return new GreenExpressionArgument(null, ParseExpression());
         }
