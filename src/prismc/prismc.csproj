@@ -10,12 +10,10 @@
       >$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
     <RootNamespace>Prism.Compiler</RootNamespace>
   </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Prism.Compiler.Host\Prism.Compiler.Host.csproj" />
     <ProjectReference Include="..\Prism.Compiler\Prism.Compiler.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="DotMake.CommandLine" />
     <PackageReference Include="System.CommandLine" />

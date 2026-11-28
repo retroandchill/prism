@@ -31,8 +31,7 @@ public class DiagnosticsSourceGenerator : IIncrementalGenerator
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         };
         var deserialized = JsonSerializer.Deserialize<DiagnosticsSpecification>(content, options);
-        var syntax =
-            deserialized
+        var syntax = deserialized
             ?? throw new InvalidOperationException("Failed to deserialize syntax specification");
         var builder = new DiagnosticModelBuilder();
         var resolvedModel = builder.Build(syntax);

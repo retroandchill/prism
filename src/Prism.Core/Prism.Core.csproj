@@ -1,26 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-    <PropertyGroup>
-        <TargetFramework>net11.0</TargetFramework>
-        <LangVersion>preview</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <RootNamespace>Prism</RootNamespace>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <InternalsVisibleTo Include="Prism.Compiler" />
-        <InternalsVisibleTo Include="Prism.Codegen" />
-        <InternalsVisibleTo Include="Prism.Syntax" />
-        <InternalsVisibleTo Include="Prism.Metadata" />
-        <InternalsVisibleTo Include="Prism.Semantic" />
-        <InternalsVisibleTo Include="Prism.BoundTree" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <PackageReference Include="MagicArchive" />
-      <PackageReference Include="NetEscapades.EnumGenerators" />
-      <PackageReference Include="ZString" />
-    </ItemGroup>
-
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Prism</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Prism.Compiler" />
+    <InternalsVisibleTo Include="Prism.Codegen" />
+    <InternalsVisibleTo Include="Prism.Syntax" />
+    <InternalsVisibleTo Include="Prism.Metadata" />
+    <InternalsVisibleTo Include="Prism.Semantic" />
+    <InternalsVisibleTo Include="Prism.BoundTree" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MagicArchive" />
+    <PackageReference Include="NetEscapades.EnumGenerators" />
+    <PackageReference Include="ZString" />
+  </ItemGroup>
 </Project>

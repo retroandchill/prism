@@ -31,8 +31,7 @@ public class StructuredNodesSourceGenerator : IIncrementalGenerator
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         };
         var deserialized = JsonSerializer.Deserialize<SyntaxSpecification>(content, options);
-        var syntax =
-            deserialized
+        var syntax = deserialized
             ?? throw new InvalidOperationException("Failed to deserialize syntax specification");
         var builder = new SyntaxModelBuilder();
         var resolvedModel = builder.Build(syntax);

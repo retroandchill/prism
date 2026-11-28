@@ -1,20 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-    <PropertyGroup>
-        <TargetFramework>net11.0</TargetFramework>
-        <LangVersion>preview</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\Prism.Compiler.Host\Prism.Compiler.Host.csproj" />
-      <ProjectReference Include="..\Prism.Compiler\Prism.Compiler.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <PackageReference Include="Semver" />
-      <PackageReference Include="Tomlyn" />
-    </ItemGroup>
-
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Prism.Compiler.Host\Prism.Compiler.Host.csproj" />
+    <ProjectReference Include="..\Prism.Compiler\Prism.Compiler.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Semver" />
+    <PackageReference Include="Tomlyn" />
+  </ItemGroup>
 </Project>

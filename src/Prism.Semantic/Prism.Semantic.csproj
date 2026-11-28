@@ -1,25 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-    <PropertyGroup>
-        <TargetFramework>net11.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\Prism.Constants\Prism.Constants.csproj" />
-      <ProjectReference Include="..\Prism.Core\Prism.Core.csproj" />
-      <ProjectReference Include="..\Prism.Utils\Prism.Utils.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <InternalsVisibleTo Include="Prism.BoundTree" />
-        <InternalsVisibleTo Include="Prism.Compiler" />
-        <InternalsVisibleTo Include="Prism.Codegen" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <PackageReference Include="Riok.Mapperly" />
-    </ItemGroup>
-
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Prism.Constants\Prism.Constants.csproj" />
+    <ProjectReference Include="..\Prism.Core\Prism.Core.csproj" />
+    <ProjectReference Include="..\Prism.Utils\Prism.Utils.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Prism.BoundTree" />
+    <InternalsVisibleTo Include="Prism.Compiler" />
+    <InternalsVisibleTo Include="Prism.Codegen" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Riok.Mapperly" />
+  </ItemGroup>
 </Project>

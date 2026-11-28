@@ -47,12 +47,14 @@ public readonly record struct Place(PlaceBase Base, ImmutableArray<PlaceProjecti
 
     public override string ToString()
     {
-        return Projections.Aggregate(Base.ToString(), (current, projection) => projection switch
+        return Projections.Aggregate(Base.ToString(), (current, projection) =>
+            projection switch
             {
                 FieldProjection(var field) => $"{current}.{field.Name}",
                 IndexProjection(var index, _) => $"{current}[{index}]",
                 DereferenceProjection => $"*({current})",
                 PayloadProjection => $"{current}.<payload>",
-            });
+            }
+        );
     }
 }

@@ -7,7 +7,6 @@
     <IsRoslynComponent>true</IsRoslynComponent>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Humanizer" GeneratePathProperty="true" />
     <PackageReference Include="Humanizer.Core" GeneratePathProperty="true" />
@@ -25,7 +24,6 @@
     <PackageReference Include="ZLinq" GeneratePathProperty="true" />
     <PackageReference Include="ZString" GeneratePathProperty="true" />
   </ItemGroup>
-
   <PropertyGroup>
     <GetTargetPathDependsOn>$(GetTargetPathDependsOn);GetDependencyTargetPaths</GetTargetPathDependsOn>
   </PropertyGroup>
@@ -65,13 +63,13 @@
       />
       <ReferenceCopyLocalPaths Include="$(PkgMicrosoft_Bcl_Memory)\lib\netstandard2.0\Microsoft.Bcl.Memory.dll" />
     </ItemGroup>
-      <ItemGroup>
-          <TargetPathWithTargetPlatformMoniker
-                  Include="$(PkgRiok_Mapperly)\lib\netstandard2.0\Riok.Mapperly.Abstractions.dll"
-                  IncludeRuntimeDependency="false"
-          />
-          <ReferenceCopyLocalPaths Include="$(PkgRiok_Mapperly)\lib\netstandard2.0\Riok.Mapperly.Abstractions.dll" />
-      </ItemGroup>
+    <ItemGroup>
+      <TargetPathWithTargetPlatformMoniker
+        Include="$(PkgRiok_Mapperly)\lib\netstandard2.0\Riok.Mapperly.Abstractions.dll"
+        IncludeRuntimeDependency="false"
+      />
+      <ReferenceCopyLocalPaths Include="$(PkgRiok_Mapperly)\lib\netstandard2.0\Riok.Mapperly.Abstractions.dll" />
+    </ItemGroup>
   </Target>
   <ItemGroup>
     <None
@@ -104,12 +102,12 @@
       PackagePath="analyzers/roslyn$(ROSLYN_VERSION)/dotnet/cs"
       Visible="false"
     />
-      <None
-              Include="$(PkgRiok_Mapperly)\lib\netstandard2.0\Riok.Mapperly.Abstractions.dll"
-              Pack="true"
-              PackagePath="analyzers/roslyn$(ROSLYN_VERSION)/dotnet/cs"
-              Visible="false"
-      />
+    <None
+      Include="$(PkgRiok_Mapperly)\lib\netstandard2.0\Riok.Mapperly.Abstractions.dll"
+      Pack="true"
+      PackagePath="analyzers/roslyn$(ROSLYN_VERSION)/dotnet/cs"
+      Visible="false"
+    />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Prism.Metadata\HandleAttribute.cs">

@@ -1,23 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-    <PropertyGroup>
-        <TargetFramework>net11.0</TargetFramework>
-        <LangVersion>preview</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
-
-    <ItemGroup>
-      <PackageReference Include="MagicArchive" />
-      <PackageReference Include="NetEscapades.EnumGenerators" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <InternalsVisibleTo Include="Prism.Metadata" />
-        <InternalsVisibleTo Include="Prism.Mir" />
-        <InternalsVisibleTo Include="Prism.Semantic" />
-        <InternalsVisibleTo Include="Prism.Compiler" />
-        <InternalsVisibleTo Include="Prism.Codegen" />
-    </ItemGroup>
-
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MagicArchive" />
+    <PackageReference Include="NetEscapades.EnumGenerators" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Prism.Metadata" />
+    <InternalsVisibleTo Include="Prism.Mir" />
+    <InternalsVisibleTo Include="Prism.Semantic" />
+    <InternalsVisibleTo Include="Prism.Compiler" />
+    <InternalsVisibleTo Include="Prism.Codegen" />
+  </ItemGroup>
 </Project>

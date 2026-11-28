@@ -1,25 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-    <PropertyGroup>
-        <TargetFramework>net11.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    </PropertyGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\Prism.Compiler\Prism.Compiler.csproj" />
-      <ProjectReference Include="..\Prism.Mir\Prism.Mir.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <PackageReference Include="Riok.Mapperly" />
-      <PackageReference Include="Utf8StringInterpolation" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <InternalsVisibleTo Include="Prism.Compiler.Host" />
-        <InternalsVisibleTo Include="Prism.Tests" />
-    </ItemGroup>
-
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Prism.Compiler\Prism.Compiler.csproj" />
+    <ProjectReference Include="..\Prism.Mir\Prism.Mir.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Riok.Mapperly" />
+    <PackageReference Include="Utf8StringInterpolation" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Prism.Compiler.Host" />
+    <InternalsVisibleTo Include="Prism.Tests" />
+  </ItemGroup>
 </Project>

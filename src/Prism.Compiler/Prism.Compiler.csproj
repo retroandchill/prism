@@ -9,11 +9,10 @@
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''"
       >$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" />
     <PackageReference Include="LLVMSharp" />
-    <PackageReference Include="MagicArchive"/>
+    <PackageReference Include="MagicArchive" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.ObjectPool" />
@@ -34,13 +33,11 @@
     <PackageReference Include="ZLinq" />
     <PackageReference Include="ZString" />
   </ItemGroup>
-
   <ItemGroup>
     <InternalsVisibleTo Include="Prism.Codegen" />
-      <InternalsVisibleTo Include="Prism.Compiler.Host" />
+    <InternalsVisibleTo Include="Prism.Compiler.Host" />
     <InternalsVisibleTo Include="Prism.Tests" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Prism.Abi\Prism.Abi.csproj" />
     <ProjectReference Include="..\Prism.BoundTree\Prism.BoundTree.csproj" />

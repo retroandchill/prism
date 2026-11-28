@@ -6,7 +6,6 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
@@ -21,11 +20,9 @@
     <PackageReference Include="NUnit3TestAdapter" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.TestingHelpers" />
   </ItemGroup>
-
   <ItemGroup>
     <Using Include="NUnit.Framework" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\..\src\Prism.Codegen\Prism.Codegen.csproj" />
     <ProjectReference Include="..\..\src\Prism.Compiler.Host\Prism.Compiler.Host.csproj" />
