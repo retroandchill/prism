@@ -43,7 +43,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         IsEndOfGenericParameterList = 1 << 6,
     }
 
-    private const int LastTerminatorState = (int)TerminatorState.IsEndOfParameterList;
+    private const int LastTerminatorState = (int)TerminatorState.IsEndOfGenericParameterList;
 
     private readonly ref struct TerminatorStateScope(
         LanguageParser parser,
@@ -264,6 +264,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                 case TerminatorState.IsAttributeTerminator when IsAttributeTerminator():
                 case TerminatorState.IsPossibleMemberStartOrStop when IsPossibleMemberStartOrStop():
                 case TerminatorState.IsEndOfParameterList when IsEndOfParameterList():
+                case TerminatorState.IsEndOfGenericArgumentList when IsEndOfGenericArgumentList():
                 case TerminatorState.IsEndOfGenericParameterList when IsEndOfGenericParameterList():
                     return true;
             }
@@ -736,7 +737,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         {
             parameters = ParseCommaSeparatedSyntaxList(
                 ref open,
-                SyntaxKind.CloseParenToken,
+                SyntaxKind.GreaterToken,
                 static @this => @this.IsPossibleGenericParameter(),
                 static @this => @this.ParseGenericParameter(),
                 SkipBadGenericParameterListTokens,
@@ -1490,7 +1491,8 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     {
         var next = CurrentToken;
         var precedence = next.Kind.OperatorPrecedence;
-        while (precedence >= minPrecedence)
+        var lastIndex = -1;
+        while (precedence >= minPrecedence && IsMakingProgress(ref lastIndex) && !IsTerminator())
         {
             if (next.Kind == SyntaxKind.QuestionToken)
             {
@@ -1698,7 +1700,9 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     {
         var expression = ParsePrimaryExpression();
 
-        while (true)
+        var index = -1;
+        loop:
+        while (IsMakingProgress(ref index) && !IsTerminator())
         {
             var kind = CurrentToken.Kind;
             switch (kind)
@@ -1725,9 +1729,11 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                     );
                     break;
                 default:
-                    return expression;
+                    break loop;
             }
         }
+
+        return expression;
     }
 
     private GreenSizeOfExpression ParseSizeOfExpression()
@@ -2410,6 +2416,11 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         );
     }
 
+    private bool IsEndOfGenericArgumentList()
+    {
+        return CurrentToken.Kind == SyntaxKind.GreaterToken;
+    }
+
     private GreenGenericArgumentList? ParseGenericArguments(NameOptions options)
     {
         if (CurrentToken.Kind != SyntaxKind.LessToken)
@@ -2612,7 +2623,10 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             return ScanGenericKind.ConstantExpression;
         }
 
-        if (CurrentToken.Kind is SyntaxKind.MinusToken && PeekToken(1).Kind.IsNumericLiteral)
+        if (
+            CurrentToken.Kind is SyntaxKind.MinusToken or SyntaxKind.PlusToken
+            && PeekToken(1).Kind.IsNumericLiteral
+        )
         {
             ConsumeToken();
             ConsumeToken();
@@ -2726,6 +2740,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                         return ScanGenericKind.NotValid;
                     }
 
+                    ConsumeToken();
                     result = ScanGenericKind.MustBeType;
                     break;
                 default:
@@ -2782,6 +2797,9 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         var open = ExpectToken(SyntaxKind.LessToken);
 
         var builder = GreenSeparatedList.CreateBuilder<GreenGenericArgument>();
+        using var scope = EnterTerminatorStateScope(TerminatorState.IsEndOfGenericArgumentList);
+
+        builder.AddItem(ParseGenericArgument());
         while (true)
         {
             if (CurrentToken.Kind == SyntaxKind.GreaterToken)
@@ -2876,7 +2894,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             || CurrentToken.Kind is SyntaxKind.MinusToken or SyntaxKind.PlusToken
         )
         {
-            return new GreenExpressionArgument(null, ParseExpression());
+            return new GreenExpressionArgument(null, ParsePrimaryExpression());
         }
 
         if (CurrentToken.ContextualKind == SyntaxKind.ExprKeyword)
