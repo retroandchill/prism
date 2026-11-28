@@ -119,10 +119,10 @@ internal abstract class SyntaxParser(string text)
             return Unsafe.As<T>(AddSkippedSyntax(token, skippedSyntax, true));
         }
 
-        var firstToken = node.FirstToken;
-        Debug.Assert(firstToken is not null);
-        firstToken = AddSkippedSyntax(firstToken, skippedSyntax, true);
-        return (T)TokenReplacer.ReplaceLastToken(node, firstToken);
+        var lastToken = node.LastToken;
+        Debug.Assert(lastToken is not null);
+        lastToken = AddSkippedSyntax(lastToken, skippedSyntax, true);
+        return (T)TokenReplacer.ReplaceLastToken(node, lastToken);
     }
 
     protected static void AddTrailingSkippedSyntax<T>(

@@ -27,6 +27,7 @@
 
     <ItemGroup>
       <PackageReference Include="Nito.Collections.Deque" />
+      <PackageReference Include="Singulink.Enums" />
     </ItemGroup>
 
 </Project>

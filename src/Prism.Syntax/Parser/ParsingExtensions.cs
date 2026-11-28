@@ -14,6 +14,19 @@ internal static class ParsingExtensions
                     or SyntaxKind.PrivateKeyword
                     or SyntaxKind.StaticKeyword;
 
+        public bool IsLiteral =>
+            kind
+                is SyntaxKind.NullKeyword
+                    or SyntaxKind.TrueKeyword
+                    or SyntaxKind.FalseKeyword
+                    or SyntaxKind.IntegerLiteralToken
+                    or SyntaxKind.FloatingPointLiteralToken
+                    or SyntaxKind.CharacterLiteralToken
+                    or SyntaxKind.StringLiteralToken;
+
+        public bool IsNumericLiteral =>
+            kind is SyntaxKind.IntegerLiteralToken or SyntaxKind.FloatingPointLiteralToken;
+
         public bool IsMemberDeclarationStarter =>
             kind
                 is SyntaxKind.VarKeyword

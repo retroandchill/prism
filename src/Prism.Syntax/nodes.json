@@ -235,6 +235,11 @@
       {
         "name": "DefaultKeyword",
         "text": "default"
+      },
+      {
+        "name": "ExprKeyword",
+        "text": "expr",
+        "contextual": true
       }
     ],
     "punctuations": [
@@ -276,7 +281,8 @@
       },
       {
         "name": "AmpAmpToken",
-        "text": "&&"
+        "text": "&&",
+        "contextual": true
       },
       {
         "name": "AmpEqualToken",
@@ -700,6 +706,12 @@
               "kinds": [
                 "IdentifierToken"
               ]
+            },
+            {
+              "$type": "item",
+              "name": "generic_arguments",
+              "type": "GenericArgumentList",
+              "shape": "optional"
             }
           ]
         },
@@ -1183,6 +1195,87 @@
               "$type": "item",
               "name": "parameters",
               "type": "GenericParameter",
+              "shape": "separated_list",
+              "separators": [
+                "CommaToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "greater_than",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "GreaterToken"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "GenericArgument",
+          "properties": []
+        },
+        {
+          "name": "TypeArgument",
+          "base": "GenericArgument",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "type",
+              "type": "Type",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "ExpressionArgument",
+          "base": "GenericArgument",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "expr_keyword",
+              "type": "Token",
+              "shape": "optional",
+              "kinds": [
+                "ExprKeyword"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "expression",
+              "type": "Expression",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "IdentifierGenericArgument",
+          "base": "GenericArgument",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "name",
+              "type": "Name",
+              "shape": "single"
+            }
+          ]
+        },
+        {
+          "name": "GenericArgumentList",
+          "properties": [
+            {
+              "$type": "item",
+              "name": "less_than",
+              "type": "Token",
+              "shape": "single",
+              "kinds": [
+                "LessToken"
+              ]
+            },
+            {
+              "$type": "item",
+              "name": "arguments",
+              "type": "GenericArgument",
               "shape": "separated_list",
               "separators": [
                 "CommaToken"

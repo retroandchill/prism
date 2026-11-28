@@ -198,6 +198,8 @@ public static class CSharpEmitter
                 $"internal static {SyntaxKindClass}? MatchPunctuation(TextCursor cursor)"
             );
             using var block = writer.EnterBlockScope();
+            writer.WriteLine("var nextIndex = 1;");
+            writer.WriteLine("var current = cursor.Current;");
             writer.WriteTrie(trie);
             writer.WriteLine();
             writer.WriteLine("return null;");
@@ -210,15 +212,15 @@ public static class CSharpEmitter
                 case 1:
                 {
                     var (character, child) = node.Children.AsValueEnumerable().Single();
-                    writer.WriteLine($"if (cursor.Current == '{character}')");
+                    writer.WriteLine($"if (current == '{character}')");
                     using var block = writer.EnterBlockScope();
-                    writer.WriteLine("cursor.Advance();");
+                    writer.WriteLine("current = cursor.Peek(nextIndex++);");
                     writer.WriteTrie(child);
                     break;
                 }
                 case > 1:
                 {
-                    writer.WriteLine("switch (cursor.Current)");
+                    writer.WriteLine("switch (current)");
                     using var block = writer.EnterBlockScope();
                     // Sort by the key to ensure consistent output
                     foreach (
@@ -229,7 +231,7 @@ public static class CSharpEmitter
                     {
                         writer.WriteLine($"case '{character}':");
                         using var unmarkedBlock = writer.EnterIndentationScope();
-                        writer.WriteLine("cursor.Advance();");
+                        writer.WriteLine("current = cursor.Peek(nextIndex++);");
                         writer.WriteTrie(child);
                         if (child.Value is null)
                             writer.WriteLine("break;");
@@ -241,6 +243,8 @@ public static class CSharpEmitter
 
             if (node.Value is { } terminal)
             {
+                var name = terminal.DisplayName ?? terminal.Text ?? terminal.Name;
+                writer.WriteLine($"cursor.Advance({name.Length});");
                 writer.WriteLine($"return SyntaxKind.{terminal.Kind.CSharpName};");
             }
         }

@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using Prism.Diagnostics;
 using Prism.Syntax.Green;
 using Prism.Utils;
+using Singulink.Enums;
 
 namespace Prism.Syntax.Parser;
 
@@ -38,7 +39,8 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         IsAttributeTerminator = 1 << 2,
         IsPossibleMemberStartOrStop = 1 << 3,
         IsEndOfParameterList = 1 << 4,
-        IsEndOfGenericParameterList = 1 << 5,
+        IsEndOfGenericArgumentList = 1 << 5,
+        IsEndOfGenericParameterList = 1 << 6,
     }
 
     private const int LastTerminatorState = (int)TerminatorState.IsEndOfParameterList;
@@ -55,6 +57,76 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     }
 
     private TerminatorState _terminatorState = TerminatorState.EndOfFile;
+
+    [Flags]
+    private enum NameOptions
+    {
+        None = 0,
+        InExpression = 1 << 0,
+        InGenericArgumentList = 1 << 1,
+        PossiblePattern = 1 << 2,
+        AfterIs = 1 << 3,
+        DefinitePattern = 1 << 4,
+        AfterTupleComma = 1 << 5,
+        FirstElementOfPossibleTupleLiteral = 1 << 6,
+    }
+
+    private enum ScanGenericArgumentListResult : byte
+    {
+        DefinitelyNo,
+        MaybeYes,
+        DefinitelyYes,
+    }
+
+    private enum ScanGenericKind
+    {
+        /// <summary>
+        /// Definitely not a type
+        /// </summary>
+        NotValid,
+
+        /// <summary>
+        /// Is a literal or a complex expression preceeded by the expr keyword
+        /// </summary>
+        ConstantExpression,
+
+        /// <summary>
+        /// Definitely a type name: either via a predefined type name (i32, str, etc.) or an unsized array type
+        /// (ending with []), or a reference type (ending with mutable & or 3 or more &amp;s);
+        /// </summary>
+        MustBeType,
+
+        /// <summary>
+        /// Might be a generic (qualified) type name or a function name
+        /// </summary>
+        GenericTypeOrFunction,
+
+        /// <summary>
+        /// Might be a generic (qualified) type name or a function name
+        /// </summary>
+        GenericTypeOrExpression,
+
+        /// <summary>
+        /// Might be a non-generic type name or an expression
+        /// </summary>
+        NonGenericTypeOrExpression,
+
+        /// <summary>
+        /// Nullable type (ending with ?)
+        /// </summary>
+        NullableType,
+
+        /// <summary>
+        /// Might be a reference type or either a bitwise
+        /// </summary>
+        ReferenceOrAnd,
+    }
+
+    private readonly record struct ScanGenericListResult(
+        ScanGenericKind Kind,
+        GreenToken? GreaterThanToken,
+        bool DefinitelyTypeArgumentList
+    );
 
     private PostSkipAction SkipBadSeparatedListTokensWithExpectedKind<T, TNode>(
         ref T startToken,
@@ -1460,56 +1532,78 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
     private GreenToken ParseBinaryOperatorToken()
     {
         var token1 = ConsumeToken();
-        if (token1.Kind != SyntaxKind.GreaterToken)
-            return token1;
-
-        switch (CurrentToken)
+        return token1.Kind switch
         {
-            case { Kind: SyntaxKind.GreaterToken } token2 when NoTriviaBetween(token1, token2):
-                ConsumeToken();
-                switch (CurrentToken)
-                {
-                    case { Kind: SyntaxKind.GreaterToken } token3
-                        when NoTriviaBetween(token2, token3):
-                        ConsumeToken();
-                        switch (CurrentToken)
-                        {
-                            case { Kind: SyntaxKind.EqualToken } token4
-                                when NoTriviaBetween(token3, token4):
-                                ConsumeToken();
-                                return GreenToken
-                                    .From(SyntaxKind.GreaterGreaterGreaterEqualToken)
-                                    .RequireNonNull()
-                                    .Update(token1.LeadingTrivia, token4.TrailingTrivia);
-                            default:
-                                return GreenToken
-                                    .From(SyntaxKind.GreaterGreaterGreaterToken)
-                                    .RequireNonNull()
-                                    .Update(token1.LeadingTrivia, token2.TrailingTrivia);
-                        }
-                    case { Kind: SyntaxKind.EqualToken } token3
-                        when NoTriviaBetween(token2, token3):
-                        ConsumeToken();
-                        return GreenToken
-                            .From(SyntaxKind.GreaterGreaterEqualToken)
-                            .RequireNonNull()
-                            .Update(token1.LeadingTrivia, token3.TrailingTrivia);
-                    default:
-                        return GreenToken
-                            .From(SyntaxKind.GreaterGreaterToken)
-                            .RequireNonNull()
-                            .Update(token1.LeadingTrivia, token2.TrailingTrivia);
-                }
-            case { Kind: SyntaxKind.EqualToken } token2 when NoTriviaBetween(token1, token2):
+            SyntaxKind.GreaterToken => GetGreaterThanStartedToken(),
+            SyntaxKind.AmpToken => GetAmpStartedToken(),
+            _ => token1,
+        };
+
+        GreenToken GetGreaterThanStartedToken()
+        {
+            switch (CurrentToken)
             {
-                ConsumeToken();
-                return GreenToken
-                    .From(SyntaxKind.GreaterEqualToken)
-                    .RequireNonNull()
-                    .Update(token1.LeadingTrivia, token2.TrailingTrivia);
+                case { Kind: SyntaxKind.GreaterToken } token2 when NoTriviaBetween(token1, token2):
+                    ConsumeToken();
+                    switch (CurrentToken)
+                    {
+                        case { Kind: SyntaxKind.GreaterToken } token3
+                            when NoTriviaBetween(token2, token3):
+                            ConsumeToken();
+                            switch (CurrentToken)
+                            {
+                                case { Kind: SyntaxKind.EqualToken } token4
+                                    when NoTriviaBetween(token3, token4):
+                                    ConsumeToken();
+                                    return GreenToken
+                                        .From(SyntaxKind.GreaterGreaterGreaterEqualToken)
+                                        .RequireNonNull()
+                                        .Update(token1.LeadingTrivia, token4.TrailingTrivia);
+                                default:
+                                    return GreenToken
+                                        .From(SyntaxKind.GreaterGreaterGreaterToken)
+                                        .RequireNonNull()
+                                        .Update(token1.LeadingTrivia, token2.TrailingTrivia);
+                            }
+                        case { Kind: SyntaxKind.EqualToken } token3
+                            when NoTriviaBetween(token2, token3):
+                            ConsumeToken();
+                            return GreenToken
+                                .From(SyntaxKind.GreaterGreaterEqualToken)
+                                .RequireNonNull()
+                                .Update(token1.LeadingTrivia, token3.TrailingTrivia);
+                        default:
+                            return GreenToken
+                                .From(SyntaxKind.GreaterGreaterToken)
+                                .RequireNonNull()
+                                .Update(token1.LeadingTrivia, token2.TrailingTrivia);
+                    }
+                case { Kind: SyntaxKind.EqualToken } token2 when NoTriviaBetween(token1, token2):
+                {
+                    ConsumeToken();
+                    return GreenToken
+                        .From(SyntaxKind.GreaterEqualToken)
+                        .RequireNonNull()
+                        .Update(token1.LeadingTrivia, token2.TrailingTrivia);
+                }
+                default:
+                    return token1;
             }
-            default:
+        }
+
+        GreenToken GetAmpStartedToken()
+        {
+            if (
+                CurrentToken is not { Kind: SyntaxKind.AmpToken } token2
+                || !NoTriviaBetween(token1, token2)
+            )
                 return token1;
+
+            ConsumeToken();
+            return GreenToken
+                .From(SyntaxKind.AmpAmpToken)
+                .RequireNonNull()
+                .Update(token1.LeadingTrivia, token2.TrailingTrivia);
         }
     }
 
@@ -1551,7 +1645,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
 
     private GreenExpression ParseIdentifierWithInitializer()
     {
-        var name = ParseName();
+        var name = ParseName(NameOptions.InExpression);
 
         var arguments = CurrentToken.Kind == SyntaxKind.OpenParenToken ? ParseArgumentList() : null;
 
@@ -1620,7 +1714,7 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
                     expression = new GreenMemberAccessExpression(
                         expression,
                         ConsumeToken(),
-                        ParseSimpleName()
+                        ParseSimpleName(NameOptions.InExpression)
                     );
                     break;
                 case SyntaxKind.OpenBracketToken:
@@ -2237,9 +2331,9 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         return new GreenTypeSpecifier(ExpectToken(SyntaxKind.ColonToken), ParseType());
     }
 
-    private GreenType ParseType()
+    private GreenType ParseType(NameOptions options = NameOptions.None)
     {
-        var type = ParseBaseType();
+        var type = ParseBaseType(options);
 
         while (!AtEnd)
         {
@@ -2281,21 +2375,21 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
         return type;
     }
 
-    private GreenType ParseBaseType()
+    private GreenType ParseBaseType(NameOptions options = NameOptions.None)
     {
         return CurrentToken.Kind.IsBuiltInType
             ? new GreenPredefinedType(ConsumeToken())
-            : ParseNamedType();
+            : ParseNamedType(options);
     }
 
-    private GreenNamedType ParseNamedType()
+    private GreenNamedType ParseNamedType(NameOptions options = NameOptions.None)
     {
-        return new GreenNamedType(ParseName());
+        return new GreenNamedType(ParseName(options));
     }
 
-    private GreenName ParseName()
+    private GreenName ParseName(NameOptions options = NameOptions.None)
     {
-        GreenName name = ParseSimpleName();
+        GreenName name = ParseSimpleName(options);
 
         while (!AtEnd)
         {
@@ -2303,15 +2397,521 @@ internal sealed class LanguageParser(string text) : SyntaxParser(text)
             if (separator is null)
                 break;
 
-            name = new GreenQualifiedName(name, separator, ParseSimpleName());
+            name = new GreenQualifiedName(name, separator, ParseSimpleName(options));
         }
 
         return name;
     }
 
-    private GreenSimpleName ParseSimpleName()
+    private GreenSimpleName ParseSimpleName(NameOptions options)
     {
-        return new GreenSimpleName(ExpectToken(SyntaxKind.IdentifierToken));
+        return new GreenSimpleName(
+            ExpectToken(SyntaxKind.IdentifierToken),
+            ParseGenericArguments(options)
+        );
+    }
+
+    private GreenGenericArgumentList? ParseGenericArguments(NameOptions options)
+    {
+        if (CurrentToken.Kind != SyntaxKind.LessToken)
+            return null;
+
+        ScanGenericArgumentListResult scanResult;
+        using (new ResetPoint(this))
+        {
+            scanResult = ScanGenericArgumentList(options);
+        }
+
+        if (
+            scanResult != ScanGenericArgumentListResult.DefinitelyYes
+            && (
+                scanResult != ScanGenericArgumentListResult.MaybeYes
+                || !options.HasFlag(NameOptions.InGenericArgumentList)
+            )
+        )
+        {
+            return null;
+        }
+
+        Debug.Assert(CurrentToken.Kind == SyntaxKind.LessToken);
+        return ParseGenericArgumentList();
+    }
+
+    private ScanGenericArgumentListResult ScanGenericArgumentList(NameOptions options)
+    {
+        if (CurrentToken.Kind != SyntaxKind.LessToken)
+        {
+            return ScanGenericArgumentListResult.DefinitelyNo;
+        }
+
+        // We really only have ambiguity issues in an expression context
+        if (!options.HasFlag(NameOptions.InExpression))
+        {
+            return ScanGenericArgumentListResult.DefinitelyYes;
+        }
+
+        var (kind, greaterThanToken, isDefinitelyTypeArgumentList) =
+            ScanPossibleGenericArgumentList();
+        if (kind == ScanGenericKind.NotValid)
+        {
+            return ScanGenericArgumentListResult.DefinitelyNo;
+        }
+
+        if (isDefinitelyTypeArgumentList)
+        {
+            return ScanGenericArgumentListResult.DefinitelyYes;
+        }
+
+        Debug.Assert(greaterThanToken is { Kind: SyntaxKind.GreaterToken });
+
+        return CurrentToken.Kind switch
+        {
+            SyntaxKind.OpenParenToken
+            or SyntaxKind.CloseParenToken
+            or SyntaxKind.CloseBracketToken
+            or SyntaxKind.CloseBraceToken
+            or SyntaxKind.ColonToken
+            or SyntaxKind.SemicolonToken
+            or SyntaxKind.PeriodToken
+            or SyntaxKind.QuestionToken
+            or SyntaxKind.EqualEqualToken
+            or SyntaxKind.BangEqualToken
+            or SyntaxKind.PipeToken
+            or SyntaxKind.CaretToken
+            or SyntaxKind.AmpAmpToken // e is A<B> && e
+            or SyntaxKind.PipePipeToken // e is A<B> || e
+            or SyntaxKind.LessToken // e is A<B> < C
+            or SyntaxKind.LessEqualToken // e is A<B> <= C
+            or SyntaxKind.GreaterEqualToken // e is A<B> >= C
+            or SyntaxKind.AsKeyword // e is A<B> as C
+            or SyntaxKind.OpenBraceToken // A<B> { } (used for aggregate construction)
+            => ScanGenericArgumentListResult.DefinitelyYes,
+            SyntaxKind.AmpToken
+                when PeekToken(1).Kind
+                    == SyntaxKind.AmpToken // e is A<B> & e
+            => ScanGenericArgumentListResult.DefinitelyYes,
+            SyntaxKind.GreaterToken
+                when options.HasFlag(NameOptions.AfterIs)
+                    && PeekToken(1).Kind != SyntaxKind.GreaterToken =>
+            // The form `e is A<B> > C` is valid. We want to scan 1 more token ahead because it may collapse that
+            // into a right shift operator (>>) which creates an ambiguity.
+            ScanGenericArgumentListResult.DefinitelyYes,
+            SyntaxKind.IdentifierToken when IsPossiblePatternVariable() =>
+                ScanGenericArgumentListResult.DefinitelyYes,
+            SyntaxKind.IdentifierToken => ScanGenericArgumentListResult.MaybeYes,
+            SyntaxKind.EofToken =>
+            // Useful for parsing expressions in isolation
+            ScanGenericArgumentListResult.DefinitelyYes,
+            SyntaxKind.ArrowToken =>
+            // For switch expressions `e switch { A<B> => 1 }`
+            ScanGenericArgumentListResult.DefinitelyYes,
+            _ => ScanGenericArgumentListResult.MaybeYes,
+        };
+
+        bool IsPossiblePatternVariable()
+        {
+            return options.HasAnyFlag(NameOptions.AfterIs | NameOptions.DefinitePattern)
+                || (
+                    options.HasFlag(NameOptions.AfterTupleComma)
+                    && PeekToken(1).Kind is SyntaxKind.CommaToken or SyntaxKind.CloseParenToken
+                )
+                || (
+                    options.HasFlag(NameOptions.FirstElementOfPossibleTupleLiteral)
+                    && PeekToken(1).Kind is SyntaxKind.CommaToken
+                );
+        }
+    }
+
+    private ScanGenericListResult ScanPossibleGenericArgumentList()
+    {
+        var isDefinitelyTypeArgumentList = false;
+        Debug.Assert(CurrentToken.Kind == SyntaxKind.LessToken);
+
+        var kind = ScanGenericKind.GenericTypeOrExpression;
+
+        do
+        {
+            ConsumeToken();
+
+            if (CurrentToken.Kind == SyntaxKind.GreaterToken)
+            {
+                return new ScanGenericListResult(
+                    kind,
+                    ConsumeToken(),
+                    isDefinitelyTypeArgumentList
+                );
+            }
+
+            if (CurrentToken.Kind == SyntaxKind.CommaToken)
+            {
+                continue;
+            }
+
+            var (lastScannedGeneric, _) = ScanGenericArg();
+            switch (lastScannedGeneric)
+            {
+                case ScanGenericKind.NotValid:
+                    return new ScanGenericListResult(kind, null, isDefinitelyTypeArgumentList);
+                case ScanGenericKind.MustBeType:
+                case ScanGenericKind.ConstantExpression:
+                    isDefinitelyTypeArgumentList =
+                        isDefinitelyTypeArgumentList
+                        || CurrentToken.Kind is SyntaxKind.CommaToken or SyntaxKind.GreaterToken;
+                    kind = ScanGenericKind.GenericTypeOrFunction;
+                    break;
+
+                case ScanGenericKind.NullableType:
+                    isDefinitelyTypeArgumentList =
+                        isDefinitelyTypeArgumentList
+                        || CurrentToken.Kind is SyntaxKind.CommaToken or SyntaxKind.GreaterToken;
+                    if (isDefinitelyTypeArgumentList)
+                    {
+                        kind = ScanGenericKind.GenericTypeOrFunction;
+                    }
+
+                    // If we fall through we want to not set 'kind' to handle ternaries and null coallsesne
+                    break;
+                case ScanGenericKind.GenericTypeOrFunction:
+                    kind = ScanGenericKind.GenericTypeOrFunction;
+                    break;
+                case ScanGenericKind.GenericTypeOrExpression:
+                    if (!isDefinitelyTypeArgumentList)
+                    {
+                        isDefinitelyTypeArgumentList = CurrentToken.Kind == SyntaxKind.CommaToken;
+                        kind = ScanGenericKind.GenericTypeOrFunction;
+                    }
+                    break;
+                case ScanGenericKind.NonGenericTypeOrExpression:
+                    // Explicitly keeping this case despite the fact it does nothing.
+                    break;
+            }
+        } while (CurrentToken.Kind == SyntaxKind.CommaToken);
+
+        if (CurrentToken.Kind != SyntaxKind.GreaterToken)
+        {
+            if (CurrentToken.Kind is SyntaxKind.IdentifierToken)
+            {
+                return new ScanGenericListResult(
+                    kind,
+                    ExpectToken(SyntaxKind.GreaterToken),
+                    isDefinitelyTypeArgumentList
+                );
+            }
+
+            return new ScanGenericListResult(
+                ScanGenericKind.NotValid,
+                null,
+                isDefinitelyTypeArgumentList
+            );
+        }
+
+        var greaterToken = ConsumeToken();
+
+        isDefinitelyTypeArgumentList =
+            isDefinitelyTypeArgumentList || CurrentToken.Kind is SyntaxKind.CloseParenToken;
+        if (isDefinitelyTypeArgumentList)
+        {
+            kind = ScanGenericKind.GenericTypeOrFunction;
+        }
+
+        return new ScanGenericListResult(kind, greaterToken, isDefinitelyTypeArgumentList);
+    }
+
+    private (ScanGenericKind Kind, GreenToken? LastToken) ScanGenericArg()
+    {
+        if (CurrentToken.Kind.IsLiteral)
+        {
+            return (ScanGenericKind.ConstantExpression, ConsumeToken());
+        }
+
+        if (CurrentToken.Kind is SyntaxKind.MinusToken && PeekToken(1).Kind.IsNumericLiteral)
+        {
+            ConsumeToken();
+            return (ScanGenericKind.ConstantExpression, ConsumeToken());
+        }
+
+        if (
+            CurrentToken.Kind is not SyntaxKind.ExprKeyword
+            || PeekToken(1).Kind is SyntaxKind.CommaToken or SyntaxKind.GreaterToken
+        )
+        {
+            return ScanTypeArgument();
+        }
+
+        ConsumeToken();
+        return (ScanGenericKind.ConstantExpression, ScanGenericExpression());
+    }
+
+    private GreenToken? ScanGenericExpression()
+    {
+        var parenDepth = 0;
+        var bracketDepth = 0;
+        var braceDepth = 0;
+        GreenToken? lastToken = null;
+        while (true)
+        {
+            switch (CurrentToken.Kind)
+            {
+                case SyntaxKind.CommaToken or SyntaxKind.GreaterToken when parenDepth == 0:
+                    return lastToken;
+                case SyntaxKind.OpenParenToken:
+                    parenDepth++;
+                    break;
+                case SyntaxKind.OpenBracketToken:
+                    bracketDepth++;
+                    break;
+                case SyntaxKind.CloseBracketToken:
+                    // If we see a close bracket this may mean we broke out of a nested context
+                    if (AtEndOfConstantExpression())
+                    {
+                        return lastToken;
+                    }
+
+                    bracketDepth = Math.Max(bracketDepth - 1, 0);
+                    break;
+                case SyntaxKind.CloseParenToken:
+                    // If we see a close parenthesis this may mean we broke out of a nested context
+                    if (AtEndOfConstantExpression())
+                    {
+                        return lastToken;
+                    }
+
+                    parenDepth = Math.Max(parenDepth - 1, 0);
+                    break;
+                case SyntaxKind.OpenBraceToken:
+                    braceDepth++;
+                    break;
+                case SyntaxKind.CloseBraceToken:
+                    // If we see a close brace this may mean we broke out of a nested context
+                    if (AtEndOfConstantExpression())
+                    {
+                        return lastToken;
+                    }
+                    braceDepth = Math.Max(braceDepth - 1, 0);
+                    break;
+            }
+
+            lastToken = ConsumeToken();
+        }
+
+        bool AtEndOfConstantExpression()
+        {
+            return braceDepth == 0 && bracketDepth == 0 && parenDepth == 0;
+        }
+    }
+
+    private (ScanGenericKind Kind, GreenToken? LastToken) ScanTypeArgument()
+    {
+        (ScanGenericKind Kind, GreenToken? LastToken) result = default;
+
+        if (CurrentToken.Kind is SyntaxKind.IdentifierToken)
+        {
+            result = ScanNamedTypePart();
+            if (result.Kind == ScanGenericKind.NotValid)
+                return result;
+
+            while (CurrentToken.Kind is SyntaxKind.DoubleColonToken)
+            {
+                ConsumeToken();
+                result = ScanNamedTypePart();
+                if (result.Kind == ScanGenericKind.NotValid)
+                    return result;
+            }
+        }
+        else if (CurrentToken.Kind.IsBuiltInType)
+        {
+            return (ScanGenericKind.MustBeType, ConsumeToken());
+        }
+
+        var lastTokenPosition = -1;
+        loop:
+        while (IsMakingProgress(ref lastTokenPosition))
+        {
+            switch (CurrentToken.Kind)
+            {
+                case SyntaxKind.QuestionToken:
+                    result = (ScanGenericKind.MustBeType, ConsumeToken());
+                    break;
+                case SyntaxKind.MutableKeyword when PeekToken(1).Kind is SyntaxKind.AmpToken:
+                    ConsumeToken();
+                    result = (ScanGenericKind.MustBeType, ConsumeToken());
+                    break;
+                case SyntaxKind.AmpToken:
+                    result = result.Kind switch
+                    {
+                        ScanGenericKind.GenericTypeOrExpression
+                        or ScanGenericKind.NonGenericTypeOrExpression => (
+                            ScanGenericKind.ReferenceOrAnd,
+                            ConsumeToken()
+                        ),
+                        ScanGenericKind.GenericTypeOrFunction => (
+                            ScanGenericKind.MustBeType,
+                            ConsumeToken()
+                        ),
+                        _ => result,
+                    };
+                    break;
+
+                case SyntaxKind.OpenBracketToken:
+                    ConsumeToken();
+                    if (CurrentToken.Kind != SyntaxKind.CloseBracketToken)
+                    {
+                        ScanGenericExpression();
+                    }
+
+                    if (CurrentToken.Kind != SyntaxKind.CloseBracketToken)
+                    {
+                        return (ScanGenericKind.NotValid, null);
+                    }
+
+                    result = (ScanGenericKind.MustBeType, ScanGenericExpression());
+                    break;
+                default:
+                    break loop;
+            }
+        }
+
+        return result;
+    }
+
+    private (ScanGenericKind Kind, GreenToken? LastToken) ScanNamedTypePart()
+    {
+        if (CurrentToken.Kind != SyntaxKind.IdentifierToken || !IsTrueIdentifier())
+        {
+            return (ScanGenericKind.NotValid, null);
+        }
+
+        var lastToken = ConsumeToken();
+        if (CurrentToken.Kind != SyntaxKind.LessToken)
+            return (ScanGenericKind.NonGenericTypeOrExpression, lastToken);
+        var (kind, token, _) = ScanPossibleGenericArgumentList();
+        return (kind, token);
+    }
+
+    private GreenGenericArgumentList ParseGenericArgumentList()
+    {
+        var open = ExpectToken(SyntaxKind.LessToken);
+
+        var builder = GreenSeparatedList.CreateBuilder<GreenGenericArgument>();
+        while (true)
+        {
+            if (CurrentToken.Kind == SyntaxKind.GreaterToken)
+                break;
+
+            if (TokenBreaksArgumentList(CurrentToken))
+            {
+                break;
+            }
+
+            if (
+                CurrentToken.Kind is SyntaxKind.IdentifierToken
+                && TokenBreaksArgumentList(PeekToken(1))
+            )
+            {
+                break;
+            }
+
+            if (
+                CurrentToken.Kind is SyntaxKind.IdentifierToken
+                && PeekToken(1).Kind is SyntaxKind.CloseBracketToken
+            )
+            {
+                break;
+            }
+
+            if (CurrentToken.Kind == SyntaxKind.CommaToken || IsPossibleGenericArgument())
+            {
+                builder.AddSeparator(ExpectToken(SyntaxKind.CommaToken));
+                builder.AddItem(ParseGenericArgument());
+            }
+            else if (
+                SkipBadGenericArgumentListTokens(builder, SyntaxKind.CommaToken)
+                == PostSkipAction.Abort
+            )
+            {
+                break;
+            }
+        }
+
+        var close = ExpectToken(SyntaxKind.GreaterToken);
+
+        return new GreenGenericArgumentList(open, builder.BuildAndClear(), close);
+
+        static bool TokenBreaksArgumentList(GreenToken token)
+        {
+            return token.Kind
+                is SyntaxKind.OpenParenToken
+                    or SyntaxKind.LessToken
+                    or SyntaxKind.CloseParenToken
+                    or SyntaxKind.SemicolonToken
+                    or SyntaxKind.OpenBraceToken
+                    or SyntaxKind.CloseBraceToken
+                    or SyntaxKind.EqualToken
+                    or SyntaxKind.ArrowToken
+                    or SyntaxKind.ThisKeyword;
+        }
+    }
+
+    private PostSkipAction SkipBadGenericArgumentListTokens(
+        GreenSeparatedList<GreenGenericArgument>.Builder list,
+        SyntaxKind expectedKind
+    )
+    {
+        GreenToken temp = null!;
+        Debug.Assert(list.Count > 0);
+        return SkipBadSeparatedListTokensWithExpectedKind(
+            ref temp,
+            list,
+            static p =>
+                p.CurrentToken.Kind != SyntaxKind.CommaToken && !p.IsPossibleGenericArgument(),
+            static (p, _) => p.CurrentToken.Kind == SyntaxKind.GreaterToken,
+            expectedKind
+        );
+    }
+
+    private bool IsPossibleGenericArgument()
+    {
+        return IsPossibleType()
+            || CurrentToken.Kind.IsLiteral
+            || (CurrentToken.Kind == SyntaxKind.MinusToken && PeekToken(1).Kind.IsNumericLiteral)
+            || CurrentToken.ContextualKind == SyntaxKind.ExprKeyword;
+    }
+
+    private GreenGenericArgument ParseGenericArgument()
+    {
+        if (CurrentToken.Kind.IsLiteral || CurrentToken.Kind == SyntaxKind.MinusToken)
+        {
+            return new GreenExpressionArgument(null, ParseExpression());
+        }
+
+        if (CurrentToken.ContextualKind == SyntaxKind.ExprKeyword)
+        {
+            return new GreenExpressionArgument(
+                ReplaceWithContextualKeyword(ConsumeToken()),
+                ParseExpression()
+            );
+        }
+
+        var type = ParseType(NameOptions.InGenericArgumentList);
+        // If we have an unqualified generic name, then we may have either a type or a constant identitifer
+        if (
+            type is GreenNamedType { Identifier: var identifier }
+            && IsPossibleAmbiguousName(identifier)
+        )
+        {
+            return new GreenIdentifierGenericArgument(identifier);
+        }
+
+        return new GreenTypeArgument(type);
+
+        static bool IsPossibleAmbiguousName(GreenName name)
+        {
+            return name switch
+            {
+                GreenSimpleName simpleName => simpleName.GenericArguments is null,
+                GreenQualifiedName qualifiedName => qualifiedName.Right.GenericArguments is null,
+            };
+        }
     }
 
     private GreenInitializer? ParseInitializer()
